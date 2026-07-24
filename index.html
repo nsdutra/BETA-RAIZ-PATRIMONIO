@@ -6,9 +6,37 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.1.0
-   LINHAS: 11386
+   VERSÃO: Beta v1.2.0
+   LINHAS: 11434
    DATA: 2026-07-24
+   NOVIDADES (Beta v1.2.0) — ETAPA 1 (de-hardcoding profundo):
+     - "Ruyter" deixou de ser um literal espalhado por ~16 pontos do
+       código. Nova constante SOCIO_PADRAO = CONFIG_CLIENTE.socioPadrao
+       (default "Ruyter", preservando os dados já existentes da Rumo)
+       agora é a ÚNICA fonte da chave de divisão societária e do
+       rótulo "[Sócio] (Padrão)" no formulário de imóvel. Um cliente
+       novo troca 1 linha (CONFIG_CLIENTE.socioPadrao) e o sistema
+       nasce limpo, sem precisar editar nenhuma outra parte do código
+     - SOCIOS_CONHECIDOS (nomes completos usados para casar retiradas
+       via PIX no extrato bancário) e NOMES_SOCIOS_PERFIL (nomes curtos
+       do fluxo legado de solicitação de acesso) saíram de listas
+       fixas e agora vêm de CONFIG_CLIENTE.sociosConhecidos /
+       .nomesSociosPerfil — para a Rumo, mantidos com os dados reais
+       (preservando o recurso de conciliação); um cliente novo começa
+       com sociosConhecidos: [] e vai preenchendo
+     - Genericizado texto de exibição: "Energia Rumo" → "Energia" (5
+       ocorrências: rótulo do formulário, dica de texto, badge, texto
+       de disponibilidade); "gestão direta Rumo" → "gestão direta" (2
+       ocorrências, seletor de administradora). Nomes internos de campo
+       (imo.energiaRumo, a coluna da planilha) NÃO foram tocados — só o
+       texto que o usuário lê
+     - NÃO alterado nesta rodada (variáveis JS locais como
+       pctRuyterAtual, valorRuyter, inputRuyter): são só nomes internos
+       de variável, invisíveis ao usuário e aos dados — renomeá-las não
+       traz benefício e só aumenta risco de erro de digitação
+
+   --- HISTÓRICO ANTERIOR (Beta v1.1.0 — Etapa 1 identidade + Etapa 2 login) ---
+
    NOVIDADES (Beta v1.1.0) — ETAPA 1 (personalização) + ETAPA 2 (login):
 
    ETAPA 1 — Identidade do cliente em primeiro plano:
@@ -704,7 +732,7 @@
 
                         <div>
 
-                            <label class="block text-xs font-bold text-gray-600">Energia Rumo</label>
+                            <label class="block text-xs font-bold text-gray-600">Energia</label>
 
                             <select id="imo-energia-rumo" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
 
@@ -1022,7 +1050,7 @@
 
                         <input type="number" id="con-desconto-energia" value="0" class="w-full p-2 border rounded mt-1 text-sm">
 
-                        <p class="text-[10px] text-gray-400 mt-0.5">Auto se Energia Rumo.</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Auto se houver Energia.</p>
 
                     </div>
 
@@ -1094,7 +1122,7 @@
 
                     <select id="con-administradora" onchange="atualizarValorLiquidoEsperado()" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
 
-                        <option value="">-- Nenhuma (gestão direta Rumo) --</option>
+                        <option value="">-- Nenhuma (gestão direta) --</option>
 
                     </select>
 
@@ -2194,8 +2222,40 @@
             cidade: "Belo Horizonte",
             uf: "MG",
             logoUrl: "",              // opcional: URL de uma imagem de logo (PNG/SVG). Vazio = usa o nome em texto
-            assinaturaImgBase64: ""   // opcional: "data:image/png;base64,...". Vazio = espaço em branco no recibo
+            assinaturaImgBase64: "",  // opcional: "data:image/png;base64,...". Vazio = espaço em branco no recibo
+
+            // Etapa 1 (aprofundada) — sócio padrão do sistema, antes fixo como "Ruyter"
+            // em ~30 pontos do código. socioPadrao é o nome CURTO que vira a própria
+            // CHAVE de dado salva na divisão societária de cada imóvel (ex.: divisao
+            // = { [SOCIO_PADRAO]: 100 }). Para a instalação da Rumo, mantenha "Ruyter" —
+            // é o que já está gravado nos dados existentes. Para um cliente NOVO
+            // (planilha vazia, sem dados legados), troque livremente pelo nome curto
+            // do sócio principal dele — a partir do primeiro imóvel cadastrado, essa
+            // é a chave que passa a ser usada.
+            socioPadrao: "Ruyter",
+
+            // Nomes completos (maiúsculas) usados para casar retiradas via PIX no
+            // extrato bancário importado. Dado real de negócio, específico de cada
+            // cliente — uma instalação nova deve começar com array vazio [] e ir
+            // preenchendo conforme cadastra os sócios reais.
+            sociosConhecidos: [
+                "RENATO MAIA SILVA",
+                "ROBERTA MAIA SILVA",
+                "CLAUDIA BEATRIZ MAIA SILVA",
+                "LUCIANA MAIA SILVA DE ARAUJO BRANDAO",
+                "RUYTER CARLOS DA SILVA"
+            ],
+
+            // Nomes curtos (primeiro nome) reconhecidos no fluxo antigo de
+            // solicitação de acesso por sócio — hoje redundante com o login por
+            // Conta Google (Etapa 2), mantido só para não quebrar esse fluxo legado.
+            // Uma instalação nova pode deixar só com o socioPadrao.
+            nomesSociosPerfil: ["Ruyter", "Renato", "Roberta", "Claudia", "Luciana"]
         };
+
+        // Chave interna do sócio padrão — todo o sistema usa esta constante (nunca
+        // mais o literal "Ruyter") para ler/gravar divisão societária.
+        const SOCIO_PADRAO = CONFIG_CLIENTE.socioPadrao || "Ruyter";
 
         // Aplica o CONFIG_CLIENTE aos elementos estáticos da página (logo do topo,
         // cabeçalho interno, recibo em PDF). Roda uma vez, assim que o script carrega
@@ -2497,30 +2557,18 @@
         const deviceId = obterOuCriarDeviceId();
 
         // Nomes curtos usados para o "perfil de sócio" (mesmo padrão usado nos
-
-        // repasses — primeiro nome apenas).
-
-        const NOMES_SOCIOS_PERFIL = ["Ruyter", "Renato", "Roberta", "Claudia", "Luciana"];
+        // repasses — primeiro nome apenas). Agora vem do CONFIG_CLIENTE — ver
+        // bloco de configuração no topo do script.
+        const NOMES_SOCIOS_PERFIL = (CONFIG_CLIENTE.nomesSociosPerfil && CONFIG_CLIENTE.nomesSociosPerfil.length)
+            ? CONFIG_CLIENTE.nomesSociosPerfil
+            : [SOCIO_PADRAO];
 
         let extratoFingerprints = [];
 
         // Sócios conhecidos para identificar repasses (PIX enviado) no extrato bancário.
-
-        // Comparação sempre em maiúsculas/sem espaços extras.
-
-        const SOCIOS_CONHECIDOS = [
-
-            "RENATO MAIA SILVA",
-
-            "ROBERTA MAIA SILVA",
-
-            "CLAUDIA BEATRIZ MAIA SILVA",
-
-            "LUCIANA MAIA SILVA DE ARAUJO BRANDAO",
-
-            "RUYTER CARLOS DA SILVA"
-
-        ];
+        // Comparação sempre em maiúsculas/sem espaços extras. Agora vem do
+        // CONFIG_CLIENTE — instalação nova pode começar com array vazio.
+        const SOCIOS_CONHECIDOS = CONFIG_CLIENTE.sociosConhecidos || [];
 
         let isOffline = false;
 
@@ -2885,7 +2933,7 @@
 
                 }
 
-                let divisaoTratada = { "Ruyter": 100 };
+                let divisaoTratada = { [SOCIO_PADRAO]: 100 };
 
                 if (raw.divisao || raw.Divisao || raw.divisao_socios) {
 
@@ -2903,7 +2951,7 @@
 
                         } catch(e) {
 
-                            divisaoTratada = { "Ruyter": 100 };
+                            divisaoTratada = { [SOCIO_PADRAO]: 100 };
 
                         }
 
@@ -3475,7 +3523,7 @@
 
             const valorAtual = select.value;
 
-            select.innerHTML = '<option value="">-- Nenhuma (gestão direta Rumo) --</option>' +
+            select.innerHTML = '<option value="">-- Nenhuma (gestão direta) --</option>' +
 
                 administradoras.map(a => `<option value="${a.id}">${a.nome} (Taxa: ${a.taxaAdm}%)</option>`).join('');
 
@@ -4685,7 +4733,7 @@
 
             const selectRepMes = document.getElementById('rep-mes');
 
-            let todosSocios = new Set(["Ruyter"]);
+            let todosSocios = new Set([SOCIO_PADRAO]);
 
             imoveis.forEach(imo => { if(imo.divisao) Object.keys(imo.divisao).forEach(s => todosSocios.add(s)); });
 
@@ -4741,11 +4789,11 @@
 
                 <div class="flex items-center justify-between gap-2 border-b border-gray-100 pb-1">
 
-                    <span class="font-bold text-slate-800">Ruyter (Padrão)</span>
+                    <span class="font-bold text-slate-800">${SOCIO_PADRAO} (Padrão)</span>
 
                     <div class="flex items-center space-x-1">
 
-                        <input type="number" id="socio-pct-Ruyter" value="${valorRuyter}" min="0" max="100" class="w-16 p-1 border rounded text-center font-black text-blue-600 bg-gray-50">
+                        <input type="number" id="socio-pct-${SOCIO_PADRAO}" value="${valorRuyter}" min="0" max="100" class="w-16 p-1 border rounded text-center font-black text-blue-600 bg-gray-50">
 
                         <span class="font-bold text-gray-500">%</span>
 
@@ -4787,9 +4835,9 @@
 
             if(!nome || nome.trim() === "") return;
 
-            if(nome.trim().toLowerCase() === 'ruyter') return alert("Ruyter já é padrão!");
+            if(nome.trim().toLowerCase() === SOCIO_PADRAO.toLowerCase()) return alert(`${SOCIO_PADRAO} já é padrão!`);
 
-            const inputRuyter = document.getElementById('socio-pct-Ruyter');
+            const inputRuyter = document.getElementById('socio-pct-' + SOCIO_PADRAO);
 
             const pctRuyterAtual = inputRuyter ? (parseFloat(inputRuyter.value) || 0) : 100;
 
@@ -4817,7 +4865,7 @@
 
         function removerSocioInput(index) {
 
-            const inputRuyter = document.getElementById('socio-pct-Ruyter');
+            const inputRuyter = document.getElementById('socio-pct-' + SOCIO_PADRAO);
 
             const pctRuyterAtual = inputRuyter ? (parseFloat(inputRuyter.value) || 0) : 100;
 
@@ -4941,7 +4989,7 @@
 
             if(!repSelect) return;
 
-            let todosOsSocios = new Set(["Ruyter"]);
+            let todosOsSocios = new Set([SOCIO_PADRAO]);
 
             imoveis.forEach(imo => {
 
@@ -4999,9 +5047,9 @@
 
             let divisao = {};
 
-            const pctRuyter = parseFloat(document.getElementById('socio-pct-Ruyter').value) || 0;
+            const pctRuyter = parseFloat(document.getElementById('socio-pct-' + SOCIO_PADRAO).value) || 0;
 
-            divisao["Ruyter"] = pctRuyter;
+            divisao[SOCIO_PADRAO] = pctRuyter;
 
             
 
@@ -5215,11 +5263,11 @@
 
             if(imo.divisao) {
 
-                pctRuyterEdicao = imo.divisao["Ruyter"] || 0;
+                pctRuyterEdicao = imo.divisao[SOCIO_PADRAO] || 0;
 
                 Object.keys(imo.divisao).forEach(nome => {
 
-                    if(nome !== "Ruyter") sociosAdicionais.push({ nome: nome, pct: imo.divisao[nome] });
+                    if(nome !== SOCIO_PADRAO) sociosAdicionais.push({ nome: nome, pct: imo.divisao[nome] });
 
                 });
 
@@ -6597,7 +6645,7 @@
 
                 const alertaTriangulo = temAlerta ? `<span title="Ver alertas deste contrato" onclick="verAlertasContrato('${con.id}')" class="text-base font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 cursor-pointer animate-pulse">🔺</span>` : '';
 
-                const badgeEnergia = (imo && imo.energiaRumo === 'Sim' && con.descontoEnergia > 0) ? `<span title="Energia Rumo com desconto" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800">⚡</span>` : '';
+                const badgeEnergia = (imo && imo.energiaRumo === 'Sim' && con.descontoEnergia > 0) ? `<span title="Energia com desconto" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800">⚡</span>` : '';
 
                 const badgeAnexos = (con.anexos && con.anexos.length > 0) ? `<span title="Contrato tem anexos" class="text-[11px]">📎</span>` : '';
 
@@ -7307,7 +7355,7 @@
 
                         fotos: [],
 
-                        divisao: parseJsonCampoCarga(l[16], { "Ruyter": 100 }),
+                        divisao: parseJsonCampoCarga(l[16], { [SOCIO_PADRAO]: 100 }),
 
                         status: String(l[17] || 'Vago').trim(),
 
@@ -9559,7 +9607,7 @@
 
             const fTipo = document.getElementById('socio-filtro-tipo')?.value || 'todos';
 
-            let todosOsSociosHistorico = new Set(["Ruyter"]);
+            let todosOsSociosHistorico = new Set([SOCIO_PADRAO]);
 
             imoveis.forEach(imo => {
 
@@ -9945,7 +9993,7 @@
 
                 // Espelha exatamente o que aparece no link público da vitrine — todas
 
-                // as fotos (não só a primeira) e os mesmos campos (até Energia Rumo).
+                // as fotos (não só a primeira) e os mesmos campos (até Energia).
 
                 // Código do IPTU e demais dados internos (manutenção, sócios) NUNCA
 
@@ -9965,7 +10013,7 @@
 
                 const badgeEnergia = imo.energiaRumo === 'Sim'
 
-                    ? `<div class="mt-1 bg-yellow-50 border border-yellow-200 rounded px-2 py-1 text-[11px] text-yellow-800">⚡ Energia Rumo disponível</div>`
+                    ? `<div class="mt-1 bg-yellow-50 border border-yellow-200 rounded px-2 py-1 text-[11px] text-yellow-800">⚡ Energia disponível</div>`
 
                     : '';
 
@@ -10258,7 +10306,7 @@
 
                     const badgeEnergia = imo.energiaRumo === 'Sim'
 
-                        ? `<div class="mt-2 bg-yellow-900/40 border border-yellow-700 rounded-lg p-2 text-[11px] text-yellow-200">⚡ <strong>Energia Rumo disponível</strong> — desconto na conta de energia, pago direto à Rumo.</div>`
+                        ? `<div class="mt-2 bg-yellow-900/40 border border-yellow-700 rounded-lg p-2 text-[11px] text-yellow-200">⚡ <strong>Energia disponível</strong> — desconto na conta de energia.</div>`
 
                         : '';
 
