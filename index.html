@@ -6,6 +6,49 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.6.0
+   LINHAS: 12311
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.6.0) — BUGFIX CRÍTICO DE GRAVAÇÃO + CONTRATOS NO SUPABASE:
+     - CORRIGIDO (bug crítico, achado pelo cliente no teste): saveAll()
+       tinha um bloqueio cego — "if (isOffline) { não salva NADA;
+       return; }" — ANTES de sequer chegar nas chamadas de gravação.
+       Como "isOffline" reflete o Apps Script (que segue indisponível),
+       isso bloqueava a gravação de TUDO, inclusive imóveis e serviços
+       já migrados para o Supabase na v1.4.0/v1.5.0. A tela mostrava
+       "salvo com sucesso" mesmo assim porque o alert de bloqueio saía
+       ANTES da mensagem de sucesso ser sequer chamada — mas o dado
+       nunca chegava ao banco. Removido o bloqueio; a lógica de
+       sucesso/falha por rota que já existia mais abaixo (linha
+       "falhas") passa a ser a única fonte de verdade
+     - ETAPA 3 — Contratos migrados para o Supabase, mesmo padrão de
+       imóveis/serviços: carregarContratosSupabase() lê;
+       sincronizarContratoSupabase() grava 1 contrato + as entradas
+       novas do histórico (tabela historico_contrato — uma linha por
+       edição, preservando o registro rico de "o que mudou, quando e
+       a partir de quando passou a valer" que já existia)
+     - CORRIGIDO no meio do caminho: o bloco antigo do Apps Script
+       ainda sobrescrevia "contratos" a partir do cache local em caso
+       de falha — como contratos agora tem seu próprio bloco de
+       carregamento (Supabase) com seu próprio catch, essa
+       reatribuição no bloco de "demais dados" foi removida (evitava
+       um contrato recém-carregado do Supabase ser silenciosamente
+       substituído por uma cópia antiga em cache)
+     - Removida a classe "offline-disable" do botão e formulário de
+       Contrato (mesma lógica da v1.5.0 para imóveis/serviços — não
+       depende mais do Apps Script)
+     - SIMPLIFICAÇÕES CONSCIENTES (documentadas no próprio código):
+       "anexos" do contrato não está sendo lido/gravado como campo
+       próprio nesta etapa (no schema novo, viraria uma entrada de
+       histórico com anexo — ainda não conectado); "divisao_repasse_
+       contrato" (tipo 3 da divisão) não está gravado — a tela de
+       contrato hoje nem expõe esse campo ainda
+
+   ⚠️ Mensalidades, repasses, pendências de extrato (conciliação) e
+   vitrine pública AINDA no Apps Script — próxima rodada da migração.
+
+   --- HISTÓRICO ANTERIOR (Beta v1.5.0 — desbloqueio offline + DEV + serviços) ---
+
    VERSÃO: Beta v1.5.0
    LINHAS: 12092
    DATA: 2026-07-30
@@ -643,7 +686,7 @@
 
             <div class="text-[13px] text-slate-500 font-mono">
 
-                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.5.0</span>
+                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.6.0</span>
 
             </div>
 
@@ -659,7 +702,7 @@
 
             <div class="flex items-baseline space-x-2 cursor-pointer active:scale-95 transition-transform select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.5.0</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.6.0</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">OFFLINE</span>
 
@@ -1067,7 +1110,7 @@
 
                 </div>
 
-                <button onclick="abrirFormularioContrato()" class="offline-disable w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar novo contrato"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button onclick="abrirFormularioContrato()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar novo contrato"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
             </div>
 
@@ -1117,7 +1160,7 @@
 
                 
 
-            <form id="form-contrato" onsubmit="saveContrato(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200 offline-disable">
+            <form id="form-contrato" onsubmit="saveContrato(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
 
                 <input type="hidden" id="con-id">
 
@@ -3539,6 +3582,158 @@
             }
         }
 
+        // ============================================================================
+        // ETAPA 3 (migração de dados) — camada de adaptação Supabase para CONTRATOS
+        // ============================================================================
+        // Mesmo princípio de imóveis/prestadores. "historico" (rico — cada edição
+        // registra os campos que mudaram, com data e "vigente desde") passa a
+        // morar na tabela "historico_contrato", uma linha por edição.
+        //
+        // SIMPLIFICAÇÃO CONSCIENTE: "divisao_repasse_contrato" (tipo 3 da divisão,
+        // ver documento de arquitetura) não está sendo lida/gravada ainda — a
+        // tela de contrato hoje nem expõe esse campo. Fica para quando essa tela
+        // for desenhada.
+
+        function mapStatusContratoSupabaseParaAntigo(status) {
+            const mapa = { ativo: 'Ativo', encerrado: 'Encerrado', inadimplente: 'Inadimplente', renovacao: 'Renovação' };
+            return mapa[status] || 'Ativo';
+        }
+        function mapStatusContratoAntigoParaSupabase(status) {
+            const mapa = { 'Ativo': 'ativo', 'Encerrado': 'encerrado', 'Inadimplente': 'inadimplente', 'Renovação': 'renovacao' };
+            return mapa[status] || 'ativo';
+        }
+
+        async function carregarContratosSupabase() {
+
+            const { data: contratosRows, error: errCon } = await dbAuth
+                .from('contratos')
+                .select('*')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE);
+            if (errCon) throw errCon;
+
+            const idsContratos = (contratosRows || []).map(function(c) { return c.id; });
+
+            let historicos = [];
+            if (idsContratos.length > 0) {
+                const { data: histRows, error: errHist } = await dbAuth
+                    .from('historico_contrato')
+                    .select('*')
+                    .in('contrato_id', idsContratos)
+                    .order('criado_em', { ascending: true });
+                if (errHist) throw errHist;
+                historicos = histRows || [];
+            }
+
+            return (contratosRows || []).map(function(row) {
+                return {
+                    id: row.id,
+                    imovelId: row.imovel_id || '',
+                    status: mapStatusContratoSupabaseParaAntigo(row.status),
+                    locatario: row.locatario || '',
+                    docTipo: row.doc_tipo || 'CPF',
+                    cpf: row.cpf || '',
+                    vencimentoDia: row.vencimento_dia || 15,
+                    alugelAntecipado: row.aluguel_antecipado ? 'Sim' : 'Não',
+                    whatsapp: row.whatsapp || '',
+                    email: row.email || '',
+                    inicio: row.inicio || '',
+                    fim: row.fim || '',
+                    valor: row.valor || 0,
+                    valorAnterior: row.valor_anterior || 0,
+                    desconto: row.desconto || 0,
+                    reajusteAplicado: row.reajuste_aplicado ? 1 : 0,
+                    reajuste: row.reajuste || 'IPCA',
+                    iptu: row.iptu || 0,
+                    contatoNome: row.contato_nome || '',
+                    formaPagamento: row.forma_pagamento || 'PIX',
+                    anexos: [], // ver simplificação — anexo mora no histórico agora, não como coluna própria
+                    descontoEnergia: row.desconto_energia || 0,
+                    condominioLocatario: row.condominio_locatario ? 'Sim' : 'Não',
+                    administradoraId: row.administradora_id || '',
+                    descricao: row.descricao || '',
+                    historico: historicos
+                        .filter(function(h) { return h.contrato_id === row.id; })
+                        .map(function(h) { return { data: h.criado_em, descricao: h.descricao, tipo: h.tipo }; })
+                };
+            });
+
+        }
+
+        async function sincronizarContratoSupabase(con) {
+
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                imovel_id: /^[0-9a-f]{8}-/i.test(con.imovelId || '') ? con.imovelId : null,
+                status: mapStatusContratoAntigoParaSupabase(con.status),
+                locatario: con.locatario,
+                doc_tipo: con.docTipo || null,
+                cpf: con.cpf || null,
+                vencimento_dia: con.vencimentoDia || null,
+                aluguel_antecipado: con.alugelAntecipado === 'Sim',
+                whatsapp: con.whatsapp || null,
+                email: con.email || null,
+                inicio: con.inicio || null,
+                fim: con.fim || null,
+                valor: con.valor || null,
+                valor_anterior: con.valorAnterior || null,
+                desconto: con.desconto || null,
+                reajuste_aplicado: !!con.reajusteAplicado,
+                reajuste: con.reajuste || null,
+                iptu: con.iptu || null,
+                contato_nome: con.contatoNome || null,
+                forma_pagamento: con.formaPagamento || null,
+                desconto_energia: con.descontoEnergia || null,
+                condominio_locatario: con.condominioLocatario === 'Sim',
+                administradora_id: /^[0-9a-f]{8}-/i.test(con.administradoraId || '') ? con.administradoraId : null,
+                descricao: con.descricao || null
+            };
+
+            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(con.id || '');
+
+            let contratoId;
+            if (idEhUuidValido) {
+                const { error } = await dbAuth.from('contratos').update(linha).eq('id', con.id);
+                if (error) throw error;
+                contratoId = con.id;
+            } else {
+                const { data: inserido, error } = await dbAuth.from('contratos').insert(linha).select('id').single();
+                if (error) throw error;
+                contratoId = inserido.id;
+                con.id = contratoId;
+            }
+
+            // Histórico: grava só as entradas que ainda não têm confirmação de já
+            // terem sido persistidas (marcadas com _salvo=true em memória depois
+            // do primeiro save) — evita duplicar entradas antigas a cada edição.
+            const entradasNovas = (con.historico || []).filter(function(h) { return !h._salvo; });
+            for (const entrada of entradasNovas) {
+                const tipo = (entrada.alteracoes || []).some(function(a) { return a.campo === 'Contrato criado'; }) ? 'assinatura' : 'alteracao';
+                const descricaoTexto = (entrada.alteracoes || [])
+                    .map(function(a) { return `${a.campo}: ${a.de} → ${a.para}`; })
+                    .join('; ');
+                const { error: errHist } = await dbAuth.from('historico_contrato').insert({
+                    contrato_id: contratoId,
+                    tipo: tipo,
+                    descricao: descricaoTexto + (entrada.vigenteDesde ? ` (vigente desde ${entrada.vigenteDesde})` : '')
+                });
+                if (errHist) throw errHist;
+                entrada._salvo = true;
+            }
+
+            return contratoId;
+
+        }
+
+        async function sincronizarContratosSupabase(lista) {
+            try {
+                for (const con of lista) await sincronizarContratoSupabase(con);
+                return true;
+            } catch (err) {
+                logScreen('Erro ao sincronizar contratos: ' + err.message, true);
+                return false;
+            }
+        }
+
         function normalizarImovel(raw) {
 
             try {
@@ -4635,13 +4830,33 @@
             }
 
             // ============================================================================
-            // Demais dados (contratos, mensalidades, repasses, sócios...)
-            // AINDA vêm do Apps Script — migração é tabela por tabela. Se esta parte
-            // falhar (ex.: o CORS do Apps Script), os imóveis acima continuam
+            // ETAPA 3 (migração de dados) — CONTRATOS também já vêm do Supabase,
+            // independente do bloco de imóveis/serviços e do Apps Script abaixo.
+            // ============================================================================
+            try {
+
+                logScreen("=== Buscando contratos (Supabase) ===");
+
+                contratos = await carregarContratosSupabase();
+
+                logScreen(`Contratos carregados do Supabase: ${contratos.length}.`);
+
+            } catch (errContratos) {
+
+                logScreen(`Erro ao buscar contratos no Supabase: ${errContratos.message || String(errContratos)}`, true);
+
+                contratos = JSON.parse(localStorage.getItem(chaveLocal('contratos'))) || [];
+
+            }
+
+            // ============================================================================
+            // Demais dados (mensalidades, repasses, sócios...) AINDA vêm do Apps
+            // Script — migração é tabela por tabela. Se esta parte falhar (ex.: o
+            // CORS do Apps Script), imóveis/serviços/contratos acima continuam
             // funcionando normalmente; só estas rotas ficam vazias/em cache até
             // serem migradas também.
             // ============================================================================
-            statusLabel.innerText = "Buscando demais dados (contratos, mensalidades...)...";
+            statusLabel.innerText = "Buscando demais dados (mensalidades, repasses...)...";
 
             try {
 
@@ -4659,13 +4874,12 @@
 
                 if (resData.status === "sucesso" && resData.dados) {
 
-                    const rawContratos = resData.dados.contratos || [];
+                    // ETAPA 3 — contratos migrados para o Supabase (bloco próprio
+                    // acima, fora deste try). Não lemos mais essa rota daqui.
 
                     const rawMensalidades = resData.dados.mensalidades || [];
 
                     const rawRepasses = resData.dados.repasses || [];
-
-                    contratos = rawContratos.map(normalizarContrato).filter(Boolean);
 
                     mensalidades = rawMensalidades.map(normalizarMensalidade).filter(Boolean);
 
@@ -4730,21 +4944,22 @@
 
             } catch (err) {
 
-                logScreen(`Apps Script indisponível (contratos/mensalidades/repasses ainda não migrados — ver plano): ${err.message || String(err)}`, true);
+                logScreen(`Apps Script indisponível (mensalidades/repasses ainda não migrados — ver plano): ${err.message || String(err)}`, true);
 
                 isOffline = true;
 
                 syncSuccess = false;
 
-                statusLabel.innerText = "Imóveis OK. Demais dados ainda não migrados (offline).";
+                statusLabel.innerText = "Imóveis/Contratos OK. Demais dados ainda não migrados (offline).";
 
-                contratos = JSON.parse(localStorage.getItem(chaveLocal('contratos'))) || [];
+                // contratos NÃO é mais tocado aqui — já veio do Supabase, com seu
+                // próprio catch (mais acima), independente deste.
 
                 mensalidades = JSON.parse(localStorage.getItem(chaveLocal('mensalidades'))) || [];
 
                 repasses = JSON.parse(localStorage.getItem(chaveLocal('repasses'))) || [];
 
-                logScreen(`Carregada última cópia local: ${contratos.length} contratos.`);
+                logScreen(`Carregada última cópia local: ${mensalidades.length} mensalidades.`);
 
                 errorContainer.innerText = (errorContainer.innerText ? errorContainer.innerText + '\n' : '') + `Detalhe (demais dados): ${err.message || String(err)}`;
 
@@ -5126,13 +5341,13 @@
 
             if (!enviarParaNuvem) return;
 
-            if (isOffline) {
-
-                alert("⚠️ Você está no modo offline (sem conexão confirmada com a nuvem). Este registro NÃO foi salvo na planilha. Verifique sua internet e tente sincronizar novamente antes de continuar editando.");
-
-                return;
-
-            }
+            // ETAPA 3 — REMOVIDO o bloqueio cego "if (isOffline) { não salva nada }".
+            // "isOffline" hoje só reflete se o Apps Script (contratos, mensalidades,
+            // repasses, pendências) respondeu — mas imóveis, administradoras,
+            // síndicos e manutencistas já são Supabase e continuam gravando
+            // normalmente mesmo com o Apps Script fora do ar. O bloco abaixo já
+            // sabe reportar sucesso/falha rota por rota (linha "falhas" mais
+            // adiante) — não precisamos mais decidir tudo-ou-nada aqui em cima.
 
             mostrarCarregamentoGlobal("Salvando na nuvem...");
 
@@ -5142,7 +5357,7 @@
 
                 sincronizarImoveisSupabase(imoveis).then(ok => ({ rota: "imoveis", ok })), // ETAPA 3 — migrado para Supabase
 
-                enviarDadosParaGoogleSheets("contratos", contratos).then(ok => ({ rota: "contratos", ok })),
+                sincronizarContratosSupabase(contratos).then(ok => ({ rota: "contratos", ok })), // ETAPA 3 — migrado para Supabase
 
                 enviarDadosParaGoogleSheets("mensalidades", mensalidades).then(ok => ({ rota: "mensalidades", ok })),
 
@@ -6337,6 +6552,10 @@
             }
 
             if (!confirm(`Confirma a exclusão do contrato de "${con.locatario}"? Esta ação não pode ser desfeita.`)) return;
+
+            dbAuth.from('contratos').delete().eq('id', id).then(({ error }) => {
+                if (error) logScreen('Erro ao excluir contrato no Supabase: ' + error.message, true);
+            });
 
             contratos = contratos.filter(c => c.id !== id);
 
