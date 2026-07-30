@@ -6,6 +6,23 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.3.1
+   LINHAS: 11664
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.3.1) — CORREÇÃO DA TELA DE LOGIN NO DESKTOP:
+     - CORRIGIDO: os campos de e-mail/senha não apareciam em janelas
+       largas e baixas (típico de notebook) — a splash empilhava foto
+       grande + logo + formulário sem rolagem habilitada; em telas
+       baixas o formulário ficava fora da área visível, sem como
+       rolar até ele. Removida a foto de fundo e a logo "RAIZ" (fica
+       só o subtítulo por enquanto — reversível, é só reativar o h1
+       #logo-splash), e adicionado overflow-y-auto na splash como
+       rede de segurança para qualquer tela mais baixa no futuro
+     - Campos de e-mail/senha e botão "Entrar" aumentados (mais
+       padding, fonte maior) — mais fáceis de tocar/ler
+
+   --- HISTÓRICO ANTERIOR (Beta v1.3.0 — login definitivo via Supabase) ---
+
    VERSÃO: Beta v1.3.0
    LINHAS: 11655
    DATA: 2026-07-30
@@ -509,47 +526,39 @@
 
     <!-- ================= TELA DE ABERTURA (SPLASH) ================= -->
 
-    <div id="splash-screen" class="fixed inset-0 bg-emerald-900 z-55 flex flex-col items-center justify-center text-white p-6 transition-opacity duration-500">
+    <div id="splash-screen" class="fixed inset-0 bg-emerald-900 z-55 flex flex-col items-center justify-center text-white p-6 overflow-y-auto transition-opacity duration-500">
 
         <button id="btn-solicitar-acesso-socio" onclick="solicitarAcessoSocio()" title="Sou sócio — solicitar acesso sem senha" class="hidden absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white text-slate-700 rounded-full shadow-lg z-10">👤</button>
 
-        <div class="w-full max-w-sm text-center space-y-6 flex flex-col justify-between h-full py-8">
+        <div class="w-full max-w-sm text-center space-y-6 py-10">
 
-            <div></div>
+            <div>
 
-            <div class="space-y-6">
+                <h1 id="logo-splash" class="hidden"></h1>
 
-                <div class="w-full h-64 rounded-2xl bg-cover bg-center shadow-2xl border border-emerald-700" style="background-image: url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80');"></div>
-
-                <div>
-
-                    <h1 id="logo-splash" ondblclick="identificarComoAdmin()" class="text-4xl font-black tracking-widest text-emerald-400 cursor-default select-none">RAIZ</h1>
-
-                    <p class="text-gray-400 text-sm mt-2 font-medium uppercase tracking-wider">Gestão Patrimonial Inteligente</p>
-
-                </div>
-
-                <div id="area-login-supabase" class="space-y-3 text-left">
-
-                    <input type="email" id="login-email" placeholder="E-mail" autocomplete="username" class="w-full p-3 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-sm">
-
-                    <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" class="w-full p-3 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-sm" onkeydown="if(event.key==='Enter') fazerLoginSupabase();">
-
-                    <button id="btn-login-supabase" onclick="fazerLoginSupabase()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2">
-                        <span>Entrar</span>
-                    </button>
-
-                </div>
-
-                <div id="splash-status" class="text-[13px] text-amber-400 font-semibold px-4 break-words"></div>
-
-                <div id="splash-error-detail" class="text-[11px] text-red-400 font-mono hidden max-h-24 overflow-y-auto bg-emerald-950 p-2 rounded border border-red-900/50 text-left mx-4"></div>
+                <p class="text-gray-300 text-base font-medium uppercase tracking-wider">Gestão Patrimonial Inteligente</p>
 
             </div>
 
+            <div id="area-login-supabase" class="space-y-4 text-left">
+
+                <input type="email" id="login-email" placeholder="E-mail" autocomplete="username" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base">
+
+                <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base" onkeydown="if(event.key==='Enter') fazerLoginSupabase();">
+
+                <button id="btn-login-supabase" onclick="fazerLoginSupabase()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2 text-base">
+                    <span>Entrar</span>
+                </button>
+
+            </div>
+
+            <div id="splash-status" class="text-[13px] text-amber-400 font-semibold px-4 break-words"></div>
+
+                <div id="splash-error-detail" class="text-[11px] text-red-400 font-mono hidden max-h-24 overflow-y-auto bg-emerald-950 p-2 rounded border border-red-900/50 text-left mx-4"></div>
+
             <div class="text-[13px] text-slate-500 font-mono">
 
-                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.3.0</span>
+                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.3.1</span>
 
             </div>
 
@@ -565,7 +574,7 @@
 
             <div class="flex items-baseline space-x-2 cursor-pointer active:scale-95 transition-transform select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.3.0</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.3.1</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">OFFLINE</span>
 
