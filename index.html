@@ -6,6 +6,50 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.4.0
+   LINHAS: 11826
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.4.0) — ETAPA 3: IMÓVEIS MIGRADOS PARA O SUPABASE:
+     - Leitura de imóveis: nova função carregarImoveisSupabase() —
+       substitui a leitura via fetch(GOOGLE_API_URL). Independente do
+       Apps Script: mesmo que o Apps Script continue falhando (CORS),
+       os imóveis carregam normalmente
+     - Gravação de imóveis: novas funções sincronizarImovelSupabase()
+       (grava/atualiza 1 imóvel + sua divisão societária) e
+       sincronizarImoveisSupabase() (percorre a lista, chamada pelo
+       saveAll() no lugar de enviarDadosParaGoogleSheets("imoveis",...))
+     - Exclusão de imóvel: adicionado delete explícito no Supabase
+       (a sincronização em lote só grava/atualiza, não apaga sozinha —
+       sem isso, excluir um imóvel localmente não removia do banco)
+     - "tipo" e "empreendimento" continuam como texto livre na tela
+       (sem mudar o formulário ainda) — obterOuCriarLookup() cria a
+       linha correspondente em tipos_imovel/empreendimentos
+       automaticamente na primeira vez que um nome novo aparece
+     - entrarNoSistema() reestruturado: imóveis (Supabase) e demais
+       dados (Apps Script — contratos, mensalidades, repasses, sócios,
+       prestadores) agora carregam em blocos try/catch INDEPENDENTES.
+       Se o Apps Script falhar, só essas rotas ficam vazias/em cache —
+       não trava mais o app inteiro nem impede ver/editar imóveis
+     - REMOVIDO: bloco inteiro de "usuarioBackend"/aprovação por
+       dispositivo dentro de entrarNoSistema() — morto desde a v1.3.0
+       (Supabase já decide autorização antes desta função ser chamada),
+       ficou como código morto até agora. acessoAutorizado passa a ser
+       sempre true aqui dentro (a checagem de verdade já aconteceu)
+     - SIMPLIFICAÇÃO CONSCIENTE (documentada no próprio código): o
+       campo "parteRumo" (propriedade dentro/fora da empresa) ainda
+       não lê/grava de "propriedade_imovel" — fica fixo em 100% da
+       empresa nesta etapa. Só a divisão entre sócios internos
+       ("divisao") está de fato migrada. Nada foi perdido — é uma
+       fatia ainda não conectada, não uma remoção de funcionalidade
+
+   ⚠️ Contratos, mensalidades, repasses, sócios, prestadores e
+   conciliação bancária CONTINUAM no Apps Script nesta versão —
+   migração é tabela por tabela, como planejado. Enquanto o Apps
+   Script não for corrigido ou também migrado, essas telas ficam sem
+   dado novo (mas não impedem o uso da parte de imóveis).
+
+   --- HISTÓRICO ANTERIOR (Beta v1.3.1 — correção da tela de login) ---
+
    VERSÃO: Beta v1.3.1
    LINHAS: 11664
    DATA: 2026-07-30
@@ -558,7 +602,7 @@
 
             <div class="text-[13px] text-slate-500 font-mono">
 
-                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.3.1</span>
+                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.4.0</span>
 
             </div>
 
@@ -574,7 +618,7 @@
 
             <div class="flex items-baseline space-x-2 cursor-pointer active:scale-95 transition-transform select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.3.1</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.4.0</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">OFFLINE</span>
 
@@ -3069,6 +3113,207 @@
 
         // --- MOTOR DE NORMALIZAÇÃO DE CHAVES (Sheets -> App) ---
 
+        // ============================================================================
+        // ETAPA 3 (migração de dados) — camada de adaptação Supabase para IMÓVEIS
+        // ============================================================================
+        // Estas funções traduzem entre o formato novo (banco relacional, Supabase) e
+        // o formato antigo que o resto do app já sabe usar (mesmos nomes de campo que
+        // vinham do Sheets) — assim, telas de exibição e formulários não precisam ser
+        // reescritos nesta etapa. À medida que mais tabelas forem migradas, esse
+        // "tradutor" pode ser removido e o app passa a falar Supabase nativamente.
+        //
+        // SIMPLIFICAÇÃO CONSCIENTE desta etapa: o campo "parteRumo" (propriedade do
+        // imóvel dentro/fora da empresa — tipos 1+2 da divisão, ver documento de
+        // arquitetura) não está sendo lido/gravado ainda a partir de
+        // "propriedade_imovel" — fica fixo como 100% da empresa. Só "divisao"
+        // (sócios internos) está de fato migrado. Nenhum dado é perdido — é só uma
+        // fatia que ainda não foi conectada, documentada aqui para não ficar
+        // escondida.
+
+        function mapStatusSupabaseParaAntigo(status) {
+            const mapa = { disponivel: 'Vago', alugado: 'Alugado', manutencao: 'Vago', reservado: 'Vago' };
+            return mapa[status] || 'Vago';
+        }
+
+        function mapStatusAntigoParaSupabase(status) {
+            const mapa = { 'Vago': 'disponivel', 'Alugado': 'alugado' };
+            return mapa[status] || 'disponivel';
+        }
+
+        async function carregarImoveisSupabase() {
+
+            const { data: imoveisRows, error: errImoveis } = await dbAuth
+                .from('imoveis')
+                .select('*, tipos_imovel(nome), empreendimentos(nome)')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE);
+
+            if (errImoveis) throw errImoveis;
+
+            const idsImoveis = (imoveisRows || []).map(function(i) { return i.id; });
+
+            let propriedades = [];
+            if (idsImoveis.length > 0) {
+                const { data: propRows, error: errProp } = await dbAuth
+                    .from('propriedade_imovel')
+                    .select('*, pessoas(nome)')
+                    .in('imovel_id', idsImoveis);
+                if (errProp) throw errProp;
+                propriedades = propRows || [];
+            }
+
+            return (imoveisRows || []).map(function(row) {
+
+                const divisao = {};
+                propriedades
+                    .filter(function(p) { return p.imovel_id === row.id; })
+                    .forEach(function(p) {
+                        const nomeDono = p.tipo_proprietario === 'socio_interno'
+                            ? (p.pessoas ? p.pessoas.nome : SOCIO_PADRAO)
+                            : p.nome_externo;
+                        divisao[nomeDono] = p.percentual;
+                    });
+                if (Object.keys(divisao).length === 0) divisao[SOCIO_PADRAO] = 100;
+
+                return {
+                    id: row.id,
+                    empreendimento: row.empreendimentos ? row.empreendimentos.nome : '',
+                    empreendimentoId: row.empreendimento_id || null,
+                    enderecoRua: row.endereco_rua || '',
+                    enderecoNum: row.endereco_num || '',
+                    enderecoComp: row.endereco_comp || '',
+                    enderecoBairro: row.endereco_bairro || '',
+                    enderecoCidade: row.endereco_cidade || '',
+                    tipo: row.tipos_imovel ? row.tipos_imovel.nome : '',
+                    tipoId: row.tipo_id || null,
+                    tamanho: row.tamanho || 0,
+                    suites: 0,
+                    banheiros: 0,
+                    condominio: row.condominio || 0,
+                    iptu: row.iptu || 0,
+                    codigoIPTU: row.codigo_iptu || '',
+                    manutencaoNome: row.manutencao_nome || '',
+                    manutencaoZap: row.manutencao_zap || '',
+                    descricao: row.descricao || '',
+                    energiaRumo: row.energia_disponivel ? 'Sim' : 'Não',
+                    valorMercado: row.valor_mercado || 0,
+                    valor: row.valor || 0,
+                    fotos: row.fotos || [],
+                    divisao: divisao,
+                    parteRumo: { [CONFIG_CLIENTE.nomeEmpresa || SOCIO_PADRAO]: 100 }, // ver nota de simplificação acima
+                    status: mapStatusSupabaseParaAntigo(row.status),
+                    sindicoId: '',
+                    manutencistaId: ''
+                };
+
+            });
+
+        }
+
+        // Garante que existe uma linha em tipos_imovel/empreendimentos com este nome
+        // (o formulário antigo ainda usa texto livre) — cria se não existir, e
+        // devolve o id. Isso preserva a tela atual sem precisar virar um <select>
+        // de cadastro agora.
+        async function obterOuCriarLookup(tabela, nome, cache) {
+            if (!nome || !nome.trim()) return null;
+            const nomeLimpo = nome.trim();
+            if (cache[nomeLimpo]) return cache[nomeLimpo];
+
+            const { data: existente } = await dbAuth.from(tabela).select('id').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('nome', nomeLimpo).limit(1);
+            if (existente && existente.length > 0) {
+                cache[nomeLimpo] = existente[0].id;
+                return existente[0].id;
+            }
+
+            const { data: criado, error } = await dbAuth.from(tabela).insert({ cliente_id: CLIENTE_ID_SUPABASE, nome: nomeLimpo }).select('id').single();
+            if (error) throw error;
+            cache[nomeLimpo] = criado.id;
+            return criado.id;
+        }
+
+        const cacheLookupTipos = {};
+        const cacheLookupEmpreendimentos = {};
+
+        // Grava (cria ou atualiza) UM imóvel no Supabase, incluindo a divisão
+        // societária. Chamada pelo saveAll() no lugar do antigo envio em lote via
+        // Apps Script — Postgres trabalha melhor linha a linha do que reenviando o
+        // array inteiro a cada salvamento.
+        async function sincronizarImovelSupabase(imo) {
+
+            const tipoId = await obterOuCriarLookup('tipos_imovel', imo.tipo, cacheLookupTipos);
+            const empreendimentoId = await obterOuCriarLookup('empreendimentos', imo.empreendimento, cacheLookupEmpreendimentos);
+
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                tipo_id: tipoId,
+                empreendimento_id: empreendimentoId,
+                endereco_rua: imo.enderecoRua,
+                endereco_num: imo.enderecoNum,
+                endereco_comp: imo.enderecoComp,
+                endereco_bairro: imo.enderecoBairro,
+                endereco_cidade: imo.enderecoCidade,
+                tamanho: imo.tamanho || null,
+                condominio: imo.condominio || null,
+                iptu: imo.iptu || null,
+                codigo_iptu: imo.codigoIPTU || null,
+                valor: imo.valor || null,
+                fotos: imo.fotos || [],
+                status: mapStatusAntigoParaSupabase(imo.status),
+                manutencao_nome: imo.manutencaoNome || null,
+                manutencao_zap: imo.manutencaoZap || null,
+                energia_disponivel: imo.energiaRumo === 'Sim',
+                descricao: imo.descricao || null,
+                valor_mercado: imo.valorMercado || null
+            };
+
+            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(imo.id || '');
+
+            let imovelId;
+            if (idEhUuidValido) {
+                const { error } = await dbAuth.from('imoveis').update(linha).eq('id', imo.id);
+                if (error) throw error;
+                imovelId = imo.id;
+            } else {
+                const { data: inserido, error } = await dbAuth.from('imoveis').insert(linha).select('id').single();
+                if (error) throw error;
+                imovelId = inserido.id;
+                imo.id = imovelId; // o app em memória passa a usar o id de verdade do Postgres
+            }
+
+            // Divisão societária: apaga e regrava (mais simples e seguro do que
+            // tentar calcular um "diff" — o volume de linhas por imóvel é pequeno).
+            await dbAuth.from('propriedade_imovel').delete().eq('imovel_id', imovelId);
+
+            const nomesDivisao = Object.keys(imo.divisao || {});
+            if (nomesDivisao.length > 0) {
+                const { data: pessoasCliente } = await dbAuth.from('pessoas').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE);
+                const linhasPropriedade = nomesDivisao.map(function(nome) {
+                    const pessoaEncontrada = (pessoasCliente || []).find(function(p) { return p.nome === nome; });
+                    return pessoaEncontrada
+                        ? { imovel_id: imovelId, tipo_proprietario: 'socio_interno', pessoa_id: pessoaEncontrada.id, percentual: imo.divisao[nome] }
+                        : { imovel_id: imovelId, tipo_proprietario: 'terceiro_externo', nome_externo: nome, percentual: imo.divisao[nome] };
+                });
+                const { error: errProp } = await dbAuth.from('propriedade_imovel').insert(linhasPropriedade);
+                if (errProp) throw errProp;
+            }
+
+            return imovelId;
+        }
+
+        // Sincroniza a lista inteira (usada pelo saveAll) — grava cada imóvel que
+        // ainda não tem confirmação, e devolve true/false como as outras rotas
+        // esperam (mesmo formato de retorno de enviarDadosParaGoogleSheets).
+        async function sincronizarImoveisSupabase(listaImoveis) {
+            try {
+                for (const imo of listaImoveis) {
+                    await sincronizarImovelSupabase(imo);
+                }
+                return true;
+            } catch (err) {
+                logScreen('Erro ao sincronizar imóveis com o Supabase: ' + err.message, true);
+                return false;
+            }
+        }
+
         function normalizarImovel(raw) {
 
             try {
@@ -4090,11 +4335,11 @@
 
         async function entrarNoSistema() {
 
-            // v7.4.1 — Reset explícito a cada chamada: sem isso, uma tentativa
-            // anterior bem-sucedida (nesta mesma sessão de página) podia deixar
-            // acessoAutorizado=true "pendurado", e uma tentativa seguinte que
-            // caísse no modo offline herdava esse valor sem verificar nada.
-            acessoAutorizado = false;
+            // ETAPA 2 (definitiva) — o Supabase já confirmou a autorização em
+            // verificarAcessoEEntrar(), antes desta função ser chamada. Não há
+            // mais checagem de "nao_autorizado" nem fluxo de aprovação por
+            // dispositivo a fazer aqui — essa etapa toda foi removida.
+            acessoAutorizado = true;
 
             // btn-entrar não existe mais (virou o formulário de login do Supabase) —
             // fallback inofensivo para as linhas abaixo que ainda ajustam esse botão.
@@ -4104,19 +4349,51 @@
 
             const errorContainer = document.getElementById('splash-error-detail');
 
-            
-
             btn.disabled = true;
 
-            btn.innerHTML = `\u003Cspan class="animate-spin mr-2"\u003E🔄\u003C/span\u003E Sincronizando Banco...`;
-
-            statusLabel.innerText = "Buscando dados na nuvem...";
+            statusLabel.innerText = "Buscando imóveis...";
 
             errorContainer.classList.add('hidden');
 
+            // ============================================================================
+            // ETAPA 3 (migração de dados) — IMÓVEIS já vêm do Supabase, de forma
+            // independente do Apps Script. Se isto falhar, cai para a última cópia
+            // local — mas não bloqueia o resto do carregamento.
+            // ============================================================================
             try {
 
-                logScreen("=== INICIANDO SINC DA NUVEM ===");
+                logScreen("=== Buscando imóveis (Supabase) ===");
+
+                imoveis = await carregarImoveisSupabase();
+
+                logScreen(`Imóveis carregados do Supabase: ${imoveis.length}.`);
+
+                localStorage.setItem(chaveLocal('imoveis'), JSON.stringify(imoveis));
+
+            } catch (errImoveis) {
+
+                logScreen(`Erro ao buscar imóveis no Supabase: ${errImoveis.message || String(errImoveis)}`, true);
+
+                imoveis = JSON.parse(localStorage.getItem(chaveLocal('imoveis'))) || [];
+
+                errorContainer.innerText = `Falha ao buscar imóveis: ${errImoveis.message || String(errImoveis)}`;
+
+                errorContainer.classList.remove('hidden');
+
+            }
+
+            // ============================================================================
+            // Demais dados (contratos, mensalidades, repasses, sócios, prestadores...)
+            // AINDA vêm do Apps Script — migração é tabela por tabela. Se esta parte
+            // falhar (ex.: o CORS do Apps Script), os imóveis acima continuam
+            // funcionando normalmente; só estas rotas ficam vazias/em cache até
+            // serem migradas também.
+            // ============================================================================
+            statusLabel.innerText = "Buscando demais dados (contratos, mensalidades...)...";
+
+            try {
+
+                logScreen("=== Buscando demais dados (Apps Script) ===");
 
                 const controller = new AbortController();
 
@@ -4128,29 +4405,13 @@
 
                 const resData = await response.json();
 
-                if (resData.status === "nao_autorizado") {
-
-                    logScreen("Acesso negado pelo backend: " + (resData.email || "e-mail não identificado"));
-
-                    mostrarTelaNaoAutorizado(resData.email, resData.mensagem);
-
-                    return;
-
-                }
-
                 if (resData.status === "sucesso" && resData.dados) {
-
-                    const rawImoveis = resData.dados.imoveis || [];
 
                     const rawContratos = resData.dados.contratos || [];
 
                     const rawMensalidades = resData.dados.mensalidades || [];
 
                     const rawRepasses = resData.dados.repasses || [];
-
-                    logScreen(`Carregados do Sheets Raw: ${rawImoveis.length} imóveis, ${rawContratos.length} contratos.`);
-
-                    imoveis = rawImoveis.map(normalizarImovel).filter(Boolean);
 
                     contratos = rawContratos.map(normalizarContrato).filter(Boolean);
 
@@ -4170,21 +4431,17 @@
 
                     dispositivosAprovados = resData.dados.dispositivosAprovados || [];
 
-                    // v7.3.2 — Carrega dados novos
                     sindicos = resData.dados.sindicos || [];
                     manutencistas = resData.dados.manutencistas || [];
                     emailConfiguracao = resData.dados.emailConfiguracao || [];
 
-                    // v7.3.2 — Acessos e links já vêm prontos, sem precisar buscar de novo
                     acessos = resData.dados.acessos || [];
                     links = resData.dados.links || [];
 
-                    // Sócios: se aba socios estiver vazia, deriva de dispositivosAprovados
                     const sociosAba = resData.dados.socios || [];
                     if (sociosAba.length > 0) {
                         socios = sociosAba;
                     } else {
-                        // Deriva sócios únicos dos dispositivos aprovados
                         const nomesUnicos = [...new Set(dispositivosAprovados
                             .filter(d => d.status === 'Aprovado' && d.nomeSocio)
                             .map(d => d.nomeSocio))];
@@ -4199,94 +4456,7 @@
                         });
                     }
 
-                    // ETAPA 2 (Beta) — se o backend já confirmou (via Conta Google) que
-                    // este usuário está autorizado, a identidade vem pronta daqui — não
-                    // precisa mais do prompt "Digite o usuário do administrador" nem da
-                    // aprovação manual por dispositivo. O fluxo antigo abaixo (device-id)
-                    // fica como fallback estrutural, mas na prática nunca é alcançado
-                    // quando o login Google está ativo, porque o backend já teria
-                    // recusado a requisição (status "nao_autorizado") antes de chegarmos
-                    // aqui com "sucesso".
-                    const usuarioBackend = resData.dados.usuario;
-
-                    if (usuarioBackend && usuarioBackend.autorizado) {
-
-                        socioLogado = usuarioBackend.admin ? 'Nicola-Adm' : (usuarioBackend.nome || usuarioBackend.email);
-
-                        acessoAutorizado = true;
-
-                        if (usuarioBackend.admin) {
-                            localStorage.setItem(chaveLocal('admin_verificado'), 'Nicola-Adm');
-                        }
-
-                    } else {
-
-                    // v7.4.1 — Verifica PRIMEIRO se este dispositivo já foi
-                    // identificado como o administrador (persistido localmente) —
-                    // isso tem prioridade sobre qualquer aprovação de sócio que o
-                    // mesmo aparelho possa ter (evita o bug de o admin "virar
-                    // sócio" se o aparelho dele também tiver uma aprovação antiga).
-                    const jaVerificadoComoAdmin = localStorage.getItem(chaveLocal('admin_verificado')) === 'Nicola-Adm';
-
-                    const dispositivoAtual = dispositivosAprovados.find(d => d.deviceId === deviceId && d.status === 'Aprovado');
-
-                    if (jaVerificadoComoAdmin) {
-
-                        socioLogado = 'Nicola-Adm';
-
-                        acessoAutorizado = true;
-
-                    } else if (dispositivoAtual) {
-
-                        socioLogado = dispositivoAtual.nomeSocio;
-
-                        localStorage.setItem(chaveLocal('device_previously_approved'), '1');
-
-                        acessoAutorizado = true;
-
-                    } else {
-
-                        socioLogado = null;
-
-                        localStorage.removeItem(chaveLocal('device_previously_approved'));
-
-                        const tentativa = prompt("Este aparelho ainda não tem acesso aprovado.\n\nSe você é o administrador do sistema, digite seu usuário para continuar (ou cancele para solicitar acesso):");
-
-                        if (tentativa === 'Nicola-Adm') {
-
-                            localStorage.setItem(chaveLocal('admin_verificado'), 'Nicola-Adm');
-
-                            socioLogado = 'Nicola-Adm';
-
-                            acessoAutorizado = true;
-
-                        } else {
-
-                            acessoAutorizado = false;
-
-                        }
-
-                    }
-
-                    } // fim do fallback estrutural (device-id) — ver comentário acima
-
-                    // v7.4.1 — Guarda a decisão para o modo offline poder consultar
-                    // depois (sem rede, não dá pra reconfirmar contra o servidor —
-                    // só libera visualização em cache se este dispositivo já foi
-                    // autorizado com sucesso alguma vez antes).
-                    if (acessoAutorizado) {
-
-                        localStorage.setItem(chaveLocal('ultimo_acesso_autorizado'), '1');
-
-                    } else {
-
-                        localStorage.removeItem(chaveLocal('ultimo_acesso_autorizado'));
-
-                    }
-
-                    logScreen(`Normalizados com sucesso: ${imoveis.length} imóveis, ${contratos.length} contratos.`);
-
-                    localStorage.setItem(chaveLocal('imoveis'), JSON.stringify(imoveis));
+                    logScreen(`Demais dados carregados do Apps Script: ${contratos.length} contratos.`);
 
                     localStorage.setItem(chaveLocal('contratos'), JSON.stringify(contratos));
 
@@ -4294,13 +4464,11 @@
 
                     localStorage.setItem(chaveLocal('repasses'), JSON.stringify(repasses));
 
-                    
-
                     statusLabel.innerText = "Sincronização concluída!";
 
                     isOffline = false;
 
-                    syncSuccess = true; 
+                    syncSuccess = true;
 
                 } else {
 
@@ -4310,23 +4478,13 @@
 
             } catch (err) {
 
-                logScreen(`Erro ao buscar dados: ${err.message || String(err)}`, true);
+                logScreen(`Apps Script indisponível (contratos/mensalidades/repasses ainda não migrados — ver plano): ${err.message || String(err)}`, true);
 
                 isOffline = true;
 
                 syncSuccess = false;
 
-                statusLabel.innerText = "Modo Offline Ativo.";
-
-                // v7.4.1 — Sem rede, não dá pra reconfirmar acesso contra o
-                // servidor. Só libera a visualização em cache se este
-                // dispositivo já foi autorizado com sucesso alguma vez antes
-                // (flag gravada só no caminho de sucesso, nunca aqui).
-                acessoAutorizado = localStorage.getItem(chaveLocal('ultimo_acesso_autorizado')) === '1';
-
-                
-
-                imoveis = JSON.parse(localStorage.getItem(chaveLocal('imoveis'))) || [];
+                statusLabel.innerText = "Imóveis OK. Demais dados ainda não migrados (offline).";
 
                 contratos = JSON.parse(localStorage.getItem(chaveLocal('contratos'))) || [];
 
@@ -4334,11 +4492,9 @@
 
                 repasses = JSON.parse(localStorage.getItem(chaveLocal('repasses'))) || [];
 
-                
+                logScreen(`Carregada última cópia local: ${contratos.length} contratos.`);
 
-                logScreen(`Carregada última cópia local: ${imoveis.length} imóveis, ${contratos.length} contratos.`);
-
-                errorContainer.innerText = `Detalhe do erro: ${err.message || String(err)}`;
+                errorContainer.innerText = (errorContainer.innerText ? errorContainer.innerText + '\n' : '') + `Detalhe (demais dados): ${err.message || String(err)}`;
 
                 errorContainer.classList.remove('hidden');
 
@@ -4728,7 +4884,7 @@
 
             const resultados = await Promise.all([
 
-                enviarDadosParaGoogleSheets("imoveis", imoveis).then(ok => ({ rota: "imoveis", ok })),
+                sincronizarImoveisSupabase(imoveis).then(ok => ({ rota: "imoveis", ok })), // ETAPA 3 — migrado para Supabase
 
                 enviarDadosParaGoogleSheets("contratos", contratos).then(ok => ({ rota: "contratos", ok })),
 
@@ -5705,6 +5861,12 @@
             }
 
             if (!confirm(`Confirma a exclusão do imóvel "${imo.empreendimento} - ${imo.enderecoRua}, ${imo.enderecoNum}"? Esta ação não pode ser desfeita.`)) return;
+
+            // ETAPA 3 — exclusão precisa ser explícita no Supabase; sincronizarImoveisSupabase()
+            // só grava/atualiza os itens que ainda estão no array, nunca apaga sozinho.
+            dbAuth.from('imoveis').delete().eq('id', id).then(({ error }) => {
+                if (error) logScreen('Erro ao excluir imóvel no Supabase: ' + error.message, true);
+            });
 
             imoveis = imoveis.filter(i => i.id !== id);
 
