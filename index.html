@@ -6,6 +6,47 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.5.0
+   LINHAS: 12092
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.5.0) — DESBLOQUEIO OFFLINE + PERFIL DEV + SERVIÇOS NO SUPABASE:
+     - CORRIGIDO (bug real, achado pelo cliente no teste): o app travava
+       as abas de Imóvel e Contrato inteiras sempre que "isOffline" era
+       verdadeiro — mesmo quando só o Apps Script (contratos/mensalidades)
+       estava fora do ar, e imóveis já funcionava de forma independente
+       desde a v1.4.0. Removida a classe "offline-disable" dos elementos
+       de Imóvel, Síndico, Manutencista e Administradora (que não
+       dependem mais do Apps Script); removido também o switchTab()
+       forçado para "tab-inadimplencia" sempre que ficava offline
+     - CORRIGIDO: acesso à aba DEV checava o nome mágico legado
+       "Nicola-Adm" (socioLogado !== 'Nicola-Adm') — não fazia mais
+       sentido desde a v1.3.0, quando socioLogado passou a ser o nome
+       real da pessoa (vindo do Supabase). Trocado para checar
+       perfilLogado === 'admin', o campo de verdade vindo da tabela
+       "pessoas"
+     - ETAPA 3 — Serviços (síndico, manutencista, administradora)
+       migrados para o Supabase, mesmo padrão usado em imóveis:
+       carregarPrestadoresSupabase() lê; sincronizarPrestadorSupabase()
+       grava 1 prestador + seus vínculos com empreendimentos (síndico e
+       manutencista); administradora fica sem vínculo por enquanto (ela
+       se liga por CONTRATO, ainda não migrado)
+     - Regra de vigência do síndico (só 1 vigente por empreendimento,
+       imposta pelo próprio banco desde o schema) implementada no
+       fluxo de gravação: ao vincular um síndico novo a um
+       empreendimento que já tinha outro, fecha a vigência do anterior
+       automaticamente antes de abrir a do novo — efetiva a "troca de
+       síndico" sem exigir uma tela nova
+     - Exclusão de síndico/manutencista/administradora agora também
+       apaga no Supabase (mesma correção que fizemos em imóveis na
+       v1.4.0 — a sincronização em lote só grava/atualiza, nunca apaga
+       sozinha)
+     - SIMPLIFICAÇÃO CONSCIENTE: campo "escopo" da administradora não
+       está sendo gravado ainda (no schema novo, mora no vínculo com o
+       contrato — que ainda não foi migrado). Volta quando contratos
+       forem migrados
+
+   --- HISTÓRICO ANTERIOR (Beta v1.4.0 — imóveis migrados para o Supabase) ---
+
    VERSÃO: Beta v1.4.0
    LINHAS: 11826
    DATA: 2026-07-30
@@ -602,7 +643,7 @@
 
             <div class="text-[13px] text-slate-500 font-mono">
 
-                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.4.0</span>
+                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.5.0</span>
 
             </div>
 
@@ -618,7 +659,7 @@
 
             <div class="flex items-baseline space-x-2 cursor-pointer active:scale-95 transition-transform select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.4.0</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.5.0</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">OFFLINE</span>
 
@@ -680,7 +721,7 @@
 
                 </div>
 
-                <button onclick="abrirFormularioImovel()" class="offline-disable w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar novo imóvel"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button onclick="abrirFormularioImovel()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar novo imóvel"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
             </div>
 
@@ -728,7 +769,7 @@
 
                 
 
-                <form id="form-imovel" onsubmit="saveImovel(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200 offline-disable">
+                <form id="form-imovel" onsubmit="saveImovel(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
 
                     <input type="hidden" id="imo-id">
 
@@ -2018,7 +2059,7 @@
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Síndicos / Gestoras</h2>
 
-                <button onclick="abrirFormSindico()" class="offline-disable w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar síndico"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button onclick="abrirFormSindico()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar síndico"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
             </div>
 
@@ -2032,7 +2073,7 @@
 
                 </div>
 
-                <form id="form-sindico" onsubmit="salvarSindico(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200 offline-disable">
+                <form id="form-sindico" onsubmit="salvarSindico(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
 
                     <input type="hidden" id="sind-id">
 
@@ -2102,7 +2143,7 @@
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Manutencistas</h2>
 
-                <button onclick="abrirFormManutencista()" class="offline-disable w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar manutencista"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button onclick="abrirFormManutencista()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar manutencista"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
             </div>
 
@@ -2116,7 +2157,7 @@
 
                 </div>
 
-                <form id="form-manutencista" onsubmit="salvarManutencista(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200 offline-disable">
+                <form id="form-manutencista" onsubmit="salvarManutencista(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
 
                     <input type="hidden" id="man-id">
 
@@ -2158,7 +2199,7 @@
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Administradoras Terceirizadas</h2>
 
-                <button onclick="abrirFormularioAdministradora()" class="offline-disable w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar administradora"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button onclick="abrirFormularioAdministradora()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar administradora"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
             </div>
 
@@ -2172,7 +2213,7 @@
 
                 </div>
 
-                <form id="form-administradora" onsubmit="saveAdministradora(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200 offline-disable">
+                <form id="form-administradora" onsubmit="saveAdministradora(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
 
                     <input type="hidden" id="adm-id">
 
@@ -2919,9 +2960,12 @@
 
         function ativarModoDesenvolvedor() {
 
-            if (socioLogado && socioLogado !== 'Nicola-Adm') {
+            // ETAPA 2/3 — antes checava o nome mágico "Nicola-Adm" (login por
+            // dispositivo/Google, superado). Agora usa o perfil vindo da tabela
+            // "pessoas" no Supabase, preenchido em verificarAcessoEEntrar().
+            if (perfilLogado !== 'admin') {
 
-                alert("🔒 Perfis de sócio não têm acesso ao modo desenvolvedor.");
+                alert("🔒 Só perfis de administrador têm acesso ao modo desenvolvedor.");
 
                 return;
 
@@ -3310,6 +3354,187 @@
                 return true;
             } catch (err) {
                 logScreen('Erro ao sincronizar imóveis com o Supabase: ' + err.message, true);
+                return false;
+            }
+        }
+
+        // ============================================================================
+        // ETAPA 3 (migração de dados) — camada de adaptação Supabase para
+        // PRESTADORES (síndico, manutencista, administradora/imobiliária)
+        // ============================================================================
+        // Mesmo princípio da adaptação de imóveis: traduz entre o banco novo
+        // (tabelas "prestadores" + "prestador_vinculo") e o formato antigo que as
+        // telas de Serviços já sabem exibir.
+        //
+        // SIMPLIFICAÇÃO CONSCIENTE: "escopo" (administradora) não está sendo
+        // gravado ainda — no schema novo, esse texto mora no vínculo
+        // (prestador_vinculo.descricao_escopo), e administradora só ganha vínculo
+        // quando ligada a um CONTRATO específico. Como contratos ainda não estão
+        // migrados, não há onde gravar esse texto por enquanto. Volta quando
+        // contratos forem migrados.
+
+        async function carregarPrestadoresSupabase() {
+
+            const { data: prestadoresRows, error: errPrest } = await dbAuth
+                .from('prestadores')
+                .select('*')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE);
+            if (errPrest) throw errPrest;
+
+            const idsPrestadores = (prestadoresRows || []).map(function(p) { return p.id; });
+
+            let vinculos = [];
+            if (idsPrestadores.length > 0) {
+                const { data: vincRows, error: errVinc } = await dbAuth
+                    .from('prestador_vinculo')
+                    .select('*, empreendimentos(nome)')
+                    .in('prestador_id', idsPrestadores)
+                    .is('data_fim_vigencia', null); // só os vínculos ainda vigentes
+                if (errVinc) throw errVinc;
+                vinculos = vincRows || [];
+            }
+
+            const administradoras = [], sindicos = [], manutencistas = [];
+
+            (prestadoresRows || []).forEach(function(p) {
+
+                const nomesEmpreendimentos = vinculos
+                    .filter(function(v) { return v.prestador_id === p.id && v.empreendimento_id; })
+                    .map(function(v) { return v.empreendimentos ? v.empreendimentos.nome : null; })
+                    .filter(Boolean);
+
+                if (p.tipo === 'imobiliaria') {
+                    administradoras.push({ id: p.id, nome: p.nome, docTipo: p.doc_tipo, documento: p.documento, taxaAdm: p.taxa_adm || 0, escopo: '' });
+                } else if (p.tipo === 'sindico') {
+                    sindicos.push({ id: p.id, nome: p.nome, docTipo: p.doc_tipo, documento: p.documento, nomeContato: p.contato_nome, whatsapp: p.whatsapp, email: p.email, empreendimentos: nomesEmpreendimentos });
+                } else if (p.tipo === 'manutencista') {
+                    manutencistas.push({ id: p.id, nome: p.nome, whatsapp: p.whatsapp, empreendimentos: nomesEmpreendimentos });
+                }
+
+            });
+
+            return { administradoras: administradoras, sindicos: sindicos, manutencistas: manutencistas };
+
+        }
+
+        async function sincronizarPrestadorSupabase(item, tipoPrestador) {
+
+            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id || '');
+
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                tipo: tipoPrestador,
+                pessoa_fisica_juridica: (item.docTipo === 'CNPJ') ? 'juridica' : 'fisica',
+                nome: item.nome,
+                doc_tipo: item.docTipo || null,
+                documento: item.documento || null,
+                contato_nome: item.nomeContato || null,
+                whatsapp: item.whatsapp || null,
+                email: item.email || null,
+                taxa_adm: (item.taxaAdm === undefined || item.taxaAdm === null || item.taxaAdm === '') ? null : item.taxaAdm
+            };
+
+            let prestadorId;
+            if (idEhUuidValido) {
+                const { error } = await dbAuth.from('prestadores').update(linha).eq('id', item.id);
+                if (error) throw error;
+                prestadorId = item.id;
+            } else {
+                const { data: inserido, error } = await dbAuth.from('prestadores').insert(linha).select('id').single();
+                if (error) throw error;
+                prestadorId = inserido.id;
+                item.id = prestadorId;
+            }
+
+            // Vínculo com empreendimentos — só se aplica a síndico e manutencista
+            // (administradora se liga por contrato, ainda não migrado).
+            if (tipoPrestador === 'sindico' || tipoPrestador === 'manutencista') {
+
+                const nomesEmpreendimentos = item.empreendimentos || [];
+                const hoje = new Date().toISOString().split('T')[0];
+                const idsEmpreendimentosAtuais = [];
+
+                for (const nomeEmp of nomesEmpreendimentos) {
+
+                    const empreendimentoId = await obterOuCriarLookup('empreendimentos', nomeEmp, cacheLookupEmpreendimentos);
+                    idsEmpreendimentosAtuais.push(empreendimentoId);
+
+                    const { data: vinculoExistente } = await dbAuth
+                        .from('prestador_vinculo')
+                        .select('id')
+                        .eq('prestador_id', prestadorId)
+                        .eq('empreendimento_id', empreendimentoId)
+                        .is('data_fim_vigencia', null)
+                        .limit(1);
+
+                    if (vinculoExistente && vinculoExistente.length > 0) continue; // já vinculado
+
+                    // Síndico: só 1 vigente por empreendimento — fecha o de outro
+                    // prestador antes de abrir o novo (efetiva a troca de síndico).
+                    if (tipoPrestador === 'sindico') {
+                        await dbAuth.from('prestador_vinculo')
+                            .update({ data_fim_vigencia: hoje })
+                            .eq('empreendimento_id', empreendimentoId)
+                            .eq('tipo_prestador', 'sindico')
+                            .is('data_fim_vigencia', null);
+                    }
+
+                    const { error: errVinc } = await dbAuth.from('prestador_vinculo').insert({
+                        prestador_id: prestadorId,
+                        tipo_prestador: tipoPrestador,
+                        empreendimento_id: empreendimentoId,
+                        data_inicio_vigencia: hoje
+                    });
+                    if (errVinc) throw errVinc;
+
+                }
+
+                // Empreendimentos desmarcados na tela: fecha a vigência (preserva
+                // histórico em vez de apagar a linha).
+                const { data: vinculosAtivos } = await dbAuth
+                    .from('prestador_vinculo')
+                    .select('id, empreendimento_id')
+                    .eq('prestador_id', prestadorId)
+                    .is('data_fim_vigencia', null);
+
+                for (const v of (vinculosAtivos || [])) {
+                    if (!idsEmpreendimentosAtuais.includes(v.empreendimento_id)) {
+                        await dbAuth.from('prestador_vinculo').update({ data_fim_vigencia: hoje }).eq('id', v.id);
+                    }
+                }
+
+            }
+
+            return prestadorId;
+
+        }
+
+        async function sincronizarAdministradorasSupabase(lista) {
+            try {
+                for (const item of lista) await sincronizarPrestadorSupabase(item, 'imobiliaria');
+                return true;
+            } catch (err) {
+                logScreen('Erro ao sincronizar administradoras: ' + err.message, true);
+                return false;
+            }
+        }
+
+        async function sincronizarSindicosSupabase(lista) {
+            try {
+                for (const item of lista) await sincronizarPrestadorSupabase(item, 'sindico');
+                return true;
+            } catch (err) {
+                logScreen('Erro ao sincronizar síndicos: ' + err.message, true);
+                return false;
+            }
+        }
+
+        async function sincronizarManutencistasSupabase(lista) {
+            try {
+                for (const item of lista) await sincronizarPrestadorSupabase(item, 'manutencista');
+                return true;
+            } catch (err) {
+                logScreen('Erro ao sincronizar manutencistas: ' + err.message, true);
                 return false;
             }
         }
@@ -4383,7 +4608,34 @@
             }
 
             // ============================================================================
-            // Demais dados (contratos, mensalidades, repasses, sócios, prestadores...)
+            // ETAPA 3 (migração de dados) — SERVIÇOS (síndico, manutencista,
+            // administradora) também já vêm do Supabase, de forma independente do
+            // Apps Script e independente do bloco de imóveis acima.
+            // ============================================================================
+            try {
+
+                logScreen("=== Buscando prestadores/serviços (Supabase) ===");
+
+                const prestadoresCarregados = await carregarPrestadoresSupabase();
+
+                administradoras = prestadoresCarregados.administradoras;
+                sindicos = prestadoresCarregados.sindicos;
+                manutencistas = prestadoresCarregados.manutencistas;
+
+                logScreen(`Serviços carregados do Supabase: ${administradoras.length} administradoras, ${sindicos.length} síndicos, ${manutencistas.length} manutencistas.`);
+
+            } catch (errServicos) {
+
+                logScreen(`Erro ao buscar serviços no Supabase: ${errServicos.message || String(errServicos)}`, true);
+
+                administradoras = [];
+                sindicos = [];
+                manutencistas = [];
+
+            }
+
+            // ============================================================================
+            // Demais dados (contratos, mensalidades, repasses, sócios...)
             // AINDA vêm do Apps Script — migração é tabela por tabela. Se esta parte
             // falhar (ex.: o CORS do Apps Script), os imóveis acima continuam
             // funcionando normalmente; só estas rotas ficam vazias/em cache até
@@ -4427,12 +4679,12 @@
 
                     extratoFingerprints = resData.dados.extratoFingerprints || [];
 
-                    administradoras = (resData.dados.administradoras || []).map(normalizarAdministradora).filter(Boolean);
+                    // ETAPA 3 — administradoras/sindicos/manutencistas migrados para
+                    // o Supabase (ver bloco próprio logo abaixo, fora deste try).
+                    // Não lemos mais essas 3 rotas daqui.
 
                     dispositivosAprovados = resData.dados.dispositivosAprovados || [];
 
-                    sindicos = resData.dados.sindicos || [];
-                    manutencistas = resData.dados.manutencistas || [];
                     emailConfiguracao = resData.dados.emailConfiguracao || [];
 
                     acessos = resData.dados.acessos || [];
@@ -4654,7 +4906,11 @@
 
                 });
 
-                switchTab('tab-inadimplencia');
+                // Removido o switchTab('tab-inadimplencia') forçado — desde a Etapa 3,
+                // "offline" significa só "Apps Script indisponível" (contratos,
+                // mensalidades...), não mais "nada funciona". Imóveis e Serviços já
+                // não dependem disso, então empurrar o usuário para longe de onde
+                // ele está deixou de fazer sentido.
 
             } else {
 
@@ -4894,11 +5150,11 @@
 
                 enviarDadosParaGoogleSheets("pendenciasExtrato", pendenciasExtrato).then(ok => ({ rota: "pendenciasExtrato", ok })),
 
-                enviarDadosParaGoogleSheets("administradoras", administradoras).then(ok => ({ rota: "administradoras", ok })),
+                sincronizarAdministradorasSupabase(administradoras).then(ok => ({ rota: "administradoras", ok })), // ETAPA 3 — migrado para Supabase
 
-                enviarDadosParaGoogleSheets("sindicos", sindicos).then(ok => ({ rota: "sindicos", ok })),
+                sincronizarSindicosSupabase(sindicos).then(ok => ({ rota: "sindicos", ok })), // ETAPA 3 — migrado para Supabase
 
-                enviarDadosParaGoogleSheets("manutencistas", manutencistas).then(ok => ({ rota: "manutencistas", ok }))
+                sincronizarManutencistasSupabase(manutencistas).then(ok => ({ rota: "manutencistas", ok })) // ETAPA 3 — migrado para Supabase
 
             ]);
 
@@ -6007,6 +6263,10 @@
             }
 
             if (!confirm("Confirma a exclusão desta administradora?")) return;
+
+            dbAuth.from('prestadores').delete().eq('id', id).then(({ error }) => {
+                if (error) logScreen('Erro ao excluir administradora no Supabase: ' + error.message, true);
+            });
 
             administradoras = administradoras.filter(a => a.id !== id);
 
@@ -11670,6 +11930,9 @@
                 return;
             }
             if (!confirm("Confirma a exclusão deste síndico?")) return;
+            dbAuth.from('prestadores').delete().eq('id', id).then(({ error }) => {
+                if (error) logScreen('Erro ao excluir síndico no Supabase: ' + error.message, true);
+            });
             sindicos = sindicos.filter(s => s.id !== id);
             saveAll(true, "Síndico excluído.");
         }
@@ -11763,6 +12026,9 @@
                 return;
             }
             if (!confirm("Confirma a exclusão deste manutencista?")) return;
+            dbAuth.from('prestadores').delete().eq('id', id).then(({ error }) => {
+                if (error) logScreen('Erro ao excluir manutencista no Supabase: ' + error.message, true);
+            });
             manutencistas = manutencistas.filter(m => m.id !== id);
             saveAll(true, "Manutencista excluído.");
         }
