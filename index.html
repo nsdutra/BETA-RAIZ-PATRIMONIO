@@ -6,6 +6,114 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.8.0
+   LINHAS: 12607
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.8.0) — ETAPA 3: VITRINE PÚBLICA NO SUPABASE:
+     - Geração de link (gerarLinkVitrine), exclusão individual
+       (dev_apagarLinkEspecifico), exclusão em massa
+       (dev_apagarTodosLinks) e exclusão de expirados
+       (dev_apagarLinksExpirados) — todas migradas para o Supabase
+       (tabela links_vitrine), removendo as chamadas ao Apps Script
+     - CORRIGIDO (achado nesta migração, pré-existente): a vitrine
+       pública fazia DUAS chamadas — resolver o token, e depois buscar
+       O PORTFÓLIO INTEIRO de imóveis para filtrar no navegador. O
+       backend antigo (Apps Script) já tinha sido corrigido faz tempo
+       para devolver os imóveis pré-filtrados na própria resolução do
+       token, mas o FRONT nunca foi atualizado para usar essa resposta
+       — continuava fazendo a segunda chamada insegura. Nova função
+       resolverVitrinePublicaSupabase() faz tudo numa consulta só, já
+       filtrada pela política de RLS (o visitante nunca recebe nada
+       além dos imóveis daquele link específico)
+     - Como consequência prática: a vitrine pública estava
+       efetivamente QUEBRADA (dependia do Apps Script, que segue
+       indisponível) — agora funciona de novo, e mais segura do que
+       antes
+     - CONFIRMADO sem necessidade de mudança: a aba Relatórios/Métricas
+       (renderRelatorios) já funciona corretamente — é só uma leitura
+       dos arrays imoveis/contratos/mensalidades já em memória, sem
+       chamada própria. Como as três já vêm do Supabase, relatórios já
+       estava migrado "de graça"
+
+   ⚠️ AINDA PENDENTES (avaliados nesta rodada, não migrados ainda):
+     - CONCILIAÇÃO BANCÁRIA (pendencias_extrato/extrato_fingerprints):
+       a mais complexa das pendentes — envolve leitura de .xlsx e
+       lógica de match automático. Fica para uma rodada própria,
+       mapeada com calma
+     - SÓCIOS (aba DEV "Cadastro Sócios"): achei que esse fluxo hoje é
+       uma unificação de 3 fontes (array "socios" próprio,
+       dispositivosAprovados do antigo login por dispositivo, e
+       emailConfiguracao) — tudo isso é conceitualmente redundante com
+       a tabela "pessoas" que já existe no Supabase. Precisa de
+       decisão de design (unificar de vez com "pessoas", não só
+       trocar o backend) antes de migrar, não só troca mecânica
+     - ABA DEV (demais funções, fora do gerenciador de links já
+       migrado): ainda não mapeada em detalhe
+
+   --- HISTÓRICO ANTERIOR (Beta v1.7.0 — mensalidades e repasses) ---
+
+   VERSÃO: Beta v1.7.0
+   LINHAS: 12555
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.7.0) — ETAPA 3: MENSALIDADES E REPASSES NO SUPABASE:
+     - Mensalidades migradas: carregarMensalidadesSupabase() /
+       sincronizarMensalidadeSupabase(). "referencia" (texto "MM/YYYY")
+       convertida para "competencia" (date, sempre dia 1 do mês) e
+       vice-versa nas funções competenciaParaData()/dataParaCompetencia()
+     - Repasses migrados: carregarRepassesSupabase() /
+       sincronizarRepasseSupabase(). O campo "socio" (nome em texto)
+       agora resolve para pessoa_id via obterPessoaIdPorNome() — se o
+       nome não bater com nenhuma pessoa cadastrada, a gravação falha
+       com mensagem clara (schema exige pessoa_id, não aceita texto solto)
+     - Exclusão de mensalidade e repasse agora também apaga no Supabase
+       (mesma correção já aplicada em imóveis/contratos/prestadores)
+     - Removida a classe "offline-disable" de: botão "Gerar recebimento
+       do mês", painel de geração de mensalidades, e formulário
+       "Registrar Retirada" (repasse) — não dependem mais do Apps Script
+     - NÃO alterado: botão de importar extrato bancário e "reprocessar
+       conciliação" continuam com offline-disable — pendências de
+       extrato (conciliação) ainda não foi migrada
+     - NÃO verificado nesta rodada: "Importar Carga Inicial" (DEV, bulk
+       load via planilha) foi deixado com offline-disable por cautela —
+       não confirmei se o caminho interno dela já usa os novos
+       adaptadores Supabase ou ainda depende de algo do Apps Script
+
+   ⚠️ Pendências de extrato (conciliação bancária) e vitrine pública
+   AINDA no Apps Script — próxima etapa.
+
+   --- HISTÓRICO ANTERIOR (Beta v1.6.1 — correção de RLS + contratos) ---
+
+   VERSÃO: Beta v1.6.1
+   LINHAS: 12341
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.6.1) — RESILIÊNCIA DE SINCRONIZAÇÃO + BUG DA DIVISÃO:
+     - CORRIGIDO (bug real, achado pelo cliente no teste): a divisão
+       societária de imóvel não estava sendo gravada em
+       "propriedade_imovel". Causa: o formulário identifica o sócio
+       pelo nome CURTO (SOCIO_PADRAO, ex.: "Nicola"), mas a tabela
+       "pessoas" guarda o nome COMPLETO ("Nicola Santos Dutra") — a
+       comparação exigia igualdade exata de texto e nunca batia.
+       Corrigido para aceitar também o casamento pelo primeiro nome
+     - CORRIGIDO (bug real, mesmo teste): uma vez que UM item de uma
+       lista falhava ao sincronizar (ex.: o imóvel com o problema
+       acima), TODO o lote parava — e como saveAll() resincroniza
+       TODOS os itens a cada gravação (não só o que mudou), aquele
+       item ruim passava a aparecer como falha em TODA gravação
+       futura, mesmo salvando algo sem relação (foi o que aconteceu
+       ao salvar um contrato e "Imóveis" aparecer como erro junto)
+     - Novo helper sincronizarListaComResiliencia(): cada item agora
+       tem seu próprio try/catch — um item com problema não trava
+       mais os demais, e o erro específico daquele item aparece no
+       log (antes era um "falhou" genérico, sem dizer qual nem por quê)
+     - Aplicado nas 5 rotas já migradas: imóveis, contratos,
+       administradoras, síndicos, manutencistas
+
+   ⚠️ Mensalidades, repasses, pendências de extrato (conciliação
+   bancária) e vitrine pública AINDA no Apps Script — próxima rodada
+   da migração, como já vínhamos combinando.
+
+   --- HISTÓRICO ANTERIOR (Beta v1.6.0 — bugfix crítico + contratos) ---
+
    VERSÃO: Beta v1.6.0
    LINHAS: 12311
    DATA: 2026-07-30
@@ -686,7 +794,7 @@
 
             <div class="text-[13px] text-slate-500 font-mono">
 
-                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.6.0</span>
+                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.8.0</span>
 
             </div>
 
@@ -702,7 +810,7 @@
 
             <div class="flex items-baseline space-x-2 cursor-pointer active:scale-95 transition-transform select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.6.0</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.8.0</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">OFFLINE</span>
 
@@ -1596,7 +1704,7 @@
 
             </div>
 
-            <div id="painel-gerar-mes" class="hidden bg-white p-4 rounded-xl shadow-sm mb-4 border border-gray-200 space-y-3 offline-disable">
+            <div id="painel-gerar-mes" class="hidden bg-white p-4 rounded-xl shadow-sm mb-4 border border-gray-200 space-y-3">
 
                 <div class="flex justify-between items-center">
 
@@ -1938,7 +2046,7 @@
 
             </div>
 
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-4 border border-gray-200 space-y-3 offline-disable">
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-4 border border-gray-200 space-y-3">
 
                 <h3 class="text-[11px] font-bold uppercase text-slate-500">Registrar Retirada</h3>
 
@@ -3374,7 +3482,13 @@
             if (nomesDivisao.length > 0) {
                 const { data: pessoasCliente } = await dbAuth.from('pessoas').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE);
                 const linhasPropriedade = nomesDivisao.map(function(nome) {
-                    const pessoaEncontrada = (pessoasCliente || []).find(function(p) { return p.nome === nome; });
+                    // Casamento por nome completo OU só o primeiro nome — o formulário usa
+                    // nomes curtos (ex.: SOCIO_PADRAO = "Nicola"), mas pessoas.nome guarda o
+                    // nome completo ("Nicola Santos Dutra"). Sem isso, a comparação exata
+                    // nunca batia, e a divisão do sócio padrão nunca era gravada.
+                    const pessoaEncontrada = (pessoasCliente || []).find(function(p) {
+                        return p.nome === nome || p.nome.split(' ')[0] === nome;
+                    });
                     return pessoaEncontrada
                         ? { imovel_id: imovelId, tipo_proprietario: 'socio_interno', pessoa_id: pessoaEncontrada.id, percentual: imo.divisao[nome] }
                         : { imovel_id: imovelId, tipo_proprietario: 'terceiro_externo', nome_externo: nome, percentual: imo.divisao[nome] };
@@ -3386,19 +3500,36 @@
             return imovelId;
         }
 
+        // ============================================================================
+        // Helper compartilhado: sincroniza uma lista item por item, SEM deixar um
+        // item ruim travar os demais. Antes, um erro em qualquer item abortava o
+        // lote inteiro (try/catch em volta do loop inteiro) — e como saveAll()
+        // resincroniza TODOS os itens a cada gravação (não só o que mudou), um
+        // único item com problema passava a aparecer como falha em TODA gravação
+        // futura, mesmo salvando algo sem relação nenhuma (ex.: um contrato).
+        // Agora cada item tem seu próprio try/catch: os que não têm problema
+        // continuam sincronizando normalmente, e o erro específico do item
+        // problemático fica visível no log (em vez de um "falhou" genérico).
+        // ============================================================================
+        async function sincronizarListaComResiliencia(lista, fnSincronizarItem, nomeRota) {
+            let algumFalhou = false;
+            for (const item of lista) {
+                try {
+                    await fnSincronizarItem(item);
+                } catch (err) {
+                    algumFalhou = true;
+                    const identificador = item.id || item.nome || 'item novo';
+                    logScreen(`Erro ao sincronizar ${nomeRota} (${identificador}): ${err.message || JSON.stringify(err)}`, true);
+                }
+            }
+            return !algumFalhou;
+        }
+
         // Sincroniza a lista inteira (usada pelo saveAll) — grava cada imóvel que
         // ainda não tem confirmação, e devolve true/false como as outras rotas
         // esperam (mesmo formato de retorno de enviarDadosParaGoogleSheets).
         async function sincronizarImoveisSupabase(listaImoveis) {
-            try {
-                for (const imo of listaImoveis) {
-                    await sincronizarImovelSupabase(imo);
-                }
-                return true;
-            } catch (err) {
-                logScreen('Erro ao sincronizar imóveis com o Supabase: ' + err.message, true);
-                return false;
-            }
+            return sincronizarListaComResiliencia(listaImoveis, sincronizarImovelSupabase, 'imóvel');
         }
 
         // ============================================================================
@@ -3553,33 +3684,15 @@
         }
 
         async function sincronizarAdministradorasSupabase(lista) {
-            try {
-                for (const item of lista) await sincronizarPrestadorSupabase(item, 'imobiliaria');
-                return true;
-            } catch (err) {
-                logScreen('Erro ao sincronizar administradoras: ' + err.message, true);
-                return false;
-            }
+            return sincronizarListaComResiliencia(lista, function(item) { return sincronizarPrestadorSupabase(item, 'imobiliaria'); }, 'administradora');
         }
 
         async function sincronizarSindicosSupabase(lista) {
-            try {
-                for (const item of lista) await sincronizarPrestadorSupabase(item, 'sindico');
-                return true;
-            } catch (err) {
-                logScreen('Erro ao sincronizar síndicos: ' + err.message, true);
-                return false;
-            }
+            return sincronizarListaComResiliencia(lista, function(item) { return sincronizarPrestadorSupabase(item, 'sindico'); }, 'síndico');
         }
 
         async function sincronizarManutencistasSupabase(lista) {
-            try {
-                for (const item of lista) await sincronizarPrestadorSupabase(item, 'manutencista');
-                return true;
-            } catch (err) {
-                logScreen('Erro ao sincronizar manutencistas: ' + err.message, true);
-                return false;
-            }
+            return sincronizarListaComResiliencia(lista, function(item) { return sincronizarPrestadorSupabase(item, 'manutencista'); }, 'manutencista');
         }
 
         // ============================================================================
@@ -3725,13 +3838,251 @@
         }
 
         async function sincronizarContratosSupabase(lista) {
+            return sincronizarListaComResiliencia(lista, sincronizarContratoSupabase, 'contrato');
+        }
+
+        // ============================================================================
+        // ETAPA 3 (migração de dados) — camada de adaptação Supabase para
+        // MENSALIDADES e REPASSES
+        // ============================================================================
+
+        function competenciaParaData(ref) {
+            // "MM/YYYY" -> "YYYY-MM-01" (formato que o Postgres espera em "date")
+            if (!ref || !ref.includes('/')) return null;
+            const [mes, ano] = ref.split('/');
+            return `${ano}-${mes.padStart(2, '0')}-01`;
+        }
+
+        function dataParaCompetencia(dataIso) {
+            // "YYYY-MM-01" (ou qualquer dia daquele mês) -> "MM/YYYY"
+            if (!dataIso) return '';
+            const [ano, mes] = dataIso.split('-');
+            return `${mes}/${ano}`;
+        }
+
+        function converterDataBRparaISO(str) {
+            // "DD/MM/YYYY" -> "YYYY-MM-DD". Se já vier em ISO, devolve como está.
+            if (!str) return null;
+            if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.split('T')[0];
+            const partes = str.split('/');
+            if (partes.length !== 3) return null;
+            return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+        }
+
+        function converterDataISOparaBR(str) {
+            if (!str) return '';
+            const [ano, mes, dia] = str.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function mapStatusMensalidadeSupabaseParaAntigo(status) {
+            const mapa = { pago: 'Pago', atrasado: 'Inadimplente', pendente: 'Inadimplente', isento: 'Isento' };
+            return mapa[status] || 'Inadimplente';
+        }
+        function mapStatusMensalidadeAntigoParaSupabase(status) {
+            const mapa = { 'Pago': 'pago', 'Inadimplente': 'atrasado', 'Isento': 'isento' };
+            return mapa[status] || 'pendente';
+        }
+
+        async function carregarMensalidadesSupabase() {
+            const { data, error } = await dbAuth.from('mensalidades').select('*').eq('cliente_id', CLIENTE_ID_SUPABASE);
+            if (error) throw error;
+            return (data || []).map(function(row) {
+                return {
+                    id: row.id,
+                    contratoId: row.contrato_id || '',
+                    referencia: dataParaCompetencia(row.competencia),
+                    status: mapStatusMensalidadeSupabaseParaAntigo(row.status),
+                    banco: row.banco || '-',
+                    dataPgto: converterDataISOparaBR(row.data_pgto),
+                    observacao: row.observacao || '',
+                    valorConfirmado: row.valor_confirmado || 0,
+                    valorEnergia: row.valor_energia || 0,
+                    chaveTransacaoOrigem: row.chave_transacao_origem || '',
+                    envioLog: row.envio_log || null
+                };
+            });
+        }
+
+        async function sincronizarMensalidadeSupabase(men) {
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                contrato_id: /^[0-9a-f]{8}-/i.test(men.contratoId || '') ? men.contratoId : null,
+                competencia: competenciaParaData(men.referencia),
+                status: mapStatusMensalidadeAntigoParaSupabase(men.status),
+                banco: men.banco || null,
+                data_pgto: converterDataBRparaISO(men.dataPgto),
+                observacao: men.observacao || null,
+                valor_confirmado: men.valorConfirmado || null,
+                valor_energia: men.valorEnergia || null,
+                chave_transacao_origem: men.chaveTransacaoOrigem || null,
+                envio_log: men.envioLog || []
+            };
+
+            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(men.id || '');
+
+            if (idEhUuidValido) {
+                const { error } = await dbAuth.from('mensalidades').update(linha).eq('id', men.id);
+                if (error) throw error;
+                return men.id;
+            } else {
+                const { data: inserido, error } = await dbAuth.from('mensalidades').insert(linha).select('id').single();
+                if (error) throw error;
+                men.id = inserido.id;
+                return inserido.id;
+            }
+        }
+
+        async function sincronizarMensalidadesSupabase(lista) {
             try {
-                for (const con of lista) await sincronizarContratoSupabase(con);
+                for (const men of lista) await sincronizarMensalidadeSupabase(men);
                 return true;
             } catch (err) {
-                logScreen('Erro ao sincronizar contratos: ' + err.message, true);
+                logScreen('Erro ao sincronizar mensalidades: ' + err.message, true);
                 return false;
             }
+        }
+
+        const cachePessoasPorNome = {};
+
+        async function obterPessoaIdPorNome(nome) {
+            if (cachePessoasPorNome[nome]) return cachePessoasPorNome[nome];
+            const { data, error } = await dbAuth.from('pessoas').select('id').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('nome', nome).limit(1);
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                throw new Error(`Sócio "${nome}" não encontrado no cadastro de pessoas — cadastre-o antes de lançar um repasse para ele.`);
+            }
+            cachePessoasPorNome[nome] = data[0].id;
+            return data[0].id;
+        }
+
+        async function carregarRepassesSupabase() {
+            const { data, error } = await dbAuth.from('repasses').select('*, pessoas(nome)').eq('cliente_id', CLIENTE_ID_SUPABASE);
+            if (error) throw error;
+            return (data || []).map(function(row) {
+                return {
+                    id: row.id,
+                    socio: row.pessoas ? row.pessoas.nome : '',
+                    mes: dataParaCompetencia(row.competencia),
+                    valor: row.valor || 0,
+                    dataReal: converterDataISOparaBR(row.data_real),
+                    timestamp: new Date(row.criado_em).getTime()
+                };
+            });
+        }
+
+        async function sincronizarRepasseSupabase(rep) {
+            const pessoaId = await obterPessoaIdPorNome(rep.socio);
+
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                pessoa_id: pessoaId,
+                competencia: competenciaParaData(rep.mes),
+                valor: rep.valor || null,
+                data_real: converterDataBRparaISO(rep.dataReal)
+            };
+
+            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rep.id || '');
+
+            if (idEhUuidValido) {
+                const { error } = await dbAuth.from('repasses').update(linha).eq('id', rep.id);
+                if (error) throw error;
+                return rep.id;
+            } else {
+                const { data: inserido, error } = await dbAuth.from('repasses').insert(linha).select('id').single();
+                if (error) throw error;
+                rep.id = inserido.id;
+                return inserido.id;
+            }
+        }
+
+        async function sincronizarRepassesSupabase(lista) {
+            try {
+                for (const rep of lista) await sincronizarRepasseSupabase(rep);
+                return true;
+            } catch (err) {
+                logScreen('Erro ao sincronizar repasses: ' + err.message, true);
+                return false;
+            }
+        }
+
+        // ============================================================================
+        // ETAPA 3 (migração de dados) — camada de adaptação Supabase para VITRINE
+        // ============================================================================
+
+        async function carregarLinksVitrineSupabase() {
+            const { data, error } = await dbAuth.from('links_vitrine').select('*').eq('cliente_id', CLIENTE_ID_SUPABASE);
+            if (error) throw error;
+            return (data || []).map(function(row) {
+                const criadoEmBrasilia = new Date(row.criado_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                return {
+                    token: row.token,
+                    ids: (row.imovel_ids || []).join(','),
+                    criadoEm: row.criado_em,
+                    criadoEmBrasilia: criadoEmBrasilia,
+                    qtdImoveis: (row.imovel_ids || []).length
+                };
+            });
+        }
+
+        async function criarLinkVitrineSupabase(token, idsSelecionados) {
+            const { error } = await dbAuth.from('links_vitrine').insert({
+                token: token,
+                cliente_id: CLIENTE_ID_SUPABASE,
+                imovel_ids: idsSelecionados
+            });
+            if (error) throw error;
+        }
+
+        async function apagarLinkVitrineSupabase(token) {
+            const { error } = await dbAuth.from('links_vitrine').delete().eq('token', token).eq('cliente_id', CLIENTE_ID_SUPABASE);
+            if (error) throw error;
+        }
+
+        async function apagarTodosLinksVitrineSupabase() {
+            const { error } = await dbAuth.from('links_vitrine').delete().eq('cliente_id', CLIENTE_ID_SUPABASE);
+            if (error) throw error;
+        }
+
+        // Resolve o link público (token -> imóveis), SEM LOGIN — usada pela vitrine
+        // externa. Uma única consulta, já filtrada pelo próprio banco (RLS): o
+        // visitante nunca recebe o portfólio inteiro, só os imóveis daquele link
+        // específico. Substitui as DUAS chamadas antigas ao Apps Script (resolver
+        // token + buscar todos os imóveis para filtrar no navegador).
+        async function resolverVitrinePublicaSupabase(token) {
+            const { data: linkRows, error: errLink } = await dbAuth.from('links_vitrine').select('imovel_ids').eq('token', token).limit(1);
+            if (errLink) throw errLink;
+            if (!linkRows || linkRows.length === 0) throw new Error('Link não encontrado ou expirado.');
+
+            const idsDoLink = linkRows[0].imovel_ids || [];
+            if (idsDoLink.length === 0) return [];
+
+            const { data: imoveisRows, error: errImo } = await dbAuth
+                .from('imoveis')
+                .select('*, tipos_imovel(nome), empreendimentos(nome)')
+                .in('id', idsDoLink);
+            if (errImo) throw errImo;
+
+            return (imoveisRows || []).map(function(row) {
+                return {
+                    id: row.id,
+                    empreendimento: row.empreendimentos ? row.empreendimentos.nome : '',
+                    enderecoRua: row.endereco_rua || '',
+                    enderecoNum: row.endereco_num || '',
+                    enderecoComp: row.endereco_comp || '',
+                    enderecoBairro: row.endereco_bairro || '',
+                    enderecoCidade: row.endereco_cidade || '',
+                    tipo: row.tipos_imovel ? row.tipos_imovel.nome : '',
+                    tamanho: row.tamanho || 0,
+                    condominio: row.condominio || 0,
+                    iptu: row.iptu || 0,
+                    descricao: row.descricao || '',
+                    energiaRumo: row.energia_disponivel ? 'Sim' : 'Não',
+                    valor: row.valor || 0,
+                    fotos: row.fotos || [],
+                    status: mapStatusSupabaseParaAntigo(row.status)
+                };
+            });
         }
 
         function normalizarImovel(raw) {
@@ -4850,13 +5201,44 @@
             }
 
             // ============================================================================
-            // Demais dados (mensalidades, repasses, sócios...) AINDA vêm do Apps
-            // Script — migração é tabela por tabela. Se esta parte falhar (ex.: o
-            // CORS do Apps Script), imóveis/serviços/contratos acima continuam
-            // funcionando normalmente; só estas rotas ficam vazias/em cache até
-            // serem migradas também.
+            // ETAPA 3 (migração de dados) — MENSALIDADES e REPASSES também já vêm
+            // do Supabase, cada um em bloco independente.
             // ============================================================================
-            statusLabel.innerText = "Buscando demais dados (mensalidades, repasses...)...";
+            try {
+                logScreen("=== Buscando mensalidades (Supabase) ===");
+                mensalidades = await carregarMensalidadesSupabase();
+                logScreen(`Mensalidades carregadas do Supabase: ${mensalidades.length}.`);
+            } catch (errMen) {
+                logScreen(`Erro ao buscar mensalidades no Supabase: ${errMen.message || String(errMen)}`, true);
+                mensalidades = JSON.parse(localStorage.getItem(chaveLocal('mensalidades'))) || [];
+            }
+
+            try {
+                logScreen("=== Buscando repasses (Supabase) ===");
+                repasses = await carregarRepassesSupabase();
+                logScreen(`Repasses carregados do Supabase: ${repasses.length}.`);
+            } catch (errRep) {
+                logScreen(`Erro ao buscar repasses no Supabase: ${errRep.message || String(errRep)}`, true);
+                repasses = JSON.parse(localStorage.getItem(chaveLocal('repasses'))) || [];
+            }
+
+            try {
+                logScreen("=== Buscando links de vitrine (Supabase) ===");
+                links = await carregarLinksVitrineSupabase();
+                logScreen(`Links de vitrine carregados do Supabase: ${links.length}.`);
+            } catch (errLinks) {
+                logScreen(`Erro ao buscar links de vitrine no Supabase: ${errLinks.message || String(errLinks)}`, true);
+                links = [];
+            }
+
+            // ============================================================================
+            // Demais dados (pendências de extrato / conciliação bancária...) AINDA
+            // vêm do Apps Script — migração é tabela por tabela. Se esta parte
+            // falhar (ex.: o CORS do Apps Script), tudo o que já foi migrado acima
+            // continua funcionando normalmente; só esta rota fica vazia/em cache
+            // até ser migrada também.
+            // ============================================================================
+            statusLabel.innerText = "Buscando pendências de extrato...";
 
             try {
 
@@ -4874,20 +5256,9 @@
 
                 if (resData.status === "sucesso" && resData.dados) {
 
-                    // ETAPA 3 — contratos migrados para o Supabase (bloco próprio
-                    // acima, fora deste try). Não lemos mais essa rota daqui.
-
-                    const rawMensalidades = resData.dados.mensalidades || [];
-
-                    const rawRepasses = resData.dados.repasses || [];
-
-                    mensalidades = rawMensalidades.map(normalizarMensalidade).filter(Boolean);
-
-                    repasses = (rawRepasses || []).map(function(r) {
-
-                        return Object.assign({}, r, { mes: normalizarCompetencia(r.mes) });
-
-                    });
+                    // ETAPA 3 — contratos, mensalidades e repasses migrados para o
+                    // Supabase (blocos próprios acima, fora deste try). Não lemos
+                    // mais essas rotas daqui.
 
                     pendenciasExtrato = resData.dados.pendenciasExtrato || [];
 
@@ -4902,7 +5273,8 @@
                     emailConfiguracao = resData.dados.emailConfiguracao || [];
 
                     acessos = resData.dados.acessos || [];
-                    links = resData.dados.links || [];
+                    // ETAPA 3 — links (vitrine) migrados para o Supabase, bloco próprio
+                    // logo abaixo. Não lemos mais essa rota daqui.
 
                     const sociosAba = resData.dados.socios || [];
                     if (sociosAba.length > 0) {
@@ -4944,24 +5316,23 @@
 
             } catch (err) {
 
-                logScreen(`Apps Script indisponível (mensalidades/repasses ainda não migrados — ver plano): ${err.message || String(err)}`, true);
+                logScreen(`Apps Script indisponível (pendências de extrato ainda não migradas — ver plano): ${err.message || String(err)}`, true);
 
                 isOffline = true;
 
                 syncSuccess = false;
 
-                statusLabel.innerText = "Imóveis/Contratos OK. Demais dados ainda não migrados (offline).";
+                statusLabel.innerText = "Imóveis/Contratos/Mensalidades/Repasses OK. Conciliação ainda não migrada (offline).";
 
-                // contratos NÃO é mais tocado aqui — já veio do Supabase, com seu
-                // próprio catch (mais acima), independente deste.
+                // contratos/mensalidades/repasses NÃO são mais tocados aqui — já vêm
+                // do Supabase, cada um com seu próprio catch (mais acima),
+                // independentes deste.
 
-                mensalidades = JSON.parse(localStorage.getItem(chaveLocal('mensalidades'))) || [];
+                pendenciasExtrato = JSON.parse(localStorage.getItem(chaveLocal('pendenciasExtrato'))) || [];
 
-                repasses = JSON.parse(localStorage.getItem(chaveLocal('repasses'))) || [];
+                logScreen(`Carregada última cópia local: ${pendenciasExtrato.length} pendências de extrato.`);
 
-                logScreen(`Carregada última cópia local: ${mensalidades.length} mensalidades.`);
-
-                errorContainer.innerText = (errorContainer.innerText ? errorContainer.innerText + '\n' : '') + `Detalhe (demais dados): ${err.message || String(err)}`;
+                errorContainer.innerText = (errorContainer.innerText ? errorContainer.innerText + '\n' : '') + `Detalhe (conciliação): ${err.message || String(err)}`;
 
                 errorContainer.classList.remove('hidden');
 
@@ -5359,9 +5730,9 @@
 
                 sincronizarContratosSupabase(contratos).then(ok => ({ rota: "contratos", ok })), // ETAPA 3 — migrado para Supabase
 
-                enviarDadosParaGoogleSheets("mensalidades", mensalidades).then(ok => ({ rota: "mensalidades", ok })),
+                sincronizarMensalidadesSupabase(mensalidades).then(ok => ({ rota: "mensalidades", ok })), // ETAPA 3 — migrado para Supabase
 
-                enviarDadosParaGoogleSheets("repasses", repasses).then(ok => ({ rota: "repasses", ok })),
+                sincronizarRepassesSupabase(repasses).then(ok => ({ rota: "repasses", ok })), // ETAPA 3 — migrado para Supabase
 
                 enviarDadosParaGoogleSheets("pendenciasExtrato", pendenciasExtrato).then(ok => ({ rota: "pendenciasExtrato", ok })),
 
@@ -9217,6 +9588,10 @@
 
             if (!confirm("Confirma a exclusão deste lançamento mensal pendente?")) return;
 
+            dbAuth.from('mensalidades').delete().eq('id', menId).then(({ error }) => {
+                if (error) logScreen('Erro ao excluir mensalidade no Supabase: ' + error.message, true);
+            });
+
             mensalidades = mensalidades.filter(m => m.id !== menId);
 
             saveAll(true, "Lançamento excluído.");
@@ -10435,6 +10810,10 @@
 
             if (!confirm(`Confirma excluir o repasse de R$ ${rep.valor.toFixed(2)} para ${rep.socio} (Ref ${rep.mes})?`)) return;
 
+            dbAuth.from('repasses').delete().eq('id', repId).then(({ error }) => {
+                if (error) logScreen('Erro ao excluir repasse no Supabase: ' + error.message, true);
+            });
+
             repasses = repasses.filter(r => r.id !== repId);
 
             saveAll(true, "Repasse excluído.");
@@ -10962,39 +11341,11 @@
             checkboxes.forEach(cb => idsSelecionados.push(cb.getAttribute('data-id')));
 
             // Gera um token curto e aleatório (6 caracteres) e registra a associação
-
-            // token -> ids no backend, para não expor os IDs internos na URL pública.
-
+            // token -> ids no Supabase, para não expor os IDs internos na URL pública.
             const token = Math.random().toString(36).substr(2, 6).toUpperCase();
 
-            fetch(GOOGLE_API_URL, {
+            criarLinkVitrineSupabase(token, idsSelecionados).then(() => {
 
-                method: "POST",
-
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-
-                body: JSON.stringify({
-
-                    rota: "links",
-
-                    dados: [{ token: token, ids: idsSelecionados.join(','), criadoEm: new Date().toISOString() }]
-
-                })
-
-            }).then(async (resp) => {
-
-                const corpo = await resp.json();
-
-                if (!corpo || corpo.status !== "sucesso") {
-
-                    alert("⚠️ Não foi possível gerar o link curto agora. Tente novamente em instantes.");
-
-                    return;
-
-                }
-
-                // v7.3.2 — Atualiza o array local imediatamente, para que o link já
-                // apareça no Gerenciador de Links (DEV) sem precisar recarregar a página.
                 links.push({
                     token: token,
                     ids: idsSelecionados.join(','),
@@ -11102,36 +11453,21 @@
 
             } else if (temTokenCurto) {
 
-                // Link curto mascarado: resolve o token no backend antes de continuar.
-
+                // ETAPA 3 — antes eram 2 chamadas ao Apps Script (resolver token +
+                // buscar TODOS os imóveis para filtrar no navegador — um vazamento
+                // de portfólio inteiro que já tínhamos corrigido no backend antigo,
+                // mas o front nunca chegou a usar a versão corrigida). Agora é uma
+                // única consulta ao Supabase, já filtrada pela política de RLS —
+                // o visitante nunca recebe nada além dos imóveis daquele link.
                 try {
 
-                    const resToken = await fetch(`${GOOGLE_API_URL}?token=${encodeURIComponent(urlParams.get('v'))}`);
+                    imoveis = await resolverVitrinePublicaSupabase(urlParams.get('v'));
+                    listIds = imoveis.map(function(i) { return i.id; });
 
-                    const dataToken = await resToken.json();
-
-                    if (dataToken.status === "sucesso" && dataToken.ids) {
-
-                        listIds = dataToken.ids.split(',');
-
-                    } else {
-
-                        document.getElementById('external-showcase-container').innerHTML =
-
-                            `<p class="text-xs text-center text-red-400 py-12">⚠️ Link inválido ou expirado.<br>${dataToken.mensagem || ''}</p>`;
-
-                        return;
-
-                    }
-
-                } catch(e) {
+                } catch (e) {
 
                     document.getElementById('external-showcase-container').innerHTML =
-
-                        `<p class="text-xs text-center text-red-400 py-12">⚠️ Falha ao carregar a vitrine. Verifique sua internet e recarregue a página.</p>`;
-
-                    console.error("Falha ao resolver link curto:", e.message);
-
+                        `<p class="text-xs text-center text-red-400 py-12">⚠️ Link inválido, expirado, ou falha ao carregar.<br>${e.message || ''}</p>`;
                     return;
 
                 }
@@ -11141,26 +11477,6 @@
             if (!listIds) return;
 
             registrarAcesso("vitrine", "Visitante", window.location.href);
-
-            // Executa busca síncrona aos dados de produção em segundo plano se o cache local do cliente estiver vazio
-
-            try {
-
-                const response = await fetch(GOOGLE_API_URL);
-
-                const resData = await response.json();
-
-                if (resData.status === "sucesso" && resData.dados) {
-
-                    imoveis = (resData.dados.imoveis || []).map(normalizarImovel).filter(Boolean);
-
-                }
-
-            } catch(e) {
-
-                imoveis = JSON.parse(localStorage.getItem(chaveLocal('imoveis'))) || [];
-
-            }
 
             const listContainer = document.getElementById('external-showcase-container');
 
@@ -11724,64 +12040,44 @@
         function dev_apagarLinkEspecifico(token) {
             if (!confirm("Remover link " + token + "?")) return;
 
-            fetch(GOOGLE_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({
-                    rota: "dev_apagar_link",
-                    token: token
-                })
-            }).then(async (resp) => {
-                const corpo = await resp.json();
-                if (corpo && corpo.status === "sucesso") {
-                    links = links.filter(l => l.token !== token); // v7.3.2 — atualiza local
-                    dev_carregarLinks();
-                    devLog("APAGAR_LINK", "Link " + token + " removido.");
-                }
+            apagarLinkVitrineSupabase(token).then(() => {
+                links = links.filter(l => l.token !== token);
+                dev_carregarLinks();
+                devLog("APAGAR_LINK", "Link " + token + " removido.");
             }).catch((err) => {
-                alert("❌ Falha ao apagar link.");
+                alert("❌ Falha ao apagar link: " + err.message);
             });
         }
 
         function dev_apagarTodosLinks() {
             if (!confirm("⚠️ Tem certeza? Todos os links de vitrine serão removidos.")) return;
 
-            fetch(GOOGLE_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({
-                    rota: "dev_apagar_todos_links"
-                })
-            }).then(async (resp) => {
-                const corpo = await resp.json();
-                if (corpo && corpo.status === "sucesso") {
-                    alert("✅ Todos os links foram removidos.");
-                    links = []; // v7.3.2 — atualiza local
-                    dev_carregarLinks();
-                    devLog("APAGAR_LINKS_TODOS", "Todos os links removidos.");
-                }
+            apagarTodosLinksVitrineSupabase().then(() => {
+                alert("✅ Todos os links foram removidos.");
+                links = [];
+                dev_carregarLinks();
+                devLog("APAGAR_LINKS_TODOS", "Todos os links removidos.");
             }).catch((err) => {
-                alert("❌ Falha de conexão.");
+                alert("❌ Falha ao apagar links: " + err.message);
             });
         }
 
         function dev_apagarLinksExpirados() {
-            fetch(GOOGLE_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({
-                    rota: "dev_apagar_links_expirados"
-                })
-            }).then(async (resp) => {
-                const corpo = await resp.json();
-                alert("✅ " + (corpo?.mensagem || "Operação concluída."));
-                if (corpo && Array.isArray(corpo.links)) {
-                    links = corpo.links; // v7.3.2 — backend já devolve a lista atualizada
-                }
-                dev_carregarLinks();
-            }).catch((err) => {
-                alert("❌ Falha de conexão.");
-            });
+            dbAuth.from('links_vitrine')
+                .delete()
+                .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                .lt('data_expiracao', new Date().toISOString())
+                .select('token')
+                .then(({ data, error }) => {
+                    if (error) {
+                        alert("❌ Falha ao apagar links expirados: " + error.message);
+                        return;
+                    }
+                    const tokensRemovidos = (data || []).map(function(r) { return r.token; });
+                    alert("✅ " + tokensRemovidos.length + " link(s) expirado(s) removido(s).");
+                    links = links.filter(function(l) { return !tokensRemovidos.includes(l.token); });
+                    dev_carregarLinks();
+                });
         }
 
         // SEÇÃO 4: CONFIGURAÇÃO DE E-MAILS POR SÓCIO
