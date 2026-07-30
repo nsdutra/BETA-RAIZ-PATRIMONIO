@@ -6,6 +6,52 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.3.0
+   LINHAS: 11655
+   DATA: 2026-07-30
+   NOVIDADES (Beta v1.3.0) — LOGIN DEFINITIVO (SUPABASE, CENÁRIO B):
+     - Substituído de vez o login por Conta Google (Cenário A), que
+       esbarrava numa limitação real da plataforma do Apps Script:
+       chamadas via fetch() para um Web App que exige login do Google
+       são bloqueadas por CORS, sem contorno possível no nosso código
+       (ver conversa de 2026-07-29 para o diagnóstico completo)
+     - Nova tela de login: e-mail + senha, via Supabase Auth
+     - SUPABASE_URL, SUPABASE_ANON_KEY e CLIENTE_ID_SUPABASE (novo bloco
+       de configuração) — a chave anon é segura para ficar no código; a
+       segurança de verdade vem das políticas de RLS no banco
+     - Fluxo: login → confere se existe uma linha em "pessoas" para o
+       CLIENTE_ID_SUPABASE desta instalação → só então libera a entrada.
+       Login válido no Supabase sozinho NÃO basta — precisa também
+       pertencer a este cliente especificamente
+     - Removido o fluxo antigo de "aprovação de dispositivo" do
+       window.onload (dispositivo aprovado por localStorage). O
+       equivalente agora é: sessão do Supabase válida = entra direto,
+       sem digitar senha de novo, com verificarAcessoEEntrar()
+     - Botão "Sair" do cabeçalho agora faz logout de verdade
+       (fazerLogoutSupabase — encerra a sessão do Supabase), antes só
+       voltava visualmente para a splash sem encerrar nada
+     - CORRIGIDO: entrarNoSistema() referenciava o elemento "btn-entrar",
+       removido nesta versão (virou o formulário de login) — adicionado
+       fallback seguro para não quebrar com erro de referência nula
+
+   ⚠️ AÇÃO NECESSÁRIA NO APPS SCRIPT — o carregamento de dados
+   (imóveis, contratos etc.) AINDA vem do Apps Script nesta versão
+   (a migração de dados para o Supabase é a próxima etapa do plano).
+   Para o fetch(GOOGLE_API_URL) voltar a funcionar sem CORS, é
+   necessário republicar o Web App como "Executar como: Eu" + "Quem
+   tem acesso: Qualquer pessoa" — REMOVENDO a exigência de Conta
+   Google na própria plataforma do Apps Script. O Supabase (login
+   desta versão) passa a ser quem decide quem entra na TELA; o Apps
+   Script deixa de fazer essa checagem por conta própria.
+   ⚠️ Tradeoff temporário e consciente: nesta etapa intermediária, a
+   URL do Apps Script, se descoberta, responde a qualquer chamada
+   direta (mesma limitação do sistema pré-Cenário-A). A blindagem de
+   verdade, no nível dos dados, só fica completa quando os dados
+   migrarem para o Supabase (RLS protege no banco, não só na tela) —
+   próxima etapa do plano.
+
+   --- HISTÓRICO ANTERIOR (Beta v1.2.3 — logotipo e tema verde) ---
+
    VERSÃO: Beta v1.2.3
    LINHAS: 11522
    DATA: 2026-07-25
@@ -419,6 +465,7 @@
     
 
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@2.2.4/dist/html2canvas-pro.min.js"></script>
 
@@ -482,11 +529,17 @@
 
                 </div>
 
-                <button id="btn-entrar" onclick="entrarNoSistema()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2">
+                <div id="area-login-supabase" class="space-y-3 text-left">
 
-                    <span>Acessar Sistema</span>
+                    <input type="email" id="login-email" placeholder="E-mail" autocomplete="username" class="w-full p-3 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-sm">
 
-                </button>
+                    <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" class="w-full p-3 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-sm" onkeydown="if(event.key==='Enter') fazerLoginSupabase();">
+
+                    <button id="btn-login-supabase" onclick="fazerLoginSupabase()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2">
+                        <span>Entrar</span>
+                    </button>
+
+                </div>
 
                 <div id="splash-status" class="text-[13px] text-amber-400 font-semibold px-4 break-words"></div>
 
@@ -496,7 +549,7 @@
 
             <div class="text-[13px] text-slate-500 font-mono">
 
-                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.2.3</span>
+                Versão do Sistema: <span class="text-emerald-400/70 font-bold">Beta v1.3.0</span>
 
             </div>
 
@@ -512,13 +565,13 @@
 
             <div class="flex items-baseline space-x-2 cursor-pointer active:scale-95 transition-transform select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.2.3</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span> <span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-800 px-1.5 py-0.5 rounded align-middle">Beta v1.3.0</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">OFFLINE</span>
 
             </div>
 
-            <button onclick="voltarParaSplash()" class="text-xs text-slate-400 bg-emerald-800 px-2 py-1 rounded">Sair</button>
+            <button onclick="fazerLogoutSupabase()" class="text-xs text-slate-400 bg-emerald-800 px-2 py-1 rounded">Sair</button>
 
         </div>
 
@@ -2332,6 +2385,31 @@
         // mais o literal "Ruyter") para ler/gravar divisão societária.
         const SOCIO_PADRAO = CONFIG_CLIENTE.socioPadrao || "Ruyter";
 
+        // ============================================================================
+        // ETAPA 2 (definitiva) — Login via Supabase (Cenário B)
+        // ============================================================================
+        // Substitui de vez o login por Conta Google (Cenário A), que esbarrava numa
+        // limitação real da plataforma do Apps Script (chamadas via fetch() para um
+        // Web App que exige login do Google são bloqueadas por CORS — ver changelog
+        // desta versão para o diagnóstico completo).
+        //
+        // A chave "anon" abaixo é segura para ficar visível no código — é assim que
+        // o Supabase foi desenhado para funcionar (a segurança de verdade vem das
+        // políticas de Row Level Security no banco, não do sigilo desta chave).
+        // NUNCA coloque aqui a chave "service_role" — essa sim é secreta.
+        const SUPABASE_URL = "https://oduwpttbbemypiypjsux.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w";
+
+        // ⚠️ Identifica QUAL cliente (linha da tabela "clientes" no Supabase) esta
+        // instalação representa. Cada instalação aponta para um cliente_id fixo —
+        // é isso que impede alguém autorizado num OUTRO cliente de entrar aqui.
+        // Troque este valor ao configurar uma instalação nova (ver documento de
+        // provisionamento).
+        const CLIENTE_ID_SUPABASE = "fde33976-55ea-4702-ac06-4e609d12372f"; // BETA-RAIZ-PATRIMONIO
+
+        const { createClient } = supabase;
+        const dbAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // Prefixo do localStorage é específico desta instalação (deriva do nome
         // da empresa configurada) — evita que duas instalações no MESMO domínio
         // (ex.: GitHub Pages username.github.io/repoA e /repoB são a MESMA origem
@@ -2423,6 +2501,7 @@
         let links = [];
 
         let socioLogado = null; // preenchido se este aparelho for um sócio aprovado
+        let perfilLogado = null; // perfil de acesso vindo da tabela "pessoas" (Supabase)
 
         let acessoAutorizado = false; // v7.4.0 — só true se aprovado OU for o admin
 
@@ -3931,6 +4010,75 @@
 
         }
 
+        // ETAPA 2 (definitiva) — login e verificação de acesso via Supabase.
+        // Substitui o antigo login por Conta Google (Cenário A).
+
+        async function fazerLoginSupabase() {
+
+            const email = document.getElementById('login-email').value.trim();
+            const senha = document.getElementById('login-senha').value;
+            const statusEl = document.getElementById('splash-status');
+            const btn = document.getElementById('btn-login-supabase');
+
+            if (!email || !senha) {
+                statusEl.textContent = 'Preencha e-mail e senha.';
+                return;
+            }
+
+            btn.disabled = true;
+            statusEl.textContent = 'Entrando...';
+
+            const { error } = await dbAuth.auth.signInWithPassword({ email: email, password: senha });
+
+            if (error) {
+                statusEl.textContent = '❌ ' + (error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message);
+                btn.disabled = false;
+                return;
+            }
+
+            await verificarAcessoEEntrar();
+            btn.disabled = false;
+
+        }
+
+        // Confirma que o login está vinculado a ESTA instalação (CLIENTE_ID_SUPABASE)
+        // antes de liberar o carregamento do sistema. Um login válido no Supabase
+        // não basta sozinho — precisa ter uma linha em "pessoas" para este cliente.
+        async function verificarAcessoEEntrar() {
+
+            const statusEl = document.getElementById('splash-status');
+            statusEl.textContent = 'Verificando acesso...';
+
+            const { data: pessoaRows, error } = await dbAuth
+                .from('pessoas')
+                .select('nome, perfil')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE);
+
+            if (error) {
+                statusEl.textContent = '❌ Erro ao verificar acesso: ' + error.message;
+                return;
+            }
+
+            if (!pessoaRows || pessoaRows.length === 0) {
+                statusEl.textContent = '🔒 Sua conta não tem acesso a esta instalação. Peça ao administrador para liberar.';
+                await dbAuth.auth.signOut();
+                return;
+            }
+
+            document.getElementById('area-login-supabase').classList.add('hidden');
+            statusEl.textContent = '';
+            socioLogado = pessoaRows[0].nome;
+            perfilLogado = pessoaRows[0].perfil;
+
+            entrarNoSistema();
+
+        }
+
+        async function fazerLogoutSupabase() {
+            await dbAuth.auth.signOut();
+            location.reload();
+        }
+
         async function entrarNoSistema() {
 
             // v7.4.1 — Reset explícito a cada chamada: sem isso, uma tentativa
@@ -3939,7 +4087,9 @@
             // caísse no modo offline herdava esse valor sem verificar nada.
             acessoAutorizado = false;
 
-            const btn = document.getElementById('btn-entrar');
+            // btn-entrar não existe mais (virou o formulário de login do Supabase) —
+            // fallback inofensivo para as linhas abaixo que ainda ajustam esse botão.
+            const btn = document.getElementById('btn-entrar') || { disabled: false, innerHTML: '', innerText: '' };
 
             const statusLabel = document.getElementById('splash-status');
 
@@ -10520,47 +10670,30 @@
 
         }
 
-        window.onload = function() {
+        window.onload = async function() {
 
             verificarFiltroVitrineExterna();
 
             // Registra o Service Worker (necessário em algumas versões do
-
             // Chrome/Android para o app aparecer como "instalável" de verdade,
-
             // com ícone próprio e tela cheia — sem isso, o Android cai no
-
             // atalho genérico do navegador).
-
             if ('serviceWorker' in navigator) {
-
                 navigator.serviceWorker.register('sw.js').catch(function(err) {
-
                     console.warn('Falha ao registrar service worker:', err.message);
-
                 });
-
             }
 
-            // Se este aparelho já foi aprovado como sócio numa sessão anterior,
+            // ETAPA 2 (definitiva) — se já existe uma sessão válida do Supabase
+            // (o navegador lembra de um login anterior), pula direto o formulário
+            // e tenta entrar automaticamente. Substitui o antigo fluxo de
+            // "dispositivo aprovado" por localStorage.
+            const { data: { session } } = await dbAuth.auth.getSession();
 
-            // entra direto — sem senha, sem toque nenhum.
-
-            if (localStorage.getItem(chaveLocal('device_previously_approved')) === '1') {
-
-                entrarNoSistema();
-
-            } else if (localStorage.getItem(chaveLocal('solicitacao_enviada')) !== '1') {
-
-                // Só mostra "solicitar acesso" se este aparelho nunca pediu
-
-                // aprovação antes (nem está aprovado, nem já tem pedido pendente).
-
-                const btnSolicitar = document.getElementById('btn-solicitar-acesso-socio');
-
-                if (btnSolicitar) btnSolicitar.classList.remove('hidden');
-
+            if (session) {
+                await verificarAcessoEEntrar();
             }
+            // Sem sessão: o formulário de login (já visível na splash) aguarda o usuário.
 
         };
 
