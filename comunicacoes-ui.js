@@ -1,0 +1,64 @@
+// Raiz Patrimônio — Central de Comunicações Omnichannel — UI App
+// Beta v1.43.0
+const ID='raiz-comunicacao-overlay';
+export function fecharComunicacao(){ document.getElementById(ID)?.remove(); }
+function svg(nome){
+ const d={
+  sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5 7-7 7-13-6 .5-10 4-10 9 0 2 1 3 3 4Z"/><path d="M9 13c-2.5-1-4-3-4-6 3 .2 5 1.5 6 3.5"/>',
+  smartphone:'<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  home:'<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/>'
+ };
+ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px">${d[nome]||d.sprout}</svg>`;
+}
+function baseOverlay(){
+ fecharComunicacao();
+ const o=document.createElement('div');o.id=ID;
+ o.style.cssText='position:fixed;inset:0;z-index:480;background:rgba(23,33,30,.58);display:flex;align-items:center;justify-content:center;padding:20px;';
+ document.body.appendChild(o);return o;
+}
+export function renderizarOnboarding({comunicacao,estadoPwa,onFechar,onConcluir,onInstalar}){
+ const passos=comunicacao.conteudo?.passos||[];let indice=0;const o=baseOverlay();
+ o.innerHTML=`<div style="width:100%;max-width:380px;background:var(--paper,#faf9f5);border-radius:18px;box-shadow:0 24px 60px -25px rgba(0,0,0,.55);overflow:hidden">
+ <div style="padding:18px 22px 0;text-align:right"><button id="rc-pular" type="button" style="border:0;background:none;color:var(--sage,#6b857a);font-size:13px;font-weight:600">Agora não</button></div>
+ <div id="rc-conteudo" style="padding:4px 28px 18px;text-align:center"></div><div id="rc-dots" style="display:flex;gap:6px;justify-content:center;padding:0 28px 14px"></div>
+ <div style="padding:0 28px 28px"><button id="rc-acao" type="button" style="width:100%;border:0;border-radius:12px;background:var(--pine,#1e3a32);color:white;padding:13px;font-weight:800">Próximo</button></div></div>`;
+ const c=o.querySelector('#rc-conteudo'),dots=o.querySelector('#rc-dots'),btn=o.querySelector('#rc-acao');
+ function desenhar(){
+  const p=passos[indice]||{},inst=p.id==='instalacao';let extra='';
+  if(inst){
+   if(estadoPwa.standalone) extra='<p style="font-size:12px;color:#2f8b57;font-weight:700;margin-top:12px">✓ O Raiz já está instalado neste aparelho.</p>';
+   else if(estadoPwa.ios) extra='<div style="text-align:left;background:#fff;border:1px solid var(--line,#e6e3da);border-radius:12px;padding:12px;margin-top:14px;font-size:12px"><b>No iPhone:</b><br>1. Toque em Compartilhar ⬆<br>2. “Adicionar à Tela de Início”<br>3. “Adicionar”</div>';
+  }
+  c.innerHTML=`<div style="width:64px;height:64px;margin:4px auto 16px;border-radius:16px;background:#e8f5ed;display:flex;align-items:center;justify-content:center;color:var(--pine,#1e3a32)">${svg(p.icone)}</div>
+  <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8f632b;margin-bottom:7px">Passo ${indice+1} de ${passos.length}</div>
+  <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-size:20px;margin:0 0 7px">${p.titulo||comunicacao.titulo}</h2><p style="font-size:13px;line-height:1.55;color:var(--sage,#6b857a);margin:0">${p.texto||''}</p>${extra}`;
+  dots.innerHTML=passos.map((_,i)=>`<span style="height:6px;width:${i===indice?'24px':'6px'};border-radius:99px;background:${i===indice?'var(--pine,#1e3a32)':'var(--line,#e6e3da)'}"></span>`).join('');
+  btn.textContent=inst&&!estadoPwa.standalone&&!estadoPwa.ios&&estadoPwa.promptDisponivel?'Instalar Raiz Patrimônio':indice===passos.length-1?'Cadastrar primeiro imóvel':'Próximo';
+ }
+ o.querySelector('#rc-pular').addEventListener('click',()=>onFechar?.());
+ btn.addEventListener('click',async()=>{
+  const p=passos[indice]||{};
+  if(p.id==='instalacao'&&!estadoPwa.standalone&&!estadoPwa.ios&&estadoPwa.promptDisponivel){await onInstalar?.();indice++;desenhar();return;}
+  if(indice>=passos.length-1){await onConcluir?.();return;} indice++;desenhar();
+ });desenhar();
+}
+export function renderizarNps({comunicacao,onFechar,onEnviar}){
+ const o=baseOverlay();let nota=0;
+ const estrelas=[1,2,3,4,5].map(n=>`<button type="button" data-nota="${n}" style="background:none;border:none;padding:4px;font-size:30px;color:#d1d5db">★</button>`).join('');
+ o.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;max-width:360px;width:100%;box-shadow:0 20px 50px -20px rgba(0,0,0,.4)">
+ <p style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:17px;margin:0 0 4px;text-align:center">${comunicacao.titulo||'Como está sendo usar o Raiz?'}</p>
+ <p style="font-size:13px;color:#4a5852;margin:0 0 16px;text-align:center">${comunicacao.mensagem||''}</p>
+ <div id="rc-nps-estrelas" style="display:flex;justify-content:center;gap:8px;margin-bottom:16px">${estrelas}</div>
+ <textarea id="rc-nps-comentario" placeholder="${comunicacao.conteudo?.placeholder||'Comentário (opcional)'}" rows="3" style="width:100%;border:1px solid var(--line,#e6e3da);border-radius:10px;padding:10px;font-size:13.5px;margin-bottom:14px;font-family:inherit;box-sizing:border-box"></textarea>
+ <p id="rc-nps-erro" style="display:none;color:#c1463a;font-size:11px;margin:-8px 0 10px"></p>
+ <div style="display:flex;gap:8px"><button id="rc-nps-fechar" type="button" style="flex:1;background:#f2efe7;color:#4a5852;font-weight:600;padding:10px;border-radius:999px;border:none">Agora não</button>
+ <button id="rc-nps-enviar" type="button" style="flex:1.4;background:var(--pine,#1e3a32);color:#fff;font-weight:700;padding:10px;border-radius:999px;border:none">Enviar</button></div></div>`;
+ const stars=[...o.querySelectorAll('[data-nota]')];
+ stars.forEach(b=>b.addEventListener('click',()=>{nota=Number(b.dataset.nota);stars.forEach(s=>s.style.color=Number(s.dataset.nota)<=nota?'var(--brass,#c68a3b)':'#d1d5db');}));
+ o.querySelector('#rc-nps-fechar').addEventListener('click',()=>onFechar?.());
+ o.querySelector('#rc-nps-enviar').addEventListener('click',async()=>{
+  const comentario=o.querySelector('#rc-nps-comentario').value.trim(),err=o.querySelector('#rc-nps-erro');
+  if(!nota){err.textContent='Escolha uma nota de 1 a 5.';err.style.display='block';return;}
+  err.style.display='none';await onEnviar?.({nota,comentario});
+ });
+}
