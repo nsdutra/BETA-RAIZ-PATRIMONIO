@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Cofre de Documentos · Raiz Patrimônio</title>
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA (instrução permanente
+  do proprietário: nunca entregar arquivo sem changelog e versão).
+
+  Componente : cofre.html (módulo Cofre de Documentos)
+  Versão     : 1.0.0
+  Data       : 19/08/2026
+  Linhas     : ver rodapé deste arquivo — TOTAL_LINHAS_DECLARADO
+  Módulo     : Cofre (Conversa B) — arquivo NOVO, não substitui nenhum
+               arquivo existente de Imóveis/Gestão/Landing.
+
+  CHANGELOG
+  v1.0.0 (19/08/2026) — Primeira entrega. Fundação Fase 1 do Cofre:
+    - Dashboard (contadores + alertas próximos)
+    - Ativos Controlados (veículo/imóvel/terreno/vida-proteção/outro),
+      inclusive vínculo com imóvel já existente no core (entidade_origem)
+    - Documentos: upload, categorização, vínculo, busca/filtros, ficha de
+      detalhe, download via signed URL curta, arquivar/excluir (soft delete)
+    - Fotos por ativo (pacote de fotos, capa, ordem, toggle "publicar na
+      vitrine")
+    - Alertas/eventos (cofre_eventos) — leitura e criação manual
+    - Contatos de acionamento (seguradora/corretor/oficina/etc.)
+    - Categorias — administração (perfil com cofre.categorias)
+    - Estados vazios e mensagens de erro em todas as telas
+    - Navegação contextual explícita de volta para Imóveis/Contratos
+      (parâmetros de URL carregam CONTEXTO, nunca autorização — toda leitura
+      revalida tenant/perfil via RLS no servidor)
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (documentado no HANDOFF da entrega):
+    - Classificação/extração automática por IA (cofre_extracoes_documento
+      existe no banco, sem pipeline de escrita — Fase 2, decisão já
+      registrada na própria especificação v1.2 §17)
+      Vitrine pública dedicada a ativos (hoje só o toggle "publicar_vitrine"
+      por foto fica marcado; página pública de divulicação de ativo é Fase 2,
+      reaproveitando o mecanismo de links_vitrine já existente)
+    - Compartilhamento externo temporário (cofre_compartilhamentos existe no
+      banco; UI/RPC de geração de link ainda não implementada)
+    - Envio de documento pelo bot ("cofre.bot.enviar"/"cofre.bot.buscar") —
+      ver HANDOFF, seção Bot
+  ============================================================================
+-->
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+    :root{
+        --pine:#1e3a32; --pine-deep:#152a24; --pine-light:#2d5347;
+        --brass:#c68a3b; --brass-deep:#a86f27; --brass-light:#f0c88a;
+        --sage:#6b857a; --ink:#17211e; --paper:#faf9f5; --line:#e6e3da;
+        --success:#2f8b57; --success-bg:#e8f5ed;
+        --warning:#c68a3b; --warning-bg:#fbf1e2;
+        --danger:#c1463a; --danger-bg:#fbebe9;
+        --info:#3d6b8c; --info-bg:#e8f0f5;
+    }
+    body { font-family: "Inter", system-ui, sans-serif; background: var(--paper); color: var(--ink); }
+    h1,h2,h3,h4 { font-family: "Bricolage Grotesque", sans-serif; letter-spacing: -0.02em; }
+    .hidden { display: none !important; }
+
+    /* Padrão liga/desliga — DESIGN_SYSTEM_RAIZ_PATRIMONIO v1.43.0 §2 */
+    .raiz-btn-toggle { width: 44px; height: 44px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: #fff; color: var(--pine); transition: all .15s; }
+    .raiz-btn-toggle.ativo { background: var(--pine) !important; color: #fff !important; border-color: var(--pine) !important; }
+    .raiz-btn-toggle svg.raiz-icone-toggle { width: 20px; height: 20px; }
+    .raiz-btn-toggle-mini { width: 32px; height: 32px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: #fff; color: var(--pine); }
+    .raiz-btn-toggle-mini.ativo { background: var(--pine) !important; color: #fff !important; border-color: var(--pine) !important; }
+
+    .raiz-indicador-inline:empty { height: 0; margin-top: 0; }
+    .raiz-indicador-inline { font-size: 12px; margin-top: 4px; }
+
+    .raiz-bloco-interno { background: #f8fafc; padding: 12px; border-radius: 12px; border: 2px solid #cbd5e1; }
+    .raiz-form-borda { border: 1px solid #e5e7eb; border-radius: 16px; }
+
+    .tab-btn { padding: 8px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--sage); }
+    .tab-btn.active { background: var(--pine); color: #fff; }
+
+    .chip { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+    .chip-empresa { background: var(--info-bg); color: var(--info); }
+    .chip-restrito { background: var(--danger-bg); color: var(--danger); }
+    .chip-vencido { background: var(--danger-bg); color: var(--danger); }
+    .chip-proximo { background: var(--warning-bg); color: var(--warning); }
+    .chip-ok { background: var(--success-bg); color: var(--success); }
+
+    .card-doc, .card-ativo { border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; transition: border-color .15s; }
+    .card-doc:hover, .card-ativo:hover { border-color: var(--pine-light); }
+
+    .skel { background: linear-gradient(90deg,#eee,#f5f5f5,#eee); background-size: 200% 100%; animation: skel 1.2s infinite; border-radius: 8px; }
+    @keyframes skel { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(23,33,30,.55); display:flex; align-items:flex-start; justify-content:center; padding: 24px 12px; overflow-y:auto; z-index: 60; }
+    .modal-box { background:#fff; border-radius: 18px; width: 100%; max-width: 720px; margin-top: 24px; }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #d6d3c4; border-radius: 8px; }
+</style>
+</head>
+<body class="min-h-screen pb-24">
+
+<!-- ============================== TELA DE CARREGAMENTO / ERRO DE SESSÃO ============================== -->
+<div id="tela-bootstrap" class="min-h-screen flex items-center justify-center p-6">
+    <div class="text-center">
+        <div class="w-10 h-10 border-4 rounded-full mx-auto mb-3" style="border-color: var(--line); border-top-color: var(--pine); animation: spin 0.8s linear infinite;"></div>
+        <p class="text-sm" style="color:var(--sage)" id="bootstrap-status">Verificando acesso ao Cofre…</p>
+    </div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<div id="tela-erro-acesso" class="hidden min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-sm text-center">
+        <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style="background:var(--danger-bg)">
+            <i data-lucide="lock" style="color:var(--danger)"></i>
+        </div>
+        <h2 class="text-lg font-bold mb-1">Não foi possível abrir o Cofre</h2>
+        <p class="text-sm mb-4" style="color:var(--sage)" id="erro-acesso-msg">Sua sessão pode ter expirado, ou você não tem permissão para este módulo nesta empresa.</p>
+        <a href="./" class="inline-block px-4 py-2 rounded-xl text-white text-sm font-semibold" style="background:var(--pine)">Voltar ao Raiz Patrimônio</a>
+    </div>
+</div>
+
+<!-- ============================== APP ============================== -->
+<div id="app-cofre" class="hidden">
+
+    <!-- Cabeçalho -->
+    <header class="sticky top-0 z-40" style="background:var(--pine-deep)">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <a href="./" title="Voltar ao Raiz Patrimônio" class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)">
+                    <i data-lucide="arrow-left" class="text-white" style="width:18px;height:18px"></i>
+                </a>
+                <div class="min-w-0">
+                    <h1 class="text-white text-base font-bold leading-tight flex items-center gap-2">
+                        <i data-lucide="shield" style="width:18px;height:18px;color:var(--brass-light)"></i>
+                        Cofre de Documentos
+                    </h1>
+                    <p class="text-[11px] truncate" style="color:var(--pine-light)" id="badge-empresa-atual">—</p>
+                </div>
+            </div>
+            <div class="text-right hidden sm:block">
+                <p class="text-[10px]" style="color:var(--pine-light)" id="badge-versao-cofre">v1.0.0</p>
+            </div>
+        </div>
+        <nav class="max-w-6xl mx-auto px-4 pb-2 flex gap-1 overflow-x-auto">
+            <button class="tab-btn active" data-tab="dashboard" onclick="mudarAba('dashboard')">Dashboard</button>
+            <button class="tab-btn" data-tab="documentos" onclick="mudarAba('documentos')">Documentos</button>
+            <button class="tab-btn" data-tab="ativos" onclick="mudarAba('ativos')">Ativos</button>
+            <button class="tab-btn" data-tab="alertas" onclick="mudarAba('alertas')">Alertas</button>
+            <button class="tab-btn" data-tab="contatos" onclick="mudarAba('contatos')">Contatos</button>
+            <button class="tab-btn" data-tab="categorias" onclick="mudarAba('categorias')" id="tab-btn-categorias">Categorias</button>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-5">
+
+        <!-- ===================== DASHBOARD ===================== -->
+        <section id="tab-dashboard" class="tab-content">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                <div class="raiz-bloco-interno text-center">
+                    <p class="text-2xl font-bold" style="color:var(--pine)" id="kpi-total-docs">–</p>
+                    <p class="text-xs" style="color:var(--sage)">Documentos</p>
+                </div>
+                <div class="raiz-bloco-interno text-center">
+                    <p class="text-2xl font-bold" style="color:var(--pine)" id="kpi-total-ativos">–</p>
+                    <p class="text-xs" style="color:var(--sage)">Ativos controlados</p>
+                </div>
+                <div class="raiz-bloco-interno text-center">
+                    <p class="text-2xl font-bold" style="color:var(--warning)" id="kpi-vencendo">–</p>
+                    <p class="text-xs" style="color:var(--sage)">Vencendo em 30 dias</p>
+                </div>
+                <div class="raiz-bloco-interno text-center">
+                    <p class="text-2xl font-bold" style="color:var(--danger)" id="kpi-vencidos">–</p>
+                    <p class="text-xs" style="color:var(--sage)">Vencidos</p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-sm font-bold" style="color:var(--ink)">Próximos vencimentos</h2>
+                <button class="text-xs font-semibold" style="color:var(--pine)" onclick="mudarAba('alertas')">Ver todos →</button>
+            </div>
+            <div id="dashboard-lista-alertas" class="space-y-2 mb-6"></div>
+
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-sm font-bold" style="color:var(--ink)">Documentos recentes</h2>
+                <button class="text-xs font-semibold" style="color:var(--pine)" onclick="mudarAba('documentos')">Ver todos →</button>
+            </div>
+            <div id="dashboard-lista-recentes" class="space-y-2"></div>
+        </section>
+
+        <!-- ===================== DOCUMENTOS ===================== -->
+        <section id="tab-documentos" class="tab-content hidden">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2" style="width:16px;height:16px;color:var(--sage)"></i>
+                    <input id="doc-busca" type="text" placeholder="Buscar por nome, descrição ou tag…"
+                        class="w-full pl-9 pr-3 py-2 rounded-xl border-2 border-slate-300 text-sm" oninput="filtrarDocumentosDebounced()">
+                </div>
+                <button id="btn-toggle-upload" class="raiz-btn-toggle" onclick="alternarFormularioUpload()" title="Novo documento">
+                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto pb-1 mb-3 text-xs">
+                <select id="filtro-categoria" class="raiz-filtro-altura-padrao px-2 rounded-lg border border-slate-300" onchange="filtrarDocumentos()"><option value="">Categoria: todas</option></select>
+                <select id="filtro-vinculo-tipo" class="raiz-filtro-altura-padrao px-2 rounded-lg border border-slate-300" onchange="filtrarDocumentos()">
+                    <option value="">Vínculo: todos</option>
+                    <option value="empresa">Empresa</option><option value="imovel">Imóvel</option><option value="contrato">Contrato</option>
+                    <option value="ativo">Ativo</option><option value="pessoa">Pessoa</option><option value="prestador">Prestador</option>
+                    <option value="empreendimento">Empreendimento</option><option value="geral">Geral / sem vínculo</option>
+                </select>
+                <select id="filtro-ordenacao" class="raiz-filtro-altura-padrao px-2 rounded-lg border border-slate-300" onchange="filtrarDocumentos()">
+                    <option value="recentes">Mais recentes</option><option value="antigos">Mais antigos</option>
+                    <option value="nome">Nome (A-Z)</option><option value="validade">Validade mais próxima</option>
+                </select>
+            </div>
+
+            <!-- Formulário de upload (liga/desliga) -->
+            <div id="form-upload-wrapper" class="hidden raiz-form-borda p-4 mb-4">
+                <h3 class="text-sm font-bold mb-3">Novo documento</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="text-xs font-semibold block mb-1">Arquivo <span style="color:var(--danger)">*</span></label>
+                        <input type="file" id="up-arquivo" class="w-full text-sm border-2 border-slate-300 rounded-xl p-2" required
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx" onchange="aoSelecionarArquivoUpload()">
+                        <p class="raiz-indicador-inline" id="up-arquivo-info"></p>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="up-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Categoria <span style="color:var(--danger)">*</span></label>
+                        <select id="up-categoria" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" required></select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Vincular a</label>
+                        <select id="up-vinculo-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" onchange="atualizarSeletorEntidadeVinculo()">
+                            <option value="empresa">Empresa (geral)</option>
+                            <option value="imovel">Imóvel</option>
+                            <option value="ativo">Ativo controlado</option>
+                            <option value="geral">Não vincular agora</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1" id="up-vinculo-entidade-label">Imóvel</label>
+                        <select id="up-vinculo-entidade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Data do documento</label>
+                        <input type="date" id="up-data-documento" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Validade</label>
+                        <input type="date" id="up-validade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="text-xs font-semibold block mb-1">Descrição</label>
+                        <textarea id="up-descricao" rows="2" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></textarea>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="text-xs font-semibold block mb-1">Tags (separe por vírgula)</label>
+                        <input type="text" id="up-tags" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: seguro, apto-302">
+                    </div>
+                    <div id="up-restrito-wrapper" class="hidden sm:col-span-2 flex items-center gap-2">
+                        <input type="checkbox" id="up-restrito" class="w-4 h-4">
+                        <label for="up-restrito" class="text-xs">Marcar como acesso restrito (só quem tem <code>cofre.ver_restrito</code> enxerga)</label>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300" onclick="alternarFormularioUpload()">Cancelar</button>
+                    <button class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)" id="btn-salvar-upload" onclick="salvarUpload()">Salvar documento</button>
+                </div>
+                <p class="raiz-indicador-inline" id="up-status"></p>
+            </div>
+
+            <div id="doc-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            <div id="doc-estado-vazio" class="hidden text-center py-14">
+                <i data-lucide="folder-open" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+                <p class="text-sm font-semibold" style="color:var(--ink)">Nenhum documento por aqui ainda</p>
+                <p class="text-xs mb-3" style="color:var(--sage)">Envie o primeiro documento da empresa — comece por um contrato, matrícula ou apólice.</p>
+                <button class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)" onclick="alternarFormularioUpload()">+ Novo documento</button>
+            </div>
+        </section>
+
+        <!-- ===================== ATIVOS ===================== -->
+        <section id="tab-ativos" class="tab-content hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold">Ativos controlados</h2>
+                <button class="raiz-btn-toggle" onclick="alternarFormularioAtivo()" id="btn-toggle-ativo" title="Novo ativo">
+                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+
+            <div id="form-ativo-wrapper" class="hidden raiz-form-borda p-4 mb-4">
+                <h3 class="text-sm font-bold mb-3">Novo ativo</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Tipo de ativo <span style="color:var(--danger)">*</span></label>
+                        <select id="at-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" onchange="atualizarOrigemAtivo()">
+                            <option value="veiculo">Veículo</option>
+                            <option value="imovel">Imóvel (já cadastrado em Imóveis)</option>
+                            <option value="terreno">Terreno</option>
+                            <option value="vida_protecao">Vida / proteção pessoal</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="at-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: Honda Civic 2022 — placa ABC1D23">
+                    </div>
+                    <div id="at-origem-imovel-wrapper" class="hidden sm:col-span-2">
+                        <label class="text-xs font-semibold block mb-1">Qual imóvel?</label>
+                        <select id="at-origem-imovel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></select>
+                        <p class="raiz-indicador-inline" style="color:var(--sage)">Não duplica dados — este ativo só guarda documentos/fotos/alertas específicos do Cofre; o imóvel em si continua sendo gerenciado em Imóveis.</p>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="text-xs font-semibold block mb-1">Identificadores (placa, chassi, matrícula, apólice…)</label>
+                        <input type="text" id="at-identificadores" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: placa: ABC1D23">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300" onclick="alternarFormularioAtivo()">Cancelar</button>
+                    <button class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)" onclick="salvarAtivo()">Salvar ativo</button>
+                </div>
+                <p class="raiz-indicador-inline" id="at-status"></p>
+            </div>
+
+            <div id="ativos-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            <div id="ativos-estado-vazio" class="hidden text-center py-14">
+                <i data-lucide="box" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+                <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
+                <p class="text-xs mb-3" style="color:var(--sage)">Um ativo pode ser um veículo, um imóvel, um terreno ou um bem de proteção pessoal.</p>
+                <button class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)" onclick="alternarFormularioAtivo()">+ Novo ativo</button>
+            </div>
+        </section>
+
+        <!-- ===================== ALERTAS ===================== -->
+        <section id="tab-alertas" class="tab-content hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold">Alertas e vencimentos</h2>
+                <button class="raiz-btn-toggle" onclick="alternarFormularioEvento()" id="btn-toggle-evento" title="Novo alerta">
+                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+
+            <div id="form-evento-wrapper" class="hidden raiz-form-borda p-4 mb-4">
+                <h3 class="text-sm font-bold mb-3">Novo alerta</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="text-xs font-semibold block mb-1">Título <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="ev-titulo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: Renovação do seguro do carro">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Tipo de evento</label>
+                        <select id="ev-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                            <option value="vencimento_seguro">Vencimento de seguro</option>
+                            <option value="iptu">IPTU / documento</option>
+                            <option value="renovacao">Renovação</option>
+                            <option value="obrigacao">Obrigação ligada ao ativo</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Ativo relacionado</label>
+                        <select id="ev-ativo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"><option value="">(nenhum)</option></select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Data de vencimento <span style="color:var(--danger)">*</span></label>
+                        <input type="date" id="ev-vencimento" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Avisar com quantos dias de antecedência</label>
+                        <input type="number" id="ev-antecedencia" value="15" min="1" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300" onclick="alternarFormularioEvento()">Cancelar</button>
+                    <button class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)" onclick="salvarEvento()">Salvar alerta</button>
+                </div>
+                <p class="raiz-indicador-inline" id="ev-status"></p>
+            </div>
+
+            <div id="alertas-lista" class="space-y-2"></div>
+            <div id="alertas-estado-vazio" class="hidden text-center py-14">
+                <i data-lucide="bell-off" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+                <p class="text-sm font-semibold">Nenhum alerta cadastrado</p>
+                <p class="text-xs" style="color:var(--sage)">Cadastre vencimentos de seguro, IPTU, renovações e outras obrigações ligadas aos seus ativos.</p>
+            </div>
+        </section>
+
+        <!-- ===================== CONTATOS ===================== -->
+        <section id="tab-contatos" class="tab-content hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold">Contatos de acionamento</h2>
+                <button class="raiz-btn-toggle" onclick="alternarFormularioContato()" id="btn-toggle-contato" title="Novo contato">
+                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+
+            <div id="form-contato-wrapper" class="hidden raiz-form-borda p-4 mb-4">
+                <h3 class="text-sm font-bold mb-3">Novo contato</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Papel</label>
+                        <select id="ct-papel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                            <option value="seguradora">Seguradora</option><option value="corretor">Corretor</option>
+                            <option value="oficina">Oficina</option><option value="assistencia">Assistência</option>
+                            <option value="administradora">Administradora</option><option value="advogado">Advogado</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Nome <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="ct-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Empresa</label>
+                        <input type="text" id="ct-empresa" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Ativo relacionado</label>
+                        <select id="ct-ativo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"><option value="">(nenhum)</option></select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">WhatsApp</label>
+                        <input type="text" id="ct-whatsapp" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">E-mail</label>
+                        <input type="email" id="ct-email" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300" onclick="alternarFormularioContato()">Cancelar</button>
+                    <button class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)" onclick="salvarContato()">Salvar contato</button>
+                </div>
+                <p class="raiz-indicador-inline" id="ct-status"></p>
+            </div>
+
+            <div id="contatos-lista" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            <div id="contatos-estado-vazio" class="hidden text-center py-14">
+                <i data-lucide="phone" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+                <p class="text-sm font-semibold">Nenhum contato cadastrado</p>
+                <p class="text-xs" style="color:var(--sage)">Seguradora, corretor, oficina, administradora — quem você aciona quando precisa.</p>
+            </div>
+        </section>
+
+        <!-- ===================== CATEGORIAS ===================== -->
+        <section id="tab-categorias" class="tab-content hidden">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-bold">Categorias de documento</h2>
+                <button class="raiz-btn-toggle" onclick="alternarFormularioCategoria()" id="btn-toggle-categoria" title="Nova categoria">
+                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+            <div id="form-categoria-wrapper" class="hidden raiz-form-borda p-4 mb-4 flex gap-2 items-end">
+                <div class="flex-1">
+                    <label class="text-xs font-semibold block mb-1">Nome da categoria</label>
+                    <input type="text" id="cat-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+                </div>
+                <div class="flex-1">
+                    <label class="text-xs font-semibold block mb-1">Grupo</label>
+                    <input type="text" id="cat-grupo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: imovel, contrato, financeiro">
+                </div>
+                <button class="px-4 py-2 rounded-xl text-sm font-semibold text-white h-[38px]" style="background:var(--pine)" onclick="salvarCategoria()">Adicionar</button>
+            </div>
+            <div id="categorias-lista" class="space-y-1"></div>
+        </section>
+    </main>
+</div>
+
+<!-- ===================== MODAL — FICHA DO DOCUMENTO ===================== -->
+<div id="modal-ficha-doc" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold pr-4" id="fd-nome">—</h3>
+            <button onclick="fecharModal('modal-ficha-doc')" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+        <div id="fd-chips" class="flex flex-wrap gap-1 mb-3"></div>
+        <div class="raiz-bloco-interno mb-3 text-sm space-y-1" id="fd-meta"></div>
+        <div class="mb-3">
+            <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Vínculos</p>
+            <div id="fd-vinculos" class="flex flex-wrap gap-1"></div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-1" style="background:var(--pine)" onclick="baixarDocumentoAtual()"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
+            <button class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 flex items-center gap-1" onclick="arquivarDocumentoAtual()"><i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar</button>
+            <button class="px-3 py-2 rounded-xl text-xs font-semibold border-2" style="border-color:var(--danger);color:var(--danger)" onclick="excluirDocumentoAtual()"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
+        </div>
+        <p class="raiz-indicador-inline" id="fd-status"></p>
+    </div>
+</div>
+
+<!-- ===================== MODAL — FICHA DO ATIVO ===================== -->
+<div id="modal-ficha-ativo" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <h3 class="text-base font-bold" id="fa-nome">—</h3>
+                <p class="text-xs" style="color:var(--sage)" id="fa-tipo">—</p>
+            </div>
+            <button onclick="fecharModal('modal-ficha-ativo')" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+
+        <div class="flex gap-1 mb-3 text-xs">
+            <button class="tab-btn active" data-fa-tab="docs" onclick="mudarAbaFichaAtivo('docs')">Documentos</button>
+            <button class="tab-btn" data-fa-tab="fotos" onclick="mudarAbaFichaAtivo('fotos')">Fotos</button>
+            <button class="tab-btn" data-fa-tab="eventos" onclick="mudarAbaFichaAtivo('eventos')">Alertas</button>
+            <button class="tab-btn" data-fa-tab="contatos" onclick="mudarAbaFichaAtivo('contatos')">Contatos</button>
+        </div>
+
+        <div id="fa-tab-docs" class="fa-tab-content space-y-2"></div>
+        <div id="fa-tab-fotos" class="fa-tab-content hidden">
+            <input type="file" id="fa-foto-input" accept="image/*" multiple class="text-xs mb-2" onchange="enviarFotosAtivo()">
+            <div id="fa-fotos-grid" class="grid grid-cols-3 gap-2"></div>
+            <p class="raiz-indicador-inline" style="color:var(--sage)">Fotos com "Publicar na Vitrine" marcado ficam visíveis publicamente — nunca documentos privados.</p>
+        </div>
+        <div id="fa-tab-eventos" class="fa-tab-content hidden space-y-2"></div>
+        <div id="fa-tab-contatos" class="fa-tab-content hidden space-y-2"></div>
+        <p class="raiz-indicador-inline" id="fa-status"></p>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm font-semibold z-[80]" style="background:var(--pine)"></div>
+
+<script>
+// ============================================================================
+// BOOT / SESSÃO
+// Reaproveita a MESMA sessão Supabase do app principal (mesmo domínio, sem
+// novo login — spec §3.2). O parâmetro ?cliente_id= na URL carrega apenas
+// CONTEXTO de navegação (qual empresa abrir), NUNCA autorização — a
+// pertinência real é sempre revalidada aqui contra a tabela `pessoas`.
+// ============================================================================
+const SUPABASE_URL = "https://oduwpttbbemypiypjsux.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w";
+const { createClient } = supabase;
+const dbAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let CLIENTE_ID = null;
+let PESSOA_ATUAL = null; // { id, nome, perfil, clienteNome }
+let CATEGORIAS = [];
+let DOCUMENTOS = [];
+let ATIVOS = [];
+let EVENTOS = [];
+let CONTATOS = [];
+let DOC_ATUAL_ID = null;
+let ATIVO_ATUAL_ID = null;
+
+function mostrarToast(msg, tipo) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = tipo === 'erro' ? 'var(--danger)' : (tipo === 'aviso' ? 'var(--warning)' : 'var(--pine)');
+    el.classList.remove('hidden');
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
+}
+
+async function bootstrap() {
+    const params = new URLSearchParams(window.location.search);
+    const clienteIdParam = params.get('cliente_id');
+
+    const { data: userData } = await dbAuth.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) {
+        document.getElementById('erro-acesso-msg').textContent = 'Sua sessão expirou. Volte ao Raiz Patrimônio e faça login novamente.';
+        return mostrarErroAcesso();
+    }
+
+    const { data: pessoaRows, error } = await dbAuth
+        .from('pessoas')
+        .select('id, nome, perfil, cliente_id, clientes(nome_empresa)')
+        .eq('user_id', userId);
+
+    if (error || !pessoaRows || pessoaRows.length === 0) {
+        return mostrarErroAcesso();
+    }
+
+    let escolhida = clienteIdParam ? pessoaRows.find(p => p.cliente_id === clienteIdParam) : null;
+    if (!escolhida) escolhida = pessoaRows[0];
+
+    CLIENTE_ID = escolhida.cliente_id;
+    PESSOA_ATUAL = { id: escolhida.id, nome: escolhida.nome, perfil: escolhida.perfil, clienteNome: escolhida.clientes?.nome_empresa || '' };
+
+    // Checagem de acesso ao módulo — cofre.ver precisa estar no perfil
+    const { data: acessoRows } = await dbAuth
+        .from('perfil_funcionalidade')
+        .select('funcionalidade_codigo')
+        .eq('perfil_codigo', PESSOA_ATUAL.perfil)
+        .eq('funcionalidade_codigo', 'cofre.ver');
+
+    if (!acessoRows || acessoRows.length === 0) {
+        document.getElementById('erro-acesso-msg').textContent = 'Seu perfil (' + PESSOA_ATUAL.perfil + ') não tem acesso ao módulo Cofre nesta empresa.';
+        return mostrarErroAcesso();
+    }
+
+    document.getElementById('badge-empresa-atual').textContent = PESSOA_ATUAL.clienteNome + ' · ' + PESSOA_ATUAL.nome;
+    document.getElementById('tela-bootstrap').classList.add('hidden');
+    document.getElementById('app-cofre').classList.remove('hidden');
+
+    if (!['master', 'admin'].includes(PESSOA_ATUAL.perfil)) {
+        document.getElementById('tab-btn-categorias').classList.add('hidden');
+    }
+
+    lucide.createIcons();
+    await carregarTudo();
+}
+
+function mostrarErroAcesso() {
+    document.getElementById('tela-bootstrap').classList.add('hidden');
+    document.getElementById('tela-erro-acesso').classList.remove('hidden');
+    lucide.createIcons();
+}
+
+// ============================================================================
+// CARREGAMENTO
+// ============================================================================
+async function carregarTudo() {
+    await Promise.all([carregarCategorias(), carregarAtivos(), carregarEventos(), carregarContatos(), carregarDocumentos()]);
+    montarDashboard();
+    popularSelectsGlobais();
+}
+
+async function carregarCategorias() {
+    const { data, error } = await dbAuth.from('cofre_categorias').select('*').eq('cliente_id', CLIENTE_ID).eq('ativo', true).order('ordem');
+    if (error) { console.error(error); mostrarToast('Erro ao carregar categorias: ' + error.message, 'erro'); return; }
+    CATEGORIAS = data || [];
+    renderCategorias();
+}
+
+async function carregarDocumentos() {
+    const { data, error } = await dbAuth
+        .from('cofre_documentos')
+        .select('*, cofre_documento_vinculos(entidade_tipo, entidade_id, principal)')
+        .eq('cliente_id', CLIENTE_ID)
+        .neq('status', 'excluido')
+        .order('criado_em', { ascending: false });
+    if (error) { console.error(error); mostrarToast('Erro ao carregar documentos: ' + error.message, 'erro'); return; }
+    DOCUMENTOS = data || [];
+    filtrarDocumentos();
+}
+
+async function carregarAtivos() {
+    const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('cliente_id', CLIENTE_ID).eq('status', 'ativo').order('criado_em', { ascending: false });
+    if (error) { console.error(error); mostrarToast('Erro ao carregar ativos: ' + error.message, 'erro'); return; }
+    ATIVOS = data || [];
+    renderAtivos();
+}
+
+async function carregarEventos() {
+    const { data, error } = await dbAuth.from('cofre_eventos').select('*').eq('cliente_id', CLIENTE_ID).eq('status', 'pendente').order('data_vencimento');
+    if (error) { console.error(error); mostrarToast('Erro ao carregar alertas: ' + error.message, 'erro'); return; }
+    EVENTOS = data || [];
+    renderAlertas();
+}
+
+async function carregarContatos() {
+    const { data, error } = await dbAuth.from('cofre_contatos_acionamento').select('*').eq('cliente_id', CLIENTE_ID).order('nome');
+    if (error) { console.error(error); mostrarToast('Erro ao carregar contatos: ' + error.message, 'erro'); return; }
+    CONTATOS = data || [];
+    renderContatos();
+}
+
+function popularSelectsGlobais() {
+    const optsAtivo = ['<option value="">(nenhum)</option>'].concat(ATIVOS.map(a => `<option value="${a.id}">${escapeHtml(a.nome_exibicao)}</option>`)).join('');
+    document.getElementById('ev-ativo').innerHTML = optsAtivo;
+    document.getElementById('ct-ativo').innerHTML = optsAtivo;
+
+    document.getElementById('filtro-categoria').innerHTML = '<option value="">Categoria: todas</option>' +
+        CATEGORIAS.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+    document.getElementById('up-categoria').innerHTML = CATEGORIAS.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+}
+
+// ============================================================================
+// NAVEGAÇÃO DE ABAS
+// ============================================================================
+function mudarAba(nome) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById('tab-' + nome).classList.remove('hidden');
+    document.querySelectorAll('nav .tab-btn').forEach(el => el.classList.toggle('active', el.dataset.tab === nome));
+}
+
+function escapeHtml(s) { return (s ?? '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function formatarDataBR(iso) { if (!iso) return '-'; const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString('pt-BR'); }
+function formatarBytes(n) { if (!n) return '-'; if (n < 1024) return n + ' B'; if (n < 1048576) return (n/1024).toFixed(0) + ' KB'; return (n/1048576).toFixed(1) + ' MB'; }
+function diasAte(iso) { if (!iso) return null; const hoje = new Date(); hoje.setHours(0,0,0,0); const alvo = new Date(iso + 'T00:00:00'); return Math.round((alvo - hoje) / 86400000); }
+
+// ============================================================================
+// DASHBOARD
+// ============================================================================
+function montarDashboard() {
+    document.getElementById('kpi-total-docs').textContent = DOCUMENTOS.length;
+    document.getElementById('kpi-total-ativos').textContent = ATIVOS.length;
+    const vencendo = EVENTOS.filter(e => { const d = diasAte(e.data_vencimento); return d !== null && d >= 0 && d <= 30; });
+    const vencidos = EVENTOS.filter(e => { const d = diasAte(e.data_vencimento); return d !== null && d < 0; });
+    document.getElementById('kpi-vencendo').textContent = vencendo.length;
+    document.getElementById('kpi-vencidos').textContent = vencidos.length;
+
+    const listaAlertas = [...vencidos, ...vencendo].slice(0, 5);
+    document.getElementById('dashboard-lista-alertas').innerHTML = listaAlertas.length
+        ? listaAlertas.map(alertaCardHtml).join('')
+        : `<p class="text-xs" style="color:var(--sage)">Nenhum vencimento nos próximos 30 dias. 🎉</p>`;
+
+    document.getElementById('dashboard-lista-recentes').innerHTML = DOCUMENTOS.slice(0, 5).map(docCardCompactoHtml).join('')
+        || `<p class="text-xs" style="color:var(--sage)">Nenhum documento enviado ainda.</p>`;
+
+    lucide.createIcons();
+}
+
+function alertaCardHtml(e) {
+    const dias = diasAte(e.data_vencimento);
+    const chip = dias < 0 ? `<span class="chip chip-vencido">Vencido há ${Math.abs(dias)}d</span>` : `<span class="chip chip-proximo">Em ${dias}d</span>`;
+    return `<div class="raiz-bloco-interno flex items-center justify-between">
+        <div><p class="text-sm font-semibold">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
+        ${chip}
+    </div>`;
+}
+
+function docCardCompactoHtml(d) {
+    return `<div class="raiz-bloco-interno flex items-center justify-between cursor-pointer" onclick="abrirFichaDocumento('${d.id}')">
+        <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(d.nome_exibicao)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(d.criado_em?.slice(0,10))}</p></div>
+        <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--sage)"></i>
+    </div>`;
+}
+
+// ============================================================================
+// DOCUMENTOS — filtro/busca
+// ============================================================================
+let __filtrarTimer = null;
+function filtrarDocumentosDebounced() { clearTimeout(__filtrarTimer); __filtrarTimer = setTimeout(filtrarDocumentos, 200); }
+
+function filtrarDocumentos() {
+    const termo = (document.getElementById('doc-busca').value || '').toLowerCase().trim();
+    const catId = document.getElementById('filtro-categoria').value;
+    const vinculoTipo = document.getElementById('filtro-vinculo-tipo').value;
+    const ordenacao = document.getElementById('filtro-ordenacao').value;
+
+    let lista = DOCUMENTOS.filter(d => {
+        if (termo) {
+            const alvo = [d.nome_exibicao, d.descricao, ...(Array.isArray(d.tags) ? d.tags : [])].join(' ').toLowerCase();
+            if (!alvo.includes(termo)) return false;
+        }
+        if (catId && d.categoria_id !== catId) return false;
+        if (vinculoTipo) {
+            const vincs = d.cofre_documento_vinculos || [];
+            if (vinculoTipo === 'geral') { if (vincs.length > 0) return false; }
+            else if (!vincs.some(v => v.entidade_tipo === vinculoTipo)) return false;
+        }
+        return true;
+    });
+
+    lista = lista.sort((a, b) => {
+        if (ordenacao === 'antigos') return new Date(a.criado_em) - new Date(b.criado_em);
+        if (ordenacao === 'nome') return a.nome_exibicao.localeCompare(b.nome_exibicao);
+        if (ordenacao === 'validade') return (a.validade_em || '9999') > (b.validade_em || '9999') ? 1 : -1;
+        return new Date(b.criado_em) - new Date(a.criado_em);
+    });
+
+    document.getElementById('doc-lista').innerHTML = lista.map(docCardHtml).join('');
+    document.getElementById('doc-estado-vazio').classList.toggle('hidden', DOCUMENTOS.length !== 0);
+    document.getElementById('doc-lista').classList.toggle('hidden', DOCUMENTOS.length === 0);
+    lucide.createIcons();
+}
+
+function docCardHtml(d) {
+    const cat = CATEGORIAS.find(c => c.id === d.categoria_id);
+    const dias = diasAte(d.validade_em);
+    let chipValidade = '';
+    if (dias !== null) chipValidade = dias < 0 ? `<span class="chip chip-vencido">Vencido</span>` : (dias <= 30 ? `<span class="chip chip-proximo">Vence em ${dias}d</span>` : `<span class="chip chip-ok">Válido</span>`);
+    const chipRestrito = d.nivel_acesso === 'restrito' ? `<span class="chip chip-restrito">Restrito</span>` : '';
+    return `<div class="card-doc p-3 cursor-pointer" onclick="abrirFichaDocumento('${d.id}')">
+        <div class="flex items-start gap-2">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:var(--info-bg)"><i data-lucide="file-text" style="width:16px;height:16px;color:var(--info)"></i></div>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold truncate">${escapeHtml(d.nome_exibicao)}</p>
+                <p class="text-xs" style="color:var(--sage)">${cat ? escapeHtml(cat.nome) : 'Sem categoria'} · ${formatarBytes(d.tamanho_bytes)}</p>
+                <div class="flex gap-1 mt-1 flex-wrap">${chipValidade}${chipRestrito}</div>
+            </div>
+        </div>
+    </div>`;
+}
+
+// ============================================================================
+// UPLOAD
+// ============================================================================
+function alternarFormularioUpload() {
+    const w = document.getElementById('form-upload-wrapper');
+    const aberto = w.classList.toggle('hidden') === false;
+    document.getElementById('btn-toggle-upload').classList.toggle('ativo', aberto);
+    atualizarIconeToggle(document.getElementById('btn-toggle-upload'), aberto);
+    if (aberto) atualizarSeletorEntidadeVinculo();
+    document.getElementById('up-restrito-wrapper').classList.toggle('hidden', !['master','admin'].includes(PESSOA_ATUAL.perfil));
+}
+
+function atualizarIconeToggle(btn, aberto) {
+    const svg = btn.querySelector('svg.raiz-icone-toggle');
+    if (!svg) return;
+    svg.innerHTML = aberto
+        ? '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
+        : '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
+}
+
+function aoSelecionarArquivoUpload() {
+    const f = document.getElementById('up-arquivo').files[0];
+    if (!f) return;
+    const LIMITE = 25 * 1024 * 1024;
+    const infoEl = document.getElementById('up-arquivo-info');
+    if (f.size > LIMITE) {
+        infoEl.textContent = '⚠️ Arquivo maior que 25MB — reduza o tamanho antes de enviar.';
+        infoEl.style.color = 'var(--danger)';
+        document.getElementById('up-arquivo').value = '';
+        return;
+    }
+    infoEl.textContent = `${f.name} · ${formatarBytes(f.size)}`;
+    infoEl.style.color = 'var(--sage)';
+    if (!document.getElementById('up-nome').value) {
+        document.getElementById('up-nome').value = f.name.replace(/\.[^.]+$/, '');
+    }
+}
+
+async function atualizarSeletorEntidadeVinculo() {
+    const tipo = document.getElementById('up-vinculo-tipo').value;
+    const labelEl = document.getElementById('up-vinculo-entidade-label');
+    const selectEl = document.getElementById('up-vinculo-entidade');
+    if (tipo === 'empresa' || tipo === 'geral') {
+        labelEl.parentElement.classList.add('hidden');
+        return;
+    }
+    labelEl.parentElement.classList.remove('hidden');
+    if (tipo === 'imovel') {
+        labelEl.textContent = 'Imóvel';
+        const { data } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', CLIENTE_ID).order('endereco_rua');
+        selectEl.innerHTML = (data || []).map(i => `<option value="${i.id}">${escapeHtml(i.endereco_rua)}, ${escapeHtml(i.endereco_num || '')}</option>`).join('') || '<option value="">Nenhum imóvel cadastrado</option>';
+    } else if (tipo === 'ativo') {
+        labelEl.textContent = 'Ativo controlado';
+        selectEl.innerHTML = ATIVOS.map(a => `<option value="${a.id}">${escapeHtml(a.nome_exibicao)}</option>`).join('') || '<option value="">Nenhum ativo cadastrado</option>';
+    }
+}
+
+async function calcularHashSha256(file) {
+    try {
+        const buffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) { console.warn('Hash SHA-256 indisponível neste navegador:', e); return null; }
+}
+
+async function salvarUpload() {
+    const arquivo = document.getElementById('up-arquivo').files[0];
+    const nome = document.getElementById('up-nome').value.trim();
+    const categoriaId = document.getElementById('up-categoria').value;
+    const statusEl = document.getElementById('up-status');
+    const btn = document.getElementById('btn-salvar-upload');
+
+    if (!arquivo) { statusEl.textContent = '⚠️ Selecione um arquivo.'; statusEl.style.color = 'var(--danger)'; return; }
+    if (!nome) { statusEl.textContent = '⚠️ Informe o nome de exibição.'; statusEl.style.color = 'var(--danger)'; return; }
+    if (!categoriaId) { statusEl.textContent = '⚠️ Selecione uma categoria.'; statusEl.style.color = 'var(--danger)'; return; }
+
+    btn.disabled = true;
+    statusEl.style.color = 'var(--sage)';
+    statusEl.textContent = 'Calculando hash e enviando arquivo…';
+
+    const hash = await calcularHashSha256(arquivo);
+
+    // Deduplicação por hash dentro do mesmo cliente (spec §6.4)
+    if (hash) {
+        const existente = DOCUMENTOS.find(d => d.hash_sha256 === hash);
+        if (existente) {
+            const confirmar = confirm(`Este arquivo parece ser idêntico a "${existente.nome_exibicao}", já cadastrado. Enviar mesmo assim?`);
+            if (!confirmar) { btn.disabled = false; statusEl.textContent = ''; return; }
+        }
+    }
+
+    const documentoId = crypto.randomUUID();
+    const agora = new Date();
+    const extensao = (arquivo.name.split('.').pop() || '').toLowerCase();
+    const nomeSanitizado = arquivo.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `${CLIENTE_ID}/${agora.getFullYear()}/${String(agora.getMonth()+1).padStart(2,'0')}/${documentoId}/${nomeSanitizado}`;
+
+    const { error: uploadError } = await dbAuth.storage.from('cofre-documentos').upload(storagePath, arquivo, { contentType: arquivo.type, upsert: false });
+    if (uploadError) {
+        statusEl.textContent = '❌ Falha no upload: ' + uploadError.message;
+        statusEl.style.color = 'var(--danger)';
+        btn.disabled = false;
+        return;
+    }
+
+    const tags = (document.getElementById('up-tags').value || '').split(',').map(t => t.trim()).filter(Boolean);
+    const nivelAcesso = document.getElementById('up-restrito').checked ? 'restrito' : 'empresa';
+
+    const { data: docInserido, error: insertError } = await dbAuth.from('cofre_documentos').insert({
+        id: documentoId, cliente_id: CLIENTE_ID, nome_original: arquivo.name, nome_exibicao: nome,
+        bucket: 'cofre-documentos', storage_path: storagePath, mime_type: arquivo.type, extensao,
+        tamanho_bytes: arquivo.size, hash_sha256: hash, categoria_id: categoriaId,
+        descricao: document.getElementById('up-descricao').value.trim() || null, tags,
+        data_documento: document.getElementById('up-data-documento').value || null,
+        validade_em: document.getElementById('up-validade').value || null,
+        nivel_acesso: nivelAcesso, origem: 'app', status: 'ativo', criado_por: PESSOA_ATUAL.id,
+    }).select().single();
+
+    if (insertError) {
+        // Compensação: remove o objeto recém-enviado (spec §6.4)
+        await dbAuth.storage.from('cofre-documentos').remove([storagePath]);
+        statusEl.textContent = '❌ Falha ao salvar metadados (upload desfeito): ' + insertError.message;
+        statusEl.style.color = 'var(--danger)';
+        btn.disabled = false;
+        return;
+    }
+
+    const vinculoTipo = document.getElementById('up-vinculo-tipo').value;
+    if (vinculoTipo !== 'geral') {
+        const entidadeId = vinculoTipo === 'empresa' ? CLIENTE_ID : document.getElementById('up-vinculo-entidade').value;
+        if (entidadeId) {
+            const { error: vincError } = await dbAuth.from('cofre_documento_vinculos').insert({
+                cliente_id: CLIENTE_ID, documento_id: documentoId, entidade_tipo: vinculoTipo,
+                entidade_id: vinculoTipo === 'empresa' ? null : entidadeId, principal: true, criado_por: PESSOA_ATUAL.id,
+            });
+            if (vincError) mostrarToast('Documento salvo, mas o vínculo falhou: ' + vincError.message, 'aviso');
+        }
+    }
+
+    await dbAuth.from('log_acessos').insert({ cliente_id: CLIENTE_ID, pessoa_id: PESSOA_ATUAL.id, acao: 'cofre.upload', detalhe: { documento_id: documentoId, nome, categoria_id: categoriaId } });
+
+    mostrarToast('Documento salvo no Cofre ✅');
+    document.querySelectorAll('#form-upload-wrapper input, #form-upload-wrapper textarea').forEach(el => el.value = '');
+    alternarFormularioUpload();
+    await carregarDocumentos();
+    montarDashboard();
+    btn.disabled = false;
+}
+
+// ============================================================================
+// FICHA DO DOCUMENTO
+// ============================================================================
+function abrirFichaDocumento(id) {
+    const d = DOCUMENTOS.find(x => x.id === id);
+    if (!d) return;
+    DOC_ATUAL_ID = id;
+    document.getElementById('fd-nome').textContent = d.nome_exibicao;
+    const cat = CATEGORIAS.find(c => c.id === d.categoria_id);
+    const dias = diasAte(d.validade_em);
+    let chips = '';
+    if (cat) chips += `<span class="chip chip-empresa">${escapeHtml(cat.nome)}</span>`;
+    if (d.nivel_acesso === 'restrito') chips += `<span class="chip chip-restrito">Restrito</span>`;
+    if (dias !== null) chips += dias < 0 ? `<span class="chip chip-vencido">Vencido há ${Math.abs(dias)}d</span>` : `<span class="chip chip-proximo">Vence em ${dias}d</span>`;
+    document.getElementById('fd-chips').innerHTML = chips;
+    document.getElementById('fd-meta').innerHTML = `
+        <p><strong>Enviado em:</strong> ${formatarDataBR(d.criado_em?.slice(0,10))}</p>
+        <p><strong>Tamanho:</strong> ${formatarBytes(d.tamanho_bytes)}</p>
+        <p><strong>Origem:</strong> ${d.origem === 'bot_whatsapp' ? 'WhatsApp' : 'App'}</p>
+        ${d.descricao ? `<p><strong>Descrição:</strong> ${escapeHtml(d.descricao)}</p>` : ''}
+        ${(d.tags || []).length ? `<p><strong>Tags:</strong> ${d.tags.map(escapeHtml).join(', ')}</p>` : ''}
+    `;
+    const vincs = d.cofre_documento_vinculos || [];
+    document.getElementById('fd-vinculos').innerHTML = vincs.length
+        ? vincs.map(v => `<span class="chip chip-empresa">${escapeHtml(v.entidade_tipo)}</span>`).join('')
+        : `<span class="text-xs" style="color:var(--sage)">Sem vínculo específico (documento geral)</span>`;
+    document.getElementById('fd-status').textContent = '';
+    document.getElementById('modal-ficha-doc').classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function fecharModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+async function baixarDocumentoAtual() {
+    const d = DOCUMENTOS.find(x => x.id === DOC_ATUAL_ID);
+    if (!d) return;
+    const { data, error } = await dbAuth.storage.from(d.bucket).createSignedUrl(d.storage_path, 120); // 2 min — URL curta (spec §6.3)
+    if (error) { mostrarToast('Erro ao gerar link de download: ' + error.message, 'erro'); return; }
+    window.open(data.signedUrl, '_blank');
+    await dbAuth.from('log_acessos').insert({ cliente_id: CLIENTE_ID, pessoa_id: PESSOA_ATUAL.id, acao: 'cofre.baixar', detalhe: { documento_id: d.id } });
+}
+
+async function arquivarDocumentoAtual() {
+    if (!confirm('Arquivar este documento? Ele deixa de aparecer na listagem principal, mas não é apagado.')) return;
+    const { error } = await dbAuth.from('cofre_documentos').update({ status: 'arquivado' }).eq('id', DOC_ATUAL_ID);
+    if (error) { mostrarToast('Erro: ' + error.message, 'erro'); return; }
+    mostrarToast('Documento arquivado.');
+    fecharModal('modal-ficha-doc');
+    await carregarDocumentos();
+}
+
+async function excluirDocumentoAtual() {
+    if (!confirm('Excluir este documento? Esta ação registra a exclusão e não pode ser desfeita pela interface.')) return;
+    const d = DOCUMENTOS.find(x => x.id === DOC_ATUAL_ID);
+    // Soft delete de metadados (spec §8.4) — remoção física do Storage fica
+    // para uma rotina assíncrona/job separado, fora do escopo desta V1.
+    const { error } = await dbAuth.from('cofre_documentos').update({
+        status: 'excluido', excluido_em: new Date().toISOString(), excluido_por: PESSOA_ATUAL.id,
+    }).eq('id', DOC_ATUAL_ID);
+    if (error) { mostrarToast('Erro: ' + error.message, 'erro'); return; }
+    await dbAuth.from('log_acessos').insert({ cliente_id: CLIENTE_ID, pessoa_id: PESSOA_ATUAL.id, acao: 'cofre.excluir', detalhe: { documento_id: d?.id, nome: d?.nome_exibicao } });
+    mostrarToast('Documento excluído (soft delete).');
+    fecharModal('modal-ficha-doc');
+    await carregarDocumentos();
+    montarDashboard();
+}
+
+// ============================================================================
+// ATIVOS
+// ============================================================================
+function alternarFormularioAtivo() {
+    const w = document.getElementById('form-ativo-wrapper');
+    const aberto = w.classList.toggle('hidden') === false;
+    document.getElementById('btn-toggle-ativo').classList.toggle('ativo', aberto);
+    atualizarIconeToggle(document.getElementById('btn-toggle-ativo'), aberto);
+    if (aberto) atualizarOrigemAtivo();
+}
+
+async function atualizarOrigemAtivo() {
+    const tipo = document.getElementById('at-tipo').value;
+    const wrapper = document.getElementById('at-origem-imovel-wrapper');
+    if (tipo !== 'imovel') { wrapper.classList.add('hidden'); return; }
+    wrapper.classList.remove('hidden');
+    const { data } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', CLIENTE_ID).order('endereco_rua');
+    document.getElementById('at-origem-imovel').innerHTML = (data || []).map(i => `<option value="${i.id}">${escapeHtml(i.endereco_rua)}, ${escapeHtml(i.endereco_num || '')}</option>`).join('') || '<option value="">Nenhum imóvel cadastrado</option>';
+}
+
+async function salvarAtivo() {
+    const tipo = document.getElementById('at-tipo').value;
+    const nome = document.getElementById('at-nome').value.trim();
+    const statusEl = document.getElementById('at-status');
+    if (!nome) { statusEl.textContent = '⚠️ Informe o nome de exibição.'; statusEl.style.color = 'var(--danger)'; return; }
+
+    const identificadoresTexto = document.getElementById('at-identificadores').value.trim();
+    const payload = {
+        cliente_id: CLIENTE_ID, tipo_ativo: tipo, nome_exibicao: nome, status: 'ativo',
+        identificadores: identificadoresTexto ? { texto_livre: identificadoresTexto } : {},
+        criado_por: PESSOA_ATUAL.id,
+    };
+    if (tipo === 'imovel') {
+        const imovelId = document.getElementById('at-origem-imovel').value;
+        if (!imovelId) { statusEl.textContent = '⚠️ Selecione o imóvel.'; statusEl.style.color = 'var(--danger)'; return; }
+        payload.entidade_origem_tipo = 'imovel';
+        payload.entidade_origem_id = imovelId;
+    }
+
+    const { error } = await dbAuth.from('cofre_ativos').insert(payload);
+    if (error) { statusEl.textContent = '❌ ' + error.message; statusEl.style.color = 'var(--danger)'; return; }
+
+    mostrarToast('Ativo cadastrado ✅');
+    document.getElementById('at-nome').value = '';
+    document.getElementById('at-identificadores').value = '';
+    alternarFormularioAtivo();
+    await carregarAtivos();
+    popularSelectsGlobais();
+    montarDashboard();
+}
+
+function renderAtivos() {
+    const el = document.getElementById('ativos-lista');
+    el.innerHTML = ATIVOS.map(a => `
+        <div class="card-ativo p-3 cursor-pointer" onclick="abrirFichaAtivo('${a.id}')">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background:var(--success-bg)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:16px;height:16px;color:var(--success)"></i></div>
+                <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(a.nome_exibicao)}</p><p class="text-xs" style="color:var(--sage)">${rotuloTipoAtivo(a.tipo_ativo)}</p></div>
+            </div>
+        </div>`).join('');
+    document.getElementById('ativos-estado-vazio').classList.toggle('hidden', ATIVOS.length !== 0);
+    el.classList.toggle('hidden', ATIVOS.length === 0);
+    lucide.createIcons();
+}
+function iconeAtivo(t) { return { veiculo: 'car', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', outro: 'package' }[t] || 'package'; }
+function rotuloTipoAtivo(t) { return { veiculo: 'Veículo', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', outro: 'Outro' }[t] || t; }
+
+async function abrirFichaAtivo(id) {
+    const a = ATIVOS.find(x => x.id === id);
+    if (!a) return;
+    ATIVO_ATUAL_ID = id;
+    document.getElementById('fa-nome').textContent = a.nome_exibicao;
+    document.getElementById('fa-tipo').textContent = rotuloTipoAtivo(a.tipo_ativo);
+    mudarAbaFichaAtivo('docs');
+
+    const docsDoAtivo = DOCUMENTOS.filter(d => (d.cofre_documento_vinculos || []).some(v => v.entidade_tipo === 'ativo' && v.entidade_id === id));
+    document.getElementById('fa-tab-docs').innerHTML = docsDoAtivo.length
+        ? docsDoAtivo.map(docCardCompactoHtml).join('')
+        : `<p class="text-xs" style="color:var(--sage)">Nenhum documento vinculado a este ativo ainda.</p>`;
+
+    const { data: fotos } = await dbAuth.from('cofre_ativo_fotos').select('*').eq('ativo_id', id).eq('status', 'ativo').order('ordem');
+    renderFotosAtivo(fotos || []);
+
+    const eventosDoAtivo = EVENTOS.filter(e => e.ativo_id === id);
+    document.getElementById('fa-tab-eventos').innerHTML = eventosDoAtivo.length ? eventosDoAtivo.map(alertaCardHtml).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum alerta para este ativo.</p>`;
+
+    const contatosDoAtivo = CONTATOS.filter(c => c.ativo_id === id);
+    document.getElementById('fa-tab-contatos').innerHTML = contatosDoAtivo.length ? contatosDoAtivo.map(contatoCardHtml).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum contato para este ativo.</p>`;
+
+    document.getElementById('modal-ficha-ativo').classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function mudarAbaFichaAtivo(nome) {
+    document.querySelectorAll('.fa-tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById('fa-tab-' + nome).classList.remove('hidden');
+    document.querySelectorAll('[data-fa-tab]').forEach(el => el.classList.toggle('active', el.dataset.faTab === nome));
+}
+
+function renderFotosAtivo(fotos) {
+    const grid = document.getElementById('fa-fotos-grid');
+    if (!fotos.length) { grid.innerHTML = `<p class="text-xs col-span-3" style="color:var(--sage)">Nenhuma foto ainda.</p>`; return; }
+    grid.innerHTML = fotos.map(f => `
+        <div class="relative">
+            <div class="aspect-square rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center"><i data-lucide="image" style="color:var(--sage)"></i></div>
+            <label class="flex items-center gap-1 text-[10px] mt-1">
+                <input type="checkbox" ${f.publicar_vitrine ? 'checked' : ''} onchange="alternarPublicarVitrine('${f.id}', this.checked)"> Vitrine
+            </label>
+        </div>`).join('');
+}
+
+async function enviarFotosAtivo() {
+    const arquivos = document.getElementById('fa-foto-input').files;
+    const statusEl = document.getElementById('fa-status');
+    if (!arquivos.length) return;
+    statusEl.textContent = 'Enviando fotos…'; statusEl.style.color = 'var(--sage)';
+    let ordem = 0;
+    for (const arquivo of arquivos) {
+        const fotoId = crypto.randomUUID();
+        const nomeSanitizado = arquivo.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${CLIENTE_ID}/ativos/${ATIVO_ATUAL_ID}/fotos/${fotoId}_${nomeSanitizado}`;
+        const { error: upErr } = await dbAuth.storage.from('cofre-documentos').upload(path, arquivo, { contentType: arquivo.type });
+        if (upErr) { statusEl.textContent = '❌ ' + upErr.message; statusEl.style.color = 'var(--danger)'; continue; }
+        await dbAuth.from('cofre_ativo_fotos').insert({
+            id: fotoId, cliente_id: CLIENTE_ID, ativo_id: ATIVO_ATUAL_ID, bucket: 'cofre-documentos',
+            storage_path: path, nome_arquivo: arquivo.name, ordem: ordem++, criado_por: PESSOA_ATUAL.id,
+        });
+    }
+    statusEl.textContent = 'Fotos enviadas ✅'; statusEl.style.color = 'var(--success)';
+    const { data: fotos } = await dbAuth.from('cofre_ativo_fotos').select('*').eq('ativo_id', ATIVO_ATUAL_ID).eq('status', 'ativo').order('ordem');
+    renderFotosAtivo(fotos || []);
+    lucide.createIcons();
+}
+
+async function alternarPublicarVitrine(fotoId, valor) {
+    const { error } = await dbAuth.from('cofre_ativo_fotos').update({ publicar_vitrine: valor }).eq('id', fotoId);
+    if (error) mostrarToast('Erro ao atualizar: ' + error.message, 'erro');
+    else mostrarToast(valor ? 'Foto marcada para a Vitrine.' : 'Foto removida da Vitrine.');
+}
+
+// ============================================================================
+// ALERTAS / EVENTOS
+// ============================================================================
+function alternarFormularioEvento() {
+    const w = document.getElementById('form-evento-wrapper');
+    const aberto = w.classList.toggle('hidden') === false;
+    document.getElementById('btn-toggle-evento').classList.toggle('ativo', aberto);
+    atualizarIconeToggle(document.getElementById('btn-toggle-evento'), aberto);
+}
+
+async function salvarEvento() {
+    const titulo = document.getElementById('ev-titulo').value.trim();
+    const vencimento = document.getElementById('ev-vencimento').value;
+    const statusEl = document.getElementById('ev-status');
+    if (!titulo || !vencimento) { statusEl.textContent = '⚠️ Preencha título e data de vencimento.'; statusEl.style.color = 'var(--danger)'; return; }
+
+    const { error } = await dbAuth.from('cofre_eventos').insert({
+        cliente_id: CLIENTE_ID, ativo_id: document.getElementById('ev-ativo').value || null,
+        tipo_evento: document.getElementById('ev-tipo').value, titulo, data_vencimento: vencimento,
+        antecedencia_dias: parseInt(document.getElementById('ev-antecedencia').value, 10) || 15,
+        status: 'pendente', criado_por: PESSOA_ATUAL.id,
+    });
+    if (error) { statusEl.textContent = '❌ ' + error.message; statusEl.style.color = 'var(--danger)'; return; }
+
+    mostrarToast('Alerta cadastrado ✅');
+    document.getElementById('ev-titulo').value = '';
+    alternarFormularioEvento();
+    await carregarEventos();
+    montarDashboard();
+}
+
+function renderAlertas() {
+    const el = document.getElementById('alertas-lista');
+    const ordenados = [...EVENTOS].sort((a,b) => (a.data_vencimento || '') > (b.data_vencimento || '') ? 1 : -1);
+    el.innerHTML = ordenados.map(alertaCardHtml).join('');
+    document.getElementById('alertas-estado-vazio').classList.toggle('hidden', EVENTOS.length !== 0);
+    el.classList.toggle('hidden', EVENTOS.length === 0);
+    lucide.createIcons();
+}
+
+// ============================================================================
+// CONTATOS
+// ============================================================================
+function alternarFormularioContato() {
+    const w = document.getElementById('form-contato-wrapper');
+    const aberto = w.classList.toggle('hidden') === false;
+    document.getElementById('btn-toggle-contato').classList.toggle('ativo', aberto);
+    atualizarIconeToggle(document.getElementById('btn-toggle-contato'), aberto);
+}
+
+async function salvarContato() {
+    const nome = document.getElementById('ct-nome').value.trim();
+    const statusEl = document.getElementById('ct-status');
+    if (!nome) { statusEl.textContent = '⚠️ Informe o nome.'; statusEl.style.color = 'var(--danger)'; return; }
+
+    const { error } = await dbAuth.from('cofre_contatos_acionamento').insert({
+        cliente_id: CLIENTE_ID, ativo_id: document.getElementById('ct-ativo').value || null,
+        papel: document.getElementById('ct-papel').value, nome,
+        empresa: document.getElementById('ct-empresa').value.trim() || null,
+        whatsapp: document.getElementById('ct-whatsapp').value.trim() || null,
+        email: document.getElementById('ct-email').value.trim() || null,
+    });
+    if (error) { statusEl.textContent = '❌ ' + error.message; statusEl.style.color = 'var(--danger)'; return; }
+
+    mostrarToast('Contato salvo ✅');
+    document.getElementById('ct-nome').value = '';
+    alternarFormularioContato();
+    await carregarContatos();
+    popularSelectsGlobais();
+}
+
+function contatoCardHtml(c) {
+    return `<div class="card-doc p-3">
+        <p class="text-sm font-semibold">${escapeHtml(c.nome)} ${c.empresa ? '· ' + escapeHtml(c.empresa) : ''}</p>
+        <p class="text-xs" style="color:var(--sage)">${rotuloPapel(c.papel)}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}${c.email ? ' · ' + escapeHtml(c.email) : ''}</p>
+    </div>`;
+}
+function rotuloPapel(p) { return { seguradora:'Seguradora', corretor:'Corretor', oficina:'Oficina', assistencia:'Assistência', administradora:'Administradora', advogado:'Advogado', outro:'Outro' }[p] || p; }
+
+function renderContatos() {
+    const el = document.getElementById('contatos-lista');
+    el.innerHTML = CONTATOS.map(contatoCardHtml).join('');
+    document.getElementById('contatos-estado-vazio').classList.toggle('hidden', CONTATOS.length !== 0);
+    el.classList.toggle('hidden', CONTATOS.length === 0);
+}
+
+// ============================================================================
+// CATEGORIAS
+// ============================================================================
+function alternarFormularioCategoria() {
+    const w = document.getElementById('form-categoria-wrapper');
+    const aberto = w.classList.toggle('hidden') === false;
+    document.getElementById('btn-toggle-categoria').classList.toggle('ativo', aberto);
+    atualizarIconeToggle(document.getElementById('btn-toggle-categoria'), aberto);
+}
+
+async function salvarCategoria() {
+    const nome = document.getElementById('cat-nome').value.trim();
+    if (!nome) return;
+    const { error } = await dbAuth.from('cofre_categorias').insert({ cliente_id: CLIENTE_ID, nome, grupo: document.getElementById('cat-grupo').value.trim() || null, ordem: CATEGORIAS.length + 1 });
+    if (error) { mostrarToast('Erro: ' + error.message, 'erro'); return; }
+    mostrarToast('Categoria criada ✅');
+    document.getElementById('cat-nome').value = ''; document.getElementById('cat-grupo').value = '';
+    await carregarCategorias();
+    popularSelectsGlobais();
+}
+
+function renderCategorias() {
+    const el = document.getElementById('categorias-lista');
+    el.innerHTML = CATEGORIAS.map(c => `<div class="raiz-bloco-interno flex items-center justify-between"><span class="text-sm">${escapeHtml(c.nome)}</span><span class="text-xs" style="color:var(--sage)">${escapeHtml(c.grupo || '')}</span></div>`).join('')
+        || `<p class="text-xs" style="color:var(--sage)">Nenhuma categoria — use a semente padrão aplicada na migration ou crie a primeira.</p>`;
+}
+
+bootstrap();
+</script>
+</body>
+</html>
+<!-- TOTAL_LINHAS_DECLARADO: 1262 -->
