@@ -1,0 +1,322 @@
+// ============================================================================
+// cofre-api.js — Raiz Patrimônio · Cofre de Documentos
+// Versão: 1.1.0 · 19/08/2026
+//
+// Única camada que fala com o Supabase. cofre-ativos.js/cofre-documentos.js/
+// cofre-navegacao.js chamam funções daqui — nenhuma delas monta uma query
+// supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
+// única por módulo).
+// ============================================================================
+
+const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
+
+// `supabase` global vem do script UMD carregado no <head> do cofre.html
+// (https://unpkg.com/@supabase/supabase-js@2) — mesma convenção do app
+// principal, sem bundler.
+const { createClient } = window.supabase;
+export const dbAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================================
+// SESSÃO / BOOTSTRAP
+// ============================================================================
+export async function obterUsuarioAtual() {
+    const { data } = await dbAuth.auth.getUser();
+    return data?.user ?? null;
+}
+
+export async function listarEmpresasDaPessoa(userId) {
+    const { data, error } = await dbAuth
+        .from('pessoas')
+        .select('id, nome, perfil, cliente_id, clientes(nome_empresa)')
+        .eq('user_id', userId);
+    if (error) throw error;
+    return data || [];
+}
+
+// Checagem de módulo/funcionalidade — INFERIDO/PARCIAL (ver HANDOFF v1.1.0
+// item "Permissão e licença"): checa perfil_funcionalidade; NÃO checa ainda
+// `licencas.modulo='cofre'` (decisão explícita do proprietário: aprofundar
+// controle de acesso/licença em trilha paralela dedicada, não nesta rodada).
+export async function pessoaTemFuncionalidade(perfil, funcionalidade) {
+    const { data, error } = await dbAuth
+        .from('perfil_funcionalidade')
+        .select('funcionalidade_codigo')
+        .eq('perfil_codigo', perfil)
+        .eq('funcionalidade_codigo', funcionalidade);
+    if (error) throw error;
+    return (data || []).length > 0;
+}
+
+// ============================================================================
+// CATEGORIAS
+// ============================================================================
+export async function listarCategorias(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_categorias').select('*').eq('cliente_id', clienteId).eq('ativo', true).order('ordem');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function criarCategoria(clienteId, nome, grupo, ordem) {
+    const { error } = await dbAuth.from('cofre_categorias').insert({ cliente_id: clienteId, nome, grupo: grupo || null, ordem });
+    if (error) throw error;
+}
+
+// ============================================================================
+// DOCUMENTOS
+// ============================================================================
+export async function listarDocumentos(clienteId) {
+    const { data, error } = await dbAuth
+        .from('cofre_documentos')
+        .select('*, cofre_documento_vinculos(entidade_tipo, entidade_id, principal)')
+        .eq('cliente_id', clienteId)
+        .neq('status', 'excluido')
+        .order('criado_em', { ascending: false });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function buscarDocumentoPorId(id) {
+    const { data, error } = await dbAuth
+        .from('cofre_documentos')
+        .select('*, cofre_documento_vinculos(entidade_tipo, entidade_id, principal)')
+        .eq('id', id)
+        .maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+export async function calcularHashSha256(file) {
+    try {
+        const buffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+        console.warn('Hash SHA-256 indisponível neste navegador:', e);
+        return null;
+    }
+}
+
+export function montarStoragePath(clienteId, documentoId, nomeOriginal) {
+    const agora = new Date();
+    const nomeSanitizado = nomeOriginal.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+    return `${clienteId}/${agora.getFullYear()}/${String(agora.getMonth() + 1).padStart(2, '0')}/${documentoId}/${nomeSanitizado}`;
+}
+
+export async function uploadArquivoDocumento(storagePath, file) {
+    const { error } = await dbAuth.storage.from('cofre-documentos').upload(storagePath, file, { contentType: file.type, upsert: false });
+    if (error) throw error;
+}
+
+export async function removerArquivoDocumento(storagePath) {
+    await dbAuth.storage.from('cofre-documentos').remove([storagePath]);
+}
+
+export async function inserirDocumento(payload) {
+    const { data, error } = await dbAuth.from('cofre_documentos').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function atualizarDocumento(id, patch) {
+    const { error } = await dbAuth.from('cofre_documentos').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+export async function inserirVinculo(clienteId, documentoId, entidadeTipo, entidadeId, principal, pessoaId) {
+    const { error } = await dbAuth.from('cofre_documento_vinculos').insert({
+        cliente_id: clienteId, documento_id: documentoId, entidade_tipo: entidadeTipo,
+        entidade_id: entidadeId, principal: !!principal, criado_por: pessoaId,
+    });
+    if (error) throw error;
+}
+
+export async function removerVinculo(vinculoId) {
+    const { error } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', vinculoId);
+    if (error) throw error;
+}
+
+export async function gerarSignedUrl(bucket, path, segundos = 120) {
+    const { data, error } = await dbAuth.storage.from(bucket).createSignedUrl(path, segundos);
+    if (error) throw error;
+    return data.signedUrl;
+}
+
+// ============================================================================
+// RESOLUÇÃO DE NOME DE VÍNCULO — Adendo Cofre Contextual §10: vínculos devem
+// ser apresentados com NOME resolvido e navegáveis, nunca só "entidade_tipo".
+// ============================================================================
+export async function resolverNomesDeEntidades(clienteId, refs) {
+    // refs: [{ tipo, id }] — retorna Map("tipo:id" -> { nome, subtitulo })
+    const porTipo = {};
+    for (const r of refs) {
+        if (!r.id) continue;
+        (porTipo[r.tipo] ??= new Set()).add(r.id);
+    }
+    const resultado = new Map();
+
+    if (porTipo.imovel) {
+        const { data } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', clienteId).in('id', [...porTipo.imovel]);
+        for (const i of (data || [])) resultado.set(`imovel:${i.id}`, { nome: `${i.endereco_rua}, ${i.endereco_num || ''}`, subtitulo: 'Imóvel' });
+    }
+    if (porTipo.contrato) {
+        const { data } = await dbAuth.from('contratos').select('id, locatario').eq('cliente_id', clienteId).in('id', [...porTipo.contrato]);
+        for (const c of (data || [])) resultado.set(`contrato:${c.id}`, { nome: c.locatario, subtitulo: 'Contrato' });
+    }
+    if (porTipo.ativo) {
+        const { data } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao, tipo_ativo').eq('cliente_id', clienteId).in('id', [...porTipo.ativo]);
+        for (const a of (data || [])) resultado.set(`ativo:${a.id}`, { nome: a.nome_exibicao, subtitulo: 'Ativo' });
+    }
+    if (porTipo.pagamento) {
+        const { data } = await dbAuth.from('mensalidades').select('id, competencia, contratos(locatario)').eq('cliente_id', clienteId).in('id', [...porTipo.pagamento]);
+        for (const m of (data || [])) resultado.set(`pagamento:${m.id}`, { nome: `Pagamento ${formatarCompetenciaCurta(m.competencia)} · ${m.contratos?.locatario ?? ''}`, subtitulo: 'Pagamento' });
+    }
+    if (porTipo.pessoa) {
+        const { data } = await dbAuth.from('pessoas').select('id, nome').eq('cliente_id', clienteId).in('id', [...porTipo.pessoa]);
+        for (const p of (data || [])) resultado.set(`pessoa:${p.id}`, { nome: p.nome, subtitulo: 'Pessoa' });
+    }
+    if (porTipo.prestador) {
+        const { data } = await dbAuth.from('prestadores').select('id, nome').eq('cliente_id', clienteId).in('id', [...porTipo.prestador]);
+        for (const p of (data || [])) resultado.set(`prestador:${p.id}`, { nome: p.nome, subtitulo: 'Prestador' });
+    }
+    if (porTipo.empreendimento) {
+        const { data } = await dbAuth.from('empreendimentos').select('id, nome').eq('cliente_id', clienteId).in('id', [...porTipo.empreendimento]);
+        for (const e of (data || [])) resultado.set(`empreendimento:${e.id}`, { nome: e.nome, subtitulo: 'Empreendimento' });
+    }
+    return resultado;
+}
+
+function formatarCompetenciaCurta(competenciaISO) {
+    if (!competenciaISO) return '';
+    const [ano, mes] = competenciaISO.slice(0, 7).split('-');
+    return `${mes}/${ano}`;
+}
+
+// ============================================================================
+// CANDIDATOS — associação de documento a ativo/imóvel por texto digitado
+// (prompt corretivo §19.3: "não limitar a Empresa/Nenhum"). Sem IA nesta
+// versão — busca textual simples (ilike), não classificação por conteúdo do
+// arquivo (ver HANDOFF: extração/candidatos por CONTEÚDO é Fase 2/pendente).
+// ============================================================================
+export async function buscarCandidatosAtivo(clienteId, termo) {
+    const { data, error } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao, tipo_ativo').eq('cliente_id', clienteId).eq('status', 'ativo').ilike('nome_exibicao', `%${termo}%`).limit(5);
+    if (error) throw error;
+    return data || [];
+}
+
+export async function buscarCandidatosImovel(clienteId, termo) {
+    const { data, error } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', clienteId).ilike('endereco_rua', `%${termo}%`).limit(5);
+    if (error) throw error;
+    return data || [];
+}
+
+// ============================================================================
+// ATIVOS
+// ============================================================================
+export async function listarAtivos(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('cliente_id', clienteId).eq('status', 'ativo').order('criado_em', { ascending: false });
+    if (error) throw error;
+    return data || [];
+}
+
+export async function buscarAtivoPorId(id) {
+    const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+export async function buscarAtivoPorOrigemImovel(clienteId, imovelId) {
+    const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId).maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+export async function criarAtivo(payload) {
+    const { data, error } = await dbAuth.from('cofre_ativos').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function atualizarAtivo(id, patch) {
+    const { error } = await dbAuth.from('cofre_ativos').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+export async function buscarImovelPorId(id) {
+    const { data, error } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num, endereco_bairro, endereco_cidade').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+export async function listarImoveisDoCliente(clienteId) {
+    const { data, error } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', clienteId).order('endereco_rua');
+    if (error) throw error;
+    return data || [];
+}
+
+// ============================================================================
+// FOTOS
+// ============================================================================
+export async function listarFotosAtivo(ativoId) {
+    const { data, error } = await dbAuth.from('cofre_ativo_fotos').select('*').eq('ativo_id', ativoId).eq('status', 'ativo').order('ordem');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function inserirFotoAtivo(payload) {
+    const { error } = await dbAuth.from('cofre_ativo_fotos').insert(payload);
+    if (error) throw error;
+}
+
+export async function alternarPublicarVitrineFoto(fotoId, valor) {
+    const { error } = await dbAuth.from('cofre_ativo_fotos').update({ publicar_vitrine: valor }).eq('id', fotoId);
+    if (error) throw error;
+}
+
+// ============================================================================
+// EVENTOS / ALERTAS
+// ============================================================================
+export async function listarEventosPendentes(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_eventos').select('*').eq('cliente_id', clienteId).eq('status', 'pendente').order('data_vencimento');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function criarEvento(payload) {
+    const { error } = await dbAuth.from('cofre_eventos').insert(payload);
+    if (error) throw error;
+}
+
+// ============================================================================
+// CONTATOS
+// ============================================================================
+export async function listarContatos(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_contatos_acionamento').select('*').eq('cliente_id', clienteId).order('nome');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function criarContato(payload) {
+    const { error } = await dbAuth.from('cofre_contatos_acionamento').insert(payload);
+    if (error) throw error;
+}
+
+// ============================================================================
+// HISTÓRICO — reaproveita log_acessos existente (prompt corretivo §16:
+// "reaproveitar logs/eventos existentes quando possível"), filtrado por
+// ação cofre.* e, quando possível, pelo ativo/documento no `detalhe` jsonb.
+// ============================================================================
+export async function registrarLogAcessos(clienteId, pessoaId, acao, detalhe) {
+    const { error } = await dbAuth.from('log_acessos').insert({ cliente_id: clienteId, pessoa_id: pessoaId, acao, detalhe });
+    if (error) console.error('registrarLogAcessos:', error.message);
+}
+
+export async function listarHistoricoAtivo(clienteId, ativoId, limite = 30) {
+    const { data, error } = await dbAuth
+        .from('log_acessos').select('id, acao, detalhe, criado_em, pessoas(nome)')
+        .eq('cliente_id', clienteId).like('acao', 'cofre.%')
+        .contains('detalhe', { ativoId })
+        .order('criado_em', { ascending: false }).limit(limite);
+    if (error) { console.error('listarHistoricoAtivo:', error.message); return []; }
+    return data || [];
+}
