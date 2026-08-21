@@ -53,6 +53,14 @@ document.addEventListener('click', async (ev) => {
         case 'ir-para-vinculo': await docs.irParaVinculo(alvo.dataset.tipo, alvo.dataset.id); break;
         case 'escolher-candidato-upload': docs.escolherCandidatoUpload(alvo.dataset.tipo, alvo.dataset.id, alvo.dataset.nome); break;
 
+        // ---- Fase 2 (IA) e "Vincular agora"
+        case 'ignorar-sugestoes-ia': docs.ignorarSugestoesIA(); break;
+        case 'aplicar-sugestoes-ia': await docs.aplicarSugestoesIA(); break;
+        case 'abrir-vincular-agora': docs.abrirVincularAgora(); break;
+        case 'fechar-vincular-agora': docs.fecharVincularAgora(); break;
+        case 'confirmar-vincular-agora': await docs.confirmarVincularAgora(); break;
+        case 'escolher-candidato-vincular-agora': docs.escolherCandidatoVincularAgora(alvo.dataset.tipo, alvo.dataset.id, alvo.dataset.nome); break;
+
         // ---- ativos
         case 'alternar-form-ativo': ativos.alternarFormAtivo(); break;
         case 'salvar-ativo': await ativos.salvarAtivo(); break;
@@ -88,6 +96,7 @@ document.addEventListener('change', async (ev) => {
     switch (acao) {
         case 'ativo-tipo-mudou': await ativos.aoMudarTipoAtivo(); break;
         case 'upload-vinculo-tipo-mudou': await docs.aoMudarTipoVinculoUpload(); break;
+        case 'fd-vincular-tipo-mudou': await docs.aoMudarTipoVinculoAgora(); break;
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;
         default: break;
     }

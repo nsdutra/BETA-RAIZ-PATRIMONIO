@@ -193,10 +193,21 @@ function formatarCompetenciaCurta(competenciaISO) {
 }
 
 // ============================================================================
+// FASE 2 — análise por IA (20/08/2026)
+// ============================================================================
+export async function analisarDocumentoComIA(documentoId) {
+    const { data, error } = await dbAuth.functions.invoke('cofre-extrair-documento', { body: { documento_id: documentoId } });
+    if (error) throw error;
+    return data; // { analisado: boolean, resultado?: {...}, motivo?: string, erro?: string }
+}
+
+// ============================================================================
 // CANDIDATOS — associação de documento a ativo/imóvel por texto digitado
-// (prompt corretivo §19.3: "não limitar a Empresa/Nenhum"). Sem IA nesta
-// versão — busca textual simples (ilike), não classificação por conteúdo do
-// arquivo (ver HANDOFF: extração/candidatos por CONTEÚDO é Fase 2/pendente).
+// (prompt corretivo §19.3: "não limitar a Empresa/Nenhum"). Busca textual
+// simples (ilike) — usada tanto no upload quanto no "Vincular agora" pós-
+// triagem, e também pra resolver os candidatos sugeridos pela IA (Fase 2:
+// a IA só sugere o TEXTO de busca, a resolução contra o banco é sempre
+// esta mesma função, nunca um ID inventado pela IA).
 // ============================================================================
 export async function buscarCandidatosAtivo(clienteId, termo) {
     const { data, error } = await dbAuth.from('cofre_ativos').select('id, nome_exibicao, tipo_ativo').eq('cliente_id', clienteId).eq('status', 'ativo').ilike('nome_exibicao', `%${termo}%`).limit(5);

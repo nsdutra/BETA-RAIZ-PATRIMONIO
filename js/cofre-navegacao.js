@@ -19,7 +19,7 @@
 // imediata, e é IMEDIATAMENTE substituído pelo nome real assim que a
 // consulta volta — nunca fica sozinho como fonte de verdade.
 // ============================================================================
-import { estado } from './cofre-estado.js';
+import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';
 import { mostrarToast, modalGenerico, refrescarIcones } from './cofre-ui.js';
@@ -68,6 +68,8 @@ export async function bootstrap() {
     if (!liberado) return falhaAcesso(`Seu perfil (${estado.pessoa.perfil}) não tem acesso ao módulo Cofre nesta empresa.`);
 
     document.getElementById('badge-empresa-atual').textContent = estado.pessoa.clienteNome + ' · ' + estado.pessoa.nome;
+    const badgeVersao = document.getElementById('badge-versao-cofre');
+    if (badgeVersao) badgeVersao.textContent = 'v' + COFRE_VERSAO;
     document.getElementById('tela-bootstrap').classList.add('hidden');
     document.getElementById('app-cofre').classList.remove('hidden');
     // Categorias não é mais aba de navegação (Adendo §3) — vive atrás do

@@ -10,10 +10,52 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.1.0
-  Data       : 19/08/2026
-  Título     : COFRE — CORREÇÃO DE DIREÇÃO PARA GESTÃO PATRIMONIAL CONTEXTUAL
-  Base       : v1.0.0 (19/08/2026)
+  Versão     : 1.2.0
+  Data       : 20/08/2026
+  Título     : FASE 2 — INTELIGÊNCIA DOCUMENTAL + CORREÇÃO DE BUG (403 excluir)
+  Base       : v1.1.0 (19/08/2026)
+
+  CHANGELOG v1.2.0 — Fase 2 (classificação/extração por IA) implementada,
+  tanto no app quanto no bot. Corrige também o bug de produção reportado
+  em 20/08/2026 (403 ao clicar "Excluir" na ficha do documento).
+
+    - NOVO: depois de todo upload pela Home, o documento é analisado
+      automaticamente por IA (Claude Haiku 4.5, escalando pra Sonnet 5 em
+      baixa confiança — mesmo padrão já usado na extração de comprovante).
+      Resultado: tipo de documento detectado, categoria sugerida, data/
+      validade, candidato de vínculo (resolvido contra o BANCO REAL, nunca
+      um ID inventado pela IA), alerta de vencimento sugerido, contato de
+      acionamento sugerido.
+    - NOVO: modal "Sugestões da IA" — cada sugestão é uma linha com
+      checkbox/rádio, nada é aplicado sem confirmação explícita. "Deixar em
+      triagem" ignora tudo sem tocar no documento já salvo.
+    - NOVO: "Vincular agora" na ficha do documento — corrige lacuna real
+      (documento que ficou em triagem não tinha NENHUM caminho de volta
+      pra ganhar vínculo depois; só existia a associação no momento do
+      upload). Reaproveita a mesma busca de candidato do upload.
+    - NOVO: Edge Function `cofre-extrair-documento` (nova, separada de
+      whatsapp-webhook) — ponto de entrada HTTP que o app chama; toda a
+      lógica de análise vive em `supabase/functions/_shared_cofre/
+      extracao.ts`, reaproveitada também pelo bot (ver `_shared.ts` v2.6).
+    - CORRIGIDO (bug de produção, 20/08/2026): "Excluir" documento dava 403
+      — é soft-delete (UPDATE), mas só existia policy de DELETE pensada
+      pra `cofre.excluir`; o UPDATE real caía na policy de `cofre.editar`.
+      Corrigido via migration_cofre_v1_2_0.sql (política de UPDATE
+      adicional, específica pra essa transição, sem alterar a existente).
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido):
+    - Extração de conteúdo de .docx/.xlsx (Fase 2 cobre PDF e imagem;
+      documentos Word/Excel não têm extração ainda).
+    - Confirmação de MÚLTIPLOS candidatos de vínculo no mesmo pacote —
+      hoje, se a IA encontra 2+ candidatos reais parecidos, o vínculo fica
+      de fora do "aplicar tudo" tanto no app (rádio manual) quanto no bot
+      (mensagem avisando "resolva pelo app"); não decide sozinha qual é o
+      certo.
+    - Vitrine pública real, compartilhamento externo, ficha própria de
+      contrato/pagamento — seguem como na v1.1.0, não fazem parte desta
+      entrega.
+    - Licença de módulo (`licencas.modulo='cofre'`) — segue como decisão
+      em trilha paralela, não endereçada aqui.
 
   CHANGELOG v1.1.0 — correção de arquitetura de navegação/contexto/autorização
   (PROMPT_CLAUDE_CORRECAO_COFRE_v1_1_0.md + ADENDO_DESIGN_SYSTEM_COFRE_
@@ -163,6 +205,7 @@
                 <p class="text-[11px] truncate" style="color:var(--pine-light)" id="badge-empresa-atual">—</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="text-[10px] hidden sm:inline" style="color:var(--pine-light)" id="badge-versao-cofre">v1.2.0</span>
                 <button data-action="abrir-busca-global" title="Buscar no Cofre" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
                     <i data-lucide="search" class="text-white" style="width:16px;height:16px"></i>
                 </button>
@@ -391,7 +434,23 @@
         <div class="raiz-bloco-interno mb-3 text-sm space-y-1" id="fd-meta"></div>
         <div class="mb-3">
             <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Vínculos</p>
-            <div id="fd-vinculos" class="flex flex-wrap gap-1"></div>
+            <div id="fd-vinculos" class="flex flex-wrap gap-1 mb-2"></div>
+            <div id="fd-vincular-agora-wrapper" class="hidden">
+                <button data-action="abrir-vincular-agora" class="text-xs font-bold" style="color:var(--pine)">+ Vincular agora</button>
+                <div id="fd-vincular-agora-form" class="hidden mt-2 raiz-bloco-interno">
+                    <select id="fd-va-tipo" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs mb-2" data-action-change="fd-vincular-tipo-mudou">
+                        <option value="empresa">Empresa (geral)</option>
+                        <option value="ativo">Ativo controlado</option>
+                        <option value="imovel">Imóvel</option>
+                    </select>
+                    <input id="fd-va-busca" type="text" class="hidden w-full border-2 border-slate-300 rounded-lg p-2 text-xs mb-1" placeholder="Digite para buscar…">
+                    <div id="fd-va-candidatos" class="space-y-1"></div>
+                    <div class="flex justify-end gap-2 mt-2">
+                        <button data-action="fechar-vincular-agora" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
+                        <button data-action="confirmar-vincular-agora" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white" style="background:var(--pine)">Vincular</button>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="flex flex-wrap gap-2">
             <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
@@ -399,6 +458,43 @@
             <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 flex items-center gap-1" style="border-color:var(--danger);color:var(--danger)"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
         </div>
         <p class="raiz-indicador-inline" id="fd-status"></p>
+    </div>
+</div>
+
+<!-- ===================== MODAL — SUGESTÕES DA IA (Fase 2) ===================== -->
+<div id="modal-sugestoes-ia" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <div>
+                <h3 class="text-base font-bold flex items-center gap-2"><i data-lucide="sparkles" style="width:16px;height:16px;color:var(--warning)"></i> Sugestões da IA</h3>
+                <p class="text-xs" style="color:var(--sage)" id="sug-tipo-detectado">—</p>
+            </div>
+            <button data-action="ignorar-sugestoes-ia" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+        <p class="text-xs mb-3" style="color:var(--sage)">Nada aqui é aplicado sozinho — revise e confirme só o que fizer sentido.</p>
+
+        <div id="sug-categoria-bloco" class="hidden raiz-bloco-interno mb-2">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="sug-aplicar-categoria" checked> Categoria sugerida: <b id="sug-categoria-nome"></b></label>
+        </div>
+
+        <div id="sug-vinculo-bloco" class="hidden mb-2">
+            <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Vincular a</p>
+            <div id="sug-vinculo-opcoes" class="space-y-1"></div>
+        </div>
+
+        <div id="sug-alerta-bloco" class="hidden raiz-bloco-interno mb-2">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="sug-aplicar-alerta" checked> Criar alerta: <span id="sug-alerta-texto"></span></label>
+        </div>
+
+        <div id="sug-contato-bloco" class="hidden raiz-bloco-interno mb-3">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="sug-aplicar-contato" checked> Adicionar contato: <span id="sug-contato-texto"></span></label>
+        </div>
+
+        <div class="flex justify-end gap-2">
+            <button data-action="ignorar-sugestoes-ia" class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300">Deixar em triagem</button>
+            <button data-action="aplicar-sugestoes-ia" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Aplicar selecionados</button>
+        </div>
+        <p class="raiz-indicador-inline" id="sug-status"></p>
     </div>
 </div>
 
@@ -504,3 +600,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
+<!-- TOTAL_LINHAS_DECLARADO: 603 (cofre.html) — lógica vive em js/*.js, ver contagem por arquivo no HANDOFF -->

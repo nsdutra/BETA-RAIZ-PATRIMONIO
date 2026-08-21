@@ -247,6 +247,11 @@ export async function salvarUpload() {
     mostrarToast('Documento salvo no Cofre ✅');
     fecharUpload();
     window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+
+    // FASE 2 (20/08/2026) — dispara a análise por IA depois de salvar. Não
+    // bloqueia nem atrasa o "documento salvo" acima — roda em segundo
+    // plano e só abre um modal se encontrar algo útil pra sugerir.
+    analisarAposUpload(documentoId, !!vinculoEscolhidoUpload);
 }
 
 function marcarErroUpload(msg) {
@@ -256,7 +261,182 @@ function marcarErroUpload(msg) {
 }
 
 // ============================================================================
-// FICHA DO DOCUMENTO — vínculos resolvidos por NOME e clicáveis (Adendo §10)
+// FASE 2 — análise por IA após o upload (20/08/2026)
+// ============================================================================
+let sugestaoIaAtual = null; // { documentoId, resultado, vinculoJaDefinido }
+
+async function analisarAposUpload(documentoId, vinculoJaDefinido) {
+    let resposta;
+    try {
+        resposta = await api.analisarDocumentoComIA(documentoId);
+    } catch (err) {
+        console.warn('Análise por IA não disponível para este documento:', err.message);
+        return;
+    }
+    if (!resposta?.analisado || !resposta.resultado) return;
+
+    const r = resposta.resultado;
+    const temAlgoUtil = r.categoriaSugerida || (!vinculoJaDefinido && r.candidatosVinculo.length > 0) || r.alertasSugeridos[0] || r.contatosSugeridos[0];
+    if (!temAlgoUtil) return;
+
+    sugestaoIaAtual = { documentoId, resultado: r, vinculoJaDefinido };
+    montarModalSugestoesIA();
+    abrirModal('modal-sugestoes-ia');
+}
+
+function montarModalSugestoesIA() {
+    const { resultado: r, vinculoJaDefinido } = sugestaoIaAtual;
+    document.getElementById('sug-tipo-detectado').textContent = r.tipoDocumentoDetectado;
+
+    const categoriaExiste = r.categoriaSugerida && estado.categorias.some(c => c.nome.toLowerCase() === r.categoriaSugerida.toLowerCase());
+    document.getElementById('sug-categoria-bloco').classList.toggle('hidden', !categoriaExiste);
+    if (categoriaExiste) document.getElementById('sug-categoria-nome').textContent = r.categoriaSugerida;
+
+    const vinculoBloco = document.getElementById('sug-vinculo-bloco');
+    const mostrarVinculo = !vinculoJaDefinido && r.candidatosVinculo.length > 0;
+    vinculoBloco.classList.toggle('hidden', !mostrarVinculo);
+    if (mostrarVinculo) {
+        document.getElementById('sug-vinculo-opcoes').innerHTML = r.candidatosVinculo.map((c, i) => `
+            <label class="flex items-center gap-2 text-sm raiz-bloco-interno">
+                <input type="radio" name="sug-vinculo" value="${i}" ${i === 0 ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">(${c.tipo})</span>
+            </label>`).join('') + `
+            <label class="flex items-center gap-2 text-sm raiz-bloco-interno">
+                <input type="radio" name="sug-vinculo" value="nenhum"> Nenhum — deixar em triagem
+            </label>`;
+    }
+
+    const alerta = r.alertasSugeridos[0];
+    document.getElementById('sug-alerta-bloco').classList.toggle('hidden', !(alerta?.titulo && alerta?.dataVencimento));
+    if (alerta?.titulo && alerta?.dataVencimento) {
+        document.getElementById('sug-alerta-texto').textContent = `${alerta.titulo} — ${formatarDataBR(alerta.dataVencimento)}`;
+    }
+
+    const contato = r.contatosSugeridos[0];
+    document.getElementById('sug-contato-bloco').classList.toggle('hidden', !contato?.nome);
+    if (contato?.nome) {
+        document.getElementById('sug-contato-texto').textContent = contato.nome + (contato.telefone ? ` · ${contato.telefone}` : '');
+    }
+
+    document.getElementById('sug-status').textContent = '';
+}
+
+export function ignorarSugestoesIA() {
+    fecharModal('modal-sugestoes-ia');
+    sugestaoIaAtual = null;
+}
+
+export async function aplicarSugestoesIA() {
+    if (!sugestaoIaAtual) return;
+    const { documentoId, resultado: r } = sugestaoIaAtual;
+    const statusEl = document.getElementById('sug-status');
+    statusEl.textContent = 'Aplicando…';
+    statusEl.style.color = 'var(--sage)';
+
+    try {
+        if (document.getElementById('sug-aplicar-categoria')?.checked && !document.getElementById('sug-categoria-bloco').classList.contains('hidden')) {
+            const cat = estado.categorias.find(c => c.nome.toLowerCase() === r.categoriaSugerida.toLowerCase());
+            if (cat) await api.atualizarDocumento(documentoId, { categoria_id: cat.id, data_documento: r.dataDocumento, validade_em: r.validadeEm });
+        } else if (r.dataDocumento || r.validadeEm) {
+            await api.atualizarDocumento(documentoId, { data_documento: r.dataDocumento, validade_em: r.validadeEm });
+        }
+
+        if (!document.getElementById('sug-vinculo-bloco').classList.contains('hidden')) {
+            const escolhaRadio = document.querySelector('input[name="sug-vinculo"]:checked')?.value;
+            if (escolhaRadio && escolhaRadio !== 'nenhum') {
+                const c = r.candidatosVinculo[parseInt(escolhaRadio, 10)];
+                await api.inserirVinculo(estado.clienteId, documentoId, c.tipo, c.id, true, estado.pessoa.id);
+            }
+        }
+
+        const alerta = r.alertasSugeridos[0];
+        if (document.getElementById('sug-aplicar-alerta')?.checked && alerta?.titulo && alerta?.dataVencimento) {
+            await api.criarEvento({
+                cliente_id: estado.clienteId, documento_id: documentoId, tipo_evento: alerta.tipoEvento || 'outro',
+                titulo: alerta.titulo, data_vencimento: alerta.dataVencimento, antecedencia_dias: 15,
+                status: 'pendente', origem_extracao: true, confianca_extracao: r.confianca === 'alta' ? 0.9 : (r.confianca === 'media' ? 0.6 : 0.3),
+                criado_por: estado.pessoa.id,
+            });
+        }
+
+        const contato = r.contatosSugeridos[0];
+        if (document.getElementById('sug-aplicar-contato')?.checked && contato?.nome) {
+            await api.criarContato({
+                cliente_id: estado.clienteId, documento_id: documentoId, papel: contato.papel || 'outro',
+                nome: contato.nome, telefone: contato.telefone, email: contato.email,
+            });
+        }
+
+        mostrarToast('Sugestões aplicadas ✅');
+        fecharModal('modal-sugestoes-ia');
+        sugestaoIaAtual = null;
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-contatos'));
+    } catch (err) {
+        statusEl.textContent = '❌ ' + err.message;
+        statusEl.style.color = 'var(--danger)';
+    }
+}
+
+// ============================================================================
+// "VINCULAR AGORA" — documento já salvo em triagem, sem passar de novo pelo
+// upload (lacuna identificada em produção, 20/08/2026: antes não existia
+// nenhum caminho pra resolver o vínculo de um documento que já tinha
+// ficado em triagem).
+// ============================================================================
+let vinculoAgoraEscolhido = null;
+
+export function abrirVincularAgora() {
+    document.getElementById('fd-vincular-agora-form').classList.remove('hidden');
+    document.getElementById('fd-va-tipo').value = 'empresa';
+    document.getElementById('fd-va-busca').classList.add('hidden');
+    document.getElementById('fd-va-candidatos').innerHTML = '';
+    vinculoAgoraEscolhido = null;
+}
+export function fecharVincularAgora() {
+    document.getElementById('fd-vincular-agora-form').classList.add('hidden');
+}
+
+export async function aoMudarTipoVinculoAgora() {
+    const tipo = document.getElementById('fd-va-tipo').value;
+    const buscaEl = document.getElementById('fd-va-busca');
+    vinculoAgoraEscolhido = tipo === 'empresa' ? { tipo: 'empresa', id: null, nome: 'Empresa (geral)' } : null;
+    document.getElementById('fd-va-candidatos').innerHTML = '';
+    if (tipo === 'ativo' || tipo === 'imovel') {
+        buscaEl.classList.remove('hidden');
+        buscaEl.value = '';
+        buscaEl.oninput = debounce(async () => {
+            const termo = buscaEl.value;
+            if (termo.trim().length < 2) { document.getElementById('fd-va-candidatos').innerHTML = ''; return; }
+            const candidatos = tipo === 'ativo' ? await api.buscarCandidatosAtivo(estado.clienteId, termo) : await api.buscarCandidatosImovel(estado.clienteId, termo);
+            document.getElementById('fd-va-candidatos').innerHTML = candidatos.map(c => {
+                const nome = tipo === 'ativo' ? c.nome_exibicao : `${c.endereco_rua}, ${c.endereco_num || ''}`;
+                return `<button type="button" data-action="escolher-candidato-vincular-agora" data-tipo="${tipo}" data-id="${c.id}" data-nome="${escapeHtml(nome)}" class="w-full text-left text-xs border-2 border-slate-200 rounded-lg p-2">${escapeHtml(nome)}</button>`;
+            }).join('') || `<p class="text-xs" style="color:var(--sage)">Nada encontrado.</p>`;
+        }, 250);
+    } else {
+        buscaEl.classList.add('hidden');
+    }
+}
+
+export function escolherCandidatoVincularAgora(tipo, id, nome) {
+    vinculoAgoraEscolhido = { tipo, id, nome };
+    document.getElementById('fd-va-candidatos').innerHTML = `<div class="raiz-bloco-interno text-xs">✅ ${escapeHtml(nome)}</div>`;
+}
+
+export async function confirmarVincularAgora() {
+    if (!vinculoAgoraEscolhido) { mostrarToast('Escolha uma opção antes de confirmar.', 'aviso'); return; }
+    try {
+        await api.inserirVinculo(estado.clienteId, docAtualId, vinculoAgoraEscolhido.tipo, vinculoAgoraEscolhido.id, true, estado.pessoa.id);
+        mostrarToast('Documento vinculado ✅');
+        fecharVincularAgora();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+        await abrirFichaDocumento(docAtualId);
+    } catch (err) {
+        mostrarToast('Erro ao vincular: ' + err.message, 'erro');
+    }
+}
+
 // ============================================================================
 export async function abrirFichaDocumento(id) {
     const d = estado.documentos.find(x => x.id === id) || await api.buscarDocumentoPorId(id);
@@ -284,6 +464,9 @@ export async function abrirFichaDocumento(id) {
     `;
 
     const vincs = d.cofre_documento_vinculos || [];
+    const emTriagem = vincs.length === 0;
+    document.getElementById('fd-vincular-agora-wrapper').classList.toggle('hidden', !emTriagem);
+    document.getElementById('fd-vincular-agora-form').classList.add('hidden');
     if (vincs.length === 0) {
         document.getElementById('fd-vinculos').innerHTML = `<span class="text-xs" style="color:var(--sage)">Nenhum — este documento está em triagem.</span>`;
     } else {
