@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.0 · 19/08/2026
+// Versão: 1.1.1 · 24/08/2026
+//
+// v1.1.1 — importa cofre-controles.js (novo) e liga os data-action da aba
+// Controles/tratamento de ocorrência (criar item, tratar/reagendar/estornar).
 //
 // Entry point. Único arquivo que faz `addEventListener` no `document`
 // (delegação de evento, via atributos `data-action`/`data-action-change`)
@@ -15,6 +18,7 @@ import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-
 import * as nav from './cofre-navegacao.js';
 import * as docs from './cofre-documentos.js';
 import * as ativos from './cofre-ativos.js';
+import * as controles from './cofre-controles.js';
 
 // ============================================================================
 // DELEGAÇÃO DE CLIQUE — um único listener cobre todo elemento (estático ou
@@ -74,6 +78,14 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-evento-no-ativo': ativos.abrirEventoNoAtivo(); break;
         case 'abrir-contato-no-ativo': ativos.abrirContatoNoAtivo(); break;
         case 'salvar-contato-no-ativo': await ativos.salvarContatoNoAtivo(); break;
+        case 'abrir-form-controle': await controles.abrirFormControle(); break;
+        case 'fechar-form-controle': controles.fecharFormControle(); break;
+        case 'salvar-item-controle': await controles.salvarItemControle(); break;
+        case 'alternar-acao-ocorrencia': controles.alternarAcaoOcorrencia(alvo.dataset.id, alvo.dataset.modo); break;
+        case 'fechar-acao-ocorrencia': controles.fecharAcaoOcorrencia(); break;
+        case 'confirmar-tratar-ocorrencia': await controles.confirmarTratarOcorrencia(alvo.dataset.id); break;
+        case 'confirmar-reagendar-ocorrencia': await controles.confirmarReagendarOcorrencia(alvo.dataset.id); break;
+        case 'confirmar-estornar-ocorrencia': await controles.confirmarEstornarOcorrencia(alvo.dataset.id); break;
 
         // ---- alertas
         case 'alternar-form-evento': alternarFormEvento(); break;
@@ -98,6 +110,7 @@ document.addEventListener('change', async (ev) => {
         case 'upload-vinculo-tipo-mudou': await docs.aoMudarTipoVinculoUpload(); break;
         case 'fd-vincular-tipo-mudou': await docs.aoMudarTipoVinculoAgora(); break;
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;
+        case 'ic-tipo-mudou': controles.aoMudarTipoControleForm(); break;
         default: break;
     }
 });

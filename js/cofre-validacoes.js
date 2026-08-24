@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.1 · 24/08/2026
+// Versão: 1.1.2 · 24/08/2026
+//
+// v1.1.2 — rótulos puros de Controles/Ocorrências (rotuloTipoControle,
+// rotuloStatusOcorrencia, rotuloFrequencia) para a nova aba Controles.
 //
 // v1.1.1 — adiciona tipos de ativo veiculo_blindado/obra_arte (rótulo, ícone,
 // campos estruturados), acompanhando migration_cofre_alarmes_v2 que ampliou
@@ -159,6 +162,24 @@ export function normalizarContexto(contextoBruto) {
     if (CANONICOS.includes(c)) return c;
     if (ALIASES_CONTEXTO[c]) return ALIASES_CONTEXTO[c];
     return null; // contexto desconhecido — bootstrap cai para a Home normal
+}
+
+// ============================================================================
+// CONTROLES / OCORRÊNCIAS — rótulos puros (módulo de Alarmes, Fase 1 núcleo)
+// ============================================================================
+export function rotuloTipoControle(t) {
+    return { seguro: 'Seguro', manutencao: 'Manutenção', tributo: 'Tributo' }[t] || t;
+}
+
+export function rotuloStatusOcorrencia(s) {
+    return { aberto: 'Em aberto', concluido: 'Concluído', cancelado: 'Cancelado' }[s] || s;
+}
+
+export function rotuloFrequencia(intervalo, unidade) {
+    if (!intervalo || !unidade) return 'Não recorrente';
+    const unidades = { dia: ['dia', 'dias'], semana: ['semana', 'semanas'], mes: ['mês', 'meses'], ano: ['ano', 'anos'] };
+    const [singular, plural] = unidades[unidade] || [unidade, unidade];
+    return intervalo === 1 ? `A cada ${singular}` : `A cada ${intervalo} ${plural}`;
 }
 
 // ============================================================================

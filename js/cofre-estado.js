@@ -9,7 +9,11 @@
 // ============================================================================
 // ============================================================================
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.1 · 24/08/2026
+// Versão: 1.3.0 · 24/08/2026
+//
+// v1.3.0 — bump de COFRE_VERSAO: nova aba Controles na ficha do ativo
+// (criar item de controle + tratar/reagendar/estornar ocorrência), módulo
+// novo cofre-controles.js v1.0.0.
 //
 // v1.2.1 — bump de COFRE_VERSAO acompanhando cofre-ativos.js/cofre-validacoes.js
 // v1.1.1 (novos tipos de ativo veiculo_blindado/obra_arte).
@@ -23,7 +27,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.2.1';
+export const COFRE_VERSAO = '1.3.0';
 
 export const estado = {
     clienteId: null,

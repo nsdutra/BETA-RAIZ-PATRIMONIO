@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.0 · 19/08/2026
+// Versão: 1.1.1 · 24/08/2026
+//
+// v1.1.1 — funções de acesso a cofre_itens_controle/cofre_ocorrencias_controle/
+// cofre_controle_subtipos/históricos (módulo de Alarmes, Fase 1 núcleo).
+// Escrita direta via Supabase client, protegida por RLS já aplicada em
+// migration_cofre_alarmes_fase1_nucleo_v1 — sem RPC dedicada nesta rodada.
 //
 // Única camada que fala com o Supabase. cofre-ativos.js/cofre-documentos.js/
 // cofre-navegacao.js chamam funções daqui — nenhuma delas monta uma query
@@ -310,6 +315,70 @@ export async function listarContatos(clienteId) {
 export async function criarContato(payload) {
     const { error } = await dbAuth.from('cofre_contatos_acionamento').insert(payload);
     if (error) throw error;
+}
+
+// ============================================================================
+// CONTROLES / OCORRÊNCIAS — módulo de Alarmes (Fase 1, núcleo). Escrita
+// direta via RLS (cofre_itens_controle_write / cofre_ocorrencias_controle_write,
+// migration_cofre_alarmes_fase1_nucleo_v1) — sem RPC dedicada nesta rodada;
+// autorização real continua no servidor (RLS), não só escondida na UI.
+// ============================================================================
+export async function listarSubtiposControle(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_controle_subtipos').select('*')
+        .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true)
+        .order('tipo').order('nome');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function listarItensControleAtivo(ativoId) {
+    const { data, error } = await dbAuth.from('cofre_itens_controle')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome)')
+        .eq('ativo_id', ativoId).eq('ativo', true).order('criado_em');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function criarItemControle(payload) {
+    const { data, error } = await dbAuth.from('cofre_itens_controle').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function criarOcorrenciaControle(payload) {
+    const { data, error } = await dbAuth.from('cofre_ocorrencias_controle').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+}
+
+export async function tratarOcorrencia(id, pessoaId, descricao) {
+    const { error } = await dbAuth.from('cofre_ocorrencias_controle').update({
+        status_execucao: 'concluido', tratado_em: new Date().toISOString(), tratado_por: pessoaId,
+        tratamento_descricao: descricao || null,
+    }).eq('id', id);
+    if (error) throw error;
+}
+
+export async function reagendarOcorrencia(id, novaData) {
+    const { error } = await dbAuth.from('cofre_ocorrencias_controle').update({ data_prevista_atual: novaData }).eq('id', id);
+    if (error) throw error;
+}
+
+export async function estornarOcorrencia(id) {
+    const { error } = await dbAuth.from('cofre_ocorrencias_controle').update({
+        status_execucao: 'aberto', tratado_em: null, tratado_por: null, tratamento_descricao: null,
+    }).eq('id', id);
+    if (error) throw error;
+}
+
+export async function registrarHistoricoOcorrencia(payload) {
+    const { error } = await dbAuth.from('cofre_ocorrencias_historico').insert(payload);
+    if (error) console.error('registrarHistoricoOcorrencia:', error.message);
+}
+
+export async function registrarHistoricoItemControle(payload) {
+    const { error } = await dbAuth.from('cofre_itens_controle_historico').insert(payload);
+    if (error) console.error('registrarHistoricoItemControle:', error.message);
 }
 
 // ============================================================================
