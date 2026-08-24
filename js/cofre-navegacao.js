@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.0 · 19/08/2026
+// Versão: 1.1.1 · 24/08/2026
+//
+// v1.1.1 — abrirSeletorModulo() marcada DEPRECATED (não mais chamada); ver
+// cofre-app.js v1.1.2 (novo data-action="voltar-app", header simplificado).
 //
 // v1.1.0 — CORREÇÃO DE ARQUITETURA (substitui o bootstrap simplista da
 // v1.0.0, que só aceitava ?cliente_id=). Implementa o contrato do prompt
@@ -189,11 +192,11 @@ function montarHome() {
 }
 
 // ============================================================================
-// SELETOR DE MÓDULOS — Design System / Adendo §4. Lista módulos com
-// licença ativa (`licencas.status='ativo'`) para o cliente atual. Imóveis é
-// sempre listado (módulo core, não tem linha própria em `licencas` hoje —
-// INFERIDO). O link de volta usa `?` antes de qualquer `#`, conforme a
-// regra já conhecida de handoff de URL.
+// SELETOR DE MÓDULOS — DEPRECATED (v1.3.1, 24/08/2026). Substituído por um
+// botão simples "< Voltar" no header (data-action="voltar-app" em
+// cofre-app.js), a pedido explícito: sem seletor/modal, navegação direta.
+// Função mantida (não removida) para não quebrar nenhuma referência externa
+// remanescente; não é mais chamada por nenhum data-action do cofre.html.
 // ============================================================================
 export function abrirSeletorModulo() {
     const nomeEmpresa = estado.pessoa?.clienteNome || '';

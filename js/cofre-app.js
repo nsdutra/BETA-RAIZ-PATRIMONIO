@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.1 · 24/08/2026
+// Versão: 1.1.2 · 24/08/2026
+//
+// v1.1.2 — header simplificado: remove o seletor "módulos" (modal); troca
+// por botão "< Voltar" direto (data-action="voltar-app" → './'), a pedido
+// explícito, para igualar ao padrão minimalista do header do App principal.
 //
 // v1.1.1 — importa cofre-controles.js (novo) e liga os data-action da aba
 // Controles/tratamento de ocorrência (criar item, tratar/reagendar/estornar).
@@ -35,7 +39,7 @@ document.addEventListener('click', async (ev) => {
         case 'ir-home': nav.mudarTela('home'); docs.montarHome(); break;
         case 'ir-ativos': nav.mudarTela('ativos'); ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value); break;
         case 'ir-alertas': nav.mudarTela('alertas'); renderAlertas(); break;
-        case 'abrir-seletor-modulo': nav.abrirSeletorModulo(); break;
+        case 'voltar-app': window.location.href = './'; break;
         case 'fechar-modal-generico': fecharModal('modal-generico'); break;
 
         // ---- busca global / configurações

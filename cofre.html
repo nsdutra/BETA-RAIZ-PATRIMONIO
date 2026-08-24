@@ -10,10 +10,27 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.3.0
+  Versão     : 1.3.1
   Data       : 24/08/2026
-  Título     : ABA "CONTROLES" NA FICHA DO ATIVO — MÓDULO DE ALARMES (núcleo UI)
-  Base       : v1.2.1 (24/08/2026)
+  Título     : HEADER SIMPLIFICADO — REMOVE SELETOR DE MÓDULOS
+  Base       : v1.3.0 (24/08/2026)
+
+  CHANGELOG v1.3.1 — a pedido explícito: remover o dropdown "módulos" do
+  header do Cofre, igualando ao padrão minimalista do header do App
+  principal (index.html), que não tem seletor nenhum — só marca/ícones.
+
+    - REMOVIDO: botão "módulos ▾" (abria modal listando Imóveis/Cofre).
+    - NOVO: botão "< Voltar" simples no header, à esquerda do título
+      "Cofre", levando direto para `./` (App principal) — mesma ideia da
+      "seta única de voltar ao app" que existia antes da v1.1.0 introduzir
+      o seletor.
+    - Nome da empresa (`badge-empresa-atual`) continua aparecendo no
+      header, sem mudança — já era exibido ali antes desta versão.
+    - `abrirSeletorModulo()` em cofre-navegacao.js marcada DEPRECATED
+      (não removida, só não é mais chamada por nenhum data-action).
+    - Arquivos alterados: cofre.html (header), js/cofre-app.js
+      (1.1.1→1.1.2), js/cofre-navegacao.js (1.1.0→1.1.1), js/cofre-estado.js
+      (COFRE_VERSAO 1.3.0→1.3.1).
 
   CHANGELOG v1.3.0 — primeira UI real do módulo de Alarmes/Controles (Fase 1
   núcleo). Cobre o banco criado em migration_cofre_alarmes_fase1_nucleo_v1/v2.
@@ -250,15 +267,15 @@
 
     <header class="sticky top-0 z-40" style="background:var(--pine-deep)">
         <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-                <p class="text-[10px] uppercase tracking-widest font-bold" style="color:var(--brass-light)">Raiz Patrimônio</p>
-                <div class="flex items-center gap-2">
+            <div class="min-w-0 flex items-center gap-2">
+                <button data-action="voltar-app" title="Voltar ao Raiz Patrimônio" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(255,255,255,.12)">
+                    <i data-lucide="chevron-left" class="text-white" style="width:16px;height:16px"></i>
+                </button>
+                <div class="min-w-0">
+                    <p class="text-[10px] uppercase tracking-widest font-bold" style="color:var(--brass-light)">Raiz Patrimônio</p>
                     <h1 class="text-white text-base font-bold leading-tight">Cofre</h1>
-                    <button data-action="abrir-seletor-modulo" class="text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1" style="background:rgba(255,255,255,.12); color:#fff">
-                        módulos <i data-lucide="chevron-down" style="width:12px;height:12px"></i>
-                    </button>
+                    <p class="text-[11px] truncate" style="color:var(--pine-light)" id="badge-empresa-atual">—</p>
                 </div>
-                <p class="text-[11px] truncate" style="color:var(--pine-light)" id="badge-empresa-atual">—</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-[10px] hidden sm:inline" style="color:var(--pine-light)" id="badge-versao-cofre">v1.2.0</span>
