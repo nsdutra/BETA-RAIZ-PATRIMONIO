@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.0 · 19/08/2026
+// Versão: 1.1.1 · 24/08/2026
+//
+// v1.1.1 — adiciona tipos de ativo veiculo_blindado/obra_arte (rótulo, ícone,
+// campos estruturados), acompanhando migration_cofre_alarmes_v2 que ampliou
+// cofre_ativos_tipo_check. Sem remoção de tipos existentes.
 //
 // Funções PURAS (sem DOM, sem rede, sem estado global) — é isso que torna
 // possível testar este arquivo isoladamente (ver tests/cofre-validacoes.test.js,
@@ -67,14 +71,16 @@ export function mascarar(valor, visiveisNoFinal = 4) {
 // (prompt corretivo §10 — nada de campo único "identificadores" genérico).
 // ============================================================================
 export function rotuloTipoAtivo(t) {
-    return { veiculo: 'Veículo', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', outro: 'Outro' }[t] || t;
+    return { veiculo: 'Veículo', veiculo_blindado: 'Veículo blindado', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', obra_arte: 'Obra de arte', outro: 'Outro' }[t] || t;
 }
 
 export function iconeAtivo(t) {
-    return { veiculo: 'car', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', outro: 'package' }[t] || 'package';
+    return { veiculo: 'car', veiculo_blindado: 'shield', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', obra_arte: 'image', outro: 'package' }[t] || 'package';
 }
 
-// Campos estruturados por tipo (convenção documentada em migration_cofre_v1_1_0.sql §3)
+// Campos estruturados por tipo (convenção documentada em migration_cofre_v1_1_0.sql §3;
+// veiculo_blindado/obra_arte adicionados em migration_cofre_alarmes_v1 — convenção nova,
+// documentada aqui por não ter migration própria de schema, já que dados_especificos é jsonb livre)
 export const CAMPOS_POR_TIPO_ATIVO = {
     veiculo: [
         { chave: 'placa', label: 'Placa', obrigatorio: true },
@@ -84,6 +90,23 @@ export const CAMPOS_POR_TIPO_ATIVO = {
         { chave: 'cor', label: 'Cor', obrigatorio: false },
         { chave: 'chassi', label: 'Chassi', obrigatorio: false, mascarar: true },
         { chave: 'renavam', label: 'RENAVAM', obrigatorio: false, mascarar: true },
+    ],
+    veiculo_blindado: [
+        { chave: 'placa', label: 'Placa', obrigatorio: true },
+        { chave: 'marca', label: 'Marca', obrigatorio: false },
+        { chave: 'modelo', label: 'Modelo', obrigatorio: false },
+        { chave: 'ano', label: 'Ano', obrigatorio: false, tipo: 'number' },
+        { chave: 'blindagem_empresa', label: 'Empresa blindadora', obrigatorio: false },
+        { chave: 'blindagem_nivel', label: 'Nível de blindagem', obrigatorio: false },
+        { chave: 'chassi', label: 'Chassi', obrigatorio: false, mascarar: true },
+        { chave: 'renavam', label: 'RENAVAM', obrigatorio: false, mascarar: true },
+    ],
+    obra_arte: [
+        { chave: 'artista', label: 'Artista', obrigatorio: false },
+        { chave: 'titulo_obra', label: 'Título da obra', obrigatorio: false },
+        { chave: 'ano', label: 'Ano', obrigatorio: false, tipo: 'number' },
+        { chave: 'avaliacao_valor', label: 'Valor de avaliação', obrigatorio: false, tipo: 'number' },
+        { chave: 'seguradora', label: 'Seguradora', obrigatorio: false },
     ],
     terreno: [
         { chave: 'matricula', label: 'Matrícula/Inscrição', obrigatorio: true },
