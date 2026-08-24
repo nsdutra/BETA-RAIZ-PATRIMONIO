@@ -10,10 +10,31 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.2.0
-  Data       : 20/08/2026
-  Título     : FASE 2 — INTELIGÊNCIA DOCUMENTAL + CORREÇÃO DE BUG (403 excluir)
-  Base       : v1.1.0 (19/08/2026)
+  Versão     : 1.2.1
+  Data       : 24/08/2026
+  Título     : AMPLIAÇÃO DE TIPOS DE ATIVO (veiculo_blindado, obra_arte)
+  Base       : v1.2.0 (20/08/2026)
+
+  CHANGELOG v1.2.1 — acompanha migration_cofre_alarmes_fase1_nucleo_v1/v2
+  (núcleo de dados do módulo de Alarmes/Controles). O formulário de Ativo
+  estava com a lista de tipos hardcoded e não refletia os 2 tipos novos
+  liberados no banco (`cofre_ativos_tipo_check`).
+
+    - NOVO: tipo de ativo `veiculo_blindado` (rótulo, ícone `shield`, campos
+      estruturados: placa/marca/modelo/ano/blindagem_empresa/blindagem_nivel/
+      chassi/renavam).
+    - NOVO: tipo de ativo `obra_arte` (rótulo, ícone `image`, campos
+      estruturados: artista/titulo_obra/ano/avaliacao_valor/seguradora).
+    - Arquivos alterados: js/cofre-validacoes.js (1.1.0→1.1.1),
+      js/cofre-ativos.js (1.1.0→1.1.1), js/cofre-estado.js (COFRE_VERSAO
+      1.2.0→1.2.1).
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido):
+    - Nenhuma UI para Itens de Controle/Ocorrências/Central de Alertas —
+      o banco (cofre_controle_subtipos/cofre_itens_controle/
+      cofre_ocorrencias_controle + históricos) existe desde
+      migration_cofre_alarmes_fase1_nucleo_v1, mas não há tela nem RPC de
+      escrita ainda. Ver HANDOFF em separado.
 
   CHANGELOG v1.2.0 — Fase 2 (classificação/extração por IA) implementada,
   tanto no app quanto no bot. Corrige também o bug de produção reportado
