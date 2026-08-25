@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.2 · 24/08/2026
+// Versão: 1.1.3 · 24/08/2026
+//
+// v1.1.3 — dispatcher acompanha a ficha do ativo virar tela (não modal):
+// voltar-ficha-ativo, alternar-mais-acoes-ativo, alternar-historico-ativo,
+// excluir-ativo-atual.
 //
 // v1.1.2 — header simplificado: remove o seletor "módulos" (modal); troca
 // por botão "< Voltar" direto (data-action="voltar-app" → './'), a pedido
@@ -73,8 +77,10 @@ document.addEventListener('click', async (ev) => {
         case 'alternar-form-ativo': ativos.alternarFormAtivo(); break;
         case 'salvar-ativo': await ativos.salvarAtivo(); break;
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
-        case 'fechar-ficha-ativo': ativos.fecharFichaAtivo(); break;
-        case 'mudar-aba-ativo': ativos.mudarAbaFichaAtivo(alvo.dataset.tabTarget); break;
+        case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;
+        case 'alternar-mais-acoes-ativo': ativos.alternarMaisAcoesAtivo(); break;
+        case 'alternar-historico-ativo': ativos.alternarHistoricoAtivo(); break;
+        case 'excluir-ativo-atual': await ativos.excluirAtivoAtual(); break;
         case 'alternar-editar-ativo': ativos.alternarEditarAtivo(); break;
         case 'salvar-edicao-ativo': await ativos.salvarEdicaoAtivo(); break;
         case 'abrir-gestao-imovel': ativos.abrirGestaoImovel(); break;

@@ -10,10 +10,84 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.3.1
+  Versão     : 1.4.0
   Data       : 24/08/2026
-  Título     : HEADER SIMPLIFICADO — REMOVE SELETOR DE MÓDULOS
-  Base       : v1.3.0 (24/08/2026)
+  Título     : FICHA DO ATIVO EM BOXES (SEM MODAL/ABAS) + HEADER PADRÃO APP + AJUSTES DE DADOS
+  Base       : v1.3.1 (24/08/2026)
+
+  CHANGELOG v1.4.0 — lote de correções e alinhamento ao Design System,
+  a pedido explícito após primeiros testes reais de cadastro.
+
+    1) DADOS DO ATIVO
+    - REMOVIDO: campo `seguradora` de obra_arte e vida_protecao — seguro
+      agora é sempre um Item de Controle do ativo (aba/box Controles), não
+      dado estruturado do cadastro. Não fazia sentido pedir seguradora no
+      cadastro do ativo e de novo no item de controle.
+    - NOVO: campo `valor_estimado` (R$) padronizado em TODOS os tipos de
+      ativo (antes só obra_arte tinha, como `avaliacao_valor` — renomeado/
+      unificado). Prepara terreno para somatório de portfólio sem switch
+      por tipo.
+
+    2) EXCLUIR ATIVO
+    - NOVO: ação "Excluir" no "Mais ações" do box Dados do ativo — não
+      existia nenhuma forma de excluir um ativo cadastrado por engano.
+      Soft-delete (`status='arquivado'`, nunca DELETE físico), mesmo
+      padrão já usado em Documentos. Confirmação obrigatória antes de
+      excluir. Cor vermelha discreta sem fundo, conforme Design System §1
+      ("Excluir" é a única exceção à cor neutra de "Mais ações").
+
+    3) FICHA DO ATIVO — MUDANÇA ESTRUTURAL
+    - REMOVIDO: modal com barra de abas (Resumo/Documentos/Alertas/
+      Controles/Contatos/Fotos/Histórico) — não era o padrão do Design
+      System do projeto (pedido explícito: "menu suspenso com abas não é
+      o padrão, use o padrão de boxes do app Imóveis").
+    - NOVO: ficha do ativo agora é uma TELA CHEIA (`data-screen="ficha-
+      ativo"`), com "< Ativos" no topo e boxes brancos empilhados
+      (`bg-white rounded-xl shadow-sm border`), exatamente como a ficha do
+      imóvel no App principal: Dados do ativo / Documentos / Controles /
+      Alertas / Contatos / Fotos.
+    - Histórico deixou de ser aba própria — agora vive dentro de "Mais
+      ações" do box Dados do ativo, mesma convenção já usada no box de
+      Contrato da ficha do imóvel ("Histórico passou a viver dentro do
+      Mais ações").
+    - Box Dados do ativo ganhou footer "Mais ações" padrão (Editar dados /
+      Histórico / Excluir), com a borda divisória no lugar certo conforme
+      Design System §4.
+
+    4) CADASTRO DE PARÂMETRO NO MENU DO BONEQUINHO
+    - Ícone de engrenagem do header trocado por ícone de pessoa
+      ("boneco"), igual ao App principal — mesmo destino (Configurações/
+      Categorias), só visual alinhado ao padrão.
+
+    5) HEADER IDÊNTICO AO APP + IDENTIFICAÇÃO DE MÓDULO
+    - REMOVIDO: rótulo fixo "Raiz Patrimônio" no header do Cofre.
+    - NOVO: nome da EMPRESA CLIENTE (não mais "Raiz Patrimônio") como
+      título principal do header, igual ao App principal (que já mostrava
+      o nome do cliente via `aplicarBrandingCliente()` desde antes desta
+      versão — não precisou mudar lá, só ganhou o selo de módulo).
+    - NOVO: selo de módulo ao lado do nome — "Cofre" aqui, "Imóveis" no
+      App principal (`index.html` Beta v1.61.2) — para identificar em qual
+      módulo se está.
+    - `badge-empresa-atual` (linha abaixo do título) agora mostra só o
+      nome da pessoa logada, já que a empresa subiu para o título.
+
+    - Arquivos alterados: cofre.html (ficha do ativo + header),
+      js/cofre-ativos.js (1.1.2→1.1.3), js/cofre-api.js (1.1.1→1.1.2),
+      js/cofre-validacoes.js (1.1.2→1.1.3), js/cofre-navegacao.js
+      (1.1.1→1.1.2), js/cofre-app.js (1.1.2→1.1.3), js/cofre-estado.js
+      (COFRE_VERSAO 1.3.1→1.4.0). Fora do Cofre: index.html (Beta
+      v1.61.1→v1.61.2 — selo de módulo "Imóveis" no header).
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido):
+    - Cabeçalho do Cofre não replica os ícones de bot (R.AI.Z)/conta do
+      App — manteve busca/configurações/adicionar, que são as ações
+      próprias do Cofre. "Idêntico ao App" foi interpretado como mesmo
+      padrão visual/estrutural (empresa + selo de módulo, sem seletor),
+      não os mesmos botões — confirmar se isso atende ou se o pedido era
+      literal (replicar botão do bot também).
+    - Nenhuma migration nova nesta rodada — `valor_estimado`/remoção de
+      `seguradora` são só convenção de chaves dentro do jsonb
+      `dados_especificos` (sem CHECK de schema), não exigem ALTER TABLE.
 
   CHANGELOG v1.3.1 — a pedido explícito: remover o dropdown "módulos" do
   header do Cofre, igualando ao padrão minimalista do header do App
@@ -272,8 +346,10 @@
                     <i data-lucide="chevron-left" class="text-white" style="width:16px;height:16px"></i>
                 </button>
                 <div class="min-w-0">
-                    <p class="text-[10px] uppercase tracking-widest font-bold" style="color:var(--brass-light)">Raiz Patrimônio</p>
-                    <h1 class="text-white text-base font-bold leading-tight">Cofre</h1>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-white text-base font-bold leading-tight truncate" id="cofre-nome-empresa">—</h1>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style="background:rgba(255,255,255,.15); color:#fff">Cofre</span>
+                    </div>
                     <p class="text-[11px] truncate" style="color:var(--pine-light)" id="badge-empresa-atual">—</p>
                 </div>
             </div>
@@ -283,7 +359,7 @@
                     <i data-lucide="search" class="text-white" style="width:16px;height:16px"></i>
                 </button>
                 <button data-action="abrir-configuracoes" title="Categorias e configurações" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
-                    <i data-lucide="settings" class="text-white" style="width:16px;height:16px"></i>
+                    <i data-lucide="user" class="text-white" style="width:16px;height:16px"></i>
                 </button>
                 <button data-action="abrir-upload-home" id="btn-adicionar-documento" title="Adicionar documento" class="raiz-btn-toggle" style="background:#fff">
                     <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -571,63 +647,63 @@
     </div>
 </div>
 
-<!-- ===================== MODAL — FICHA DO ATIVO (Resumo é a aba padrão) ===================== -->
-<div id="modal-ficha-ativo" class="modal-overlay hidden">
-    <div class="modal-box p-5">
-        <div class="flex items-start justify-between mb-3">
-            <div><h3 class="text-base font-bold" id="fa-nome">—</h3><p class="text-xs" style="color:var(--sage)" id="fa-tipo">—</p></div>
-            <button data-action="fechar-ficha-ativo" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
-        </div>
+<!-- ===================== TELA — FICHA DO ATIVO (boxes, padrão do App/Imóveis) ===================== -->
+<section data-screen="ficha-ativo" class="hidden">
 
-        <div class="flex gap-1 mb-3 text-xs overflow-x-auto" data-tab-group="ficha-ativo">
-            <button class="tab-btn active" data-tab-target="resumo" data-tab-group="ficha-ativo" data-action="mudar-aba-ativo">Resumo</button>
-            <button class="tab-btn" data-tab-target="documentos" data-tab-group="ficha-ativo" data-action="mudar-aba-ativo">Documentos</button>
-            <button class="tab-btn" data-tab-target="alertas" data-tab-group="ficha-ativo" data-action="mudar-aba-ativo">Alertas</button>
-            <button class="tab-btn" data-tab-target="controles" data-tab-group="ficha-ativo" data-action="mudar-aba-ativo">Controles</button>
-            <button class="tab-btn" data-tab-target="contatos" data-tab-group="ficha-ativo" data-action="mudar-aba-ativo">Contatos</button>
-            <button class="tab-btn" data-tab-target="fotos" data-tab-group="ficha-ativo" data-action="mudar-aba-ativo">Fotos</button>
-            <button class="tab-btn" data-tab-target="historico" data-tab-group="ficha-ativo" data-action="mudar-aba-ativo">Histórico</button>
-        </div>
+    <button data-action="voltar-ficha-ativo" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Ativos</button>
 
-        <div data-tab-panel="resumo" data-tab-group="ficha-ativo" class="space-y-3">
-            <div id="fa-resumo-origem-imovel" class="hidden raiz-bloco-interno flex items-center justify-between text-sm">
+    <div class="mt-3">
+        <h3 class="text-base font-bold" id="fa-nome">—</h3>
+        <p class="text-xs" style="color:var(--sage)" id="fa-tipo">—</p>
+    </div>
+
+    <div class="mt-4 space-y-3">
+
+        <!-- Box: Dados do ativo -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Dados do ativo</h3>
+            <div id="fa-resumo-origem-imovel" class="hidden raiz-bloco-interno flex items-center justify-between text-sm mt-2">
                 <span>Este ativo referencia um imóvel já cadastrado.</span>
                 <button data-action="abrir-gestao-imovel" class="text-xs font-bold" style="color:var(--pine)">Abrir gestão do imóvel →</button>
             </div>
-            <div id="fa-resumo-dados" class="text-sm space-y-1"></div>
-            <div>
-                <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Próximos vencimentos</p>
-                <div id="fa-resumo-alertas" class="space-y-1"></div>
-            </div>
-            <div>
-                <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Documentos principais</p>
-                <div id="fa-resumo-docs" class="space-y-1"></div>
-            </div>
-            <div>
-                <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Contatos principais</p>
-                <div id="fa-resumo-contatos" class="space-y-1"></div>
-            </div>
-            <button data-action="alternar-editar-ativo" class="w-full border-2 border-slate-300 rounded-xl py-2 text-xs font-bold">Editar dados do ativo</button>
-            <div id="fa-editar-wrapper" class="hidden raiz-form-borda p-3">
+            <div id="fa-resumo-dados" class="text-sm space-y-1 mt-2"></div>
+
+            <div id="fa-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2">
                 <div id="fa-editar-campos" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                 <div class="flex justify-end gap-2 mt-3">
                     <button data-action="alternar-editar-ativo" class="px-3 py-2 rounded-xl text-xs border-2 border-slate-300">Cancelar</button>
                     <button data-action="salvar-edicao-ativo" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--pine)">Salvar</button>
                 </div>
             </div>
+
+            <div id="fa-historico-wrapper" class="hidden mt-2 space-y-2">
+                <div id="fa-tab-historico"></div>
+            </div>
+
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    Mais ações <i data-lucide="chevron-down" style="width:13px;height:13px"></i>
+                </button>
+            </div>
+            <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
+                <button data-action="alternar-historico-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Histórico</button>
+                <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600">Excluir</button>
+            </div>
         </div>
 
-        <div data-tab-panel="documentos" data-tab-group="ficha-ativo" class="hidden space-y-2">
-            <button data-action="abrir-upload-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center" style="border-color:var(--pine-light); color:var(--pine)">+ Anexar documento a este ativo</button>
-            <div id="fa-tab-documentos"></div>
+        <!-- Box: Documentos -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Documentos</h3>
+            <button data-action="abrir-upload-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Anexar documento a este ativo</button>
+            <div id="fa-tab-documentos" class="mt-2 space-y-2"></div>
         </div>
-        <div data-tab-panel="alertas" data-tab-group="ficha-ativo" class="hidden space-y-2">
-            <button data-action="abrir-evento-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center" style="border-color:var(--pine-light); color:var(--pine)">+ Criar alerta para este ativo</button>
-            <div id="fa-tab-alertas"></div>
-        </div>
-        <div data-tab-panel="controles" data-tab-group="ficha-ativo" class="hidden space-y-2">
-            <button data-action="abrir-form-controle" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center" style="border-color:var(--pine-light); color:var(--pine)">+ Criar item de controle (seguro/manutenção/tributo)</button>
-            <div id="fa-form-item-controle" class="hidden raiz-form-borda p-3 space-y-2">
+
+        <!-- Box: Controles (itens/ocorrências — módulo de Alarmes) -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
+            <button data-action="abrir-form-controle" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Criar item de controle (seguro/manutenção/tributo)</button>
+            <div id="fa-form-item-controle" class="hidden raiz-form-borda p-3 space-y-2 mt-2">
                 <div class="grid grid-cols-2 gap-2">
                     <select id="ic-tipo" data-action-change="ic-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
                         <option value="seguro">Seguro</option>
@@ -661,23 +737,34 @@
                     <button data-action="salvar-item-controle" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--pine)">Salvar item de controle</button>
                 </div>
             </div>
-            <div id="fa-tab-controles"></div>
+            <div id="fa-tab-controles" class="mt-2 space-y-2"></div>
         </div>
-        <div data-tab-panel="contatos" data-tab-group="ficha-ativo" class="hidden space-y-2">
-            <button data-action="abrir-contato-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center" style="border-color:var(--pine-light); color:var(--pine)">+ Adicionar contato de acionamento</button>
-            <div id="fa-tab-contatos"></div>
+
+        <!-- Box: Alertas (legado — eventos avulsos) -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Alertas</h3>
+            <button data-action="abrir-evento-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Criar alerta para este ativo</button>
+            <div id="fa-tab-alertas" class="mt-2 space-y-2"></div>
         </div>
-        <div data-tab-panel="fotos" data-tab-group="ficha-ativo" class="hidden">
-            <input type="file" id="fa-foto-input" accept="image/*" multiple class="text-xs mb-2">
+
+        <!-- Box: Contatos -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Contatos</h3>
+            <button data-action="abrir-contato-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Adicionar contato de acionamento</button>
+            <div id="fa-tab-contatos" class="mt-2 space-y-2"></div>
+        </div>
+
+        <!-- Box: Fotos -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Fotos</h3>
+            <input type="file" id="fa-foto-input" accept="image/*" multiple class="text-xs mt-2 mb-2">
             <div id="fa-fotos-grid" class="grid grid-cols-3 gap-2"></div>
-            <p class="raiz-indicador-inline" style="color:var(--sage)">Foto ≠ documento. Só fotos marcadas "Selecionada para Vitrine" ficam elegíveis à publicação — nenhuma publicação real acontece sem o backend de Vitrine (ainda não implementado nesta versão).</p>
+            <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Foto ≠ documento. Só fotos marcadas "Selecionada para Vitrine" ficam elegíveis à publicação — nenhuma publicação real acontece sem o backend de Vitrine (ainda não implementado nesta versão).</p>
         </div>
-        <div data-tab-panel="historico" data-tab-group="ficha-ativo" class="hidden space-y-2">
-            <div id="fa-tab-historico"></div>
-        </div>
+
         <p class="raiz-indicador-inline" id="fa-status"></p>
     </div>
-</div>
+</section>
 
 <!-- ===================== MODAL — CRIAÇÃO ASSISTIDA (contexto=imovel sem ativo) ===================== -->
 <div id="modal-criacao-assistida" class="modal-overlay hidden">

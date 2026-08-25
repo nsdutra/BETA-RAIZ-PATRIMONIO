@@ -9,7 +9,11 @@
 // ============================================================================
 // ============================================================================
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.1 · 24/08/2026
+// Versão: 1.4.0 · 24/08/2026
+//
+// v1.4.0 — bump maior de COFRE_VERSAO: ficha do ativo virou tela (não
+// modal com abas), header idêntico ao padrão do App (empresa + selo de
+// módulo), exclusão de ativo, valor estimado universal.
 //
 // v1.3.1 — bump de COFRE_VERSAO: header simplificado (sem seletor de
 // módulos), cofre-app.js v1.1.2 / cofre-navegacao.js v1.1.1.

@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.1 · 24/08/2026
+// Versão: 1.1.2 · 24/08/2026
+//
+// v1.1.2 — arquivarAtivo() (soft-delete de ativo, mesmo padrão de
+// excluirDocumentoAtual: UPDATE status='arquivado', nunca DELETE físico).
 //
 // v1.1.1 — funções de acesso a cofre_itens_controle/cofre_ocorrencias_controle/
 // cofre_controle_subtipos/históricos (módulo de Alarmes, Fase 1 núcleo).
@@ -255,6 +258,11 @@ export async function criarAtivo(payload) {
 
 export async function atualizarAtivo(id, patch) {
     const { error } = await dbAuth.from('cofre_ativos').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+export async function arquivarAtivo(id) {
+    const { error } = await dbAuth.from('cofre_ativos').update({ status: 'arquivado' }).eq('id', id);
     if (error) throw error;
 }
 

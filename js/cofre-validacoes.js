@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.2 · 24/08/2026
+// Versão: 1.1.3 · 24/08/2026
+//
+// v1.1.3 — removido campo `seguradora` de obra_arte/vida_protecao (seguro
+// agora é Item de Controle, não dado estruturado); `valor_estimado`
+// padronizado em TODOS os tipos de ativo (pedido explícito).
 //
 // v1.1.2 — rótulos puros de Controles/Ocorrências (rotuloTipoControle,
 // rotuloStatusOcorrencia, rotuloFrequencia) para a nova aba Controles.
@@ -84,6 +88,12 @@ export function iconeAtivo(t) {
 // Campos estruturados por tipo (convenção documentada em migration_cofre_v1_1_0.sql §3;
 // veiculo_blindado/obra_arte adicionados em migration_cofre_alarmes_v1 — convenção nova,
 // documentada aqui por não ter migration própria de schema, já que dados_especificos é jsonb livre)
+//
+// v1.1.3 — removido campo `seguradora` de obra_arte/vida_protecao (seguro agora é
+// Item de Controle do ativo, não dado estruturado do cadastro — pedido explícito).
+// `valor_estimado` adicionado a TODOS os tipos (antes só obra_arte tinha, como
+// `avaliacao_valor` — renomeado/padronizado para permitir somatório de portfólio
+// sem precisar de switch por tipo).
 export const CAMPOS_POR_TIPO_ATIVO = {
     veiculo: [
         { chave: 'placa', label: 'Placa', obrigatorio: true },
@@ -93,6 +103,7 @@ export const CAMPOS_POR_TIPO_ATIVO = {
         { chave: 'cor', label: 'Cor', obrigatorio: false },
         { chave: 'chassi', label: 'Chassi', obrigatorio: false, mascarar: true },
         { chave: 'renavam', label: 'RENAVAM', obrigatorio: false, mascarar: true },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
     veiculo_blindado: [
         { chave: 'placa', label: 'Placa', obrigatorio: true },
@@ -103,27 +114,29 @@ export const CAMPOS_POR_TIPO_ATIVO = {
         { chave: 'blindagem_nivel', label: 'Nível de blindagem', obrigatorio: false },
         { chave: 'chassi', label: 'Chassi', obrigatorio: false, mascarar: true },
         { chave: 'renavam', label: 'RENAVAM', obrigatorio: false, mascarar: true },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
     obra_arte: [
         { chave: 'artista', label: 'Artista', obrigatorio: false },
         { chave: 'titulo_obra', label: 'Título da obra', obrigatorio: false },
         { chave: 'ano', label: 'Ano', obrigatorio: false, tipo: 'number' },
-        { chave: 'avaliacao_valor', label: 'Valor de avaliação', obrigatorio: false, tipo: 'number' },
-        { chave: 'seguradora', label: 'Seguradora', obrigatorio: false },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
     terreno: [
         { chave: 'matricula', label: 'Matrícula/Inscrição', obrigatorio: true },
         { chave: 'localizacao', label: 'Localização', obrigatorio: false },
         { chave: 'area_m2', label: 'Área (m²)', obrigatorio: false, tipo: 'number' },
         { chave: 'inscricao_municipal', label: 'Inscrição municipal', obrigatorio: false },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
     vida_protecao: [
-        { chave: 'seguradora', label: 'Seguradora', obrigatorio: false },
         { chave: 'numero_apolice', label: 'Nº da apólice', obrigatorio: false, mascarar: true },
         { chave: 'tipo_cobertura', label: 'Tipo de cobertura', obrigatorio: false },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
     outro: [
         { chave: 'descricao_livre', label: 'Descrição', obrigatorio: false },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
 };
 

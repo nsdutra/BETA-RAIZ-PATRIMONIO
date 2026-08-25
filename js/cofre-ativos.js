@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.2 · 24/08/2026
+// Versão: 1.1.3 · 24/08/2026
+//
+// v1.1.3 — MUDANÇA ESTRUTURAL: ficha do ativo deixa de ser modal com abas
+// e passa a ser tela cheia (data-screen="ficha-ativo") com boxes empilhados
+// (Dados/Documentos/Controles/Alertas/Contatos/Fotos), padrão idêntico à
+// ficha do imóvel no App principal (pedido explícito — "menu suspenso com
+// abas não é o padrão do projeto"). Histórico passa a viver em "Mais ações"
+// do box Dados, mesma convenção usada no box de Contrato da ficha do
+// imóvel. Nova ação excluirAtivoAtual() (soft-delete, "Mais ações →
+// Excluir", vermelho discreto conforme Design System §1).
 //
 // v1.1.2 — abrirFichaAtivo() passa a montar também a aba Controles (novo
 // módulo cofre-controles.js), junto de Resumo/Documentos/Alertas/Contatos.
@@ -15,7 +24,8 @@
 // ============================================================================
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, abrirModal, fecharModal, refrescarIcones, ativarAba, alternarToggle } from './cofre-ui.js';
+import { mostrarToast, refrescarIcones, alternarToggle } from './cofre-ui.js';
+import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, CAMPOS_POR_TIPO_ATIVO, validarCamposAtivo, rotuloPapelContato,
@@ -139,9 +149,10 @@ export async function abrirFichaAtivo(id) {
     document.getElementById('fa-nome').textContent = a.nome_exibicao;
     document.getElementById('fa-tipo').textContent = rotuloTipoAtivo(a.tipo_ativo);
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
+    document.getElementById('fa-historico-wrapper').classList.add('hidden');
+    document.getElementById('fa-mais-acoes').classList.add('hidden');
 
-    ativarAba('[data-tab-group="ficha-ativo"]', 'resumo');
-    await montarResumoAtivo(a);
+    montarDadosAtivo(a);
     montarDocumentosAtivo(a);
     montarAlertasAtivo(a);
     montarContatosAtivo(a);
@@ -149,17 +160,24 @@ export async function abrirFichaAtivo(id) {
     await montarFotosAtivo(a);
     await montarHistoricoAtivo(a);
 
-    abrirModal('modal-ficha-ativo');
+    mudarTela('ficha-ativo');
 }
 
-export function fecharFichaAtivo() { fecharModal('modal-ficha-ativo'); }
-
-export function mudarAbaFichaAtivo(nome) {
-    ativarAba('[data-tab-group="ficha-ativo"]', nome);
+export function fecharFichaAtivo() {
+    mudarTela('ativos');
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
 }
 
-// ---- Resumo (Adendo §7.1: o que é, está tudo em ordem, o que vence, docs-chave, contatos, origem)
-async function montarResumoAtivo(a) {
+export function alternarMaisAcoesAtivo() {
+    document.getElementById('fa-mais-acoes').classList.toggle('hidden');
+}
+
+export function alternarHistoricoAtivo() {
+    document.getElementById('fa-historico-wrapper').classList.toggle('hidden');
+}
+
+// ---- Dados do ativo (box 1 — campos estruturados por tipo, incl. valor estimado)
+function montarDadosAtivo(a) {
     const origemWrapper = document.getElementById('fa-resumo-origem-imovel');
     origemWrapper.classList.toggle('hidden', a.entidade_origem_tipo !== 'imovel');
 
@@ -171,24 +189,23 @@ async function montarResumoAtivo(a) {
         .join('');
     document.getElementById('fa-resumo-dados').innerHTML = linhasDados || `<p class="text-xs" style="color:var(--sage)">Sem dados estruturados cadastrados ainda.</p>`;
 
-    const eventosDoAtivo = estado.eventos.filter(e => e.ativo_id === a.id).sort((x, y) => (x.data_vencimento || '') > (y.data_vencimento || '') ? 1 : -1);
-    document.getElementById('fa-resumo-alertas').innerHTML = eventosDoAtivo.slice(0, 3).map(alertaCardHtml).join('') || `<p class="text-xs" style="color:var(--sage)">Nada pendente.</p>`;
-
-    const docsDoAtivo = documentosDoAtivo(a.id);
-    document.getElementById('fa-resumo-docs').innerHTML = docsDoAtivo.slice(0, 3).map(d =>
-        `<button data-action="abrir-documento" data-id="${d.id}" class="w-full text-left text-xs raiz-bloco-interno">${escapeHtml(d.nome_exibicao)}</button>`
-    ).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhum documento vinculado ainda.</p>`;
-
-    const contatosDoAtivo = estado.contatos.filter(c => c.ativo_id === a.id);
-    document.getElementById('fa-resumo-contatos').innerHTML = contatosDoAtivo.slice(0, 2).map(c =>
-        `<div class="text-xs raiz-bloco-interno">${escapeHtml(c.nome)} · ${escapeHtml(rotuloPapelContato(c.papel))}</div>`
-    ).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhum contato cadastrado.</p>`;
-
     refrescarIcones();
 }
 
 function documentosDoAtivo(ativoId) {
     return estado.documentos.filter(d => (d.cofre_documento_vinculos || []).some(v => v.entidade_tipo === 'ativo' && v.entidade_id === ativoId));
+}
+
+export async function excluirAtivoAtual() {
+    const a = estado.ativoEmFoco;
+    if (!a) return;
+    if (!confirm(`Excluir "${a.nome_exibicao}"? Esta ação fica registrada e não pode ser desfeita pela interface.`)) return;
+    try {
+        await api.arquivarAtivo(a.id);
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.excluir', { ativoId: a.id, nome: a.nome_exibicao });
+        mostrarToast('Ativo excluído.');
+        fecharFichaAtivo();
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
 // ---- Editar (secundário, dentro do Resumo — Adendo §7.2/§9.2)
@@ -284,7 +301,6 @@ export async function salvarContatoNoAtivo() {
         mostrarToast('Contato salvo ✅');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-contatos'));
         await abrirFichaAtivo(a.id);
-        mudarAbaFichaAtivo('contatos');
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

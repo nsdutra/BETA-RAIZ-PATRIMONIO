@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.1 · 24/08/2026
+// Versão: 1.1.2 · 24/08/2026
+//
+// v1.1.2 — header: nome da empresa passa a ser o título principal
+// (#cofre-nome-empresa), com selo "Cofre" ao lado (identificação de
+// módulo). badge-empresa-atual agora mostra só o nome da pessoa (empresa
+// já aparece acima, sem duplicar).
 //
 // v1.1.1 — abrirSeletorModulo() marcada DEPRECATED (não mais chamada); ver
 // cofre-app.js v1.1.2 (novo data-action="voltar-app", header simplificado).
@@ -70,7 +75,8 @@ export async function bootstrap() {
     }
     if (!liberado) return falhaAcesso(`Seu perfil (${estado.pessoa.perfil}) não tem acesso ao módulo Cofre nesta empresa.`);
 
-    document.getElementById('badge-empresa-atual').textContent = estado.pessoa.clienteNome + ' · ' + estado.pessoa.nome;
+    document.getElementById('cofre-nome-empresa').textContent = estado.pessoa.clienteNome || 'Empresa';
+    document.getElementById('badge-empresa-atual').textContent = estado.pessoa.nome;
     const badgeVersao = document.getElementById('badge-versao-cofre');
     if (badgeVersao) badgeVersao.textContent = 'v' + COFRE_VERSAO;
     document.getElementById('tela-bootstrap').classList.add('hidden');
