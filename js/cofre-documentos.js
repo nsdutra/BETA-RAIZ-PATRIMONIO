@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.0 · 19/08/2026
+// Versão: 1.2.0 · 24/08/2026
+//
+// v1.2.0 — alertaCardHtml() ganha modo interativo (editar/excluir, pedido
+// explícito — "alertas padrão pode e excluir e editar sem problemas").
+// abrirUploadNoAtivoComIA()/SemIA() — 2 caminhos de anexar documento a um
+// ativo (Com IA / Upload simples), reaproveitando modal-upload existente.
 //
 // Home (visão geral do patrimônio), upload (dois caminhos: contextual —
 // vínculo pré-preenchido e travado — e "documento primeiro" — pergunta
@@ -18,6 +23,7 @@ import {
 let uploadContexto = null; // { entidadeTipo, entidadeId, nome } | null quando livre
 let vinculoEscolhidoUpload = null; // { tipo, id, nome } | null (triagem)
 let docAtualId = null;
+let pularAnaliseIAProximoUpload = false; // true = "Upload simples" (pedido explícito, sem IA)
 
 // ============================================================================
 // HOME
@@ -47,13 +53,63 @@ export function montarHome() {
     refrescarIcones();
 }
 
-export function alertaCardHtml(e) {
+export function alertaCardHtml(e, interativo = false) {
     const dias = diasAte(e.data_vencimento);
     const chip = chipVencimento(dias);
-    return `<div class="raiz-bloco-interno flex items-center justify-between">
-        <div><p class="text-sm font-semibold">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
-        ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+    const acoes = interativo ? `
+        <div class="flex gap-1 flex-shrink-0">
+            <button data-action="alternar-editar-alerta" data-id="${e.id}" class="w-7 h-7 rounded-full flex items-center justify-center border border-slate-300"><i data-lucide="pencil" style="width:12px;height:12px;color:var(--sage)"></i></button>
+            <button data-action="excluir-alerta" data-id="${e.id}" class="w-7 h-7 rounded-full flex items-center justify-center border border-slate-300"><i data-lucide="trash-2" style="width:12px;height:12px;color:var(--danger)"></i></button>
+        </div>` : '';
+    return `<div class="raiz-bloco-interno" id="alerta-card-${e.id}">
+        <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+                ${acoes}
+            </div>
+        </div>
+        <div id="alerta-editar-${e.id}" class="hidden mt-2"></div>
     </div>`;
+}
+
+export function alternarEditarAlerta(id) {
+    const wrapper = document.getElementById(`alerta-editar-${id}`);
+    if (!wrapper) return;
+    const abrindo = wrapper.classList.contains('hidden');
+    wrapper.classList.toggle('hidden');
+    if (!abrindo) return;
+    const e = estado.eventos.find(x => x.id === id);
+    if (!e) return;
+    wrapper.innerHTML = `<div class="raiz-form-borda p-2 space-y-2">
+        <input id="alerta-ed-titulo-${id}" value="${escapeHtml(e.titulo)}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <input id="alerta-ed-data-${id}" type="date" value="${e.data_vencimento}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <div class="flex justify-end gap-2">
+            <button data-action="alternar-editar-alerta" data-id="${id}" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
+            <button data-action="confirmar-editar-alerta" data-id="${id}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Salvar</button>
+        </div>
+    </div>`;
+    refrescarIcones();
+}
+
+export async function confirmarEditarAlerta(id) {
+    const titulo = document.getElementById(`alerta-ed-titulo-${id}`).value.trim();
+    const dataVencimento = document.getElementById(`alerta-ed-data-${id}`).value;
+    if (!titulo || !dataVencimento) { mostrarToast('Preencha título e data.', 'erro'); return; }
+    try {
+        await api.atualizarEvento(id, { titulo, data_vencimento: dataVencimento });
+        mostrarToast('Alerta atualizado ✅');
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+export async function excluirAlerta(id) {
+    if (!confirm('Excluir este alerta?')) return;
+    try {
+        await api.excluirEvento(id);
+        mostrarToast('Alerta excluído.');
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
 function docCardCompactoHtml(d) {
@@ -92,11 +148,23 @@ export async function abrirUploadHome() {
 // Upload contextual — chamado de dentro da ficha do ativo OU de um deep
 // link contexto=contrato|pagamento vindo de Imóveis. Vínculo já vem
 // preenchido e TRAVADO (prompt corretivo §11-A: "NÃO perguntar de novo").
+export async function abrirUploadNoAtivoComIA(ativo) {
+    if (!ativo) return;
+    pularAnaliseIAProximoUpload = false;
+    await abrirUploadContextual('ativo', ativo.id, ativo.nome_exibicao);
+}
+
+export async function abrirUploadNoAtivoSemIA(ativo) {
+    if (!ativo) return;
+    pularAnaliseIAProximoUpload = true;
+    await abrirUploadContextual('ativo', ativo.id, ativo.nome_exibicao);
+}
+
 export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido) {
     uploadContexto = { entidadeTipo, entidadeId, nome: nomeExibido || null };
     vinculoEscolhidoUpload = { tipo: entidadeTipo, id: entidadeId, nome: nomeExibido || rotuloEntidadeTipo(entidadeTipo) };
 
-    document.getElementById('upload-contexto-legenda').textContent = `Este documento já sai vinculado a: ${nomeExibido || rotuloEntidadeTipo(entidadeTipo)}.`;
+    document.getElementById('upload-contexto-legenda').textContent = `Este documento já sai vinculado a: ${nomeExibido || rotuloEntidadeTipo(entidadeTipo)}.${pularAnaliseIAProximoUpload ? ' Upload simples — sem análise por IA.' : ' Com análise por IA após salvar.'}`;
     document.getElementById('up-vinculo-travado').classList.remove('hidden');
     document.getElementById('up-vinculo-travado').innerHTML = `<i data-lucide="link" style="width:14px;height:14px;display:inline"></i> ${escapeHtml(nomeExibido || rotuloEntidadeTipo(entidadeTipo))}`;
     document.getElementById('up-vinculo-livre').classList.add('hidden');
@@ -251,7 +319,12 @@ export async function salvarUpload() {
     // FASE 2 (20/08/2026) — dispara a análise por IA depois de salvar. Não
     // bloqueia nem atrasa o "documento salvo" acima — roda em segundo
     // plano e só abre um modal se encontrar algo útil pra sugerir.
-    analisarAposUpload(documentoId, !!vinculoEscolhidoUpload);
+    // v1.1.1 (24/08/2026) — "Upload simples" (pedido explícito) pula essa
+    // análise; "Com IA" mantém o comportamento de sempre.
+    if (!pularAnaliseIAProximoUpload) {
+        analisarAposUpload(documentoId, !!vinculoEscolhidoUpload);
+    }
+    pularAnaliseIAProximoUpload = false;
 }
 
 function marcarErroUpload(msg) {

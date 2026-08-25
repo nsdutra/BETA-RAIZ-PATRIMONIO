@@ -4922,34 +4922,14 @@
                     <span class="text-sm font-medium" style="color:var(--ink)">Relatórios</span>
                 </button>
 
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Serviços</p>
-
-                <!-- v1.46.0 — navegação entre módulos. O Cofre (trilha
-                     paralela "Conversa B") agora tem app real
-                     (cofre.html); antes disso não fazia sentido linkar.
-                     Some/aparece de verdade conforme permissão real
-                     (perfil_funcionalidade 'cofre.ver'), mesma tabela e
-                     mesmo código de funcionalidade que o próprio Cofre já
-                     usa no bootstrap dele (cofre-api.js
-                     pessoaTemFuncionalidade) — não inventei uma segunda
-                     regra de permissão. Some com "Serviços" pra não poluir
-                     visualmente enquanto está escondido. -->
-                <div id="menu-grupo-modulos" class="hidden">
-                    <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Módulos</p>
-                    <button id="btn-abrir-cofre" onclick="abrirCofreDocumentos()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                        <svg data-lucide="archive" style="width:18px;height:18px;color:var(--pine)"></svg>
-                        <span class="text-sm font-medium" style="color:var(--ink)">Cofre de Documentos</span>
-                    </button>
-                </div>
+                <button onclick="fecharMenuConta(); switchTab('tab-minutas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="file-signature" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Minutas de Contrato</span>
+                </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-sindicos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="building-2" style="width:18px;height:18px;color:var(--pine)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Síndicos / Gestoras</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-manutencistas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="wrench" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Manutencistas</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-administradoras')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
@@ -4957,12 +4937,25 @@
                     <span class="text-sm font-medium" style="color:var(--ink)">Administradoras</span>
                 </button>
 
-                <button onclick="fecharMenuConta(); switchTab('tab-minutas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="file-signature" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Minutas de Contrato</span>
+                <button onclick="fecharMenuConta(); switchTab('tab-manutencistas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="wrench" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Manutencistas</span>
                 </button>
 
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Cadastros</p>
+                <button onclick="fecharMenuConta(); switchTab('tab-tipo-imovel')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Imóvel</span>
+                </button>
+
+                <button onclick="fecharMenuConta(); switchTab('tab-tipo-empreendimento')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="landmark" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Empreendimento</span>
+                </button>
+
+                <!-- v1.41.5 — item "Dev" retirado do menu por hora (acesso
+                     interno continua disponível via duplo-clique na logo). -->
+
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-pessoas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></svg>
@@ -4974,20 +4967,25 @@
                     <span class="text-sm font-medium" style="color:var(--ink)">Minha Empresa</span>
                 </button>
 
-                <button onclick="fecharMenuConta(); switchTab('tab-tipo-empreendimento')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="landmark" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Empreendimento</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-tipo-imovel')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Imóvel</span>
-                </button>
-
-                <!-- v1.41.5 — item "Dev" retirado do menu por hora (acesso
-                     interno continua disponível via duplo-clique na logo). -->
-
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
+                <!-- v1.46.0 — navegação entre módulos. O Cofre (trilha
+                     paralela "Conversa B") agora tem app real
+                     (cofre.html); antes disso não fazia sentido linkar.
+                     Some/aparece de verdade conforme permissão real
+                     (perfil_funcionalidade 'cofre.ver'), mesma tabela e
+                     mesmo código de funcionalidade que o próprio Cofre já
+                     usa no bootstrap dele (cofre-api.js
+                     pessoaTemFuncionalidade) — não inventei uma segunda
+                     regra de permissão.
+                     v1.61.2 — menu "Módulos" e "Serviços" removidos como
+                     grupos próprios (pedido explícito); Cofre de
+                     Documentos passou a viver dentro de "Conta", junto de
+                     Pessoas/Minha Empresa. -->
+                <div id="menu-grupo-modulos" class="hidden">
+                    <button id="btn-abrir-cofre" onclick="abrirCofreDocumentos()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                        <svg data-lucide="archive" style="width:18px;height:18px;color:var(--pine)"></svg>
+                        <span class="text-sm font-medium" style="color:var(--ink)">Cofre de Documentos</span>
+                    </button>
+                </div>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-licenca')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></svg>

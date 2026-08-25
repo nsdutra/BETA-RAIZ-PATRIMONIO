@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.3 · 24/08/2026
+// Versão: 1.1.4 · 24/08/2026
+//
+// v1.1.4 — dispatcher acompanha a ficha do item de controle (tela própria,
+// cofre-controles.js v1.1.0): abrir/voltar-item-controle, editar/excluir
+// item, alertas/contatos vinculados. Documentos/Fotos do ativo viram
+// modais abertos via "Mais ações" (abrir-documentos-ativo/abrir-fotos-ativo).
+// Upload com 2 caminhos (IA/simples). Alertas legado ganham editar/excluir.
+// Listener novo: cofre:recarregar-eventos.
 //
 // v1.1.3 — dispatcher acompanha a ficha do ativo virar tela (não modal):
 // voltar-ficha-ativo, alternar-mais-acoes-ativo, alternar-historico-ativo,
@@ -49,7 +56,20 @@ document.addEventListener('click', async (ev) => {
         // ---- busca global / configurações
         case 'abrir-busca-global': docs.abrirBuscaGlobal(); break;
         case 'fechar-busca-global': docs.fecharBuscaGlobal(); break;
-        case 'abrir-configuracoes': docs.abrirConfiguracoes(); break;
+        case 'abrir-menu-conta': abrirModal('modal-menu-conta'); break;
+        case 'fechar-menu-conta': fecharModal('modal-menu-conta'); break;
+        case 'menu-conta-em-breve': fecharModal('modal-menu-conta'); mostrarToast(`${alvo.dataset.rotulo}: em breve.`); break;
+        case 'abrir-busca-ativos': abrirModal('modal-busca-ativos'); break;
+        case 'fechar-busca-ativos': fecharModal('modal-busca-ativos'); break;
+        case 'limpar-filtro-ativos':
+            document.getElementById('filtro-ativo-tipo').value = '';
+            document.getElementById('filtro-ativo-busca').value = '';
+            ativos.renderAtivosLista('', '');
+            break;
+        case 'abrir-configuracoes-catalogo': fecharModal('modal-menu-conta'); docs.abrirConfiguracoes(); break;
+        case 'abrir-sobre-cofre': fecharModal('modal-menu-conta'); abrirModal('modal-sobre-cofre'); break;
+        case 'fechar-sobre-cofre': fecharModal('modal-sobre-cofre'); break;
+        case 'abrir-bot': window.open('https://wa.me/5511978950609?text=' + encodeURIComponent('Olá, como o R.AI.Z pode me ajudar?'), '_blank', 'noopener'); break;
         case 'fechar-categorias': docs.fecharCategorias(); break;
         case 'salvar-categoria': await docs.salvarCategoria(); break;
 
@@ -58,6 +78,9 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-upload': docs.fecharUpload(); break;
         case 'salvar-upload': await docs.salvarUpload(); break;
         case 'abrir-documento': await docs.abrirFichaDocumento(id); break;
+        case 'alternar-editar-alerta': docs.alternarEditarAlerta(id); break;
+        case 'confirmar-editar-alerta': await docs.confirmarEditarAlerta(id); break;
+        case 'excluir-alerta': await docs.excluirAlerta(id); break;
         case 'fechar-ficha-doc': docs.fecharFichaDoc(); break;
         case 'baixar-documento-atual': await docs.baixarDocumentoAtual(); break;
         case 'arquivar-documento-atual': await docs.arquivarDocumentoAtual(); break;
@@ -84,10 +107,13 @@ document.addEventListener('click', async (ev) => {
         case 'alternar-editar-ativo': ativos.alternarEditarAtivo(); break;
         case 'salvar-edicao-ativo': await ativos.salvarEdicaoAtivo(); break;
         case 'abrir-gestao-imovel': ativos.abrirGestaoImovel(); break;
-        case 'abrir-upload-no-ativo': ativos.abrirUploadNoAtivo(); break;
         case 'abrir-evento-no-ativo': ativos.abrirEventoNoAtivo(); break;
-        case 'abrir-contato-no-ativo': ativos.abrirContatoNoAtivo(); break;
-        case 'salvar-contato-no-ativo': await ativos.salvarContatoNoAtivo(); break;
+        case 'abrir-documentos-ativo': abrirModal('modal-documentos-ativo'); break;
+        case 'fechar-documentos-ativo': fecharModal('modal-documentos-ativo'); break;
+        case 'abrir-fotos-ativo': abrirModal('modal-fotos-ativo'); break;
+        case 'fechar-fotos-ativo': fecharModal('modal-fotos-ativo'); break;
+        case 'abrir-upload-no-ativo-ia': docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco); break;
+        case 'abrir-upload-no-ativo-simples': docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco); break;
         case 'abrir-form-controle': await controles.abrirFormControle(); break;
         case 'fechar-form-controle': controles.fecharFormControle(); break;
         case 'salvar-item-controle': await controles.salvarItemControle(); break;
@@ -96,6 +122,15 @@ document.addEventListener('click', async (ev) => {
         case 'confirmar-tratar-ocorrencia': await controles.confirmarTratarOcorrencia(alvo.dataset.id); break;
         case 'confirmar-reagendar-ocorrencia': await controles.confirmarReagendarOcorrencia(alvo.dataset.id); break;
         case 'confirmar-estornar-ocorrencia': await controles.confirmarEstornarOcorrencia(alvo.dataset.id); break;
+        case 'abrir-item-controle': await controles.abrirFichaItemControle(id); break;
+        case 'voltar-item-controle': controles.voltarFichaItemControle(); break;
+        case 'alternar-editar-item': controles.alternarEditarItem(); break;
+        case 'salvar-edicao-item': await controles.salvarEdicaoItem(); break;
+        case 'excluir-item-controle-atual': await controles.excluirItemControleAtual(); break;
+        case 'alternar-form-alerta-item': controles.alternarFormAlertaItem(); break;
+        case 'salvar-alerta-item': await controles.salvarAlertaItem(); break;
+        case 'alternar-form-contato-item': controles.alternarFormContatoItem(); break;
+        case 'salvar-contato-item': await controles.salvarContatoItem(); break;
 
         // ---- alertas
         case 'alternar-form-evento': alternarFormEvento(); break;
@@ -259,6 +294,13 @@ window.addEventListener('cofre:recarregar-ativos', async () => {
 });
 window.addEventListener('cofre:recarregar-contatos', async () => {
     estado.contatos = await api.listarContatos(estado.clienteId);
+});
+window.addEventListener('cofre:recarregar-eventos', async () => {
+    estado.eventos = await api.listarEventosPendentes(estado.clienteId);
+    docs.montarHome();
+    const telaAtual = document.querySelector('[data-screen]:not(.hidden)')?.dataset.screen;
+    if (telaAtual === 'ficha-ativo' && estado.ativoEmFoco) ativos.abrirFichaAtivo(estado.ativoEmFoco.id);
+    if (telaAtual === 'ficha-item-controle') controles.recarregarFichaItemControle();
 });
 
 // ============================================================================

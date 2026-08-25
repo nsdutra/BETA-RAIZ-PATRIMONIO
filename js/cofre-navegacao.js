@@ -76,7 +76,8 @@ export async function bootstrap() {
     if (!liberado) return falhaAcesso(`Seu perfil (${estado.pessoa.perfil}) não tem acesso ao módulo Cofre nesta empresa.`);
 
     document.getElementById('cofre-nome-empresa').textContent = estado.pessoa.clienteNome || 'Empresa';
-    document.getElementById('badge-empresa-atual').textContent = estado.pessoa.nome;
+    const elSobreVersao = document.getElementById('sobre-versao-cofre');
+    if (elSobreVersao) elSobreVersao.textContent = 'v' + COFRE_VERSAO;
     const badgeVersao = document.getElementById('badge-versao-cofre');
     if (badgeVersao) badgeVersao.textContent = 'v' + COFRE_VERSAO;
     document.getElementById('tela-bootstrap').classList.add('hidden');

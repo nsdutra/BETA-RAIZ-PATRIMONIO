@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.3 · 24/08/2026
+// Versão: 1.1.4 · 24/08/2026
+//
+// v1.1.4 — Contatos removido da ficha do ativo (pedido explícito: contatos
+// agora vinculam a Item de Controle, não ao ativo direto — ver
+// cofre-controles.js). Documentos/Fotos deixam de ser boxes fixos e viram
+// ações em "Mais ações" (abrem modal-documentos-ativo/modal-fotos-ativo).
+// montarAlertasAtivo() passa a excluir eventos já vinculados a um item de
+// controle (esses aparecem na ficha do item, não duplicados aqui).
 //
 // v1.1.3 — MUDANÇA ESTRUTURAL: ficha do ativo deixa de ser modal com abas
 // e passa a ser tela cheia (data-screen="ficha-ativo") com boxes empilhados
@@ -28,7 +35,7 @@ import { mostrarToast, refrescarIcones, alternarToggle } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
-    rotuloTipoAtivo, iconeAtivo, CAMPOS_POR_TIPO_ATIVO, validarCamposAtivo, rotuloPapelContato,
+    rotuloTipoAtivo, iconeAtivo, CAMPOS_POR_TIPO_ATIVO, validarCamposAtivo,
 } from './cofre-validacoes.js';
 import { alertaCardHtml } from './cofre-documentos.js';
 import { montarControlesAtivo } from './cofre-controles.js';
@@ -155,7 +162,6 @@ export async function abrirFichaAtivo(id) {
     montarDadosAtivo(a);
     montarDocumentosAtivo(a);
     montarAlertasAtivo(a);
-    montarContatosAtivo(a);
     await montarControlesAtivo(a);
     await montarFotosAtivo(a);
     await montarHistoricoAtivo(a);
@@ -248,16 +254,16 @@ function montarDocumentosAtivo(a) {
         : `<p class="text-xs" style="color:var(--sage)">Nenhum documento vinculado a este ativo ainda.</p>`;
 }
 
-export function abrirUploadNoAtivo() {
-    const a = estado.ativoEmFoco;
-    fecharFichaAtivo();
-    window.dispatchEvent(new CustomEvent('cofre:upload-contextual', { detail: { entidadeTipo: 'ativo', entidadeId: a.id, nome: a.nome_exibicao } }));
-}
+// ---- Documentos: upload agora é via modal-documentos-ativo (2 ações: IA/
+// upload simples — cofre-documentos.js abrirUploadNoAtivoComIA/SemIA).
+// A antiga abrirUploadNoAtivo() (fechava a ficha e ia pro upload global)
+// foi removida — não fazia sentido depois que Documentos virou modal
+// próprio dentro da ficha, sem precisar sair dela.
 
 // ---- Alertas
 function montarAlertasAtivo(a) {
-    const eventos = estado.eventos.filter(e => e.ativo_id === a.id);
-    document.getElementById('fa-tab-alertas').innerHTML = eventos.length ? eventos.map(alertaCardHtml).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum alerta para este ativo.</p>`;
+    const eventos = estado.eventos.filter(e => e.ativo_id === a.id && !e.item_controle_id);
+    document.getElementById('fa-tab-alertas').innerHTML = eventos.length ? eventos.map(e => alertaCardHtml(e, true)).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum alerta para este ativo.</p>`;
 }
 
 export function abrirEventoNoAtivo() {
@@ -266,43 +272,9 @@ export function abrirEventoNoAtivo() {
     window.dispatchEvent(new CustomEvent('cofre:evento-contextual', { detail: { ativoId: a.id, nome: a.nome_exibicao } }));
 }
 
-// ---- Contatos (inline dentro da ficha — sem tela global nesta versão, ver HANDOFF)
-function montarContatosAtivo(a) {
-    const contatos = estado.contatos.filter(c => c.ativo_id === a.id);
-    document.getElementById('fa-tab-contatos').innerHTML =
-        (contatos.length ? contatos.map(c => `<div class="raiz-bloco-interno"><p class="text-sm font-semibold">${escapeHtml(c.nome)}</p><p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloPapelContato(c.papel))}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</p></div>`).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum contato cadastrado.</p>`)
-        + `<div id="fa-form-contato" class="hidden raiz-form-borda p-3 mt-2">
-            <div class="grid grid-cols-2 gap-2">
-                <select id="fa-ct-papel" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
-                    <option value="seguradora">Seguradora</option><option value="corretor">Corretor</option><option value="oficina">Oficina</option>
-                    <option value="assistencia">Assistência</option><option value="administradora">Administradora</option><option value="advogado">Advogado</option><option value="outro">Outro</option>
-                </select>
-                <input id="fa-ct-nome" placeholder="Nome" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
-                <input id="fa-ct-whatsapp" placeholder="WhatsApp" class="border-2 border-slate-300 rounded-lg p-2 text-xs">
-                <input id="fa-ct-email" placeholder="E-mail" class="border-2 border-slate-300 rounded-lg p-2 text-xs">
-            </div>
-            <button data-action="salvar-contato-no-ativo" class="w-full mt-2 py-2 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Salvar contato</button>
-        </div>`;
-}
-
-export function abrirContatoNoAtivo() {
-    document.getElementById('fa-form-contato')?.classList.remove('hidden');
-}
-
-export async function salvarContatoNoAtivo() {
-    const a = estado.ativoEmFoco;
-    const nome = document.getElementById('fa-ct-nome').value.trim();
-    if (!nome) { mostrarToast('Informe o nome do contato.', 'erro'); return; }
-    try {
-        await api.criarContato({
-            cliente_id: estado.clienteId, ativo_id: a.id, papel: document.getElementById('fa-ct-papel').value, nome,
-            whatsapp: document.getElementById('fa-ct-whatsapp').value.trim() || null, email: document.getElementById('fa-ct-email').value.trim() || null,
-        });
-        mostrarToast('Contato salvo ✅');
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-contatos'));
-        await abrirFichaAtivo(a.id);
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
-}
+// ---- Contatos: REMOVIDO desta ficha (pedido explícito) — contatos agora
+// vinculam a um Item de Controle, não ao Ativo direto. Ver
+// js/cofre-controles.js (abrirFichaItemControle, box "Contatos vinculados").
 
 // ---- Fotos (privado por padrão; "selecionada p/ Vitrine" ≠ publicado — Adendo §16/§17)
 async function montarFotosAtivo(a) {

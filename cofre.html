@@ -10,10 +10,84 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.4.0
+  Versão     : 1.5.0
   Data       : 24/08/2026
-  Título     : FICHA DO ATIVO EM BOXES (SEM MODAL/ABAS) + HEADER PADRÃO APP + AJUSTES DE DADOS
-  Base       : v1.3.1 (24/08/2026)
+  Título     : FICHA PRÓPRIA DE ITEM DE CONTROLE + CORREÇÃO DE GRANT + LIMPEZA DE HEADER DUPLICADO
+  Base       : v1.4.0 (24/08/2026)
+
+  CHANGELOG v1.5.0 — segundo lote de correções pós-teste real de cadastro
+  com a Karen (family office). Cobre bug crítico + reorganização de onde
+  Contatos/Documentos/Fotos vivem na ficha do ativo.
+
+    1) BUG CRÍTICO CORRIGIDO — "permission denied for table cofre_itens_controle"
+    - migration_cofre_alarmes_fase1_nucleo_v1 deu GRANT só pra service_role
+      nas 5 tabelas do módulo de Controles, esquecendo `authenticated`
+      (papel usado pelo app logado no navegador). RLS nunca chegava a ser
+      avaliada — Postgres barrava antes. Corrigido no banco via
+      migration_cofre_alarmes_fix_grants_authenticated_v3 (SQL puro, sem
+      precisar de deploy de front-end).
+
+    2) ITEM DE CONTROLE GANHA TELA PRÓPRIA
+    - Clicar num item de controle (antes: card expansível dentro da ficha
+      do ativo) agora abre uma TELA PRÓPRIA
+      (data-screen="ficha-item-controle"): ver/editar/excluir o item,
+      tratar/reagendar/estornar a ocorrência, e ver Alertas e Contatos
+      VINCULADOS A ESTE ITEM (não mais ao ativo direto).
+    - NOVO: `cofre_contatos_acionamento.item_controle_id` e
+      `cofre_eventos.item_controle_id` (migration
+      cofre_contatos_e_eventos_vinculo_item_controle_v4, aditiva —
+      ativo_id continua existindo, retrocompatível).
+    - Box "Controles" na ficha do ativo virou lista-resumo clicável (só
+      título, subtipo, chip de vencimento — sem mais ações inline).
+
+    3) CONTATOS SAIU DA FICHA DO ATIVO
+    - REMOVIDO: box "Contatos" da ficha do ativo. A relação de contato
+      (corretora de seguro, prestador, etc.) agora é com o Item de
+      Controle, não com o Ativo em si — cadastra na ficha do item.
+
+    4) DOCUMENTOS E FOTOS VIRARAM AÇÕES (não boxes fixos)
+    - REMOVIDO: boxes "Documentos" e "Fotos" fixos na ficha do ativo.
+    - NOVO: "Documentos" e "Fotos" agora são botões dentro de "Mais ações"
+      do box Dados do ativo — abrem modal-documentos-ativo/modal-fotos-ativo
+      (bottom-sheet), só quando o usuário pede, não ocupando espaço fixo
+      quando vazios.
+    - NOVO: modal de Documentos tem 2 ações — "Com IA" (comportamento de
+      sempre: análise automática após salvar) e "Upload simples" (pula a
+      análise por IA, pedido explícito).
+
+    5) ALERTAS LEGADO GANHAM EDITAR/EXCLUIR
+    - alertaCardHtml() ganha modo interativo — antes só exibia, sem
+      nenhuma ação. Editar (título/data inline) e Excluir (soft-delete,
+      status='ignorado') agora disponíveis onde faz sentido (ficha do
+      ativo, ficha do item de controle).
+
+    6) LIMPEZA
+    - CORRIGIDO: cabeçalho de js/cofre-estado.js estava duplicado (bug de
+      uma entrega anterior) e `COFRE_VERSAO` tinha ficado presa em 1.3.1
+      mesmo com o changelog já falando de v1.4.0. Consolidado.
+    - Removida abrirUploadNoAtivo() (fechava a ficha e ia pro upload
+      global) — não fazia sentido mais, já que Documentos virou modal
+      dentro da própria ficha.
+
+    - Arquivos alterados: js/cofre-controles.js (1.0.0→1.1.0, reescrito),
+      js/cofre-ativos.js (1.1.3→1.1.4), js/cofre-api.js (1.1.2→1.1.3),
+      js/cofre-app.js (1.1.3→1.1.4), js/cofre-documentos.js (1.1.0→1.2.0),
+      js/cofre-estado.js (COFRE_VERSAO 1.3.1→1.5.0, header corrigido),
+      cofre.html (ficha do ativo, novos modais de Documentos/Fotos).
+    - Migrations aplicadas: cofre_alarmes_fix_grants_authenticated_v3,
+      cofre_contatos_e_eventos_vinculo_item_controle_v4.
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido):
+    - Geração automática de ocorrências recorrentes (job/horizonte) —
+      ainda pendente de decisão (usuário quis ver as duas telas — Controles
+      e Alertas — funcionando antes de decidir se um item de controle deve
+      ou não gerar alerta automaticamente).
+    - Imóvel Long Stay cadastrável dentro do Cofre (reaproveitando a mesma
+      tabela/regra de proprietário do módulo Imóveis) — adiado, por
+      decisão explícita, para rodada futura.
+    - Prestadores de serviço, Pessoas, Minha Empresa, Licença: itens do
+      menu de bonequinho do Cofre ficaram como "em breve" — ainda não
+      existe tela real para eles dentro do Cofre.
 
   CHANGELOG v1.4.0 — lote de correções e alinhamento ao Design System,
   a pedido explícito após primeiros testes reais de cadastro.
@@ -265,7 +339,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bricolage+Grotesque:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
     :root{
@@ -303,8 +377,8 @@
     .card-doc, .card-ativo { border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; transition: border-color .15s; }
     .card-doc:hover, .card-ativo:hover { border-color: var(--pine-light); }
 
-    .modal-overlay { position: fixed; inset: 0; background: rgba(23,33,30,.55); display:flex; align-items:flex-start; justify-content:center; padding: 24px 12px; overflow-y:auto; z-index: 60; }
-    .modal-box { background:#fff; border-radius: 18px; width: 100%; max-width: 760px; margin-top: 24px; max-height: 92vh; overflow-y: auto; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(23,33,30,.5); display:flex; align-items:flex-end; justify-content:center; z-index: 60; }
+    .modal-box { background:#fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; }
 
     nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line); z-index: 40; }
     nav.bottom-nav .nav-btn { display:flex; flex-direction:column; align-items:center; gap:2px; padding: 8px 0; font-size: 10px; font-weight: 700; color: var(--sage); flex: 1; }
@@ -340,35 +414,24 @@
 <div id="app-cofre" class="hidden">
 
     <header class="sticky top-0 z-40" style="background:var(--pine-deep)">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-            <div class="min-w-0 flex items-center gap-2">
-                <button data-action="voltar-app" title="Voltar ao Raiz Patrimônio" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(255,255,255,.12)">
-                    <i data-lucide="chevron-left" class="text-white" style="width:16px;height:16px"></i>
-                </button>
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-white text-base font-bold leading-tight truncate" id="cofre-nome-empresa">—</h1>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style="background:rgba(255,255,255,.15); color:#fff">Cofre</span>
-                    </div>
-                    <p class="text-[11px] truncate" style="color:var(--pine-light)" id="badge-empresa-atual">—</p>
-                </div>
+        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <h1 class="text-white text-base font-bold leading-tight truncate" id="cofre-nome-empresa">—</h1>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5" style="background:rgba(255,255,255,.15); color:#fff">Cofre</span>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
                 <span class="text-[10px] hidden sm:inline" style="color:var(--pine-light)" id="badge-versao-cofre">v1.2.0</span>
-                <button data-action="abrir-busca-global" title="Buscar no Cofre" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
-                    <i data-lucide="search" class="text-white" style="width:16px;height:16px"></i>
+                <button data-action="abrir-bot" title="Falar com R.AI.Z" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
+                    <i data-lucide="bot" class="text-white" style="width:16px;height:16px"></i>
                 </button>
-                <button data-action="abrir-configuracoes" title="Categorias e configurações" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
+                <button data-action="abrir-menu-conta" title="Menu" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
                     <i data-lucide="user" class="text-white" style="width:16px;height:16px"></i>
-                </button>
-                <button data-action="abrir-upload-home" id="btn-adicionar-documento" title="Adicionar documento" class="raiz-btn-toggle" style="background:#fff">
-                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 py-5">
+    <main class="max-w-md mx-auto px-4 py-5">
 
         <!-- ===================== HOME ===================== -->
         <section data-screen="home">
@@ -422,17 +485,14 @@
                     <h2 class="text-sm font-bold">Ativos controlados</h2>
                     <p class="text-xs" style="color:var(--sage)">Bens e proteções acompanhados pelo Cofre.</p>
                 </div>
-                <button data-action="alternar-form-ativo" id="btn-toggle-ativo" class="raiz-btn-toggle" title="Novo ativo">
-                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
-            </div>
-
-            <div class="flex gap-2 mb-3">
-                <select id="filtro-ativo-tipo" class="text-xs px-2 rounded-lg border border-slate-300 h-9"><option value="">Todos os tipos</option>
-                    <option value="veiculo">Veículos</option><option value="imovel">Imóveis</option><option value="terreno">Terrenos</option>
-                    <option value="vida_protecao">Vida / proteção</option><option value="outro">Outros</option>
-                </select>
-                <input id="filtro-ativo-busca" type="text" placeholder="Buscar ativo…" class="flex-1 text-sm px-3 rounded-lg border border-slate-300 h-9">
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button data-action="alternar-form-ativo" id="btn-toggle-ativo" class="raiz-btn-toggle" title="Novo ativo">
+                        <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-slate-300">
+                        <i data-lucide="search" style="width:16px;height:16px;color:var(--sage)"></i>
+                    </button>
+                </div>
             </div>
 
             <div id="form-ativo-wrapper" class="hidden raiz-form-borda p-4 mb-4">
@@ -503,7 +563,7 @@
     </main>
 
     <nav class="bottom-nav">
-        <div class="max-w-6xl mx-auto flex">
+        <div class="max-w-md mx-auto flex">
             <button class="nav-btn active" data-nav-item="home" data-action="ir-home"><i data-lucide="vault" style="width:18px;height:18px"></i>Cofre</button>
             <button class="nav-btn" data-nav-item="ativos" data-action="ir-ativos" id="nav-item-ativos"><i data-lucide="boxes" style="width:18px;height:18px"></i>Ativos</button>
             <button class="nav-btn" data-nav-item="alertas" data-action="ir-alertas"><i data-lucide="bell" style="width:18px;height:18px"></i>Alertas</button>
@@ -526,7 +586,63 @@
     </div>
 </div>
 
+<!-- ===================== MODAL — BUSCAR/FILTRAR ATIVOS (Design System §5) ===================== -->
+<div id="modal-busca-ativos" class="modal-overlay hidden">
+    <div class="modal-box p-3">
+        <div class="p-3 border-b flex items-center justify-between flex-none" style="border-color:var(--line)">
+            <span class="font-bold" style="color:var(--ink)">Buscar / Filtrar</span>
+            <button data-action="fechar-busca-ativos" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
+        </div>
+        <div class="p-3 space-y-3">
+            <input id="filtro-ativo-busca" type="text" placeholder="Buscar por nome do ativo…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
+            <select id="filtro-ativo-tipo" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
+                <option value="">Todos os tipos</option>
+                <option value="veiculo">Veículos</option>
+                <option value="veiculo_blindado">Veículos blindados</option>
+                <option value="imovel">Imóveis</option>
+                <option value="terreno">Terrenos</option>
+                <option value="vida_protecao">Vida / proteção</option>
+                <option value="obra_arte">Obras de arte</option>
+                <option value="outro">Outros</option>
+            </select>
+            <button type="button" data-action="limpar-filtro-ativos" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===================== MODAL — UPLOAD (home ou contextual) ===================== -->
+<!-- ===================== MODAL — DOCUMENTOS DO ATIVO ===================== -->
+<div id="modal-documentos-ativo" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Documentos</h3>
+            <button data-action="fechar-documentos-ativo" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+            <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--pine-light); color:var(--pine)">
+                <i data-lucide="sparkles" style="width:16px;height:16px"></i> Com IA
+            </button>
+            <button data-action="abrir-upload-no-ativo-simples" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sage); color:var(--sage)">
+                <i data-lucide="upload" style="width:16px;height:16px"></i> Upload simples
+            </button>
+        </div>
+        <div id="fa-tab-documentos" class="space-y-2"></div>
+    </div>
+</div>
+
+<!-- ===================== MODAL — FOTOS DO ATIVO ===================== -->
+<div id="modal-fotos-ativo" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Fotos</h3>
+            <button data-action="fechar-fotos-ativo" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+        <input type="file" id="fa-foto-input" accept="image/*" multiple class="text-xs mb-2">
+        <div id="fa-fotos-grid" class="grid grid-cols-3 gap-2"></div>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Foto ≠ documento. Só fotos marcadas "Selecionada para Vitrine" ficam elegíveis à publicação — nenhuma publicação real acontece sem o backend de Vitrine (ainda não implementado nesta versão).</p>
+    </div>
+</div>
+
 <div id="modal-upload" class="modal-overlay hidden">
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
@@ -687,16 +803,11 @@
             </div>
             <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
                 <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
+                <button data-action="abrir-documentos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Documentos</button>
+                <button data-action="abrir-fotos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Fotos</button>
                 <button data-action="alternar-historico-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Histórico</button>
                 <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600">Excluir</button>
             </div>
-        </div>
-
-        <!-- Box: Documentos -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Documentos</h3>
-            <button data-action="abrir-upload-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Anexar documento a este ativo</button>
-            <div id="fa-tab-documentos" class="mt-2 space-y-2"></div>
         </div>
 
         <!-- Box: Controles (itens/ocorrências — módulo de Alarmes) -->
@@ -747,22 +858,53 @@
             <div id="fa-tab-alertas" class="mt-2 space-y-2"></div>
         </div>
 
-        <!-- Box: Contatos -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Contatos</h3>
-            <button data-action="abrir-contato-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Adicionar contato de acionamento</button>
-            <div id="fa-tab-contatos" class="mt-2 space-y-2"></div>
-        </div>
-
-        <!-- Box: Fotos -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Fotos</h3>
-            <input type="file" id="fa-foto-input" accept="image/*" multiple class="text-xs mt-2 mb-2">
-            <div id="fa-fotos-grid" class="grid grid-cols-3 gap-2"></div>
-            <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Foto ≠ documento. Só fotos marcadas "Selecionada para Vitrine" ficam elegíveis à publicação — nenhuma publicação real acontece sem o backend de Vitrine (ainda não implementado nesta versão).</p>
-        </div>
-
         <p class="raiz-indicador-inline" id="fa-status"></p>
+    </div>
+</section>
+
+<!-- ===================== TELA — FICHA DO ITEM DE CONTROLE ===================== -->
+<section data-screen="ficha-item-controle" class="hidden">
+
+    <button data-action="voltar-item-controle" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Voltar ao ativo</button>
+
+    <div class="mt-3">
+        <h3 class="text-base font-bold" id="fic-titulo">—</h3>
+        <p class="text-xs" style="color:var(--sage)" id="fic-subtitulo">—</p>
+    </div>
+
+    <div class="mt-4 space-y-3">
+
+        <!-- Box: Dados do item -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Dados do item</h3>
+            <div id="fic-dados-leitura" class="text-sm space-y-1 mt-2"></div>
+            <div id="fic-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100 gap-1.5">
+                <button data-action="alternar-editar-item" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar</button>
+                <button data-action="excluir-item-controle-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600">Excluir</button>
+            </div>
+        </div>
+
+        <!-- Box: Ocorrência -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Ocorrência</h3>
+            <div id="fic-ocorrencia" class="mt-2"></div>
+        </div>
+
+        <!-- Box: Alertas vinculados -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Alertas vinculados</h3>
+            <button data-action="alternar-form-alerta-item" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Criar alerta vinculado a este item</button>
+            <div id="fic-alertas" class="mt-2 space-y-2"></div>
+        </div>
+
+        <!-- Box: Contatos vinculados -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Contatos vinculados</h3>
+            <button data-action="alternar-form-contato-item" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Adicionar contato vinculado a este item</button>
+            <div id="fic-contatos" class="mt-2 space-y-2"></div>
+        </div>
+
     </div>
 </section>
 
@@ -774,6 +916,64 @@
         <div class="flex justify-end gap-2">
             <button data-action="fechar-criacao-assistida" class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300">Agora não</button>
             <button data-action="confirmar-criacao-assistida" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Criar ativo</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MODAL — CATEGORIAS (configuração, secundária) ===================== -->
+<div id="modal-menu-conta" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Menu</h3>
+            <button data-action="fechar-menu-conta" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+        <div class="space-y-1">
+            <button data-action="voltar-app" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Módulo Imóveis</span>
+            </button>
+            <button data-action="menu-conta-em-breve" data-rotulo="Prestadores de serviço" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="wrench" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Prestadores de serviço</span>
+            </button>
+            <button data-action="menu-conta-em-breve" data-rotulo="Pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Pessoas</span>
+            </button>
+            <button data-action="menu-conta-em-breve" data-rotulo="Minha empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="building" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Minha empresa</span>
+            </button>
+            <button data-action="abrir-configuracoes-catalogo" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="tags" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Categorias de documento</span>
+            </button>
+            <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Licença</span>
+            </button>
+            <a href="https://wa.me/5511947461828" target="_blank" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Suporte (WhatsApp)</span>
+            </a>
+            <button data-action="abrir-sobre-cofre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+                <i data-lucide="info" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium">Sobre</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== MODAL — SOBRE ===================== -->
+<div id="modal-sobre-cofre" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Sobre</h3>
+            <button data-action="fechar-sobre-cofre" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+        <div class="text-sm space-y-2">
+            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Módulo Cofre</span><b id="sobre-versao-cofre">—</b></div>
+            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b>Beta v1.61.2</b></div>
         </div>
     </div>
 </div>

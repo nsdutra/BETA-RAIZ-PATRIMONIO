@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.2 · 24/08/2026
+// Versão: 1.1.3 · 24/08/2026
+//
+// v1.1.3 — CORREÇÃO DE BUG: migration_cofre_alarmes_fase1_nucleo_v1 deu
+// GRANT só pra service_role nas tabelas de controle, esquecendo
+// authenticated — Postgres barrava com "permission denied" antes mesmo de
+// avaliar a RLS. Corrigido em migration_cofre_alarmes_fix_grants_v3
+// (banco). Também: atualizarEvento/excluirEvento/listarEventosPorItemControle,
+// atualizarItemControle/arquivarItemControle/buscarItemControlePorId,
+// listarContatosPorItemControle — suporte à ficha própria de Item de
+// Controle (ver cofre-controles.js v1.1.0).
 //
 // v1.1.2 — arquivarAtivo() (soft-delete de ativo, mesmo padrão de
 // excluirDocumentoAtual: UPDATE status='arquivado', nunca DELETE físico).
@@ -306,6 +315,22 @@ export async function listarEventosPendentes(clienteId) {
     return data || [];
 }
 
+export async function atualizarEvento(id, patch) {
+    const { error } = await dbAuth.from('cofre_eventos').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+export async function excluirEvento(id) {
+    const { error } = await dbAuth.from('cofre_eventos').update({ status: 'ignorado' }).eq('id', id);
+    if (error) throw error;
+}
+
+export async function listarEventosPorItemControle(itemControleId) {
+    const { data, error } = await dbAuth.from('cofre_eventos').select('*').eq('item_controle_id', itemControleId).neq('status', 'ignorado').order('data_vencimento');
+    if (error) throw error;
+    return data || [];
+}
+
 export async function criarEvento(payload) {
     const { error } = await dbAuth.from('cofre_eventos').insert(payload);
     if (error) throw error;
@@ -351,6 +376,30 @@ export async function criarItemControle(payload) {
     const { data, error } = await dbAuth.from('cofre_itens_controle').insert(payload).select().single();
     if (error) throw error;
     return data;
+}
+
+export async function atualizarItemControle(id, patch) {
+    const { error } = await dbAuth.from('cofre_itens_controle').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+export async function arquivarItemControle(id) {
+    const { error } = await dbAuth.from('cofre_itens_controle').update({ ativo: false }).eq('id', id);
+    if (error) throw error;
+}
+
+export async function buscarItemControlePorId(id) {
+    const { data, error } = await dbAuth.from('cofre_itens_controle')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome)')
+        .eq('id', id).single();
+    if (error) throw error;
+    return data;
+}
+
+export async function listarContatosPorItemControle(itemControleId) {
+    const { data, error } = await dbAuth.from('cofre_contatos_acionamento').select('*').eq('item_controle_id', itemControleId).order('nome');
+    if (error) throw error;
+    return data || [];
 }
 
 export async function criarOcorrenciaControle(payload) {
