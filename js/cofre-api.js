@@ -1,6 +1,22 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 25/08/2026
+// Versão: 1.3.0 · 25/08/2026
+//
+// v1.3.0 — GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (pedido explícito):
+// nova criarSubtipoControle() — sempre grava com cliente_id do tenant
+// atual (nunca null, reservado ao catálogo-base compartilhado), codigo
+// gerado por slug do nome com retry de sufixo se colidir (UNIQUE
+// (cliente_id, codigo) no banco). Precisou de policy de escrita nova
+// (cofre_controle_subtipos_write_policy_v1) — a tabela só tinha SELECT.
+//
+// v1.2.1 — BUG FIX CRÍTICO (não documentado aqui na hora — só no
+// changelog do cofre.html v1.8.1; corrigido agora, tarde, mas correto):
+// listarOcorrenciasAbertasComItem() selecionava `alerta_habilitado` de
+// dentro de `cofre_itens_controle` — coluna que NUNCA existiu ali (é
+// `alerta_ativo`; `alerta_habilitado` é de `cofre_ocorrencias_controle`,
+// tabela diferente). Causava 400 Bad Request em toda carga da Visão
+// Geral do Cofre. Confirmado contra o schema live do Supabase antes de
+// corrigir, não o dump do projeto (pode estar desatualizado).
 //
 // v1.2.0 — LIMPEZA v6: removida listarOcorrenciasAbertas() duplicada
 // (função correta e em uso é listarOcorrenciasAbertasComItem, de sessão
@@ -353,6 +369,26 @@ export async function listarSubtiposControle(clienteId) {
         .order('tipo').order('nome');
     if (error) throw error;
     return data || [];
+}
+
+// Novo subtipo de controle (pedido explícito, 25/08/2026 — gestão de
+// subtipos não existia em lugar nenhum da tela; RLS também só tinha
+// SELECT, precisou de policy nova, ver migration
+// cofre_controle_subtipos_write_policy_v1). SEMPRE com cliente_id do
+// tenant atual — nunca cliente_id null (isso é reservado ao catálogo-
+// base do sistema, compartilhado entre todos os clientes, ver seed
+// original da tabela). `codigo` é gerado a partir do nome (slug), com
+// sufixo numérico se colidir com um já existente do mesmo cliente
+// (UNIQUE (cliente_id, codigo) no banco).
+export async function criarSubtipoControle(clienteId, tipo, nome) {
+    const codigoBase = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'subtipo';
+    let codigo = codigoBase;
+    for (let tentativa = 1; tentativa <= 20; tentativa++) {
+        const { error } = await dbAuth.from('cofre_controle_subtipos').insert({ cliente_id: clienteId, tipo, codigo, nome });
+        if (!error) return;
+        if (error.code === '23505' && tentativa < 20) { codigo = `${codigoBase}_${tentativa + 1}`; continue; }
+        throw error;
+    }
 }
 
 export async function listarItensControleAtivo(ativoId) {

@@ -1,6 +1,26 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.2 · 25/08/2026
+// Versão: 1.4.0 · 25/08/2026
+//
+// v1.4.0 — GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (pedido explícito):
+// nova seção completa — abrirSubtiposControle()/fecharSubtiposControle()/
+// salvarSubtipoControle()/renderizarSubtiposControle() (lista agrupada
+// por tipo, mesmo padrão UX de "Categorias de documento" em
+// cofre-documentos.js). Ao salvar, atualiza subtiposCache na hora — um
+// subtipo criado aqui já aparece no dropdown de "Novo item de controle"
+// sem precisar recarregar a página.
+//
+// v1.3.0 — TELA DA FICHA DO ITEM DE CONTROLE REESCRITA (revisão DS,
+// pedido explícito): título solto removido (só "< Voltar" + descrição);
+// edição virou bottom-sheet Tipo B (abrirEditarItem/fecharEditarItem,
+// substituindo o painel inline fic-editar-wrapper), com campos de
+// frequência que antes só existiam na criação. NOVO — regenerar alertas
+// ao editar: se a frequência mudar, pergunta (confirm()) se regenera as
+// ocorrências FUTURAS em aberto ou mantém as existentes (nunca mexe em
+// vencidas/concluídas). Boxes Ocorrência e Contatos redesenhados sem
+// borda/fundo (padrão "itens a receber" do Imóvel); botão de Contatos
+// virou pill de Mais ações (era CTA tracejado centralizado). Removida
+// variável editandoItem (não precisa mais de estado inline).
 //
 // v1.2.2 — D-2 (revisão DS): badge de vencimento migrado pro formato
 // oficial §14 — "chip ${chip.classe}" (2 ocorrências) virou
@@ -566,4 +586,63 @@ function proximaData(dataISO, unidade, intervalo) {
 function primeiroDiaDoMes(dataISO) {
     const [ano, mes] = dataISO.split('-');
     return `${ano}-${mes}-01`;
+}
+
+// ============================================================================
+// SUBTIPOS DE CONTROLE (configuração — pedido explícito, 25/08/2026)
+// Mesmo padrão UX de "Categorias de documento" (cofre-documentos.js
+// abrirConfiguracoes/salvarCategoria/renderizarCategorias), acessível
+// pelo menu ⚙️ → Cadastros. Precisou de policy de escrita nova no banco
+// (cofre_controle_subtipos só tinha SELECT — ver migration
+// cofre_controle_subtipos_write_policy_v1).
+// ============================================================================
+export async function abrirSubtiposControle() {
+    try {
+        subtiposCache = await api.listarSubtiposControle(estado.clienteId);
+    } catch (err) {
+        mostrarToast('Erro ao carregar subtipos: ' + err.message, 'erro');
+        return;
+    }
+    document.getElementById('subtipo-nome').value = '';
+    renderizarSubtiposControle();
+    abrirModal('modal-subtipos-controle');
+}
+
+export function fecharSubtiposControle() {
+    fecharModal('modal-subtipos-controle');
+}
+
+export async function salvarSubtipoControle() {
+    const tipo = document.getElementById('subtipo-tipo').value;
+    const nome = document.getElementById('subtipo-nome').value.trim();
+    if (!nome) { mostrarToast('Informe um nome.', 'erro'); return; }
+    try {
+        await api.criarSubtipoControle(estado.clienteId, tipo, nome);
+        mostrarToast('Subtipo criado ✅');
+        document.getElementById('subtipo-nome').value = '';
+        subtiposCache = await api.listarSubtiposControle(estado.clienteId);
+        renderizarSubtiposControle();
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// Agrupado por tipo (Seguro/Manutenção/Tributo — os 3 únicos valores
+// possíveis, CHECK constraint no banco) em vez de lista plana, pra ficar
+// claro em qual dropdown cada subtipo novo vai aparecer. Subtipos
+// globais (cliente_id null — catálogo-base do sistema) marcados como
+// "padrão do sistema"; os do próprio cliente não têm marca nenhuma.
+function renderizarSubtiposControle() {
+    const grupos = { seguro: [], manutencao: [], tributo: [] };
+    (subtiposCache || []).forEach(s => { if (grupos[s.tipo]) grupos[s.tipo].push(s); });
+    const el = document.getElementById('subtipos-lista');
+    el.innerHTML = Object.keys(grupos).map(tipo => {
+        const itens = grupos[tipo];
+        if (!itens.length) return '';
+        return `<div class="mb-3">
+            <p class="text-[11px] font-bold uppercase tracking-wide mb-1" style="color:var(--sage)">${escapeHtml(rotuloTipoControle(tipo))}</p>
+            ${itens.map((s, idx) => `<div class="flex items-center justify-between gap-2 py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
+                <span class="text-xs font-bold">${escapeHtml(s.nome)}</span>
+                ${s.cliente_id === null ? `<span class="text-[10px]" style="color:var(--sage)">padrão do sistema</span>` : ''}
+            </div>`).join('')}
+        </div>`;
+    }).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhum subtipo cadastrado ainda.</p>`;
 }

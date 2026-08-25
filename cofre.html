@@ -10,6 +10,76 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.9.0
+  Data       : 25/08/2026
+  Título     : GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (menu ⚙️)
+  Base       : v1.8.1 (25/08/2026)
+  Linhas     : cofre.html = 1704 · js/cofre-api.js = 506 · js/cofre-app.js = 321 ·
+               js/cofre-ativos.js = 373 · js/cofre-controles.js = 648 ·
+               js/cofre-documentos.js = 646 · js/cofre-estado.js = 76 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3148)
+
+  CHANGELOG v1.9.0 — pedido explícito durante teste do delivery da
+  Karen: não existia NENHUMA tela pra cadastrar subtipo novo (o
+  dropdown de "Novo item de controle" só mostrava o que já vinha
+  semeado no banco — "Seguro patrimonial" era o único subtipo de
+  Seguro). Mesmo padrão UX já usado em "Categorias de documento".
+
+    1) ACHADO NO BANCO — RLS só tinha leitura
+    - `cofre_controle_subtipos` tinha GRANT de tabela pra `authenticated`
+      (INSERT/UPDATE/DELETE) desde sempre, mas NENHUMA policy de RLS
+      de escrita — só `cofre_controle_subtipos_select`. Ou seja, mesmo
+      se existisse uma tela, o INSERT teria sido barrado pelo RLS
+      silenciosamente (nenhum GRANT de tabela segura nada sozinho sem
+      a policy correspondente — mesma classe de bug já catalogada nos
+      aprendizados do projeto: "permission denied... antes da RLS" vs.
+      aqui é "RLS nem avalia pq não existe policy pra esse comando").
+    - CORRIGIDO: migration `cofre_controle_subtipos_write_policy_v1`
+      (Supabase, oduwpttbbemypiypjsux) — policy `FOR ALL`, mesma regra
+      de permissão já usada em `cofre_itens_controle`
+      (`cofre.controles.criar`/`cofre.controles.editar`/`fn_sou_master()`)
+      — quem já pode criar/editar item de controle também gerencia os
+      subtipos usados por eles. Nenhuma tabela de permissões nova.
+
+    2) NOVA TELA — Subtipos de item de controle
+    - NOVO item no menu ⚙️ → Cadastros, logo abaixo de "Categorias de
+      documento": `data-action="abrir-subtipos-controle"`.
+    - NOVO modal `#modal-subtipos-controle` — mesmo gabarito visual do
+      `#modal-categorias` (Tipo B), com um select de Tipo a mais
+      (Seguro/Manutenção/Tributo — os 3 únicos valores possíveis, CHECK
+      constraint no banco) já que subtipo pertence a um tipo fixo.
+      Lista AGRUPADA por tipo (não plana feito Categorias), pra ficar
+      claro em qual dropdown cada subtipo novo vai aparecer. Subtipos
+      globais do sistema (cliente_id null — os que já vinham semeados)
+      marcados "padrão do sistema"; os do próprio cliente sem marca.
+    - NOVO em cofre-api.js: `criarSubtipoControle(clienteId, tipo, nome)`
+      — SEMPRE grava com o cliente_id do tenant atual (nunca null —
+      isso é reservado ao catálogo-base compartilhado entre todos os
+      clientes). `codigo` (slug) gerado a partir do nome, com retry de
+      sufixo numérico se colidir (UNIQUE (cliente_id, codigo) no banco).
+    - NOVO em cofre-controles.js: `abrirSubtiposControle()` (sempre
+      busca fresco, não usa `subtiposCache` estático),
+      `fecharSubtiposControle()`, `salvarSubtipoControle()`,
+      `renderizarSubtiposControle()`. Ao salvar, `subtiposCache` é
+      atualizado na hora — um subtipo criado aqui já aparece no
+      dropdown de "Novo item de controle" sem precisar recarregar a
+      página (mesma sessão).
+
+    - Arquivos alterados: cofre.html (1601→1634), js/cofre-api.js
+      (470→490), js/cofre-app.js (308→311), js/cofre-controles.js
+      (569→628).
+    - Migration aplicada: cofre_controle_subtipos_write_policy_v1
+      (oduwpttbbemypiypjsux, via Supabase MCP).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.8.1
   Data       : 25/08/2026
   Título     : BUG FIX + PARIDADE VISUAL COM IMÓVEIS + TELA DO ITEM DE CONTROLE REESCRITA
@@ -1535,6 +1605,10 @@
                 <i data-lucide="tags" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Categorias de documento</span>
             </button>
+            <button data-action="abrir-subtipos-controle" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <i data-lucide="list-tree" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium" style="color:var(--ink)">Subtipos de item de controle</span>
+            </button>
 
             <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
             <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
@@ -1589,6 +1663,35 @@
     </div>
 </div>
 
+<!-- ===================== MODAL — SUBTIPOS DE ITEM DE CONTROLE =====================
+     Pedido explícito, 25/08/2026 — mesmo gabarito do modal-categorias
+     acima. Diferença: subtipo pertence a um TIPO fixo (seguro/manutenção/
+     tributo, CHECK constraint no banco), por isso tem um select extra em
+     vez de só nome+grupo. Lista agrupada por tipo (renderizarSubtiposControle
+     em cofre-controles.js), não plana. -->
+<div id="modal-subtipos-controle" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Subtipos de item de controle</h3>
+            <button type="button" data-action="fechar-subtipos-controle" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+        </div>
+        <div class="flex gap-2 items-end mb-3">
+            <div>
+                <label class="text-xs font-semibold block mb-1">Tipo</label>
+                <select id="subtipo-tipo" class="border-2 border-slate-300 rounded-xl p-2 text-sm h-[38px]">
+                    <option value="seguro">Seguro</option>
+                    <option value="manutencao">Manutenção</option>
+                    <option value="tributo">Tributo</option>
+                </select>
+            </div>
+            <div class="flex-1"><label class="text-xs font-semibold block mb-1">Nome</label><input type="text" id="subtipo-nome" placeholder="Ex.: Seguro contra incêndio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+            <button data-action="salvar-subtipo-controle" class="px-4 py-2 rounded-xl text-sm font-semibold text-white h-[38px]" style="background:var(--pine)">Adicionar</button>
+        </div>
+        <p class="raiz-indicador-inline mb-2" style="color:var(--sage)">Some pra escolher toda vez que criar um item de controle desse tipo — em "Novo item de controle" e ao editar.</p>
+        <div id="subtipos-lista"></div>
+    </div>
+</div>
+
 <!-- C-1a (revisão DS) — toast é chrome de sistema (DS §15, camada 200–500),
      sempre por cima de qualquer modal; z-[80] convivia mal com os popups
      do Cofre (60) e ficaria encoberto assim que os overlays fossem
@@ -1598,4 +1701,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 1601 (cofre.html) — recontado na v1.8.1; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 1704 (cofre.html) — recontado na v1.9.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.0 · 25/08/2026
+// Versão: 1.3.2 · 25/08/2026
+//
+// v1.3.2 — dispatchers de Subtipos de item de controle (pedido
+// explícito): abrir-subtipos-controle/fechar-subtipos-controle/
+// salvar-subtipo-controle.
+//
+// v1.3.1 — dispatchers acompanham a reescrita da tela do Item de
+// Controle (cofre-controles.js): "alternar-editar-item" virou
+// "abrir-editar-item"/"fechar-editar-item" (edição virou bottom-sheet
+// Tipo B); novo "alternar-mais-acoes-contatos-item" (botão de adicionar
+// contato saiu de CTA tracejado e foi pro painel de Mais ações).
 //
 // v1.3.0 — 2ª rodada da revisão DS. (1) D-3: novo bloco no topo do
 // listener delegado — clique no backdrop de QUALQUER modal fecha (nenhum
@@ -103,6 +113,9 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-bot': window.open('https://wa.me/5511978950609?text=' + encodeURIComponent('Olá, como o R.AI.Z pode me ajudar?'), '_blank', 'noopener'); break;
         case 'fechar-categorias': docs.fecharCategorias(); break;
         case 'salvar-categoria': await docs.salvarCategoria(); break;
+        case 'abrir-subtipos-controle': fecharModal('modal-menu-conta'); await controles.abrirSubtiposControle(); break;
+        case 'fechar-subtipos-controle': controles.fecharSubtiposControle(); break;
+        case 'salvar-subtipo-controle': await controles.salvarSubtipoControle(); break;
 
         // ---- documentos
         case 'abrir-upload-home': await docs.abrirUploadHome(); break;
