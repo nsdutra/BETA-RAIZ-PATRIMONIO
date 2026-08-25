@@ -10,10 +10,35 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.5.0
+  Versão     : 1.5.1
   Data       : 24/08/2026
-  Título     : FICHA PRÓPRIA DE ITEM DE CONTROLE + CORREÇÃO DE GRANT + LIMPEZA DE HEADER DUPLICADO
-  Base       : v1.4.0 (24/08/2026)
+  Título     : CORREÇÃO DE RLS (INSERT em ocorrências) + GUARDA DEFENSIVA NO BOOTSTRAP
+  Base       : v1.5.0 (24/08/2026)
+
+  CHANGELOG v1.5.1 — dois bugs reportados após teste real.
+
+    1) BUG CRÍTICO CORRIGIDO — "new row violates row-level security policy
+       for table cofre_ocorrencias_controle" ao salvar item de controle.
+    - migration_cofre_alarmes_fase1_nucleo_v1 só criou policy de UPDATE
+      pra essa tabela — faltava INSERT. Postgres nega por padrão quando
+      não há policy pra cobrir a operação. Corrigido em
+      migration_cofre_ocorrencias_fix_policy_insert_v5 (banco): a policy
+      de UPDATE virou FOR ALL (cobre INSERT/UPDATE/DELETE), mesma regra de
+      acesso de antes.
+
+    2) Erro "Cannot set properties of null (setting 'textContent')" no
+       bootstrap, reportado só em desktop.
+    - Guarda defensiva adicionada em cofre-navegacao.js (não quebra mais
+      se o elemento não existir por qualquer motivo). A causa mais
+      provável não é bug de código — o mobile já mostrava o header novo
+      funcionando perfeitamente no mesmo teste — é cache de navegador
+      (Chrome desktop servindo cofre.html antigo enquanto cofre-app.js/
+      cofre-navegacao.js já eram os novos). Recomendo Ctrl+Shift+R
+      (hard refresh) no Chrome desktop antes de testar de novo.
+
+    - Arquivos alterados: js/cofre-navegacao.js (1.1.2→1.1.3),
+      js/cofre-estado.js (COFRE_VERSAO 1.5.0→1.5.1).
+    - Migration aplicada: cofre_ocorrencias_fix_policy_insert_v5.
 
   CHANGELOG v1.5.0 — segundo lote de correções pós-teste real de cadastro
   com a Karen (family office). Cobre bug crítico + reorganização de onde

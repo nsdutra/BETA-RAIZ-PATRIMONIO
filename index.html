@@ -6,6 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.61.3
+   LINHAS: 24355
+   DATA: 2026-08-24
+   NOVIDADES (Beta v1.61.3) — CORRIGIDO: selo de módulo mal posicionado:
+
+     CORRIGIDO — o selo "Imóveis" do header estava numa linha flex
+     horizontal ao lado do nome da empresa; quando o nome era longo (ex.:
+     "BETA-RAIZ-PATRIMONIO") e quebrava linha, o selo ficava flutuando no
+     lugar errado. Virou layout empilhado (nome em cima, selo embaixo),
+     igual ao padrão já usado no Cofre.
+
    VERSÃO: Beta v1.61.2
    LINHAS: 24355
    DATA: 2026-08-24
@@ -4784,13 +4795,13 @@
 
         <div class="p-3 flex justify-between items-center bg-emerald-950">
 
-            <div class="flex items-baseline space-x-2 cursor-pointer active:scale-95 transition-transform select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
+            <div class="cursor-pointer active:scale-95 transition-transform select-none min-w-0" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400">RAIZ</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400 block leading-tight">RAIZ</span>
 
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-emerald-200">Imóveis</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-emerald-200 inline-block mt-0.5">Imóveis</span>
 
-                <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse">OFFLINE</span>
+                <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse ml-1">OFFLINE</span>
 
             </div>
 
@@ -7139,7 +7150,7 @@
                  forçando rolagem). Fica só um rodapé compacto, tipo crédito/
                  copyright: versão, site, nome da empresa. -->
             <p class="text-center text-[10.5px] text-gray-400 leading-relaxed pt-1 pb-2">
-                Raiz Patrimônio <span id="sobre-versao-badge" class="font-mono font-bold">BETA v1.61.2</span>
+                Raiz Patrimônio <span id="sobre-versao-badge" class="font-mono font-bold">BETA v1.61.3</span>
                 · <a href="https://www.raizpatrimonio.com.br" target="_blank" class="underline">raizpatrimonio.com.br</a>
             </p>
 
@@ -7334,7 +7345,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.61.2";
+        const APP_VERSAO = "Beta v1.61.3";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 

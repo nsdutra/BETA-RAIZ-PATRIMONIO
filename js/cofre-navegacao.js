@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.2 · 24/08/2026
+// Versão: 1.1.3 · 24/08/2026
+//
+// v1.1.3 — guarda defensiva em cofre-nome-empresa (evita "Cannot set
+// properties of null" se o elemento não existir por algum motivo — ex.:
+// cache de navegador com HTML antigo enquanto o JS já é o novo).
 //
 // v1.1.2 — header: nome da empresa passa a ser o título principal
 // (#cofre-nome-empresa), com selo "Cofre" ao lado (identificação de
@@ -75,7 +79,7 @@ export async function bootstrap() {
     }
     if (!liberado) return falhaAcesso(`Seu perfil (${estado.pessoa.perfil}) não tem acesso ao módulo Cofre nesta empresa.`);
 
-    document.getElementById('cofre-nome-empresa').textContent = estado.pessoa.clienteNome || 'Empresa';
+    document.getElementById('cofre-nome-empresa') && (document.getElementById('cofre-nome-empresa').textContent = estado.pessoa.clienteNome || 'Empresa');
     const elSobreVersao = document.getElementById('sobre-versao-cofre');
     if (elSobreVersao) elSobreVersao.textContent = 'v' + COFRE_VERSAO;
     const badgeVersao = document.getElementById('badge-versao-cofre');
