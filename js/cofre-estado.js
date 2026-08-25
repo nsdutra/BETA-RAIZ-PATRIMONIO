@@ -2,6 +2,11 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
+// v1.10.0 — ITEM DE CONTROLE: DATA INÍCIO/FIM + GERAÇÃO RETROATIVA +
+// ATALHOS TRATAR/ACIONAR NA VISÃO GERAL (pedido explícito). Ver
+// changelog completo em cofre.html. cofre-estado.js em si não mudou de
+// conteúdo — só o COFRE_VERSAO abaixo.
+//
 // v1.9.0 — GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (menu ⚙️, pedido
 // explícito). Ver changelog completo em cofre.html. cofre-estado.js em
 // si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
@@ -59,7 +64,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.9.0';
+export const COFRE_VERSAO = '1.10.0';
 
 export const estado = {
     clienteId: null,

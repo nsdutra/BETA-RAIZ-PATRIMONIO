@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.2 · 25/08/2026
+// Versão: 1.3.3 · 25/08/2026
+//
+// v1.3.3 — dispatchers dos atalhos "Tratar"/"Acionar" no alerta da
+// Visão Geral (pedido explícito): alerta-tratar (abre a ficha do item
+// + já dispara alternarAcaoOcorrencia('tratar') pra ocorrência
+// específica) e alerta-acionar (chama docs.acionarContatoAlerta()).
+// ocorrenciaParaAlertaView() (tela cheia de Alertas) ganhou o campo
+// `tipo`, mesmo motivo do adaptador equivalente em cofre-documentos.js.
 //
 // v1.3.2 — dispatchers de Subtipos de item de controle (pedido
 // explícito): abrir-subtipos-controle/fechar-subtipos-controle/
@@ -170,6 +177,19 @@ document.addEventListener('click', async (ev) => {
         case 'confirmar-estornar-ocorrencia': await controles.confirmarEstornarOcorrencia(alvo.dataset.id); break;
         case 'abrir-item-controle': await controles.abrirFichaItemControle(id); break;
         case 'voltar-item-controle': controles.voltarFichaItemControle(); break;
+        // Pedido explícito (25/08/2026) — atalhos no card de alerta:
+        // "Tratar" abre a ficha do item já com a ação Tratar disparada
+        // pra ESSA ocorrência (abrirFichaItemControle é assíncrona e já
+        // renderiza a ficha antes de retornar, então alternarAcaoOcorrencia
+        // logo depois encontra o DOM pronto); "Acionar" busca o contato
+        // do item e abre WhatsApp/e-mail com sugestão de texto.
+        case 'alerta-tratar':
+            await controles.abrirFichaItemControle(alvo.dataset.itemId);
+            controles.alternarAcaoOcorrencia(alvo.dataset.ocorrenciaId, 'tratar');
+            break;
+        case 'alerta-acionar':
+            await docs.acionarContatoAlerta(alvo.dataset.itemId, alvo.dataset.titulo, alvo.dataset.tipo);
+            break;
         case 'abrir-editar-item': controles.abrirEditarItem(); break;
         case 'fechar-editar-item': controles.fecharEditarItem(); break;
         case 'salvar-edicao-item': await controles.salvarEdicaoItem(); break;
@@ -223,6 +243,7 @@ function ocorrenciaParaAlertaView(oc) {
         id: oc.id,
         itemControleId: oc.item_controle_id,
         titulo: oc.cofre_itens_controle?.titulo || '(item removido)',
+        tipo: oc.cofre_itens_controle?.tipo || null,
         data_vencimento: oc.data_prevista_atual,
         ativoId: oc.cofre_itens_controle?.ativo_id || null,
     };

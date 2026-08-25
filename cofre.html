@@ -10,6 +10,99 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.10.0
+  Data       : 25/08/2026
+  Título     : ITEM DE CONTROLE — DATA INÍCIO/FIM + GERAÇÃO RETROATIVA + ATALHOS TRATAR/ACIONAR NA VISÃO GERAL
+  Base       : v1.9.0 (25/08/2026)
+  Linhas     : cofre.html = 1819 · js/cofre-api.js = 506 · js/cofre-app.js = 342 ·
+               js/cofre-ativos.js = 373 · js/cofre-controles.js = 742 ·
+               js/cofre-documentos.js = 702 · js/cofre-estado.js = 81 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3324)
+
+  CHANGELOG v1.10.0 — pedido explícito durante teste do delivery da
+  Karen: as ocorrências de um item de controle sempre eram geradas a
+  partir da data do item, sem opção de contar a partir do fim de
+  vigência; e um alerta na Visão Geral não tinha nenhuma ação direta.
+
+    1) ITEM DE CONTROLE — DATA INÍCIO/FIM + DIREÇÃO DE GERAÇÃO
+    - MIGRATION `cofre_itens_controle_data_fim_direcao_v1` (Supabase,
+      oduwpttbbemypiypjsux): 2 colunas novas em `cofre_itens_controle` —
+      `data_fim` (date, nullable — NULL = sem fim de vigência) e
+      `direcao_alerta` (text, CHECK IN ('inicio','fim'), default
+      'inicio'), com CHECK adicional garantindo que `direcao_alerta =
+      'fim'` exige `data_fim` preenchida (não dá pra gerar retroativo
+      sem saber a partir de onde contar pra trás). `data_base` (coluna
+      já existente) passa a significar "data início" — mantido o nome
+      da coluna por compatibilidade, só mudou a semântica declarada
+      (COMMENT ON COLUMN registrado no banco).
+    - NOVO nos modais Criar/Editar item de controle: campo "Data fim
+      (opcional)" + seletor "Gerar ocorrências a partir de: Início /
+      Fim (retroativo)". Label "Data base (próximo vencimento)" virou
+      "Data início" (criação).
+    - NOVA função `gerarOcorrenciasHorizonteRetroativo()`
+      (cofre-controles.js) — espelho exato de `gerarOcorrenciasHorizonte()`
+      existente, mas andando PRA TRÁS a partir da data fim em vez de pra
+      frente a partir da data início (ex.: fim=31/12/2026, 1×/semana →
+      ocorrências semanais contando de trás pra frente a partir de
+      31/12). Mesmas garantias da função original: pelo menos 1
+      ocorrência sempre, teto de 60, janela de 120 dias (agora simétrica
+      — pra trás no modo retroativo, pra frente no modo início, nunca
+      mudei o comportamento do modo início, só acrescentei o novo).
+    - `salvarItemControle()`/`salvarEdicaoItem()` escolhem o gerador
+      certo conforme `direcao_alerta`. Validação: "fim" sem data_fim
+      preenchida bloqueia salvar (mensagem clara); data_fim antes da
+      data início também bloqueia.
+    - `salvarEdicaoItem()`: a detecção de "mudou algo que impacta os
+      alertas" (que dispara a pergunta de regenerar ocorrências
+      futuras) passou a incluir data_fim e direcao_alerta, não só
+      frequência — renomeada de `mudouFrequencia` pra
+      `mudouGeracaoAlertas` pra refletir o escopo maior. Regenerar
+      respeita a direção nova escolhida (se virou "fim", regenera
+      ancorado na nova data_fim; se "início", mantém o comportamento de
+      sempre — pra frente a partir de hoje).
+    - Box "Dados do item" (leitura) ganhou 3 linhas novas: Data início,
+      Data fim (ou "Sem fim de vigência"), Alertas gerados a partir de.
+
+    2) ATALHOS "TRATAR" E "ACIONAR" NO ALERTA DA VISÃO GERAL
+    - `alertaCardHtml()` (cofre-documentos.js, usada na Home e na tela
+      cheia de Alertas) ganhou 2 botões abaixo do card, que continua
+      clicável pra só visualizar o item (comportamento de sempre
+      preservado):
+        · "Tratar" — chama `abrirFichaItemControle()` (assíncrona, já
+          renderiza a ficha antes de retornar) seguida de
+          `alternarAcaoOcorrencia(ocorrenciaId, 'tratar')` — abre a
+          ficha do item JÁ com a ação Tratar disparada pra aquela
+          ocorrência específica, pulando a navegação manual.
+        · "Acionar" — nova função `acionarContatoAlerta()`
+          (cofre-documentos.js): busca os contatos vinculados ao item
+          na hora do clique (não traz isso pra todo card da lista,
+          custo desnecessário pra ação ocasional), prioriza WhatsApp
+          sobre e-mail, abre com mensagem pronta: 'Olá! Poderia nos
+          enviar uma cotação atualizada para a renovação do item de
+          controle "[título] ([tipo])"? Obrigado!'. Sem contato
+          vinculado → avisa em vez de travar, aponta pra "Mais ações →
+          Adicionar contato" na ficha do item.
+    - Os 2 adaptadores que alimentam `alertaCardHtml()`
+      (`ocorrenciaParaAlertaViewHome` em cofre-documentos.js e
+      `ocorrenciaParaAlertaView` em cofre-app.js, tela cheia de
+      Alertas) ganharam o campo `tipo` — necessário pra descrever o
+      item na mensagem de "Acionar".
+
+    - Arquivos alterados: cofre.html (1704→1726), js/cofre-controles.js
+      (648→729), js/cofre-documentos.js (646→692), js/cofre-app.js
+      (321→335).
+    - Migration aplicada: cofre_itens_controle_data_fim_direcao_v1
+      (oduwpttbbemypiypjsux, via Supabase MCP).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.9.0
   Data       : 25/08/2026
   Título     : GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (menu ⚙️)
@@ -1234,8 +1327,19 @@
             <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
             <div class="col-span-2">
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data base (próximo vencimento)</label>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data início</label>
                 <input type="date" id="ic-data-base" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data fim <span style="font-weight:400">(opcional)</span></label>
+                <input type="date" id="ic-data-fim" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Gerar ocorrências a partir de</label>
+                <select id="ic-direcao-alerta" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                    <option value="inicio" selected>Início</option>
+                    <option value="fim">Fim (retroativo)</option>
+                </select>
             </div>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
@@ -1252,7 +1356,7 @@
                 <input type="number" min="0" id="ic-antecedencia" value="7" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
         </div>
-        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único). Ao salvar, as ocorrências dos próximos 120 dias já são geradas automaticamente.</p>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único). Sem data fim = sem fim de vigência (só pode gerar a partir do início). Escolhendo "Fim (retroativo)", as ocorrências são contadas pra trás a partir da data fim, na frequência escolhida. Ao salvar, as ocorrências já são geradas automaticamente.</p>
         <div class="flex gap-2 mt-3">
             <button type="button" data-action="fechar-form-controle" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
             <button data-action="salvar-item-controle" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar item de controle</button>
@@ -1277,6 +1381,17 @@
             <select id="fic-ed-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="fic-ed-titulo" placeholder="Título" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
             <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data fim <span style="font-weight:400">(opcional)</span></label>
+                <input type="date" id="fic-ed-data-fim" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Gerar a partir de</label>
+                <select id="fic-ed-direcao-alerta" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                    <option value="inicio">Início</option>
+                    <option value="fim">Fim (retroativo)</option>
+                </select>
+            </div>
+            <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
                 <input type="number" min="1" id="fic-ed-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
@@ -1291,7 +1406,7 @@
                 <input type="number" min="0" id="fic-ed-antecedencia" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
         </div>
-        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente. Se mudar a frequência, o Cofre pergunta se quer regerar as ocorrências futuras ou manter as que já existem.</p>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente. Mudar a data fim, a direção ou a frequência impacta os alertas — o Cofre pergunta se quer regerar as ocorrências futuras ou manter as que já existem.</p>
         <div class="flex gap-2 mt-3">
             <button type="button" data-action="fechar-editar-item" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
             <button data-action="salvar-edicao-item" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
@@ -1701,4 +1816,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 1704 (cofre.html) — recontado na v1.9.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 1819 (cofre.html) — recontado na v1.10.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

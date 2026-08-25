@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.1 · 25/08/2026
+// Versão: 1.4.0 · 25/08/2026
+//
+// v1.4.0 — ATALHOS "TRATAR" E "ACIONAR" NO ALERTA DA VISÃO GERAL (pedido
+// explícito): alertaCardHtml() ganhou 2 botões — "Tratar" (abre a ficha
+// do item já com a ação Tratar disparada pra aquela ocorrência
+// específica) e "Acionar" (nova acionarContatoAlerta() — busca contato
+// vinculado ao item na hora do clique, prioriza WhatsApp sobre e-mail,
+// abre com mensagem pronta pedindo cotação de renovação). Card continua
+// clicável pra só visualizar o item. ocorrenciaParaAlertaViewHome()
+// ganhou o campo `tipo` — necessário pra descrever o item na mensagem
+// de "Acionar".
 //
 // v1.3.1 — D-2 (revisão DS): 5 pontos de badge migrados pro formato
 // oficial §14 (BADGE_NEUTRO/BADGE_ALERTA/BADGE_PENDENTE/BADGE_OK,
@@ -36,7 +46,7 @@ import * as api from './cofre-api.js';
 import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-ui.js';
 import {
     escapeHtml, formatarDataBR, formatarBytes, diasAte, chipVencimento,
-    classificarStatusVinculo, rotuloStatusVinculo, rotuloTipoAtivo, iconeAtivo,
+    classificarStatusVinculo, rotuloStatusVinculo, rotuloTipoAtivo, iconeAtivo, rotuloTipoControle,
     BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK, BADGE_ALERTA,
 } from './cofre-validacoes.js';
 
@@ -63,6 +73,7 @@ function ocorrenciaParaAlertaViewHome(oc) {
         id: oc.id,
         itemControleId: oc.item_controle_id,
         titulo: oc.cofre_itens_controle?.titulo || '(item removido)',
+        tipo: oc.cofre_itens_controle?.tipo || null,
         data_vencimento: oc.data_prevista_atual,
     };
 }
@@ -90,16 +101,61 @@ export function montarHome() {
     refrescarIcones();
 }
 
+// Revisão 25/08/2026 (pedido explícito) — ganhou 2 atalhos de ação:
+// "Tratar" leva direto pra ficha do item com a ação Tratar já aberta
+// pra ESSA ocorrência específica (não só abre o item, pula a navegação
+// manual); "Acionar" abre WhatsApp/e-mail do contato vinculado ao item,
+// com uma sugestão de texto pronta. O card continua clicável pra só
+// visualizar o item (comportamento de sempre, preservado).
 export function alertaCardHtml(e) {
     const dias = diasAte(e.data_vencimento);
     const chip = chipVencimento(dias);
-    return `<button data-action="abrir-item-controle" data-id="${e.itemControleId || ''}" class="w-full text-left raiz-bloco-interno flex items-center justify-between gap-2">
-        <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-            ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
-            <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--sage)"></i>
+    return `<div class="raiz-bloco-interno">
+        <button data-action="abrir-item-controle" data-id="${e.itemControleId || ''}" class="w-full text-left flex items-center justify-between gap-2">
+            <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+                <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--sage)"></i>
+            </div>
+        </button>
+        <div class="flex gap-2 mt-2 pt-2 border-t border-slate-100">
+            <button data-action="alerta-tratar" data-ocorrencia-id="${e.id}" data-item-id="${e.itemControleId || ''}" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:11px;padding:6px;border:none;border-radius:6px;">Tratar</button>
+            <button data-action="alerta-acionar" data-item-id="${e.itemControleId || ''}" data-titulo="${escapeHtml(e.titulo)}" data-tipo="${e.tipo || ''}" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:11px;padding:6px;border:none;border-radius:6px;">Acionar</button>
         </div>
-    </button>`;
+    </div>`;
+}
+
+// Atalho "Acionar" do alerta (pedido explícito, 25/08/2026) — busca o(s)
+// contato(s) vinculados ao item na hora do clique (não traz isso pra
+// todo card da lista de alertas, custo desnecessário pra uma ação
+// ocasional). Prioriza WhatsApp sobre e-mail (mesmo canal principal do
+// resto do produto); se não houver nenhum contato, avisa em vez de
+// travar — a Ficha do Item já tem "Mais ações → Adicionar contato" pra
+// resolver isso.
+export async function acionarContatoAlerta(itemControleId, titulo, tipo) {
+    if (!itemControleId) { mostrarToast('Item de controle não encontrado.', 'erro'); return; }
+    let contatos;
+    try {
+        contatos = await api.listarContatosPorItemControle(itemControleId);
+    } catch (err) { mostrarToast('Erro ao buscar contato: ' + err.message, 'erro'); return; }
+
+    if (!contatos.length) {
+        mostrarToast('Nenhum contato vinculado a este item ainda. Adicione um na ficha do item (Mais ações → Adicionar contato).', 'aviso');
+        return;
+    }
+    const contato = contatos.find(c => c.whatsapp) || contatos.find(c => c.email) || contatos[0];
+    const descricaoItem = tipo ? `${titulo} (${rotuloTipoControle(tipo)})` : titulo;
+    const mensagem = `Olá! Poderia nos enviar uma cotação atualizada para a renovação do item de controle "${descricaoItem}"? Obrigado!`;
+
+    if (contato.whatsapp) {
+        const numero = contato.whatsapp.replace(/\D/g, '');
+        window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
+    } else if (contato.email) {
+        const assunto = `Cotação — renovação: ${titulo}`;
+        window.open(`mailto:${contato.email}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
+    } else {
+        mostrarToast(`Contato "${contato.nome}" não tem WhatsApp nem e-mail cadastrado.`, 'aviso');
+    }
 }
 
 function docCardCompactoHtml(d) {

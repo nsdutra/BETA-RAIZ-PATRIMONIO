@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 25/08/2026
+// Versão: 1.5.0 · 25/08/2026
+//
+// v1.5.0 — DATA INÍCIO/FIM + GERAÇÃO RETROATIVA (pedido explícito):
+// modais Criar/Editar item de controle ganharam campo "Data fim
+// (opcional)" + seletor de direção (Início/Fim). Nova
+// gerarOcorrenciasHorizonteRetroativo() — espelho de
+// gerarOcorrenciasHorizonte() andando pra trás a partir da data fim em
+// vez de pra frente a partir da data início. salvarItemControle()/
+// salvarEdicaoItem() escolhem o gerador certo conforme direcao_alerta;
+// a detecção de "mudou algo que impacta os alertas" (mudouFrequencia →
+// renomeada mudouGeracaoAlertas) passou a incluir data_fim/
+// direcao_alerta, não só frequência. Box "Dados do item" ganhou 3
+// linhas novas (Data início/Data fim/Alertas gerados a partir de).
+// Depende de migration cofre_itens_controle_data_fim_direcao_v1.
 //
 // v1.4.0 — GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (pedido explícito):
 // nova seção completa — abrirSubtiposControle()/fecharSubtiposControle()/
@@ -174,7 +187,10 @@ function renderizarFichaItemControle() {
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Título</span><b>${escapeHtml(item.titulo)}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Tipo</span><b>${escapeHtml(rotuloTipoControle(item.tipo))}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Subtipo</span><b>${escapeHtml(item.cofre_controle_subtipos?.nome || '—')}</b></div>
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data início</span><b>${formatarDataBR(item.data_base)}</b></div>
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data fim</span><b>${item.data_fim ? formatarDataBR(item.data_fim) : 'Sem fim de vigência'}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Frequência</span><b>${escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))}</b></div>
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Alertas gerados a partir de</span><b>${item.direcao_alerta === 'fim' ? 'Fim (retroativo)' : 'Início'}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Antecedência do alerta</span><b>${item.antecedencia_alerta_dias} dias</b></div>
     `;
 
@@ -347,6 +363,8 @@ export function abrirEditarItem() {
     const item = itemEmFoco;
     popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
     document.getElementById('fic-ed-titulo').value = item.titulo;
+    document.getElementById('fic-ed-data-fim').value = item.data_fim || '';
+    document.getElementById('fic-ed-direcao-alerta').value = item.direcao_alerta || 'inicio';
     document.getElementById('fic-ed-freq-intervalo').value = item.frequencia_intervalo || '';
     document.getElementById('fic-ed-freq-unidade').value = item.frequencia_unidade || 'mes';
     document.getElementById('fic-ed-antecedencia').value = item.antecedencia_alerta_dias;
@@ -360,25 +378,33 @@ export function fecharEditarItem() {
 export async function salvarEdicaoItem() {
     const titulo = document.getElementById('fic-ed-titulo').value.trim();
     const subtipoId = document.getElementById('fic-ed-subtipo').value || null;
+    const dataFim = document.getElementById('fic-ed-data-fim').value || null;
+    const direcaoAlerta = document.getElementById('fic-ed-direcao-alerta').value;
     const freqIntervalo = parseInt(document.getElementById('fic-ed-freq-intervalo').value, 10) || null;
     const freqUnidade = freqIntervalo ? document.getElementById('fic-ed-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('fic-ed-antecedencia').value, 10) || 0;
     if (!titulo) { mostrarToast('Informe um título.', 'erro'); return; }
+    if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Pra gerar a partir do fim, informe a data fim.', 'erro'); return; }
+    if (dataFim && dataFim < itemEmFoco.data_base) { mostrarToast('A data fim não pode ser antes da data início.', 'erro'); return; }
 
     const item = itemEmFoco;
     // Campos que, se mudarem, afetam quais ocorrências futuras fazem
     // sentido existir. Antecedência do alerta NÃO entra aqui — só afeta
     // o cálculo do chip em tempo real (ocorrenciaEmAlerta em
-    // cofre-validacoes.js), não as datas já gravadas.
-    const mudouFrequencia = (freqIntervalo !== item.frequencia_intervalo) || (freqUnidade !== item.frequencia_unidade);
+    // cofre-validacoes.js), não as datas já gravadas. Revisão 25/08/2026
+    // (pedido explícito): data fim e direção de geração entraram nessa
+    // lista — mudar qualquer um dos dois também muda quais ocorrências
+    // futuras fazem sentido, igual à frequência.
+    const mudouGeracaoAlertas = (freqIntervalo !== item.frequencia_intervalo) || (freqUnidade !== item.frequencia_unidade)
+        || (dataFim !== (item.data_fim || null)) || (direcaoAlerta !== (item.direcao_alerta || 'inicio'));
 
     try {
-        const antes = { titulo: item.titulo, subtipo_id: item.subtipo_id, frequencia_intervalo: item.frequencia_intervalo, frequencia_unidade: item.frequencia_unidade, antecedencia_alerta_dias: item.antecedencia_alerta_dias };
-        const depois = { titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia };
+        const antes = { titulo: item.titulo, subtipo_id: item.subtipo_id, frequencia_intervalo: item.frequencia_intervalo, frequencia_unidade: item.frequencia_unidade, antecedencia_alerta_dias: item.antecedencia_alerta_dias, data_fim: item.data_fim, direcao_alerta: item.direcao_alerta };
+        const depois = { titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia, data_fim: dataFim, direcao_alerta: direcaoAlerta };
         await api.atualizarItemControle(item.id, depois);
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'editar', antes, depois, pessoa_id: estado.pessoa.id, origem: 'app' });
 
-        if (mudouFrequencia) {
+        if (mudouGeracaoAlertas) {
             // Pedido explícito: mudança que impacta os alertas possíveis
             // pergunta se regera as ocorrências FUTURAS em aberto (não
             // mexe nas já vencidas — essas continuam pendentes de
@@ -387,16 +413,22 @@ export async function salvarEdicaoItem() {
             // usado em excluirItemControleAtual/excluirAtivoAtual pra
             // decisões simples de sim/não.
             const regenerar = confirm(
-                'Você mudou a frequência deste item.\n\n' +
-                'Regenerar as ocorrências futuras em aberto com a nova frequência (a partir de hoje)?\n\n' +
+                'Você mudou algo que afeta os alertas deste item (frequência, data fim ou direção de geração).\n\n' +
+                'Regenerar as ocorrências futuras em aberto com as novas regras?\n\n' +
                 'OK = Regenerar (as já vencidas continuam como estão)\n' +
-                'Cancelar = Manter as ocorrências que já existem, a nova frequência só vale se você criar mais pra frente'
+                'Cancelar = Manter as ocorrências que já existem'
             );
             if (regenerar) {
                 const hojeISO = new Date().toISOString().slice(0, 10);
                 await api.excluirOcorrenciasAbertasFuturasDoItem(item.id, hojeISO);
                 const itemAtualizado = { ...item, ...depois };
-                const payloads = gerarOcorrenciasHorizonte(itemAtualizado, hojeISO, freqIntervalo, freqUnidade);
+                // Revisão 25/08/2026 — regenerar respeita a direção
+                // escolhida: "fim" ancora retroativamente na data fim
+                // nova, "inicio" mantém o comportamento de sempre
+                // (pra frente a partir de hoje).
+                const payloads = direcaoAlerta === 'fim'
+                    ? gerarOcorrenciasHorizonteRetroativo(itemAtualizado, dataFim, freqIntervalo, freqUnidade)
+                    : gerarOcorrenciasHorizonte(itemAtualizado, hojeISO, freqIntervalo, freqUnidade);
                 await api.criarOcorrenciasControleBatch(payloads);
                 await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.regerar_ocorrencias', { itemId: item.id, ocorrenciasGeradas: payloads.length });
                 mostrarToast(`Item atualizado — ${payloads.length} ocorrência(s) regerada(s) ✅`);
@@ -477,6 +509,8 @@ export async function abrirFormControle() {
     popularSelectSubtipo('seguro');
     document.getElementById('ic-titulo').value = '';
     document.getElementById('ic-data-base').value = '';
+    document.getElementById('ic-data-fim').value = '';
+    document.getElementById('ic-direcao-alerta').value = 'inicio';
     document.getElementById('ic-freq-intervalo').value = '';
     document.getElementById('ic-freq-unidade').value = 'mes';
     document.getElementById('ic-antecedencia').value = '7';
@@ -509,18 +543,25 @@ export async function salvarItemControle() {
     const subtipoId = document.getElementById('ic-subtipo').value || null;
     const titulo = document.getElementById('ic-titulo').value.trim();
     const dataBase = document.getElementById('ic-data-base').value;
+    const dataFim = document.getElementById('ic-data-fim').value || null;
+    const direcaoAlerta = document.getElementById('ic-direcao-alerta').value;
     const freqIntervalo = parseInt(document.getElementById('ic-freq-intervalo').value, 10) || null;
     const freqUnidade = freqIntervalo ? document.getElementById('ic-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('ic-antecedencia').value, 10) || 0;
 
     if (!titulo) { mostrarToast('Informe um título para o item de controle.', 'erro'); return; }
-    if (!dataBase) { mostrarToast('Informe a data base (próximo vencimento).', 'erro'); return; }
+    if (!dataBase) { mostrarToast('Informe a data início.', 'erro'); return; }
+    // Pedido explícito (25/08/2026): gerar retroativo exige saber a partir
+    // de onde contar pra trás — sem data fim não tem como.
+    if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Pra gerar a partir do fim, informe a data fim.', 'erro'); return; }
+    if (dataFim && dataFim < dataBase) { mostrarToast('A data fim não pode ser antes da data início.', 'erro'); return; }
 
     try {
         const item = await api.criarItemControle({
             cliente_id: estado.clienteId, ativo_id: a.id, tipo, subtipo_id: subtipoId, titulo,
             recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade,
-            data_base: dataBase, alerta_ativo: true, antecedencia_alerta_dias: antecedencia,
+            data_base: dataBase, data_fim: dataFim, direcao_alerta: direcaoAlerta,
+            alerta_ativo: true, antecedencia_alerta_dias: antecedencia,
             origem: 'manual', criado_por: estado.pessoa.id,
         });
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
@@ -529,7 +570,12 @@ export async function salvarItemControle() {
         // dentro do horizonte de 120 dias (não só a 1ª) — respeitando a
         // frequência do item. Item não-recorrente: gera só 1, na data base
         // (mesmo que fora do horizonte, pra sempre ter algo a mostrar).
-        const payloads = gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade);
+        // Revisão 25/08/2026 — direção de geração escolhida pelo usuário:
+        // "inicio" mantém a lógica de sempre (pra frente a partir da data
+        // início); "fim" gera retroativamente a partir da data fim.
+        const payloads = direcaoAlerta === 'fim'
+            ? gerarOcorrenciasHorizonteRetroativo(item, dataFim, freqIntervalo, freqUnidade)
+            : gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade);
         await api.criarOcorrenciasControleBatch(payloads);
 
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.criar', { ativoId: a.id, itemId: item.id, ocorrenciasGeradas: payloads.length });
@@ -580,6 +626,54 @@ function proximaData(dataISO, unidade, intervalo) {
     else if (unidade === 'semana') d.setDate(d.getDate() + intervalo * 7);
     else if (unidade === 'mes') d.setMonth(d.getMonth() + intervalo);
     else if (unidade === 'ano') d.setFullYear(d.getFullYear() + intervalo);
+    return d.toISOString().slice(0, 10);
+}
+
+// Revisão 25/08/2026 (pedido explícito) — espelho retroativo de
+// gerarOcorrenciasHorizonte(): em vez de contar PRA FRENTE a partir da
+// data início até o horizonte de 120 dias, conta PRA TRÁS a partir da
+// data fim, na frequência escolhida (ex.: fim=31/12/2026, 1×/semana →
+// ocorrências toda semana contando de trás pra frente a partir de
+// 31/12). Isso importa quando a data início não está "alinhada" com o
+// ciclo desejado — ex.: um contrato de serviço que sempre vence numa
+// sexta-feira específica, mas cuja data início foi uma terça qualquer.
+// Mantém as mesmas garantias da versão pra frente: pelo menos 1
+// ocorrência sempre, guarda de 60 no máximo. Limite pra trás simétrico
+// ao horizonte pra frente (HORIZONTE_DIAS) — evita gerar uma pilha de
+// ocorrências antigas pra item recorrente de longa data (ex.: semanal
+// desde 5 anos atrás).
+function gerarOcorrenciasHorizonteRetroativo(item, dataFim, freqIntervalo, freqUnidade) {
+    const camposComuns = { cliente_id: estado.clienteId, item_controle_id: item.id, alerta_habilitado: !!item.alerta_ativo, status_execucao: 'aberto' };
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const limiteAntigo = new Date(hoje); limiteAntigo.setDate(limiteAntigo.getDate() - HORIZONTE_DIAS);
+    const limiteAntigoISO = limiteAntigo.toISOString().slice(0, 10);
+
+    if (!freqIntervalo || !freqUnidade) {
+        return [{ ...camposComuns, competencia: primeiroDiaDoMes(dataFim), data_prevista_original: dataFim, data_prevista_atual: dataFim }];
+    }
+
+    const payloads = [];
+    let dataAtual = dataFim;
+    let guarda = 0;
+    while (dataAtual >= limiteAntigoISO && guarda < MAX_OCORRENCIAS_GERADAS) {
+        payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataAtual), data_prevista_original: dataAtual, data_prevista_atual: dataAtual });
+        dataAtual = dataAnterior(dataAtual, freqUnidade, freqIntervalo);
+        guarda++;
+    }
+    // Se a data fim já nasce antes do limite antigo (ex.: venceu há mais
+    // de 120 dias), ainda assim garante pelo menos essa 1ª ocorrência.
+    if (!payloads.length) {
+        payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataFim), data_prevista_original: dataFim, data_prevista_atual: dataFim });
+    }
+    return payloads;
+}
+
+function dataAnterior(dataISO, unidade, intervalo) {
+    const d = new Date(dataISO + 'T00:00:00');
+    if (unidade === 'dia') d.setDate(d.getDate() - intervalo);
+    else if (unidade === 'semana') d.setDate(d.getDate() - intervalo * 7);
+    else if (unidade === 'mes') d.setMonth(d.getMonth() - intervalo);
+    else if (unidade === 'ano') d.setFullYear(d.getFullYear() - intervalo);
     return d.toISOString().slice(0, 10);
 }
 
