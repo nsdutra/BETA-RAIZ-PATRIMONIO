@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.3 · 25/08/2026
+// Versão: 1.3.4 · 25/08/2026
+//
+// v1.3.4 — dispatchers de Modelos de item de controle (pedido
+// explícito): abrir-modelos-controle/fechar-modelos-controle/
+// salvar-modelo-controle/usar-modelo-controle + novo
+// data-action-change "modelo-tipo-mudou".
 //
 // v1.3.3 — dispatchers dos atalhos "Tratar"/"Acionar" no alerta da
 // Visão Geral (pedido explícito): alerta-tratar (abre a ficha do item
@@ -123,6 +128,10 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-subtipos-controle': fecharModal('modal-menu-conta'); await controles.abrirSubtiposControle(); break;
         case 'fechar-subtipos-controle': controles.fecharSubtiposControle(); break;
         case 'salvar-subtipo-controle': await controles.salvarSubtipoControle(); break;
+        case 'abrir-modelos-controle': fecharModal('modal-menu-conta'); await controles.abrirModelosControle(); break;
+        case 'fechar-modelos-controle': controles.fecharModelosControle(); break;
+        case 'salvar-modelo-controle': await controles.salvarModeloControle(); break;
+        case 'usar-modelo-controle': controles.aplicarModeloAoForm(alvo.dataset.id); break;
 
         // ---- documentos
         case 'abrir-upload-home': await docs.abrirUploadHome(); break;
@@ -218,6 +227,7 @@ document.addEventListener('change', async (ev) => {
         case 'fd-vincular-tipo-mudou': await docs.aoMudarTipoVinculoAgora(); break;
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;
         case 'ic-tipo-mudou': controles.aoMudarTipoControleForm(); break;
+        case 'modelo-tipo-mudou': controles.aoMudarTipoModeloControleForm(); break;
         default: break;
     }
 });

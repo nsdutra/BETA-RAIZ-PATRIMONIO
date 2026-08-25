@@ -10,6 +10,79 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.11.0
+  Data       : 25/08/2026
+  Título     : MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (menu ⚙️ + atalho "Usar modelo")
+  Base       : v1.10.1 (25/08/2026)
+  Linhas     : cofre.html = 2001 · js/cofre-api.js = 528 · js/cofre-app.js = 352 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 888 ·
+               js/cofre-documentos.js = 702 · js/cofre-estado.js = 90 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3517)
+
+  CHANGELOG v1.11.0 — pedido explícito, parte da especificação do fluxo
+  de documento do bot (ver ESPECIFICACAO_FLUXO_DOCUMENTO_BOT_2026-08-25.md):
+  "um padrão de vínculo" — item de controle sugerido automaticamente
+  pelo tipo de ativo, em vez de o usuário preencher tudo do zero toda
+  vez. Esta entrega cobre só o lado App (o bot depende dos arquivos-
+  fonte, que ainda não recebi).
+
+    1) NOVA TABELA — cofre_modelos_item_controle
+    - Migration `cofre_modelos_item_controle_v1` (Supabase,
+      oduwpttbbemypiypjsux): tipo_ativo (CHECK nos 7 valores existentes),
+      tipo (seguro/manutencao/tributo), subtipo_id (FK opcional pra
+      cofre_controle_subtipos), titulo_sugerido, frequencia_intervalo/
+      unidade, antecedencia_alerta_dias, cliente_id nullable (null =
+      modelo global do sistema, mesmo padrão de escopo de
+      cofre_controle_subtipos). RLS com policy de SELECT (global + do
+      cliente) e policy de escrita (mesma regra de permissão de
+      cofre_itens_controle/cofre_controle_subtipos — quem cria/edita
+      item de controle também gerencia modelos). GRANT explícito à
+      authenticated (INSERT/UPDATE/DELETE/SELECT).
+    - 7 modelos globais semeados: Seguro veicular (veiculo), Seguro
+      veicular blindado + Revisão de blindagem (veiculo_blindado),
+      Seguro patrimonial + Limpeza de vidros/fachada (imovel), Seguro
+      de obra de arte (obra_arte), Emissão de nota fiscal recorrente
+      (terreno). vida_protecao e outro ficaram sem modelo semeado (não
+      havia subtipo do catálogo que fizesse sentido forçar).
+
+    2) NOVA TELA — Modelos de item de controle (menu ⚙️ → Cadastros)
+    - Mesmo padrão UX de "Subtipos de item de controle" (v1.9.0), com
+      mais campos (é um template do item inteiro: tipo de ativo + tipo
+      + subtipo + título + frequência + antecedência). Lista agrupada
+      por tipo de ativo, na mesma ordem usada no resto do Cofre
+      (TIPOS_ATIVO_ORDEM). Modelos globais marcados "padrão do
+      sistema", mesma convenção de Subtipos.
+
+    3) ATALHO "USAR MODELO" NO FORMULÁRIO DE NOVO ITEM DE CONTROLE
+    - `abrirFormControle()` agora também carrega modelosCache e
+      renderiza pills clicáveis no topo do formulário (só aparecem se
+      existir modelo pro tipo_ativo do ativo em foco — §16 do DS, pill
+      condicional não existe se a condição não vale). Clicar aplica
+      tipo/subtipo/título/frequência/antecedência do modelo — usuário
+      ainda ajusta o resto (data início continua manual, cada
+      instância do item é única) e pode editar tudo antes de salvar.
+
+    - Arquivos alterados: cofre.html (1879→1928), js/cofre-api.js
+      (506→523), js/cofre-app.js (342→347), js/cofre-controles.js
+      (762→879).
+    - Migration aplicada: cofre_modelos_item_controle_v1
+      (oduwpttbbemypiypjsux, via Supabase MCP).
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido):
+    - Consumo pelo bot — depende dos arquivos-fonte do bot, que ainda
+      não recebi. Ver ESPECIFICACAO_FLUXO_DOCUMENTO_BOT_2026-08-25.md.
+    - Edição/exclusão de modelo já criado — só criação nesta rodada,
+      mesmo escopo inicial que Subtipos teve na v1.9.0.
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.10.1
   Data       : 25/08/2026
   Título     : BUG FIX — VISÃO GERAL FICAVA CONGELADA APÓS TRATAR/REAGENDAR/ESTORNAR/EXCLUIR
@@ -1378,6 +1451,7 @@
             <h3 class="text-base font-bold">Novo item de controle</h3>
             <button type="button" data-action="fechar-form-controle" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
+        <div id="ic-modelos-sugeridos" class="hidden mb-3"></div>
         <div class="grid grid-cols-2 gap-2">
             <select id="ic-tipo" data-action-change="ic-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
                 <option value="seguro">Seguro</option>
@@ -1784,6 +1858,10 @@
                 <i data-lucide="list-tree" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Subtipos de item de controle</span>
             </button>
+            <button data-action="abrir-modelos-controle" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <i data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium" style="color:var(--ink)">Modelos de item de controle</span>
+            </button>
 
             <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
             <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
@@ -1867,6 +1945,50 @@
     </div>
 </div>
 
+<!-- ===================== MODAL — MODELOS DE ITEM DE CONTROLE POR ATIVO =====================
+     Pedido explícito, 25/08/2026 — templates de item de controle por
+     tipo de ativo (ex.: "Seguro veicular" pra tipo_ativo=veiculo, já
+     com frequência/antecedência sugeridas). Usado pelo atalho "Usar
+     modelo" no formulário de Novo item de controle (cofre-controles.js
+     aplicarModeloAoForm()) e, futuramente, pelo bot (ver
+     ESPECIFICACAO_FLUXO_DOCUMENTO_BOT). Lista agrupada por tipo de
+     ativo (renderizarModelosControle), mesmo espírito de Subtipos. -->
+<div id="modal-modelos-controle" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Modelos de item de controle</h3>
+            <button type="button" data-action="fechar-modelos-controle" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+            <select id="modelo-tipo-ativo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <select id="modelo-tipo" data-action-change="modelo-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
+                <option value="seguro">Seguro</option>
+                <option value="manutencao">Manutenção</option>
+                <option value="tributo">Tributo</option>
+            </select>
+            <select id="modelo-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2"></select>
+            <input id="modelo-titulo" placeholder="Título sugerido (ex.: Seguro veicular)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
+                <input type="number" min="1" id="modelo-freq-intervalo" placeholder="Ex.: 1" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <select id="modelo-freq-unidade" class="border-2 border-slate-300 rounded-lg p-2 text-xs self-end">
+                <option value="dia">Dia(s)</option>
+                <option value="semana">Semana(s)</option>
+                <option value="mes">Mês(es)</option>
+                <option value="ano" selected>Ano(s)</option>
+            </select>
+            <div class="col-span-2">
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Antecedência do alerta (dias) — sugestão</label>
+                <input type="number" min="0" id="modelo-antecedencia" value="30" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+        </div>
+        <button data-action="salvar-modelo-controle" class="w-full px-4 py-2 rounded-xl text-sm font-semibold text-white mb-2" style="background:var(--pine)">Adicionar modelo</button>
+        <p class="raiz-indicador-inline mb-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco pra um modelo de evento único. Modelos aparecem como atalho "Usar modelo" ao criar um item de controle nesse tipo de ativo.</p>
+        <div id="modelos-lista"></div>
+    </div>
+</div>
+
 <!-- C-1a (revisão DS) — toast é chrome de sistema (DS §15, camada 200–500),
      sempre por cima de qualquer modal; z-[80] convivia mal com os popups
      do Cofre (60) e ficaria encoberto assim que os overlays fossem
@@ -1876,4 +1998,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 1879 (cofre.html) — recontado na v1.10.1; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2001 (cofre.html) — recontado na v1.11.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

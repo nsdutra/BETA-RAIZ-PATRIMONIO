@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.0 · 25/08/2026
+// Versão: 1.4.0 · 25/08/2026
+//
+// v1.4.0 — MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (pedido
+// explícito): listarModelosItemControle()/criarModeloItemControle() —
+// mesmo padrão de escopo (global + cliente) de listarSubtiposControle.
+// Depende de migration cofre_modelos_item_controle_v1.
 //
 // v1.3.0 — GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (pedido explícito):
 // nova criarSubtipoControle() — sempre grava com cliente_id do tenant
@@ -369,6 +374,23 @@ export async function listarSubtiposControle(clienteId) {
         .order('tipo').order('nome');
     if (error) throw error;
     return data || [];
+}
+
+// Modelos de item de controle por tipo de ativo (pedido explícito,
+// 25/08/2026) — mesmo padrão de escopo que listarSubtiposControle()
+// (global + do cliente). Usado pra pré-preencher a criação de item de
+// controle a partir do tipo de ativo (App e, futuramente, bot).
+export async function listarModelosItemControle(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_modelos_item_controle').select('*, cofre_controle_subtipos(nome)')
+        .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true)
+        .order('tipo_ativo').order('tipo');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function criarModeloItemControle(payload) {
+    const { error } = await dbAuth.from('cofre_modelos_item_controle').insert(payload);
+    if (error) throw error;
 }
 
 // Novo subtipo de controle (pedido explícito, 25/08/2026 — gestão de

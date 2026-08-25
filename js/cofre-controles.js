@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.1 · 25/08/2026
+// Versão: 1.6.0 · 25/08/2026
+//
+// v1.6.0 — MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (pedido
+// explícito): nova seção completa — abrirModelosControle()/
+// fecharModelosControle()/salvarModeloControle()/
+// renderizarModelosControle()/aoMudarTipoModeloControleForm() (mesmo
+// padrão UX de Subtipos, mais campos). abrirFormControle() agora
+// também carrega modelosCache e mostra pills "Usar modelo" filtradas
+// pelo tipo_ativo do ativo em foco; nova aplicarModeloAoForm()
+// pré-preenche o formulário de criação a partir do modelo escolhido.
 //
 // v1.5.1 — BUG FIX CRÍTICO (achado pelo usuário): confirmarTratarOcorrencia/
 // confirmarReagendarOcorrencia/confirmarEstornarOcorrencia/
@@ -85,10 +94,11 @@ import { mostrarToast, refrescarIcones, abrirModal, fecharModal } from './cofre-
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
-    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia,
+    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo,
 } from './cofre-validacoes.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
+let modelosCache = null; // idem, pros modelos de item de controle por tipo de ativo
 let itensDoAtivoAtual = [];
 let itemEmFoco = null;
 let ocorrenciaEmAcao = null; // { ocorrenciaId, modo: 'tratar'|'reagendar'|'estornar' }
@@ -525,6 +535,10 @@ export async function abrirFormControle() {
         try { subtiposCache = await api.listarSubtiposControle(estado.clienteId); }
         catch (err) { mostrarToast('Erro ao carregar catálogo: ' + err.message, 'erro'); return; }
     }
+    if (!modelosCache) {
+        try { modelosCache = await api.listarModelosItemControle(estado.clienteId); }
+        catch (err) { modelosCache = []; /* não bloqueia a criação manual se os modelos falharem ao carregar */ }
+    }
     document.getElementById('ic-tipo').value = 'seguro';
     popularSelectSubtipo('seguro');
     document.getElementById('ic-titulo').value = '';
@@ -534,7 +548,36 @@ export async function abrirFormControle() {
     document.getElementById('ic-freq-intervalo').value = '';
     document.getElementById('ic-freq-unidade').value = 'mes';
     document.getElementById('ic-antecedencia').value = '7';
+    renderizarModelosSugeridosForm();
     abrirModal('modal-criar-item-controle');
+}
+
+// Modelos sugeridos (pedido explícito, 25/08/2026) — pills clicáveis no
+// topo do formulário, filtradas pelo tipo_ativo do ativo em foco. Clicar
+// aplica os campos do modelo (aplicarModeloAoForm) — usuário ainda pode
+// ajustar tudo antes de salvar, é só um atalho de preenchimento.
+function renderizarModelosSugeridosForm() {
+    const el = document.getElementById('ic-modelos-sugeridos');
+    const ativo = estado.ativoEmFoco;
+    const modelos = (modelosCache || []).filter(m => m.tipo_ativo === ativo?.tipo_ativo);
+    if (!ativo || !modelos.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+    el.classList.remove('hidden');
+    el.innerHTML = `<p class="text-[11px] font-semibold mb-1" style="color:var(--sage)">Usar modelo</p>
+        <div class="flex flex-wrap gap-1.5">
+            ${modelos.map(m => `<button type="button" data-action="usar-modelo-controle" data-id="${m.id}" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300">${escapeHtml(m.titulo_sugerido)}</button>`).join('')}
+        </div>`;
+}
+
+export function aplicarModeloAoForm(modeloId) {
+    const m = (modelosCache || []).find(x => x.id === modeloId);
+    if (!m) return;
+    document.getElementById('ic-tipo').value = m.tipo;
+    popularSelectSubtipoEm('ic-subtipo', m.tipo, m.subtipo_id);
+    document.getElementById('ic-titulo').value = m.titulo_sugerido;
+    document.getElementById('ic-freq-intervalo').value = m.frequencia_intervalo || '';
+    if (m.frequencia_unidade) document.getElementById('ic-freq-unidade').value = m.frequencia_unidade;
+    document.getElementById('ic-antecedencia').value = m.antecedencia_alerta_dias;
+    mostrarToast(`Modelo "${m.titulo_sugerido}" aplicado — só falta a data início.`);
 }
 
 export function fecharFormControle() {
@@ -759,4 +802,87 @@ function renderizarSubtiposControle() {
             </div>`).join('')}
         </div>`;
     }).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhum subtipo cadastrado ainda.</p>`;
+}
+
+// ============================================================================
+// MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (configuração — pedido
+// explícito, 25/08/2026). Mesmo padrão UX de Subtipos, com mais campos
+// (é um template do item inteiro, não só um nome). Usado pelo atalho
+// "Usar modelo" em abrirFormControle() acima e, futuramente, pelo bot
+// (ver ESPECIFICACAO_FLUXO_DOCUMENTO_BOT). Precisou de tabela e policy
+// novas — cofre_modelos_item_controle_v1.
+// ============================================================================
+const TIPOS_ATIVO_ORDEM = ['veiculo', 'veiculo_blindado', 'imovel', 'terreno', 'obra_arte', 'vida_protecao', 'outro'];
+
+export async function abrirModelosControle() {
+    try {
+        if (!subtiposCache) subtiposCache = await api.listarSubtiposControle(estado.clienteId);
+        modelosCache = await api.listarModelosItemControle(estado.clienteId);
+    } catch (err) {
+        mostrarToast('Erro ao carregar modelos: ' + err.message, 'erro');
+        return;
+    }
+    document.getElementById('modelo-tipo-ativo').innerHTML = TIPOS_ATIVO_ORDEM.map(t => `<option value="${t}">${escapeHtml(rotuloTipoAtivo(t))}</option>`).join('');
+    document.getElementById('modelo-tipo').value = 'seguro';
+    popularSelectSubtipoEm('modelo-subtipo', 'seguro', null);
+    document.getElementById('modelo-titulo').value = '';
+    document.getElementById('modelo-freq-intervalo').value = '';
+    document.getElementById('modelo-freq-unidade').value = 'ano';
+    document.getElementById('modelo-antecedencia').value = '30';
+    renderizarModelosControle();
+    abrirModal('modal-modelos-controle');
+}
+
+export function fecharModelosControle() {
+    fecharModal('modal-modelos-controle');
+}
+
+export function aoMudarTipoModeloControleForm() {
+    popularSelectSubtipoEm('modelo-subtipo', document.getElementById('modelo-tipo').value, null);
+}
+
+export async function salvarModeloControle() {
+    const tipoAtivo = document.getElementById('modelo-tipo-ativo').value;
+    const tipo = document.getElementById('modelo-tipo').value;
+    const subtipoId = document.getElementById('modelo-subtipo').value || null;
+    const titulo = document.getElementById('modelo-titulo').value.trim();
+    const freqIntervalo = parseInt(document.getElementById('modelo-freq-intervalo').value, 10) || null;
+    const freqUnidade = freqIntervalo ? document.getElementById('modelo-freq-unidade').value : null;
+    const antecedencia = parseInt(document.getElementById('modelo-antecedencia').value, 10) || 0;
+    if (!titulo) { mostrarToast('Informe um título sugerido.', 'erro'); return; }
+    try {
+        await api.criarModeloItemControle({
+            cliente_id: estado.clienteId, tipo_ativo: tipoAtivo, tipo, subtipo_id: subtipoId, titulo_sugerido: titulo,
+            frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia,
+        });
+        mostrarToast('Modelo criado ✅');
+        document.getElementById('modelo-titulo').value = '';
+        document.getElementById('modelo-freq-intervalo').value = '';
+        modelosCache = await api.listarModelosItemControle(estado.clienteId);
+        renderizarModelosControle();
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// Agrupado por tipo de ativo (ordem fixa TIPOS_ATIVO_ORDEM), cada grupo
+// mostrando tipo/subtipo/frequência/antecedência numa linha só — mesmo
+// espírito de "itens a receber" (sem borda/fundo, divisor fino).
+function renderizarModelosControle() {
+    const grupos = {};
+    TIPOS_ATIVO_ORDEM.forEach(t => { grupos[t] = []; });
+    (modelosCache || []).forEach(m => { if (grupos[m.tipo_ativo]) grupos[m.tipo_ativo].push(m); });
+    const el = document.getElementById('modelos-lista');
+    el.innerHTML = TIPOS_ATIVO_ORDEM.map(tipoAtivo => {
+        const itens = grupos[tipoAtivo];
+        if (!itens.length) return '';
+        return `<div class="mb-3">
+            <p class="text-[11px] font-bold uppercase tracking-wide mb-1" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(tipoAtivo))}</p>
+            ${itens.map((m, idx) => `<div class="py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-bold">${escapeHtml(m.titulo_sugerido)}</span>
+                    ${m.cliente_id === null ? `<span class="text-[10px] flex-none" style="color:var(--sage)">padrão do sistema</span>` : ''}
+                </div>
+                <p class="text-[11px]" style="color:var(--sage)">${escapeHtml(rotuloTipoControle(m.tipo))}${m.cofre_controle_subtipos?.nome ? ' · ' + escapeHtml(m.cofre_controle_subtipos.nome) : ''} · ${escapeHtml(rotuloFrequencia(m.frequencia_intervalo, m.frequencia_unidade))} · avisa ${m.antecedencia_alerta_dias}d antes</p>
+            </div>`).join('')}
+        </div>`;
+    }).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhum modelo cadastrado ainda.</p>`;
 }
