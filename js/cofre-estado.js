@@ -2,6 +2,17 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
+// v1.8.0 — DECISÕES D-1 A D-6 CONFIRMADAS (2ª rodada da revisão DS). Ver
+// changelog completo em cofre.html. cofre-estado.js em si não mudou de
+// conteúdo — só o COFRE_VERSAO abaixo (bump obrigatório de sincronia).
+//
+// v1.7.0 — LOTE DE CONFORMIDADE COM O DESIGN SYSTEM (camada mecânica, sem
+// decisão de produto pendente). Ver changelog completo em cofre.html.
+// Nesta rodada, cofre-estado.js em si não mudou de conteúdo — só o
+// COFRE_VERSAO abaixo (bump obrigatório de sincronia, mesma regra de
+// sempre: qualquer entrega do módulo bump aqui, mesmo que este arquivo
+// específico não tenha linha alterada).
+//
 // v1.6.0 — CONCLUSÃO DA MIGRAÇÃO v6 (deixada pela metade numa sessão
 // anterior) + geração automática de 120 dias + lote de ajustes visuais
 // (largura da ficha, fonte da lista de ativos, box Dados em prosa,
@@ -40,7 +51,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.6.0';
+export const COFRE_VERSAO = '1.8.0';
 
 export const estado = {
     clienteId: null,

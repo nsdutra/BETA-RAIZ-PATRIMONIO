@@ -6,6 +6,114 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.61.6
+   LINHAS: 24541
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.61.6) — DECISÕES D-1/D-3 CONFIRMADAS (2ª rodada da
+   revisão REVISAO_DS_COFRE_IMOVEIS v1.0.0):
+
+     1) D-1 — "EXCLUIR" DEIXA DE SER EXCEÇÃO DE COR
+     - CORRIGIDO: `excluirContrato()` (painel "Mais ações" da Ficha do
+       Contrato, `#fc-mais-acoes`) era o ÚNICO lugar do App que seguia o
+       padrão antigo do DS (pill vermelha sem fundo). Decisão do
+       proprietário: "Excluir" vira cinza uniforme em todo o sistema —
+       Design System v2.1.0 §8.3/§12 atualizados, regra da "exceção" foi
+       removida (agora não existe mais nenhuma exceção de cor dentro do
+       painel de Mais ações). Não alterados: os botões de excluir em
+       telas de configuração (Empreendimentos/Tipos de Imóvel/Minutas/
+       Administradoras/Síndicos/Manutencistas) e os de Financeiro/
+       Divisão — são um padrão visual DIFERENTE (ícone circular
+       standalone em linha de lista, não pill de "Mais ações"), fora do
+       escopo desta decisão.
+
+     2) D-3 — ARQUITETURA DE POPUP: nenhuma mudança de código aqui
+       (decisão "Cofre segue o padrão do Imóveis" afeta cofre.html/js,
+       não o App — ver changelog do cofre.html v1.8.0).
+
+     - Arquivos alterados: index.html (linha 17260 — 1 pill).
+
+   VERSÃO: Beta v1.61.5
+   LINHAS: 24515
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.61.5) — LOTE DE CONFORMIDADE COM O DESIGN SYSTEM
+   (revisão REVISAO_DS_COFRE_IMOVEIS v1.0.0, decisões confirmadas pelo
+   proprietário: I-1, I-2, I-3, I-4, I-5, I-7). Zero mudança de
+   comportamento visível ao usuário final — só nomenclatura, tokens de
+   cor, semântica de tag e um bug latente de navegação corrigido
+   preventivamente.
+
+     1) I-1 — PADRONIZAÇÃO DE NOME DE FUNÇÃO
+     - RENOMEADO: formatarMoeda() → formatarMoedaBR() em TODO o arquivo
+       (14 ocorrências: definição + 13 chamadas). O Design System sempre
+       documentou formatarMoedaBR() como nome oficial (§11.4, checklist de
+       DoD §20); o código divergia do próprio documento que devia
+       descrevê-lo. Nenhuma mudança de comportamento — só nome.
+
+     2) I-2 — HEX SOLTOS SUBSTITUÍDOS POR TOKEN
+     - CORRIGIDO: 5 ocorrências de #059669/#dc2626/#fee2e2 hardcoded
+       (ícone de mensalidade paga/pendente na ficha do imóvel, X de
+       remover foto, "Total: X%" e botão de remover linha na Divisão
+       Societária) substituídas por var(--success)/var(--danger)/
+       var(--danger-bg). Visual idêntico (tokens têm valor de cor bem
+       próximo do hex anterior); daqui pra frente qualquer ajuste de
+       paleta de sucesso/erro é 1 lugar só (:root), não N ocorrências
+       soltas pelo arquivo.
+
+     3) I-3 — BADGE DE ENERGIA: NOVA CATEGORIA "BADGE DE ATRIBUTO"
+     - NOVO: classe utilitária `.raiz-badge-atributo` (usa
+       var(--warning-bg)/var(--warning) — reaproveita token existente,
+       nenhum hex novo), substituindo as 3 ocorrências internas de
+       bg-yellow-100/text-yellow-800 (renderImoveis/renderContratos/
+       renderVitrine). A badge do formulário PÚBLICO da Vitrine (fora do
+       app autenticado, template próprio) foi mantida como estava —
+       fora do escopo do Design System interno.
+     - Categoria "badge de atributo" (distinta de badge de STATUS, §14)
+       documentada no Design System v2.1.0 §14.1: usada quando o dado é
+       uma característica do registro (ex.: "tem energia própria"), não
+       um estado de fluxo.
+
+     4) I-4 — SEMÂNTICA DE TAG NO CARD DO IMÓVEL
+     - CORRIGIDO: `<h2 class="text-xs...">` do nome do
+       empreendimento/tipo dentro do card virou `<h3>` — um `h2` a 12px
+       não é "título de tela secundária" (DS §2, que reserva h2 pra
+       text-lg). Sem mudança visual (a fonte/tamanho vêm só da classe).
+
+     5) I-5c — "VOLTAR" DA FICHA DO IMÓVEL RESPEITA A ORIGEM REAL
+     - CORRIGIDO (preventivo — sem bug visível ainda, mas trap latente):
+       voltarDaFichaImovel() ia sempre pra tab-imoveis, fixo.
+       abrirFichaImovel() é chamada de vários pontos além da lista de
+       Imóveis (Ficha do Contrato, retorno pós-conciliação, etc. — ver
+       linhas 13740/16873/17128/18069) — se um card de fora de Imóveis
+       abrisse a ficha, o "< Voltar" mentia sobre a origem. NOVO: variável
+       `fichaImovelOrigemTab`, gravada só quando a navegação vem de fora
+       da própria ficha (não se perde ao reabrir após salvar edição).
+       Fallback pro TAB_PARENT_MAP se a origem não for capturada por
+       algum motivo. Alinhado à DS §4.2 ("destino sempre real, nunca
+       fixo").
+     - NÃO ALTERADO nesta versão (decisão do proprietário, ver DS
+       v2.1.0): o rótulo do botão continua "Imóveis" (não "Voltar") e a
+       ficha continua sem `<h2>` de título — o Design System é que foi
+       corrigido pra descrever esse padrão como legítimo, em vez do
+       código ser forçado a imitar o texto genérico do documento.
+
+     6) I-7 — PAINEL DE MAIS AÇÕES DO BOX FINANCEIRO
+     - CORRIGIDO: `#fi-financeiro-acoes` ganhou `flex-wrap gap-1.5`
+       (fazia falta desde sempre, só não quebrava com 1 pill só). Segue
+       DS §8.3 à risca agora — pronto pra uma 2ª pill futura sem gambiarra.
+
+     - Arquivos alterados: index.html (LINHAS: 24399→24433).
+     - Nenhuma migration, nenhum deploy de bot nesta rodada.
+
+   NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido):
+     - I-6 (documentar "bloco interno" no DS) — fica só no documento
+       (DS v2.1.0 §17), não exige mudança de código.
+     - Itens do Cofre (C-*) — ver changelog próprio do cofre.html v1.7.0
+       nesta mesma entrega.
+     - Decisões D-1 a D-6 (cor de Excluir, chips vs badges, arquitetura
+       de popup do Cofre, itens "em breve" do menu, box Contatos
+       vinculados) seguem pendentes de confirmação — ver seção própria
+       na resposta desta rodada.
+
    VERSÃO: Beta v1.61.4
    LINHAS: 24399
    DATA: 2026-08-25
@@ -4193,6 +4301,16 @@
            mesma cascade de .hidden usada no resto do app. */
         #form-imovel-wrapper:not(.hidden) { display: flex; }
 
+        /* v1.61.5 — Badge de ATRIBUTO (não confundir com badge de STATUS
+           da §14 do DS). Categoria nova, documentada em DS v2.1.0 §14.1:
+           usada quando o dado é uma característica do registro (ex.:
+           "tem energia própria"), não um estado do fluxo (Vago/Alugado/
+           etc.). Reaproveita o par --warning já existente — nunca um hex
+           novo — só para não competir visualmente com os 4 status reais.
+           Substitui os antigos bg-yellow-100/text-yellow-800 hardcoded
+           (3 ocorrências: renderImoveis/renderContratos/renderVitrine). */
+        .raiz-badge-atributo { background: var(--warning-bg); color: var(--warning); }
+
         /* Tokens de marca — usar nos componentes novos (toast, onboarding, badges).
            Mesmos valores da landing page (www.raizpatrimonio.com.br). */
         :root{
@@ -7373,7 +7491,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.61.4";
+        const APP_VERSAO = "Beta v1.61.6";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -10706,7 +10824,7 @@
 
         // apareciam sem tratamento na tela após recarregar a página.
 
-        function formatarMoeda(valor) {
+        function formatarMoedaBR(valor) {
 
             const n = parseFloat(valor);
 
@@ -11341,7 +11459,7 @@
 
                     <img src="${base64Data}" onclick="abrirLightboxGeral(fotosCarregadasBase64, ${idxFoto})" class="w-10 h-10 object-cover rounded border cursor-pointer active:scale-90 transition">
 
-                    <button type="button" onclick="removerFotoImovel(${idxFoto})" title="Remover" class="absolute flex items-center justify-center leading-none font-bold" style="top:-4px; right:-4px; width:14px; height:14px; font-size:9px; background:#dc2626; color:#fff; border-radius:9999px; border:1.5px solid #fff;"><svg data-lucide="x" style="width:14px;height:14px"></svg></button>
+                    <button type="button" onclick="removerFotoImovel(${idxFoto})" title="Remover" class="absolute flex items-center justify-center leading-none font-bold" style="top:-4px; right:-4px; width:14px; height:14px; font-size:9px; background:var(--danger); color:#fff; border-radius:9999px; border:1.5px solid #fff;"><svg data-lucide="x" style="width:14px;height:14px"></svg></button>
 
                 </div>
 
@@ -14781,7 +14899,7 @@
                 imovel_empreendimento: imo?.empreendimento || '',
                 imovel_tipo: imo?.tipo || '',
                 imovel_descricao: imo?.descricao || '',
-                aluguel_valor: con?.valor ? formatarMoeda(con.valor) : '',
+                aluguel_valor: con?.valor ? formatarMoedaBR(con.valor) : '',
                 aluguel_vencimento_dia: con?.vencimentoDia || '',
                 contrato_inicio: con?.inicio ? formatarDataBR(con.inicio) : '',
                 contrato_fim: con?.fim ? formatarDataBR(con.fim) : '',
@@ -15274,7 +15392,7 @@
 
                     const endExibivel = `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''} ${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}, ${imo.enderecoCidade || ''}`;
 
-                    const badgeEnergia = imo.energiaRumo === 'Sim' ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800 ml-1"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>` : '';
+                    const badgeEnergia = imo.energiaRumo === 'Sim' ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo ml-1"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>` : '';
 
                     const linha2 = `${endExibivel}${imo.descricao ? ' — ' + imo.descricao : ''}`;
 
@@ -15459,6 +15577,14 @@
         // ===================================================================
         let fichaImovelAtualId = null;
 
+        // v1.61.5 (I-5c, revisão DS) — guarda a aba de origem REAL de onde
+        // a Ficha do Imóvel foi aberta (Imóveis, Ficha do Contrato, etc.),
+        // pra "< Voltar" respeitar DS §4.2 ("nunca um valor fixo"). Só é
+        // atualizada quando abrirFichaImovel() é chamada a partir de uma
+        // aba diferente de tab-imovel-ficha — reabrir a própria ficha (ex.:
+        // depois de salvar uma edição) não deve "esquecer" a origem original.
+        let fichaImovelOrigemTab = null;
+
         // v1.55.0 — CORRIGIDO: mantida (mesmo sem mais chamador ativo desde
         // que "Detalhes" virou popup próprio, não passa mais por
         // editarImovel()) porque cancelarEdicaoImovel() ainda a referencia
@@ -15533,7 +15659,7 @@
                 situacaoDireita = '';
             } else {
                 situacaoEsquerda = (principal.locatario || '-') + (principal.status !== 'Ativo' ? ` · ${principal.status}` : '');
-                situacaoDireita = formatarMoeda(principal.valor);
+                situacaoDireita = formatarMoedaBR(principal.valor);
             }
 
             return `
@@ -15542,7 +15668,7 @@
                         ${foto ? `<img src="${foto}" class="w-full h-full object-cover">` : `<svg data-lucide="home" style="width:20px;height:20px"></svg>`}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h2 class="text-xs font-extrabold text-emerald-950 truncate">${imo.empreendimento || 'Canaã'} · ${imo.tipo}</h2>
+                        <h3 class="text-xs font-extrabold text-emerald-950 truncate">${imo.empreendimento || 'Canaã'} · ${imo.tipo}</h3>
                         <div class="text-xs text-slate-500">${endExibivel}</div>
                         <div class="flex items-center justify-between gap-2 mt-1">
                             <span class="text-xs text-slate-700 truncate">${situacaoEsquerda}</span>
@@ -15556,6 +15682,15 @@
         function abrirFichaImovel(id) {
 
             fichaImovelAtualId = id;
+
+            // v1.61.5 (I-5c) — só grava a origem se estamos vindo de fora
+            // da própria ficha (evita perder a origem real ao reabrir após
+            // salvar uma edição, ver linhas 13740/13912/14656/16393).
+            const abaAtivaAntes = document.querySelector('.tab-content.active')?.id;
+            if (abaAtivaAntes && abaAtivaAntes !== 'tab-imovel-ficha') {
+                fichaImovelOrigemTab = abaAtivaAntes;
+            }
+
             const imo = imoveis.find(i => i.id === id);
             if (!imo) { alert('Imóvel não encontrado.'); return; }
 
@@ -15722,8 +15857,15 @@
         }
 
         function voltarDaFichaImovel() {
+            // v1.61.5 (I-5c, revisão DS §4.2) — antes ia sempre pra
+            // tab-imoveis, fixo. Agora respeita a aba de origem real
+            // (ex.: aberta a partir da Ficha do Contrato deve voltar pra
+            // lá, não pra Imóveis) — fallback pro mapa estático apenas se
+            // a origem não foi capturada por algum motivo.
+            const destino = fichaImovelOrigemTab || TAB_PARENT_MAP['tab-imovel-ficha'] || 'tab-imoveis';
             fichaImovelAtualId = null;
-            switchTab('tab-imoveis');
+            fichaImovelOrigemTab = null;
+            switchTab(destino);
         }
 
         // ===================================================================
@@ -15781,15 +15923,15 @@
                     <div class="mt-1.5">
                     ${mensalidadesDoImovel.map(m => `
                         <div class="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
-                            <svg data-lucide="${m.status==='Pago'?'check-circle-2':'clock'}" style="width:14px;height:14px;flex:none;color:${m.status==='Pago'?'#059669':'#dc2626'}"></svg>
+                            <svg data-lucide="${m.status==='Pago'?'check-circle-2':'clock'}" style="width:14px;height:14px;flex:none;color:${m.status==='Pago'?'var(--success)':'var(--danger)'}"></svg>
                             <div class="flex-1 min-w-0 text-xs font-bold truncate">${m.referencia || '-'} <span class="font-normal text-slate-400">· ${m.status === 'Pago' ? 'Pago' : 'Pendente'}</span></div>
-                            <div class="text-xs font-bold flex-none">${formatarMoeda(m.valorConfirmado)}</div>
+                            <div class="text-xs font-bold flex-none">${formatarMoedaBR(m.valorConfirmado)}</div>
                         </div>`).join('')}
                     </div>
                     <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                         <button onclick="alternarMaisAcoesFinanceiroFicha()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fi-financeiro-seta" style="width:13px;height:13px"></svg></button>
                     </div>
-                    <div id="fi-financeiro-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex justify-end">
+                    <div id="fi-financeiro-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
                         <button onclick="abrirFinanceiroFiltradoImovel('${imo.id}', '${(imo.empreendimento || '-').replace(/'/g, "")}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="wallet" style="width:11px;height:11px"></svg> Financeiro</button>
                     </div>
                 </div>`;
@@ -15880,7 +16022,7 @@
                             ${temAlerta ? `<button onclick="verAlertasContrato('${con.id}')" title="Ver alerta" class="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center flex-none"><svg data-lucide="triangle-alert" style="width:13px;height:13px"></svg></button>` : ''}
                         </div>
                     </div>
-                    <p class="text-xs font-bold mt-1.5">${con.locatario || '-'} · ${formatarMoeda(con.valor)}/mês</p>
+                    <p class="text-xs font-bold mt-1.5">${con.locatario || '-'} · ${formatarMoedaBR(con.valor)}/mês</p>
                     ${vigenciaTxt ? `<p class="text-[11px] text-slate-500 mt-1">Vigência: ${vigenciaTxt}</p>` : ''}
                     ${adm ? `<p class="text-[11px] text-slate-500">Administradora: ${adm.nome}</p>` : ''}
                     ${con.status === 'Assinando' ? `<p class="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2">Gerado pelo formulário público da Vitrine, aguardando revisão e assinatura.</p>` : ''}
@@ -15988,7 +16130,7 @@
                         <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Reajuste do Contrato</h3>
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
-                    <p style="font-size:11px;color:#64748b;margin-bottom:10px;">Valor atual: ${formatarMoeda(con.valor)}/mês</p>
+                    <p style="font-size:11px;color:#64748b;margin-bottom:10px;">Valor atual: ${formatarMoedaBR(con.valor)}/mês</p>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Novo valor (R$)</label><input type="number" step="0.01" id="rj-valor" oninput="calcularPctReajustePopup(${con.valor})" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
                         <div><label style="font-size:11px;font-weight:bold;color:#64748b;">% Reajuste</label><input type="number" step="0.01" id="rj-pct" oninput="calcularValorReajustePopup(${con.valor})" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
@@ -16036,7 +16178,7 @@
                 }).eq('id', contratoId);
                 if (error) throw error;
 
-                let descricao = `Reajuste de aluguel: ${formatarMoeda(valorAntigo)} → ${formatarMoeda(novoValor)} (${pct >= 0 ? '+' : ''}${pct}%), vigente desde ${formatarDataBR(vigencia)}.`;
+                let descricao = `Reajuste de aluguel: ${formatarMoedaBR(valorAntigo)} → ${formatarMoedaBR(novoValor)} (${pct >= 0 ? '+' : ''}${pct}%), vigente desde ${formatarDataBR(vigencia)}.`;
                 if (obs) descricao += ' ' + obs;
 
                 const { data: inserida, error: errHist } = await dbAuth.from('historico_contrato').insert({ contrato_id: contratoId, tipo: 'reajuste', descricao }).select().single();
@@ -16572,13 +16714,13 @@
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Locatário paga IPTU</label>
                                 <select id="mdt-iptu" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
                                     <option value="Não" ${con.locatarioPagaIptu!=='Sim'?'selected':''}>Não</option>
-                                    <option value="Sim" ${con.locatarioPagaIptu==='Sim'?'selected':''}>Sim (${formatarMoeda(imo?imo.iptu:0)})</option>
+                                    <option value="Sim" ${con.locatarioPagaIptu==='Sim'?'selected':''}>Sim (${formatarMoedaBR(imo?imo.iptu:0)})</option>
                                 </select>
                             </div>
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Locatário paga condomínio</label>
                                 <select id="mdt-condominio" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
                                     <option value="Não" ${con.condominioLocatario!=='Sim'?'selected':''}>Não</option>
-                                    <option value="Sim" ${con.condominioLocatario==='Sim'?'selected':''}>Sim (${formatarMoeda(imo?imo.condominio:0)})</option>
+                                    <option value="Sim" ${con.condominioLocatario==='Sim'?'selected':''}>Sim (${formatarMoedaBR(imo?imo.condominio:0)})</option>
                                 </select>
                             </div>
                         </div>
@@ -16660,7 +16802,7 @@
                     ${antigos.length === 0 ? `<p style="font-size:12px;color:#94a3b8;">Nenhum contrato finalizado para este imóvel.</p>` : antigos.map(con => `
                         <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;">
                             <p style="font-size:12px;font-weight:bold;">${con.locatario || '-'}</p>
-                            <p style="font-size:11px;color:#64748b;">${formatarDataBR(con.inicio)} até ${formatarDataBR(con.fim)} · ${formatarMoeda(con.valor)}/mês</p>
+                            <p style="font-size:11px;color:#64748b;">${formatarDataBR(con.inicio)} até ${formatarDataBR(con.fim)} · ${formatarMoedaBR(con.valor)}/mês</p>
                             <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
                                 <button onclick="abrirDadosLocatarioContrato('${con.id}')" style="font-size:10px;font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Dados locatário</button>
                                 <button onclick="abrirDetalhesContrato('${con.id}')" style="font-size:10px;font-weight:bold;padding:5px 10px;border-radius:9999px;background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;">Detalhes</button>
@@ -16994,8 +17136,8 @@
                 <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
                     <input type="text" value="${(s.nome || '').replace(/"/g, '')}" oninput="dvsAtualizarNome('${tipo}', ${i}, this.value)" placeholder="Nome" style="flex:1;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
                     <input type="number" value="${s.pct}" oninput="dvsAtualizarPct('${tipo}', ${i}, this.value)" placeholder="%" style="width:70px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
-                    <button onclick="dvsRemoverLinha('${tipo}', ${i})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;width:28px;height:28px;flex:none;">✕</button>
-                </div>`).join('') + `<p style="font-size:11px;font-weight:bold;color:${Math.abs(total - 100) < 0.01 ? '#059669' : '#dc2626'};">Total: ${total.toFixed(1)}%</p>`;
+                    <button onclick="dvsRemoverLinha('${tipo}', ${i})" style="background:var(--danger-bg);color:var(--danger);border:none;border-radius:6px;width:28px;height:28px;flex:none;">✕</button>
+                </div>`).join('') + `<p style="font-size:11px;font-weight:bold;color:${Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'};">Total: ${total.toFixed(1)}%</p>`;
         }
 
         function dvsAdicionarLinha(tipo) {
@@ -17014,7 +17156,7 @@
             arr[i].pct = parseFloat(valor) || 0;
             const total = arr.reduce((s, x) => s + (parseFloat(x.pct) || 0), 0);
             const p = document.querySelector(`#dvs-lista-${tipo} p`);
-            if (p) { p.textContent = `Total: ${total.toFixed(1)}%`; p.style.color = Math.abs(total - 100) < 0.01 ? '#059669' : '#dc2626'; }
+            if (p) { p.textContent = `Total: ${total.toFixed(1)}%`; p.style.color = Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'; }
         }
 
         async function salvarDivisaoImovelPopup(imovelId) {
@@ -17119,7 +17261,7 @@
                         </div>
                         <span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none ${corBadge}">${con.status}</span>
                     </div>
-                    <div class="text-lg font-black mt-2">${formatarMoeda(con.valor)}<span class="text-xs font-bold text-slate-400">/mês</span></div>
+                    <div class="text-lg font-black mt-2">${formatarMoedaBR(con.valor)}<span class="text-xs font-bold text-slate-400">/mês</span></div>
                     ${con.status === 'Assinando' ? `
                         <p class="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2">Gerado pelo formulário público da Vitrine, aguardando revisão e assinatura.</p>
                     ` : `
@@ -17141,7 +17283,7 @@
                         <button onclick="verHistoricoContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="history" style="width:11px;height:11px"></svg> Histórico (${(con.historico || []).length})</button>
                         ${con.status === 'Assinando' && prontidaoFicha.pronto ? `<button onclick="gerarMinutaContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Gerar Minuta</button>` : ''}
                         ${temAlertaFicha ? `<button onclick="verAlertasContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="triangle-alert" style="width:11px;height:11px"></svg> Ver alertas</button>` : ''}
-                        <button onclick="excluirContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full text-red-600 flex items-center gap-1"><svg data-lucide="trash-2" style="width:11px;height:11px"></svg> Excluir</button>
+                        <button onclick="excluirContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trash-2" style="width:11px;height:11px"></svg> Excluir</button>
                     </div>
                 </div>
 
@@ -17152,7 +17294,7 @@
                         <div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
                             <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-none ${m.status==='Pago'?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-700'}"><svg data-lucide="${m.status==='Pago'?'check':'clock'}" style="width:14px;height:14px"></svg></div>
                             <div class="flex-1 min-w-0"><div class="text-xs font-bold">${m.referencia || '-'}</div><div class="text-[11px] text-slate-500">${m.status}</div></div>
-                            <div class="text-xs font-bold">${formatarMoeda(m.valorConfirmado)}</div>
+                            <div class="text-xs font-bold">${formatarMoedaBR(m.valorConfirmado)}</div>
                         </div>`).join('') : `<p class="text-xs text-slate-500">Nenhum recebimento lançado ainda.</p>`}
                     </div>
                     <button onclick="document.getElementById('men-filtro-imovel').value='${con.imovelId}'; document.getElementById('men-filtro-imovel-resumo').textContent='${(imo ? imo.empreendimento : '-').replace(/'/g, "")}'; switchTab('tab-mensal'); renderMensalidades();" class="w-full text-xs font-bold text-slate-500 py-2 mt-1">Ver financeiro completo →</button>
@@ -17217,7 +17359,7 @@
                 el.innerHTML = `
                     <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-green-500">
                         <p class="text-sm font-bold text-gray-900">${con.locatario}</p>
-                        <p class="text-xs text-gray-500 mt-0.5">Ref: ${men.referencia} | ${formatarMoeda(men.valorConfirmado)} (${men.banco} - ${formatarDataBR(men.dataPgto)})</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Ref: ${men.referencia} | ${formatarMoedaBR(men.valorConfirmado)} (${men.banco} - ${formatarDataBR(men.dataPgto)})</p>
                         ${localImovel ? `<p class="text-xs text-gray-400 mt-1"><svg data-lucide="map-pin" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> ${localImovel}</p>` : ''}
                         ${log}${txtObs}${txtObsRecibo}${txtEnergia}
                         <div class="flex gap-2 mt-3">
@@ -18490,7 +18632,7 @@
                 // fileira de ações, ao lado de editar/histórico/excluir.
                 const alertaIcone = temAlerta ? `<button type="button" onclick="verAlertasContrato('${con.id}')" title="Ver alertas deste contrato" class="w-7 h-7 flex items-center justify-center bg-red-100 text-red-700 rounded-full border border-red-300 animate-pulse"><svg data-lucide="alert-triangle" style="width:14px;height:14px"></svg></button>` : '';
 
-                const badgeEnergia = (imo && imo.energiaRumo === 'Sim' && con.descontoEnergia > 0) ? `<span title="Energia com desconto" class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>` : '';
+                const badgeEnergia = (imo && imo.energiaRumo === 'Sim' && con.descontoEnergia > 0) ? `<span title="Energia com desconto" class="text-[11px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>` : '';
 
                 const badgeAnexos = (con.anexos && con.anexos.length > 0) ? `<span title="Contrato tem anexos" class="text-[11px]"><svg data-lucide="paperclip" style="width:11px;height:11px"></svg></span>` : '';
 
@@ -18514,7 +18656,7 @@
 
                             <p class="text-xs font-bold text-slate-900 truncate min-w-0">${badgeStatus} ${badgeEnergia} 👤 ${con.locatario} ${badgeAnexos}</p>
 
-                            <span class="text-sm font-black flex-none text-slate-900">${formatarMoeda(con.valor)}</span>
+                            <span class="text-sm font-black flex-none text-slate-900">${formatarMoedaBR(con.valor)}</span>
 
                         </div>
 
@@ -22244,7 +22386,7 @@
 
                 const badgeEnergia = imo.energiaRumo === 'Sim'
 
-                    ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800 ml-1"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>`
+                    ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo ml-1"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>`
 
                     : '';
 

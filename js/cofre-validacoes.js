@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.3 · 24/08/2026
+// Versão: 1.2.0 · 25/08/2026
+//
+// v1.2.0 — D-2 (revisão DS, decisão do proprietário: "chips migram pro
+// [badge] do Imóveis"): chipVencimento() migrada do sistema de pill
+// próprio do Cofre (classe chip-*, ver cofre.html) pro badge OFICIAL do
+// Design System §14 — mesmas classes Tailwind literais do App (não um
+// equivalente reaproximado). 4 constantes novas EXPORTADAS
+// (BADGE_NEUTRO/BADGE_ALERTA/BADGE_PENDENTE/BADGE_OK), reaproveitadas em
+// cofre-ui.js e cofre-documentos.js — nenhum arquivo repete a string à
+// mão. `classe` retornado por chipVencimento() agora é a classe COMPLETA
+// (formato + cor); quem consome não prefixa mais com "chip ".
 //
 // v1.1.3 — removido campo `seguradora` de obra_arte/vida_protecao (seguro
 // agora é Item de Controle, não dado estruturado); `valor_estimado`
@@ -206,11 +216,23 @@ export function rotuloPapelContato(p) {
 }
 
 // Chip de urgência de vencimento — usado por dashboard/alertas/ficha.
+// D-2 (revisão DS, 25/08/2026) — migrado do sistema de pill próprio do
+// Cofre (classe chip-*, rounded-full 12px, tokens CSS custom) para o
+// badge OFICIAL do Design System §14: mesma formatação e MESMAS classes
+// Tailwind literais usadas no App (não um equivalente reaproximado — é
+// texto idêntico, copiado de montarCabecalhoImovelHtml()/badgeStatus de
+// contrato em index.html). `classe` agora já é a string completa
+// (formato + cor) — quem consome NÃO deve mais prefixar com "chip ".
+const RAIZ_BADGE = 'text-[11px] font-bold px-1.5 py-0.5 rounded';
+export const BADGE_NEUTRO = `${RAIZ_BADGE} bg-slate-100 text-slate-700`;   // "Demais/neutro" — tag de vínculo, não status
+export const BADGE_ALERTA = `${RAIZ_BADGE} bg-red-100 text-red-800`;      // vencido/restrito — mesmo par usado no badge de status "Cancelado" do Contrato (index.html)
+export const BADGE_PENDENTE = `${RAIZ_BADGE} bg-amber-100 text-amber-800`;
+export const BADGE_OK = `${RAIZ_BADGE} bg-green-100 text-green-800`;
 export function chipVencimento(diffDias) {
     if (diffDias === null || diffDias === undefined) return null;
-    if (diffDias < 0) return { classe: 'chip-vencido', texto: `Vencido há ${Math.abs(diffDias)}d` };
-    if (diffDias <= 30) return { classe: 'chip-proximo', texto: `Vence em ${diffDias}d` };
-    return { classe: 'chip-ok', texto: 'Em dia' };
+    if (diffDias < 0) return { classe: BADGE_ALERTA, texto: `Vencido há ${Math.abs(diffDias)}d` };
+    if (diffDias <= 30) return { classe: BADGE_PENDENTE, texto: `Vence em ${diffDias}d` };
+    return { classe: BADGE_OK, texto: 'Em dia' };
 }
 
 // Alertas DERIVADOS (v6, pedido explícito) — não existe mais cadastro de

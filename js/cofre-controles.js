@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 25/08/2026
+// Versão: 1.2.2 · 25/08/2026
+//
+// v1.2.2 — D-2 (revisão DS): badge de vencimento migrado pro formato
+// oficial §14 — "chip ${chip.classe}" (2 ocorrências) virou
+// "${chip.classe}" (classe já vem completa de chipVencimento(), sem
+// prefixo). Sem mudança de comportamento.
+//
+// v1.2.1 — DS C-8: alternarMaisAcoesControles() só fazia
+// classList.toggle, sem girar a seta (DS §8.2 exige rotação 180°/0° +
+// refrescarIcones()). Corpo canônico aplicado; depende do novo id
+// fa-mais-acoes-controles-seta no HTML (cofre.html v1.7.0).
 //
 // v1.2.0 — GERAÇÃO AUTOMÁTICA DE 120 DIAS (pedido explícito, previsto
 // desde a arquitetura original mas não implementado até agora): ao criar
@@ -81,14 +91,19 @@ function itemResumoHtml(item) {
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(subtituloSubtipo)}${oc ? ' · vence ' + formatarDataBR(oc.data_prevista_atual) : ''}</p>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
-            ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+            ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
             <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--sage)"></i>
         </div>
     </button>`;
 }
 
 export function alternarMaisAcoesControles() {
-    document.getElementById('fa-mais-acoes-controles')?.classList.toggle('hidden');
+    const el = document.getElementById('fa-mais-acoes-controles');
+    const seta = document.getElementById('fa-mais-acoes-controles-seta');
+    if (!el) return;
+    el.classList.toggle('hidden');
+    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    refrescarIcones();
 }
 
 // ============================================================================
@@ -169,7 +184,7 @@ function renderizarFichaItemControle() {
             return `<div class="raiz-bloco-interno mb-2">
                 <div class="flex items-center justify-between text-xs mb-2">
                     <span>${rotuloStatusOcorrencia(oc.status_execucao)} · vence ${formatarDataBR(oc.data_prevista_atual)}</span>
-                    ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+                    ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
                 </div>
                 ${oc.tratamento_descricao ? `<p class="text-xs mb-2" style="color:var(--sage)">Tratamento: ${escapeHtml(oc.tratamento_descricao)}</p>` : ''}
                 ${renderizarAcoesOcorrencia(oc)}

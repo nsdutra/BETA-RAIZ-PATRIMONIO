@@ -10,6 +10,265 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.8.0
+  Data       : 25/08/2026
+  Título     : DECISÕES D-1 A D-6 CONFIRMADAS — ARQUITETURA DE POPUP, BADGES, MENU
+  Base       : v1.7.0 (25/08/2026)
+  Linhas     : cofre.html = 1406 · js/cofre-api.js = 455 · js/cofre-app.js = 305 ·
+               js/cofre-ativos.js = 386 · js/cofre-controles.js = 504 ·
+               js/cofre-documentos.js = 652 · js/cofre-estado.js = 68 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 2948)
+
+  CHANGELOG v1.8.0 — 2ª rodada da revisão REVISAO_DS_COFRE_IMOVEIS v1.0.0.
+  Decisões do proprietário: D-1 (Excluir cinza), D-2 (chips migram pro
+  badge do Imóveis), D-3 (Cofre segue a arquitetura do Imóveis), D-4
+  (itens "em breve" mantêm selo), D-6 (Contatos vinculados mantém como
+  exceção). Cobre C-2 a C-5, C-8 (concluído), C-16, e a maior parte de
+  C-3/C-9. Pendências remanescentes no fim deste bloco.
+
+    1) D-1 — "EXCLUIR" CINZA EM 100% DO COFRE (confirmação)
+    - O Cofre já usava cinza desde a v1.6.0 (pedido explícito na época,
+      registrado como divergência do DS v2.0). Com a decisão do
+      proprietário, deixou de ser divergência — é a regra oficial.
+      CORRIGIDO o único resquício: "Excluir" na Ficha do Documento
+      (`excluir-documento-atual`) ainda usava borda/texto vermelho —
+      agora cinza igual a excluir-ativo-atual/excluir-item-controle-atual.
+      Comentário desatualizado em cofre-ativos.js (dizia "vermelho
+      discreto conforme DS §1") corrigido.
+
+    2) D-2 — CHIPS MIGRADOS PRO BADGE OFICIAL DO IMÓVEIS (§14)
+    - REMOVIDO: sistema de pill próprio do Cofre (.chip/.chip-vencido/
+      .chip-proximo/.chip-ok/.chip-empresa/.chip-restrito — rounded-full,
+      tokens CSS custom, 12px).
+    - NOVO: badge oficial §14 — MESMAS classes Tailwind literais do App
+      (`text-[11px] font-bold px-1.5 py-0.5 rounded` + bg-*-100/text-*-800),
+      copiadas de montarCabecalhoImovelHtml()/badgeStatus do Contrato em
+      index.html, não um equivalente reaproximado. cofre-validacoes.js
+      ganhou 4 constantes exportadas (BADGE_NEUTRO/BADGE_ALERTA/
+      BADGE_PENDENTE/BADGE_OK) reaproveitadas em cofre-ui.js e
+      cofre-documentos.js — nenhuma classe repetida à mão pela 2ª vez.
+    - MAPEAMENTO (§14 não tinha formalmente uma 5ª cor pra "vencido" —
+      mas o badge de status do Contrato em index.html:18639 JÁ usa
+      bg-red-100/text-red-800 pra "Cancelado", então não é cor nova,
+      é reaproveito de um par que já existia no App):
+        · Vencido / Restrito  → vermelho (bg-red-100 text-red-800)
+        · Vence em ≤30d / Em triagem → amber (Pendente/Aguardando)
+        · Em dia / Vinculado → verde (Concluído/Ativo)
+        · Empresa (geral) → slate (neutro — é tag de vínculo, não
+          status; NÃO usa azul pra não colidir com o significado de
+          "Assinando/Em processamento" que azul já tem no App)
+    - Documentado como extensão formal em DS v2.1.0 §14.1.
+    - Afetados: cofre-validacoes.js (chipVencimento), cofre-ui.js
+      (chipStatusVinculoHtml), cofre-documentos.js (5 pontos de uso +
+      novo helper local classeBadgeVinculo), cofre-ativos.js e
+      cofre-controles.js (troca de "chip ${x}" pra "${x}", classe já
+      vem completa).
+
+    3) D-3 — ARQUITETURA DE POPUP SEGUE O PADRÃO DO IMÓVEIS
+    - C-2 (X do modal): 10 ocorrências do X verde --pine 32px corrigidas.
+      8 pra o gabarito cinza Tipo A/B (#e2e8f0, 26px, "✕" texto plano,
+      sem SVG); modal-busca-global pro padrão &times; do §10 (igual ao
+      sibling modal-busca-ativos, que já estava certo); modal-menu-conta
+      pro X escuro emerald-900 do §6.
+    - C-3 (rodapé de modal): padronizado nos popups com footer de
+      Salvar/Fechar — flex:1, cores do gabarito exato (`background:
+      var(--pine)` pro primário, `background:#f1f5f9;color:#475569` pro
+      secundário, sem mais `border-2 border-slate-300`). Ordem corrigida
+      pra Tipo B (Fechar-esq/Salvar-dir): modal-criar-item-controle.
+      "Novo documento" (modal-upload) reclassificado como Tipo A
+      (cadastro completo, múltiplas seções) — ordem Salvar-esq/Fechar-
+      dir, z-index 65. modal-sugestoes-ia só precisou de estilo (ordem
+      já estava certa).
+    - C-4: "Novo ativo" convertido de painel inline (alternarToggle) pra
+      Tipo A bottom-sheet estático — z-65, `abrirFormAtivo()`/
+      `fecharFormAtivo()` novas (substituem `alternarFormAtivo()`),
+      botão "+" do cabeçalho voltou a ser gatilho simples §5 (não é
+      mais `.raiz-btn-toggle` — essa classe é só pra painel INLINE, um
+      modal não precisa colorir o botão depois de aberto).
+    - C-5: rodapé de "Criar item de controle" invertido pra Fechar-esq/
+      Salvar-dir (Tipo B).
+    - NOVO (achado durante a implementação, não estava listado como C-
+      item na revisão original): nenhum modal do Cofre fechava ao
+      clicar no backdrop — só X e Cancelar/Fechar. Corrigido de uma vez
+      só pra TODOS os modais via 1 regra no listener delegado de
+      cofre-app.js (clique literal no elemento `.modal-overlay`, nunca
+      por bubbling de filho sem handler — mesma guarda que o App faz
+      via `onclick="if(event.target===this)"`).
+    - C-8 (concluído nesta rodada, começado na v1.7.0): setas de "Mais
+      ações" (ativo/controles) já giravam; nada pendente.
+
+    4) C-16/D-4 — MENU ⚙️ RECONSTRUÍDO NO GABARITO §6
+    - Fundo `var(--paper)` (era branco), título "Configurações" (era
+      "Menu"), 3 grupos com header `--sage` uppercase (Serviços/
+      Cadastros/Conta — "Módulo Imóveis" ficou como item avulso no
+      topo, não pertence a nenhum grupo fixo do App). Selo "Em breve"
+      (D-4) adicionado nos 4 itens sem função ainda (Prestadores/
+      Pessoas/Minha empresa/Licença) — decisão do proprietário: manter
+      visíveis com selo, não ocultar.
+
+    5) D-6 — CONTATOS VINCULADOS: NENHUMA MUDANÇA DE CÓDIGO
+    - Decisão do proprietário: manter como está. Box "Contatos
+      vinculados" continua sempre visível mesmo vazio (2ª exceção
+      documentada, ao lado do box Contrato do Imóvel) — registrado em
+      DS v2.1.0 §16.
+
+    - Arquivos alterados: cofre.html (1240→1266), cofre-app.js
+      (284→298), cofre-ativos.js (353→376), cofre-ui.js (96→100),
+      cofre-validacoes.js (227→239), cofre-documentos.js (636→644).
+    - Nenhuma migration. Nenhuma mudança de contrato de dados (payload
+      de criarAtivo/criarItemControle idêntico — só a casca do modal
+      mudou).
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido — fica pra
+  v1.8.1+, nenhuma decisão pendente bloqueando, é só volume/risco):
+    - C-6 (slot dinâmico `modal-campo-contrato` do App nunca é usado no
+      Cofre — os popups continuam sendo `<div>` estáticos no DOM, não
+      criados via JS). D-3 resolveu QUAL arquitetura seguir em espírito
+      (estática, com z-index/X/rodapé no gabarito certo), mas a
+      conversão literal pra criação dinâmica via JS de cada um dos ~8
+      popups de ação é um refactor grande demais pra entrar numa
+      rodada só sem suíte de teste automatizado — risco de regressão
+      alto. Visualmente já é indistinguível do padrão do App.
+    - C-7 (pills de "Mais ações" do Cofre ainda sem ícone e em
+      `rounded-lg` — o gabarito §8.3 pede `rounded-full` + ícone 11px).
+    - C-9 (rodapé do box "Dados do item" de Controles ainda expõe
+      Editar/Excluir sempre visíveis, sem gatilho "Mais ações" —
+      D-1/D-3 já corrigiram a COR do Excluir ali, mas não a estrutura).
+    - C-11 (escala tipográfica de título de modal/tela ainda diverge —
+      text-base 16px em vez de text-sm 14px em vários lugares).
+    - C-13 (padding do overlay de busca de Ativos ainda duplicado —
+      modal-box + header interno somando respiro).
+    - C-14b (botões tracejados "Com IA"/"Upload simples" do modal
+      Documentos ainda não catalogados como padrão do DS).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.7.0
+  Data       : 25/08/2026
+  Título     : LOTE DE CONFORMIDADE COM O DESIGN SYSTEM — CAMADA MECÂNICA
+  Base       : v1.6.0 (25/08/2026)
+  Linhas     : cofre.html = 1240 · js/cofre-api.js = 455 · js/cofre-app.js = 284 ·
+               js/cofre-ativos.js = 353 · js/cofre-controles.js = 494 ·
+               js/cofre-documentos.js = 636 · js/cofre-estado.js = 57 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 96 ·
+               js/cofre-validacoes.js = 227 (total js/ = 2826)
+
+  CHANGELOG v1.7.0 — primeiro lote da revisão REVISAO_DS_COFRE_IMOVEIS
+  v1.0.0. Cobre só a camada MECÂNICA (sem decisão de produto pendente) —
+  C-2 a C-16 (X de modal, rodapé de botões, arquitetura Tipo A/B, pills,
+  chips vs badge, menu ⚙️, cor de Excluir etc.) ficam para a v1.7.1,
+  depois das decisões D-1/D-2/D-3/D-4/D-6 (ver HANDOFF desta rodada).
+
+    1) C-0a — CONTROLE DE VERSÃO FORA DO PADRÃO (bug de processo)
+    - CORRIGIDO: o cabeçalho nunca teve campo "Linhas" (só o header do
+      index.html tinha) e o rodapé declarava "TOTAL_LINHAS_DECLARADO: 603"
+      — o arquivo real já estava em 1092 linhas antes desta entrega
+      (defasagem de ~489 linhas acumulada ao longo de 6 versões sem
+      recontagem). Campo "Linhas" adicionado ao cabeçalho (cofre.html +
+      cada js/*.js, formato igual ao usado no rodapé do próprio
+      index.html), rodapé corrigido para o valor real.
+
+    2) C-0b — VERSÃO DO APP DESSINCRONIZADA NO "SOBRE"
+    - CORRIGIDO: "Sobre" mostrava "App Raiz Patrimônio Beta v1.61.2"
+      hardcoded — o App já estava em v1.61.5. Atualizado + `id` adicionado
+      no elemento (facilita achar via busca no próximo deploy). Não é
+      sincronização automática de verdade — os 2 HTMLs são estáticos e
+      independentes, sem fonte de versão compartilhada; ficou registrado
+      como item de checklist manual no DEPLOY_RAIZ_PATRIMONIO.md.
+
+    3) C-1a — TOAST FORA DA ESCALA DE Z-INDEX (DS §15)
+    - CORRIGIDO: `#toast` estava em z-[80] (fora das 2 faixas documentadas
+      — nem camada de app 60-99, nem de sistema 200-500 corretamente
+      posicionado). Corrigido para z-[500] — toast é chrome de sistema,
+      sempre por cima de qualquer modal.
+
+    4) C-1b — TODOS OS MODAIS EM Z-60 (DS §15)
+    - CORRIGIDO: `.modal-overlay` (base de todo popup do Cofre) estava
+      fixo em z-index:60 — na escala oficial, 60 é reservado a "seletor
+      de item". Base movida para z-96 (maioria dos popups do Cofre é
+      edição pontual, equivalente a Tipo B). Overrides pontuais por id:
+      `#modal-busca-global`/`#modal-busca-ativos` → 70 (Overlay de Busca/
+      Filtro), `#modal-menu-conta` → 90 (Menu ⚙️), `#modal-criacao-
+      assistida` → 450 (diálogo de confirmação genérico, camada de
+      sistema). A classificação fina A/B/C de cada popup (arquitetura
+      estática vs. slot dinâmico) segue pendente da decisão D-3 — este
+      ajuste resolve só a camada visual, sem mudar a implementação.
+
+    5) C-8 — SETA DE "MAIS AÇÕES" NÃO GIRAVA (DS §8.2)
+    - CORRIGIDO: `alternarMaisAcoesAtivo()`/`alternarMaisAcoesControles()`
+      só faziam `classList.toggle('hidden')` — a seta chevron-down ficava
+      estática. Reescritas para seguir o corpo canônico da §8.2 (rotação
+      180°/0° + refrescarIcones()); `id`s `fa-mais-acoes-seta`/
+      `fa-mais-acoes-controles-seta` adicionados ao HTML.
+
+    6) C-12 — CAMPO SEM ESTILO (`#busca-global-status`)
+    - CORRIGIDO: campo select sem nenhuma classe, renderizando com aparência
+      nativa do navegador (bug visual real, não só divergência de DS).
+      Estilizado no padrão de campo já usado no resto do módulo.
+
+    7) C-17 — CABEÇALHO DA TELA ATIVOS FORA DO GABARITO §5
+    - CORRIGIDO: botão de busca usava `w-10 h-10 border-2`, sem `shadow`
+      nem `active:scale-90`, ícone 16px — gabarito §5 exige `w-11 h-11
+      border(1px) shadow active:scale-90`, ícone 20px. Botão "+" (Novo
+      ativo) media 44px mas sem `shadow`/feedback tátil.
+    - RAIZ DO PROBLEMA: a classe `.raiz-btn-toggle` do Cofre tinha
+      REINVENTADO sua própria dimensão/borda/sombra (44px, border 1px,
+      sem shadow) em vez de seguir o padrão real do App — no
+      index.html, `.raiz-btn-toggle` só cuida do estado `.ativo` e da
+      trava de tamanho do ícone (§17); dimensão e sombra vêm das
+      utilities Tailwind no próprio botão. CSS do Cofre unificado ao
+      padrão do App; os 2 botões do cabeçalho de Ativos ganharam o
+      classlist completo (`w-11 h-11 ... shadow active:scale-90`). Ícone
+      do "+" ajustado para 22px (exceção documentada em §5).
+
+    - Arquivos alterados: cofre.html (1092→1240), js/cofre-ativos.js
+      (348→353), js/cofre-controles.js (489→494).
+    - Nenhuma migration, nenhuma mudança de comportamento de negócio —
+      só camada visual/nomenclatura + 1 correção de bug real (seleção
+      sem estilo) + 1 correção de bug de processo (linha de versão).
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido — fica pra v1.7.1,
+  bloqueado por decisão de produto pendente, ver seção própria da resposta):
+    - C-2 (X verde --pine 32px → X cinza padrão A/B) — bloqueado por
+      nenhuma decisão específica, mas agrupado com C-3/C-4/C-5 pra sair
+      numa passada coerente só.
+    - C-3 (rodapé de botões fora do gabarito A/B, ordem inconsistente).
+    - C-4 ("Novo ativo" ainda inline, não é Tipo A bottom-sheet).
+    - C-5 ("Criar item de controle" é híbrido A/B, não Tipo B puro).
+    - C-6 (slot `modal-campo-contrato` nunca usado no Cofre) — decisão D-3.
+    - C-7 (pills sem ícone, `rounded-lg` em vez de `rounded-full`).
+    - C-9 (rodapé do box "Dados do item" sem gatilho "Mais ações").
+    - C-10 (cor de "Excluir": cinza no Cofre vs. vermelho no App/DS) —
+      decisão D-1.
+    - C-11 (escala tipográfica de títulos de modal/tela divergente).
+    - C-13 (padding duplicado no overlay de busca de Ativos).
+    - C-14 (box "Contatos vinculados" sempre visível mesmo vazio;
+      botões tracejados "Com IA"/"Upload simples" não catalogados) —
+      decisão D-6.
+    - C-15 (chips do Cofre vs. badges §14 do App — 2 linguagens de
+      status convivendo, inclusive mapeamento de cor divergente pro
+      "Arquivado") — decisão D-2.
+    - C-16 (menu ⚙️ sem grupos, fundo branco em vez de --paper, título
+      "Menu" em vez de "Configurações", itens "em breve" sem função) —
+      decisão D-4 para os itens "em breve"; o resto (grupos/fundo/
+      título) não depende de decisão, mas foi deixado junto por ser a
+      mesma tela.
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.6.0
   Data       : 25/08/2026
   Título     : CONCLUSÃO DA MIGRAÇÃO v6 + GERAÇÃO AUTOMÁTICA DE 120 DIAS + AJUSTES VISUAIS
@@ -464,7 +723,13 @@
     h1,h2,h3,h4 { font-family: "Bricolage Grotesque", sans-serif; letter-spacing: -0.02em; }
     .hidden { display: none !important; }
 
-    .raiz-btn-toggle { width: 44px; height: 44px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: #fff; color: var(--pine); transition: all .15s; }
+    /* C-17 (revisão DS §5/§17) — Cofre tinha reinventado .raiz-btn-toggle
+       com dimensão/borda/sombra próprias (44px, border 1px, sem shadow,
+       sem active:scale-90). O padrão real do App (index.html) usa a classe
+       só para o estado .ativo + trava de tamanho do ícone; as dimensões e
+       o feedback tátil vêm das utilities Tailwind no próprio botão
+       (w-11 h-11 border border-slate-300 rounded-full shadow active:scale-90).
+       Unificado abaixo. */
     .raiz-btn-toggle.ativo { background: var(--pine) !important; color: #fff !important; border-color: var(--pine) !important; }
     .raiz-btn-toggle svg.raiz-icone-toggle { width: 20px; height: 20px; }
 
@@ -476,18 +741,31 @@
     .tab-btn { padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--sage); white-space: nowrap; }
     .tab-btn.active { background: var(--pine); color: #fff; }
 
-    .chip { display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; }
-    .chip-empresa { background: var(--info-bg); color: var(--info); }
-    .chip-restrito { background: var(--danger-bg); color: var(--danger); }
-    .chip-vencido { background: var(--danger-bg); color: var(--danger); }
-    .chip-proximo { background: var(--warning-bg); color: var(--warning); }
-    .chip-ok { background: var(--success-bg); color: var(--success); }
+    /* D-2 (revisão DS) — .chip/.chip-* removidas: migradas pro badge
+       oficial §14 (mesmas classes Tailwind literais do App, sem wrapper
+       CSS próprio — ver cofre-validacoes.js BADGE_*). */
 
     .card-doc, .card-ativo { border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; transition: border-color .15s; }
     .card-doc:hover, .card-ativo:hover { border-color: var(--pine-light); }
 
-    .modal-overlay { position: fixed; inset: 0; background: rgba(23,33,30,.5); display:flex; align-items:flex-end; justify-content:center; z-index: 60; }
+    /* C-1b (revisão DS §15) — z-index 60 era usado indistintamente por
+       TODOS os popups do Cofre; na escala oficial, 60 é reservado a
+       "seletor de item". A maioria dos popups do Cofre é edição pontual
+       de algo que já existe (Tipo B, §9) — base movida pra 96. As
+       exceções (busca/filtro, menu ⚙️, confirmação genérica) recebem
+       override específico logo abaixo. A classificação fina A/B/C de
+       cada popup (arquitetura estática vs dinâmica) segue pendente da
+       decisão D-3 — este ajuste resolve só a camada visual (z-index),
+       sem mudar como cada modal é implementado. */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(23,33,30,.5); display:flex; align-items:flex-end; justify-content:center; z-index: 96; }
     .modal-box { background:#fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; }
+
+    /* Overrides de camada — DS §15 */
+    #modal-busca-global, #modal-busca-ativos { z-index: 70; }   /* Overlay de Busca/Filtro */
+    #modal-menu-conta { z-index: 90; }                          /* Menu ⚙️ Configurações */
+    #modal-criacao-assistida { z-index: 450; }                  /* Diálogo de confirmação genérico — camada de sistema */
+    #form-ativo-wrapper { z-index: 65; }                        /* C-4 — Tipo A (cadastro completo) */
+    #modal-upload { z-index: 65; }                              /* C-3 — Tipo A (cadastro completo, múltiplas seções) */
 
     nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line); z-index: 40; }
     nav.bottom-nav .nav-btn { display:flex; flex-direction:column; align-items:center; gap:2px; padding: 8px 0; font-size: 10px; font-weight: 700; color: var(--sage); flex: 1; }
@@ -606,16 +884,36 @@
         <section data-screen="ativos" class="hidden">
             <div class="flex items-center gap-2 mb-4">
                 <p class="text-[11px] flex-1 text-left" style="color:var(--sage)">Bens e proteções acompanhados pelo Cofre.</p>
-                <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-slate-300 flex-shrink-0">
-                    <i data-lucide="search" style="width:16px;height:16px;color:var(--sage)"></i>
+                <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
+                    <i data-lucide="search" style="width:20px;height:20px"></i>
                 </button>
-                <button data-action="alternar-form-ativo" id="btn-toggle-ativo" class="raiz-btn-toggle flex-shrink-0" title="Novo ativo">
-                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <button data-action="abrir-form-ativo" id="btn-toggle-ativo" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Novo ativo">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
             </div>
 
-            <div id="form-ativo-wrapper" class="hidden raiz-form-borda p-4 mb-4">
-                <h3 class="text-sm font-bold mb-3">Novo ativo</h3>
+            <div id="ativos-lista" class="space-y-2"></div>
+            <div id="ativos-estado-vazio" class="hidden text-center py-14">
+                <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+                <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
+                <p class="text-xs mb-3" style="color:var(--sage)">Veículo, imóvel, terreno ou proteção pessoal.</p>
+                <button data-action="abrir-form-ativo" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">+ Novo ativo</button>
+            </div>
+        </section>
+
+        <!-- ===================== MODAL — NOVO ATIVO (Tipo A, DS §9) =====================
+             C-4 (revisão DS): era painel inline (alternarToggle), mesmo padrão
+             que Imóvel/Controles já tinham deixado pra trás. Convertido pra
+             bottom-sheet estático, z-65, .modal-overlay herda o clique-fora-
+             fecha genérico (cofre-app.js) e a proteção contra a armadilha do
+             display inline (.hidden tem !important no Cofre — ver §9 nota do
+             App pra armadilha equivalente). -->
+        <div id="form-ativo-wrapper" class="modal-overlay hidden">
+            <div class="modal-box p-4">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Novo ativo</h3>
+                    <button type="button" data-action="fechar-form-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="text-xs font-semibold block mb-1">Tipo de ativo <span style="color:var(--danger)">*</span></label>
@@ -632,21 +930,13 @@
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
-                <div class="flex justify-end gap-2 mt-4">
-                    <button data-action="alternar-form-ativo" class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300">Cancelar</button>
-                    <button data-action="salvar-ativo" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Salvar ativo</button>
+                <div style="display:flex;gap:8px;margin-top:14px;">
+                    <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar ativo</button>
+                    <button type="button" data-action="fechar-form-ativo" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
                 </div>
-                <p class="raiz-indicador-inline" id="at-status"></p>
+                <p class="raiz-indicador-inline mt-2" id="at-status"></p>
             </div>
-
-            <div id="ativos-lista" class="space-y-2"></div>
-            <div id="ativos-estado-vazio" class="hidden text-center py-14">
-                <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
-                <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
-                <p class="text-xs mb-3" style="color:var(--sage)">Veículo, imóvel, terreno ou proteção pessoal.</p>
-                <button data-action="alternar-form-ativo" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">+ Novo ativo</button>
-            </div>
-        </section>
+        </div>
 
         <!-- ===================== ALERTAS ===================== -->
 <!-- ===================== TELA — FICHA DO ATIVO (boxes, padrão do App/Imóveis) ===================== -->
@@ -684,7 +974,7 @@
 
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">
-                    Mais ações <i data-lucide="chevron-down" style="width:13px;height:13px"></i>
+                    Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-seta" style="width:13px;height:13px"></i>
                 </button>
             </div>
             <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
@@ -702,7 +992,7 @@
             <div id="fa-tab-controles" class="mt-2 space-y-2"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-controles" class="text-xs font-bold text-slate-500 flex items-center gap-1">
-                    Mais ações <i data-lucide="chevron-down" style="width:13px;height:13px"></i>
+                    Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-controles-seta" style="width:13px;height:13px"></i>
                 </button>
             </div>
             <div id="fa-mais-acoes-controles" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
@@ -719,7 +1009,7 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <h3 class="text-base font-bold">Novo item de controle</h3>
-            <button data-action="fechar-form-controle" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-form-controle" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="grid grid-cols-2 gap-2">
             <select id="ic-tipo" data-action-change="ic-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
@@ -750,8 +1040,8 @@
         </div>
         <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único). Ao salvar, as ocorrências dos próximos 120 dias já são geradas automaticamente.</p>
         <div class="flex gap-2 mt-3">
-            <button data-action="salvar-item-controle" class="flex-1 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Salvar item de controle</button>
-            <button data-action="fechar-form-controle" class="flex-1 py-2 rounded-xl text-sm font-semibold border-2 border-slate-300">Fechar</button>
+            <button type="button" data-action="fechar-form-controle" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
+            <button data-action="salvar-item-controle" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar item de controle</button>
         </div>
     </div>
 </div>
@@ -811,11 +1101,11 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <div><h3 class="text-base font-bold">Buscar no Cofre</h3><p class="text-xs" style="color:var(--sage)">Busca documental — ferramenta secundária; o caminho normal é pelo ativo/imóvel/contrato.</p></div>
-            <button data-action="fechar-busca-global" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-busca-global" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
         </div>
         <input id="busca-global-input" type="text" placeholder="Nome, descrição, tag…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm mb-3">
         <div class="flex gap-2 mb-3 text-xs">
-            <select id="busca-global-status"><option value="">Status: todos</option><option value="triagem">Em triagem</option><option value="empresa">Geral da empresa</option><option value="vinculado">Vinculado</option></select>
+            <select id="busca-global-status" class="w-full border-2 border-slate-300 rounded-xl p-2 text-xs" style="background:#f8fafc"><option value="">Status: todos</option><option value="triagem">Em triagem</option><option value="empresa">Geral da empresa</option><option value="vinculado">Vinculado</option></select>
         </div>
         <div id="busca-global-resultado" class="space-y-2"></div>
     </div>
@@ -851,7 +1141,7 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <h3 class="text-base font-bold">Documentos</h3>
-            <button data-action="fechar-documentos-ativo" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-documentos-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="grid grid-cols-2 gap-2 mb-3">
             <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--pine-light); color:var(--pine)">
@@ -870,7 +1160,7 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <h3 class="text-base font-bold">Fotos</h3>
-            <button data-action="fechar-fotos-ativo" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-fotos-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <input type="file" id="fa-foto-input" accept="image/*" multiple class="text-xs mb-2">
         <div id="fa-fotos-grid" class="grid grid-cols-3 gap-2"></div>
@@ -882,7 +1172,7 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <div><h3 class="text-base font-bold">Novo documento</h3><p class="text-xs" style="color:var(--sage)" id="upload-contexto-legenda"></p></div>
-            <button data-action="fechar-upload" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-upload" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2">
@@ -916,8 +1206,8 @@
             </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-            <button data-action="fechar-upload" class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300">Cancelar</button>
-            <button data-action="salvar-upload" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Salvar documento</button>
+            <button data-action="salvar-upload" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar documento</button>
+            <button type="button" data-action="fechar-upload" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
         </div>
         <p class="raiz-indicador-inline" id="up-status"></p>
     </div>
@@ -928,7 +1218,7 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <div><h3 class="text-base font-bold pr-4" id="fd-nome">—</h3><p class="text-xs" style="color:var(--sage)" id="fd-contexto-label">—</p></div>
-            <button data-action="fechar-ficha-doc" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-ficha-doc" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div id="fd-chips" class="flex flex-wrap gap-1 mb-3"></div>
         <div class="raiz-bloco-interno mb-3 text-sm space-y-1" id="fd-meta"></div>
@@ -955,7 +1245,7 @@
         <div class="flex flex-wrap gap-2">
             <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
             <button data-action="arquivar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 flex items-center gap-1"><i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar</button>
-            <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 flex items-center gap-1" style="border-color:var(--danger);color:var(--danger)"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
+            <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center gap-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
         </div>
         <p class="raiz-indicador-inline" id="fd-status"></p>
     </div>
@@ -969,7 +1259,7 @@
                 <h3 class="text-base font-bold flex items-center gap-2"><i data-lucide="sparkles" style="width:16px;height:16px;color:var(--warning)"></i> Sugestões da IA</h3>
                 <p class="text-xs" style="color:var(--sage)" id="sug-tipo-detectado">—</p>
             </div>
-            <button data-action="ignorar-sugestoes-ia" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="ignorar-sugestoes-ia" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <p class="text-xs mb-3" style="color:var(--sage)">Nada aqui é aplicado sozinho — revise e confirme só o que fizer sentido.</p>
 
@@ -991,8 +1281,8 @@
         </div>
 
         <div class="flex justify-end gap-2">
-            <button data-action="ignorar-sugestoes-ia" class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300">Deixar em triagem</button>
-            <button data-action="aplicar-sugestoes-ia" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Aplicar selecionados</button>
+            <button type="button" data-action="ignorar-sugestoes-ia" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Deixar em triagem</button>
+            <button data-action="aplicar-sugestoes-ia" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Aplicar selecionados</button>
         </div>
         <p class="raiz-indicador-inline" id="sug-status"></p>
     </div>
@@ -1012,43 +1302,58 @@
 
 <!-- ===================== MODAL — CATEGORIAS (configuração, secundária) ===================== -->
 <div id="modal-menu-conta" class="modal-overlay hidden">
-    <div class="modal-box p-5">
-        <div class="flex items-start justify-between mb-3">
-            <h3 class="text-base font-bold">Menu</h3>
-            <button data-action="fechar-menu-conta" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+    <div class="w-full max-w-md rounded-t-2xl shadow-2xl overflow-hidden" style="background:var(--paper); max-height:85vh; display:flex; flex-direction:column;">
+        <div class="px-5 pt-5 pb-3 flex items-center justify-between border-b flex-none" style="border-color:var(--line)">
+            <h3 class="font-bold" style="font-family:'Bricolage Grotesque',sans-serif;color:var(--ink)">Configurações</h3>
+            <button type="button" data-action="fechar-menu-conta" class="text-slate-400 hover:text-white font-bold text-sm bg-emerald-900 w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90">✕</button>
         </div>
-        <div class="space-y-1">
-            <button data-action="voltar-app" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+        <div class="p-4 space-y-1 overflow-y-auto" style="padding-bottom:calc(24px + env(safe-area-inset-bottom))">
+            <!-- C-16 (revisão DS §6) — "Módulo Imóveis" não pertence a nenhum
+                 dos 4 grupos fixos do App (é navegação entre módulos, não um
+                 cadastro/conta/serviço) — mantido como item avulso no topo,
+                 sem cabeçalho de grupo (mesma regra do 1º grupo do App, que
+                 usa pt-1 em vez de pt-3). -->
+            <button data-action="voltar-app" class="w-full flex items-center gap-3 px-2 pt-1 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Módulo Imóveis</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Módulo Imóveis</span>
             </button>
-            <button data-action="menu-conta-em-breve" data-rotulo="Prestadores de serviço" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+
+            <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Serviços</p>
+            <button data-action="menu-conta-em-breve" data-rotulo="Prestadores de serviço" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="wrench" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Prestadores de serviço</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Prestadores de serviço</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <button data-action="menu-conta-em-breve" data-rotulo="Pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+
+            <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Cadastros</p>
+            <button data-action="menu-conta-em-breve" data-rotulo="Pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Pessoas</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Pessoas</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <button data-action="menu-conta-em-breve" data-rotulo="Minha empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+            <button data-action="menu-conta-em-breve" data-rotulo="Minha empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="building" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Minha empresa</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Minha empresa</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <button data-action="abrir-configuracoes-catalogo" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+            <button data-action="abrir-configuracoes-catalogo" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="tags" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Categorias de documento</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Categorias de documento</span>
             </button>
-            <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+
+            <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
+            <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Licença</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Licença</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <a href="https://wa.me/5511947461828" target="_blank" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+            <a href="https://wa.me/5511947461828" target="_blank" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Suporte (WhatsApp)</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
             </a>
-            <button data-action="abrir-sobre-cofre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-slate-100 text-left">
+            <button data-action="abrir-sobre-cofre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="info" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium">Sobre</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Sobre</span>
             </button>
         </div>
     </div>
@@ -1059,11 +1364,16 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <h3 class="text-base font-bold">Sobre</h3>
-            <button data-action="fechar-sobre-cofre" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-sobre-cofre" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="text-sm space-y-2">
             <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Módulo Cofre</span><b id="sobre-versao-cofre">—</b></div>
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b>Beta v1.61.2</b></div>
+            <!-- C-0b (revisão DS) — cofre.html e index.html são 2 arquivos
+                 estáticos independentes, sem fonte de versão compartilhada;
+                 esta linha precisa ser atualizada manualmente a cada bump
+                 do App (id adicionado só pra facilitar grep/busca na hora
+                 do deploy — ver checklist em DEPLOY_RAIZ_PATRIMONIO.md). -->
+            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b id="sobre-versao-app-principal">Beta v1.61.5</b></div>
         </div>
     </div>
 </div>
@@ -1073,7 +1383,7 @@
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
             <h3 class="text-base font-bold">Categorias de documento</h3>
-            <button data-action="fechar-categorias" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+            <button type="button" data-action="fechar-categorias" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="flex gap-2 items-end mb-3">
             <div class="flex-1"><label class="text-xs font-semibold block mb-1">Nome</label><input type="text" id="cat-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
@@ -1084,9 +1394,13 @@
     </div>
 </div>
 
-<div id="toast" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm font-semibold z-[80]" style="background:var(--pine)"></div>
+<!-- C-1a (revisão DS) — toast é chrome de sistema (DS §15, camada 200–500),
+     sempre por cima de qualquer modal; z-[80] convivia mal com os popups
+     do Cofre (60) e ficaria encoberto assim que os overlays fossem
+     realocados pra escala real (ver C-1b). -->
+<div id="toast" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm font-semibold z-[500]" style="background:var(--pine)"></div>
 
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 603 (cofre.html) — lógica vive em js/*.js, ver contagem por arquivo no HANDOFF -->
+<!-- TOTAL_LINHAS_DECLARADO: 1406 (cofre.html) — recontado na v1.8.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

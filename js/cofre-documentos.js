@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.0 · 25/08/2026
+// Versão: 1.3.1 · 25/08/2026
+//
+// v1.3.1 — D-2 (revisão DS): 5 pontos de badge migrados pro formato
+// oficial §14 (BADGE_NEUTRO/BADGE_ALERTA/BADGE_PENDENTE/BADGE_OK,
+// importados de cofre-validacoes.js) — alertaCardHtml(), montarFichaDoc
+// (status de vínculo + "Restrito" + vencimento), lista de vínculos
+// ("Empresa (geral)"), docResultadoBuscaHtml(). Novo helper local
+// classeBadgeVinculo() evita repetir o ternário triagem/empresa/
+// vinculado 2x. Sem mudança de comportamento — só classe CSS.
 //
 // v1.3.0 — CONCLUSÃO DA MIGRAÇÃO v6: alertaCardHtml() reescrita (não lê
 // mais estado.eventos/cofre_eventos — recebe objeto já normalizado com
@@ -29,7 +37,15 @@ import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-
 import {
     escapeHtml, formatarDataBR, formatarBytes, diasAte, chipVencimento,
     classificarStatusVinculo, rotuloStatusVinculo, rotuloTipoAtivo, iconeAtivo,
+    BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK, BADGE_ALERTA,
 } from './cofre-validacoes.js';
+
+// D-2 (revisão DS) — helper local: mesma regra que chipStatusVinculoHtml()
+// de cofre-ui.js, mas retornando só a classe (as 2 chamadas deste arquivo
+// já montam o próprio <span>/<button>). Evita repetir o ternário 2x.
+function classeBadgeVinculo(status) {
+    return status === 'triagem' ? BADGE_PENDENTE : (status === 'empresa' ? BADGE_NEUTRO : BADGE_OK);
+}
 
 let uploadContexto = null; // { entidadeTipo, entidadeId, nome } | null quando livre
 let vinculoEscolhidoUpload = null; // { tipo, id, nome } | null (triagem)
@@ -83,7 +99,7 @@ export function alertaCardHtml(e) {
     return `<button data-action="abrir-item-controle" data-id="${e.itemControleId || ''}" class="w-full text-left raiz-bloco-interno flex items-center justify-between gap-2">
         <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
         <div class="flex items-center gap-2 flex-shrink-0">
-            ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+            ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
             <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--sage)"></i>
         </div>
     </button>`;
@@ -496,9 +512,9 @@ export async function abrirFichaDocumento(id) {
 
     const dias = diasAte(d.validade_em);
     const chip = chipVencimento(dias);
-    let chips = `<span class="chip ${statusVinculo === 'triagem' ? 'chip-proximo' : (statusVinculo === 'empresa' ? 'chip-empresa' : 'chip-ok')}">${escapeHtml(rotuloStatusVinculo(statusVinculo))}</span>`;
-    if (d.nivel_acesso === 'restrito') chips += `<span class="chip chip-restrito">Restrito</span>`;
-    if (chip) chips += `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>`;
+    let chips = `<span class="${classeBadgeVinculo(statusVinculo)}">${escapeHtml(rotuloStatusVinculo(statusVinculo))}</span>`;
+    if (d.nivel_acesso === 'restrito') chips += `<span class="${BADGE_ALERTA}">Restrito</span>`;
+    if (chip) chips += `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>`;
     document.getElementById('fd-chips').innerHTML = chips;
 
     document.getElementById('fd-meta').innerHTML = `
@@ -518,10 +534,10 @@ export async function abrirFichaDocumento(id) {
         const refs = vincs.filter(v => v.entidade_id).map(v => ({ tipo: v.entidade_tipo, id: v.entidade_id }));
         const nomes = refs.length ? await api.resolverNomesDeEntidades(estado.clienteId, refs) : new Map();
         document.getElementById('fd-vinculos').innerHTML = vincs.map(v => {
-            if (v.entidade_tipo === 'empresa' || !v.entidade_id) return `<span class="chip chip-empresa">Empresa (geral)</span>`;
+            if (v.entidade_tipo === 'empresa' || !v.entidade_id) return `<span class="${BADGE_NEUTRO}">Empresa (geral)</span>`;
             const info = nomes.get(`${v.entidade_tipo}:${v.entidade_id}`);
             const nome = info?.nome || v.entidade_tipo;
-            return `<button data-action="ir-para-vinculo" data-tipo="${v.entidade_tipo}" data-id="${v.entidade_id}" class="chip chip-empresa" style="cursor:pointer">${escapeHtml(info?.subtitulo || v.entidade_tipo)} · ${escapeHtml(nome)}</button>`;
+            return `<button data-action="ir-para-vinculo" data-tipo="${v.entidade_tipo}" data-id="${v.entidade_id}" class="${BADGE_NEUTRO}" style="cursor:pointer">${escapeHtml(info?.subtitulo || v.entidade_tipo)} · ${escapeHtml(nome)}</button>`;
         }).join('');
     }
 
@@ -603,7 +619,7 @@ function docResultadoBuscaHtml(d) {
     return `<div class="card-doc p-3 cursor-pointer" data-action="abrir-documento" data-id="${d.id}">
         <div class="flex items-center justify-between">
             <p class="text-sm font-semibold truncate">${escapeHtml(d.nome_exibicao)}</p>
-            <span class="chip ${status === 'triagem' ? 'chip-proximo' : (status === 'empresa' ? 'chip-empresa' : 'chip-ok')}">${escapeHtml(rotuloStatusVinculo(status))}</span>
+            <span class="${classeBadgeVinculo(status)}">${escapeHtml(rotuloStatusVinculo(status))}</span>
         </div>
     </div>`;
 }

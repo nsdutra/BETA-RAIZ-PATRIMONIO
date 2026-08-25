@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 25/08/2026
+// Versão: 1.3.0 · 25/08/2026
+//
+// v1.3.0 — 2ª rodada da revisão DS. (1) D-3: novo bloco no topo do
+// listener delegado — clique no backdrop de QUALQUER modal fecha (nenhum
+// fechava assim antes; guarda contra bubbling igual ao onclick do App).
+// (2) C-4: dispatcher "alternar-form-ativo" (painel inline) virou
+// "abrir-form-ativo"/"fechar-form-ativo" (modal Tipo A) — acompanha
+// cofre-ativos.js v1.2.0.
 //
 // v1.2.0 — CONCLUSÃO DA MIGRAÇÃO v6 (deixada pela metade numa sessão
 // anterior — banco já não tinha mais cofre_eventos, mas este arquivo ainda
@@ -51,6 +58,19 @@ import * as controles from './cofre-controles.js';
 // gerado dinamicamente) com [data-action].
 // ============================================================================
 document.addEventListener('click', async (ev) => {
+    // D-3/C-3 (revisão DS) — clique no backdrop fecha o modal (padrão
+    // default de Tipo A/B/C, §9: "por padrão também fecha ao clicar fora,
+    // a menos que exista razão de negócio documentada pra não fechar").
+    // Nenhum modal do Cofre tinha esse comportamento até aqui — só X e
+    // Cancelar/Fechar fechavam. Guarda: só dispara se o clique foi
+    // literalmente no elemento com a classe .modal-overlay (o backdrop
+    // em si), nunca por bubbling de um filho sem handler próprio — mesma
+    // proteção que o App faz via onclick="if(event.target===this)".
+    if (ev.target.classList?.contains('modal-overlay') && ev.target.id) {
+        ev.target.classList.add('hidden');
+        return;
+    }
+
     const alvo = ev.target.closest('[data-action]');
     if (!alvo) return;
     const acao = alvo.dataset.action;
@@ -108,7 +128,8 @@ document.addEventListener('click', async (ev) => {
         case 'escolher-candidato-vincular-agora': docs.escolherCandidatoVincularAgora(alvo.dataset.tipo, alvo.dataset.id, alvo.dataset.nome); break;
 
         // ---- ativos
-        case 'alternar-form-ativo': ativos.alternarFormAtivo(); break;
+        case 'abrir-form-ativo': ativos.abrirFormAtivo(); break;
+        case 'fechar-form-ativo': ativos.fecharFormAtivo(); break;
         case 'salvar-ativo': await ativos.salvarAtivo(); break;
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
         case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;

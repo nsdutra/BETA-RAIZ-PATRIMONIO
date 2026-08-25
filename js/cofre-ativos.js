@@ -1,6 +1,21 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.5 · 25/08/2026
+// Versão: 1.2.0 · 25/08/2026
+//
+// v1.2.0 — 2ª rodada da revisão DS (decisões D-1/D-2/D-3 confirmadas).
+// (1) D-2: badge de vencimento (chipVencimento) migrado pro formato
+// oficial §14 — "chip ${chip.classe}" virou "${chip.classe}" (classe já
+// vem completa, sem prefixo). (2) D-3/C-4: "Novo ativo" convertido de
+// painel inline (alternarFormAtivo/alternarToggle) pra Tipo A bottom-
+// sheet — abrirFormAtivo()/fecharFormAtivo() novas, salvarAtivo() fecha
+// via fecharFormAtivo(). (3) D-1: comentário sobre cor de "Excluir"
+// corrigido (era "vermelho discreto", virou cinza uniforme — ver
+// excluirAtivoAtual() abaixo).
+//
+// v1.1.6 — DS C-8: alternarMaisAcoesAtivo() só fazia classList.toggle,
+// sem girar a seta (DS §8.2 exige rotação 180°/0° + refrescarIcones()).
+// Corpo canônico aplicado; depende do novo id fa-mais-acoes-seta no HTML
+// (cofre.html v1.7.0).
 //
 // v1.1.5 — box "Dados do ativo": vira descrição corrida + badge de status
 // (Ativo/Arquivado), igual ao padrão de card do Imóvel — antes era tabela
@@ -23,7 +38,13 @@
 // abas não é o padrão do projeto"). Histórico passa a viver em "Mais ações"
 // do box Dados, mesma convenção usada no box de Contrato da ficha do
 // imóvel. Nova ação excluirAtivoAtual() (soft-delete, "Mais ações →
-// Excluir", vermelho discreto conforme Design System §1).
+// Excluir", cinza uniforme — D-1 (revisão DS, 25/08/2026): decisão do
+// proprietário confirmou "Excluir" cinza como regra OFICIAL do sistema
+// inteiro (não é mais uma divergência do Cofre — o App também foi
+// corrigido, ver index.html v1.61.6). Comentário original desta linha
+// dizia "vermelho discreto conforme Design System §1" — o DS v2.0 ainda
+// tinha essa regra quando este trecho foi escrito; v2.1.0 já reflete a
+// mudança.
 //
 // v1.1.2 — abrirFichaAtivo() passa a montar também a aba Controles (novo
 // módulo cofre-controles.js), junto de Resumo/Documentos/Alertas/Contatos.
@@ -38,7 +59,7 @@
 // ============================================================================
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, refrescarIcones, alternarToggle } from './cofre-ui.js';
+import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
@@ -83,16 +104,28 @@ function ativoCardHtml(a) {
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
         </div>
-        ${chip ? `<span class="chip ${chip.classe} flex-shrink-0">${escapeHtml(chip.texto)}</span>` : ''}
+        ${chip ? `<span class="${chip.classe} flex-shrink-0">${escapeHtml(chip.texto)}</span>` : ''}
     </button>`;
 }
 
 // ============================================================================
 // FORMULÁRIO — NOVO ATIVO (campos estruturados por tipo, §10)
 // ============================================================================
-export function alternarFormAtivo() {
-    alternarToggle('btn-toggle-ativo', 'form-ativo-wrapper');
+// C-4 (revisão DS §9) — "Novo ativo" era um painel inline (alternarToggle,
+// mesmo padrão que Imóvel/Controles já tinham abandonado). Convertido pra
+// Tipo A (bottom-sheet modal, estático no DOM, z-65) — ver cofre.html
+// v1.7.1, #form-ativo-wrapper. abrirFormAtivo()/fecharFormAtivo() reaproveitam
+// abrirModal()/fecharModal() genéricos (mesmo par de funções usado por
+// todo popup do módulo), em vez do alternarToggle() (exclusivo de painel
+// inline, ex.: formulário de Contrato/Síndico no App).
+export function abrirFormAtivo() {
+    document.getElementById('at-status').textContent = '';
+    abrirModal('form-ativo-wrapper');
     aoMudarTipoAtivo();
+}
+
+export function fecharFormAtivo() {
+    fecharModal('form-ativo-wrapper');
 }
 
 export async function aoMudarTipoAtivo() {
@@ -145,7 +178,7 @@ export async function salvarAtivo() {
         await api.criarAtivo(payload);
         mostrarToast('Ativo cadastrado ✅');
         document.getElementById('at-nome').value = '';
-        alternarFormAtivo();
+        fecharFormAtivo();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
     } catch (err) { statusEl.textContent = '❌ ' + err.message; statusEl.style.color = 'var(--danger)'; }
 }
@@ -180,7 +213,12 @@ export function fecharFichaAtivo() {
 }
 
 export function alternarMaisAcoesAtivo() {
-    document.getElementById('fa-mais-acoes').classList.toggle('hidden');
+    const el = document.getElementById('fa-mais-acoes');
+    const seta = document.getElementById('fa-mais-acoes-seta');
+    if (!el) return;
+    el.classList.toggle('hidden');
+    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    refrescarIcones();
 }
 
 export function alternarHistoricoAtivo() {

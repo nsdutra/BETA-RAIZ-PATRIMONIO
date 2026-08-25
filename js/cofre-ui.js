@@ -1,12 +1,17 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.0 · 19/08/2026
+// Versão: 1.2.0 · 25/08/2026
+//
+// v1.2.0 — D-2 (revisão DS): chipStatusVinculoHtml() migrada pro badge
+// oficial §14 (BADGE_NEUTRO/BADGE_PENDENTE/BADGE_OK, importados de
+// cofre-validacoes.js) — removido prefixo "chip " (classe já vem
+// completa). Sem mudança de comportamento.
 //
 // Helpers de DOM reutilizáveis: toast, abrir/fechar modal, troca de aba
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
-import { escapeHtml } from './cofre-validacoes.js';
+import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
 
 export function mostrarToast(msg, tipo) {
     const el = document.getElementById('toast');
@@ -84,13 +89,17 @@ export function alternarToggle(btnId, painelId) {
     return aberto;
 }
 
-// Chip de status de vínculo (triagem/empresa/vinculado) — Adendo §11.
+// Badge de status de vínculo (triagem/empresa/vinculado) — Adendo §11.
+// D-2 (revisão DS) — migrado pro badge oficial §14 (ver nota em
+// cofre-validacoes.js). "Empresa" é tag de vínculo, não status de
+// urgência — mapeado pro neutro (slate), não pro azul (que no App
+// significa especificamente "Assinando/Em processamento").
 export function chipStatusVinculoHtml(status) {
     const mapa = {
-        triagem: { classe: 'chip-proximo', texto: 'Em triagem' },
-        empresa: { classe: 'chip-empresa', texto: 'Geral da empresa' },
-        vinculado: { classe: 'chip-ok', texto: 'Vinculado' },
+        triagem: { classe: BADGE_PENDENTE, texto: 'Em triagem' },
+        empresa: { classe: BADGE_NEUTRO, texto: 'Geral da empresa' },
+        vinculado: { classe: BADGE_OK, texto: 'Vinculado' },
     };
     const c = mapa[status] || mapa.triagem;
-    return `<span class="chip ${c.classe}">${escapeHtml(c.texto)}</span>`;
+    return `<span class="${c.classe}">${escapeHtml(c.texto)}</span>`;
 }
