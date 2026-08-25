@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.0 · 25/08/2026
+// Versão: 1.6.1 · 25/08/2026
+//
+// v1.6.1 — 2 BUGS corrigidos (achados pelo usuário): (1) dropdown de
+// "papel" do contato (formContatoItemHtml) usava valores que não batiam
+// com o CHECK constraint real do banco (cofre_contatos_papel_check) —
+// reescrito com os 7 valores válidos. (2) voltarFichaItemControle() ia
+// sempre pra 'ficha-ativo', fixo — nova variável
+// itemControleOrigemTela (gravada em abrirFichaItemControle()) faz
+// "Voltar" respeitar a origem real (Home/Alertas/Ficha do Ativo).
 //
 // v1.6.0 — MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (pedido
 // explícito): nova seção completa — abrirModelosControle()/
@@ -101,6 +109,13 @@ let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
 let modelosCache = null; // idem, pros modelos de item de controle por tipo de ativo
 let itensDoAtivoAtual = [];
 let itemEmFoco = null;
+// BUG FIX (25/08/2026, achado pelo usuário) — guarda a tela de onde a
+// ficha do item foi aberta de verdade (Home, Alertas ou Ficha do
+// Ativo), pra "< Voltar" não mentir. Antes ia sempre pra "ficha-ativo",
+// fixo — clicar num alerta na Visão Geral e depois "Voltar" não voltava
+// pra Visão Geral. Mesma classe de bug já corrigida no Imóveis
+// (fichaImovelOrigemTab, index.html v1.61.5).
+let itemControleOrigemTela = null;
 let ocorrenciaEmAcao = null; // { ocorrenciaId, modo: 'tratar'|'reagendar'|'estornar' }
 let contatosDoItemAtual = [];
 let formContatoItemAberto = false;
@@ -169,6 +184,11 @@ export async function abrirFichaItemControle(itemId) {
     ocorrenciaEmAcao = null;
     formContatoItemAberto = false;
     document.getElementById('fic-contatos-acoes')?.classList.add('hidden');
+    // BUG FIX (25/08/2026) — só atualiza a origem se a navegação vem de
+    // FORA da própria ficha (reabrir via recarregarFichaItemControle
+    // depois de Tratar não deve perder a origem original).
+    const telaAntes = document.querySelector('[data-screen]:not(.hidden)')?.dataset.screen;
+    if (telaAntes && telaAntes !== 'ficha-item-controle') itemControleOrigemTela = telaAntes;
     try {
         itemEmFoco = await api.buscarItemControlePorId(itemId);
         contatosDoItemAtual = await api.listarContatosPorItemControle(itemId);
@@ -190,10 +210,20 @@ export async function recarregarFichaItemControle() {
 }
 
 export function voltarFichaItemControle() {
+    const origem = itemControleOrigemTela;
     const ativo = estado.ativoEmFoco;
     itemEmFoco = null;
-    mudarTela('ficha-ativo');
-    if (ativo) montarControlesAtivo(ativo);
+    itemControleOrigemTela = null;
+    // BUG FIX (25/08/2026) — antes ia sempre pra 'ficha-ativo', fixo.
+    // Agora respeita a tela de origem real — pode ter sido aberta a
+    // partir de um alerta na Home ou na tela cheia de Alertas.
+    const destino = (origem === 'home' || origem === 'alertas') ? origem : 'ficha-ativo';
+    mudarTela(destino);
+    if (destino === 'ficha-ativo' && ativo) montarControlesAtivo(ativo);
+    // Garante dado fresco na tela de destino (ex.: item tratado/editado/
+    // excluído durante a visita) — mesmo mecanismo que já mantém a
+    // Visão Geral sincronizada em qualquer outro ponto do Cofre.
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
 }
 
 function renderizarFichaItemControle() {
@@ -493,9 +523,12 @@ export async function excluirItemControleAtual() {
 function formContatoItemHtml() {
     return `<div class="raiz-form-borda p-2 mb-2 space-y-2">
         <select id="fic-ct-papel" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-            <option value="corretora_seguro">Corretora de seguro</option>
-            <option value="prestador">Prestador de serviço</option>
-            <option value="contador">Contador</option>
+            <option value="seguradora">Seguradora</option>
+            <option value="corretor">Corretor(a) de seguro</option>
+            <option value="oficina">Oficina</option>
+            <option value="assistencia">Assistência técnica</option>
+            <option value="administradora">Administradora</option>
+            <option value="advogado">Advogado(a)</option>
             <option value="outro">Outro</option>
         </select>
         <input id="fic-ct-nome" placeholder="Nome" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">

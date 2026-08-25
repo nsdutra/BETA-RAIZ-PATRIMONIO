@@ -2,6 +2,11 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
+// v1.12.0 — 3 BUGS CRÍTICOS corrigidos (achados pelo usuário): erro de
+// constraint ao salvar contato, "Voltar" não respeitava origem real,
+// excluir item de controle não atualizava alertas da Visão Geral. Ver
+// changelog completo em cofre.html.
+//
 // v1.11.0 — MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (menu ⚙️ +
 // atalho "Usar modelo", pedido explícito). Ver changelog completo em
 // cofre.html. cofre-estado.js em si não mudou de conteúdo — só o
@@ -73,7 +78,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.11.0';
+export const COFRE_VERSAO = '1.12.0';
 
 export const estado = {
     clienteId: null,

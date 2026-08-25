@@ -6,6 +6,35 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.62.1
+   LINHAS: 24731
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.62.1) — EXCLUIR IMÓVEL CONECTADO AO MAIS AÇÕES
+   (pedido explícito):
+
+     ACHADO — a função `excluirImovel(id)` já existia inteira (com
+     confirm(), checagem de contrato vinculado, DELETE no Supabase,
+     log e navegação pós-exclusão) desde uma versão anterior, mas
+     nunca tinha sido conectada a nenhum botão — órfã, inacessível
+     pela interface.
+
+     CONECTADO — nova pill "Excluir" no painel de Mais ações do
+     cabeçalho da Ficha do Imóvel (`abrirFichaImovel()`, `#fi-mais-
+     acoes`), ao lado de Detalhes/Copiar resumo/Criar contrato/Enviar
+     IPTU. Só aparece se o imóvel NÃO tiver nenhum contrato vinculado
+     (`!contratos.some(c => c.imovelId === imo.id)`) — DS §16, pill
+     condicional não existe no DOM se a condição não vale, em vez de
+     aparecer desabilitada. Checagem de contrato dentro da própria
+     `excluirImovel()` continua como segunda camada de segurança
+     (nunca confia só na visibilidade da pill).
+     - "Nem itens a receber mensais relacionados" (pedido explícito):
+       não precisou de checagem própria — mensalidades SEMPRE são
+       filhas de um contrato (`m.contratoId`, nunca existe mensalidade
+       sem contrato no schema atual) — a checagem de contrato já
+       garante isso transitivamente.
+
+     - Arquivos alterados: index.html (1 pill nova).
+
    VERSÃO: Beta v1.62.0
    LINHAS: 24701
    DATA: 2026-08-25
@@ -7579,7 +7608,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.62.0";
+        const APP_VERSAO = "Beta v1.62.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -15846,6 +15875,7 @@
                         <button onclick="copyResumo('${(`${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}`).replace(/'/g, "")}', '${imo.tipo}', ${imo.valor}, ${imo.suites || 0}, ${imo.condominio || 0})" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="copy" style="width:11px;height:11px"></svg> Copiar resumo</button>
                         ${imo.status === 'Vago' ? `<button onclick="criarContratoParaImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-plus" style="width:11px;height:11px"></svg> Criar contrato</button>` : ''}
                         ${imo.codigoIPTU ? `<button onclick="acionarZapIptuImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="message-circle" style="width:11px;height:11px"></svg> Enviar IPTU</button>` : ''}
+                        ${!contratos.some(c => c.imovelId === imo.id) ? `<button onclick="excluirImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trash-2" style="width:11px;height:11px"></svg> Excluir</button>` : ''}
                     </div>
                 </div>`;
 

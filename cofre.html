@@ -10,6 +10,82 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.12.0
+  Data       : 25/08/2026
+  Título     : 3 BUGS CRÍTICOS — CONTATO, VOLTAR DO ALERTA, EXCLUIR ITEM NÃO ATUALIZAVA ALERTAS
+  Base       : v1.11.0 (25/08/2026)
+  Linhas     : cofre.html = 2077 · js/cofre-api.js = 549 · js/cofre-app.js = 352 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 921 ·
+               js/cofre-documentos.js = 702 · js/cofre-estado.js = 95 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3576)
+
+  CHANGELOG v1.12.0 — 3 bugs achados pelo usuário testando o delivery.
+
+    1) BUG — erro ao salvar contato no item de controle
+    - CAUSA: o `<select>` de "papel" do contato (formContatoItemHtml)
+      usava valores (corretora_seguro/prestador/contador) que NUNCA
+      bateram com o CHECK constraint real do banco
+      (cofre_contatos_papel_check só aceita: seguradora, corretor,
+      oficina, assistencia, administradora, advogado, outro). Só
+      "Outro" funcionava — qualquer outra opção sempre falhava.
+    - CORRIGIDO: dropdown reescrito com os 7 valores reais do
+      constraint (Seguradora/Corretor(a) de seguro/Oficina/Assistência
+      técnica/Administradora/Advogado(a)/Outro).
+    - BÔNUS: o mesmo tipo de erro poderia acontecer no BOT (a IA
+      extrai "papel" como texto livre) — corrigido também no
+      whatsapp-webhook (ver changelog do zip do bot, _shared.ts v2.15.1
+      / extracao.ts v1.1.1): prompt restrito aos 7 valores válidos +
+      validarPapelContatoBot() como rede de segurança antes do INSERT.
+
+    2) BUG — "Voltar" da ficha do item não retornava pra Visão Geral
+    - CAUSA: `voltarFichaItemControle()` ia sempre pra 'ficha-ativo',
+      fixo — mesma classe de bug já corrigida no Imóveis (I-5c,
+      index.html v1.61.5). Clicar num alerta na Home/tela de Alertas
+      abre a ficha do item; "< Voltar" deveria respeitar a origem real.
+    - CORRIGIDO: nova variável `itemControleOrigemTela`, gravada em
+      `abrirFichaItemControle()` (só quando a navegação vem de FORA da
+      própria ficha, não sobrescreve ao reabrir após Tratar/Editar).
+      `voltarFichaItemControle()` agora respeita Home/Alertas/Ficha do
+      Ativo, o que for a origem real, com fallback pra 'ficha-ativo' se
+      a origem não foi capturada por algum motivo. Também dispara
+      `cofre:recarregar-eventos` ao voltar, garantindo dado fresco na
+      tela de destino (ex.: se o item foi tratado/excluído na visita).
+
+    3) BUG CRÍTICO — excluir item de controle não atualizava badge do
+       ativo nem a lista de alertas da Visão Geral
+    - CAUSA: `listarOcorrenciasAbertasComItem()` (cofre-api.js) fazia
+      um embed comum (LEFT JOIN) de `cofre_itens_controle`, sem
+      `!inner` — em PostgREST, isso decide se o objeto embutido vem
+      null ou preenchido, mas NÃO filtra a linha pai pela coluna do
+      filho. `arquivarItemControle()` (exclusão) só marca
+      `ativo=false` no ITEM (soft-delete de propósito, nunca mexe nas
+      ocorrências) — sem o `!inner`, as ocorrências ABERTAS do item
+      excluído continuavam pra sempre nos resultados, porque nada
+      filtrava por `cofre_itens_controle.ativo`.
+    - CORRIGIDO: `.select('*, cofre_itens_controle!inner(...)')` +
+      `.eq('cofre_itens_controle.ativo', true)`. Como essa função
+      alimenta `estado.ocorrenciasAbertas` (fonte única consumida por
+      Home/KPIs, card do Ativo na lista, e tela cheia de Alertas), 1
+      correção resolveu os 3 sintomas relatados de uma vez — não
+      precisou de mudança em cada consumidor.
+    - NÃO precisou apagar ocorrências de verdade — soft-delete
+      continua intacto (histórico preservado, só some da visão
+      "aberta"). `listarItensControleAtivo()` (box Controles do
+      Ativo) já filtrava certo desde sempre — não era o problema.
+
+    - Arquivos alterados: cofre.html (1929→2001, campo select), 
+      js/cofre-controles.js (+ variável de origem, voltarFichaItemControle),
+      js/cofre-api.js (listarOcorrenciasAbertasComItem).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.11.0
   Data       : 25/08/2026
   Título     : MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (menu ⚙️ + atalho "Usar modelo")
@@ -1998,4 +2074,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2001 (cofre.html) — recontado na v1.11.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2077 (cofre.html) — recontado na v1.12.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

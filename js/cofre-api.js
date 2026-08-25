@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 25/08/2026
+// Versão: 1.4.1 · 25/08/2026
+//
+// v1.4.1 — BUG FIX CRÍTICO (achado pelo usuário): listarOcorrenciasAbertasComItem()
+// fazia um embed comum (LEFT JOIN) de cofre_itens_controle, sem !inner —
+// em PostgREST isso só decide se o objeto embutido vem null ou
+// preenchido, NÃO filtra a linha pai pela coluna do filho. Resultado:
+// excluir um item de controle (arquivarItemControle, soft-delete —
+// ativo=false, nunca mexe nas ocorrências) deixava as ocorrências
+// ABERTAS desse item pra sempre nos resultados, porque nada filtrava
+// por cofre_itens_controle.ativo. Corrigido com
+// `cofre_itens_controle!inner(...)` + `.eq('cofre_itens_controle.ativo', true)`.
+// Como esta função alimenta estado.ocorrenciasAbertas (fonte única
+// consumida por Home/KPIs, card do Ativo na lista, e tela cheia de
+// Alertas), 1 correção resolveu os 3 sintomas relatados de uma vez.
 //
 // v1.4.0 — MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (pedido
 // explícito): listarModelosItemControle()/criarModeloItemControle() —
@@ -340,9 +353,17 @@ export async function alternarPublicarVitrineFoto(fotoId, valor) {
 // calculados a partir do estado real, nunca cadastrados à parte).
 // ============================================================================
 export async function listarOcorrenciasAbertasComItem(clienteId) {
+    // BUG FIX (25/08/2026, achado pelo usuário) — faltava !inner + filtro
+    // de cofre_itens_controle.ativo. Sem isso, excluir um item de
+    // controle (arquivarItemControle, só marca ativo=false — nunca
+    // mexe nas ocorrências, soft-delete de propósito) deixava as
+    // ocorrências ABERTAS dele pra sempre na Visão Geral/badge do
+    // ativo, porque o embed sem !inner não filtra as linhas pai pela
+    // coluna do filho — só decide se o objeto embutido vem null ou
+    // preenchido, a linha de ocorrência sempre voltava.
     const { data, error } = await dbAuth.from('cofre_ocorrencias_controle')
-        .select('*, cofre_itens_controle(ativo_id, titulo, tipo, antecedencia_alerta_dias, alerta_ativo)')
-        .eq('cliente_id', clienteId).eq('status_execucao', 'aberto')
+        .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, antecedencia_alerta_dias, alerta_ativo)')
+        .eq('cliente_id', clienteId).eq('status_execucao', 'aberto').eq('cofre_itens_controle.ativo', true)
         .order('data_prevista_atual');
     if (error) throw error;
     return data || [];
