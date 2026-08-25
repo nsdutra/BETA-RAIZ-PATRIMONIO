@@ -134,7 +134,8 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
         case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;
         case 'alternar-mais-acoes-ativo': ativos.alternarMaisAcoesAtivo(); break;
-        case 'alternar-historico-ativo': ativos.alternarHistoricoAtivo(); break;
+        // 'alternar-historico-ativo' removido (revisão DS, 25/08/2026) —
+        // Histórico não é mais opção do Mais ações do box do Ativo.
         case 'excluir-ativo-atual': await ativos.excluirAtivoAtual(); break;
         case 'alternar-editar-ativo': ativos.alternarEditarAtivo(); break;
         case 'salvar-edicao-ativo': await ativos.salvarEdicaoAtivo(); break;
@@ -156,9 +157,11 @@ document.addEventListener('click', async (ev) => {
         case 'confirmar-estornar-ocorrencia': await controles.confirmarEstornarOcorrencia(alvo.dataset.id); break;
         case 'abrir-item-controle': await controles.abrirFichaItemControle(id); break;
         case 'voltar-item-controle': controles.voltarFichaItemControle(); break;
-        case 'alternar-editar-item': controles.alternarEditarItem(); break;
+        case 'abrir-editar-item': controles.abrirEditarItem(); break;
+        case 'fechar-editar-item': controles.fecharEditarItem(); break;
         case 'salvar-edicao-item': await controles.salvarEdicaoItem(); break;
         case 'excluir-item-controle-atual': await controles.excluirItemControleAtual(); break;
+        case 'alternar-mais-acoes-contatos-item': controles.alternarMaisAcoesContatosItem(); break;
         case 'alternar-form-contato-item': controles.alternarFormContatoItem(); break;
         case 'salvar-contato-item': await controles.salvarContatoItem(); break;
 

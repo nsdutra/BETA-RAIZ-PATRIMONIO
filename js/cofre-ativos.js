@@ -99,7 +99,7 @@ function ativoCardHtml(a) {
     const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
     const chip = chipVencimento(proximo);
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:var(--success-bg)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:18px;height:18px;color:var(--success)"></i></div>
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
@@ -195,14 +195,12 @@ export async function abrirFichaAtivo(id) {
     document.getElementById('fa-nome').textContent = a.nome_exibicao;
     document.getElementById('fa-tipo').textContent = rotuloTipoAtivo(a.tipo_ativo);
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
-    document.getElementById('fa-historico-wrapper').classList.add('hidden');
     document.getElementById('fa-mais-acoes').classList.add('hidden');
 
     montarDadosAtivo(a);
     montarDocumentosAtivo(a);
     await montarControlesAtivo(a);
     await montarFotosAtivo(a);
-    await montarHistoricoAtivo(a);
 
     mudarTela('ficha-ativo');
 }
@@ -219,10 +217,6 @@ export function alternarMaisAcoesAtivo() {
     el.classList.toggle('hidden');
     if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
     refrescarIcones();
-}
-
-export function alternarHistoricoAtivo() {
-    document.getElementById('fa-historico-wrapper').classList.toggle('hidden');
 }
 
 // ---- Dados do ativo (box 1 — campos estruturados por tipo, incl. valor estimado)
@@ -373,14 +367,7 @@ export async function alternarVitrineFoto(fotoId, valor) {
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
-// ---- Histórico (Adendo §16 — reaproveita log_acessos)
-async function montarHistoricoAtivo(a) {
-    const eventos = await api.listarHistoricoAtivo(estado.clienteId, a.id);
-    document.getElementById('fa-tab-historico').innerHTML = eventos.length
-        ? eventos.map(ev => `<div class="raiz-bloco-interno text-xs"><b>${escapeHtml(rotuloAcaoHistorico(ev.acao))}</b><div style="color:var(--sage)">${escapeHtml(ev.pessoas?.nome || '')} · ${formatarDataBR((ev.criado_em || '').slice(0, 10))}</div></div>`).join('')
-        : `<p class="text-xs" style="color:var(--sage)">Sem histórico registrado ainda.</p>`;
-}
-
-function rotuloAcaoHistorico(acao) {
-    return { 'cofre.upload': 'Documento anexado', 'cofre.editar': 'Ativo editado', 'cofre.excluir': 'Documento excluído', 'cofre.baixar': 'Documento baixado' }[acao] || acao;
-}
+// Histórico do Ativo removido (revisão DS, 25/08/2026) — pedido explícito:
+// não deve ter opção "Histórico" no Mais ações do box do Ativo.
+// api.listarHistoricoAtivo() (cofre-api.js) foi mantida — infraestrutura
+// de log genérica, pode servir outro consumidor no futuro.

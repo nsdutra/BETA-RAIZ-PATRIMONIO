@@ -10,6 +10,118 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.8.1
+  Data       : 25/08/2026
+  Título     : BUG FIX + PARIDADE VISUAL COM IMÓVEIS + TELA DO ITEM DE CONTROLE REESCRITA
+  Base       : v1.8.0 (25/08/2026)
+  Linhas     : cofre.html = 1601 · js/cofre-api.js = 470 · js/cofre-app.js = 308 ·
+               js/cofre-ativos.js = 373 · js/cofre-controles.js = 569 ·
+               js/cofre-documentos.js = 646 · js/cofre-estado.js = 68 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3012)
+
+  CHANGELOG v1.8.1 — testes reais do delivery da Karen expuseram um bug
+  crítico + várias divergências visuais entre Cofre e Imóveis. Todas as
+  correções abaixo têm o padrão do Imóveis como fonte da verdade, e as
+  novas convenções ficam documentadas no Design System v2.1.0 §5-A.
+
+    1) BUG CRÍTICO — "Erro ao carregar alertas" na Visão Geral
+    - CORRIGIDO: `listarOcorrenciasAbertasComItem()` (cofre-api.js)
+      selecionava `alerta_habilitado` de dentro de `cofre_itens_controle`
+      — essa coluna NUNCA existiu ali (é `alerta_ativo`; `alerta_habilitado`
+      é de uma tabela DIFERENTE, `cofre_ocorrencias_controle`). Causava
+      400 Bad Request em toda carga da Visão Geral. Confirmado contra o
+      schema live do Supabase antes de corrigir (não o dump do projeto,
+      que pode estar desatualizado). `ocorrenciaEmAlerta()`
+      (cofre-validacoes.js) ajustada pro mesmo nome de coluna correto.
+
+    2) CABEÇALHO DE TOPO — reconstruído 1:1 com o padrão do App
+    - CORRIGIDO (causa raiz do "ícones centralizados" vs. os do Imóveis
+      nas laterais): `<header>` tinha `max-w-md mx-auto` no wrapper
+      interno — comprimia o cabeçalho inteiro numa faixa central em
+      telas largas. Removido — só o `<main>` leva essa restrição, igual
+      ao App. Nome da empresa, selo do módulo e botões de ícone
+      reescritos pro gabarito exato do App (ver DS §5-A, nova). Ícone
+      do robô virou o mesmo SVG desenhado à mão do App, com a animação
+      de piscar (`.raiz-bot-eye`) que não existia aqui antes.
+
+    3) CARD "VISÃO GERAL DO PATRIMÔNIO" — cores corrigidas
+    - CORRIGIDO: usava tokens de marca (--brass-light/--pine-light) em
+      vez de branco com opacidade, números em text-2xl (App usa
+      text-xl), caixa de alerta em dourado em vez de vermelho. Tudo
+      alinhado ao gabarito do card "Como está seu patrimônio hoje" do
+      App (ver DS §5-A).
+
+    4) VISÃO GERAL — REMOVIDA A LISTAGEM DE ATIVOS (pedido explícito)
+    - REMOVIDO: seção "Ativos controlados" + atalho "Ver todos" da Home.
+      `ativoCardMiniHtml()` removida (só era usada ali).
+
+    5) ÍCONE DO CARD DE ATIVO — tom neutro igual ao de Imóvel
+    - CORRIGIDO: usava tokens --success (verde vivo/saturado); agora usa
+      `bg-emerald-50 text-emerald-800`, mesmo tom neutro do ícone de
+      casinha no card de Imóvel.
+
+    6) "HISTÓRICO" REMOVIDO DO MAIS AÇÕES DO ATIVO (pedido explícito)
+    - REMOVIDO por completo: pill, wrapper, `alternarHistoricoAtivo()`,
+      `montarHistoricoAtivo()`, `rotuloAcaoHistorico()`, dispatcher. A
+      caixa "Dados do ativo" já mostra quem criou/quando inline —
+      tornava a aba redundante. `api.listarHistoricoAtivo()` mantida
+      (infraestrutura genérica, sem consumidor agora).
+
+    7) BOX "CONTROLES" DO ATIVO — linhas no padrão "itens a receber"
+    - CORRIGIDO: `itemResumoHtml()` usava `.raiz-bloco-interno` (borda
+      2px + fundo #f8fafc) — trocado pelo padrão EXATO das linhas de
+      mensalidade da Ficha do Imóvel (index.html, htmlFinanceiro): sem
+      borda, sem fundo, divisor fino `border-b border-slate-50 last:
+      border-0`, ícone de urgência à esquerda (vermelho=vencido,
+      âmbar=≤30d, verde=em dia).
+
+    8) TELA DA FICHA DO ITEM DE CONTROLE — reescrita quase inteira
+    - REMOVIDO: título solto (nome + tipo/subtipo/frequência) fora dos
+      boxes — pedido explícito: "só os boxes têm título". Virou "<
+      Voltar" + descrição breve da função da tela (mesmo padrão das
+      demais telas secundárias do Cofre, ex. tela Alertas). O
+      nome/tipo/subtipo do item já aparece dentro do box "Dados do
+      item" — nada foi perdido.
+    - CONVERTIDO: edição do item virou bottom-sheet Tipo B
+      (`#modal-editar-item-controle`), substituindo o painel inline
+      antigo (`fic-editar-wrapper`). Ganhou campos de frequência que
+      antes não existiam na edição (só na criação) — necessário pro
+      próximo item.
+    - NOVO — REGENERAR ALERTAS AO EDITAR (pedido explícito): se a
+      frequência do item mudar ao salvar a edição, pergunta (via
+      `confirm()`, mesmo padrão de excluir ativo/item) se quer
+      regenerar as ocorrências FUTURAS em aberto com a nova frequência
+      ou manter as existentes. Nova função de API
+      `excluirOcorrenciasAbertasFuturasDoItem()` — nunca toca em
+      ocorrências já vencidas (continuam pendentes de verdade) nem em
+      concluídas (histórico real).
+    - CORRIGIDO: box "Ocorrência" (linhas + tratamento) e box
+      "Contatos vinculados" (linhas de contato) no mesmo padrão sem
+      borda/fundo do item 7. Botões Tratar/Reagendar/Estornar no
+      gabarito exato de rodapé de bottom-sheet (flex:1, cores certas).
+    - CORRIGIDO: botão "+ Adicionar contato" era um CTA tracejado
+      centralizado — virou pill dentro do painel de "Mais ações" (mesmo
+      padrão do box Contrato vazio na Ficha do Imóvel,
+      `montarBoxSemContratoFicha`). O box em si CONTINUA sempre visível
+      mesmo sem contato (D-6, exceção documentada) — só o botão mudou.
+
+    - Arquivos alterados: cofre.html (1406→1489), js/cofre-api.js
+      (455→470), js/cofre-app.js (305→308), js/cofre-ativos.js
+      (386→373), js/cofre-controles.js (504→569), js/cofre-validacoes.js
+      (sem mudança de linha líquida).
+    - Nenhuma migration neste arquivo (as 2 migrations desta rodada —
+      status_imovel_add_em_uso_v1/_em_breve_v1 — são do módulo Imóveis,
+      ver changelog do index.html v1.62.0).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.8.0
   Data       : 25/08/2026
   Título     : DECISÕES D-1 A D-6 CONFIRMADAS — ARQUITETURA DE POPUP, BADGES, MENU
@@ -710,6 +822,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
+    /* Piscar do mascote R.AI.Z (copiado literalmente de index.html) — sem
+       isso o ícone de robô do header ficava estático, divergindo do App. */
+    @keyframes raiz-bot-blink {
+        0%, 100% { transform: scaleY(1); }
+        4%       { transform: scaleY(0.08); }
+        8%       { transform: scaleY(1); }
+        11%      { transform: scaleY(0.08); }
+        15%      { transform: scaleY(1); }
+    }
+    .raiz-bot-eye {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: raiz-bot-blink 5s ease-in-out infinite;
+    }
+
     :root{
         --pine:#1e3a32; --pine-deep:#152a24; --pine-light:#2d5347;
         --brass:#c68a3b; --brass-deep:#a86f27; --brass-light:#f0c88a;
@@ -800,19 +927,36 @@
 <!-- ============================== APP ============================== -->
 <div id="app-cofre" class="hidden">
 
+    <!-- Header (revisão DS, 25/08/2026) — reconstruído pra bater 1:1 com o
+         padrão do App (index.html #main-header):
+         (1) SEM max-w-md/mx-auto aqui — o wrapper anterior comprimia o
+         cabeçalho inteiro numa faixa central em telas largas (raiz do
+         "ícones centralizados" vs. os do App, que ficam nas laterais reais
+         da janela). Só o <main> abaixo é limitado a max-w-md, igual ao App.
+         (2) Nome/selo/botões/ícone de robô (com piscar) copiados
+         literalmente do App — ver Design System §5-A (novo, App vs. Cofre). -->
     <header class="sticky top-0 z-40" style="background:var(--pine-deep)">
-        <div class="max-w-md mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div class="p-3 flex justify-between items-center">
             <div class="min-w-0">
-                <h1 class="text-white text-base font-bold leading-tight truncate" id="cofre-nome-empresa">—</h1>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mt-0.5" style="background:rgba(255,255,255,.15); color:#fff">Cofre</span>
+                <span class="text-lg font-black tracking-wider text-emerald-400 block leading-tight" id="cofre-nome-empresa">—</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-emerald-200 inline-block mt-0.5">Cofre</span>
             </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <div class="flex items-center gap-2 flex-none">
                 <span class="text-[10px] hidden sm:inline" style="color:var(--pine-light)" id="badge-versao-cofre">v1.2.0</span>
-                <button data-action="abrir-bot" title="Falar com R.AI.Z" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
-                    <i data-lucide="bot" class="text-white" style="width:16px;height:16px"></i>
+                <button data-action="abrir-bot" title="Falar com R.AI.Z" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition text-white">
+                    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 2v3"/>
+                        <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none"/>
+                        <rect x="4" y="7" width="16" height="12" rx="4"/>
+                        <circle class="raiz-bot-eye" cx="9" cy="13" r="1.8" fill="currentColor" stroke="none"/>
+                        <circle class="raiz-bot-eye" cx="15" cy="13" r="1.8" fill="currentColor" stroke="none"/>
+                        <path d="M9 16.5c.8.6 1.9.9 3 .9s2.2-.3 3-.9" stroke-width="1.6"/>
+                        <path d="M2 11v3"/>
+                        <path d="M22 11v3"/>
+                    </svg>
                 </button>
-                <button data-action="abrir-menu-conta" title="Menu" class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,.1)">
-                    <i data-lucide="user" class="text-white" style="width:16px;height:16px"></i>
+                <button data-action="abrir-menu-conta" title="Configurações" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition">
+                    <i data-lucide="user" style="width:18px;height:18px" class="text-white"></i>
                 </button>
             </div>
         </div>
@@ -822,13 +966,19 @@
 
         <!-- ===================== HOME ===================== -->
         <section data-screen="home">
+            <!-- Revisão DS: cores/tamanho corrigidos pra bater 1:1 com o
+                 card "Como está seu patrimônio hoje" da Visão Geral do App
+                 (index.html #tab-geral) — antes usava tokens de marca
+                 (--brass-light/--pine-light) em vez de branco com opacidade,
+                 números em text-2xl (App usa text-xl), e o box de alerta em
+                 dourado em vez de vermelho. Ver Design System §5-A. -->
             <div class="rounded-2xl p-5 text-white shadow" style="background:linear-gradient(135deg,var(--pine-deep),var(--pine))">
-                <p class="text-xs font-semibold" style="color:var(--brass-light)">Visão geral do patrimônio</p>
+                <p class="text-xs opacity-80 font-semibold">Visão geral do patrimônio</p>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-2xl font-extrabold" id="kpi-total-ativos">–</div><div class="text-[11px]" style="color:var(--pine-light)">ativos controlados</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-2xl font-extrabold" id="kpi-vencendo">–</div><div class="text-[11px]" style="color:var(--pine-light)">alertas próximos</div></div>
-                    <div class="rounded-xl p-3" style="background:rgba(198,138,59,.18)"><div class="text-2xl font-extrabold" id="kpi-vencidos" style="color:var(--brass-light)">–</div><div class="text-[11px]" style="color:var(--brass-light)">precisam atenção</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-2xl font-extrabold" id="kpi-total-docs">–</div><div class="text-[11px]" style="color:var(--pine-light)">documentos guardados</div></div>
+                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">ativos controlados</div><div class="text-xl font-extrabold mt-1" id="kpi-total-ativos">–</div></div>
+                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">alertas próximos</div><div class="text-xl font-extrabold mt-1" id="kpi-vencendo">–</div></div>
+                    <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">precisam atenção</div><div class="text-xl font-extrabold text-red-100 mt-1" id="kpi-vencidos">–</div></div>
+                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">documentos guardados</div><div class="text-xl font-extrabold mt-1" id="kpi-total-docs">–</div></div>
                 </div>
             </div>
 
@@ -857,12 +1007,6 @@
                 <button data-action="ir-alertas" class="text-xs font-semibold" style="color:var(--pine)">Ver todos →</button>
             </div>
             <div id="home-lista-alertas" class="space-y-2"></div>
-
-            <div class="flex items-center justify-between mt-6 mb-2">
-                <h2 class="text-sm font-bold">Ativos controlados</h2>
-                <button data-action="ir-ativos" class="text-xs font-semibold" style="color:var(--pine)">Ver todos →</button>
-            </div>
-            <div id="home-grid-ativos" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
         </section>
 
         <!-- ===================== ALERTAS (tela cheia, só leitura — v6: 100%
@@ -968,9 +1112,10 @@
                 </div>
             </div>
 
-            <div id="fa-historico-wrapper" class="hidden mt-2 space-y-2">
-                <div id="fa-tab-historico"></div>
-            </div>
+            <!-- fa-historico-wrapper removido (revisão DS, 25/08/2026) —
+                 pedido explícito: "Histórico" não deve ter opção no Mais
+                 ações do box do Ativo. A caixa "Dados do ativo" já mostra
+                 quem criou/quando inline (ver montarDadosAtivo). -->
 
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">
@@ -981,7 +1126,6 @@
                 <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
                 <button data-action="abrir-documentos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Documentos</button>
                 <button data-action="abrir-fotos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Fotos</button>
-                <button data-action="alternar-historico-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Histórico</button>
                 <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
             </div>
         </div>
@@ -989,7 +1133,7 @@
         <!-- Box: Controles (itens/ocorrências — módulo de Alarmes) -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
-            <div id="fa-tab-controles" class="mt-2 space-y-2"></div>
+            <div id="fa-tab-controles" class="mt-1.5"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-controles" class="text-xs font-bold text-slate-500 flex items-center gap-1">
                     Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-controles-seta" style="width:13px;height:13px"></i>
@@ -1046,25 +1190,67 @@
     </div>
 </div>
 
+<!-- ===================== MODAL — EDITAR ITEM DE CONTROLE (Tipo B, DS §9) =====================
+     Revisão DS (25/08/2026) — era edição inline dentro do box "Dados do
+     item" (fic-editar-wrapper, painel raiz-form-borda); convertido pra
+     bottom-sheet Tipo B, mesmo padrão de "Novo item de controle" acima.
+     Frequência exposta aqui (não existia no formulário antigo, só
+     título/subtipo/antecedência) — necessário pra poder detectar se a
+     mudança "impacta os alertas possíveis" e oferecer regenerar. -->
+<div id="modal-editar-item-controle" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Editar item de controle</h3>
+            <button type="button" data-action="fechar-editar-item" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <select id="fic-ed-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <input id="fic-ed-titulo" placeholder="Título" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
+                <input type="number" min="1" id="fic-ed-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <select id="fic-ed-freq-unidade" class="border-2 border-slate-300 rounded-lg p-2 text-xs self-end">
+                <option value="dia">Dia(s)</option>
+                <option value="semana">Semana(s)</option>
+                <option value="mes">Mês(es)</option>
+                <option value="ano">Ano(s)</option>
+            </select>
+            <div class="col-span-2">
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Avisar com quantos dias de antecedência</label>
+                <input type="number" min="0" id="fic-ed-antecedencia" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+        </div>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente. Se mudar a frequência, o Cofre pergunta se quer regerar as ocorrências futuras ou manter as que já existem.</p>
+        <div class="flex gap-2 mt-3">
+            <button type="button" data-action="fechar-editar-item" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
+            <button data-action="salvar-edicao-item" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===================== TELA — FICHA DO ITEM DE CONTROLE ===================== -->
 <section data-screen="ficha-item-controle" class="hidden">
 
-    <button data-action="voltar-item-controle" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Voltar ao ativo</button>
+    <!-- Revisão DS (25/08/2026) — removido o título solto (nome do item +
+         tipo/subtipo/frequência) que ficava aqui fora dos boxes; pedido
+         explícito: "esta aba não deve ter título, apenas os boxes têm
+         título". Vira "< Voltar" + descrição breve da FUNÇÃO da tela,
+         mesmo padrão das demais telas secundárias do Cofre (ex.: tela
+         Alertas, ver data-screen="alertas" acima). O nome/tipo/subtipo do
+         item em si já aparece dentro do box "Dados do item" logo abaixo —
+         nada foi perdido, só parou de aparecer 2x. -->
+    <button data-action="voltar-item-controle" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Voltar ao ativo</button>
+    <p class="text-xs mb-3" style="color:var(--sage)">Dados do item, ocorrências de vencimento e contatos vinculados.</p>
 
-    <div class="mt-3">
-        <h3 class="text-base font-bold" id="fic-titulo">—</h3>
-        <p class="text-xs" style="color:var(--sage)" id="fic-subtitulo">—</p>
-    </div>
-
-    <div class="mt-4 space-y-3">
+    <div class="space-y-3">
 
         <!-- Box: Dados do item -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Dados do item</h3>
             <div id="fic-dados-leitura" class="text-sm space-y-1 mt-2"></div>
-            <div id="fic-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100 gap-1.5">
-                <button data-action="alternar-editar-item" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar</button>
+                <button data-action="abrir-editar-item" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar</button>
                 <button data-action="excluir-item-controle-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
             </div>
         </div>
@@ -1072,16 +1258,25 @@
         <!-- Box: Ocorrência -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Ocorrência</h3>
-            <div id="fic-ocorrencia" class="mt-2"></div>
+            <div id="fic-ocorrencia" class="mt-1.5"></div>
         </div>
 
-        <!-- Box: Contatos vinculados -->
+        <!-- Box: Contatos vinculados — revisão DS: botão "+ Adicionar"
+             virou pill de Mais ações (mesmo padrão do box Contrato vazio
+             na Ficha do Imóvel, montarBoxSemContratoFicha), não mais um
+             CTA tracejado centralizado. O box em si CONTINUA sempre
+             visível mesmo sem contato (D-6, exceção documentada — DS
+             §16) — só o botão interno mudou de formato. -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Contatos vinculados</h3>
-            <button data-action="alternar-form-contato-item" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Adicionar contato vinculado a este item</button>
-            <div id="fic-contatos" class="mt-2 space-y-2"></div>
+            <div id="fic-contatos" class="mt-1.5"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-contatos-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-contatos-seta" style="width:13px;height:13px"></i></button>
+            </div>
+            <div id="fic-contatos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <button data-action="alternar-form-contato-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="user-plus" style="width:11px;height:11px"></i> Adicionar contato</button>
+            </div>
         </div>
-
 
     </div>
 </section>
@@ -1373,7 +1568,7 @@
                  esta linha precisa ser atualizada manualmente a cada bump
                  do App (id adicionado só pra facilitar grep/busca na hora
                  do deploy — ver checklist em DEPLOY_RAIZ_PATRIMONIO.md). -->
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b id="sobre-versao-app-principal">Beta v1.61.5</b></div>
+            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b id="sobre-versao-app-principal">Beta v1.62.0</b></div>
         </div>
     </div>
 </div>
@@ -1403,4 +1598,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 1406 (cofre.html) — recontado na v1.8.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 1601 (cofre.html) — recontado na v1.8.1; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

@@ -51,7 +51,6 @@ let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
 let itensDoAtivoAtual = [];
 let itemEmFoco = null;
 let ocorrenciaEmAcao = null; // { ocorrenciaId, modo: 'tratar'|'reagendar'|'estornar' }
-let editandoItem = false;
 let contatosDoItemAtual = [];
 let formContatoItemAberto = false;
 
@@ -80,20 +79,26 @@ function renderizarListaControles() {
     refrescarIcones();
 }
 
+// Linha de item de controle — DS (revisão 25/08/2026): paralelo direto das
+// linhas de "itens a receber" do box Financeiro na Ficha do Imóvel
+// (index.html, htmlFinanceiro) — sem raiz-bloco-interno (que tinha borda
+// 2px + fundo #f8fafc), divisor fino border-b/last:border-0, texto
+// text-xs, ícone à esquerda colorido por urgência em vez de status de
+// pagamento (vencido=alerta vermelho, ≤30d=relógio âmbar, em dia/sem
+// ocorrência aberta=check verde).
 function itemResumoHtml(item) {
     const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual < y.data_prevista_atual ? 1 : -1));
     const oc = ocorrencias[0];
-    const chip = oc && oc.status_execucao === 'aberto' ? chipVencimento(diasAte(oc.data_prevista_atual)) : null;
+    const dias = (oc && oc.status_execucao === 'aberto') ? diasAte(oc.data_prevista_atual) : null;
+    const chip = dias !== null ? chipVencimento(dias) : null;
+    const icone = dias === null ? 'check-circle-2' : (dias < 0 ? 'alert-circle' : (dias <= 30 ? 'clock' : 'check-circle-2'));
+    const corIcone = dias === null ? 'var(--success)' : (dias < 0 ? 'var(--danger)' : (dias <= 30 ? 'var(--warning)' : 'var(--success)'));
     const subtituloSubtipo = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
-    return `<button data-action="abrir-item-controle" data-id="${item.id}" class="w-full raiz-bloco-interno flex items-center justify-between text-left">
-        <div class="min-w-0">
-            <p class="text-sm font-semibold truncate">${escapeHtml(item.titulo)}</p>
-            <p class="text-xs" style="color:var(--sage)">${escapeHtml(subtituloSubtipo)}${oc ? ' · vence ' + formatarDataBR(oc.data_prevista_atual) : ''}</p>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-            ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
-            <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--sage)"></i>
-        </div>
+    return `<button data-action="abrir-item-controle" data-id="${item.id}" class="w-full flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0 text-left">
+        <svg data-lucide="${icone}" style="width:14px;height:14px;flex:none;color:${corIcone}"></svg>
+        <div class="flex-1 min-w-0 text-xs font-bold truncate">${escapeHtml(item.titulo)} <span class="font-normal text-slate-400">· ${escapeHtml(subtituloSubtipo)}</span></div>
+        ${chip ? `<span class="${chip.classe} flex-none">${escapeHtml(chip.texto)}</span>` : ''}
+        <i data-lucide="chevron-right" style="width:14px;height:14px;flex:none;color:var(--sage)"></i>
     </button>`;
 }
 
@@ -111,8 +116,8 @@ export function alternarMaisAcoesControles() {
 // ============================================================================
 export async function abrirFichaItemControle(itemId) {
     ocorrenciaEmAcao = null;
-    editandoItem = false;
     formContatoItemAberto = false;
+    document.getElementById('fic-contatos-acoes')?.classList.add('hidden');
     try {
         itemEmFoco = await api.buscarItemControlePorId(itemId);
         contatosDoItemAtual = await api.listarContatosPorItemControle(itemId);
@@ -142,52 +147,42 @@ export function voltarFichaItemControle() {
 
 function renderizarFichaItemControle() {
     const item = itemEmFoco;
-    document.getElementById('fic-titulo').textContent = item.titulo;
-    document.getElementById('fic-subtitulo').textContent = `${rotuloTipoControle(item.tipo)} · ${item.cofre_controle_subtipos?.nome || 'sem subtipo'} · ${rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade)}`;
 
-    // ---- Box Dados
-    document.getElementById('fic-editar-wrapper').classList.toggle('hidden', !editandoItem);
-    document.getElementById('fic-dados-leitura').classList.toggle('hidden', editandoItem);
-    if (!editandoItem) {
-        document.getElementById('fic-dados-leitura').innerHTML = `
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Título</span><b>${escapeHtml(item.titulo)}</b></div>
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Tipo</span><b>${escapeHtml(rotuloTipoControle(item.tipo))}</b></div>
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Subtipo</span><b>${escapeHtml(item.cofre_controle_subtipos?.nome || '—')}</b></div>
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Frequência</span><b>${escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))}</b></div>
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Antecedência do alerta</span><b>${item.antecedencia_alerta_dias} dias</b></div>
-        `;
-    } else {
-        popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
-        document.getElementById('fic-editar-wrapper').innerHTML = `
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input id="fic-ed-titulo" value="${escapeHtml(item.titulo)}" class="border-2 border-slate-300 rounded-lg p-2 text-xs sm:col-span-2">
-                <select id="fic-ed-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs"></select>
-                <input id="fic-ed-antecedencia" type="number" min="0" value="${item.antecedencia_alerta_dias}" class="border-2 border-slate-300 rounded-lg p-2 text-xs" placeholder="Antecedência (dias)">
-            </div>
-            <div class="flex justify-end gap-2 mt-3">
-                <button data-action="alternar-editar-item" class="px-3 py-2 rounded-xl text-xs border-2 border-slate-300">Cancelar</button>
-                <button data-action="salvar-edicao-item" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--pine)">Salvar</button>
-            </div>
-        `;
-        popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
-    }
+    // ---- Box Dados (revisão DS: edição virou bottom-sheet — ver
+    // abrirEditarItem()/salvarEdicaoItem() — este box agora é só leitura)
+    document.getElementById('fic-dados-leitura').innerHTML = `
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Título</span><b>${escapeHtml(item.titulo)}</b></div>
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Tipo</span><b>${escapeHtml(rotuloTipoControle(item.tipo))}</b></div>
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Subtipo</span><b>${escapeHtml(item.cofre_controle_subtipos?.nome || '—')}</b></div>
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Frequência</span><b>${escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))}</b></div>
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Antecedência do alerta</span><b>${item.antecedencia_alerta_dias} dias</b></div>
+    `;
 
     // ---- Box Ocorrências (TODAS — pode haver várias, geradas para os
     // próximos 120 dias conforme a frequência do item; v6, pedido explícito)
+    // Revisão DS (25/08/2026) — linhas no mesmo padrão de "itens a
+    // receber" da Ficha do Imóvel (index.html htmlFinanceiro): sem
+    // raiz-bloco-interno (borda 2px + fundo #f8fafc), divisor fino
+    // border-b/last item sem divisor, ícone de urgência à esquerda.
     const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
     const elOc = document.getElementById('fic-ocorrencia');
     if (!ocorrencias.length) {
         elOc.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhuma ocorrência gerada.</p>`;
     } else {
-        elOc.innerHTML = ocorrencias.map(oc => {
-            const chip = oc.status_execucao === 'aberto' ? chipVencimento(diasAte(oc.data_prevista_atual)) : null;
-            return `<div class="raiz-bloco-interno mb-2">
-                <div class="flex items-center justify-between text-xs mb-2">
-                    <span>${rotuloStatusOcorrencia(oc.status_execucao)} · vence ${formatarDataBR(oc.data_prevista_atual)}</span>
-                    ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+        elOc.innerHTML = ocorrencias.map((oc, idx) => {
+            const dias = oc.status_execucao === 'aberto' ? diasAte(oc.data_prevista_atual) : null;
+            const chip = dias !== null ? chipVencimento(dias) : null;
+            const icone = dias === null ? 'check-circle-2' : (dias < 0 ? 'alert-circle' : (dias <= 30 ? 'clock' : 'check-circle-2'));
+            const corIcone = dias === null ? 'var(--success)' : (dias < 0 ? 'var(--danger)' : (dias <= 30 ? 'var(--warning)' : 'var(--success)'));
+            const divisor = idx < ocorrencias.length - 1 ? 'border-b border-slate-50' : '';
+            return `<div class="py-2 ${divisor}">
+                <div class="flex items-center gap-2 text-xs">
+                    <svg data-lucide="${icone}" style="width:14px;height:14px;flex:none;color:${corIcone}"></svg>
+                    <span class="flex-1 font-bold">${escapeHtml(rotuloStatusOcorrencia(oc.status_execucao))} <span class="font-normal text-slate-400">· vence ${formatarDataBR(oc.data_prevista_atual)}</span></span>
+                    ${chip ? `<span class="${chip.classe} flex-none">${escapeHtml(chip.texto)}</span>` : ''}
                 </div>
-                ${oc.tratamento_descricao ? `<p class="text-xs mb-2" style="color:var(--sage)">Tratamento: ${escapeHtml(oc.tratamento_descricao)}</p>` : ''}
-                ${renderizarAcoesOcorrencia(oc)}
+                ${oc.tratamento_descricao ? `<p class="text-xs mt-1 ml-6" style="color:var(--sage)">Tratamento: ${escapeHtml(oc.tratamento_descricao)}</p>` : ''}
+                <div class="mt-2 ml-6">${renderizarAcoesOcorrencia(oc)}</div>
                 ${renderizarFormAcaoOcorrencia(oc)}
             </div>`;
         }).join('');
@@ -196,25 +191,40 @@ function renderizarFichaItemControle() {
     // ---- Box Alertas vinculados: REMOVIDO (v6) — a própria ocorrência
     // (acima) já É o alerta; não existe mais cadastro de alerta avulso.
 
-    // ---- Box Contatos vinculados
+    // ---- Box Contatos vinculados — revisão DS: linhas no mesmo padrão
+    // sem borda/fundo (era raiz-bloco-interno). O botão "+ Adicionar"
+    // agora vive dentro do painel de Mais ações (ver HTML), não mais
+    // como CTA tracejado centralizado.
     const elContatos = document.getElementById('fic-contatos');
     const listaContatos = contatosDoItemAtual.length
-        ? contatosDoItemAtual.map(c => `<div class="raiz-bloco-interno"><p class="text-sm font-semibold">${escapeHtml(c.nome)}</p><p class="text-xs" style="color:var(--sage)">${escapeHtml(c.papel)}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</p></div>`).join('')
+        ? contatosDoItemAtual.map((c, idx) => `<div class="py-1.5 ${idx < contatosDoItemAtual.length - 1 ? 'border-b border-slate-50' : ''}">
+            <p class="text-xs font-bold truncate">${escapeHtml(c.nome)}</p>
+            <p class="text-[11px]" style="color:var(--sage)">${escapeHtml(c.papel)}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</p>
+        </div>`).join('')
         : `<p class="text-xs" style="color:var(--sage)">Nenhum contato vinculado a este item.</p>`;
     elContatos.innerHTML = (formContatoItemAberto ? formContatoItemHtml() : '') + listaContatos;
 
     refrescarIcones();
 }
 
+export function alternarMaisAcoesContatosItem() {
+    const el = document.getElementById('fic-contatos-acoes');
+    const seta = document.getElementById('fic-contatos-seta');
+    if (!el) return;
+    el.classList.toggle('hidden');
+    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    refrescarIcones();
+}
+
 function renderizarAcoesOcorrencia(oc) {
     if (oc.status_execucao === 'aberto') {
         return `<div class="flex gap-2">
-            <button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="tratar" class="flex-1 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Tratar</button>
-            <button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="reagendar" class="flex-1 py-1.5 rounded-lg text-xs font-bold border-2 border-slate-300">Reagendar</button>
+            <button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="tratar" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:8px;">Tratar</button>
+            <button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="reagendar" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:8px;">Reagendar</button>
         </div>`;
     }
     if (oc.status_execucao === 'concluido') {
-        return `<button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="estornar" class="w-full py-1.5 rounded-lg text-xs font-bold border-2 border-slate-300">Estornar</button>`;
+        return `<button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="estornar" style="width:100%;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:8px;">Estornar</button>`;
     }
     return '';
 }
@@ -307,24 +317,79 @@ export async function confirmarEstornarOcorrencia(ocorrenciaId) {
 }
 
 // ---- Editar / Excluir item
-export function alternarEditarItem() {
-    editandoItem = !editandoItem;
-    renderizarFichaItemControle();
+// Revisão DS (25/08/2026) — edição do item de controle virou bottom-sheet
+// (Tipo B, #modal-editar-item-controle), substituindo o painel inline
+// antigo (fic-editar-wrapper). Também ganhou os campos de frequência
+// (antes só dava pra editar título/subtipo/antecedência) — necessário
+// pra poder detectar mudança que "impacta os alertas possíveis" (pedido
+// explícito) e oferecer regenerar as ocorrências futuras.
+export function abrirEditarItem() {
+    const item = itemEmFoco;
+    popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
+    document.getElementById('fic-ed-titulo').value = item.titulo;
+    document.getElementById('fic-ed-freq-intervalo').value = item.frequencia_intervalo || '';
+    document.getElementById('fic-ed-freq-unidade').value = item.frequencia_unidade || 'mes';
+    document.getElementById('fic-ed-antecedencia').value = item.antecedencia_alerta_dias;
+    abrirModal('modal-editar-item-controle');
+}
+
+export function fecharEditarItem() {
+    fecharModal('modal-editar-item-controle');
 }
 
 export async function salvarEdicaoItem() {
     const titulo = document.getElementById('fic-ed-titulo').value.trim();
     const subtipoId = document.getElementById('fic-ed-subtipo').value || null;
+    const freqIntervalo = parseInt(document.getElementById('fic-ed-freq-intervalo').value, 10) || null;
+    const freqUnidade = freqIntervalo ? document.getElementById('fic-ed-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('fic-ed-antecedencia').value, 10) || 0;
     if (!titulo) { mostrarToast('Informe um título.', 'erro'); return; }
+
+    const item = itemEmFoco;
+    // Campos que, se mudarem, afetam quais ocorrências futuras fazem
+    // sentido existir. Antecedência do alerta NÃO entra aqui — só afeta
+    // o cálculo do chip em tempo real (ocorrenciaEmAlerta em
+    // cofre-validacoes.js), não as datas já gravadas.
+    const mudouFrequencia = (freqIntervalo !== item.frequencia_intervalo) || (freqUnidade !== item.frequencia_unidade);
+
     try {
-        const antes = { titulo: itemEmFoco.titulo, subtipo_id: itemEmFoco.subtipo_id, antecedencia_alerta_dias: itemEmFoco.antecedencia_alerta_dias };
-        const depois = { titulo, subtipo_id: subtipoId, antecedencia_alerta_dias: antecedencia };
-        await api.atualizarItemControle(itemEmFoco.id, depois);
-        await api.registrarHistoricoItemControle({ item_id: itemEmFoco.id, acao: 'editar', antes, depois, pessoa_id: estado.pessoa.id, origem: 'app' });
-        mostrarToast('Item atualizado ✅');
-        editandoItem = false;
+        const antes = { titulo: item.titulo, subtipo_id: item.subtipo_id, frequencia_intervalo: item.frequencia_intervalo, frequencia_unidade: item.frequencia_unidade, antecedencia_alerta_dias: item.antecedencia_alerta_dias };
+        const depois = { titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia };
+        await api.atualizarItemControle(item.id, depois);
+        await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'editar', antes, depois, pessoa_id: estado.pessoa.id, origem: 'app' });
+
+        if (mudouFrequencia) {
+            // Pedido explícito: mudança que impacta os alertas possíveis
+            // pergunta se regera as ocorrências FUTURAS em aberto (não
+            // mexe nas já vencidas — essas continuam pendentes de
+            // verdade, independente da frequência ter mudado) ou mantém
+            // as que já existem. confirm() nativo — mesmo padrão já
+            // usado em excluirItemControleAtual/excluirAtivoAtual pra
+            // decisões simples de sim/não.
+            const regenerar = confirm(
+                'Você mudou a frequência deste item.\n\n' +
+                'Regenerar as ocorrências futuras em aberto com a nova frequência (a partir de hoje)?\n\n' +
+                'OK = Regenerar (as já vencidas continuam como estão)\n' +
+                'Cancelar = Manter as ocorrências que já existem, a nova frequência só vale se você criar mais pra frente'
+            );
+            if (regenerar) {
+                const hojeISO = new Date().toISOString().slice(0, 10);
+                await api.excluirOcorrenciasAbertasFuturasDoItem(item.id, hojeISO);
+                const itemAtualizado = { ...item, ...depois };
+                const payloads = gerarOcorrenciasHorizonte(itemAtualizado, hojeISO, freqIntervalo, freqUnidade);
+                await api.criarOcorrenciasControleBatch(payloads);
+                await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.regerar_ocorrencias', { itemId: item.id, ocorrenciasGeradas: payloads.length });
+                mostrarToast(`Item atualizado — ${payloads.length} ocorrência(s) regerada(s) ✅`);
+            } else {
+                mostrarToast('Item atualizado — ocorrências existentes mantidas ✅');
+            }
+        } else {
+            mostrarToast('Item atualizado ✅');
+        }
+
+        fecharEditarItem();
         await recarregarFichaItemControle();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

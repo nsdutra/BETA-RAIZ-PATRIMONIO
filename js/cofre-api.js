@@ -314,13 +314,13 @@ export async function alternarPublicarVitrineFoto(fotoId, valor) {
 // ============================================================================
 // ALERTAS — DERIVADOS de cofre_ocorrencias_controle (v6, pedido explícito):
 // não existe mais cadastro de alerta separado (cofre_eventos foi removida
-// do banco). Um item de controle com alerta_habilitado=true já É o
+// do banco). Um item de controle com alerta_ativo=true já É o
 // alerta — mesmo padrão do App em Imóveis (Vago/Contrato a vencer são
 // calculados a partir do estado real, nunca cadastrados à parte).
 // ============================================================================
 export async function listarOcorrenciasAbertasComItem(clienteId) {
     const { data, error } = await dbAuth.from('cofre_ocorrencias_controle')
-        .select('*, cofre_itens_controle(ativo_id, titulo, tipo, antecedencia_alerta_dias, alerta_habilitado)')
+        .select('*, cofre_itens_controle(ativo_id, titulo, tipo, antecedencia_alerta_dias, alerta_ativo)')
         .eq('cliente_id', clienteId).eq('status_execucao', 'aberto')
         .order('data_prevista_atual');
     if (error) throw error;
@@ -421,6 +421,21 @@ export async function estornarOcorrencia(id) {
     const { error } = await dbAuth.from('cofre_ocorrencias_controle').update({
         status_execucao: 'aberto', tratado_em: null, tratado_por: null, tratamento_descricao: null,
     }).eq('id', id);
+    if (error) throw error;
+}
+
+// Usada na regeneração de ocorrências após editar a frequência de um item
+// (pedido explícito — ver salvarEdicaoItem em cofre-controles.js). Só
+// apaga ocorrências FUTURAS ainda em aberto (data_prevista_atual >= hoje)
+// — nunca toca em ocorrências já vencidas (continuam pendentes de
+// verdade, independente da frequência ter mudado) nem em concluídas
+// (histórico real do que já foi feito).
+export async function excluirOcorrenciasAbertasFuturasDoItem(itemControleId, apartirDeISO) {
+    const { error } = await dbAuth.from('cofre_ocorrencias_controle')
+        .delete()
+        .eq('item_controle_id', itemControleId)
+        .eq('status_execucao', 'aberto')
+        .gte('data_prevista_atual', apartirDeISO);
     if (error) throw error;
 }
 

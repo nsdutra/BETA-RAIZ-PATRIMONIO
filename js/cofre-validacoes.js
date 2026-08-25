@@ -237,12 +237,12 @@ export function chipVencimento(diffDias) {
 
 // Alertas DERIVADOS (v6, pedido explícito) — não existe mais cadastro de
 // alerta separado. Uma ocorrência "está em alerta" quando o item que a
-// gerou tem alerta_habilitado=true E já entrou na janela de antecedência
+// gerou tem alerta_ativo=true E já entrou na janela de antecedência
 // (ou já venceu — vencido sempre conta). Mesmo princípio do App em
 // Imóveis: Vago/Contrato a vencer são calculados, nunca cadastrados.
 export function ocorrenciaEmAlerta(oc) {
     const item = oc.cofre_itens_controle;
-    if (!item || item.alerta_habilitado === false) return false;
+    if (!item || item.alerta_ativo === false) return false;
     const dias = diasAte(oc.data_prevista_atual);
     if (dias === null) return false;
     return dias <= (item.antecedencia_alerta_dias ?? 0);

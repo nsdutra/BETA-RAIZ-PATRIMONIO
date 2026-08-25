@@ -87,9 +87,6 @@ export function montarHome() {
         ? listaAlertas.map(alertaCardHtml).join('')
         : `<p class="text-xs" style="color:var(--sage)">Nenhum vencimento nos próximos 30 dias. 🎉</p>`;
 
-    document.getElementById('home-grid-ativos').innerHTML = estado.ativos.slice(0, 8).map(ativoCardMiniHtml).join('')
-        || `<p class="text-xs col-span-full" style="color:var(--sage)">Nenhum ativo controlado ainda.</p>`;
-
     refrescarIcones();
 }
 
@@ -112,13 +109,10 @@ function docCardCompactoHtml(d) {
     </div>`;
 }
 
-function ativoCardMiniHtml(a) {
-    return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo p-3 text-left">
-        <i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:18px;height:18px;color:var(--pine)"></i>
-        <div class="font-bold text-sm mt-2 truncate">${escapeHtml(a.nome_exibicao)}</div>
-        <div class="text-[11px]" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</div>
-    </button>`;
-}
+// C-ativos-home (revisão DS, 25/08/2026) — ativoCardMiniHtml() removida:
+// era usada só pela seção "Ativos controlados" da Home, removida a pedido
+// explícito (Visão Geral não deve listar ativos nem ter atalho "Ver
+// todos" — essa listagem já existe na própria aba Ativos).
 
 // ============================================================================
 // UPLOAD — dois caminhos (prompt corretivo §11)

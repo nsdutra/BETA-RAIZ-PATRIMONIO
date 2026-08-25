@@ -6,6 +6,94 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.62.0
+   LINHAS: 24701
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.62.0) — USO DO IMÓVEL: STATUS PRÓPRIO, ALERTAS
+   CONDICIONAIS, BLOQUEIO DE CONTRATO (pedido explícito, revisão de
+   testes do delivery da Karen):
+
+     1) 2 STATUS NOVOS NO BANCO (migrations aplicadas)
+     - Migrations `status_imovel_add_em_uso_v1` e
+       `status_imovel_add_em_breve_v1` (ALTER TYPE ADD VALUE, cada uma
+       isolada — restrição do Postgres) já aplicadas em produção.
+       `status_imovel_enum` agora tem: disponivel, alugado, manutencao,
+       reservado, assinando, em_uso, em_breve.
+
+     2) STATUS INICIAL DEPENDE DO USO DO IMÓVEL
+     - NOVO: `statusInicialPorFinalidadeUso()` — ao CRIAR um imóvel (não
+       se aplica a edição de um já existente): finalidadeUso
+       'uso_proprio' nasce direto em "Em uso" (nunca passa por "Vago");
+       'temporada' nasce em "Em Breve"; long_stay/comercial/outro
+       seguem nascendo "Vago" como sempre.
+     - `mapStatusSupabaseParaAntigo`/`mapStatusAntigoParaSupabase`
+       atualizados com os 2 status novos nos dois sentidos.
+     - Badge de status (montarCabecalhoImovelHtml) não precisou de
+       código novo — "Em uso"/"Em Breve" já caem no branch "demais"
+       (slate), que é a cor correta pra um status neutro sem urgência.
+
+     3) ALERTAS CONDICIONADOS AO USO DO IMÓVEL (Visão Geral)
+     - NOVO: `imovelIsentoDeAlertas(imovelId)` — true pra uso_proprio E
+       temporada (pedido explícito: nenhum dos dois gera alerta do App
+       neste momento, só os cadastrados no Cofre; Long Stay continua
+       com os alertas de sempre).
+     - NOVO: `mensalidadeIsentaDeAlertas(m)` — mesma regra, olhando o
+       imóvel por trás do contrato da mensalidade.
+     - `renderVisaoGeral()`: contadores de inadimplentes e as listas de
+       "contratos aguardando assinatura"/"contratos com alerta" agora
+       excluem imóveis isentos. Contadores de vagos/alugados já
+       excluíam automaticamente (efeito colateral bom da mudança #2 —
+       "Em uso"/"Em Breve" nunca são "Vago"/"Alugado").
+     - NÃO alterado (decisão de escopo): os filtros manuais de busca de
+       Contratos (contratoPrecisaRevisao/contratoVencido usados no
+       overlay de filtro) continuam mostrando o estado real mesmo de
+       contratos isentos — a exceção é só pra alerta PROATIVO
+       (notificação/contagem não solicitada), não pra esconder dado
+       real de uma busca manual do usuário.
+     - PENDENTE (fora do escopo destes arquivos): a mesma condicional
+       precisa ser replicada no bot (`whatsapp-webhook`, Supabase Edge
+       Function) — esse código não está entre os arquivos desta
+       entrega. Ver HANDOFF/checklist ao final deste changelog.
+
+     4) BLOQUEIO DE CONTRATO PARA USO PESSOAL
+     - `iniciarProcessoContratacao()`: guarda única na função-fonte —
+       imóvel com finalidadeUso === 'uso_proprio' nunca inicia processo
+       de contratação (alerta explicando o motivo). Cobre todos os
+       pontos de entrada (pill "Locação" da Ficha, reabertura de
+       "Assinando", Vitrine pública).
+     - `montarBoxSemContratoFicha()`: pra imóvel de uso pessoal, o box
+       Contrato explica o motivo em vez de oferecer "Mais ações →
+       Locação" vazio (DS §16 — pill condicional não existe no DOM se a
+       condição não vale).
+
+     5) TAG DE USO DO IMÓVEL NA LISTA
+     - NOVO: `rotuloFinalidadeUso()` — rótulo de exibição dos 5 valores
+       de finalidade_uso. Card da lista (montarCabecalhoImovelHtml,
+       reaproveitado também no topo da Ficha) ganhou o Uso logo após o
+       Tipo: "Canaã · Apartamento · Long Stay" (pedido explícito).
+
+     - Arquivos alterados: index.html (linhas não mudaram — só
+       substituições pontuais).
+     - Migrations aplicadas: status_imovel_add_em_uso_v1,
+       status_imovel_add_em_breve_v1 (ambas em
+       oduwpttbbemypiypjsux, via Supabase MCP).
+
+   HANDOFF — PENDENTE PRO BOT (whatsapp-webhook, fora destes arquivos):
+     Replicar a mesma condicional desta versão na lógica de alertas do
+     bot: NÃO enviar mensagem de alerta de contrato/vencimento pra
+     imóveis com finalidade_uso IN ('uso_proprio', 'temporada') — usar
+     a MESMA leitura de `imoveis.finalidade_uso` que o App já faz.
+     Long Stay/comercial/outro continuam recebendo alerta normalmente.
+     Fila de trabalho: (a) achar onde o bot itera contratos/imóveis pra
+     montar a mensagem periódica de alerta, (b) fazer join com
+     `imoveis.finalidade_uso`, (c) pular o envio se
+     uso_proprio/temporada. Sem essa mudança, o bot vai continuar
+     mandando alerta de contrato pra imóvel de uso pessoal (que nem
+     pode ter contrato — inofensivo na prática, já que o contrato nunca
+     vai existir) e pra imóvel de temporada com contrato real vencendo
+     (esse SIM precisa da correção, pois o contrato pode existir de
+     verdade).
+
    VERSÃO: Beta v1.61.6
    LINHAS: 24541
    DATA: 2026-08-25
@@ -7491,7 +7579,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.61.6";
+        const APP_VERSAO = "Beta v1.62.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -8337,13 +8425,21 @@
         // status_imovel_enum ADD VALUE 'assinando', que precisa rodar
         // ISOLADA antes de qualquer outra coisa, por restrição do Postgres)
         // — NÃO aplicada automaticamente, ver arquivo separado.
+        // Uso do Imóvel (revisão DS, 25/08/2026) — 2 status novos no ENUM
+        // (migration status_imovel_add_em_uso_v1 + _em_breve_v1, já
+        // aplicadas): "em_uso" nasce sozinho pra imóveis de uso pessoal
+        // (finalidadeUso === 'uso_proprio' — nunca tem contrato de
+        // aluguel, ver bloqueio em salvarImovel/bloquearContratacaoUsoProprio
+        // mais abaixo) e "em_breve" nasce sozinho pra imóveis de
+        // temporada/short stay (finalidadeUso === 'temporada'). Nenhum
+        // dos dois entra no fluxo normal de Vago→Assinando→Alugado.
         function mapStatusSupabaseParaAntigo(status) {
-            const mapa = { disponivel: 'Vago', alugado: 'Alugado', assinando: 'Assinando', manutencao: 'Vago', reservado: 'Vago' };
+            const mapa = { disponivel: 'Vago', alugado: 'Alugado', assinando: 'Assinando', manutencao: 'Vago', reservado: 'Vago', em_uso: 'Em uso', em_breve: 'Em Breve' };
             return mapa[status] || 'Vago';
         }
 
         function mapStatusAntigoParaSupabase(status) {
-            const mapa = { 'Vago': 'disponivel', 'Alugado': 'alugado', 'Assinando': 'assinando' };
+            const mapa = { 'Vago': 'disponivel', 'Alugado': 'alugado', 'Assinando': 'assinando', 'Em uso': 'em_uso', 'Em Breve': 'em_breve' };
             return mapa[status] || 'disponivel';
         }
 
@@ -13678,6 +13774,22 @@
             // chamadores existentes (alternarFormularioImovel/editarImovel).
         }
 
+        // Uso do Imóvel (revisão DS, 25/08/2026) — pedido explícito: o
+        // status "nasce" diferente dependendo da finalidade de uso.
+        // - uso_proprio: nunca vai ter contrato de aluguel (bloqueado em
+        //   iniciarProcessoContratacao) — nasce "Em uso" direto, nunca
+        //   passa por "Vago".
+        // - temporada: sem alertas neste momento (só os do Cofre) — nasce
+        //   "Em Breve", também nunca passa por "Vago".
+        // - long_stay/comercial/outro: fluxo de sempre, nasce "Vago".
+        // Só se aplica na CRIAÇÃO — editar o Uso de um imóvel já existente
+        // não reseta o status automaticamente (ver chamada em saveImovel).
+        function statusInicialPorFinalidadeUso(finalidadeUso) {
+            if (finalidadeUso === 'uso_proprio') return 'Em uso';
+            if (finalidadeUso === 'temporada') return 'Em Breve';
+            return 'Vago';
+        }
+
         function saveImovel(e) {
 
             e.preventDefault();
@@ -13774,7 +13886,7 @@
 
                 divisao: divisao,
 
-                status: id ? imoveis.find(i => i.id === id).status : 'Vago',
+                status: id ? imoveis.find(i => i.id === id).status : statusInicialPorFinalidadeUso(document.getElementById('imo-finalidade-uso').value),
 
                 // v7.3.3 — sindicoId/manutencistaId são calculados por cascata
                 // (a partir do empreendimento) em recalcularVinculosSindicos() e
@@ -15483,12 +15595,29 @@
         // Nenhuma consulta nova ao Supabase, nenhuma métrica financeira
         // inventada — deliberadamente conservador nesta primeira entrega.
         // ===================================================================
+        // Uso do Imóvel (revisão DS, 25/08/2026) — pedido explícito: imóvel
+        // de Uso Pessoal e de Temporada/Short Stay não geram alerta nenhum
+        // do App neste momento (só os cadastrados no módulo Cofre valem
+        // pra eles). Long Stay/Comercial/Outro continuam com os alertas de
+        // sempre. Usado em renderVisaoGeral() e em qualquer outro lugar
+        // que agregue "contratos/mensalidades com alerta" — ver §21 do
+        // Design System pra lista de onde essa condicional foi aplicada.
+        function imovelIsentoDeAlertas(imovelId) {
+            const imo = imoveis.find(i => i.id === imovelId);
+            return !!imo && (imo.finalidadeUso === 'uso_proprio' || imo.finalidadeUso === 'temporada');
+        }
+
+        function mensalidadeIsentaDeAlertas(m) {
+            const con = contratos.find(c => c.id === m.contratoId);
+            return !!con && imovelIsentoDeAlertas(con.imovelId);
+        }
+
         function renderVisaoGeral() {
 
             const totalImoveis = imoveis.length;
             const alugados = imoveis.filter(i => i.status === 'Alugado').length;
             const vagos = imoveis.filter(i => i.status === 'Vago').length;
-            const inadimplentes = mensalidades.filter(m => m.status === 'Inadimplente').length;
+            const inadimplentes = mensalidades.filter(m => m.status === 'Inadimplente' && !mensalidadeIsentaDeAlertas(m)).length;
 
             const elTotal = document.getElementById('geral-total-imoveis');
             const elAlugados = document.getElementById('geral-alugados');
@@ -15509,7 +15638,7 @@
                 </button>`);
             }
 
-            const contratosAssinando = contratos.filter(c => c.status === 'Assinando');
+            const contratosAssinando = contratos.filter(c => c.status === 'Assinando' && !imovelIsentoDeAlertas(c.imovelId));
             if (contratosAssinando.length > 0) {
                 // CORRIGIDO (v1.56.0 — pedido explícito): antes usava um
                 // filtro paralelo por contrato (filtrarImoveisPorAlertaContrato,
@@ -15525,7 +15654,7 @@
                 </button>`);
             }
 
-            const contratosComAlerta = contratos.filter(c => c.status !== 'Assinando' && (contratoPrecisaRevisao(c) || contratoVencido(c)));
+            const contratosComAlerta = contratos.filter(c => c.status !== 'Assinando' && !imovelIsentoDeAlertas(c.imovelId) && (contratoPrecisaRevisao(c) || contratoVencido(c)));
             if (contratosComAlerta.length > 0) {
                 // CORRIGIDO (v1.57.0 — pedido explícito): ao entrar pela
                 // Visão Geral, marca o filtro real "Todos com alerta" no
@@ -15640,6 +15769,15 @@
         // título reduzido pra ficar do mesmo tamanho dos demais textos,
         // situação (locatário · aluguel) com truncate pra nunca quebrar
         // linha.
+        // Uso do Imóvel (revisão DS, 25/08/2026) — rótulo de exibição do
+        // campo finalidadeUso, usado no card da lista logo após o tipo
+        // (pedido explícito). Mesmos 5 valores do <select> de cadastro
+        // (imo-finalidade-uso), default long_stay.
+        function rotuloFinalidadeUso(finalidadeUso) {
+            const mapa = { long_stay: 'Long Stay', uso_proprio: 'Uso Pessoal', temporada: 'Temporada', comercial: 'Comercial', outro: 'Outro' };
+            return mapa[finalidadeUso] || 'Long Stay';
+        }
+
         function montarCabecalhoImovelHtml(imo) {
             const foto = (imo.fotos && Array.isArray(imo.fotos) && imo.fotos.length > 0 && typeof imo.fotos[0] === 'string' && imo.fotos[0].length > 5) ? imo.fotos[0] : null;
             const endExibivel = `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}, ${imo.enderecoCidade || ''}`;
@@ -15668,7 +15806,7 @@
                         ${foto ? `<img src="${foto}" class="w-full h-full object-cover">` : `<svg data-lucide="home" style="width:20px;height:20px"></svg>`}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h3 class="text-xs font-extrabold text-emerald-950 truncate">${imo.empreendimento || 'Canaã'} · ${imo.tipo}</h3>
+                        <h3 class="text-xs font-extrabold text-emerald-950 truncate">${imo.empreendimento || 'Canaã'} · ${imo.tipo} · ${rotuloFinalidadeUso(imo.finalidadeUso)}</h3>
                         <div class="text-xs text-slate-500">${endExibivel}</div>
                         <div class="flex items-center justify-between gap-2 mt-1">
                             <span class="text-xs text-slate-700 truncate">${situacaoEsquerda}</span>
@@ -16061,6 +16199,18 @@
         // mesma rotina que já existia na Vitrine — não reimplementei nada,
         // só passei a chamar de dentro da ficha também).
         function montarBoxSemContratoFicha(imo, finalizados) {
+            // Uso do Imóvel (revisão DS, 25/08/2026) — imóvel de uso
+            // pessoal nunca terá contrato de aluguel (bloqueado em
+            // iniciarProcessoContratacao); o box explica isso em vez de
+            // oferecer "Mais ações → Locação" vazio (§16 — pill condicional
+            // simplesmente não existe no DOM se a condição não vale).
+            if (imo.finalidadeUso === 'uso_proprio') {
+                return `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <h3 class="font-bold text-sm text-emerald-900">Contrato</h3>
+                    <p class="text-xs text-slate-500 mt-1">Imóvel de uso pessoal — não há contrato de aluguel a fazer aqui.</p>
+                </div>`;
+            }
             return `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <h3 class="font-bold text-sm text-emerald-900">Contrato</h3>
@@ -22449,6 +22599,16 @@
 
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
+
+            // Uso do Imóvel (revisão DS, 25/08/2026) — pedido explícito:
+            // imóvel de uso pessoal nunca pode ter contrato de aluguel.
+            // Guarda única aqui (função-fonte) cobre todos os pontos de
+            // entrada: pill "Locação" da Ficha (montarBoxSemContratoFicha),
+            // reabertura de processo "Assinando", e a Vitrine pública.
+            if (imo.finalidadeUso === 'uso_proprio') {
+                alert('⚠️ Este imóvel está marcado como "Uso Pessoal" — não é possível criar um contrato de aluguel para ele.\n\nSe isso mudou, altere o "Uso do imóvel" no cadastro (Detalhes do Imóvel) antes de continuar.');
+                return;
+            }
 
             mostrarCarregamentoGlobal("Preparando processo de contratação...");
 
