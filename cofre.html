@@ -10,6 +10,66 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.10.1
+  Data       : 25/08/2026
+  Título     : BUG FIX — VISÃO GERAL FICAVA CONGELADA APÓS TRATAR/REAGENDAR/ESTORNAR/EXCLUIR
+  Base       : v1.10.0 (25/08/2026)
+  Linhas     : cofre.html = 1879 · js/cofre-api.js = 506 · js/cofre-app.js = 342 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 762 ·
+               js/cofre-documentos.js = 702 · js/cofre-estado.js = 85 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3354)
+
+  CHANGELOG v1.10.1 — bug crítico achado pelo usuário: depois de tratar
+  uma ocorrência, reagendar, estornar, ou excluir um item/ativo, a Home
+  (Visão Geral) continuava mostrando o alerta antigo, como se nada
+  tivesse mudado — só um F5 resolvia.
+
+    1) CAUSA RAIZ
+    - O evento `cofre:recarregar-eventos` (único gatilho que refaz
+      `estado.ocorrenciasAbertas` e chama `montarHome()`) só era
+      disparado por 2 dos 7 pontos que realmente mudam ocorrências:
+      `salvarItemControle()` e `salvarEdicaoItem()`. As 5 ações mais
+      comuns do dia a dia — `confirmarTratarOcorrencia()`,
+      `confirmarReagendarOcorrencia()`, `confirmarEstornarOcorrencia()`,
+      `excluirItemControleAtual()` e `excluirAtivoAtual()` — nunca
+      dispararam o evento desde que ele foi criado. Cada uma dessas
+      funções já chamava `recarregarFichaItemControle()` (ou
+      equivalente), o que atualiza a TELA do item em si — por isso
+      parecia "funcionar" na hora, mas a Home ficava com o array
+      `estado.ocorrenciasAbertas` congelado no estado de antes da ação.
+
+    2) CORRIGIDO
+    - As 5 funções acima agora disparam `cofre:recarregar-eventos` logo
+      depois de confirmar a ação com sucesso (mesmo padrão das 2 que já
+      funcionavam). `excluirAtivoAtual()` também ganhou o disparo —
+      excluir um ativo inteiro deveria limpar da Home qualquer alerta
+      dos itens de controle que foram junto.
+
+    3) SOBRE O "ALERTA RETROATIVO NÃO FUNCIONOU" (mesmo relato)
+    - Investigado direto no banco: o item que o usuário criou
+      (antecedencia_alerta_dias=60, "Seguro contra roubo") tem
+      `data_fim: null` e `direcao_alerta: 'inicio'` — ou seja, os
+      campos novos (Data fim / Gerar a partir de) nunca foram enviados
+      pelo formulário. **Não é bug de lógica** — é que a v1.10.0
+      (que introduziu esses campos) ainda não tinha sido implantada em
+      produção quando o teste foi feito. Nenhuma mudança de código
+      necessária aqui; ver DEPLOY_RAIZ_PATRIMONIO.md / script de deploy
+      desta entrega — depois de implantar v1.10.1 (que já inclui tudo
+      da v1.10.0), o comportamento retroativo deve funcionar como
+      especificado.
+
+    - Arquivos alterados: js/cofre-controles.js (3 funções + 1),
+      js/cofre-ativos.js (1 função).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.10.0
   Data       : 25/08/2026
   Título     : ITEM DE CONTROLE — DATA INÍCIO/FIM + GERAÇÃO RETROATIVA + ATALHOS TRATAR/ACIONAR NA VISÃO GERAL
@@ -1816,4 +1876,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 1819 (cofre.html) — recontado na v1.10.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 1879 (cofre.html) — recontado na v1.10.1; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

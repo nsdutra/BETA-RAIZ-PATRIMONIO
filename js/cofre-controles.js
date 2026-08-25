@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 25/08/2026
+// Versão: 1.5.1 · 25/08/2026
+//
+// v1.5.1 — BUG FIX CRÍTICO (achado pelo usuário): confirmarTratarOcorrencia/
+// confirmarReagendarOcorrencia/confirmarEstornarOcorrencia/
+// excluirItemControleAtual nunca disparavam cofre:recarregar-eventos —
+// só salvarItemControle/salvarEdicaoItem disparavam desde que o evento
+// foi criado. Resultado: a Home ficava com estado.ocorrenciasAbertas
+// congelado depois de qualquer uma dessas 4 ações, só um F5 resolvia.
+// Cada função agora dispara o evento logo após confirmar a ação.
 //
 // v1.5.0 — DATA INÍCIO/FIM + GERAÇÃO RETROATIVA (pedido explícito):
 // modais Criar/Editar item de controle ganharam campo "Data fim
@@ -325,6 +333,15 @@ export async function confirmarTratarOcorrencia(ocorrenciaId) {
         mostrarToast('Ocorrência tratada ✅');
         ocorrenciaEmAcao = null;
         await recarregarFichaItemControle();
+        // BUG FIX (25/08/2026, achado pelo usuário) — faltava isto aqui e
+        // nas 4 funções vizinhas (reagendar/estornar/excluir item/excluir
+        // ativo): recarregarFichaItemControle() só atualiza a TELA do
+        // item em si; sem disparar este evento, estado.ocorrenciasAbertas
+        // nunca era refeito, então a Visão Geral (Home) ficava com dado
+        // congelado até um F5. Só salvarItemControle()/salvarEdicaoItem()
+        // disparavam — os outros 5 pontos de mudança de ocorrência nunca
+        // dispararam desde que o evento foi criado.
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -338,6 +355,7 @@ export async function confirmarReagendarOcorrencia(ocorrenciaId) {
         mostrarToast('Ocorrência reagendada ✅');
         ocorrenciaEmAcao = null;
         await recarregarFichaItemControle();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -349,6 +367,7 @@ export async function confirmarEstornarOcorrencia(ocorrenciaId) {
         mostrarToast('Ocorrência estornada ✅');
         ocorrenciaEmAcao = null;
         await recarregarFichaItemControle();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -453,6 +472,7 @@ export async function excluirItemControleAtual() {
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.desativar', { itemId: itemEmFoco.id });
         mostrarToast('Item de controle excluído.');
         voltarFichaItemControle();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

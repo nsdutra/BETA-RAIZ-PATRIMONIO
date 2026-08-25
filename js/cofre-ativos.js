@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 25/08/2026
+// Versão: 1.2.1 · 25/08/2026
+//
+// v1.2.1 — BUG FIX (achado pelo usuário): excluirAtivoAtual() não
+// disparava cofre:recarregar-eventos — excluir um ativo com itens de
+// controle ativos deixava os alertas desses itens congelados na Home.
+// Ver mesmo bug em cofre-controles.js v1.5.1 (4 funções vizinhas).
 //
 // v1.2.0 — 2ª rodada da revisão DS (decisões D-1/D-2/D-3 confirmadas).
 // (1) D-2: badge de vencimento (chipVencimento) migrado pro formato
@@ -261,6 +266,7 @@ export async function excluirAtivoAtual() {
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.excluir', { ativoId: a.id, nome: a.nome_exibicao });
         mostrarToast('Ativo excluído.');
         fecharFichaAtivo();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — itens/ocorrências do ativo excluído continuavam nos alertas da Visão Geral
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
