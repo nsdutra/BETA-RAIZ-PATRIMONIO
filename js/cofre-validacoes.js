@@ -129,10 +129,13 @@ export const CAMPOS_POR_TIPO_ATIVO = {
         { chave: 'inscricao_municipal', label: 'Inscrição municipal', obrigatorio: false },
         { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
+    // vida_protecao: representa uma PESSOA (não uma apólice — a apólice de
+    // seguro vira Item de Controle da pessoa, tipo=seguro). Por isso não
+    // tem valor_estimado (pedido explícito: "Pessoa não tem valor estimado").
     vida_protecao: [
-        { chave: 'numero_apolice', label: 'Nº da apólice', obrigatorio: false, mascarar: true },
-        { chave: 'tipo_cobertura', label: 'Tipo de cobertura', obrigatorio: false },
-        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
+        { chave: 'grau_parentesco', label: 'Grau de parentesco', obrigatorio: false },
+        { chave: 'numero_documento', label: 'Nº do documento (CPF/RG)', obrigatorio: false, mascarar: true },
+        { chave: 'data_nascimento', label: 'Data de nascimento', obrigatorio: false, tipo: 'date' },
     ],
     outro: [
         { chave: 'descricao_livre', label: 'Descrição', obrigatorio: false },
@@ -208,4 +211,17 @@ export function chipVencimento(diffDias) {
     if (diffDias < 0) return { classe: 'chip-vencido', texto: `Vencido há ${Math.abs(diffDias)}d` };
     if (diffDias <= 30) return { classe: 'chip-proximo', texto: `Vence em ${diffDias}d` };
     return { classe: 'chip-ok', texto: 'Em dia' };
+}
+
+// Alertas DERIVADOS (v6, pedido explícito) — não existe mais cadastro de
+// alerta separado. Uma ocorrência "está em alerta" quando o item que a
+// gerou tem alerta_habilitado=true E já entrou na janela de antecedência
+// (ou já venceu — vencido sempre conta). Mesmo princípio do App em
+// Imóveis: Vago/Contrato a vencer são calculados, nunca cadastrados.
+export function ocorrenciaEmAlerta(oc) {
+    const item = oc.cofre_itens_controle;
+    if (!item || item.alerta_habilitado === false) return false;
+    const dias = diasAte(oc.data_prevista_atual);
+    if (dias === null) return false;
+    return dias <= (item.antecedencia_alerta_dias ?? 0);
 }

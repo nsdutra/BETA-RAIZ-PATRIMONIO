@@ -6,6 +6,20 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.61.4
+   LINHAS: 24399
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.61.4) — CAMPO "USO DO IMÓVEL" LIGADO NO FORMULÁRIO:
+
+     NOVO — campo "Uso do imóvel" (Long Stay/Uso próprio/Temporada/
+     Comercial/Outro, default Long Stay) no formulário de cadastro/edição
+     de imóvel. A coluna `finalidade_uso` já existia no banco desde uma
+     migration de sessão anterior (imoveis_finalidade_uso_v1), mas nunca
+     tinha sido ligada ao formulário — ficava sempre no valor padrão do
+     banco, sem o usuário poder escolher nem ver. "Detalhes do Imóvel"
+     (Mais ações) reaproveita o mesmo formulário, então também mostra o
+     campo automaticamente.
+
    VERSÃO: Beta v1.61.3
    LINHAS: 24355
    DATA: 2026-08-24
@@ -5176,6 +5190,20 @@
 
                     </div>
 
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-600">Uso do imóvel <span style="color:var(--danger)">*</span></label>
+
+                        <select id="imo-finalidade-uso" required class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                            <option value="long_stay">Long Stay (locação)</option>
+                            <option value="uso_proprio">Uso próprio</option>
+                            <option value="temporada">Temporada</option>
+                            <option value="comercial">Comercial</option>
+                            <option value="outro">Outro</option>
+                        </select>
+
+                    </div>
+
                     <!-- Desmembramento do Endereço -->
 
                     <div class="grid grid-cols-3 gap-2">
@@ -7150,7 +7178,7 @@
                  forçando rolagem). Fica só um rodapé compacto, tipo crédito/
                  copyright: versão, site, nome da empresa. -->
             <p class="text-center text-[10.5px] text-gray-400 leading-relaxed pt-1 pb-2">
-                Raiz Patrimônio <span id="sobre-versao-badge" class="font-mono font-bold">BETA v1.61.3</span>
+                Raiz Patrimônio <span id="sobre-versao-badge" class="font-mono font-bold">BETA v1.61.4</span>
                 · <a href="https://www.raizpatrimonio.com.br" target="_blank" class="underline">raizpatrimonio.com.br</a>
             </p>
 
@@ -7345,7 +7373,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.61.3";
+        const APP_VERSAO = "Beta v1.61.4";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -8260,6 +8288,7 @@
                     enderecoComp: row.endereco_comp || '',
                     enderecoBairro: row.endereco_bairro || '',
                     enderecoCidade: row.endereco_cidade || '',
+                    finalidadeUso: row.finalidade_uso || 'long_stay',
                     tipo: row.tipos_imovel ? row.tipos_imovel.nome : '',
                     tipoId: row.tipo_id || null,
                     tamanho: row.tamanho || 0,
@@ -8335,6 +8364,7 @@
                 endereco_comp: imo.enderecoComp,
                 endereco_bairro: imo.enderecoBairro,
                 endereco_cidade: imo.enderecoCidade,
+                finalidade_uso: imo.finalidadeUso || 'long_stay',
                 tamanho: imo.tamanho || null,
                 condominio: imo.condominio || null,
                 iptu: imo.iptu || null,
@@ -9199,6 +9229,7 @@
                     enderecoComp: row.endereco_comp || '',
                     enderecoBairro: row.endereco_bairro || '',
                     enderecoCidade: row.endereco_cidade || '',
+                    finalidadeUso: row.finalidade_uso || 'long_stay',
                     tipo: row.tipos_imovel ? row.tipos_imovel.nome : '',
                     tamanho: row.tamanho || 0,
                     condominio: row.condominio || 0,
@@ -13599,6 +13630,8 @@
 
                 tipo: tipoSalvo,
 
+                finalidadeUso: document.getElementById('imo-finalidade-uso').value,
+
                 tamanho: document.getElementById('imo-tamanho').value,
 
                 suites: document.getElementById('imo-suites').value,
@@ -13730,6 +13763,8 @@
             document.getElementById('imo-endereco-cidade').value = imo.enderecoCidade || '';
 
             document.getElementById('imo-tipo').value = imo.tipo;
+
+            document.getElementById('imo-finalidade-uso').value = imo.finalidadeUso || 'long_stay';
 
             document.getElementById('imo-tamanho').value = imo.tamanho;
 

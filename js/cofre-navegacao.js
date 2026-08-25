@@ -126,17 +126,17 @@ function falhaAcesso(mensagem) {
 }
 
 async function carregarTudo() {
-    const [categorias, documentos, ativos, eventos, contatos] = await Promise.all([
+    const [categorias, documentos, ativos, ocorrenciasAbertas, contatos] = await Promise.all([
         api.listarCategorias(estado.clienteId).catch(e => { mostrarToast('Erro ao carregar categorias: ' + e.message, 'erro'); return []; }),
         api.listarDocumentos(estado.clienteId).catch(e => { mostrarToast('Erro ao carregar documentos: ' + e.message, 'erro'); return []; }),
         api.listarAtivos(estado.clienteId).catch(e => { mostrarToast('Erro ao carregar ativos: ' + e.message, 'erro'); return []; }),
-        api.listarEventosPendentes(estado.clienteId).catch(e => { mostrarToast('Erro ao carregar alertas: ' + e.message, 'erro'); return []; }),
+        api.listarOcorrenciasAbertasComItem(estado.clienteId).catch(e => { mostrarToast('Erro ao carregar alertas: ' + e.message, 'erro'); return []; }),
         api.listarContatos(estado.clienteId).catch(e => { mostrarToast('Erro ao carregar contatos: ' + e.message, 'erro'); return []; }),
     ]);
     estado.categorias = categorias;
     estado.documentos = documentos;
     estado.ativos = ativos;
-    estado.eventos = eventos;
+    estado.ocorrenciasAbertas = ocorrenciasAbertas;
     estado.contatos = contatos;
 
     window.dispatchEvent(new CustomEvent('cofre:dados-carregados'));

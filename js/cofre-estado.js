@@ -2,6 +2,11 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
+// v1.6.0 — CONCLUSÃO DA MIGRAÇÃO v6 (deixada pela metade numa sessão
+// anterior) + geração automática de 120 dias + lote de ajustes visuais
+// (largura da ficha, fonte da lista de ativos, box Dados em prosa,
+// Controles virou bottom-sheet). Ver changelog completo em cofre.html.
+//
 // v1.5.1 — guarda defensiva no bootstrap (cofre-navegacao.js v1.1.3).
 //
 // v1.5.0 — item de controle ganhou tela própria (ver cofre-controles.js
@@ -35,7 +40,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.5.1';
+export const COFRE_VERSAO = '1.6.0';
 
 export const estado = {
     clienteId: null,
@@ -44,7 +49,7 @@ export const estado = {
     categorias: [],
     documentos: [],
     ativos: [],
-    eventos: [],
+    ocorrenciasAbertas: [], // v6: substitui `eventos` — alertas derivados, ver cofre-validacoes.js ocorrenciaEmAlerta()
     contatos: [],
     contextoAtual: null,     // { tipo: 'ativo'|'imovel'|'contrato'|'pagamento'|'documento', ref: uuid|null, nome: string|null }
     documentoEmFoco: null,

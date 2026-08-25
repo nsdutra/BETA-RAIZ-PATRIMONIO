@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.0 · 24/08/2026
+// Versão: 1.2.0 · 25/08/2026
+//
+// v1.2.0 — GERAÇÃO AUTOMÁTICA DE 120 DIAS (pedido explícito, previsto
+// desde a arquitetura original mas não implementado até agora): ao criar
+// um item de controle, gerarOcorrenciasHorizonte() cria TODAS as
+// ocorrências dentro dos próximos 120 dias (não só a 1ª), respeitando a
+// frequência (dia/semana/mes/ano). Box de Ocorrências na ficha do item
+// agora lista todas (antes só a mais recente). CONCLUSÃO DA MIGRAÇÃO v6:
+// removida "Alertas vinculados" (formAlertaItemHtml/alternarFormAlertaItem/
+// salvarAlertaItem, criarEvento — mortos, cofre_eventos removida; a
+// própria ocorrência já é o alerta). Formulário de criar item de controle
+// migrou de inline pra modal bottom-sheet (abrirFormControle/
+// fecharFormControle agora usam abrirModal/fecharModal), acionado por
+// "Mais ações" do box Controles (nova alternarMaisAcoesControles()).
 //
 // v1.1.0 — MUDANÇA ESTRUTURAL (pedido explícito): clicar num item de
 // controle abre uma TELA PRÓPRIA (data-screen="ficha-item-controle"), não
@@ -17,7 +30,7 @@
 // ============================================================================
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, refrescarIcones } from './cofre-ui.js';
+import { mostrarToast, refrescarIcones, abrirModal, fecharModal } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
@@ -29,16 +42,14 @@ let itensDoAtivoAtual = [];
 let itemEmFoco = null;
 let ocorrenciaEmAcao = null; // { ocorrenciaId, modo: 'tratar'|'reagendar'|'estornar' }
 let editandoItem = false;
-let eventosDoItemAtual = [];
 let contatosDoItemAtual = [];
-let formAlertaItemAberto = false;
 let formContatoItemAberto = false;
 
 // ============================================================================
 // BOX "CONTROLES" na ficha do ativo — lista-resumo clicável
 // ============================================================================
 export async function montarControlesAtivo(a) {
-    document.getElementById('fa-form-item-controle')?.classList.add('hidden');
+    document.getElementById('fa-mais-acoes-controles')?.classList.add('hidden');
     try {
         itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
     } catch (err) {
@@ -76,17 +87,19 @@ function itemResumoHtml(item) {
     </button>`;
 }
 
+export function alternarMaisAcoesControles() {
+    document.getElementById('fa-mais-acoes-controles')?.classList.toggle('hidden');
+}
+
 // ============================================================================
 // TELA — FICHA DO ITEM DE CONTROLE
 // ============================================================================
 export async function abrirFichaItemControle(itemId) {
     ocorrenciaEmAcao = null;
     editandoItem = false;
-    formAlertaItemAberto = false;
     formContatoItemAberto = false;
     try {
         itemEmFoco = await api.buscarItemControlePorId(itemId);
-        eventosDoItemAtual = await api.listarEventosPorItemControle(itemId);
         contatosDoItemAtual = await api.listarContatosPorItemControle(itemId);
     } catch (err) {
         mostrarToast('Erro ao abrir item de controle: ' + err.message, 'erro');
@@ -100,7 +113,6 @@ export async function recarregarFichaItemControle() {
     if (!itemEmFoco) return;
     try {
         itemEmFoco = await api.buscarItemControlePorId(itemEmFoco.id);
-        eventosDoItemAtual = await api.listarEventosPorItemControle(itemEmFoco.id);
         contatosDoItemAtual = await api.listarContatosPorItemControle(itemEmFoco.id);
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); return; }
     renderizarFichaItemControle();
@@ -145,31 +157,29 @@ function renderizarFichaItemControle() {
         popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
     }
 
-    // ---- Box Ocorrência
-    const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual < y.data_prevista_atual ? 1 : -1));
-    const oc = ocorrencias[0];
+    // ---- Box Ocorrências (TODAS — pode haver várias, geradas para os
+    // próximos 120 dias conforme a frequência do item; v6, pedido explícito)
+    const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
     const elOc = document.getElementById('fic-ocorrencia');
-    if (!oc) {
+    if (!ocorrencias.length) {
         elOc.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhuma ocorrência gerada.</p>`;
     } else {
-        const chip = oc.status_execucao === 'aberto' ? chipVencimento(diasAte(oc.data_prevista_atual)) : null;
-        elOc.innerHTML = `
-            <div class="flex items-center justify-between text-xs mb-2">
-                <span>${rotuloStatusOcorrencia(oc.status_execucao)} · vence ${formatarDataBR(oc.data_prevista_atual)}</span>
-                ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
-            </div>
-            ${oc.tratamento_descricao ? `<p class="text-xs mb-2" style="color:var(--sage)">Tratamento: ${escapeHtml(oc.tratamento_descricao)}</p>` : ''}
-            ${renderizarAcoesOcorrencia(oc)}
-            ${renderizarFormAcaoOcorrencia(oc)}
-        `;
+        elOc.innerHTML = ocorrencias.map(oc => {
+            const chip = oc.status_execucao === 'aberto' ? chipVencimento(diasAte(oc.data_prevista_atual)) : null;
+            return `<div class="raiz-bloco-interno mb-2">
+                <div class="flex items-center justify-between text-xs mb-2">
+                    <span>${rotuloStatusOcorrencia(oc.status_execucao)} · vence ${formatarDataBR(oc.data_prevista_atual)}</span>
+                    ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+                </div>
+                ${oc.tratamento_descricao ? `<p class="text-xs mb-2" style="color:var(--sage)">Tratamento: ${escapeHtml(oc.tratamento_descricao)}</p>` : ''}
+                ${renderizarAcoesOcorrencia(oc)}
+                ${renderizarFormAcaoOcorrencia(oc)}
+            </div>`;
+        }).join('');
     }
 
-    // ---- Box Alertas vinculados
-    const elAlertas = document.getElementById('fic-alertas');
-    const listaAlertas = eventosDoItemAtual.length
-        ? eventosDoItemAtual.map(e => `<div class="raiz-bloco-interno flex items-center justify-between"><span class="text-sm">${escapeHtml(e.titulo)}</span><span class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</span></div>`).join('')
-        : `<p class="text-xs" style="color:var(--sage)">Nenhum alerta vinculado a este item.</p>`;
-    elAlertas.innerHTML = (formAlertaItemAberto ? formAlertaItemHtml() : '') + listaAlertas;
+    // ---- Box Alertas vinculados: REMOVIDO (v6) — a própria ocorrência
+    // (acima) já É o alerta; não existe mais cadastro de alerta avulso.
 
     // ---- Box Contatos vinculados
     const elContatos = document.getElementById('fic-contatos');
@@ -314,39 +324,8 @@ export async function excluirItemControleAtual() {
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
-// ---- Alertas vinculados ao item
-function formAlertaItemHtml() {
-    return `<div class="raiz-form-borda p-2 mb-2 space-y-2">
-        <input id="fic-alerta-titulo" placeholder="Título do alerta" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-        <input id="fic-alerta-data" type="date" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-        <div class="flex justify-end gap-2">
-            <button data-action="alternar-form-alerta-item" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
-            <button data-action="salvar-alerta-item" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Salvar alerta</button>
-        </div>
-    </div>`;
-}
-
-export function alternarFormAlertaItem() {
-    formAlertaItemAberto = !formAlertaItemAberto;
-    renderizarFichaItemControle();
-}
-
-export async function salvarAlertaItem() {
-    const titulo = document.getElementById('fic-alerta-titulo').value.trim();
-    const dataVencimento = document.getElementById('fic-alerta-data').value;
-    if (!titulo || !dataVencimento) { mostrarToast('Preencha título e data.', 'erro'); return; }
-    try {
-        await api.criarEvento({
-            cliente_id: estado.clienteId, ativo_id: estado.ativoEmFoco?.id || null, item_controle_id: itemEmFoco.id,
-            tipo_evento: 'manual', titulo, data_evento: dataVencimento, data_vencimento: dataVencimento,
-            antecedencia_dias: itemEmFoco.antecedencia_alerta_dias || 7, status: 'pendente', prioridade: 'normal',
-            origem_extracao: false, criado_por: estado.pessoa.id,
-        });
-        mostrarToast('Alerta criado ✅');
-        formAlertaItemAberto = false;
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
-}
+// ---- Alertas vinculados: REMOVIDO (v6) — não existe mais cadastro de
+// alerta avulso; a ocorrência (box "Ocorrências" acima) já é o alerta.
 
 // ---- Contatos vinculados ao item
 function formContatoItemHtml() {
@@ -401,11 +380,11 @@ export async function abrirFormControle() {
     document.getElementById('ic-freq-intervalo').value = '';
     document.getElementById('ic-freq-unidade').value = 'mes';
     document.getElementById('ic-antecedencia').value = '7';
-    document.getElementById('fa-form-item-controle').classList.remove('hidden');
+    abrirModal('modal-criar-item-controle');
 }
 
 export function fecharFormControle() {
-    document.getElementById('fa-form-item-controle')?.classList.add('hidden');
+    fecharModal('modal-criar-item-controle');
 }
 
 function popularSelectSubtipo(tipo) {
@@ -446,19 +425,62 @@ export async function salvarItemControle() {
         });
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
 
-        // Fase 1 núcleo: a 1ª ocorrência é criada junto (sem job de horizonte ainda — ver HANDOFF)
-        const competencia = primeiroDiaDoMes(dataBase);
-        await api.criarOcorrenciaControle({
-            cliente_id: estado.clienteId, item_controle_id: item.id, competencia,
-            data_prevista_original: dataBase, data_prevista_atual: dataBase, alerta_habilitado: true, status_execucao: 'aberto',
-        });
+        // v6 (pedido explícito): ao criar o item, já lança TODAS as ocorrências
+        // dentro do horizonte de 120 dias (não só a 1ª) — respeitando a
+        // frequência do item. Item não-recorrente: gera só 1, na data base
+        // (mesmo que fora do horizonte, pra sempre ter algo a mostrar).
+        const payloads = gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade);
+        await api.criarOcorrenciasControleBatch(payloads);
 
-        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.criar', { ativoId: a.id, itemId: item.id });
-        mostrarToast('Item de controle criado ✅');
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.criar', { ativoId: a.id, itemId: item.id, ocorrenciasGeradas: payloads.length });
+        mostrarToast(`Item de controle criado — ${payloads.length} ocorrência(s) gerada(s) ✅`);
         fecharFormControle();
         itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
         renderizarListaControles();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // atualiza Home/Visão Geral com as novas ocorrências
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// Gera as ocorrências de um item dentro do horizonte de 120 dias a partir de
+// hoje, respeitando frequência (dia/semana/mes/ano). Sempre gera pelo menos
+// 1 (a da data_base), mesmo que ela já esteja fora do horizonte — pra nunca
+// deixar um item sem nenhuma ocorrência.
+const HORIZONTE_DIAS = 120;
+const MAX_OCORRENCIAS_GERADAS = 60; // guarda contra frequência muito curta (ex.: diária) gerar demais
+
+function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade) {
+    const camposComuns = { cliente_id: estado.clienteId, item_controle_id: item.id, alerta_habilitado: !!item.alerta_ativo, status_execucao: 'aberto' };
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const horizonte = new Date(hoje); horizonte.setDate(horizonte.getDate() + HORIZONTE_DIAS);
+    const horizonteISO = horizonte.toISOString().slice(0, 10);
+
+    if (!freqIntervalo || !freqUnidade) {
+        return [{ ...camposComuns, competencia: primeiroDiaDoMes(dataBase), data_prevista_original: dataBase, data_prevista_atual: dataBase }];
+    }
+
+    const payloads = [];
+    let dataAtual = dataBase;
+    let guarda = 0;
+    while (dataAtual <= horizonteISO && guarda < MAX_OCORRENCIAS_GERADAS) {
+        payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataAtual), data_prevista_original: dataAtual, data_prevista_atual: dataAtual });
+        dataAtual = proximaData(dataAtual, freqUnidade, freqIntervalo);
+        guarda++;
+    }
+    // Se a 1ª data já nasce depois do horizonte (ex.: vence daqui 200 dias),
+    // ainda assim garante pelo menos essa 1ª ocorrência.
+    if (!payloads.length) {
+        payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataBase), data_prevista_original: dataBase, data_prevista_atual: dataBase });
+    }
+    return payloads;
+}
+
+function proximaData(dataISO, unidade, intervalo) {
+    const d = new Date(dataISO + 'T00:00:00');
+    if (unidade === 'dia') d.setDate(d.getDate() + intervalo);
+    else if (unidade === 'semana') d.setDate(d.getDate() + intervalo * 7);
+    else if (unidade === 'mes') d.setMonth(d.getMonth() + intervalo);
+    else if (unidade === 'ano') d.setFullYear(d.getFullYear() + intervalo);
+    return d.toISOString().slice(0, 10);
 }
 
 function primeiroDiaDoMes(dataISO) {

@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 24/08/2026
+// Versão: 1.3.0 · 25/08/2026
+//
+// v1.3.0 — CONCLUSÃO DA MIGRAÇÃO v6: alertaCardHtml() reescrita (não lê
+// mais estado.eventos/cofre_eventos — recebe objeto já normalizado com
+// itemControleId e navega pro Item de Controle ao clicar, em vez de
+// editar/excluir inline). Removidas alternarEditarAlerta/
+// confirmarEditarAlerta/excluirAlerta (mortas, tabela removida).
+// montarHome() lê estado.ocorrenciasAbertas (via novo adaptador
+// ocorrenciaParaAlertaViewHome) em vez do estado.eventos morto — é a
+// causa raiz de "nenhum alerta aparece na Visão Geral". Sugestão de
+// alerta pela IA (aplicarSugestoesIA) não cria mais evento avulso —
+// checkbox escondida até termos fluxo de "virar item de controle".
 //
 // v1.2.0 — alertaCardHtml() ganha modo interativo (editar/excluir, pedido
 // explícito — "alertas padrão pode e excluir e editar sem problemas").
@@ -28,12 +39,25 @@ let pularAnaliseIAProximoUpload = false; // true = "Upload simples" (pedido expl
 // ============================================================================
 // HOME
 // ============================================================================
+// v6: alertas são DERIVADOS de cofre_ocorrencias_controle (via
+// estado.ocorrenciasAbertas, já vem com o item de controle embutido).
+// Não existe mais cadastro manual de alerta (cofre_eventos foi removida).
+function ocorrenciaParaAlertaViewHome(oc) {
+    return {
+        id: oc.id,
+        itemControleId: oc.item_controle_id,
+        titulo: oc.cofre_itens_controle?.titulo || '(item removido)',
+        data_vencimento: oc.data_prevista_atual,
+    };
+}
+
 export function montarHome() {
     document.getElementById('kpi-total-ativos').textContent = estado.ativos.length;
     document.getElementById('kpi-total-docs').textContent = estado.documentos.length;
 
-    const vencendo = estado.eventos.filter(e => { const d = diasAte(e.data_vencimento); return d !== null && d >= 0 && d <= 30; });
-    const vencidos = estado.eventos.filter(e => { const d = diasAte(e.data_vencimento); return d !== null && d < 0; });
+    const alertasView = estado.ocorrenciasAbertas.map(ocorrenciaParaAlertaViewHome);
+    const vencendo = alertasView.filter(e => { const d = diasAte(e.data_vencimento); return d !== null && d >= 0 && d <= 30; });
+    const vencidos = alertasView.filter(e => { const d = diasAte(e.data_vencimento); return d !== null && d < 0; });
     document.getElementById('kpi-vencendo').textContent = vencendo.length;
     document.getElementById('kpi-vencidos').textContent = vencidos.length;
 
@@ -53,63 +77,16 @@ export function montarHome() {
     refrescarIcones();
 }
 
-export function alertaCardHtml(e, interativo = false) {
+export function alertaCardHtml(e) {
     const dias = diasAte(e.data_vencimento);
     const chip = chipVencimento(dias);
-    const acoes = interativo ? `
-        <div class="flex gap-1 flex-shrink-0">
-            <button data-action="alternar-editar-alerta" data-id="${e.id}" class="w-7 h-7 rounded-full flex items-center justify-center border border-slate-300"><i data-lucide="pencil" style="width:12px;height:12px;color:var(--sage)"></i></button>
-            <button data-action="excluir-alerta" data-id="${e.id}" class="w-7 h-7 rounded-full flex items-center justify-center border border-slate-300"><i data-lucide="trash-2" style="width:12px;height:12px;color:var(--danger)"></i></button>
-        </div>` : '';
-    return `<div class="raiz-bloco-interno" id="alerta-card-${e.id}">
-        <div class="flex items-center justify-between gap-2">
-            <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-                ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
-                ${acoes}
-            </div>
+    return `<button data-action="abrir-item-controle" data-id="${e.itemControleId || ''}" class="w-full text-left raiz-bloco-interno flex items-center justify-between gap-2">
+        <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            ${chip ? `<span class="chip ${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+            <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--sage)"></i>
         </div>
-        <div id="alerta-editar-${e.id}" class="hidden mt-2"></div>
-    </div>`;
-}
-
-export function alternarEditarAlerta(id) {
-    const wrapper = document.getElementById(`alerta-editar-${id}`);
-    if (!wrapper) return;
-    const abrindo = wrapper.classList.contains('hidden');
-    wrapper.classList.toggle('hidden');
-    if (!abrindo) return;
-    const e = estado.eventos.find(x => x.id === id);
-    if (!e) return;
-    wrapper.innerHTML = `<div class="raiz-form-borda p-2 space-y-2">
-        <input id="alerta-ed-titulo-${id}" value="${escapeHtml(e.titulo)}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-        <input id="alerta-ed-data-${id}" type="date" value="${e.data_vencimento}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-        <div class="flex justify-end gap-2">
-            <button data-action="alternar-editar-alerta" data-id="${id}" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
-            <button data-action="confirmar-editar-alerta" data-id="${id}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Salvar</button>
-        </div>
-    </div>`;
-    refrescarIcones();
-}
-
-export async function confirmarEditarAlerta(id) {
-    const titulo = document.getElementById(`alerta-ed-titulo-${id}`).value.trim();
-    const dataVencimento = document.getElementById(`alerta-ed-data-${id}`).value;
-    if (!titulo || !dataVencimento) { mostrarToast('Preencha título e data.', 'erro'); return; }
-    try {
-        await api.atualizarEvento(id, { titulo, data_vencimento: dataVencimento });
-        mostrarToast('Alerta atualizado ✅');
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
-}
-
-export async function excluirAlerta(id) {
-    if (!confirm('Excluir este alerta?')) return;
-    try {
-        await api.excluirEvento(id);
-        mostrarToast('Alerta excluído.');
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+    </button>`;
 }
 
 function docCardCompactoHtml(d) {
@@ -378,11 +355,10 @@ function montarModalSugestoesIA() {
             </label>`;
     }
 
-    const alerta = r.alertasSugeridos[0];
-    document.getElementById('sug-alerta-bloco').classList.toggle('hidden', !(alerta?.titulo && alerta?.dataVencimento));
-    if (alerta?.titulo && alerta?.dataVencimento) {
-        document.getElementById('sug-alerta-texto').textContent = `${alerta.titulo} — ${formatarDataBR(alerta.dataVencimento)}`;
-    }
+    // v6: sugestão de alerta pela IA não vira mais evento avulso (ver nota em
+    // aplicarSugestoesIA) — bloco escondido até termos um fluxo real de
+    // "criar item de controle a partir da sugestão".
+    document.getElementById('sug-alerta-bloco').classList.add('hidden');
 
     const contato = r.contatosSugeridos[0];
     document.getElementById('sug-contato-bloco').classList.toggle('hidden', !contato?.nome);
@@ -421,15 +397,11 @@ export async function aplicarSugestoesIA() {
             }
         }
 
-        const alerta = r.alertasSugeridos[0];
-        if (document.getElementById('sug-aplicar-alerta')?.checked && alerta?.titulo && alerta?.dataVencimento) {
-            await api.criarEvento({
-                cliente_id: estado.clienteId, documento_id: documentoId, tipo_evento: alerta.tipoEvento || 'outro',
-                titulo: alerta.titulo, data_vencimento: alerta.dataVencimento, antecedencia_dias: 15,
-                status: 'pendente', origem_extracao: true, confianca_extracao: r.confianca === 'alta' ? 0.9 : (r.confianca === 'media' ? 0.6 : 0.3),
-                criado_por: estado.pessoa.id,
-            });
-        }
+        // v6: sugestão de alerta pela IA não cria mais evento avulso (tabela
+        // cofre_eventos removida) — alertas agora só existem via Item de
+        // Controle. Checkbox "aplicar alerta" desativada no formulário (ver
+        // montarModalSugestoesIA) até termos um fluxo de "criar item de
+        // controle a partir da sugestão da IA" (pendente).
 
         const contato = r.contatosSugeridos[0];
         if (document.getElementById('sug-aplicar-contato')?.checked && contato?.nome) {

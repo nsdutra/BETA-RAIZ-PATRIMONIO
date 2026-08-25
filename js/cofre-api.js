@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.3 · 24/08/2026
+// Versão: 1.2.0 · 25/08/2026
+//
+// v1.2.0 — LIMPEZA v6: removida listarOcorrenciasAbertas() duplicada
+// (função correta e em uso é listarOcorrenciasAbertasComItem, de sessão
+// anterior). Nova criarOcorrenciasControleBatch() — geração de múltiplas
+// ocorrências de uma vez (horizonte de 120 dias, ver cofre-controles.js).
 //
 // v1.1.3 — CORREÇÃO DE BUG: migration_cofre_alarmes_fase1_nucleo_v1 deu
 // GRANT só pra service_role nas tabelas de controle, esquecendo
@@ -307,33 +312,19 @@ export async function alternarPublicarVitrineFoto(fotoId, valor) {
 }
 
 // ============================================================================
-// EVENTOS / ALERTAS
+// ALERTAS — DERIVADOS de cofre_ocorrencias_controle (v6, pedido explícito):
+// não existe mais cadastro de alerta separado (cofre_eventos foi removida
+// do banco). Um item de controle com alerta_habilitado=true já É o
+// alerta — mesmo padrão do App em Imóveis (Vago/Contrato a vencer são
+// calculados a partir do estado real, nunca cadastrados à parte).
 // ============================================================================
-export async function listarEventosPendentes(clienteId) {
-    const { data, error } = await dbAuth.from('cofre_eventos').select('*').eq('cliente_id', clienteId).eq('status', 'pendente').order('data_vencimento');
+export async function listarOcorrenciasAbertasComItem(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_ocorrencias_controle')
+        .select('*, cofre_itens_controle(ativo_id, titulo, tipo, antecedencia_alerta_dias, alerta_habilitado)')
+        .eq('cliente_id', clienteId).eq('status_execucao', 'aberto')
+        .order('data_prevista_atual');
     if (error) throw error;
     return data || [];
-}
-
-export async function atualizarEvento(id, patch) {
-    const { error } = await dbAuth.from('cofre_eventos').update(patch).eq('id', id);
-    if (error) throw error;
-}
-
-export async function excluirEvento(id) {
-    const { error } = await dbAuth.from('cofre_eventos').update({ status: 'ignorado' }).eq('id', id);
-    if (error) throw error;
-}
-
-export async function listarEventosPorItemControle(itemControleId) {
-    const { data, error } = await dbAuth.from('cofre_eventos').select('*').eq('item_controle_id', itemControleId).neq('status', 'ignorado').order('data_vencimento');
-    if (error) throw error;
-    return data || [];
-}
-
-export async function criarEvento(payload) {
-    const { error } = await dbAuth.from('cofre_eventos').insert(payload);
-    if (error) throw error;
 }
 
 // ============================================================================
@@ -400,6 +391,11 @@ export async function listarContatosPorItemControle(itemControleId) {
     const { data, error } = await dbAuth.from('cofre_contatos_acionamento').select('*').eq('item_controle_id', itemControleId).order('nome');
     if (error) throw error;
     return data || [];
+}
+
+export async function criarOcorrenciasControleBatch(payloads) {
+    const { error } = await dbAuth.from('cofre_ocorrencias_controle').insert(payloads);
+    if (error) throw error;
 }
 
 export async function criarOcorrenciaControle(payload) {

@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.4 · 24/08/2026
+// Versão: 1.2.0 · 25/08/2026
+//
+// v1.2.0 — CONCLUSÃO DA MIGRAÇÃO v6 (deixada pela metade numa sessão
+// anterior — banco já não tinha mais cofre_eventos, mas este arquivo ainda
+// chamava funções removidas da API, quebrando silenciosamente). Alertas
+// agora 100% derivados de cofre_ocorrencias_controle (estado.ocorrenciasAbertas):
+// renderAlertas()/montarHome() reescritos, removida toda a UI de "criar
+// alerta manual" (alternarFormEvento/salvarEvento e o listener
+// cofre:evento-contextual — mortos, sem tabela pra escrever). Removidos
+// dispatchers órfãos: abrir-evento-no-ativo, alternar-form-alerta-item,
+// salvar-alerta-item, alternar-form-evento, salvar-evento. Novo:
+// alternar-mais-acoes-controles (box Controles vira bottom-sheet).
 //
 // v1.1.4 — dispatcher acompanha a ficha do item de controle (tela própria,
 // cofre-controles.js v1.1.0): abrir/voltar-item-controle, editar/excluir
@@ -107,7 +118,6 @@ document.addEventListener('click', async (ev) => {
         case 'alternar-editar-ativo': ativos.alternarEditarAtivo(); break;
         case 'salvar-edicao-ativo': await ativos.salvarEdicaoAtivo(); break;
         case 'abrir-gestao-imovel': ativos.abrirGestaoImovel(); break;
-        case 'abrir-evento-no-ativo': ativos.abrirEventoNoAtivo(); break;
         case 'abrir-documentos-ativo': abrirModal('modal-documentos-ativo'); break;
         case 'fechar-documentos-ativo': fecharModal('modal-documentos-ativo'); break;
         case 'abrir-fotos-ativo': abrirModal('modal-fotos-ativo'); break;
@@ -115,6 +125,7 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-upload-no-ativo-ia': docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco); break;
         case 'abrir-upload-no-ativo-simples': docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco); break;
         case 'abrir-form-controle': await controles.abrirFormControle(); break;
+        case 'alternar-mais-acoes-controles': controles.alternarMaisAcoesControles(); break;
         case 'fechar-form-controle': controles.fecharFormControle(); break;
         case 'salvar-item-controle': await controles.salvarItemControle(); break;
         case 'alternar-acao-ocorrencia': controles.alternarAcaoOcorrencia(alvo.dataset.id, alvo.dataset.modo); break;
@@ -127,14 +138,8 @@ document.addEventListener('click', async (ev) => {
         case 'alternar-editar-item': controles.alternarEditarItem(); break;
         case 'salvar-edicao-item': await controles.salvarEdicaoItem(); break;
         case 'excluir-item-controle-atual': await controles.excluirItemControleAtual(); break;
-        case 'alternar-form-alerta-item': controles.alternarFormAlertaItem(); break;
-        case 'salvar-alerta-item': await controles.salvarAlertaItem(); break;
         case 'alternar-form-contato-item': controles.alternarFormContatoItem(); break;
         case 'salvar-contato-item': await controles.salvarContatoItem(); break;
-
-        // ---- alertas
-        case 'alternar-form-evento': alternarFormEvento(); break;
-        case 'salvar-evento': await salvarEvento(); break;
 
         // ---- criação assistida (deep link contexto=imovel sem ativo ainda)
         case 'fechar-criacao-assistida': fecharModal('modal-criacao-assistida'); break;
@@ -171,55 +176,28 @@ document.getElementById('filtro-ativo-busca')?.addEventListener('input', debounc
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
 // ============================================================================
-// ALERTAS — tela própria (fora dos módulos de tela porque é pequena e usa
-// só api.js diretamente; se crescer, extrair para cofre-alertas.js)
+// ALERTAS — tela própria (v6: 100% DERIVADO de cofre_ocorrencias_controle,
+// sem cadastro manual — a "configuração" de um alerta é o próprio item de
+// controle, campos alerta_ativo/antecedencia_alerta_dias já preenchidos na
+// criação do item. Clicar num alerta abre o Item de Controle que o gerou.
 // ============================================================================
+function ocorrenciaParaAlertaView(oc) {
+    return {
+        id: oc.id,
+        itemControleId: oc.item_controle_id,
+        titulo: oc.cofre_itens_controle?.titulo || '(item removido)',
+        data_vencimento: oc.data_prevista_atual,
+        ativoId: oc.cofre_itens_controle?.ativo_id || null,
+    };
+}
+
 function renderAlertas() {
-    document.getElementById('alertas-lista').innerHTML = [...estado.eventos]
-        .sort((a, b) => (a.data_vencimento || '') > (b.data_vencimento || '') ? 1 : -1)
-        .map(docs.alertaCardHtml).join('');
-    document.getElementById('alertas-estado-vazio').classList.toggle('hidden', estado.eventos.length !== 0);
-    document.getElementById('alertas-lista').classList.toggle('hidden', estado.eventos.length === 0);
+    const alertasView = [...estado.ocorrenciasAbertas].map(ocorrenciaParaAlertaView)
+        .sort((a, b) => (a.data_vencimento || '') > (b.data_vencimento || '') ? 1 : -1);
+    document.getElementById('alertas-lista').innerHTML = alertasView.map(docs.alertaCardHtml).join('');
+    document.getElementById('alertas-estado-vazio').classList.toggle('hidden', alertasView.length !== 0);
+    document.getElementById('alertas-lista').classList.toggle('hidden', alertasView.length === 0);
     refrescarIcones();
-}
-
-let eventoAtivoPreDefinido = null;
-
-function alternarFormEvento() {
-    const painel = document.getElementById('form-evento-wrapper');
-    const abrindo = painel.classList.contains('hidden');
-    painel.classList.toggle('hidden');
-    document.getElementById('btn-toggle-evento').classList.toggle('ativo', abrindo);
-    if (abrindo) {
-        document.getElementById('ev-ativo').innerHTML = '<option value="">(nenhum)</option>' + estado.ativos.map(a => `<option value="${a.id}">${a.nome_exibicao}</option>`).join('');
-        if (eventoAtivoPreDefinido) {
-            document.getElementById('ev-ativo').value = eventoAtivoPreDefinido;
-            document.getElementById('ev-ativo').disabled = true;
-        } else {
-            document.getElementById('ev-ativo').disabled = false;
-        }
-    }
-}
-
-async function salvarEvento() {
-    const titulo = document.getElementById('ev-titulo').value.trim();
-    const vencimento = document.getElementById('ev-vencimento').value;
-    const statusEl = document.getElementById('ev-status');
-    if (!titulo || !vencimento) { statusEl.textContent = '⚠️ Preencha título e vencimento.'; statusEl.style.color = 'var(--danger)'; return; }
-    try {
-        await api.criarEvento({
-            cliente_id: estado.clienteId, ativo_id: document.getElementById('ev-ativo').value || null,
-            tipo_evento: document.getElementById('ev-tipo').value, titulo, data_vencimento: vencimento,
-            antecedencia_dias: parseInt(document.getElementById('ev-antecedencia').value, 10) || 15,
-            status: 'pendente', criado_por: estado.pessoa.id,
-        });
-        mostrarToast('Alerta cadastrado ✅');
-        document.getElementById('ev-titulo').value = '';
-        eventoAtivoPreDefinido = null;
-        alternarFormEvento();
-        estado.eventos = await api.listarEventosPendentes(estado.clienteId);
-        renderAlertas();
-    } catch (err) { statusEl.textContent = '❌ ' + err.message; statusEl.style.color = 'var(--danger)'; }
 }
 
 // ============================================================================
@@ -270,13 +248,6 @@ window.addEventListener('cofre:upload-contextual', (ev) => {
     docs.abrirUploadContextual(ev.detail.entidadeTipo, ev.detail.entidadeId, ev.detail.nome);
 });
 
-window.addEventListener('cofre:evento-contextual', (ev) => {
-    eventoAtivoPreDefinido = ev.detail.ativoId;
-    nav.mudarTela('alertas');
-    const painel = document.getElementById('form-evento-wrapper');
-    if (painel.classList.contains('hidden')) alternarFormEvento();
-});
-
 window.addEventListener('cofre:contexto-imovel-sem-ativo', (ev) => abrirCriacaoAssistida(ev.detail.imovelId, ev.detail.imovel));
 
 window.addEventListener('cofre:navegar-contexto', (ev) => nav.abrirContexto(ev.detail.tipo, ev.detail.ref, null));
@@ -296,9 +267,10 @@ window.addEventListener('cofre:recarregar-contatos', async () => {
     estado.contatos = await api.listarContatos(estado.clienteId);
 });
 window.addEventListener('cofre:recarregar-eventos', async () => {
-    estado.eventos = await api.listarEventosPendentes(estado.clienteId);
+    estado.ocorrenciasAbertas = await api.listarOcorrenciasAbertasComItem(estado.clienteId);
     docs.montarHome();
     const telaAtual = document.querySelector('[data-screen]:not(.hidden)')?.dataset.screen;
+    if (telaAtual === 'alertas') renderAlertas();
     if (telaAtual === 'ficha-ativo' && estado.ativoEmFoco) ativos.abrirFichaAtivo(estado.ativoEmFoco.id);
     if (telaAtual === 'ficha-item-controle') controles.recarregarFichaItemControle();
 });

@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.4 · 24/08/2026
+// Versão: 1.1.5 · 25/08/2026
+//
+// v1.1.5 — box "Dados do ativo": vira descrição corrida + badge de status
+// (Ativo/Arquivado), igual ao padrão de card do Imóvel — antes era tabela
+// label:valor. Card da lista de ativos: fonte igual ao Imóvel (text-xs
+// font-extrabold, era text-sm font-semibold). Box "Alertas" removido (v6 —
+// alertas agora só existem via Item de Controle). ativoCardHtml() lê
+// estado.ocorrenciasAbertas em vez do estado.eventos morto.
 //
 // v1.1.4 — Contatos removido da ficha do ativo (pedido explícito: contatos
 // agora vinculam a Item de Controle, não ao ativo direto — ver
@@ -37,7 +44,6 @@ import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, CAMPOS_POR_TIPO_ATIVO, validarCamposAtivo,
 } from './cofre-validacoes.js';
-import { alertaCardHtml } from './cofre-documentos.js';
 import { montarControlesAtivo } from './cofre-controles.js';
 
 let ativoAtualId = null;
@@ -68,13 +74,13 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
 function ativoCardHtml(a) {
     // Card = identidade + status + contexto + próxima ação (Adendo §20) —
     // sem fileira de ícones de ação; o card inteiro abre a ficha.
-    const eventosDoAtivo = estado.eventos.filter(e => e.ativo_id === a.id);
-    const proximo = eventosDoAtivo.map(e => diasAte(e.data_vencimento)).filter(d => d !== null).sort((x, y) => x - y)[0];
+    const ocorrenciasDoAtivo = estado.ocorrenciasAbertas.filter(oc => oc.cofre_itens_controle?.ativo_id === a.id);
+    const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
     const chip = chipVencimento(proximo);
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
-        <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background:var(--success-bg)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:18px;height:18px;color:var(--success)"></i></div>
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style="background:var(--success-bg)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:18px;height:18px;color:var(--success)"></i></div>
         <div class="min-w-0 flex-1">
-            <p class="text-sm font-semibold truncate">${escapeHtml(a.nome_exibicao)}</p>
+            <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
         </div>
         ${chip ? `<span class="chip ${chip.classe} flex-shrink-0">${escapeHtml(chip.texto)}</span>` : ''}
@@ -104,7 +110,7 @@ function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-') {
     return campos.map(c => `
         <div>
             <label class="text-xs font-semibold block mb-1">${escapeHtml(c.label)} ${c.obrigatorio ? '<span style="color:var(--danger)">*</span>' : ''}</label>
-            <input type="${c.tipo === 'number' ? 'number' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(valores[c.chave] || '')}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+            <input type="${c.tipo === 'number' ? 'number' : c.tipo === 'date' ? 'date' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(valores[c.chave] || '')}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
         </div>`).join('') || `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Sem campos estruturados adicionais para este tipo.</p>`;
 }
 
@@ -161,7 +167,6 @@ export async function abrirFichaAtivo(id) {
 
     montarDadosAtivo(a);
     montarDocumentosAtivo(a);
-    montarAlertasAtivo(a);
     await montarControlesAtivo(a);
     await montarFotosAtivo(a);
     await montarHistoricoAtivo(a);
@@ -187,13 +192,26 @@ function montarDadosAtivo(a) {
     const origemWrapper = document.getElementById('fa-resumo-origem-imovel');
     origemWrapper.classList.toggle('hidden', a.entidade_origem_tipo !== 'imovel');
 
+    // Descrição corrida (não tabela) + badge de status, mesmo padrão do
+    // card/ficha de Imóvel no App (pedido explícito).
     const camposDefinidos = CAMPOS_POR_TIPO_ATIVO[a.tipo_ativo] || [];
     const dados = a.dados_especificos || {};
-    const linhasDados = camposDefinidos
+    const valoresPreenchidos = camposDefinidos
         .filter(c => dados[c.chave])
-        .map(c => `<div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">${escapeHtml(c.label)}</span><b>${escapeHtml(c.mascarar ? mascarar(dados[c.chave]) : dados[c.chave])}</b></div>`)
-        .join('');
-    document.getElementById('fa-resumo-dados').innerHTML = linhasDados || `<p class="text-xs" style="color:var(--sage)">Sem dados estruturados cadastrados ainda.</p>`;
+        .map(c => c.mascarar ? mascarar(dados[c.chave]) : dados[c.chave]);
+    const descricaoCorrida = valoresPreenchidos.length
+        ? valoresPreenchidos.map(v => escapeHtml(v)).join(' · ')
+        : 'Sem dados estruturados cadastrados ainda.';
+
+    const badgeStatus = a.status === 'arquivado'
+        ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:var(--danger-bg); color:var(--danger)">Arquivado</span>`
+        : `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:var(--success-bg); color:var(--success)">Ativo</span>`;
+
+    document.getElementById('fa-resumo-dados').innerHTML = `
+        <div class="flex items-start justify-between gap-2">
+            <p class="text-xs flex-1" style="color:var(--sage)">${descricaoCorrida}</p>
+            ${badgeStatus}
+        </div>`;
 
     refrescarIcones();
 }
@@ -260,17 +278,10 @@ function montarDocumentosAtivo(a) {
 // foi removida — não fazia sentido depois que Documentos virou modal
 // próprio dentro da ficha, sem precisar sair dela.
 
-// ---- Alertas
-function montarAlertasAtivo(a) {
-    const eventos = estado.eventos.filter(e => e.ativo_id === a.id && !e.item_controle_id);
-    document.getElementById('fa-tab-alertas').innerHTML = eventos.length ? eventos.map(e => alertaCardHtml(e, true)).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum alerta para este ativo.</p>`;
-}
-
-export function abrirEventoNoAtivo() {
-    const a = estado.ativoEmFoco;
-    fecharFichaAtivo();
-    window.dispatchEvent(new CustomEvent('cofre:evento-contextual', { detail: { ativoId: a.id, nome: a.nome_exibicao } }));
-}
+// ---- Alertas: box REMOVIDO da ficha do ativo (v6, pedido explícito) —
+// alertas agora são 100% derivados de Itens de Controle (ver box
+// "Controles" e a ficha própria de cada item, cofre-controles.js). Não
+// existe mais cadastro de alerta avulso por ativo.
 
 // ---- Contatos: REMOVIDO desta ficha (pedido explícito) — contatos agora
 // vinculam a um Item de Controle, não ao Ativo direto. Ver

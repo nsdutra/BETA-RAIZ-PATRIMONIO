@@ -10,10 +10,94 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.5.1
-  Data       : 24/08/2026
-  Título     : CORREÇÃO DE RLS (INSERT em ocorrências) + GUARDA DEFENSIVA NO BOOTSTRAP
-  Base       : v1.5.0 (24/08/2026)
+  Versão     : 1.6.0
+  Data       : 25/08/2026
+  Título     : CONCLUSÃO DA MIGRAÇÃO v6 + GERAÇÃO AUTOMÁTICA DE 120 DIAS + AJUSTES VISUAIS
+  Base       : v1.5.1 (24/08/2026)
+
+  CHANGELOG v1.6.0 — lote grande. Cobre: (1) conclusão de uma migração que
+  tinha ficado pela metade numa sessão anterior muito longa (o banco já
+  tinha mudado, o código não tinha acompanhado — causa raiz de "nenhum
+  alerta aparece"), (2) a geração automática de 120 dias que estava
+  prevista desde a arquitetura original mas nunca implementada, e (3) um
+  lote de ajustes visuais reportados após teste real.
+
+    1) BUG GRAVE CORRIGIDO — MIGRAÇÃO v6 INCOMPLETA
+    - Descoberta ao investigar "alertas não aparecem na Visão Geral": uma
+      sessão anterior já tinha removido a tabela `cofre_eventos` do banco
+      (migration cofre_remover_eventos_v6) e criado o substituto
+      (`cofre_ocorrencias_controle` como única fonte de alerta, via
+      `listarOcorrenciasAbertasComItem` + `carregarTudo()`), mas boa parte
+      do código consumidor (cofre-app.js, cofre-documentos.js,
+      cofre-ativos.js, cofre-controles.js) nunca foi atualizada — ainda
+      chamava funções de API que já tinham sido removidas. Resultado:
+      erros silenciosos, Home nunca lia as ocorrências reais.
+    - CORRIGIDO: todo o código consumidor migrado para
+      `estado.ocorrenciasAbertas`. Removida toda UI/lógica morta de
+      "criar alerta manual" (não tem mais como funcionar — tabela não
+      existe): alternarFormEvento/salvarEvento, formAlertaItemHtml/
+      alternarFormAlertaItem/salvarAlertaItem, listener
+      `cofre:evento-contextual`, dispatchers `abrir-evento-no-ativo`/
+      `alternar-form-evento`/`salvar-evento`/`alternar-form-alerta-item`/
+      `salvar-alerta-item`.
+    - Tela "Alertas" (cheia, só leitura) restaurada — tinha sido removida
+      do HTML mas o botão "Ver todos →" da Home ainda apontava pra ela
+      (ia quebrar com erro de `null`). Acessível só via "Ver todos →",
+      não está mais na bottom-nav (já tinha sido trocada por 2 itens:
+      "Visão Geral"/"Ativos", numa sessão anterior).
+    - Box "Alertas" removido da ficha do ativo e "Alertas vinculados" da
+      ficha do item de controle — não fazem mais sentido: a própria
+      ocorrência já é o alerta.
+
+    2) GERAÇÃO AUTOMÁTICA DE OCORRÊNCIAS — 120 DIAS
+    - Ao criar um item de controle, TODAS as ocorrências dentro dos
+      próximos 120 dias já são geradas (respeitando a frequência), não só
+      a 1ª. Item não-recorrente: gera só 1, na data base. Guarda contra
+      frequência muito curta gerando ocorrências demais (máx. 60).
+    - Ficha do item de controle agora lista TODAS as ocorrências (antes
+      só a mais recente), cada uma com tratar/reagendar/estornar próprios.
+
+    3) AJUSTES VISUAIS (reportados após teste real)
+    - CORRIGIDO bug de largura: a ficha do ativo e a ficha do item de
+      controle estavam FORA da tag `<main>` (que aplica `max-w-md`) —
+      ficaram como seções soltas depois do `</main>` numa edição anterior,
+      por isso renderizavam full-width. Movidas de volta pra dentro.
+    - Card da lista de Ativos: fonte trocada para `text-xs font-extrabold`
+      (era `text-sm font-semibold`) — mesmo padrão do card de Imóvel.
+    - Tela de Ativos: título "Ativos controlados" removido; ordem dos
+      ícones corrigida para lupa→+ (estava +→lupa, invertido do Design
+      System §3: direita→esquerda é +, depois lupa).
+    - Box "Dados do ativo": virou descrição corrida ("Artista · Título ·
+      Ano") + badge de status (Ativo/Arquivado), igual ao card/ficha do
+      Imóvel — antes era uma tabela label:valor linha a linha.
+    - "Excluir" (Mais ações da ficha do ativo e do item de controle):
+      cor trocada de vermelho para cinza, igual às demais opções
+      (pedido explícito — diverge do Design System §1, que documenta
+      vermelho como exceção; sinalizando a divergência).
+    - Box "Controles": formulário de criar item de controle saiu de
+      inline (sempre visível) e virou modal bottom-sheet, acionado por
+      "Mais ações → Criar item de controle" — igual ao padrão dos demais
+      popups de ação do Design System §6.
+
+    4) CONFIRMADO (já implementado em sessão anterior, sem mudança)
+    - Cadastro de "Vida/proteção" já representa uma pessoa (grau de
+      parentesco, nº documento, data de nascimento), sem valor estimado.
+    - Módulo Imóveis: campo "Uso do imóvel" (Long Stay padrão) já ligado
+      no cadastro/edição — confirmado funcionando ponta a ponta.
+
+    - Arquivos alterados: js/cofre-api.js (1.1.3→1.2.0), js/cofre-app.js
+      (1.1.4→1.2.0), js/cofre-ativos.js (1.1.4→1.1.5), js/cofre-documentos.js
+      (1.2.0→1.3.0), js/cofre-controles.js (1.1.0→1.2.0), js/cofre-estado.js
+      (COFRE_VERSAO 1.5.1→1.6.0), cofre.html (ficha do ativo/item movidas
+      pra dentro do main, box Controles, box Dados do ativo, tela Ativos,
+      Excluir cinza, tela Alertas restaurada).
+
+  NÃO IMPLEMENTADO NESTA VERSÃO (declarado, não fingido):
+    - Prestadores de serviço, Pessoas, Minha Empresa, Licença no menu de
+      bonequinho do Cofre continuam "em breve".
+    - Imóvel Long Stay cadastrável dentro do Cofre + tabela de
+      propriedade compartilhada com Imóveis — adiado por decisão
+      explícita em rodada anterior.
 
   CHANGELOG v1.5.1 — dois bugs reportados após teste real.
 
@@ -503,21 +587,31 @@
             <div id="home-grid-ativos" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
         </section>
 
+        <!-- ===================== ALERTAS (tela cheia, só leitura — v6: 100%
+             derivado de cofre_ocorrencias_controle, sem cadastro manual;
+             acessível só via "Ver todos →" da Home, não está mais na
+             bottom-nav) ===================== -->
+        <section data-screen="alertas" class="hidden">
+            <button data-action="ir-home" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Visão Geral</button>
+            <h2 class="text-sm font-bold mb-1">Alertas</h2>
+            <p class="text-xs mb-3" style="color:var(--sage)">Vencimentos dos itens de controle cadastrados. Toque num alerta para tratar, reagendar ou ver o item.</p>
+            <div id="alertas-lista" class="space-y-2 hidden"></div>
+            <div id="alertas-estado-vazio" class="hidden text-center py-14">
+                <i data-lucide="bell-off" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+                <p class="text-sm font-semibold">Nenhum alerta em aberto</p>
+            </div>
+        </section>
+
         <!-- ===================== ATIVOS (lista) ===================== -->
         <section data-screen="ativos" class="hidden">
-            <div class="flex items-center justify-between mb-3">
-                <div>
-                    <h2 class="text-sm font-bold">Ativos controlados</h2>
-                    <p class="text-xs" style="color:var(--sage)">Bens e proteções acompanhados pelo Cofre.</p>
-                </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <button data-action="alternar-form-ativo" id="btn-toggle-ativo" class="raiz-btn-toggle" title="Novo ativo">
-                        <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    </button>
-                    <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-slate-300">
-                        <i data-lucide="search" style="width:16px;height:16px;color:var(--sage)"></i>
-                    </button>
-                </div>
+            <div class="flex items-center gap-2 mb-4">
+                <p class="text-[11px] flex-1 text-left" style="color:var(--sage)">Bens e proteções acompanhados pelo Cofre.</p>
+                <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-10 h-10 rounded-full flex items-center justify-center border-2 border-slate-300 flex-shrink-0">
+                    <i data-lucide="search" style="width:16px;height:16px;color:var(--sage)"></i>
+                </button>
+                <button data-action="alternar-form-ativo" id="btn-toggle-ativo" class="raiz-btn-toggle flex-shrink-0" title="Novo ativo">
+                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
             </div>
 
             <div id="form-ativo-wrapper" class="hidden raiz-form-borda p-4 mb-4">
@@ -555,43 +649,159 @@
         </section>
 
         <!-- ===================== ALERTAS ===================== -->
-        <section data-screen="alertas" class="hidden">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-sm font-bold">Alertas e vencimentos</h2>
-                <button data-action="alternar-form-evento" id="btn-toggle-evento" class="raiz-btn-toggle" title="Novo alerta">
-                    <svg class="raiz-icone-toggle" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+<!-- ===================== TELA — FICHA DO ATIVO (boxes, padrão do App/Imóveis) ===================== -->
+<section data-screen="ficha-ativo" class="hidden">
+
+    <button data-action="voltar-ficha-ativo" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Ativos</button>
+
+    <div class="mt-3">
+        <h3 class="text-base font-bold" id="fa-nome">—</h3>
+        <p class="text-xs" style="color:var(--sage)" id="fa-tipo">—</p>
+    </div>
+
+    <div class="mt-4 space-y-3">
+
+        <!-- Box: Dados do ativo -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Dados do ativo</h3>
+            <div id="fa-resumo-origem-imovel" class="hidden raiz-bloco-interno flex items-center justify-between text-sm mt-2">
+                <span>Este ativo referencia um imóvel já cadastrado.</span>
+                <button data-action="abrir-gestao-imovel" class="text-xs font-bold" style="color:var(--pine)">Abrir gestão do imóvel →</button>
+            </div>
+            <div id="fa-resumo-dados" class="text-sm space-y-1 mt-2"></div>
+
+            <div id="fa-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2">
+                <div id="fa-editar-campos" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+                <div class="flex justify-end gap-2 mt-3">
+                    <button data-action="alternar-editar-ativo" class="px-3 py-2 rounded-xl text-xs border-2 border-slate-300">Cancelar</button>
+                    <button data-action="salvar-edicao-ativo" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--pine)">Salvar</button>
+                </div>
+            </div>
+
+            <div id="fa-historico-wrapper" class="hidden mt-2 space-y-2">
+                <div id="fa-tab-historico"></div>
+            </div>
+
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    Mais ações <i data-lucide="chevron-down" style="width:13px;height:13px"></i>
                 </button>
             </div>
-            <div id="form-evento-wrapper" class="hidden raiz-form-borda p-4 mb-4">
-                <h3 class="text-sm font-bold mb-3">Novo alerta</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Título <span style="color:var(--danger)">*</span></label><input type="text" id="ev-titulo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-                    <div><label class="text-xs font-semibold block mb-1">Tipo</label><select id="ev-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
-                        <option value="vencimento_seguro">Vencimento de seguro</option><option value="iptu">IPTU / documento</option>
-                        <option value="renovacao">Renovação</option><option value="obrigacao">Obrigação ligada ao ativo</option><option value="outro">Outro</option></select></div>
-                    <div><label class="text-xs font-semibold block mb-1">Ativo relacionado</label><select id="ev-ativo"><option value="">(nenhum)</option></select></div>
-                    <div><label class="text-xs font-semibold block mb-1">Vencimento <span style="color:var(--danger)">*</span></label><input type="date" id="ev-vencimento" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-                    <div><label class="text-xs font-semibold block mb-1">Avisar com quantos dias</label><input type="number" id="ev-antecedencia" value="15" min="1" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-                </div>
-                <div class="flex justify-end gap-2 mt-4">
-                    <button data-action="alternar-form-evento" class="px-4 py-2 rounded-xl text-sm border-2 border-slate-300">Cancelar</button>
-                    <button data-action="salvar-evento" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Salvar alerta</button>
-                </div>
-                <p class="raiz-indicador-inline" id="ev-status"></p>
+            <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
+                <button data-action="abrir-documentos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Documentos</button>
+                <button data-action="abrir-fotos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Fotos</button>
+                <button data-action="alternar-historico-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Histórico</button>
+                <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
             </div>
-            <div id="alertas-lista" class="space-y-2"></div>
-            <div id="alertas-estado-vazio" class="hidden text-center py-14">
-                <i data-lucide="bell-off" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
-                <p class="text-sm font-semibold">Nenhum alerta cadastrado</p>
+        </div>
+
+        <!-- Box: Controles (itens/ocorrências — módulo de Alarmes) -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
+            <div id="fa-tab-controles" class="mt-2 space-y-2"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-controles" class="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    Mais ações <i data-lucide="chevron-down" style="width:13px;height:13px"></i>
+                </button>
             </div>
-        </section>
+            <div id="fa-mais-acoes-controles" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <button data-action="abrir-form-controle" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Criar item de controle</button>
+            </div>
+        </div>
+
+        <p class="raiz-indicador-inline" id="fa-status"></p>
+    </div>
+</section>
+
+<!-- ===================== MODAL — CRIAR ITEM DE CONTROLE (bottom-sheet) ===================== -->
+<div id="modal-criar-item-controle" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Novo item de controle</h3>
+            <button data-action="fechar-form-controle" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background:var(--pine)"><i data-lucide="x" class="text-white" style="width:16px;height:16px"></i></button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <select id="ic-tipo" data-action-change="ic-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
+                <option value="seguro">Seguro</option>
+                <option value="manutencao">Manutenção</option>
+                <option value="tributo">Tributo</option>
+            </select>
+            <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
+            <div class="col-span-2">
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data base (próximo vencimento)</label>
+                <input type="date" id="ic-data-base" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
+                <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <select id="ic-freq-unidade" class="border-2 border-slate-300 rounded-lg p-2 text-xs self-end">
+                <option value="dia">Dia(s)</option>
+                <option value="semana">Semana(s)</option>
+                <option value="mes" selected>Mês(es)</option>
+                <option value="ano">Ano(s)</option>
+            </select>
+            <div class="col-span-2">
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Avisar com quantos dias de antecedência</label>
+                <input type="number" min="0" id="ic-antecedencia" value="7" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+        </div>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único). Ao salvar, as ocorrências dos próximos 120 dias já são geradas automaticamente.</p>
+        <div class="flex gap-2 mt-3">
+            <button data-action="salvar-item-controle" class="flex-1 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Salvar item de controle</button>
+            <button data-action="fechar-form-controle" class="flex-1 py-2 rounded-xl text-sm font-semibold border-2 border-slate-300">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== TELA — FICHA DO ITEM DE CONTROLE ===================== -->
+<section data-screen="ficha-item-controle" class="hidden">
+
+    <button data-action="voltar-item-controle" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Voltar ao ativo</button>
+
+    <div class="mt-3">
+        <h3 class="text-base font-bold" id="fic-titulo">—</h3>
+        <p class="text-xs" style="color:var(--sage)" id="fic-subtitulo">—</p>
+    </div>
+
+    <div class="mt-4 space-y-3">
+
+        <!-- Box: Dados do item -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Dados do item</h3>
+            <div id="fic-dados-leitura" class="text-sm space-y-1 mt-2"></div>
+            <div id="fic-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100 gap-1.5">
+                <button data-action="alternar-editar-item" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar</button>
+                <button data-action="excluir-item-controle-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
+            </div>
+        </div>
+
+        <!-- Box: Ocorrência -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Ocorrência</h3>
+            <div id="fic-ocorrencia" class="mt-2"></div>
+        </div>
+
+        <!-- Box: Contatos vinculados -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Contatos vinculados</h3>
+            <button data-action="alternar-form-contato-item" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Adicionar contato vinculado a este item</button>
+            <div id="fic-contatos" class="mt-2 space-y-2"></div>
+        </div>
+
+
+    </div>
+</section>
+
     </main>
 
     <nav class="bottom-nav">
         <div class="max-w-md mx-auto flex">
-            <button class="nav-btn active" data-nav-item="home" data-action="ir-home"><i data-lucide="vault" style="width:18px;height:18px"></i>Cofre</button>
+            <button class="nav-btn active" data-nav-item="home" data-action="ir-home"><i data-lucide="layout-dashboard" style="width:18px;height:18px"></i>Visão Geral</button>
             <button class="nav-btn" data-nav-item="ativos" data-action="ir-ativos" id="nav-item-ativos"><i data-lucide="boxes" style="width:18px;height:18px"></i>Ativos</button>
-            <button class="nav-btn" data-nav-item="alertas" data-action="ir-alertas"><i data-lucide="bell" style="width:18px;height:18px"></i>Alertas</button>
         </div>
     </nav>
 </div>
@@ -787,151 +997,6 @@
         <p class="raiz-indicador-inline" id="sug-status"></p>
     </div>
 </div>
-
-<!-- ===================== TELA — FICHA DO ATIVO (boxes, padrão do App/Imóveis) ===================== -->
-<section data-screen="ficha-ativo" class="hidden">
-
-    <button data-action="voltar-ficha-ativo" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Ativos</button>
-
-    <div class="mt-3">
-        <h3 class="text-base font-bold" id="fa-nome">—</h3>
-        <p class="text-xs" style="color:var(--sage)" id="fa-tipo">—</p>
-    </div>
-
-    <div class="mt-4 space-y-3">
-
-        <!-- Box: Dados do ativo -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Dados do ativo</h3>
-            <div id="fa-resumo-origem-imovel" class="hidden raiz-bloco-interno flex items-center justify-between text-sm mt-2">
-                <span>Este ativo referencia um imóvel já cadastrado.</span>
-                <button data-action="abrir-gestao-imovel" class="text-xs font-bold" style="color:var(--pine)">Abrir gestão do imóvel →</button>
-            </div>
-            <div id="fa-resumo-dados" class="text-sm space-y-1 mt-2"></div>
-
-            <div id="fa-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2">
-                <div id="fa-editar-campos" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
-                <div class="flex justify-end gap-2 mt-3">
-                    <button data-action="alternar-editar-ativo" class="px-3 py-2 rounded-xl text-xs border-2 border-slate-300">Cancelar</button>
-                    <button data-action="salvar-edicao-ativo" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--pine)">Salvar</button>
-                </div>
-            </div>
-
-            <div id="fa-historico-wrapper" class="hidden mt-2 space-y-2">
-                <div id="fa-tab-historico"></div>
-            </div>
-
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">
-                    Mais ações <i data-lucide="chevron-down" style="width:13px;height:13px"></i>
-                </button>
-            </div>
-            <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
-                <button data-action="abrir-documentos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Documentos</button>
-                <button data-action="abrir-fotos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Fotos</button>
-                <button data-action="alternar-historico-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Histórico</button>
-                <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600">Excluir</button>
-            </div>
-        </div>
-
-        <!-- Box: Controles (itens/ocorrências — módulo de Alarmes) -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
-            <button data-action="abrir-form-controle" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Criar item de controle (seguro/manutenção/tributo)</button>
-            <div id="fa-form-item-controle" class="hidden raiz-form-borda p-3 space-y-2 mt-2">
-                <div class="grid grid-cols-2 gap-2">
-                    <select id="ic-tipo" data-action-change="ic-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
-                        <option value="seguro">Seguro</option>
-                        <option value="manutencao">Manutenção</option>
-                        <option value="tributo">Tributo</option>
-                    </select>
-                    <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
-                    <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
-                    <div class="col-span-2">
-                        <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data base (próximo vencimento)</label>
-                        <input type="date" id="ic-data-base" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                    </div>
-                    <div>
-                        <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
-                        <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                    </div>
-                    <select id="ic-freq-unidade" class="border-2 border-slate-300 rounded-lg p-2 text-xs self-end">
-                        <option value="dia">Dia(s)</option>
-                        <option value="semana">Semana(s)</option>
-                        <option value="mes" selected>Mês(es)</option>
-                        <option value="ano">Ano(s)</option>
-                    </select>
-                    <div class="col-span-2">
-                        <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Avisar com quantos dias de antecedência</label>
-                        <input type="number" min="0" id="ic-antecedencia" value="7" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                    </div>
-                </div>
-                <p class="raiz-indicador-inline" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único).</p>
-                <div class="flex justify-end gap-2">
-                    <button data-action="fechar-form-controle" class="px-3 py-2 rounded-xl text-xs border-2 border-slate-300">Cancelar</button>
-                    <button data-action="salvar-item-controle" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--pine)">Salvar item de controle</button>
-                </div>
-            </div>
-            <div id="fa-tab-controles" class="mt-2 space-y-2"></div>
-        </div>
-
-        <!-- Box: Alertas (legado — eventos avulsos) -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Alertas</h3>
-            <button data-action="abrir-evento-no-ativo" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Criar alerta para este ativo</button>
-            <div id="fa-tab-alertas" class="mt-2 space-y-2"></div>
-        </div>
-
-        <p class="raiz-indicador-inline" id="fa-status"></p>
-    </div>
-</section>
-
-<!-- ===================== TELA — FICHA DO ITEM DE CONTROLE ===================== -->
-<section data-screen="ficha-item-controle" class="hidden">
-
-    <button data-action="voltar-item-controle" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Voltar ao ativo</button>
-
-    <div class="mt-3">
-        <h3 class="text-base font-bold" id="fic-titulo">—</h3>
-        <p class="text-xs" style="color:var(--sage)" id="fic-subtitulo">—</p>
-    </div>
-
-    <div class="mt-4 space-y-3">
-
-        <!-- Box: Dados do item -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Dados do item</h3>
-            <div id="fic-dados-leitura" class="text-sm space-y-1 mt-2"></div>
-            <div id="fic-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100 gap-1.5">
-                <button data-action="alternar-editar-item" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar</button>
-                <button data-action="excluir-item-controle-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold text-red-600">Excluir</button>
-            </div>
-        </div>
-
-        <!-- Box: Ocorrência -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Ocorrência</h3>
-            <div id="fic-ocorrencia" class="mt-2"></div>
-        </div>
-
-        <!-- Box: Alertas vinculados -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Alertas vinculados</h3>
-            <button data-action="alternar-form-alerta-item" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Criar alerta vinculado a este item</button>
-            <div id="fic-alertas" class="mt-2 space-y-2"></div>
-        </div>
-
-        <!-- Box: Contatos vinculados -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Contatos vinculados</h3>
-            <button data-action="alternar-form-contato-item" class="w-full border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center mt-2" style="border-color:var(--pine-light); color:var(--pine)">+ Adicionar contato vinculado a este item</button>
-            <div id="fic-contatos" class="mt-2 space-y-2"></div>
-        </div>
-
-    </div>
-</section>
 
 <!-- ===================== MODAL — CRIAÇÃO ASSISTIDA (contexto=imovel sem ativo) ===================== -->
 <div id="modal-criacao-assistida" class="modal-overlay hidden">
