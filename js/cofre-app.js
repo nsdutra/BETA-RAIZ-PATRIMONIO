@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.4 · 25/08/2026
+// Versão: 1.3.5 · 25/08/2026
+//
+// v1.3.5 — ocorrenciaParaAlertaView() (tela cheia de Alertas) ganhou
+// ativoNome/tipoAtivo, mesmo motivo do adaptador equivalente em
+// cofre-documentos.js (ver changelog completo em cofre.html v1.13.0).
 //
 // v1.3.4 — dispatchers de Modelos de item de controle (pedido
 // explícito): abrir-modelos-controle/fechar-modelos-controle/
@@ -254,6 +258,8 @@ function ocorrenciaParaAlertaView(oc) {
         itemControleId: oc.item_controle_id,
         titulo: oc.cofre_itens_controle?.titulo || '(item removido)',
         tipo: oc.cofre_itens_controle?.tipo || null,
+        ativoNome: oc.cofre_itens_controle?.cofre_ativos?.nome_exibicao || null,
+        tipoAtivo: oc.cofre_itens_controle?.cofre_ativos?.tipo_ativo || null,
         data_vencimento: oc.data_prevista_atual,
         ativoId: oc.cofre_itens_controle?.ativo_id || null,
     };

@@ -10,6 +10,88 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.13.0
+  Data       : 25/08/2026
+  Título     : ALERTAS NO PADRÃO VISUAL DO "ATENÇÃO NECESSÁRIA" DO IMÓVEIS
+  Base       : v1.12.0 (25/08/2026)
+  Linhas     : cofre.html = 2167 · js/cofre-api.js = 552 · js/cofre-app.js = 358 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 921 ·
+               js/cofre-documentos.js = 738 · js/cofre-estado.js = 99 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3627)
+
+  CHANGELOG v1.13.0 — pedido explícito: igualar a lista de alertas da
+  Home do Cofre ao padrão "Atenção necessária" da Visão Geral do Imóveis
+  (index.html §5-B, novo — ver Design System v2.2.0), usando o Imóveis
+  como fonte da verdade em vez de convenções próprias do Cofre.
+
+    1) SEÇÃO RENOMEADA + ENVOLVIDA NO MESMO CARD DO IMÓVEIS
+    - "Próximos vencimentos" (h2 solto, sem wrapper) virou "Atenção
+      necessária" + subtítulo "O que pede alguma ação agora." — texto
+      idêntico ao do Imóveis. Wrapper agora é o mesmo card
+      (`bg-white p-4 rounded-xl shadow-sm border border-gray-200`),
+      título em `text-emerald-900` — mesma família de verde já usada no
+      nome da empresa/selo do módulo no cabeçalho (text-emerald-400/
+      bg-emerald-800, sem mudança ali — já batiam 1:1 com o Imóveis).
+    - "Ver todos →" REMOVIDO (pedido explícito). Essa era a ÚNICA porta
+      de entrada pra tela cheia "Alertas" (`data-screen="alertas"`) —
+      sem ela, a tela fica órfã/inacessível pela interface (código
+      continua no arquivo, só não tem mais nenhum onclick levando lá).
+      Sinalizado pro usuário decidir se quer restaurar um acesso (ex.:
+      tornar os números "alertas próximos"/"precisam atenção" do card
+      de KPIs clicáveis) ou remover a tela numa rodada futura.
+    - Pra "Ver todos" não fazer falta, `montarHome()` (cofre-
+      documentos.js) removeu o corte de 5 itens (`.slice(0, 5)`) — a
+      lista agora mostra TUDO que está aberto (vencidos + vencendo em
+      30d), mesmo princípio do "Atenção necessária" do Imóveis: nunca
+      esconde nada atrás de paginação/atalho.
+    - Texto de estado vazio alinhado: "Nada pedindo atenção agora. 🎉"
+      (era "Nenhum vencimento nos próximos 30 dias" — impreciso, já que
+      a lista sempre incluiu vencidos também, não só os 30 dias).
+
+    2) CARD DE CADA ALERTA — MESMA FORMATAÇÃO DO IMÓVEIS
+    - `alertaCardHtml()` (cofre-documentos.js) reescrita: mesmo box de
+      ícone do Imóveis (`w-9 h-9 rounded-lg`, ícone 16px), mesma
+      tipografia (título `text-xs font-bold`, legenda `text-[11px]`),
+      mesmo chevron (`#94a3b8`), mesma borda (`border-slate-200
+      rounded-xl p-2.5`) — substituindo o `raiz-bloco-interno` antigo
+      (borda 2px + fundo cinza, convenção própria do Cofre).
+    - Ícone agora representa o TIPO DO ATIVO (`iconeAtivo()`, mesmo
+      glyph da aba Ativos — carro/escudo/casa/mapa/coração/quadro/
+      caixa), não mais um selo genérico de vencimento.
+    - Título do card mudou de "só o título do item" pra "nome do ativo
+      - título do item" (ex.: "Jonatas Antonio - Seguro Vida"), exemplo
+      exato do pedido. Precisou de nova coluna na consulta —
+      `listarOcorrenciasAbertasComItem()` (cofre-api.js) ganhou embed
+      aninhado `cofre_itens_controle!inner(...cofre_ativos(nome_exibicao,
+      tipo_ativo))`. Os 2 adaptadores que alimentam o card
+      (`ocorrenciaParaAlertaViewHome` em cofre-documentos.js,
+      `ocorrenciaParaAlertaView` em cofre-app.js) ganharam os campos
+      `ativoNome`/`tipoAtivo`.
+    - Badge "Vence em Xd" + data numa linha separada viraram UMA frase
+      só (pedido explícito): nova `fraseVencimento()` — "Vencimento:
+      27/08/2026 · Faltam 2 dias!" (vencendo), "· Vence hoje!" (dias=0),
+      "· Venceu há 5 dias!" (vencido). Cor do texto preserva o sinal de
+      urgência que o badge antigo tinha (`corFraseVencimento()`: rosa/
+      vermelho vencido, âmbar ≤30d, cinza neutro depois) — só a forma
+      mudou de badge+data em 2 linhas pra 1 frase só.
+    - Botões Tratar/Acionar (adicionados numa rodada anterior) mantidos
+      abaixo do card, com um divisor fino — não fazem parte do padrão
+      do Imóveis (que não tem ações secundárias nos itens), mas
+      continuam necessários pra função do Cofre.
+
+    - Arquivos alterados: cofre.html (2077→2085), js/cofre-api.js
+      (549→547, query), js/cofre-documentos.js (702→729, card + helpers
+      + montarHome), js/cofre-app.js (352→354, adaptador).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.12.0
   Data       : 25/08/2026
   Título     : 3 BUGS CRÍTICOS — CONTATO, VOLTAR DO ALERTA, EXCLUIR ITEM NÃO ATUALIZAVA ALERTAS
@@ -1374,11 +1456,19 @@
                 <div id="home-lista-triagem" class="space-y-2"></div>
             </div>
 
-            <div class="flex items-center justify-between mt-6 mb-2">
-                <h2 class="text-sm font-bold">Próximos vencimentos</h2>
-                <button data-action="ir-alertas" class="text-xs font-semibold" style="color:var(--pine)">Ver todos →</button>
+            <!-- Revisão de design (25/08/2026, pedido explícito) — igual
+                 1:1 ao card "Atenção necessária" da Visão Geral do Imóveis
+                 (index.html, linha ~5301): mesmo wrapper (bg-white p-4
+                 rounded-xl shadow-sm border border-gray-200), mesmo título
+                 (text-emerald-900) + subtítulo (text-[11px] text-slate-500).
+                 "Ver todos" removido — sem limite de 5 itens na lista (ver
+                 montarHome em cofre-documentos.js), não há nada escondido
+                 que precise de um atalho pra ver o resto. -->
+            <div class="bg-white p-4 rounded-xl shadow-sm mt-6 border border-gray-200">
+                <h3 class="font-bold text-sm text-emerald-900">Atenção necessária</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">O que pede alguma ação agora.</p>
+                <div id="home-lista-alertas" class="mt-3 space-y-2"></div>
             </div>
-            <div id="home-lista-alertas" class="space-y-2"></div>
         </section>
 
         <!-- ===================== ALERTAS (tela cheia, só leitura — v6: 100%
@@ -2074,4 +2164,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2077 (cofre.html) — recontado na v1.12.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2167 (cofre.html) — recontado na v1.13.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

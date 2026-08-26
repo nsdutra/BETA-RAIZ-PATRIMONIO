@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 25/08/2026
+// Versão: 1.5.0 · 25/08/2026
+//
+// v1.5.0 — ALERTAS NO PADRÃO VISUAL DO IMÓVEIS (pedido explícito):
+// alertaCardHtml() reescrita — mesmo box de ícone (w-9 h-9 rounded-lg),
+// tipografia e borda do "Atenção necessária" do Imóveis; ícone agora
+// representa o tipo do ativo (iconeAtivo()); título virou "nome do
+// ativo - título do item"; badge+data unificados numa frase
+// (fraseVencimento()/corFraseVencimento(), novas). montarHome() perdeu
+// o corte de 5 itens (sem "Ver todos" pra ver o resto, mostra tudo).
+// ocorrenciaParaAlertaViewHome() ganhou ativoNome/tipoAtivo.
 //
 // v1.4.0 — ATALHOS "TRATAR" E "ACIONAR" NO ALERTA DA VISÃO GERAL (pedido
 // explícito): alertaCardHtml() ganhou 2 botões — "Tratar" (abre a ficha
@@ -74,6 +83,8 @@ function ocorrenciaParaAlertaViewHome(oc) {
         itemControleId: oc.item_controle_id,
         titulo: oc.cofre_itens_controle?.titulo || '(item removido)',
         tipo: oc.cofre_itens_controle?.tipo || null,
+        ativoNome: oc.cofre_itens_controle?.cofre_ativos?.nome_exibicao || null,
+        tipoAtivo: oc.cofre_itens_controle?.cofre_ativos?.tipo_ativo || null,
         data_vencimento: oc.data_prevista_atual,
     };
 }
@@ -93,30 +104,55 @@ export function montarHome() {
     wrapperTriagem.classList.toggle('hidden', emTriagem.length === 0);
     document.getElementById('home-lista-triagem').innerHTML = emTriagem.slice(0, 5).map(docCardCompactoHtml).join('');
 
-    const listaAlertas = [...vencidos, ...vencendo].slice(0, 5);
+    // Revisão de design (25/08/2026, pedido explícito) — removido o
+    // atalho "Ver todos" da Home (única porta de entrada pra tela cheia
+    // de Alertas). Sem essa saída, um .slice(0, 5) escondia alerta 6+
+    // sem nenhum jeito de ver — removido o limite, a lista mostra tudo
+    // que está aberto (mesmo princípio do "Atenção necessária" do
+    // Imóveis: nunca esconde nada atrás de paginação).
+    const listaAlertas = [...vencidos, ...vencendo];
     document.getElementById('home-lista-alertas').innerHTML = listaAlertas.length
         ? listaAlertas.map(alertaCardHtml).join('')
-        : `<p class="text-xs" style="color:var(--sage)">Nenhum vencimento nos próximos 30 dias. 🎉</p>`;
+        : `<p class="text-xs text-slate-500">Nada pedindo atenção agora. 🎉</p>`;
 
     refrescarIcones();
 }
 
-// Revisão 25/08/2026 (pedido explícito) — ganhou 2 atalhos de ação:
-// "Tratar" leva direto pra ficha do item com a ação Tratar já aberta
-// pra ESSA ocorrência específica (não só abre o item, pula a navegação
-// manual); "Acionar" abre WhatsApp/e-mail do contato vinculado ao item,
-// com uma sugestão de texto pronta. O card continua clicável pra só
-// visualizar o item (comportamento de sempre, preservado).
+// Revisão de design (25/08/2026, pedido explícito) — igualar 1:1 ao
+// padrão "Atenção necessária" da Visão Geral do Imóveis (index.html
+// #geral-atencao-lista): mesmo box de ícone (w-9 h-9 rounded-lg),
+// mesma tipografia (título text-xs font-bold, legenda text-[11px]
+// text-slate-500), mesmo chevron (#94a3b8), mesma borda
+// (border-slate-200, rounded-xl, p-2.5). O ícone agora representa o
+// TIPO DO ATIVO (mesmo glyph usado na aba Ativos — iconeAtivo()), não
+// mais um selo genérico de vencimento. Badge "Vence em Xd" + data
+// numa linha separada viraram UMA frase só (fraseVencimento()).
+function fraseVencimento(dataVencimento, dias) {
+    const dataFmt = formatarDataBR(dataVencimento);
+    if (dias === null || dias === undefined) return `Vencimento: ${dataFmt}`;
+    if (dias < 0) { const d = Math.abs(dias); return `Vencimento: ${dataFmt} · Venceu há ${d} dia${d === 1 ? '' : 's'}!`; }
+    if (dias === 0) return `Vencimento: ${dataFmt} · Vence hoje!`;
+    return `Vencimento: ${dataFmt} · Falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}!`;
+}
+
+function corFraseVencimento(dias) {
+    if (dias === null || dias === undefined) return 'text-slate-500';
+    if (dias < 0) return 'text-red-700';
+    if (dias <= 30) return 'text-amber-700';
+    return 'text-slate-500';
+}
+
 export function alertaCardHtml(e) {
     const dias = diasAte(e.data_vencimento);
-    const chip = chipVencimento(dias);
-    return `<div class="raiz-bloco-interno">
-        <button data-action="abrir-item-controle" data-id="${e.itemControleId || ''}" class="w-full text-left flex items-center justify-between gap-2">
-            <div class="min-w-0"><p class="text-sm font-semibold truncate">${escapeHtml(e.titulo)}</p><p class="text-xs" style="color:var(--sage)">${formatarDataBR(e.data_vencimento)}</p></div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-                ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
-                <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--sage)"></i>
+    const descricao = e.ativoNome ? `${escapeHtml(e.ativoNome)} - ${escapeHtml(e.titulo)}` : escapeHtml(e.titulo);
+    return `<div class="border border-slate-200 rounded-xl p-2.5">
+        <button data-action="abrir-item-controle" data-id="${e.itemControleId || ''}" class="w-full flex items-center gap-3 text-left">
+            <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(e.tipoAtivo)}" style="width:16px;height:16px"></i></div>
+            <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold truncate">${descricao}</div>
+                <div class="text-[11px] ${corFraseVencimento(dias)}">${fraseVencimento(e.data_vencimento, dias)}</div>
             </div>
+            <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8;flex-shrink:0"></svg>
         </button>
         <div class="flex gap-2 mt-2 pt-2 border-t border-slate-100">
             <button data-action="alerta-tratar" data-ocorrencia-id="${e.id}" data-item-id="${e.itemControleId || ''}" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:11px;padding:6px;border:none;border-radius:6px;">Tratar</button>

@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.1 · 25/08/2026
+// Versão: 1.4.2 · 25/08/2026
+//
+// v1.4.2 — REVISÃO DE DESIGN (pedido explícito): listarOcorrenciasAbertasComItem()
+// ganhou embed aninhado cofre_ativos(nome_exibicao, tipo_ativo) dentro
+// de cofre_itens_controle — o card de alerta da Home/Alertas agora
+// mostra o nome e o tipo (ícone) do ativo, não só o título do item.
 //
 // v1.4.1 — BUG FIX CRÍTICO (achado pelo usuário): listarOcorrenciasAbertasComItem()
 // fazia um embed comum (LEFT JOIN) de cofre_itens_controle, sem !inner —
@@ -353,16 +358,14 @@ export async function alternarPublicarVitrineFoto(fotoId, valor) {
 // calculados a partir do estado real, nunca cadastrados à parte).
 // ============================================================================
 export async function listarOcorrenciasAbertasComItem(clienteId) {
-    // BUG FIX (25/08/2026, achado pelo usuário) — faltava !inner + filtro
-    // de cofre_itens_controle.ativo. Sem isso, excluir um item de
-    // controle (arquivarItemControle, só marca ativo=false — nunca
-    // mexe nas ocorrências, soft-delete de propósito) deixava as
-    // ocorrências ABERTAS dele pra sempre na Visão Geral/badge do
-    // ativo, porque o embed sem !inner não filtra as linhas pai pela
-    // coluna do filho — só decide se o objeto embutido vem null ou
-    // preenchido, a linha de ocorrência sempre voltava.
+    // BUG FIX (25/08/2026) — ver changelog anterior sobre !inner.
+    // Revisão de design (25/08/2026, pedido explícito) — embed de
+    // cofre_ativos(nome_exibicao, tipo_ativo) acrescentado: o card de
+    // alerta agora mostra o ícone do TIPO do ativo + nome do ativo, não
+    // só o título do item de controle (ver alertaCardHtml em
+    // cofre-documentos.js).
     const { data, error } = await dbAuth.from('cofre_ocorrencias_controle')
-        .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, antecedencia_alerta_dias, alerta_ativo)')
+        .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, antecedencia_alerta_dias, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
         .eq('cliente_id', clienteId).eq('status_execucao', 'aberto').eq('cofre_itens_controle.ativo', true)
         .order('data_prevista_atual');
     if (error) throw error;
