@@ -6,6 +6,29 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.62.5
+   LINHAS: 24940
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.62.5) — BUG FIX CRÍTICO NA ABA LICENÇA (achado pelo
+   usuário, erro 404 ao abrir):
+
+     - Tabela errada: código buscava `plano_funcionalidades` (plural) —
+       a tabela real é `plano_funcionalidade` (singular). Sempre dava
+       404. Confirmado direto no schema live via Supabase MCP antes de
+       corrigir (não presumido — mesma lição já registrada nos
+       aprendizados do projeto: "schema_completo.sql pode estar
+       desatualizado, sempre confirmar contra o banco ao vivo").
+     - Coluna errada: filtro usava `limite_final` — a coluna real é só
+       `limite`. Mesmo bug, mesma causa (código escrito sem acesso ao
+       banco ao vivo numa sessão anterior, registrado no próprio
+       comentário do código que eu revisei).
+     - BÔNUS: cada funcionalidade agora mostra o nome comercial
+       (`funcionalidades.nome_comercial`, ex. "Comprovantes por mês")
+       em vez do código técnico bruto (ex. "cofre.uso_mensal") — busca
+       separada, sem depender de sintaxe de embed/FK.
+
+     - Arquivos alterados: index.html (função de carregar Licença).
+
    VERSÃO: Beta v1.62.4
    LINHAS: 24896
    DATA: 2026-08-25
@@ -7721,7 +7744,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.62.4";
+        const APP_VERSAO = "Beta v1.62.5";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -13013,20 +13036,40 @@
                 vigenciaEl.innerText = `${inicio} até ${fim}`;
 
                 // Funcionalidades do plano que têm algum limite configurado
-                // (limite_final não nulo). Sem "join" embutido de propósito —
+                // (limite não nulo). Sem "join" embutido de propósito —
                 // reduz a chance de quebrar por causa de nome de relação/FK
                 // que eu não tenho como confirmar sem acesso ao banco ao vivo.
+                //
+                // BUG FIX (achado pelo usuário, 25/08/2026): a tabela real é
+                // `plano_funcionalidade` (singular, sem "s") — o código
+                // buscava `plano_funcionalidades` (plural), que não existe,
+                // e sempre dava 404. A coluna de limite também estava
+                // errada: é `limite`, não `limite_final`. Confirmado direto
+                // no schema live via Supabase MCP antes de corrigir.
                 const { data: funcs, error: errFuncs } = await dbAuth
-                    .from('plano_funcionalidades')
+                    .from('plano_funcionalidade')
                     .select('*')
                     .eq('plano_codigo', lic.plano_codigo)
-                    .not('limite_final', 'is', null);
+                    .not('limite', 'is', null);
 
                 if (errFuncs) throw errFuncs;
 
                 if (!funcs || funcs.length === 0) {
                     funcBox.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Este plano não tem funcionalidades com limite configurado.</p>';
                     return;
+                }
+
+                // Nomes amigáveis (nome_comercial) em vez do código técnico
+                // bruto (ex.: "cofre.ver") — busca separada, sem depender de
+                // sintaxe de embed/FK que eu não confirmei existir.
+                let nomesComerciais = {};
+                try {
+                    const codigosFuncs = funcs.map(f => f.funcionalidade_codigo).filter(Boolean);
+                    const { data: funcionalidadesInfo } = await dbAuth
+                        .from('funcionalidades').select('codigo, nome_comercial').in('codigo', codigosFuncs);
+                    (funcionalidadesInfo || []).forEach(fi => { if (fi.nome_comercial) nomesComerciais[fi.codigo] = fi.nome_comercial; });
+                } catch (errNomes) {
+                    console.warn('Não foi possível carregar nomes comerciais das funcionalidades (segue com o código técnico):', errNomes.message);
                 }
 
                 const usos = await Promise.all(funcs.map(f => {
@@ -13038,9 +13081,10 @@
 
                 funcBox.innerHTML = funcs.map((f, i) => {
                     const codigo = f.funcionalidade_codigo || f.funcionalidade || f.codigo || '-';
+                    const rotulo = nomesComerciais[codigo] || codigo;
                     const uso = usos[i];
                     const usado = uso && uso.usado != null ? uso.usado : 0;
-                    const limite = f.limite_final;
+                    const limite = f.limite;
                     const limiteAviso = f.limite_aviso;
                     const pct = limite ? Math.min(100, Math.round((usado / limite) * 100)) : 0;
                     const corBarra = pct >= 100 ? 'bg-red-500' : (pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500');
@@ -13048,7 +13092,7 @@
                     return `
                         <div class="border-2 border-slate-300 rounded-xl p-2.5">
                             <div class="flex justify-between items-center mb-1">
-                                <span class="text-xs font-bold text-slate-700">${codigo}</span>
+                                <span class="text-xs font-bold text-slate-700">${rotulo}</span>
                                 <span class="text-[11px] font-bold text-slate-500">${usado} / ${limite}</span>
                             </div>
                             <div class="w-full bg-gray-100 rounded-full h-1.5">

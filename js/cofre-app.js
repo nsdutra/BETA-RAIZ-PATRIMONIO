@@ -153,6 +153,9 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-modelos-controle': fecharModal('modal-menu-conta'); await controles.abrirModelosControle(); break;
         case 'fechar-modelos-controle': controles.fecharModelosControle(); break;
         case 'salvar-modelo-controle': await controles.salvarModeloControle(); break;
+        case 'editar-modelo-controle': controles.editarModeloControle(alvo.dataset.id); break;
+        case 'cancelar-edicao-modelo': controles.cancelarEdicaoModelo(); break;
+        case 'excluir-modelo-controle': await controles.excluirModeloControle(alvo.dataset.id); break;
         case 'usar-modelo-controle': controles.aplicarModeloAoForm(alvo.dataset.id); break;
 
         // ---- documentos

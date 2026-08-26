@@ -417,6 +417,18 @@ export async function criarModeloItemControle(payload) {
     if (error) throw error;
 }
 
+export async function atualizarModeloItemControle(id, patch) {
+    const { error } = await dbAuth.from('cofre_modelos_item_controle').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+// Soft-delete (ativo=false) — mesmo padrão de excluir usado em todo o
+// Cofre (arquivarItemControle/arquivarAtivo), nunca DELETE de verdade.
+export async function arquivarModeloItemControle(id) {
+    const { error } = await dbAuth.from('cofre_modelos_item_controle').update({ ativo: false }).eq('id', id);
+    if (error) throw error;
+}
+
 // Novo subtipo de controle (pedido explícito, 25/08/2026 — gestão de
 // subtipos não existia em lugar nenhum da tela; RLS também só tinha
 // SELECT, precisou de policy nova, ver migration

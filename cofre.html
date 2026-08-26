@@ -10,6 +10,51 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.16.0
+  Data       : 25/08/2026
+  Título     : EDIÇÃO E EXCLUSÃO DE MODELOS DE ITEM DE CONTROLE
+  Base       : v1.15.1 (25/08/2026)
+  Linhas     : cofre.html = 2352 · js/cofre-api.js = 564 · js/cofre-app.js = 379 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 982 ·
+               js/cofre-documentos.js = 738 · js/cofre-estado.js = 115 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3735)
+
+  CHANGELOG v1.16.0 — pedido explícito: a tela de Modelos de item de
+  controle (v1.11.0) só tinha criação — sem editar/excluir um modelo já
+  cadastrado.
+
+    - NOVO em cofre-api.js: `atualizarModeloItemControle(id, patch)` e
+      `arquivarModeloItemControle(id)` (soft-delete, `ativo=false` —
+      mesmo padrão de exclusão de todo o Cofre, nunca DELETE de
+      verdade).
+    - Lista de modelos ganhou pills "Editar"/"Excluir" por item — só
+      nos modelos DO PRÓPRIO cliente. Modelos globais ("padrão do
+      sistema", `cliente_id` null, compartilhados entre TODOS os
+      clientes) não mostram essas pills — editar/excluir um afetaria
+      todo mundo, decisão de segurança deliberada.
+    - "Editar" preenche o mesmo formulário de criação com os dados do
+      modelo escolhido; botão "Adicionar modelo" vira "Salvar edição" e
+      aparece um botão "Cancelar" ao lado. `salvarModeloControle()`
+      agora decide sozinha entre criar (INSERT) ou salvar edição
+      (UPDATE) conforme o estado `modeloEmEdicao`.
+    - Abrir a tela de Modelos sempre reseta pro modo "criar" (mesmo que
+      a sessão anterior tenha ficado no meio de uma edição) — evita
+      confusão de "por que o formulário já veio preenchido".
+
+    - Arquivos alterados: cofre.html (botão viraram 2, com "Cancelar"),
+      js/cofre-api.js (2 funções novas), js/cofre-controles.js
+      (salvarModeloControle reescrita + 3 funções novas + pills na
+      lista), js/cofre-app.js (3 dispatchers novos).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.15.1
   Data       : 25/08/2026
   Título     : PRESTADORES DE SERVIÇO REVERTIDO PRA "EM BREVE"
@@ -2286,7 +2331,10 @@
                 <input type="number" min="0" id="modelo-antecedencia" value="30" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
         </div>
-        <button data-action="salvar-modelo-controle" class="w-full px-4 py-2 rounded-xl text-sm font-semibold text-white mb-2" style="background:var(--pine)">Adicionar modelo</button>
+        <div class="flex gap-2 mb-2">
+            <button id="modelo-btn-salvar" data-action="salvar-modelo-controle" class="flex-1 px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Adicionar modelo</button>
+            <button id="modelo-btn-cancelar" data-action="cancelar-edicao-modelo" class="hidden px-4 py-2 rounded-xl text-sm font-semibold" style="background:#f1f5f9;color:#475569;">Cancelar</button>
+        </div>
         <p class="raiz-indicador-inline mb-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco pra um modelo de evento único. Modelos aparecem como atalho "Usar modelo" ao criar um item de controle nesse tipo de ativo.</p>
         <div id="modelos-lista"></div>
     </div>
@@ -2301,4 +2349,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2304 (cofre.html) — recontado na v1.15.1; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2352 (cofre.html) — recontado na v1.16.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

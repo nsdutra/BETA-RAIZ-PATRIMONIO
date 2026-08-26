@@ -107,6 +107,7 @@ import {
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
 let modelosCache = null; // idem, pros modelos de item de controle por tipo de ativo
+let modeloEmEdicao = null; // id do modelo sendo editado no momento, ou null (modo "criar novo")
 let itensDoAtivoAtual = [];
 let itemEmFoco = null;
 // BUG FIX (25/08/2026, achado pelo usuário) — guarda a tela de onde a
@@ -855,6 +856,7 @@ export async function abrirModelosControle() {
         mostrarToast('Erro ao carregar modelos: ' + err.message, 'erro');
         return;
     }
+    modeloEmEdicao = null;
     document.getElementById('modelo-tipo-ativo').innerHTML = TIPOS_ATIVO_ORDEM.map(t => `<option value="${t}">${escapeHtml(rotuloTipoAtivo(t))}</option>`).join('');
     document.getElementById('modelo-tipo').value = 'seguro';
     popularSelectSubtipoEm('modelo-subtipo', 'seguro', null);
@@ -862,6 +864,8 @@ export async function abrirModelosControle() {
     document.getElementById('modelo-freq-intervalo').value = '';
     document.getElementById('modelo-freq-unidade').value = 'ano';
     document.getElementById('modelo-antecedencia').value = '30';
+    document.getElementById('modelo-btn-salvar').textContent = 'Adicionar modelo';
+    document.getElementById('modelo-btn-cancelar').classList.add('hidden');
     renderizarModelosControle();
     abrirModal('modal-modelos-controle');
 }
@@ -883,14 +887,66 @@ export async function salvarModeloControle() {
     const freqUnidade = freqIntervalo ? document.getElementById('modelo-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('modelo-antecedencia').value, 10) || 0;
     if (!titulo) { mostrarToast('Informe um título sugerido.', 'erro'); return; }
+    const payload = {
+        tipo_ativo: tipoAtivo, tipo, subtipo_id: subtipoId, titulo_sugerido: titulo,
+        frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia,
+    };
     try {
-        await api.criarModeloItemControle({
-            cliente_id: estado.clienteId, tipo_ativo: tipoAtivo, tipo, subtipo_id: subtipoId, titulo_sugerido: titulo,
-            frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia,
-        });
-        mostrarToast('Modelo criado ✅');
-        document.getElementById('modelo-titulo').value = '';
-        document.getElementById('modelo-freq-intervalo').value = '';
+        if (modeloEmEdicao) {
+            await api.atualizarModeloItemControle(modeloEmEdicao, payload);
+            mostrarToast('Modelo atualizado ✅');
+            cancelarEdicaoModelo();
+        } else {
+            await api.criarModeloItemControle({ ...payload, cliente_id: estado.clienteId });
+            mostrarToast('Modelo criado ✅');
+            document.getElementById('modelo-titulo').value = '';
+            document.getElementById('modelo-freq-intervalo').value = '';
+        }
+        modelosCache = await api.listarModelosItemControle(estado.clienteId);
+        renderizarModelosControle();
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// Pedido explícito (25/08/2026) — edição preenche o mesmo formulário de
+// criação, e o botão vira "Salvar edição" até cancelar ou salvar. Só
+// modelos DO PRÓPRIO cliente podem ser editados/excluídos por aqui —
+// modelos globais ("padrão do sistema", cliente_id null) são
+// compartilhados entre TODOS os clientes, editar um afetaria todo mundo
+// — por isso a pill de editar/excluir nem aparece pra eles (ver
+// renderizarModelosControle).
+export function editarModeloControle(id) {
+    const m = (modelosCache || []).find(x => x.id === id);
+    if (!m) return;
+    modeloEmEdicao = id;
+    document.getElementById('modelo-tipo-ativo').value = m.tipo_ativo;
+    document.getElementById('modelo-tipo').value = m.tipo;
+    popularSelectSubtipoEm('modelo-subtipo', m.tipo, m.subtipo_id);
+    document.getElementById('modelo-titulo').value = m.titulo_sugerido;
+    document.getElementById('modelo-freq-intervalo').value = m.frequencia_intervalo || '';
+    document.getElementById('modelo-freq-unidade').value = m.frequencia_unidade || 'ano';
+    document.getElementById('modelo-antecedencia').value = m.antecedencia_alerta_dias;
+    document.getElementById('modelo-btn-salvar').textContent = 'Salvar edição';
+    document.getElementById('modelo-btn-cancelar').classList.remove('hidden');
+    document.getElementById('modelo-titulo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+export function cancelarEdicaoModelo() {
+    modeloEmEdicao = null;
+    document.getElementById('modelo-titulo').value = '';
+    document.getElementById('modelo-freq-intervalo').value = '';
+    document.getElementById('modelo-antecedencia').value = '30';
+    document.getElementById('modelo-btn-salvar').textContent = 'Adicionar modelo';
+    document.getElementById('modelo-btn-cancelar').classList.add('hidden');
+}
+
+export async function excluirModeloControle(id) {
+    const m = (modelosCache || []).find(x => x.id === id);
+    if (!m) return;
+    if (!confirm(`Excluir o modelo "${m.titulo_sugerido}"?`)) return;
+    try {
+        await api.arquivarModeloItemControle(id);
+        mostrarToast('Modelo excluído.');
+        if (modeloEmEdicao === id) cancelarEdicaoModelo();
         modelosCache = await api.listarModelosItemControle(estado.clienteId);
         renderizarModelosControle();
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
@@ -912,7 +968,12 @@ function renderizarModelosControle() {
             ${itens.map((m, idx) => `<div class="py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-xs font-bold">${escapeHtml(m.titulo_sugerido)}</span>
-                    ${m.cliente_id === null ? `<span class="text-[10px] flex-none" style="color:var(--sage)">padrão do sistema</span>` : ''}
+                    ${m.cliente_id === null
+                        ? `<span class="text-[10px] flex-none" style="color:var(--sage)">padrão do sistema</span>`
+                        : `<div class="flex gap-2 flex-none">
+                            <button data-action="editar-modelo-controle" data-id="${m.id}" class="text-[10px] font-bold" style="color:var(--pine)">Editar</button>
+                            <button data-action="excluir-modelo-controle" data-id="${m.id}" class="text-[10px] font-bold text-slate-500">Excluir</button>
+                        </div>`}
                 </div>
                 <p class="text-[11px]" style="color:var(--sage)">${escapeHtml(rotuloTipoControle(m.tipo))}${m.cofre_controle_subtipos?.nome ? ' · ' + escapeHtml(m.cofre_controle_subtipos.nome) : ''} · ${escapeHtml(rotuloFrequencia(m.frequencia_intervalo, m.frequencia_unidade))} · avisa ${m.antecedencia_alerta_dias}d antes</p>
             </div>`).join('')}
