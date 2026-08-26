@@ -6,6 +6,32 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.62.2
+   LINHAS: 24757
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.62.2) — CORES DO CABEÇALHO (pedido explícito):
+
+     - Nome da empresa (`#logo-header`): `text-emerald-400` →
+       `text-emerald-800` — igual ao fundo do badge do módulo e dos
+       ícones de robô/conta (todos `bg-emerald-800`).
+     - Badge do módulo ("Imóveis"): texto `text-emerald-200` →
+       `text-white/80` — igual à cor do texto dos rótulos do card de
+       KPIs ("Imóveis"/"Alugados"/etc., que usam `opacity-80` sobre
+       texto branco).
+     - Mesma correção aplicada no Cofre (cofre.html v1.14.0) — os dois
+       módulos usavam a mesma cor antiga, ficam sincronizados na nova.
+     - ⚠️ RESSALVA (contraste): `text-emerald-800` (#065f46) sobre o
+       fundo do cabeçalho (`--pine-deep`, #152a24) calcula ~1.9:1 de
+       contraste — abaixo do mínimo WCAG AA (4.5:1) pra texto normal.
+       Aplicado exatamente como pedido; sinalizado pro usuário decidir
+       se mantém ou ajusta numa próxima rodada.
+     - Splash/login (`text-3xl ... text-emerald-400`, 2 ocorrências) NÃO
+       alterado — pedido era especificamente sobre o cabeçalho interno
+       (nome + badge + ícones de robô/conta), contexto diferente do
+       logo grande da tela de login.
+
+     - Arquivos alterados: index.html (2 spans).
+
    VERSÃO: Beta v1.62.1
    LINHAS: 24731
    DATA: 2026-08-25
@@ -5046,9 +5072,9 @@
 
             <div class="cursor-pointer active:scale-95 transition-transform select-none min-w-0" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-400 block leading-tight">RAIZ</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-800 block leading-tight">RAIZ</span>
 
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-emerald-200 inline-block mt-0.5">Imóveis</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-white/80 inline-block mt-0.5">Imóveis</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse ml-1">OFFLINE</span>
 
@@ -7608,7 +7634,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.62.1";
+        const APP_VERSAO = "Beta v1.62.2";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 

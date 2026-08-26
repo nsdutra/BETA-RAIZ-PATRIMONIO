@@ -10,6 +10,43 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.14.0
+  Data       : 25/08/2026
+  Título     : CORES DO CABEÇALHO — NOME DA EMPRESA E BADGE DO MÓDULO
+  Base       : v1.13.0 (25/08/2026)
+  Linhas     : cofre.html = 2204 · js/cofre-api.js = 552 · js/cofre-app.js = 358 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 921 ·
+               js/cofre-documentos.js = 738 · js/cofre-estado.js = 103 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3649)
+
+  CHANGELOG v1.14.0 — pedido explícito, mesma correção aplicada em
+  paralelo no App (index.html v1.62.2, ambos módulos usavam a mesma cor
+  antiga):
+
+    - Nome da empresa (`#cofre-nome-empresa`): `text-emerald-400` →
+      `text-emerald-800` — igual ao fundo do badge "Cofre" e dos ícones
+      de robô/conta no cabeçalho (todos `bg-emerald-800`).
+    - Badge do módulo ("Cofre"): texto `text-emerald-200` →
+      `text-white/80` — igual à cor do texto do rótulo "ativos
+      controlados" no card de KPIs da Home (que usa `opacity-80` sobre
+      texto branco).
+    - ⚠️ RESSALVA (contraste): `text-emerald-800` (#065f46) sobre o
+      fundo do cabeçalho (`--pine-deep`, #152a24) calcula ~1.9:1 de
+      contraste — abaixo do mínimo WCAG AA (4.5:1) pra texto normal.
+      Aplicado exatamente como pedido; sinalizado pro usuário decidir
+      se mantém ou ajusta numa próxima rodada.
+
+    - Arquivos alterados: cofre.html (2 spans no cabeçalho).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.13.0
   Data       : 25/08/2026
   Título     : ALERTAS NO PADRÃO VISUAL DO "ATENÇÃO NECESSÁRIA" DO IMÓVEIS
@@ -1392,8 +1429,8 @@
     <header class="sticky top-0 z-40" style="background:var(--pine-deep)">
         <div class="p-3 flex justify-between items-center">
             <div class="min-w-0">
-                <span class="text-lg font-black tracking-wider text-emerald-400 block leading-tight" id="cofre-nome-empresa">—</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-emerald-200 inline-block mt-0.5">Cofre</span>
+                <span class="text-lg font-black tracking-wider text-emerald-800 block leading-tight" id="cofre-nome-empresa">—</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-white/80 inline-block mt-0.5">Cofre</span>
             </div>
             <div class="flex items-center gap-2 flex-none">
                 <span class="text-[10px] hidden sm:inline" style="color:var(--pine-light)" id="badge-versao-cofre">v1.2.0</span>
@@ -2164,4 +2201,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2167 (cofre.html) — recontado na v1.13.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2204 (cofre.html) — recontado na v1.14.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
