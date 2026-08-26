@@ -235,9 +235,9 @@ function montarDadosAtivo(a) {
     const dados = a.dados_especificos || {};
     const valoresPreenchidos = camposDefinidos
         .filter(c => dados[c.chave])
-        .map(c => c.mascarar ? mascarar(dados[c.chave]) : dados[c.chave]);
+        .map(c => c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dados[c.chave]));
     const descricaoCorrida = valoresPreenchidos.length
-        ? valoresPreenchidos.map(v => escapeHtml(v)).join(' · ')
+        ? valoresPreenchidos.join(' · ')
         : 'Sem dados estruturados cadastrados ainda.';
 
     const badgeStatus = a.status === 'arquivado'
@@ -275,7 +275,15 @@ export function alternarEditarAtivo() {
     const aberto = !document.getElementById('fa-editar-wrapper').classList.contains('hidden');
     if (aberto) { document.getElementById('fa-editar-wrapper').classList.add('hidden'); return; }
     const a = estado.ativoEmFoco;
+    // Tipo exibido como somente-leitura (pedido explícito, 25/08/2026) —
+    // não é um <select> editável de propósito: mudar o tipo_ativo depois
+    // de criado trocaria todo o conjunto de campos estruturados
+    // (CAMPOS_POR_TIPO_ATIVO), o que exigiria decidir o que fazer com
+    // dados_especificos já preenchidos no formato antigo — fora de
+    // escopo por ora, mas o tipo pelo menos fica visível no formulário
+    // (antes só aparecia no cabeçalho da ficha, fora do form de editar).
     document.getElementById('fa-editar-campos').innerHTML =
+        `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500"></div>` +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
         renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-');
     document.getElementById('fa-editar-wrapper').classList.remove('hidden');

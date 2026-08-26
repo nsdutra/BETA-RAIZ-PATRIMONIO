@@ -2,10 +2,17 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
-// v1.19.0 — Pessoas/Minha Empresa/Licença/Sobre passam a existir de
-// verdade dentro do Cofre (pedido explícito). Ver changelog completo em
-// cofre.html. cofre-estado.js em si não mudou de conteúdo — só o
-// COFRE_VERSAO abaixo.
+// v1.20.0 — MERGE de 2 branches paralelos que divergiram do mesmo
+// v1.18.0 em conversas separadas, cada um se autodenominando "v1.19.0"
+// (pedido explícito: "faça o merge"):
+//   (a) esta conversa — WHATSAPP + MÁSCARAS + FOTO + TIPO/SUBTIPO/
+//       CATEGORIA + EDIÇÃO DE PADRÃO DO SISTEMA;
+//   (b) conversa paralela — PESSOAS/MINHA EMPRESA/LICENÇA/SOBRE DE
+//       VERDADE NO COFRE (via js/comum-*.js compartilhados com o App).
+// Renomeado pra v1.20.0 (em vez de reaproveitar "v1.19.0" de qualquer
+// um dos 2) justamente pra não ambiguar com nenhum dos dois pais. Ver
+// changelog completo em cofre.html. cofre-estado.js em si não mudou de
+// conteúdo — só o COFRE_VERSAO abaixo.
 //
 // v1.18.0 — BUG FIX FOTOS DO ATIVO + LINK IMÓVEIS + CONTATOS COMPLETOS
 // (editar/excluir/WhatsApp) (pedido explícito). Ver changelog completo
@@ -113,7 +120,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.19.0';
+export const COFRE_VERSAO = '1.20.0';
 
 export const estado = {
     clienteId: null,

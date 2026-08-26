@@ -361,7 +361,11 @@ export async function alternarPublicarVitrineFoto(fotoId, valor) {
 }
 
 export async function excluirFotoAtivo(fotoId) {
-    const { error } = await dbAuth.from('cofre_ativo_fotos').update({ status: 'excluido' }).eq('id', fotoId);
+    // BUG FIX (25/08/2026, achado pelo usuário) — 'excluido' não existe
+    // no CHECK constraint de status desta tabela (só aceita
+    // 'ativo'/'arquivado', confirmado direto no banco antes de
+    // corrigir) — todo clique em excluir foto quebrava com erro 500.
+    const { error } = await dbAuth.from('cofre_ativo_fotos').update({ status: 'arquivado' }).eq('id', fotoId);
     if (error) throw error;
 }
 
@@ -477,6 +481,22 @@ export async function criarSubtipoControle(clienteId, tipo, nome) {
         if (error.code === '23505' && tentativa < 20) { codigo = `${codigoBase}_${tentativa + 1}`; continue; }
         throw error;
     }
+}
+
+// Só edita o NOME de exibição (25/08/2026, pedido explícito) — nunca o
+// `codigo` (chave usada internamente/em referências), nem o `tipo`
+// (mudar de seguro/manutenção/tributo depois de criado deixaria
+// qualquer item de controle já usando esse subtipo apontando pro grupo
+// errado no dropdown).
+export async function atualizarSubtipoControle(id, nome) {
+    const { error } = await dbAuth.from('cofre_controle_subtipos').update({ nome }).eq('id', id);
+    if (error) throw error;
+}
+
+// Soft-delete (ativo=false) — mesmo padrão do resto do Cofre.
+export async function arquivarSubtipoControle(id) {
+    const { error } = await dbAuth.from('cofre_controle_subtipos').update({ ativo: false }).eq('id', id);
+    if (error) throw error;
 }
 
 export async function listarItensControleAtivo(ativoId) {

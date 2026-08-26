@@ -56,7 +56,7 @@ import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-
 import {
     escapeHtml, formatarDataBR, formatarBytes, diasAte, chipVencimento,
     classificarStatusVinculo, rotuloStatusVinculo, rotuloTipoAtivo, iconeAtivo, rotuloTipoControle,
-    BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK, BADGE_ALERTA,
+    BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK, BADGE_ALERTA, numeroWhatsAppComDDI,
 } from './cofre-validacoes.js';
 
 // D-2 (revisão DS) — helper local: mesma regra que chipStatusVinculoHtml()
@@ -184,7 +184,9 @@ export async function acionarContatoAlerta(itemControleId, titulo, tipo) {
     const mensagem = `Olá! Poderia nos enviar uma cotação atualizada para a renovação do item de controle "${descricaoItem}"? Obrigado!`;
 
     if (contato.whatsapp) {
-        const numero = contato.whatsapp.replace(/\D/g, '');
+        // BUG FIX (25/08/2026) — ver mesma correção em acionarContatoItemDireto
+        // (cofre-controles.js): garante DDI (55) no número antes do wa.me.
+        const numero = numeroWhatsAppComDDI(contato.whatsapp);
         window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
     } else if (contato.email) {
         const assunto = `Cotação — renovação: ${titulo}`;

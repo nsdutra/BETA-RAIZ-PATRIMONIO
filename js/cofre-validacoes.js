@@ -79,8 +79,17 @@ export function rotuloStatusVinculo(status) {
 // ============================================================================
 export function mascarar(valor, visiveisNoFinal = 4) {
     const v = (valor ?? '').toString();
-    if (v.length <= visiveisNoFinal) return v;
-    return '•'.repeat(Math.min(v.length - visiveisNoFinal, 8)) + v.slice(-visiveisNoFinal);
+    if (v.length <= visiveisNoFinal) return escapeHtml(v);
+    // BUG FIX (25/08/2026, achado pelo usuário) — os pontinhos ficavam
+    // desalinhados verticalmente (fonte proporcional não posiciona "•"
+    // numa linha reta consistente). Envolve só os pontos num span
+    // monoespaçado com letter-spacing — alinhamento reto garantido,
+    // independente da fonte do resto da tela. Retorna HTML agora (antes
+    // retornava texto puro) — por isso já escapa a parte visível aqui
+    // dentro, e quem chama não deve escapar de novo (ver
+    // renderizarDadosAtivo em cofre-ativos.js).
+    const pontos = '•'.repeat(Math.min(v.length - visiveisNoFinal, 8));
+    return `<span style="font-family:monospace;letter-spacing:2px">${pontos}</span>${escapeHtml(v.slice(-visiveisNoFinal))}`;
 }
 
 // ============================================================================
@@ -146,6 +155,20 @@ export const CAMPOS_POR_TIPO_ATIVO = {
         { chave: 'grau_parentesco', label: 'Grau de parentesco', obrigatorio: false },
         { chave: 'numero_documento', label: 'Nº do documento (CPF/RG)', obrigatorio: false, mascarar: true },
         { chave: 'data_nascimento', label: 'Data de nascimento', obrigatorio: false, tipo: 'date' },
+    ],
+    // "imovel" — achado pelo usuário, 25/08/2026: era o único tipo sem
+    // NENHUM campo estruturado (retornava lista vazia, "Sem campos
+    // estruturados adicionais para este tipo" sempre). Quando o ativo
+    // está vinculado a um imóvel real do App (entidade_origem_tipo=
+    // 'imovel'), esses campos ficam redundantes com o dado de origem —
+    // mas quando NÃO está vinculado (ativo "imóvel" cadastrado solto no
+    // Cofre, ex. imóvel fora do sistema de locação), precisa de algo
+    // pra preencher.
+    imovel: [
+        { chave: 'matricula', label: 'Matrícula do imóvel', obrigatorio: false },
+        { chave: 'endereco', label: 'Endereço completo', obrigatorio: false },
+        { chave: 'area_m2', label: 'Área (m²)', obrigatorio: false, tipo: 'number' },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
     outro: [
         { chave: 'descricao_livre', label: 'Descrição', obrigatorio: false },
@@ -213,6 +236,71 @@ export function rotuloFrequencia(intervalo, unidade) {
 // ============================================================================
 export function rotuloPapelContato(p) {
     return { seguradora: 'Seguradora', corretor: 'Corretor', oficina: 'Oficina', assistencia: 'Assistência', administradora: 'Administradora', advogado: 'Advogado', outro: 'Outro' }[p] || p;
+}
+
+// ============================================================================
+// MÁSCARA + VALIDAÇÃO DE TELEFONE/E-MAIL (25/08/2026, pedido explícito)
+// Mesmo padrão já usado no App (index.html: validarTelefoneBR/
+// validarEmailFormato/aplicarIndicadorValidacao/aplicarMascaraTelefone) —
+// portado pro Cofre pro modal de Contato. Versão simplificada: sem a
+// lista de DDDs válidos do Brasil (só valida contagem de dígitos e o
+// "9" na frente de celular) — evita duplicar uma lista grande só por
+// causa deste formulário; se precisar da validação completa de DDD
+// depois, dá pra importar a mesma constante do App.
+// ============================================================================
+export function aplicarMascaraTelefoneCofre(input) {
+    let digitos = input.value.replace(/\D/g, '').slice(0, 11);
+    let formatado = digitos;
+    if (digitos.length > 10) formatado = digitos.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+    else if (digitos.length > 6) formatado = digitos.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    else if (digitos.length > 2) formatado = digitos.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    else if (digitos.length > 0) formatado = digitos.replace(/(\d{0,2})/, '($1');
+    formatado = formatado.replace(/-$/, '').replace(/\)\s$/, ')');
+    input.value = formatado;
+}
+
+export function validarTelefoneBRCofre(valorDigitado) {
+    const digitos = (valorDigitado || '').replace(/\D/g, '');
+    if (digitos.length === 0) return { vazio: true };
+    if (digitos.length !== 10 && digitos.length !== 11) return { ok: false, motivo: 'Telefone precisa ter 10 ou 11 dígitos (DDD + número)' };
+    if (digitos.length === 11 && digitos[2] !== '9') return { ok: false, motivo: 'Celular com 11 dígitos precisa começar com 9 após o DDD' };
+    return { ok: true };
+}
+
+export function validarEmailFormatoCofre(valorDigitado) {
+    const valor = (valorDigitado || '').trim();
+    if (valor.length === 0) return { vazio: true };
+    const formatoOk = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(valor) && !valor.includes('..') && !valor.startsWith('.') && !valor.endsWith('.');
+    if (!formatoOk) return { ok: false, motivo: 'Formato de e-mail inválido' };
+    return { ok: true };
+}
+
+export function aplicarIndicadorValidacaoCofre(indicadorId, resultado, rotuloOk) {
+    const indicador = document.getElementById(indicadorId);
+    if (!indicador) return;
+    if (resultado.vazio || !resultado.ok) {
+        if (resultado.ok === false) {
+            indicador.innerText = '⚠️ ' + resultado.motivo;
+            indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 text-red-600 font-bold';
+            return;
+        }
+        indicador.innerText = '';
+        indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3';
+        return;
+    }
+    indicador.innerText = '✅ ' + rotuloOk;
+    indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 text-green-600 font-bold';
+}
+
+// Garante DDI (55) no número antes de montar o link wa.me — pedido
+// explícito (achado real: contato salvo só com DDD+número, sem "+55" na
+// frente, faz o wa.me abrir errado/não encontrar o contato). Só prefixa
+// quando o número tem exatamente 10 ou 11 dígitos (DDD+número sem DDI);
+// se já vier maior (already tem DDI), mantém como está.
+export function numeroWhatsAppComDDI(valor) {
+    let digitos = (valor || '').replace(/\D/g, '');
+    if (digitos.length === 10 || digitos.length === 11) digitos = '55' + digitos;
+    return digitos;
 }
 
 // Chip de urgência de vencimento — usado por dashboard/alertas/ficha.

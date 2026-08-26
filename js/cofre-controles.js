@@ -104,6 +104,7 @@ import { abrirUploadContextual } from './cofre-documentos.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
     rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo, rotuloPapelContato,
+    aplicarMascaraTelefoneCofre, validarTelefoneBRCofre, validarEmailFormatoCofre, aplicarIndicadorValidacaoCofre, numeroWhatsAppComDDI,
 } from './cofre-validacoes.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
@@ -249,6 +250,7 @@ function renderizarFichaItemControle() {
         </div>
     `;
     document.getElementById('fic-dados-leitura').innerHTML = `
+        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Tipo</span><b>${escapeHtml(rotuloTipoControle(item.tipo))}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Subtipo</span><b>${escapeHtml(item.cofre_controle_subtipos?.nome || '—')}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data início</span><b>${formatarDataBR(item.data_base)}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data fim</span><b>${item.data_fim ? formatarDataBR(item.data_fim) : 'Sem fim de vigência'}</b></div>
@@ -668,6 +670,24 @@ export async function excluirItemControleAtual() {
 // tanto pra criar quanto editar (contatoEmEdicaoId decide qual). Ganhou
 // "todos os campos" da tabela (empresa/telefone/observação, antes
 // ausentes da interface) + opção de excluir.
+// Liga a máscara/validação nos 3 campos (telefone/whatsapp/e-mail) —
+// chamada pelas 2 funções de abrir modal abaixo, tanto faz criar ou
+// editar (reatribuir .oninput toda vez é inofensivo). Reaplica a
+// validação imediatamente após preencher o campo, pra um valor já
+// salvo (modo editar) já nascer mostrando ✅ se for válido, sem
+// precisar o usuário digitar algo primeiro.
+function ligarMascaraEValidacaoContato() {
+    const telInput = document.getElementById('ct-ed-telefone');
+    const waInput = document.getElementById('ct-ed-whatsapp');
+    const emailInput = document.getElementById('ct-ed-email');
+    telInput.oninput = () => { aplicarMascaraTelefoneCofre(telInput); aplicarIndicadorValidacaoCofre('ct-ed-telefone-indicador', validarTelefoneBRCofre(telInput.value), 'Telefone válido'); };
+    waInput.oninput = () => { aplicarMascaraTelefoneCofre(waInput); aplicarIndicadorValidacaoCofre('ct-ed-whatsapp-indicador', validarTelefoneBRCofre(waInput.value), 'WhatsApp válido'); };
+    emailInput.oninput = () => { aplicarIndicadorValidacaoCofre('ct-ed-email-indicador', validarEmailFormatoCofre(emailInput.value), 'E-mail válido'); };
+    aplicarIndicadorValidacaoCofre('ct-ed-telefone-indicador', validarTelefoneBRCofre(telInput.value), 'Telefone válido');
+    aplicarIndicadorValidacaoCofre('ct-ed-whatsapp-indicador', validarTelefoneBRCofre(waInput.value), 'WhatsApp válido');
+    aplicarIndicadorValidacaoCofre('ct-ed-email-indicador', validarEmailFormatoCofre(emailInput.value), 'E-mail válido');
+}
+
 export function abrirNovoContatoItem() {
     contatoEmEdicaoId = null;
     document.getElementById('ct-ed-papel').value = 'seguradora';
@@ -679,6 +699,7 @@ export function abrirNovoContatoItem() {
     document.getElementById('ct-ed-observacao').value = '';
     document.getElementById('modal-editar-contato-item-titulo').textContent = 'Novo contato';
     document.getElementById('ct-ed-excluir-wrapper').classList.add('hidden');
+    ligarMascaraEValidacaoContato();
     abrirModal('modal-editar-contato-item');
 }
 
@@ -695,6 +716,7 @@ export function abrirEditarContatoItem(contatoId) {
     document.getElementById('ct-ed-observacao').value = c.observacao || '';
     document.getElementById('modal-editar-contato-item-titulo').textContent = 'Editar contato';
     document.getElementById('ct-ed-excluir-wrapper').classList.remove('hidden');
+    ligarMascaraEValidacaoContato();
     abrirModal('modal-editar-contato-item');
 }
 
@@ -746,7 +768,10 @@ export function acionarContatoItemDireto(contatoId) {
     const item = itemEmFoco;
     const descricaoItem = item.tipo ? `${item.titulo} (${rotuloTipoControle(item.tipo)})` : item.titulo;
     const mensagem = `Olá! Poderia nos enviar uma cotação atualizada para a renovação do item de controle "${descricaoItem}"? Obrigado!`;
-    const numero = c.whatsapp.replace(/\D/g, '');
+    // BUG FIX (25/08/2026, achado pelo usuário) — link não ia corretamente
+    // pro WhatsApp quando o contato foi salvo só com DDD+número, sem o
+    // DDI (55) na frente. numeroWhatsAppComDDI() garante o prefixo.
+    const numero = numeroWhatsAppComDDI(c.whatsapp);
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
 }
 
@@ -976,6 +1001,8 @@ function primeiroDiaDoMes(dataISO) {
 // (cofre_controle_subtipos só tinha SELECT — ver migration
 // cofre_controle_subtipos_write_policy_v1).
 // ============================================================================
+let subtipoEmEdicao = null; // id do subtipo sendo editado, ou null (modo "criar novo") — pedido explícito 25/08/2026
+
 export async function abrirSubtiposControle() {
     try {
         subtiposCache = await api.listarSubtiposControle(estado.clienteId);
@@ -983,7 +1010,11 @@ export async function abrirSubtiposControle() {
         mostrarToast('Erro ao carregar subtipos: ' + err.message, 'erro');
         return;
     }
+    subtipoEmEdicao = null;
+    document.getElementById('subtipo-tipo').disabled = false;
     document.getElementById('subtipo-nome').value = '';
+    document.getElementById('subtipo-btn-salvar').textContent = 'Adicionar';
+    document.getElementById('subtipo-btn-cancelar').classList.add('hidden');
     renderizarSubtiposControle();
     abrirModal('modal-subtipos-controle');
 }
@@ -997,9 +1028,57 @@ export async function salvarSubtipoControle() {
     const nome = document.getElementById('subtipo-nome').value.trim();
     if (!nome) { mostrarToast('Informe um nome.', 'erro'); return; }
     try {
-        await api.criarSubtipoControle(estado.clienteId, tipo, nome);
-        mostrarToast('Subtipo criado ✅');
-        document.getElementById('subtipo-nome').value = '';
+        if (subtipoEmEdicao) {
+            await api.atualizarSubtipoControle(subtipoEmEdicao, nome);
+            mostrarToast('Subtipo atualizado ✅');
+            cancelarEdicaoSubtipo();
+        } else {
+            await api.criarSubtipoControle(estado.clienteId, tipo, nome);
+            mostrarToast('Subtipo criado ✅');
+            document.getElementById('subtipo-nome').value = '';
+        }
+        subtiposCache = await api.listarSubtiposControle(estado.clienteId);
+        renderizarSubtiposControle();
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// Pedido explícito (25/08/2026) — Editar/Excluir agora aparecem pra
+// QUALQUER subtipo, inclusive "padrão do sistema" (cliente_id null,
+// compartilhado entre todos os clientes). A RLS (migration
+// cofre_subtipos_modelos_master_pode_editar_globais_v1) já garante que
+// só quem é fn_sou_master() consegue de fato salvar uma edição numa
+// linha global — a interface não precisa mais decidir isso, o banco
+// decide. "Tipo" fica desabilitado durante edição (mudar de categoria
+// depois de criado deixaria itens já usando esse subtipo apontando pro
+// grupo errado no dropdown) — só o nome é editável.
+export function editarSubtipoControle(id) {
+    const s = (subtiposCache || []).find(x => x.id === id);
+    if (!s) return;
+    subtipoEmEdicao = id;
+    document.getElementById('subtipo-tipo').value = s.tipo;
+    document.getElementById('subtipo-tipo').disabled = true;
+    document.getElementById('subtipo-nome').value = s.nome;
+    document.getElementById('subtipo-btn-salvar').textContent = 'Salvar edição';
+    document.getElementById('subtipo-btn-cancelar').classList.remove('hidden');
+    document.getElementById('subtipo-nome').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+export function cancelarEdicaoSubtipo() {
+    subtipoEmEdicao = null;
+    document.getElementById('subtipo-tipo').disabled = false;
+    document.getElementById('subtipo-nome').value = '';
+    document.getElementById('subtipo-btn-salvar').textContent = 'Adicionar';
+    document.getElementById('subtipo-btn-cancelar').classList.add('hidden');
+}
+
+export async function excluirSubtipoControle(id) {
+    const s = (subtiposCache || []).find(x => x.id === id);
+    if (!s) return;
+    if (!confirm(`Excluir o subtipo "${s.nome}"?`)) return;
+    try {
+        await api.arquivarSubtipoControle(id);
+        mostrarToast('Subtipo excluído.');
+        if (subtipoEmEdicao === id) cancelarEdicaoSubtipo();
         subtiposCache = await api.listarSubtiposControle(estado.clienteId);
         renderizarSubtiposControle();
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
@@ -1007,9 +1086,7 @@ export async function salvarSubtipoControle() {
 
 // Agrupado por tipo (Seguro/Manutenção/Tributo — os 3 únicos valores
 // possíveis, CHECK constraint no banco) em vez de lista plana, pra ficar
-// claro em qual dropdown cada subtipo novo vai aparecer. Subtipos
-// globais (cliente_id null — catálogo-base do sistema) marcados como
-// "padrão do sistema"; os do próprio cliente não têm marca nenhuma.
+// claro em qual dropdown cada subtipo novo vai aparecer.
 function renderizarSubtiposControle() {
     const grupos = { seguro: [], manutencao: [], tributo: [] };
     (subtiposCache || []).forEach(s => { if (grupos[s.tipo]) grupos[s.tipo].push(s); });
@@ -1021,7 +1098,11 @@ function renderizarSubtiposControle() {
             <p class="text-[11px] font-bold uppercase tracking-wide mb-1" style="color:var(--sage)">${escapeHtml(rotuloTipoControle(tipo))}</p>
             ${itens.map((s, idx) => `<div class="flex items-center justify-between gap-2 py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
                 <span class="text-xs font-bold">${escapeHtml(s.nome)}</span>
-                ${s.cliente_id === null ? `<span class="text-[10px]" style="color:var(--sage)">padrão do sistema</span>` : ''}
+                <div class="flex items-center gap-2 flex-none">
+                    ${s.cliente_id === null ? `<span class="text-[10px]" style="color:var(--sage)">padrão do sistema</span>` : ''}
+                    <button data-action="editar-subtipo-controle" data-id="${s.id}" class="text-[10px] font-bold" style="color:var(--pine)">Editar</button>
+                    <button data-action="excluir-subtipo-controle" data-id="${s.id}" class="text-[10px] font-bold text-slate-500">Excluir</button>
+                </div>
             </div>`).join('')}
         </div>`;
     }).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhum subtipo cadastrado ainda.</p>`;
@@ -1157,12 +1238,11 @@ function renderizarModelosControle() {
             ${itens.map((m, idx) => `<div class="py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-xs font-bold">${escapeHtml(m.titulo_sugerido)}</span>
-                    ${m.cliente_id === null
-                        ? `<span class="text-[10px] flex-none" style="color:var(--sage)">padrão do sistema</span>`
-                        : `<div class="flex gap-2 flex-none">
-                            <button data-action="editar-modelo-controle" data-id="${m.id}" class="text-[10px] font-bold" style="color:var(--pine)">Editar</button>
-                            <button data-action="excluir-modelo-controle" data-id="${m.id}" class="text-[10px] font-bold text-slate-500">Excluir</button>
-                        </div>`}
+                    <div class="flex items-center gap-2 flex-none">
+                        ${m.cliente_id === null ? `<span class="text-[10px]" style="color:var(--sage)">padrão do sistema</span>` : ''}
+                        <button data-action="editar-modelo-controle" data-id="${m.id}" class="text-[10px] font-bold" style="color:var(--pine)">Editar</button>
+                        <button data-action="excluir-modelo-controle" data-id="${m.id}" class="text-[10px] font-bold text-slate-500">Excluir</button>
+                    </div>
                 </div>
                 <p class="text-[11px]" style="color:var(--sage)">${escapeHtml(rotuloTipoControle(m.tipo))}${m.cofre_controle_subtipos?.nome ? ' · ' + escapeHtml(m.cofre_controle_subtipos.nome) : ''} · ${escapeHtml(rotuloFrequencia(m.frequencia_intervalo, m.frequencia_unidade))} · avisa ${m.antecedencia_alerta_dias}d antes</p>
             </div>`).join('')}
