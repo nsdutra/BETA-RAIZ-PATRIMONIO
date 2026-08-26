@@ -6,6 +6,59 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.62.4
+   LINHAS: 24896
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.62.4) — INVESTIGAÇÃO DO DEEP-LINK (?ir=tab-X) NÃO
+   FUNCIONANDO NO CELULAR + SPLASH MAIS RÁPIDO (pedido explícito):
+
+     1) INVESTIGAÇÃO — deep-link não levava a lugar nenhum no celular
+     - Revisado o código: existem 2 caminhos de boot que convergem numa
+       ÚNICA função (`entrarNoSistema()`) — login manual
+       (`fazerLoginSupabase()`) e sessão já salva no navegador
+       (`window.onload` → `verificarAcessoEEntrar()`, quando já existe
+       sessão Supabase válida). `abrirAbaPorDeepLink()` já estava
+       corretamente dentro dessa função convergente, então os dois
+       caminhos deveriam chamar ela igual — **não achei um bug de
+       código que explique "não funciona no celular"**.
+     - Suspeita mais provável: cache do Service Worker (`sw.js`, já
+       registrado no boot) servindo uma versão ANTIGA da página no
+       celular, de antes do recurso `?ir=` existir. Sinalizado pro
+       usuário — se persistir depois desta entrega, tentar um "hard
+       refresh"/limpar cache no navegador do celular antes de reabrir o
+       chamado de bug.
+     - Adicionado log de diagnóstico em `abrirAbaPorDeepLink()`
+       (`logScreen()`, mesmo painel já usado no resto do boot) — se
+       acontecer de novo, dá pra confirmar se a função sequer está
+       rodando, ou se roda mas `switchTab()` falha silenciosamente.
+
+     2) SPLASH MAIS RÁPIDO PRA DEEP-LINK (reduz a sensação de "recarregou
+        tudo", pedido explícito)
+     - `entrarNoSistema()` ganhou `temDeepLinkPendente` (detecta `?ir=`
+       na URL logo no início da função) — quando verdadeiro, os 2
+       `setTimeout` da animação de fade da splash (800ms + 500ms, só
+       efeito visual, não busca de dado nenhum) caem pra 0ms. A busca
+       de dados em si (pessoas/imóveis/contratos/etc., que sempre
+       precisa rodar pra qualquer aba funcionar direito) continua
+       exatamente igual — só a ANIMAÇÃO de transição é pulada.
+     - ⚠️ LIMITE ARQUITETURAL (avisado, não resolvido nesta entrega):
+       mesmo com a animação pulada, ainda existe um carregamento real
+       (sessão + busca de todos os dados do app) — index.html e
+       cofre.html são 2 arquivos HTML separados, e reaproveitar a tela
+       do App de verdade (em vez de duplicar, como já foi pedido
+       explicitamente antes) significa necessariamente carregar o App.
+       Eliminar esse carregamento por completo exigiria (a) um iframe
+       incorporando o App dentro do Cofre — arriscado, pode quebrar
+       layout/CSS entre os 2 apps — ou (b) duplicar a tela de verdade
+       dentro do Cofre — o que contraria o pedido anterior de não
+       duplicar. Nenhuma das duas foi implementada; decisão em aberto
+       com o usuário.
+
+     3) PRESTADORES DE SERVIÇO — revertido pra "Em breve" (pedido
+        explícito, decisão de destino ainda não confirmada)
+
+     - Arquivos alterados: index.html (entrarNoSistema + abrirAbaPorDeepLink).
+
    VERSÃO: Beta v1.62.3
    LINHAS: 24821
    DATA: 2026-08-25
@@ -7668,7 +7721,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.62.3";
+        const APP_VERSAO = "Beta v1.62.4";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -11914,6 +11967,15 @@
 
         async function entrarNoSistema() {
 
+            // v1.62.3 (pedido explícito) — se a navegação veio de um
+            // deep-link (?ir=tab-X, usado pelo menu ⚙️ do Cofre), pula a
+            // animação de splash (setTimeout de até 800+500ms só de efeito
+            // visual, não busca de dado nenhum) — reduz a sensação de
+            // "recarregou tudo" ao entrar via link. abrirAbaPorDeepLink()
+            // (mais abaixo nesta mesma função) continua rodando igual,
+            // troca de aba de verdade só depois de todo o resto carregado.
+            const temDeepLinkPendente = new URLSearchParams(window.location.search).has('ir');
+
             // ETAPA 2 (definitiva) — o Supabase já confirmou a autorização em
             // verificarAcessoEEntrar(), antes desta função ser chamada. Não há
             // mais checagem de "nao_autorizado" nem fluxo de aprovação por
@@ -12236,9 +12298,9 @@
 
                     }
 
-                }, 500);
+                }, temDeepLinkPendente ? 0 : 500);
 
-            }, isOffline ? 3000 : 800);
+            }, isOffline ? 3000 : (temDeepLinkPendente ? 0 : 800));
 
         }
 
@@ -13326,12 +13388,25 @@
         // parâmetro nunca é autorização, só sugestão de navegação).
         // Remove o parâmetro da URL depois de usar, pra um F5 não forçar
         // a mesma troca de aba de novo.
+        //
+        // v1.62.4 — log via logScreen() (mesmo painel de diagnóstico já
+        // usado no resto do boot) — usuário reportou que no celular o
+        // link não leva a lugar nenhum; código revisado (única função
+        // convergente entrarNoSistema(), tanto pro login manual quanto
+        // pra sessão já salva) sem achar causa raiz clara — pode ser
+        // cache do Service Worker servindo uma versão antiga da página
+        // no celular. Log aqui ajuda a confirmar se abrirAbaPorDeepLink()
+        // sequer está rodando na próxima ocorrência.
         function abrirAbaPorDeepLink() {
             const params = new URLSearchParams(window.location.search);
             const tabId = params.get('ir');
             if (!tabId) return;
+            logScreen(`Deep-link solicitado: ${tabId}`);
             if (document.getElementById(tabId)) {
                 switchTab(tabId);
+                logScreen(`Deep-link aplicado: ${tabId}`);
+            } else {
+                logScreen(`Deep-link falhou — elemento #${tabId} não existe no DOM.`, true);
             }
             params.delete('ir');
             const querystringRestante = params.toString();

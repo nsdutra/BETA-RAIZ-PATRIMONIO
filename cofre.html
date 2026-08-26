@@ -10,6 +10,37 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.15.1
+  Data       : 25/08/2026
+  Título     : PRESTADORES DE SERVIÇO REVERTIDO PRA "EM BREVE"
+  Base       : v1.15.0 (25/08/2026)
+  Linhas     : cofre.html = 2304 · js/cofre-api.js = 552 · js/cofre-app.js = 376 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 921 ·
+               js/cofre-documentos.js = 738 · js/cofre-estado.js = 111 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3655)
+
+  CHANGELOG v1.15.1 — pedido explícito: "Prestadores de Serviço" (grupo
+  Cofre do menu ⚙️) volta a ser "Em breve" — o destino que eu tinha
+  escolhido sozinho (`tab-manutencistas`, na v1.15.0) não foi confirmado
+  pelo usuário. Fica assim até a decisão certa ser tomada.
+
+  Sobre o deep-link do App não funcionar no celular (mesmo pedido desta
+  rodada) — ver changelog do index.html v1.62.4. Nenhuma mudança de
+  código foi necessária do lado do Cofre; o disparo (`data-action="ir-
+  app"`) já estava correto, o problema (se real e não cache) está inteiro
+  do lado do App.
+
+    - Arquivos alterados: cofre.html (1 botão revertido).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.15.0
   Data       : 25/08/2026
   Título     : CORREÇÃO DE COR (CONTRASTE) + REORGANIZAÇÃO COMPLETA DO MENU ⚙️
@@ -2106,9 +2137,10 @@
                  grupo Conta — modal-sobre-cofre continua no arquivo (não
                  apagado) mas não tem mais nenhum link pra ele. -->
             <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Cofre</p>
-            <button data-action="ir-app" data-tab="tab-manutencistas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="menu-conta-em-breve" data-rotulo="Prestadores de Serviço" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="wrench" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Prestadores de Serviço</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Prestadores de Serviço</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
             <button data-action="abrir-configuracoes-catalogo" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="tags" style="width:18px;height:18px;color:var(--pine)"></i>
@@ -2269,4 +2301,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2272 (cofre.html) — recontado na v1.15.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2304 (cofre.html) — recontado na v1.15.1; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
