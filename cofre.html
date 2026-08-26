@@ -10,6 +10,73 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.15.0
+  Data       : 25/08/2026
+  Título     : CORREÇÃO DE COR (CONTRASTE) + REORGANIZAÇÃO COMPLETA DO MENU ⚙️
+  Base       : v1.14.0 (25/08/2026)
+  Linhas     : cofre.html = 2272 · js/cofre-api.js = 552 · js/cofre-app.js = 376 ·
+               js/cofre-ativos.js = 379 · js/cofre-controles.js = 921 ·
+               js/cofre-documentos.js = 738 · js/cofre-estado.js = 107 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3651)
+
+  CHANGELOG v1.15.0 — pedido explícito, mesma correção de cor aplicada
+  em paralelo no App (index.html v1.62.3).
+
+    1) CORES DO CABEÇALHO — correção da v1.14.0 (contraste ruim)
+    - Nome da empresa: `text-emerald-800` → `text-white/80` — igual à
+      cor do texto do badge "Cofre", logo abaixo. Resolve o contraste
+      ruim sinalizado na entrega anterior (~1.9:1, ilegível).
+    - Fundo do badge "Cofre" + botões de robô/conta: `bg-emerald-800` →
+      `bg-white/10` — igual ao fundo do box "ativos controlados" no
+      card de KPIs da Home (pedido explícito, só no Cofre — o App
+      manteve `bg-emerald-800` nesses elementos).
+
+    2) MENU ⚙️ REORGANIZADO — só 2 grupos agora
+    - Antes: "Módulo Imóveis" avulso no topo + grupos "Serviços"
+      (Prestadores, "Em breve") / "Cadastros" (Pessoas/Minha empresa
+      "Em breve" + Categorias/Subtipos/Modelos reais) / "Conta"
+      (Licença "Em breve" + Suporte + Sobre próprio do Cofre).
+    - Agora: grupo **"Cofre"** (Prestadores de Serviço, Categoria de
+      Documento, Sub-tipos de item de controle, Modelos de item de
+      controle) + grupo **"Conta"** (Pessoas, Minha Empresa, Imóveis,
+      Licença, Suporte (WhatsApp), Sobre).
+    - Os 5 itens de Conta (exceto Suporte, que já era link externo) NÃO
+      duplicam nenhuma tela — são deep-link pro App via novo padrão
+      `?ir=tab-X` (index.html v1.62.3, `abrirAbaPorDeepLink()`), pedido
+      explícito: "não crie duas abas iguais, os links devem levar à
+      mesma tela". "Prestadores de Serviço" deixou de ser "Em breve" —
+      linka pro App em `tab-manutencistas` (a tabela `prestadores` já é
+      compartilhada entre os 2 módulos; `cofre_itens_controle.
+      prestador_escopo_id` já referencia essa mesma tabela). **Escolha
+      não confirmada pelo usuário** — dos 3 tipos que a tabela
+      `prestadores` cobre (síndico/administradora/manutencista),
+      "manutencista" foi o palpite mais próximo de "Prestadores de
+      Serviço" em sentido genérico; se não for o esperado, é 1 linha
+      pra trocar o `data-tab`.
+    - `modal-sobre-cofre` (o "Sobre" próprio do Cofre, com a versão do
+      módulo) NÃO foi apagado — só ficou sem nenhum link apontando pra
+      ele. Trade-off consciente: consultar a versão do Cofre por esse
+      caminho não é mais possível pelo menu; segue disponível via
+      `#badge-versao-cofre` no cabeçalho.
+    - Novo dispatcher `ir-app` em cofre-app.js — genérico, qualquer
+      item novo do grupo Conta só precisa de
+      `data-action="ir-app" data-tab="tab-X"`, sem código novo.
+      `voltar-app`/`menu-conta-em-breve` (dispatchers antigos) ficaram
+      órfãos — nenhum botão aponta mais pra eles, mantidos no código
+      (não apagados), inofensivos.
+
+    - Arquivos alterados: cofre.html (menu ⚙️ + 3 spans de cabeçalho),
+      js/cofre-app.js (novo dispatcher `ir-app` + limpeza de duplicata).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.14.0
   Data       : 25/08/2026
   Título     : CORES DO CABEÇALHO — NOME DA EMPRESA E BADGE DO MÓDULO
@@ -1429,12 +1496,12 @@
     <header class="sticky top-0 z-40" style="background:var(--pine-deep)">
         <div class="p-3 flex justify-between items-center">
             <div class="min-w-0">
-                <span class="text-lg font-black tracking-wider text-emerald-800 block leading-tight" id="cofre-nome-empresa">—</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-white/80 inline-block mt-0.5">Cofre</span>
+                <span class="text-lg font-black tracking-wider text-white/80 block leading-tight" id="cofre-nome-empresa">—</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/80 inline-block mt-0.5">Cofre</span>
             </div>
             <div class="flex items-center gap-2 flex-none">
                 <span class="text-[10px] hidden sm:inline" style="color:var(--pine-light)" id="badge-versao-cofre">v1.2.0</span>
-                <button data-action="abrir-bot" title="Falar com R.AI.Z" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition text-white">
+                <button data-action="abrir-bot" title="Falar com R.AI.Z" class="w-9 h-9 flex-none flex items-center justify-center bg-white/10 rounded-full active:scale-90 transition text-white">
                     <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 2v3"/>
                         <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none"/>
@@ -1446,7 +1513,7 @@
                         <path d="M22 11v3"/>
                     </svg>
                 </button>
-                <button data-action="abrir-menu-conta" title="Configurações" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition">
+                <button data-action="abrir-menu-conta" title="Configurações" class="w-9 h-9 flex-none flex items-center justify-center bg-white/10 rounded-full active:scale-90 transition">
                     <i data-lucide="user" style="width:18px;height:18px" class="text-white"></i>
                 </button>
             </div>
@@ -2025,41 +2092,31 @@
             <button type="button" data-action="fechar-menu-conta" class="text-slate-400 hover:text-white font-bold text-sm bg-emerald-900 w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90">✕</button>
         </div>
         <div class="p-4 space-y-1 overflow-y-auto" style="padding-bottom:calc(24px + env(safe-area-inset-bottom))">
-            <!-- C-16 (revisão DS §6) — "Módulo Imóveis" não pertence a nenhum
-                 dos 4 grupos fixos do App (é navegação entre módulos, não um
-                 cadastro/conta/serviço) — mantido como item avulso no topo,
-                 sem cabeçalho de grupo (mesma regra do 1º grupo do App, que
-                 usa pt-1 em vez de pt-3). -->
-            <button data-action="voltar-app" class="w-full flex items-center gap-3 px-2 pt-1 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                <i data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Módulo Imóveis</span>
-            </button>
-
-            <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Serviços</p>
-            <button data-action="menu-conta-em-breve" data-rotulo="Prestadores de serviço" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <!-- Reorganização (pedido explícito, 25/08/2026) — só 2 grupos:
+                 "Cofre" (config nativa do módulo, incluindo Prestadores de
+                 Serviço — antes "Em breve", agora linka pro App porque a
+                 tabela `prestadores` já é compartilhada, cofre_itens_controle.
+                 prestador_escopo_id referencia ela) e "Conta" (5 itens que
+                 são CÓPIAS das telas do App — Pessoas/Minha Empresa/Imóveis/
+                 Licença/Sobre — nunca duplicadas aqui, sempre deep-link via
+                 ?ir=tab-X pro index.html, mesmo padrão já usado por
+                 abrirCofreDocumentos() no sentido contrário). "Módulo
+                 Imóveis" (antes item avulso no topo) e "Sobre" (antes modal
+                 próprio do Cofre, modal-sobre-cofre) foram absorvidos pelo
+                 grupo Conta — modal-sobre-cofre continua no arquivo (não
+                 apagado) mas não tem mais nenhum link pra ele. -->
+            <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Cofre</p>
+            <button data-action="ir-app" data-tab="tab-manutencistas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="wrench" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Prestadores de serviço</span>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
-            </button>
-
-            <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Cadastros</p>
-            <button data-action="menu-conta-em-breve" data-rotulo="Pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                <i data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Pessoas</span>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
-            </button>
-            <button data-action="menu-conta-em-breve" data-rotulo="Minha empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                <i data-lucide="building" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Minha empresa</span>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Prestadores de Serviço</span>
             </button>
             <button data-action="abrir-configuracoes-catalogo" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="tags" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Categorias de documento</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Categoria de Documento</span>
             </button>
             <button data-action="abrir-subtipos-controle" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="list-tree" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Subtipos de item de controle</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Sub-tipos de item de controle</span>
             </button>
             <button data-action="abrir-modelos-controle" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--pine)"></i>
@@ -2067,16 +2124,27 @@
             </button>
 
             <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
-            <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="ir-app" data-tab="tab-pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <i data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium" style="color:var(--ink)">Pessoas</span>
+            </button>
+            <button data-action="ir-app" data-tab="tab-minha-empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <i data-lucide="building" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium" style="color:var(--ink)">Minha Empresa</span>
+            </button>
+            <button data-action="ir-app" data-tab="tab-geral" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <i data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium" style="color:var(--ink)">Imóveis</span>
+            </button>
+            <button data-action="ir-app" data-tab="tab-licenca" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Licença</span>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
+                <span class="text-sm font-medium" style="color:var(--ink)">Licença</span>
             </button>
             <a href="https://wa.me/5511947461828" target="_blank" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
             </a>
-            <button data-action="abrir-sobre-cofre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="ir-app" data-tab="tab-sobre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="info" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Sobre</span>
             </button>
@@ -2201,4 +2269,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2204 (cofre.html) — recontado na v1.14.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2272 (cofre.html) — recontado na v1.15.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

@@ -6,6 +6,40 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.62.3
+   LINHAS: 24821
+   DATA: 2026-08-25
+   NOVIDADES (Beta v1.62.3) — CORREÇÃO DE COR + DEEP-LINK PRO COFRE
+   (pedido explícito):
+
+     1) COR DO NOME DA EMPRESA (correção da v1.62.2 — contraste ruim)
+     - `text-emerald-800` → `text-white/80` — igual à cor do texto do
+       badge do módulo ("Imóveis"), que fica logo abaixo do nome.
+       Resolve o problema de contraste sinalizado na entrega anterior
+       (emerald-800 sobre o fundo do cabeçalho dava ~1.9:1, ilegível).
+     - Fundo do badge/ícones de robô e conta NÃO mudou aqui (continuam
+       `bg-emerald-800`) — a mudança de fundo pro tom "ativos
+       controlados" foi pedida só pro Cofre, não pro App.
+
+     2) NOVO — DEEP-LINK PÓS-LOGIN (?ir=tab-X)
+     - Nova `abrirAbaPorDeepLink()`, chamada uma vez logo após o app
+       principal terminar de renderizar no login. Lê `?ir=tab-X` da
+       URL; se o elemento existir no DOM, chama `switchTab('tab-X')`
+       sozinho. Remove o parâmetro da URL em seguida
+       (`history.replaceState`) — um F5 depois não repete a troca de
+       aba à força.
+     - Existe pro menu ⚙️ do Cofre poder abrir Pessoas/Minha Empresa/
+       Imóveis/Licença/Sobre/Prestadores de Serviço direto no App, sem
+       duplicar HTML/lógica nenhuma no lado do Cofre (pedido explícito
+       — "não crie duas abas iguais, os links devem levar à mesma
+       tela"). Mesmo princípio de segurança de `abrirCofreDocumentos()`
+       no sentido contrário: parâmetro de URL nunca é autorização, só
+       sugestão de navegação — a RLS de cada aba continua sendo quem
+       decide o que a pessoa vê de verdade.
+
+     - Arquivos alterados: index.html (2 spans de cor + nova função +
+       1 chamada no fluxo de login).
+
    VERSÃO: Beta v1.62.2
    LINHAS: 24757
    DATA: 2026-08-25
@@ -5072,7 +5106,7 @@
 
             <div class="cursor-pointer active:scale-95 transition-transform select-none min-w-0" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
-                <span id="logo-header" class="text-lg font-black tracking-wider text-emerald-800 block leading-tight">RAIZ</span>
+                <span id="logo-header" class="text-lg font-black tracking-wider text-white/80 block leading-tight">RAIZ</span>
 
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-white/80 inline-block mt-0.5">Imóveis</span>
 
@@ -7634,7 +7668,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.62.2";
+        const APP_VERSAO = "Beta v1.62.3";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -12165,6 +12199,16 @@
                         // garante que o ícone certo já nasce destacado.
                         mostrarBarraInferior();
 
+                        // v1.62.3 (pedido explícito) — deep-link pós-login via
+                        // ?ir=tab-X: o menu ⚙️ do Cofre precisa abrir telas do
+                        // App (Pessoas/Minha Empresa/Licença/Sobre) sem
+                        // duplicar HTML/lógica — só linka pra cá com esse
+                        // parâmetro. Roda DEPOIS do render sequence acima (a
+                        // aba de destino já tem dado pronto) e some da URL
+                        // logo em seguida (history.replaceState), pra um F5
+                        // não reabrir a mesma aba de novo à força.
+                        abrirAbaPorDeepLink();
+
                         // Beta v1.43.0 — Central de Comunicações Omnichannel.
                         // Ela registra o login, escolhe no máximo uma jornada e
                         // orquestra onboarding/NPS sem concorrência.
@@ -13274,6 +13318,26 @@
             'tab-recebimento-detalhe': 'tab-imoveis',
             'tab-contrato-ficha': 'tab-contratos'
         };
+
+        // v1.62.3 (pedido explícito) — deep-link pós-login via ?ir=tab-X.
+        // Só troca de aba se o elemento realmente existir no DOM (nunca
+        // confia cegamente no parâmetro da URL — mesmo princípio de
+        // segurança já usado em abrirCofreDocumentos()/contexto de URL:
+        // parâmetro nunca é autorização, só sugestão de navegação).
+        // Remove o parâmetro da URL depois de usar, pra um F5 não forçar
+        // a mesma troca de aba de novo.
+        function abrirAbaPorDeepLink() {
+            const params = new URLSearchParams(window.location.search);
+            const tabId = params.get('ir');
+            if (!tabId) return;
+            if (document.getElementById(tabId)) {
+                switchTab(tabId);
+            }
+            params.delete('ir');
+            const querystringRestante = params.toString();
+            const novaUrl = window.location.pathname + (querystringRestante ? '?' + querystringRestante : '') + window.location.hash;
+            history.replaceState(null, '', novaUrl);
+        }
 
         function switchTab(tabId) {
 

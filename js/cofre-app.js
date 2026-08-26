@@ -107,7 +107,26 @@ document.addEventListener('click', async (ev) => {
         case 'ir-home': nav.mudarTela('home'); docs.montarHome(); break;
         case 'ir-ativos': nav.mudarTela('ativos'); ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value); break;
         case 'ir-alertas': nav.mudarTela('alertas'); renderAlertas(); break;
+        // Reorganização do menu ⚙️ (pedido explícito, 25/08/2026) — os 2
+        // casos abaixo (voltar-app/menu-conta-em-breve) ficaram órfãos:
+        // nenhum botão do HTML aponta mais pra eles (o item "Módulo
+        // Imóveis" virou "Imóveis" dentro do grupo Conta, usando
+        // ir-app; os 3 itens "Em breve" — Prestadores/Pessoas/Minha
+        // empresa/Licença — agora linkam de verdade). Mantidos no
+        // código (não apagados) — inofensivos, só não são mais
+        // alcançáveis pela interface.
         case 'voltar-app': window.location.href = './'; break;
+        case 'menu-conta-em-breve': fecharModal('modal-menu-conta'); mostrarToast(`${alvo.dataset.rotulo}: em breve.`); break;
+        // NOVO — deep-link pro App numa aba específica (Pessoas/Minha
+        // Empresa/Imóveis/Licença/Sobre/Prestadores), sem duplicar tela
+        // nenhuma aqui (pedido explícito: "não crie duas abas iguais").
+        // index.html v1.62.3 lê ?ir=tab-X pós-login e chama switchTab()
+        // sozinho (abrirAbaPorDeepLink()) — mesmo princípio de
+        // segurança de abrirCofreDocumentos() no sentido contrário:
+        // parâmetro de URL nunca é autorização, só sugestão de
+        // navegação (RLS de cada aba continua sendo quem decide o que
+        // a pessoa pode ver de verdade).
+        case 'ir-app': window.location.href = './?ir=' + encodeURIComponent(alvo.dataset.tab || 'tab-geral'); break;
         case 'fechar-modal-generico': fecharModal('modal-generico'); break;
 
         // ---- busca global / configurações
@@ -115,7 +134,6 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-busca-global': docs.fecharBuscaGlobal(); break;
         case 'abrir-menu-conta': abrirModal('modal-menu-conta'); break;
         case 'fechar-menu-conta': fecharModal('modal-menu-conta'); break;
-        case 'menu-conta-em-breve': fecharModal('modal-menu-conta'); mostrarToast(`${alvo.dataset.rotulo}: em breve.`); break;
         case 'abrir-busca-ativos': abrirModal('modal-busca-ativos'); break;
         case 'fechar-busca-ativos': fecharModal('modal-busca-ativos'); break;
         case 'limpar-filtro-ativos':
