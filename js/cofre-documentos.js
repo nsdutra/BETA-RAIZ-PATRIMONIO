@@ -256,7 +256,7 @@ export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibid
 }
 
 function rotuloEntidadeTipo(t) {
-    return { ativo: 'Ativo', imovel: 'Imóvel', contrato: 'Contrato', pagamento: 'Pagamento', empresa: 'Empresa' }[t] || t;
+    return { ativo: 'Ativo', imovel: 'Imóvel', contrato: 'Contrato', pagamento: 'Pagamento', empresa: 'Empresa', item_controle: 'Item de controle' }[t] || t;
 }
 
 function limparFormularioUpload() {

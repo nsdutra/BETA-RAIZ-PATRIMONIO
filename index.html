@@ -6,6 +6,63 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.63.0
+   LINHAS: 25238
+   DATA: 2026-08-26
+   NOVIDADES (Beta v1.63.0) — CONCEITO DE "ATRASO" CORRIGIDO EM TODO O
+   MÓDULO FINANCEIRO (pedido explícito do usuário): valor a receber no
+   futuro (lançamento gerado com antecedência, vencimento ainda não
+   chegado) NÃO pode ser tratado como pendência/atraso — antes era.
+
+     - CAUSA RAIZ: gerarMensalidadesParaCompetencia() sempre grava
+       status='Inadimplente' na criação, independente da competência
+       ser passada ou futura (isso é correto — o campo status só
+       significa "não pago"; não muda). O bug era que TODO ponto de
+       alerta/badge do app lia esse status cru como se fosse sinônimo
+       de "atrasado", sem checar a data de vencimento (dataPgto) real.
+       Confirmado contra o banco ao vivo (Supabase MCP): havia 3
+       lançamentos reais já marcados como atraso com vencimento em
+       09/2026, 10/2026 e até 07/2027.
+     - NOVA função central mensalidadeEmAtraso(m) (perto de
+       mensalidadeIsentaDeAlertas): só considera atraso quando status
+       não pago E dataPgto <= hoje. Complementar mensalidadeAVencer(m)
+       pro caso contrário. Nenhuma mudança no campo status armazenado
+       nem nos usos operacionais (dar baixa, excluir lançamento,
+       trocar status do contrato, conciliação) — só o RECORTE de
+       "isso é alerta/cobrança" muda.
+     - Visão Geral: card "Em atraso" e item "recebimentos em atraso"
+       da lista "Atenção necessária" agora usam mensalidadeEmAtraso().
+     - Cobranças (renderInadimplencia): lançamento futuro NUNCA mais
+       aparece na lista nem soma no "Total em Aberto"/"Taxa de
+       Atraso" — essa aba dispara cobrança de verdade por WhatsApp
+       (botão "Cobrar Grupo"), então mostrar/cobrar um aluguel que
+       ainda nem venceu era o pior caso do bug. Novo aviso informativo
+       (neutro, não-alerta) avisa quantos lançamentos futuros existem
+       e não aparecem ali, apontando pra aba Financeiro.
+     - Financeiro/Mensal (renderMensalidades) e ficha individual do
+       recebimento (abrirRecebimentoDetalhe): badge "Atrasado" (âmbar)
+       só aparece em lançamento realmente vencido; lançamento futuro
+       ganha badge neutro "A vencer" — mesmo card, mesmos botões (Dar
+       Baixa continua disponível pra recebimento antecipado). Chip
+       "Atraso R$..." do cabeçalho de cada grupo de competência também
+       corrigido; novo chip "A vencer R$...". apagarInadimplentesDoGrupo()
+       corrigida pra nunca apagar um "A vencer" junto (antes apagava
+       TODO 'Inadimplente' da competência, sem checar vencimento).
+     - Relatórios (renderRelatorios): coluna/total "Inadimplente" da
+       tabela mês a mês também passou a usar mensalidadeEmAtraso().
+     - Bot do WhatsApp (webhook + Diário de Eventos): RPC
+       fn_diario_atrasos_pendentes corrigida via migration no Supabase
+       (mesma sessão) pra usar a data de vencimento real gravada em
+       cada mensalidade em vez de recalcular a partir de
+       vencimento_dia — a versão antiga não considerava
+       aluguel_antecipado=false (vencimento no mês seguinte),
+       cobrindo um atraso que ainda não tinha vencido de verdade em
+       alguns dias por mês. _shared.ts também ajustado nos 2 pontos
+       que mostravam o status cru do banco numa mensagem de WhatsApp
+       (🔴 Atrasado) sem checar se o vencimento já tinha chegado.
+     - Arquivos alterados: index.html, whatsapp-webhook/_shared.ts,
+       migration no Supabase (fn_diario_atrasos_pendentes).
+
    VERSÃO: Beta v1.62.5
    LINHAS: 24940
    DATA: 2026-08-25
@@ -6665,6 +6722,11 @@
 
             <p id="inad-energia-recebida" class="hidden bg-yellow-50 border border-yellow-200 text-yellow-800 text-[13px] font-bold p-2 rounded-lg mb-4"></p>
 
+            <!-- v1.63.0 — aviso informativo (não é alerta): lançamentos
+                 futuros existem mas não aparecem nesta aba de cobrança
+                 porque ainda não venceram. Ver renderInadimplencia(). -->
+            <p id="inad-a-vencer-aviso" class="hidden bg-slate-50 border border-slate-200 text-slate-600 text-[13px] font-bold p-2 rounded-lg mb-4"></p>
+
             <div id="lista-inadimplencia" class="space-y-3"></div>
 
         </section>
@@ -7744,7 +7806,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.62.5";
+        const APP_VERSAO = "Beta v1.63.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -15850,12 +15912,52 @@
             return !!con && imovelIsentoDeAlertas(con.imovelId);
         }
 
+        // v1.63.0 — NOVO conceito, pedido explícito (25/08/2026): "não pago"
+        // e "em atraso" NÃO são a mesma coisa. Uma mensalidade só é atraso/
+        // pendência de cobrança de verdade quando, além de não paga, a data
+        // de vencimento (dataPgto) já chegou ou passou. Um lançamento
+        // gerado com antecedência pra um mês futuro (ex.: setembro lançado
+        // em 25/08) é só "a vencer" — nunca deve contar em card de alerta,
+        // badge vermelho, taxa de inadimplência ou disparo de cobrança.
+        //
+        // Por que não mexi no status armazenado ('Inadimplente'): o campo
+        // é usado em dezenas de outros lugares pra decidir "isso já foi
+        // pago ou não" (dar baixa, excluir lançamento, trocar status do
+        // contrato, casar comprovante na conciliação) — nesses casos, um
+        // lançamento futuro CONTINUA precisando aparecer como não-pago
+        // (ex.: alguém pode querer dar baixa antecipada). Só o RECORTE de
+        // "isso é alerta/cobrança" muda — por isso esta função fica isolada,
+        // pra ser usada exclusivamente nesses pontos (Visão Geral, Cobranças,
+        // badges do Financeiro/Mensal, Relatórios), sem tocar no resto.
+        //
+        // Sem dataPgto cadastrada: trata como atraso (dado incompleto — mais
+        // seguro alertar do que esconder um débito real por falta de data).
+        function mensalidadeEmAtraso(m) {
+            if (m.status !== 'Inadimplente') return false;
+            if (!m.dataPgto) return true;
+            const isoVenc = converterDataBRparaISO(m.dataPgto);
+            if (!isoVenc) return true;
+            const isoHoje = new Date().toISOString().split('T')[0];
+            return isoVenc <= isoHoje;
+        }
+
+        // Complemento de mensalidadeEmAtraso(): não pago, mas vencimento
+        // ainda não chegou — "a vencer", nunca "atraso".
+        function mensalidadeAVencer(m) {
+            return m.status === 'Inadimplente' && !mensalidadeEmAtraso(m);
+        }
+
         function renderVisaoGeral() {
 
             const totalImoveis = imoveis.length;
             const alugados = imoveis.filter(i => i.status === 'Alugado').length;
             const vagos = imoveis.filter(i => i.status === 'Vago').length;
-            const inadimplentes = mensalidades.filter(m => m.status === 'Inadimplente' && !mensalidadeIsentaDeAlertas(m)).length;
+            // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): antes
+            // contava QUALQUER mensalidade não paga, inclusive lançamentos
+            // futuros gerados com antecedência (ex.: setembro lançado em
+            // 25/08 já entrava aqui como "em atraso"). Agora usa
+            // mensalidadeEmAtraso(), que exige vencimento já chegado.
+            const inadimplentes = mensalidades.filter(m => mensalidadeEmAtraso(m) && !mensalidadeIsentaDeAlertas(m)).length;
 
             const elTotal = document.getElementById('geral-total-imoveis');
             const elAlugados = document.getElementById('geral-alugados');
@@ -17763,8 +17865,19 @@
                 const diaVenc = con.vencimentoDia || 15;
                 const dataPadraoVenc = partesRef.length === 2 ? `${partesRef[1]}-${partesRef[0]}-${diaVenc < 10 ? '0' + diaVenc : diaVenc}` : '';
 
+                // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): antes
+                // todo lançamento não pago virava "Atrasado" aqui, mesmo um
+                // lançamento futuro (vencimento ainda não chegou). Agora só
+                // usa o badge/borda de atraso quando mensalidadeEmAtraso()
+                // confirma que o vencimento já passou.
+                const estaAtrasado = mensalidadeEmAtraso(men);
+                const corBorda = estaAtrasado ? 'border-amber-500' : 'border-slate-300';
+                const badgeStatus = estaAtrasado
+                    ? `<span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-black">Atrasado</span>`
+                    : `<span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded font-black">A vencer</span>`;
+
                 el.innerHTML = `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-amber-500 space-y-2">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 ${corBorda} space-y-2">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-sm font-bold text-slate-900">${con.locatario}</p>
@@ -17772,7 +17885,7 @@
                                 ${localImovel ? `<p class="text-xs text-gray-400">📍 ${localImovel}</p>` : ''}
                             </div>
                             <div class="flex items-center gap-1">
-                                <span class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded font-black">Atrasado</span>
+                                ${badgeStatus}
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2 text-sm">
@@ -19445,6 +19558,16 @@
 
                 if(!existe) {
 
+                    // NOTA (v1.63.0, 25/08/2026): status nasce 'Inadimplente'
+                    // mesmo quando dataDePagamentoGerada (abaixo) cai no
+                    // futuro — isso é intencional, não o bug que foi
+                    // corrigido nesta versão. O campo status aqui significa
+                    // só "ainda não pago", não "atrasado" — quem decide se
+                    // isso é ALERTA de atraso é mensalidadeEmAtraso(),
+                    // comparando esta mesma dataPgto com hoje, sempre que o
+                    // valor for usado em card/badge/contagem de cobrança
+                    // (Visão Geral, Cobranças, Financeiro, Relatórios). Ver
+                    // comentário completo em mensalidadeEmAtraso().
                     mensalidades.push({
 
                         id: 'men_' + Date.now() + Math.random().toString(36).substr(2, 4),
@@ -21119,9 +21242,9 @@
 
                 });
 
-                let recebidoGrupo = 0, inadimplenteGrupo = 0;
+                let recebidoGrupo = 0, inadimplenteGrupo = 0, avencerGrupo = 0;
 
-                let qtdRecebido = 0, qtdInadimplente = 0;
+                let qtdRecebido = 0, qtdInadimplente = 0, qtdAVencer = 0;
 
                 let htmlItens = '';
 
@@ -21143,7 +21266,15 @@
 
                     const dataPadraoVenc = `${partesRef[1]}-${partesRef[0]}-${diaVenc < 10 ? '0'+diaVenc : diaVenc}`;
 
-                    if(men.status === 'Inadimplente') {
+                    // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): um
+                    // lançamento não pago só é "Atrasado" (badge âmbar) se o
+                    // vencimento já chegou (mensalidadeEmAtraso). Lançamento
+                    // futuro (gerado com antecedência) cai no ramo "A vencer"
+                    // logo abaixo — mesmo card/mesmos botões (Dar Baixa
+                    // continua disponível, inclusive pra recebimento
+                    // antecipado), só badge/borda diferentes, pra não
+                    // comunicar atraso que não existe.
+                    if(mensalidadeEmAtraso(men)) {
 
                         inadimplenteGrupo += men.valorConfirmado;
 
@@ -21254,6 +21385,119 @@
 
                             </div>`;
 
+                    } else if (men.status === 'Inadimplente') {
+
+                        // NOVO (v1.63.0 — pedido explícito, 25/08/2026): não
+                        // pago, mas vencimento ainda não chegou. Mesmo card/
+                        // mesmos botões do ramo "Atrasado" acima (Dar Baixa
+                        // continua disponível pra recebimento antecipado) —
+                        // só badge/borda neutros, pra não parecer débito.
+
+                        avencerGrupo += men.valorConfirmado;
+
+                        qtdAVencer++;
+
+                        htmlItens += `
+
+                            <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-slate-300 space-y-2">
+
+                                <div class="flex justify-between items-start">
+
+                                    <div>
+
+                                        <p class="text-xs font-bold text-slate-900">${con.locatario}</p>
+
+                                        <p class="text-[11px] text-gray-500">Ref: ${men.referencia}</p>
+
+                                        ${localImovel ? `<p class="text-[11px] text-gray-400">📍 ${localImovel}</p>` : ''}
+
+                                    </div>
+
+                                    <div class="flex items-center gap-1">
+
+                                        <span class="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded font-black">A vencer</span>
+
+                                    </div>
+
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-1 text-[13px]">
+
+                                    <div>
+
+                                        <label class="block text-[11px] font-bold text-gray-500">Forma de Recebimento</label>
+
+                                        <select id="banco-${men.id}" class="w-full border p-1 rounded bg-gray-50"><option value="PIX">PIX</option><option value="Boleto">Boleto</option><option value="Depósito">Depósito</option></select>
+
+                                    </div>
+
+                                    <div>
+
+                                        <label class="block text-[11px] font-bold text-gray-500">Dia Recebimento</label>
+
+                                        <input type="date" id="data-${men.id}" value="${dataPadraoVenc}" class="w-full border p-0.5 rounded bg-gray-50 text-center">
+
+                                    </div>
+
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-1 text-[13px]">
+
+                                    <div>
+
+                                        <label class="block text-[11px] font-bold text-gray-500">Líquido (R$)</label>
+
+                                        <div class="flex items-center gap-1">
+                                            <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1 rounded bg-gray-50 font-bold text-emerald-900">
+                                            <button type="button" id="btn-baixa-extra-${men.id}" onclick="alternarMenuBaixaExtra('${men.id}')" title="Energia, multa e taxa" class="raiz-btn-toggle-mini flex-none text-[10px] bg-slate-100 border border-slate-300 rounded-full w-6 h-6 flex items-center justify-center font-bold text-slate-600"><svg data-lucide="more-horizontal" style="width:13px;height:13px"></svg></button>
+                                        </div>
+
+                                    </div>
+
+                                    <div>
+
+                                        <label class="block text-[11px] font-bold text-gray-500">Observações Internas</label>
+
+                                        <input type="text" id="obs-${men.id}" placeholder="Ex: Desconto" class="w-full border p-1 rounded bg-gray-50">
+
+                                    </div>
+
+                                </div>
+
+                                <div id="menu-baixa-extra-${men.id}" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 space-y-1.5">
+
+                                    ${imoveis.find(i => i.id === con.imovelId)?.energiaRumo === 'Sim' ? `
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-yellow-700"><svg data-lucide="zap" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Energia (controle interno)</label>
+                                        <input type="number" id="energia-${men.id}" value="0" class="w-full border border-yellow-300 p-1 rounded bg-yellow-50 font-bold text-yellow-800 text-[13px]">
+                                    </div>` : ''}
+
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-red-700"><svg data-lucide="alert-triangle" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Multa (soma ao líquido)</label>
+                                        <input type="number" id="multa-${men.id}" value="0" data-multa-anterior="0" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border border-red-300 p-1 rounded bg-red-50 font-bold text-red-800 text-[13px]">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[11px] font-bold text-slate-700">🏢 Taxa da Administradora</label>
+                                        <input type="number" id="taxa-admin-${men.id}" value="${men.taxaAdmSugerida || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border border-slate-300 p-1 rounded bg-white font-bold text-slate-700 text-[13px]">
+                                    </div>
+
+                                    <div class="pt-1.5 border-t border-slate-300 text-[12px] text-slate-600">
+                                        <div class="flex justify-between"><span>Multa</span><span id="resumo-multa-${men.id}">R$ 0,00</span></div>
+                                        <div class="flex justify-between"><span>Taxa Adm.</span><span id="resumo-taxa-${men.id}">R$ 0,00</span></div>
+                                        <div class="flex justify-between"><span>Líquido</span><span id="resumo-liquido-${men.id}">R$ 0,00</span></div>
+                                        <div class="flex justify-between font-black text-slate-800 pt-1 border-t border-slate-200 mt-1"><span>Total</span><span id="resumo-total-${men.id}">R$ 0,00</span></div>
+                                    </div>
+
+                                </div>
+
+                                <div class="flex gap-1.5">
+                                    <button onclick="liquidarMensalidade('${men.id}')" class="flex-1 bg-emerald-600 text-white text-[13px] py-1.5 rounded font-bold shadow">Dar Baixa</button>
+                                    <button onclick="excluirLancamentoMensal('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-[13px] py-1.5 rounded font-bold">Excluir</button>
+                                </div>
+
+                            </div>`;
+
                     } else {
 
                         recebidoGrupo += men.valorConfirmado;
@@ -21324,12 +21568,18 @@
 
                                 ${qtdInadimplente > 0 ? `<span class="bg-red-600 px-1.5 py-0.5 rounded whitespace-nowrap">Atraso R$ ${fmtBR(inadimplenteGrupo)} (${qtdInadimplente})</span>` : ''}
 
+                                ${qtdAVencer > 0 ? `<span class="bg-slate-500 px-1.5 py-0.5 rounded whitespace-nowrap">A vencer R$ ${fmtBR(avencerGrupo)} (${qtdAVencer})</span>` : ''}
+
                             </span>
 
                         </button>
 
                         <div id="${grupoId}" class="${abertoPorPadrao ? '' : 'hidden'} space-y-2 mt-2">
 
+                            <!-- v1.63.0 — qtdInadimplente agora só conta atraso real
+                                 (mensalidadeEmAtraso); apagarInadimplentesDoGrupo()
+                                 foi ajustada pra apagar exatamente esse recorte,
+                                 nunca os lançamentos "A vencer" do mesmo mês. -->
                             ${qtdInadimplente > 0 ? `<button onclick="apagarInadimplentesDoGrupo('${ref}')" class="w-full bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold py-1.5 rounded"><svg data-lucide="trash-2" style="width:12px;height:12px;display:inline;vertical-align:-2px"></svg> Apagar todos os atrasados deste mês (${qtdInadimplente})</button>` : ''}
 
                             ${htmlItens}
@@ -21368,13 +21618,22 @@
 
         function apagarInadimplentesDoGrupo(ref) {
 
-            const qtd = mensalidades.filter(m => m.referencia === ref && m.status === 'Inadimplente').length;
+            // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): antes
+            // apagava TODO mensalidade 'Inadimplente' da competência, sem
+            // checar vencimento — se o grupo tivesse contratos com dias de
+            // vencimento diferentes (um já vencido, outro ainda não), um
+            // lançamento "A vencer" podia ser apagado junto sem aparecer
+            // nem no botão nem na confirmação. Agora usa mensalidadeEmAtraso()
+            // pra apagar exatamente o mesmo recorte que o botão mostra.
+            const alvo = mensalidades.filter(m => m.referencia === ref && mensalidadeEmAtraso(m));
+            const qtd = alvo.length;
 
             if (qtd === 0) return;
 
-            if (!confirm(`Confirma apagar os ${qtd} lançamento(s) atrasado(s) da competência ${ref}? Lançamentos já recebidos NÃO são afetados.`)) return;
+            if (!confirm(`Confirma apagar os ${qtd} lançamento(s) atrasado(s) da competência ${ref}? Lançamentos já recebidos ou ainda a vencer NÃO são afetados.`)) return;
 
-            mensalidades = mensalidades.filter(m => !(m.referencia === ref && m.status === 'Inadimplente'));
+            const idsAlvo = new Set(alvo.map(m => m.id));
+            mensalidades = mensalidades.filter(m => !idsAlvo.has(m.id));
 
             saveAll(true, `${qtd} lançamento(s) atrasado(s) de ${ref} apagado(s).`, ['mensalidades']);
 
@@ -22053,6 +22312,16 @@
 
             let itensPendentes = [];
 
+            // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): esta aba é
+            // de COBRANÇA de verdade (o botão "Cobrar Grupo" abaixo dispara
+            // WhatsApp de notificação de débito pro locatário) — um
+            // lançamento futuro (vencimento ainda não chegou) não pode
+            // aparecer aqui como pendência, senão o app manda cobrança de
+            // aluguel que ainda nem venceu. Itens "a vencer" são só
+            // contados (avisoAVencerQtd/Valor), pra um aviso informativo,
+            // nunca listados/cobrados nesta tela.
+            let avencerQtd = 0, avencerValor = 0;
+
             mensalidades.forEach(men => {
 
                 const con = contratos.find(c => c.id === men.contratoId);
@@ -22076,13 +22345,20 @@
                     if (!campos.some(c => (c || '').toString().toLowerCase().includes(termoBuscaInad))) return;
                 }
 
-                if(men.status === 'Inadimplente') {
+                if(mensalidadeEmAtraso(men)) {
 
                     totalInad += men.valorConfirmado;
 
                     const imo = imoveis.find(i => i.id === con.imovelId);
 
                     itensPendentes.push({ men, con, imo });
+
+                } else if (men.status === 'Inadimplente') {
+
+                    // Não pago, mas ainda não venceu — "a vencer", nunca
+                    // cobrança. Fica de fora da lista e do total desta aba.
+                    avencerQtd++;
+                    avencerValor += men.valorConfirmado;
 
                 } else if (men.valorEnergia > 0) {
 
@@ -22101,6 +22377,22 @@
             const taxa = totalLancadoGeral > 0 ? ((totalInad / totalLancadoGeral) * 100).toFixed(1) : 0;
 
             document.getElementById('inad-taxa').innerText = taxa + "%";
+
+            // v1.63.0 — NOVO aviso informativo: lançamentos futuros existem
+            // (contam pro caixa esperado) mas não aparecem nesta aba porque
+            // ainda não venceram — evita a leitura de "sumiu"/"a taxa está
+            // errada". Mesmo container de aviso leve já usado pra energia
+            // (id-a-vencer-aviso), estilo neutro (slate), não vermelho/
+            // amarelo — não é um alerta, é só uma nota de contexto.
+            const avisoAVencer = document.getElementById('inad-a-vencer-aviso');
+            if (avisoAVencer) {
+                if (avencerQtd > 0) {
+                    avisoAVencer.classList.remove('hidden');
+                    avisoAVencer.innerText = `ℹ️ ${avencerQtd} lançamento${avencerQtd > 1 ? 's' : ''} futuro${avencerQtd > 1 ? 's' : ''} (R$ ${avencerValor.toLocaleString('pt-BR', {minimumFractionDigits:2})}) ainda não venceu${avencerQtd > 1 ? 'ram' : ''} — não entra${avencerQtd > 1 ? 'm' : ''} aqui. Consulte na aba Financeiro.`;
+                } else {
+                    avisoAVencer.classList.add('hidden');
+                }
+            }
 
             const energiaBox = document.getElementById('inad-energia-recebida');
 
@@ -23685,13 +23977,19 @@
 
                     if(men.status === 'Pago') fat += men.valorConfirmado;
 
-                    if(men.status === 'Inadimplente') inadTotal += men.valorConfirmado;
+                    // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): a
+                    // coluna "Inadimplente" deste relatório não tinha limite
+                    // superior de mês (só `dMen >= lim`), então competências
+                    // futuras já lançadas apareciam contando como
+                    // inadimplência no mês em que foram geradas. Agora usa
+                    // mensalidadeEmAtraso() — só entra aqui quem já venceu.
+                    if(mensalidadeEmAtraso(men)) inadTotal += men.valorConfirmado;
 
                     if (!porMes[men.referencia]) porMes[men.referencia] = { arrecadado: 0, inadimplente: 0 };
 
                     if (men.status === 'Pago') porMes[men.referencia].arrecadado += men.valorConfirmado;
 
-                    if (men.status === 'Inadimplente') porMes[men.referencia].inadimplente += men.valorConfirmado;
+                    if (mensalidadeEmAtraso(men)) porMes[men.referencia].inadimplente += men.valorConfirmado;
 
                 }
 
