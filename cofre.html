@@ -276,15 +276,68 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.15.0
-  Data       : 25/08/2026
-  Título     : CORREÇÃO DE COR (CONTRASTE) + REORGANIZAÇÃO COMPLETA DO MENU ⚙️
-  Base       : v1.14.0 (25/08/2026)
-  Linhas     : cofre.html = 2272 · js/cofre-api.js = 552 · js/cofre-app.js = 376 ·
-               js/cofre-ativos.js = 379 · js/cofre-controles.js = 921 ·
-               js/cofre-documentos.js = 738 · js/cofre-estado.js = 107 ·
+  Versão     : 1.19.0
+  Data       : 26/08/2026
+  Título     : PESSOAS/MINHA EMPRESA/LICENÇA/SOBRE DE VERDADE NO COFRE
+  Base       : v1.18.0 (26/08/2026)
+  Linhas     : cofre.html = 2772 · js/cofre-api.js = 594 · js/cofre-app.js = 527 ·
+               js/cofre-ativos.js = 438 · js/cofre-controles.js = 1171 ·
+               js/cofre-documentos.js = 738 · js/cofre-estado.js = 130 ·
                js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
-               js/cofre-validacoes.js = 249 (total js/ = 3651)
+               js/cofre-validacoes.js = 249 (total js/cofre-*.js = 4176) ·
+               js/comum-sobre.js = 336 · js/comum-licenca.js = 237 ·
+               js/comum-pessoas.js = 400 · js/comum-minha-empresa.js = 333
+               (módulos compartilhados com o App, não exclusivos do Cofre)
+
+  NOTA sobre a linha "Versão" acima: estava desatualizada há um tempo
+  (dizia 1.15.0 enquanto COFRE_VERSAO em cofre-estado.js já ia em
+  1.18.0) — corrigido nesta entrega, os dois voltam a bater (regra
+  documentada no próprio cofre-estado.js: "sincronizada com o
+  comentário de cabeçalho de cofre.html").
+
+  CHANGELOG v1.19.0 (26/08/2026) — pedido explícito: "chamar as telas
+  Sobre/Licença no Cofre, e já fazer Minha Empresa e Pessoas também,
+  incluindo os acessos no módulo de imóveis e cofre".
+
+    1) MENU ⚙️ → GRUPO "CONTA" — Pessoas/Minha Empresa/Licença deixam de
+       ser "Em breve"; Sobre deixa de abrir o modal próprio
+       (modal-sobre-cofre, órfão agora — não apagado). Os 4 passam a
+       montar telas de verdade, via 4 novas <section data-screen="...">
+       (sobre/licenca/pessoas/minha-empresa) + 4 dispatchers novos em
+       cofre-app.js (ir-sobre/ir-licenca/ir-pessoas/ir-minha-empresa).
+       "Imóveis" continua indo pro App (voltar-app) — não é uma tela de
+       administração, é o módulo principal em si.
+
+    2) 4 MÓDULOS COMPARTILHADOS COM O APP (js/comum-*.js) — mesmos
+       arquivos que index.html importa, sem nenhuma duplicação de HTML/
+       lógica: comum-sobre.js, comum-licenca.js, comum-pessoas.js,
+       comum-minha-empresa.js. Cada um recebe `dbAuth`/`clienteId` (e
+       callbacks — onToast, registrarLog, onLogout) por parâmetro; não
+       sabem se estão rodando dentro do App ou do Cofre.
+
+    3) VERSÃO DO COFRE + DOS BOTS NA ABA SOBRE (pedido explícito) — a
+       aba Sobre (agora compartilhada) ganhou uma seção "Versões":
+       mostra a versão do módulo atual + do outro módulo (mantida
+       manualmente — não existe hoje fonte única de versão de arquivo
+       estático entre os 2 hosts) e, se a pessoa for master
+       (fn_sou_master(), RLS já existente), a versão AO VIVO de cada
+       bot/Edge Function — lida direto de `edge_function_versoes`
+       (tabela que o próprio whatsapp-webhook já popula sozinho no
+       boot). Ver comum-sobre.js v1.1.0.
+
+    4) NOVO NO COFRE (não existia antes) — cofre-app.js ganhou
+       sairCofre() (botão "Sair" — Cofre nunca teve um) e
+       registrarLogCofre() (grava em log_acessos — Cofre nunca escrevia
+       lá). Ambos pequenos, locais a cofre-app.js.
+
+    5) "ACESSOS POR MÓDULO" na tela Pessoas (pedido explícito) — badge
+       por pessoa mostrando quais módulos (Imóveis/Cofre) o PERFIL dela
+       libera, calculado ao vivo (perfil_funcionalidade + funcionalidades.
+       area — nunca hardcoded). IMPORTANTE: confirmado contra o banco ao
+       vivo que hoje TODOS os perfis liberam Imóveis e Cofre igualmente —
+       não existe controle por PESSOA ainda, só por perfil (o badge é
+       visibilidade nova, não um controle novo). Ver nota completa no
+       changelog de comum-pessoas.js v1.0.0.
 
   CHANGELOG v1.15.0 — pedido explícito, mesma correção de cor aplicada
   em paralelo no App (index.html v1.62.3).
@@ -2276,6 +2329,36 @@
     </div>
 </section>
 
+<!-- ===================== SOBRE / LICENÇA / PESSOAS / MINHA EMPRESA =====================
+     v1.19.0 (pedido explícito) — telas de administração do CLIENTE
+     (empresa), não do módulo Cofre — por isso não têm HTML/lógica
+     própria aqui: cada uma é só um mount-point vazio, populado por
+     js/comum-*.js (o MESMO arquivo que index.html usa). Nenhuma duplica
+     tela nenhuma — ver Design System / DEPLOY_RAIZ_PATRIMONIO.md sobre
+     esse princípio. Botão "< Voltar" de cada uma segue o mesmo padrão já
+     usado em data-screen="alertas" acima (ir-home). ===================== -->
+<section data-screen="sobre" class="hidden">
+    <button data-action="ir-home" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Início</button>
+    <div id="mount-sobre-cofre"></div>
+</section>
+
+<section data-screen="licenca" class="hidden">
+    <button data-action="ir-home" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Início</button>
+    <h2 class="text-lg font-bold mb-1" style="color:var(--ink)">Licença</h2>
+    <div id="mount-licenca-cofre" class="mt-3"></div>
+</section>
+
+<section data-screen="pessoas" class="hidden">
+    <button data-action="ir-home" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Início</button>
+    <div id="mount-pessoas-cofre"></div>
+</section>
+
+<section data-screen="minha-empresa" class="hidden">
+    <button data-action="ir-home" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Início</button>
+    <h2 class="text-lg font-bold mb-1" style="color:var(--ink)">Minha Empresa</h2>
+    <div id="mount-minha-empresa-cofre" class="mt-3"></div>
+</section>
+
     </main>
 
     <nav class="bottom-nav">
@@ -2531,30 +2614,34 @@
             </button>
 
             <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
-            <button data-action="menu-conta-em-breve" data-rotulo="Pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <!-- v1.19.0 (pedido explícito) — Pessoas/Minha Empresa/Licença/
+                 Sobre deixam de ser "Em breve"/deep-link/modal próprio:
+                 agora montam js/comum-pessoas.js, comum-minha-empresa.js,
+                 comum-licenca.js e comum-sobre.js (mesmos arquivos que o
+                 App usa) direto dentro do Cofre — telas de administração
+                 do CLIENTE, não do módulo, então fazem sentido nos dois
+                 lugares sem duplicar HTML/lógica. Ver cofre-app.js. -->
+            <button data-action="ir-pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium flex-1" style="color:var(--ink)">Pessoas</span>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <button data-action="menu-conta-em-breve" data-rotulo="Minha Empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="ir-minha-empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="building" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium flex-1" style="color:var(--ink)">Minha Empresa</span>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
             <button data-action="voltar-app" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Imóveis</span>
             </button>
-            <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="ir-licenca" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium flex-1" style="color:var(--ink)">Licença</span>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
             <a href="https://wa.me/5511947461828" target="_blank" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
             </a>
-            <button data-action="abrir-sobre-cofre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="ir-sobre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="info" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Sobre</span>
             </button>

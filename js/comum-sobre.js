@@ -1,14 +1,32 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.0.0 · 26/08/2026
+// Versão: 1.1.0 · 26/08/2026
 //
-// v1.0.0 — PRIMEIRA VERSÃO. Extraído de index.html (Beta v1.63.0 —
-// aplicarBrandingCliente() [só a parte da aba Sobre] + atualizarSecaoSobreLicenca()
-// + enviarFeedbackLivreSobre()) pra módulo compartilhado. Mesmo motivo e
-// mesma sessão de comum-licenca.js — ver changelog completo lá, não
-// repetido aqui. Este módulo importa comum-licenca.js pra saber qual
-// licença mostrar no card compacto (buscarLicencaPrincipal) — nenhuma
-// duplicação da lógica de licença entre os dois arquivos.
+// v1.1.0 — pedido explícito: "adicione no módulo de Sobre a versão do
+// módulo do Cofre, e dos bots".
+//   1) VERSÕES DE MÓDULO (App/Cofre) — cada host passa a versão do
+//      PRÓPRIO módulo (sempre exata, o host sabe a sua) e, opcionalmente,
+//      a versão que ele conhece do(s) outro(s) módulo(s) (ctx.modulos,
+//      array). Não existe hoje nenhuma fonte única compartilhada de
+//      versão de arquivo estático entre index.html e cofre.html (2
+//      arquivos independentes, sem build/bundler) — mesma limitação já
+//      documentada no antigo modal-sobre-cofre do Cofre ("precisa ser
+//      atualizada manualmente a cada bump"). Não resolvido aqui (seria
+//      uma mudança de infra maior, não pedida); só herdado e mantido
+//      visível/documentado no lugar certo.
+//   2) VERSÃO DOS BOTS — ao contrário do módulo acima, ESTA é ao vivo de
+//      verdade: a tabela `edge_function_versoes` já existe (populada por
+//      cada Edge Function sozinha, no boot — ver whatsapp-webhook/index.ts
+//      `FUNCTION_VERSAO`/registro em `edge_function_versoes`) — nunca
+//      fica desatualizada porque não é este módulo que escreve nela,
+//      só lê. RLS da tabela já restringe SELECT a quem tem
+//      fn_sou_master() = true — então esta seção simplesmente não
+//      aparece pra usuário comum (a query volta vazia, não erro); é
+//      informação operacional, não de produto.
+//
+// v1.0.0 — PRIMEIRA VERSÃO. Ver detalhes no changelog original (extração
+// de aplicarBrandingCliente()/atualizarSecaoSobreLicenca()/
+// enviarFeedbackLivreSobre() de index.html Beta v1.63.0).
 //
 // O QUE FICOU DE FORA DE PROPÓSITO (continua no host, não neste
 // módulo): logout de verdade (signOut + reload) — cada host pode querer
@@ -18,20 +36,29 @@
 // em comunicacoes-app.js (onToast/onAcaoFinal) dentro do próprio
 // index.html.
 //
-// Diretriz Arquitetural: não cria seu próprio cliente Supabase — recebe
-// `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
-// comum-licenca.js).
+// Diretriz Arquitetural: não cria seu próprio cliente Supabase pra
+// dados de conta — recebe `dbAuth` já autenticado do host, por
+// parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
 
 import { buscarLicencaPrincipal } from './comum-licenca.js';
 
-export const COMUM_SOBRE_VERSAO = '1.0.0';
+export const COMUM_SOBRE_VERSAO = '1.1.0';
 
 const WHATSAPP_SUPORTE_PADRAO = '5511947461828';
 const EMAIL_SUPORTE_PADRAO = 'contato@raizpatrimonio.com.br';
 const SITE_PADRAO = 'https://www.raizpatrimonio.com.br';
 
 const NOMES_PLANO = { trial: 'Trial', standard: 'Standard', plus: 'Plus' };
+
+// Rótulo amigável por nome de Edge Function registrada em
+// edge_function_versoes.funcao — cai no próprio nome técnico se a
+// função ainda não estiver mapeada aqui (nunca esconde uma linha nova
+// só por falta de rótulo bonito).
+const NOMES_BOT = {
+    'whatsapp-webhook': 'Bot WhatsApp',
+    'diario-eventos': 'Diário de Eventos (proativo)',
+};
 
 // ----------------------------------------------------------------------------
 // LOG (grava direto em log_acessos — mesma tabela/formato que
@@ -45,6 +72,25 @@ async function registrarLogSobre(dbAuth, clienteId, pessoaId, acao, detalhe) {
         });
     } catch (err) {
         console.warn('[comum-sobre] Falha ao registrar log:', err.message);
+    }
+}
+
+// Versões dos bots (Edge Functions), ao vivo. RLS já filtra pra
+// fn_sou_master() = true — pra qualquer outro perfil, isto sempre
+// retorna [] (sem erro), então a seção correspondente na tela
+// simplesmente não aparece (§16 do Design System — componente vazio não
+// aparece).
+async function buscarVersoesBots(dbAuth) {
+    try {
+        const { data, error } = await dbAuth
+            .from('edge_function_versoes')
+            .select('funcao, versao, ultimo_boot')
+            .order('funcao');
+        if (error) { console.warn('[comum-sobre] Falha ao buscar versões dos bots:', error.message); return []; }
+        return data || [];
+    } catch (err) {
+        console.warn('[comum-sobre] Falha ao buscar versões dos bots:', err.message);
+        return [];
     }
 }
 
@@ -143,7 +189,14 @@ async function montarLicencaBox(boxEl, ctx, licenca) {
 // ctx = {
 //   dbAuth, clienteId, pessoaId,
 //   configCliente: { nomeEmpresa, cnpj, cidade, uf, logoUrl },
-//   appVersao,                         // ex.: "BETA v1.63.0"
+//   appVersao,                         // ex.: "BETA v1.64.0" — mantido por
+//                                       // compat, aparece sozinho no rodapé
+//   modulos: [{ nome, versao }],       // NOVO v1.1.0 — lista de módulos a
+//                                       // mostrar na seção "Versões" (cada
+//                                       // host monta a própria lista — ver
+//                                       // nota de changelog no topo do
+//                                       // arquivo sobre por que não há
+//                                       // fonte única compartilhada ainda)
 //   whatsappSuporte, emailSuporte,     // opcionais, têm padrão
 //   onLogout(),                        // obrigatório pro botão "Sair" funcionar
 //   onToast(mensagem, tipo),           // opcional — feedback visual do envio
@@ -152,7 +205,7 @@ export async function montarAbaSobre(mountEl, ctx) {
     if (!mountEl) return;
     const {
         dbAuth, clienteId, pessoaId,
-        configCliente = {}, appVersao = '',
+        configCliente = {}, appVersao = '', modulos = [],
         whatsappSuporte = WHATSAPP_SUPORTE_PADRAO, emailSuporte = EMAIL_SUPORTE_PADRAO,
         onLogout, onToast,
     } = ctx || {};
@@ -171,6 +224,19 @@ export async function montarAbaSobre(mountEl, ctx) {
         </div>
 
         <div id="comum-sobre-licenca-box" class="hidden bg-white rounded-xl border border-gray-200 p-4 mb-3"></div>
+
+        <!-- v1.1.0 — seção "Versões": módulos (App/Cofre, o que o host
+             passar em ctx.modulos) sempre aparece; bots só aparece se a
+             query em edge_function_versoes voltar alguma linha (RLS
+             restringe a fn_sou_master()) — ver montarVersoesBots(). -->
+        <div id="comum-sobre-versoes-box" class="hidden bg-white rounded-xl border border-gray-200 p-4 mb-3">
+            <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-2">Versões</p>
+            <div id="comum-sobre-versoes-modulos" class="space-y-1 text-[12px]"></div>
+            <div id="comum-sobre-versoes-bots-wrap" class="hidden mt-2 pt-2 border-t border-slate-100">
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Bots</p>
+                <div id="comum-sobre-versoes-bots" class="space-y-1 text-[12px]"></div>
+            </div>
+        </div>
 
         <div class="bg-white rounded-xl border border-gray-200 p-4 mb-3">
             <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-2">Dúvidas, suporte ou sugestões?</p>
@@ -238,6 +304,33 @@ export async function montarAbaSobre(mountEl, ctx) {
         } catch (err) {
             console.warn('[comum-sobre] Falha ao montar card de licença:', err.message);
             licencaBox.classList.add('hidden');
+        }
+    }
+
+    // -------- seção Versões (módulos + bots) --------
+    const versoesBox = document.getElementById('comum-sobre-versoes-box');
+    if (versoesBox) {
+        const modulosHtml = (modulos || []).filter(m => m && m.nome).map(m => `
+            <div class="flex justify-between"><span class="text-slate-600">${m.nome}</span><b class="font-mono">${m.versao || '—'}</b></div>
+        `).join('');
+        if (modulosHtml) {
+            document.getElementById('comum-sobre-versoes-modulos').innerHTML = modulosHtml;
+            versoesBox.classList.remove('hidden');
+        }
+
+        if (dbAuth) {
+            try {
+                const bots = await buscarVersoesBots(dbAuth);
+                if (bots.length > 0) {
+                    document.getElementById('comum-sobre-versoes-bots').innerHTML = bots.map(b => `
+                        <div class="flex justify-between"><span class="text-slate-600">${NOMES_BOT[b.funcao] || b.funcao}</span><b class="font-mono">v${b.versao}</b></div>
+                    `).join('');
+                    document.getElementById('comum-sobre-versoes-bots-wrap').classList.remove('hidden');
+                    versoesBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.warn('[comum-sobre] Falha ao montar versões dos bots:', err.message);
+            }
         }
     }
 }

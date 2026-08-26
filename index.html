@@ -6,6 +6,58 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.65.0
+   LINHAS: 24564
+   DATA: 2026-08-26
+   NOVIDADES (Beta v1.65.0) — pedido explícito: "chamar as telas Sobre/
+   Licença no Cofre, e já fazer Minha Empresa e Pessoas também,
+   incluindo os acessos no módulo de imóveis e cofre".
+
+     - COFRE PASSA A USAR AS MESMAS 2 TELAS (Sobre/Licença) — cofre.html
+       v1.19.0 não faz mais deep-link/placeholder "Em breve"/modal
+       próprio pra essas duas: monta js/comum-sobre.js e
+       js/comum-licenca.js direto, os MESMOS arquivos deste app. Ver
+       changelog completo em cofre.html.
+     - 2 MÓDULOS COMPARTILHADOS NOVOS: js/comum-minha-empresa.js
+       (formulário de dados da empresa + upload/processamento de
+       assinatura — algoritmo de Otsu copiado fiel) e
+       js/comum-pessoas.js (CRUD de pessoas + criar/vincular/desvincular
+       acesso). Absorvem por completo dev_carregarDadosEmpresa()/
+       dev_salvarDadosEmpresa()/processarUploadAssinatura()/
+       calcularLimiarOtsu()/salvarAssinaturaProcessada()/
+       apagarAssinatura() e dev_renderPessoas()/dev_alternarDetalhePessoa()/
+       validarPessoaEmail()/validarPessoaWhatsapp()/dev_adicionarNovaPessoa()/
+       dev_salvarPessoas()/dev_removerPessoa()/dev_vincularLoginPessoa()/
+       dev_desvincularLoginPessoa()/dev_criarAcessoParaPessoa() — todas
+       REMOVIDAS daqui (confirmado por grep, zero chamadores externos
+       restantes). dev_carregarDadosEmpresa()/dev_renderPessoas() viram
+       pontes finas (nomes mantidos — call sites externos não mudaram),
+       "preguiçosas": só remontam se a aba correspondente estiver
+       mesmo ativa (`.tab-content.active`), evitando refetch/render
+       invisível toda vez que uma rotina de refresh geral roda em
+       background.
+     - IMPORTANTE: a variável global `pessoas` (array) e
+       carregarPessoasSupabase() NÃO foram tocadas — usadas em ~90
+       outros pontos do app (sócios, divisão societária, repasses),
+       fora do escopo desta extração.
+     - "ACESSOS POR MÓDULO" (pedido explícito) — nova visibilidade na
+       tela Pessoas: badge por pessoa mostrando quais módulos
+       (Imóveis/Cofre) o PERFIL dela libera, calculado ao vivo. NÃO é
+       controle novo por pessoa — confirmado contra o banco que hoje
+       todo perfil libera os 2 módulos igualmente. Ver nota completa no
+       changelog de comum-pessoas.js.
+     - SOBRE GANHOU SEÇÃO "VERSÕES" (pedido explícito: "adicione a
+       versão do módulo do Cofre, e dos bots") — módulos (App/Cofre,
+       mantidos manualmente, sem fonte única compartilhada entre os 2
+       arquivos estáticos) + bots (Edge Functions), estes AO VIVO via
+       nova tabela `edge_function_versoes` (o próprio bot já se
+       registra sozinho no boot — nunca fica desatualizado). RLS
+       restringe a seção de bots a quem é master; para os demais
+       perfis, a seção simplesmente não aparece.
+     - Arquivos alterados/novos: index.html, cofre.html, js/cofre-app.js,
+       js/cofre-estado.js, js/comum-sobre.js (v1.1.0), js/comum-licenca.js,
+       js/comum-minha-empresa.js (novo), js/comum-pessoas.js (novo).
+
    VERSÃO: Beta v1.64.0
    LINHAS: 25053
    DATA: 2026-08-26
@@ -7439,113 +7491,21 @@
         </section>
 
 
+        <!-- v1.65.0 (pedido explícito) — conteúdo desta aba saiu daqui:
+             agora vive em js/comum-pessoas.js (módulo compartilhado — App
+             e Cofre importam o mesmo arquivo). O id="tab-pessoas" do
+             <section> PRECISA continuar existindo (switchTab() depende
+             dele) — só o conteúdo interno virou um mount-point vazio,
+             populado por montarAbaPessoas() (ver dev_renderPessoas()). -->
         <section id="tab-pessoas" class="tab-content hidden">
-
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Pessoas</h2>
-
-                <button onclick="dev_adicionarNovaPessoa()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Nova pessoa"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
-            </div>
-
-            <p class="text-[11px] text-gray-500 mb-4">Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.</p>
-
-            <div id="dev-email-config-lista" class="space-y-3 mb-4">
-                <p class="text-xs text-center text-gray-400 py-4">Carregando pessoas...</p>
-            </div>
-
-            <button onclick="dev_salvarPessoas()" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Pessoas</button>
-
+            <div id="mount-pessoas"></div>
         </section>
 
+        <!-- v1.65.0 (pedido explícito) — mesma extração acima, agora em
+             js/comum-minha-empresa.js. Populado por montarAbaMinhaEmpresa()
+             (ver dev_carregarDadosEmpresa()). -->
         <section id="tab-minha-empresa" class="tab-content hidden">
-
-            <h2 class="text-lg font-bold text-emerald-900 mb-4">Minha Empresa</h2>
-
-            <p class="text-[11px] text-gray-500 mb-4">Dados da sua empresa, usados para preencher recibos e documentos gerados pelo sistema.</p>
-
-            <!-- v1.42.2 — ajustado pro mesmo padrão visual da aba Imóveis:
-                 borda fina (border border-gray-200, não mais border-2) no
-                 formulário em si — border-2 é reservado pra sub-blocos DENTRO
-                 de um formulário (Sócios, Documentos, etc.), não pro formulário
-                 inteiro — e campos compatíveis emparelhados em grid de 2
-                 colunas, em vez de cada um sozinho ocupando a largura toda
-                 (o que deixava tudo com aparência mais espalhada/vazia). -->
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-600">Nome da Empresa</label>
-                    <input type="text" id="dev-empresa-nome" disabled class="w-full p-2 border rounded mt-1 text-sm bg-gray-100 text-gray-500">
-                    <p class="text-[11px] text-gray-400 mt-0.5">Não pode ser alterado nem excluído por aqui.</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">CPF/CNPJ</label>
-                        <input type="text" id="dev-empresa-cnpj" oninput="formatarMascaraDocumentoGenerico(this, 'dev-empresa-cnpj-indicador')" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm">
-                        <p id="dev-empresa-cnpj-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">Responsável (assina o recibo)</label>
-                        <input type="text" id="dev-empresa-responsavel" class="w-full p-2 border rounded mt-1 text-sm">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    <div class="col-span-2">
-                        <label class="block text-xs font-bold text-gray-600">Endereço / Logradouro</label>
-                        <input type="text" id="dev-empresa-endereco" class="w-full p-2 border rounded mt-1 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">Complemento</label>
-                        <input type="text" id="dev-empresa-complemento" class="w-full p-2 border rounded mt-1 text-sm">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">Bairro</label>
-                        <input type="text" id="dev-empresa-bairro" class="w-full p-2 border rounded mt-1 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">Cidade</label>
-                        <input type="text" id="dev-empresa-cidade" class="w-full p-2 border rounded mt-1 text-sm">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">UF</label>
-                        <input type="text" id="dev-empresa-uf" maxlength="2" class="w-full p-2 border rounded mt-1 text-sm uppercase">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs font-bold text-gray-600">Cidade impressa no recibo</label>
-                        <select id="dev-empresa-cidade-recibo-fonte" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                            <option value="empresa">Cidade da empresa (a de cima)</option>
-                            <option value="imovel">Cidade do imóvel alugado</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button onclick="dev_salvarDadosEmpresa()" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Dados da Empresa</button>
-
-                <div class="pt-3 border-t border-gray-200">
-                    <label class="block text-xs font-bold text-gray-600 mb-1">Assinatura para o Recibo</label>
-                    <p class="text-[11px] text-gray-400 mb-2">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</p>
-
-                    <div id="dev-assinatura-preview-container" class="hidden mb-2 p-3 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,white_0%_50%)] bg-[length:16px_16px] rounded-lg border border-gray-200 flex items-center justify-center">
-                        <img id="dev-assinatura-preview" class="max-h-20" alt="Assinatura">
-                    </div>
-
-                    <div class="flex gap-1.5">
-                        <input type="file" id="dev-assinatura-input" accept="image/*" capture="environment" class="hidden" onchange="processarUploadAssinatura(this)">
-                        <button onclick="document.getElementById('dev-assinatura-input').click()" class="flex-1 flex items-center justify-center gap-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs py-2.5 rounded-lg shadow-sm active:scale-95 transition"><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="dev-assinatura-btn-texto">Enviar Assinatura</span></button>
-                        <button id="dev-assinatura-btn-apagar" onclick="apagarAssinatura()" title="Apagar assinatura" class="hidden w-10 h-10 flex-none flex items-center justify-center bg-red-50 border border-red-200 text-red-600 rounded-full active:scale-90 transition"><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
-                    </div>
-                </div>
-            </div>
-
+            <div id="mount-minha-empresa"></div>
         </section>
 
         <section id="tab-tipo-empreendimento" class="tab-content hidden">
@@ -7795,7 +7755,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.64.0";
+        const APP_VERSAO = "Beta v1.65.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -9833,71 +9793,11 @@
         // nunca precisa da chave secreta do Supabase.
         // ============================================================================
 
-        // Cria a Conta de acesso de uma pessoa já cadastrada, sem derrubar a sessão
-        // de quem está operando (usa um cliente Supabase temporário/descartável só
-        // para o signUp, em vez do "dbAuth" principal que está logado como você).
-        async function dev_criarAcessoParaPessoa(pessoaId) {
-            const pessoa = pessoas.find(p => p.id === pessoaId);
-            if (!pessoa) return;
-
-            if (!pessoa.email) {
-                alert("⚠️ Esta pessoa não tem e-mail cadastrado. Preencha o e-mail antes de criar o acesso.");
-                return;
-            }
-            if (pessoa.userId) {
-                alert("Esta pessoa já tem acesso ao sistema.");
-                return;
-            }
-
-            const perfilEscolhido = prompt("Perfil de acesso para " + pessoa.nome + ":\n\nOpções: admin, operador, consulta" + (perfilLogado === 'master' ? ', master' : ''), "operador");
-            if (!perfilEscolhido) return;
-
-            const senhaAleatoria = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + "!1";
-
-            const { createClient: criarClienteTemp } = supabase;
-            // CORRIGIDO (bug real, causa da "perda de sessão" relatada) — este
-            // cliente temporário usava a MESMA chave de localStorage do cliente
-            // principal (dbAuth). Ao criar o login de outra pessoa, ele
-            // sobrescrevia a SUA sessão salva no navegador — não derrubava na
-            // hora (a sessão ativa em memória continuava sua), mas ao atualizar
-            // a página o app tentava restaurar a sessão errada. persistSession:
-            // false impede esse cliente de tocar no localStorage.
-            const clienteTemp = criarClienteTemp(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                auth: { persistSession: false, autoRefreshToken: false }
-            });
-
-            const { data: signUpData, error: signUpError } = await clienteTemp.auth.signUp({
-                email: pessoa.email,
-                password: senhaAleatoria
-            });
-
-            if (signUpError) {
-                alert("❌ Falha ao criar acesso: " + signUpError.message);
-                return;
-            }
-
-            const { error: updateError } = await dbAuth.from('pessoas').update({
-                user_id: signUpData.user.id,
-                perfil: perfilEscolhido.trim()
-            }).eq('id', pessoaId);
-
-            if (updateError) {
-                alert("❌ Conta criada, mas falhou ao vincular à pessoa: " + updateError.message);
-                return;
-            }
-
-            // Dispara o e-mail de "definir senha" — a pessoa nunca vê a senha aleatória.
-            await clienteTemp.auth.resetPasswordForEmail(pessoa.email, {
-                redirectTo: window.location.href.split('?')[0].split('#')[0]
-            });
-
-            registrarLog('pessoas.acesso.criar', { pessoaId: pessoaId, nome: pessoa.nome, email: pessoa.email, perfil: perfilEscolhido.trim() });
-
-            alert("✅ Acesso criado! Um e-mail foi enviado para " + pessoa.email + " com o link para a pessoa definir a própria senha.");
-
-            pessoas = await carregarPessoasSupabase();
-            dev_renderPessoas();
-        }
+        // v1.65.0 (pedido explícito) — dev_criarAcessoParaPessoa() foi
+        // REMOVIDA daqui: absorvida por js/comum-pessoas.js (mesma lógica,
+        // client Supabase temporário/descartável incluído). Confirmado por
+        // grep antes de remover: zero chamadores restantes fora da própria
+        // tela de Pessoas, que também saiu deste arquivo na mesma entrega.
 
         // ============================================================================
         // BOT-IA — mascote R.AI.Z (v1.40.1) — dois pontos de entrada pro mesmo
@@ -10170,238 +10070,55 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        // ============================================================================
-        // Dados da Empresa (Parametrizações) — nome não é editável nem exclusão
-        // permitida por aqui, de propósito. O resto (responsável, documento,
-        // cidade, UF, fonte da cidade do recibo) é editável e salva na tabela
-        // "clientes". Assinatura é tratada à parte (ver processarUploadAssinatura).
-        // ============================================================================
+        // v1.65.0 (pedido explícito) — TODO o bloco de "Minha Empresa" saiu
+        // daqui: dev_carregarDadosEmpresa()/dev_salvarDadosEmpresa()/
+        // calcularLimiarOtsu()/processarUploadAssinatura()/
+        // salvarAssinaturaProcessada()/apagarAssinatura() foram absorvidas
+        // por js/comum-minha-empresa.js (módulo compartilhado — mesmo
+        // algoritmo de recorte/transparência da assinatura, copiado fiel).
+        // dev_carregarDadosEmpresa() vira ponte fina: nome mantido de
+        // propósito porque dev_param_inicializar() (Parametrizações) ainda
+        // chama ela — único call site externo que sobrou (os outros eram
+        // todos internos ao próprio bloco removido).
         function dev_carregarDadosEmpresa() {
-            const nome = document.getElementById('dev-empresa-nome');
-            const resp = document.getElementById('dev-empresa-responsavel');
-            const cnpj = document.getElementById('dev-empresa-cnpj');
-            const endereco = document.getElementById('dev-empresa-endereco');
-            const complemento = document.getElementById('dev-empresa-complemento');
-            const bairro = document.getElementById('dev-empresa-bairro');
-            const cidade = document.getElementById('dev-empresa-cidade');
-            const uf = document.getElementById('dev-empresa-uf');
-            const cidadeReciboFonte = document.getElementById('dev-empresa-cidade-recibo-fonte');
-            if (!nome) return;
-
-            nome.value = CONFIG_CLIENTE.nomeEmpresa || '';
-            resp.value = CONFIG_CLIENTE.nomeResponsavel || '';
-            cnpj.value = CONFIG_CLIENTE.cnpj || '';
-            endereco.value = CONFIG_CLIENTE.endereco || '';
-            complemento.value = CONFIG_CLIENTE.complemento || '';
-            bairro.value = CONFIG_CLIENTE.bairro || '';
-            cidade.value = CONFIG_CLIENTE.cidade || '';
-            uf.value = CONFIG_CLIENTE.uf || '';
-            cidadeReciboFonte.value = CONFIG_CLIENTE.cidadeReciboFonte || 'empresa';
-
-            const preview = document.getElementById('dev-assinatura-preview');
-            const previewContainer = document.getElementById('dev-assinatura-preview-container');
-            const btnApagar = document.getElementById('dev-assinatura-btn-apagar');
-            const btnTexto = document.getElementById('dev-assinatura-btn-texto');
-            if (CONFIG_CLIENTE.assinaturaImgBase64) {
-                preview.src = CONFIG_CLIENTE.assinaturaImgBase64;
-                previewContainer.classList.remove('hidden');
-                btnApagar.classList.remove('hidden');
-                btnTexto.textContent = 'Trocar Assinatura';
-            } else {
-                previewContainer.classList.add('hidden');
-                btnApagar.classList.add('hidden');
-                btnTexto.textContent = 'Enviar Assinatura';
-            }
+            const mount = document.getElementById('mount-minha-empresa');
+            if (!mount) return;
+            // Só remonta se a aba "Minha Empresa" está de fato ativa —
+            // evita refetch/re-render invisível quando esta ponte é
+            // chamada de dev_param_inicializar() com outra aba aberta.
+            const secaoAtiva = document.querySelector('.tab-content.active')?.id;
+            if (secaoAtiva !== 'tab-minha-empresa') return;
+            import('./js/comum-minha-empresa.js').then(({ montarAbaMinhaEmpresa }) => {
+                montarAbaMinhaEmpresa(mount, {
+                    dbAuth, clienteId: CLIENTE_ID_SUPABASE,
+                    onToast: mostrarToast,
+                    registrarLog: registrarLog,
+                    onBrandingAtualizado: function() {
+                        // Recarrega CONFIG_CLIENTE (o módulo grava direto no
+                        // banco, não sabe nada do cache local do App) e
+                        // reaplica nos elementos de recibo/PDF — mesmo efeito
+                        // que a versão antiga tinha ao editar inline.
+                        dbAuth.from('clientes').select('*').eq('id', CLIENTE_ID_SUPABASE).maybeSingle().then(function(r) {
+                            if (!r.data) return;
+                            CONFIG_CLIENTE.nomeResponsavel = r.data.nome_responsavel || '';
+                            CONFIG_CLIENTE.cnpj = r.data.cnpj || '';
+                            CONFIG_CLIENTE.endereco = r.data.endereco || '';
+                            CONFIG_CLIENTE.complemento = r.data.complemento || '';
+                            CONFIG_CLIENTE.bairro = r.data.bairro || '';
+                            CONFIG_CLIENTE.cidade = r.data.cidade || '';
+                            CONFIG_CLIENTE.uf = r.data.uf || '';
+                            CONFIG_CLIENTE.cidadeReciboFonte = r.data.cidade_recibo_fonte || 'empresa';
+                            CONFIG_CLIENTE.assinaturaImgBase64 = r.data.assinatura_url || '';
+                            aplicarBrandingCliente();
+                        });
+                    },
+                });
+            }).catch(function(err) {
+                console.warn('Falha ao carregar js/comum-minha-empresa.js:', err.message);
+                mount.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar a tela agora.</p>';
+            });
         }
 
-        async function dev_salvarDadosEmpresa() {
-            // v1.41.5 — novos campos endereco/complemento/bairro. Se a
-            // coluna ainda não existir na tabela "clientes" no Supabase, o
-            // update abaixo falha com uma mensagem clara de "column does
-            // not exist" — nesse caso é preciso rodar:
-            //   ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS endereco text;
-            //   ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS complemento text;
-            //   ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS bairro text;
-            const dados = {
-                nome_responsavel: document.getElementById('dev-empresa-responsavel').value.trim() || null,
-                cnpj: document.getElementById('dev-empresa-cnpj').value.trim() || null,
-                endereco: document.getElementById('dev-empresa-endereco').value.trim() || null,
-                complemento: document.getElementById('dev-empresa-complemento').value.trim() || null,
-                bairro: document.getElementById('dev-empresa-bairro').value.trim() || null,
-                cidade: document.getElementById('dev-empresa-cidade').value.trim() || null,
-                uf: document.getElementById('dev-empresa-uf').value.trim().toUpperCase() || null,
-                cidade_recibo_fonte: document.getElementById('dev-empresa-cidade-recibo-fonte').value
-            };
-
-            const { error } = await dbAuth.from('clientes').update(dados).eq('id', CLIENTE_ID_SUPABASE);
-            if (error) {
-                alert('❌ Falha ao salvar: ' + error.message);
-                return;
-            }
-
-            CONFIG_CLIENTE.nomeResponsavel = dados.nome_responsavel || '';
-            CONFIG_CLIENTE.cnpj = dados.cnpj || '';
-            CONFIG_CLIENTE.endereco = dados.endereco || '';
-            CONFIG_CLIENTE.complemento = dados.complemento || '';
-            CONFIG_CLIENTE.bairro = dados.bairro || '';
-            CONFIG_CLIENTE.cidade = dados.cidade || '';
-            CONFIG_CLIENTE.uf = dados.uf || '';
-            CONFIG_CLIENTE.cidadeReciboFonte = dados.cidade_recibo_fonte;
-
-            alert('✅ Dados da empresa salvos.');
-            registrarLog('parametros.empresa.editar', {});
-        }
-
-        // Trata a foto da assinatura: converte para preto sólido onde havia
-        // traço escuro, e transparente onde era o fundo (papel) — assim ela
-        // "flutua" sobre o recibo em vez de aparecer com um retângulo branco
-        // ao redor. Feito 100% no navegador (canvas), sem enviar a foto crua
-        // para lugar nenhum.
-        // Método de Otsu — acha, a partir do histograma de brilho da própria
-        // imagem, o ponto de corte que melhor separa dois grupos (aqui: traço
-        // de caneta vs. papel/fundo), maximizando a diferença entre eles. Bem
-        // mais confiável que um número fixo chutado, que falha quando a foto
-        // tem sombra ou iluminação desigual.
-        function calcularLimiarOtsu(px) {
-            const histograma = new Array(256).fill(0);
-            let totalPixels = 0;
-            for (let i = 0; i < px.length; i += 4) {
-                const luminancia = Math.round(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]);
-                histograma[luminancia]++;
-                totalPixels++;
-            }
-
-            let somaTotal = 0;
-            for (let t = 0; t < 256; t++) somaTotal += t * histograma[t];
-
-            let somaFundo = 0, pesoFundo = 0, melhorVariancia = 0, melhorLimiar = 128;
-
-            for (let t = 0; t < 256; t++) {
-                pesoFundo += histograma[t];
-                if (pesoFundo === 0) continue;
-                const pesoPrimeiroPlano = totalPixels - pesoFundo;
-                if (pesoPrimeiroPlano === 0) break;
-
-                somaFundo += t * histograma[t];
-                const mediaFundo = somaFundo / pesoFundo;
-                const mediaPrimeiroPlano = (somaTotal - somaFundo) / pesoPrimeiroPlano;
-
-                const variancia = pesoFundo * pesoPrimeiroPlano * Math.pow(mediaFundo - mediaPrimeiroPlano, 2);
-                if (variancia > melhorVariancia) {
-                    melhorVariancia = variancia;
-                    melhorLimiar = t;
-                }
-            }
-
-            return melhorLimiar;
-        }
-
-        function processarUploadAssinatura(inputEl) {
-            const file = inputEl.files && inputEl.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const maxLargura = 800;
-                    const escala = Math.min(1, maxLargura / img.width);
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width * escala;
-                    canvas.height = img.height * escala;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const px = imgData.data;
-
-                    // CORRIGIDO (assinatura saindo como "foto" em vez de só o
-                    // traço) — um limiar FIXO (150) não funciona bem quando a
-                    // foto tem iluminação desigual (sombra de um lado, mais
-                    // claro do outro): áreas de papel na sombra ficavam mais
-                    // escuras que o limiar e eram tratadas como tinta. Agora o
-                    // limiar é calculado a partir do histograma da própria foto
-                    // (método de Otsu — acha o ponto que melhor separa dois
-                    // grupos de brilho), então se adapta a cada foto.
-                    const limiar = calcularLimiarOtsu(px);
-                    const faixaSuave = 15;
-                    for (let i = 0; i < px.length; i += 4) {
-                        const luminancia = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-                        let alpha;
-                        if (luminancia <= limiar - faixaSuave) alpha = 255;
-                        else if (luminancia >= limiar + faixaSuave) alpha = 0;
-                        else alpha = 255 * (1 - (luminancia - (limiar - faixaSuave)) / (2 * faixaSuave));
-                        px[i] = 20; px[i + 1] = 20; px[i + 2] = 30; // preto (levemente azulado, como tinta de caneta)
-                        px[i + 3] = alpha;
-                    }
-                    ctx.putImageData(imgData, 0, 0);
-
-                    // CORRIGIDO (assinatura "não ficando legal" no recibo) — antes
-                    // mantinha a foto inteira, com toda a margem em branco ao redor
-                    // do traço, ficando minúscula quando comprimida na altura fixa
-                    // do recibo. Agora encontra a caixa que envolve só os pixels
-                    // com tinta (alpha > 0) e corta exatamente nela, com uma
-                    // margem pequena — o traço passa a ocupar o espaço todo.
-                    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-                    let encontrouTraco = false;
-                    for (let y = 0; y < canvas.height; y++) {
-                        for (let x = 0; x < canvas.width; x++) {
-                            const alpha = px[(y * canvas.width + x) * 4 + 3];
-                            if (alpha > 128) {
-                                encontrouTraco = true;
-                                if (x < minX) minX = x;
-                                if (x > maxX) maxX = x;
-                                if (y < minY) minY = y;
-                                if (y > maxY) maxY = y;
-                            }
-                        }
-                    }
-
-                    let canvasFinal = canvas;
-                    if (encontrouTraco) {
-                        const margem = 12;
-                        const recX = Math.max(0, minX - margem);
-                        const recY = Math.max(0, minY - margem);
-                        const recW = Math.min(canvas.width, maxX + margem) - recX;
-                        const recH = Math.min(canvas.height, maxY + margem) - recY;
-
-                        canvasFinal = document.createElement('canvas');
-                        canvasFinal.width = recW;
-                        canvasFinal.height = recH;
-                        canvasFinal.getContext('2d').drawImage(canvas, recX, recY, recW, recH, 0, 0, recW, recH);
-                    }
-
-                    const resultado = canvasFinal.toDataURL('image/png');
-                    salvarAssinaturaProcessada(resultado);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function salvarAssinaturaProcessada(dataUrl) {
-            const { error } = await dbAuth.from('clientes').update({ assinatura_url: dataUrl }).eq('id', CLIENTE_ID_SUPABASE);
-            if (error) {
-                alert('❌ Falha ao salvar assinatura: ' + error.message);
-                return;
-            }
-            CONFIG_CLIENTE.assinaturaImgBase64 = dataUrl;
-            dev_carregarDadosEmpresa();
-            aplicarBrandingCliente();
-            registrarLog('parametros.assinatura.editar', {});
-        }
-
-        async function apagarAssinatura() {
-            if (!confirm('Remover a assinatura atual? O recibo passará a sair com o espaço em branco até uma nova ser enviada.')) return;
-            const { error } = await dbAuth.from('clientes').update({ assinatura_url: null }).eq('id', CLIENTE_ID_SUPABASE);
-            if (error) {
-                alert('❌ Falha ao remover: ' + error.message);
-                return;
-            }
-            CONFIG_CLIENTE.assinaturaImgBase64 = '';
-            dev_carregarDadosEmpresa();
-            aplicarBrandingCliente();
-        }
 
         function dev_param_inicializar() {
             dev_param_renderEmpreendimentos();
@@ -13204,6 +12921,19 @@
                     dbAuth, clienteId: CLIENTE_ID_SUPABASE, pessoaId: pessoaIdLogada,
                     configCliente: CONFIG_CLIENTE,
                     appVersao: APP_VERSAO,
+                    // v1.65.0 (pedido explícito) — "adicione a versão do
+                    // módulo do Cofre" na aba Sobre. A versão do Cofre
+                    // (segunda linha) precisa ser atualizada manualmente
+                    // aqui a cada deploy do Cofre — não existe hoje uma
+                    // fonte única compartilhada de versão de arquivo
+                    // estático entre index.html e cofre.html (2 arquivos
+                    // independentes, sem build). Ver nota completa em
+                    // js/comum-sobre.js v1.1.0. Versão dos bots NÃO precisa
+                    // de manutenção manual — vem ao vivo do banco.
+                    modulos: [
+                        { nome: 'App Raiz Patrimônio', versao: APP_VERSAO },
+                        { nome: 'Cofre de Documentos', versao: 'v1.19.0' },
+                    ],
                     onLogout: fazerLogoutSupabase,
                     onToast: mostrarToast,
                 });
@@ -24171,262 +23901,43 @@
         // (copiar o UUID gerado); 2) usar o botão "Vincular login" aqui para
         // ligar esse UUID a uma pessoa já cadastrada.
 
+        // v1.65.0 (pedido explícito) — TODO o bloco de "Pessoas" saiu daqui:
+        // dev_renderPessoas()/dev_alternarDetalhePessoa()/validarPessoaEmail()/
+        // validarPessoaWhatsapp()/dev_adicionarNovaPessoa()/dev_salvarPessoas()/
+        // dev_removerPessoa()/dev_vincularLoginPessoa()/dev_desvincularLoginPessoa()
+        // foram absorvidas por js/comum-pessoas.js (módulo compartilhado),
+        // que também ganhou o badge de "Acessos por módulo" (Imóveis/Cofre,
+        // calculado ao vivo a partir do perfil da pessoa — ver changelog
+        // completo no topo daquele arquivo).
+        //
+        // dev_renderPessoas() vira ponte fina: nome mantido de propósito —
+        // 3 call sites externos ainda chamam ela (bootstrap pós-login,
+        // rotina de refresh geral, dev_inicializar()) esperando que ela só
+        // atualize a tela SE a aba Pessoas estiver de fato aberta; os
+        // outros ~10 call sites antigos eram todos internos ao próprio
+        // bloco removido.
+        //
+        // NOTA: a variável global `pessoas` (array) e carregarPessoasSupabase()
+        // continuam existindo INTACTAS em outro ponto deste arquivo — são
+        // usadas em ~90 lugares fora desta tela (sócios, divisão
+        // societária, repasses, etc.), não fazem parte desta extração.
         function dev_renderPessoas() {
-            const lista = document.getElementById('dev-email-config-lista');
-            if (!lista) return;
-
-            // Só quem é "master" pode ver/editar pessoas com perfil "master" —
-            // administradores de empresa (perfil "admin") e demais perfis não
-            // devem ver esses cadastros.
-            const pessoasVisiveis = perfilLogado === 'master'
-                ? pessoas
-                : pessoas.filter(function(p) { return p.perfil !== 'master'; });
-
-            if (!pessoasVisiveis || pessoasVisiveis.length === 0) {
-                lista.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhuma pessoa cadastrada. Toque no "+" para adicionar.</p>';
-                return;
-            }
-
-            // v1.41.5 — lista agora mostra só o resumo (nome, função, perfil)
-            // por padrão, no mesmo padrão visual de Síndicos/Manutencistas;
-            // tocar no lápis abre os demais dados e as opções de acesso. Os
-            // campos em si continuam os MESMOS elementos (mesmas classes
-            // .pessoa-nome/.pessoa-email/etc.) só que dentro de um bloco que
-            // começa escondido — dev_salvarPessoas() não muda nada, ela lê
-            // os campos pelo DOM independente de estarem visíveis ou não.
-            lista.innerHTML = pessoasVisiveis.map(function(p, idx) {
-                const temLogin = !!p.userId;
-                const ehMaster = p.perfil === 'master';
-                const perfilTravado = ehMaster && perfilLogado !== 'master';
-                const podeEditarPerfil = !ehMaster && (perfilLogado === 'master' || perfilLogado === 'admin');
-                const idSeguro = p.id || ('novo-' + idx);
-                const ehNova = !p.id;
-
-                const botaoRemover = ehMaster
-                    ? '<span title="Usuários master não podem ser removidos por aqui" class="w-7 h-7 flex-none flex items-center justify-center text-gray-300"><svg data-lucide="lock" style="width:14px;height:14px"></svg></span>'
-                    : `<button onclick="dev_removerPessoa('${p.id || ''}')" title="Remover" class="w-7 h-7 flex-none flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>`;
-
-                const botaoAcesso = temLogin && !perfilTravado
-                    ? `<button onclick="dev_desvincularLoginPessoa('${p.id}')" class="w-full flex items-center justify-center gap-1.5 bg-red-50 text-red-600 border border-red-200 text-[11px] py-2 rounded-lg font-bold"><svg data-lucide="user-x" style="width:13px;height:13px"></svg> Remover acesso ao sistema</button>`
-                    : (!temLogin && p.id ? `
-                        <button onclick="dev_criarAcessoParaPessoa('${p.id}')" class="w-full flex items-center justify-center gap-1.5 bg-emerald-600 text-white text-[11px] py-2 rounded-lg font-bold"><svg data-lucide="user-check" style="width:13px;height:13px"></svg> Criar Acesso (envia e-mail para definir senha)</button>
-                        <button onclick="dev_vincularLoginPessoa('${p.id}')" class="w-full text-gray-500 text-[10px] py-1 underline">ou vincular a um login já existente no Supabase</button>
-                      ` : (!temLogin && !p.id ? '<p class="text-gray-400 text-[10px]">Salve esta pessoa antes de criar o acesso.</p>' : ''));
-
-                return `
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200" data-pessoa-id="${p.id || ''}">
-
-                        <div class="flex items-center justify-between gap-2">
-                            <button type="button" onclick="dev_alternarDetalhePessoa('${idSeguro}')" class="flex-1 min-w-0 text-left">
-                                <p class="text-xs font-bold text-slate-900 truncate">${(p.nome || '(sem nome)')}${ehMaster ? ' <svg data-lucide="shield-check" style="width:12px;height:12px;display:inline;vertical-align:-1px;color:var(--pine)"></svg>' : ''}</p>
-                                <p class="text-[11px] text-gray-500 truncate">${p.funcao || 'Sem função definida'} · <span class="font-bold uppercase">${p.perfil || 'sem perfil'}</span></p>
-                            </button>
-                            <div class="flex gap-1.5 flex-none">
-                                <button type="button" onclick="dev_alternarDetalhePessoa('${idSeguro}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
-                                ${botaoRemover}
-                            </div>
-                        </div>
-
-                        <div id="pessoa-detalhe-${idSeguro}" class="${ehNova ? '' : 'hidden'} mt-3 pt-3 border-t border-gray-100 space-y-2">
-
-                            <div>
-                                <label class="block text-[11px] font-bold text-gray-500">Nome <span style="color:var(--danger)">*</span></label>
-                                <input type="text" class="pessoa-nome w-full p-1.5 border rounded mt-0.5 text-[12px] font-bold" value="${(p.nome || '').replace(/"/g, '&quot;')}" placeholder="Nome completo" ${perfilTravado ? 'disabled' : ''}>
-                            </div>
-
-                            <div>
-                                <label class="block text-[11px] font-bold text-gray-500">E-mail</label>
-                                <input type="email" class="pessoa-email w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.email || ''}" placeholder="nome@email.com" oninput="validarPessoaEmail(this)" ${perfilTravado ? 'disabled' : ''}>
-                                <p class="pessoa-email-indicador raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-                            </div>
-
-                            <div>
-                                <label class="block text-[11px] font-bold text-gray-500">WhatsApp</label>
-                                <input type="tel" class="pessoa-whatsapp w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.whatsapp || ''}" placeholder="(11) 91234-5678" oninput="aplicarMascaraTelefone(this); validarPessoaWhatsapp(this);" ${perfilTravado ? 'disabled' : ''}>
-                                <p class="pessoa-whatsapp-indicador raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-                            </div>
-
-                            <div>
-                                <label class="block text-[11px] font-bold text-gray-500">Função na empresa</label>
-                                <input type="text" class="pessoa-funcao w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.funcao || ''}" placeholder="Opcional" ${perfilTravado ? 'disabled' : ''}>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-[11px] font-bold text-gray-500">% de cotas</label>
-                                    <input type="number" min="0" max="100" step="0.01" class="pessoa-pct-cotas w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.percentualCotasEmpresa || ''}" placeholder="Ex.: 50" ${perfilTravado ? 'disabled' : ''}>
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-bold text-gray-500">Perfil de acesso</label>
-                                    <select class="pessoa-perfil w-full p-1.5 border rounded mt-0.5 text-[12px] ${podeEditarPerfil ? '' : 'bg-gray-100 text-gray-400'}" ${podeEditarPerfil ? '' : 'disabled'} title="${ehMaster ? 'Perfil master não pode ser alterado pela tela, nem pelo próprio master — só direto no banco' : (podeEditarPerfil ? '' : 'Só master ou admin podem alterar o perfil de acesso')}">
-                                        <option value="operador" ${p.perfil === 'operador' ? 'selected' : ''}>operador</option>
-                                        <option value="consulta" ${p.perfil === 'consulta' ? 'selected' : ''}>consulta</option>
-                                        <option value="admin" ${p.perfil === 'admin' ? 'selected' : ''}>admin</option>
-                                        ${ehMaster ? `<option value="master" selected>master</option>` : ''}
-                                    </select>
-                                </div>
-                            </div>
-
-                            ${botaoAcesso}
-
-                        </div>
-
-                    </div>
-                `;
-            }).join('');
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        // v1.41.5 — abre/fecha o painel de detalhes de uma pessoa na lista.
-        function dev_alternarDetalhePessoa(idSeguro) {
-            const el = document.getElementById('pessoa-detalhe-' + idSeguro);
-            if (el) el.classList.toggle('hidden');
-        }
-
-        function validarPessoaEmail(input) {
-            const indicador = input.nextElementSibling;
-            if (!indicador) return;
-            const r = validarEmailFormato(input.value);
-            indicador.innerText = r.vazio ? '' : (r.ok ? '✅ E-mail válido' : '⚠️ ' + r.motivo);
-            indicador.className = 'pessoa-email-indicador raiz-indicador-inline text-[11px] mt-0.5 h-3 ' + (r.vazio ? '' : (r.ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold'));
-        }
-
-        function validarPessoaWhatsapp(input) {
-            const indicador = input.nextElementSibling;
-            if (!indicador) return;
-            const r = validarTelefoneBR(input.value);
-            indicador.innerText = (!r.vazio && r.ok) ? '✅ Telefone válido' : '';
-            indicador.className = 'pessoa-whatsapp-indicador raiz-indicador-inline text-[11px] mt-0.5 h-3 ' + (!r.vazio && r.ok ? 'text-green-600 font-bold' : '');
-        }
-
-        function dev_adicionarNovaPessoa() {
-            pessoas.push({ id: null, nome: '', email: '', whatsapp: '', funcao: '', percentualCotasEmpresa: null, userId: null, perfil: null });
-            dev_renderPessoas();
-            // v1.41.5 — a lista não tem mais rolagem própria (ocupa a aba
-            // toda), então rola a JANELA até o último card em vez de setar
-            // scrollTop de um container que não existe mais.
-            const lista = document.getElementById('dev-email-config-lista');
-            if (lista && lista.lastElementChild) lista.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-
-        async function dev_salvarPessoas() {
-            const lista = document.getElementById('dev-email-config-lista');
-            if (!lista) return;
-
-            const cards = lista.querySelectorAll('[data-pessoa-id]');
-            let algumErro = false;
-
-            for (const card of cards) {
-                const id = card.getAttribute('data-pessoa-id');
-                const nome = card.querySelector('.pessoa-nome').value.trim();
-                if (!nome) continue; // ignora linhas sem nome preenchido
-
-                // Segunda camada de proteção (a primeira é o campo vir desabilitado
-                // na tela) — nunca processa um card travado, mesmo que o campo
-                // tenha sido manipulado fora da tela normal.
-                if (card.querySelector('.pessoa-nome').disabled) continue;
-
-                const pctInput = card.querySelector('.pessoa-pct-cotas');
-                const perfilInput = card.querySelector('.pessoa-perfil');
-
-                const dadosPessoa = {
-                    cliente_id: CLIENTE_ID_SUPABASE,
-                    nome: nome,
-                    email: card.querySelector('.pessoa-email').value.trim() || null,
-                    whatsapp: card.querySelector('.pessoa-whatsapp').value.trim() || null,
-                    funcao: card.querySelector('.pessoa-funcao').value.trim() || null,
-                    percentual_cotas_empresa: (pctInput && pctInput.value !== '') ? parseFloat(pctInput.value) : null
-                };
-
-                // Perfil só é gravado se a pessoa já tem login (select vem desabilitado
-                // e sem valor útil quando não tem) — evita sobrescrever com lixo.
-                if (perfilInput && !perfilInput.disabled) {
-                    dadosPessoa.perfil = perfilInput.value;
-                }
-
-                try {
-                    if (id) {
-                        const { error } = await dbAuth.from('pessoas').update(dadosPessoa).eq('id', id);
-                        if (error) throw error;
-                    } else {
-                        const { error } = await dbAuth.from('pessoas').insert(dadosPessoa);
-                        if (error) throw error;
-                    }
-                } catch (err) {
-                    algumErro = true;
-                    logScreen('Erro ao salvar pessoa "' + nome + '": ' + err.message, true);
-                }
-            }
-
-            pessoas = await carregarPessoasSupabase();
-            dev_renderPessoas();
-
-            alert(algumErro ? "⚠️ Alguma(s) pessoa(s) não foram salvas — veja o log de erros (aba DEV)." : "✅ Pessoas salvas com sucesso.");
-            devLog("PESSOAS_SALVAS", pessoas.length + " pessoa(s) no cadastro.");
-        }
-
-        function dev_removerPessoa(id) {
-            if (!id) {
-                // Linha nova, ainda sem salvar — só remove da tela
-                pessoas = pessoas.filter(p => p.id !== null);
-                dev_renderPessoas();
-                return;
-            }
-
-            const pessoa = pessoas.find(p => p.id === id);
-            if (pessoa && (pessoa.perfil === 'admin' || pessoa.perfil === 'master')) {
-                alert("🔒 Usuários master não podem ser excluídos por aqui — é uma proteção proposital, contra remover o próprio administrador por engano. Se for realmente necessário, precisa ser feito direto no banco.");
-                return;
-            }
-
-            if (!confirm("Remover esta pessoa? Se ela tiver login, o acesso dela ao sistema também será removido.")) return;
-
-            dbAuth.from('pessoas').delete().eq('id', id).then(({ error }) => {
-                if (error) {
-                    alert("❌ Falha ao remover: " + error.message);
-                    return;
-                }
-                pessoas = pessoas.filter(p => p.id !== id);
-                dev_renderPessoas();
-                devLog("PESSOA_REMOVIDA", "Pessoa removida: " + id);
-                registrarLog('pessoas.excluir', { pessoaId: id });
+            const mount = document.getElementById('mount-pessoas');
+            if (!mount) return;
+            const secaoAtiva = document.querySelector('.tab-content.active')?.id;
+            if (secaoAtiva !== 'tab-pessoas') return;
+            import('./js/comum-pessoas.js').then(({ montarAbaPessoas }) => {
+                montarAbaPessoas(mount, {
+                    dbAuth, clienteId: CLIENTE_ID_SUPABASE, perfilLogado,
+                    onToast: mostrarToast,
+                    registrarLog: registrarLog,
+                });
+            }).catch(function(err) {
+                console.warn('Falha ao carregar js/comum-pessoas.js:', err.message);
+                mount.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar a tela agora.</p>';
             });
         }
 
-        // Vincula uma Conta já criada no Supabase Auth (painel do Supabase →
-        // Authentication → Users → Add user, copiar o UUID gerado lá) a uma
-        // pessoa já cadastrada aqui.
-        function dev_vincularLoginPessoa(id) {
-            const uuid = prompt("Cole aqui o UUID do usuário (Supabase → Authentication → Users → copiar o ID do usuário já criado):");
-            if (!uuid) return;
-            const perfil = prompt("Perfil de acesso — opções: admin, operador, consulta" + (perfilLogado === 'master' ? ', master' : ''), "operador");
-            if (!perfil) return;
-
-            dbAuth.from('pessoas').update({ user_id: uuid.trim(), perfil: perfil.trim() }).eq('id', id).then(({ error }) => {
-                if (error) {
-                    alert("❌ Falha ao vincular login: " + error.message + "\n\nConfira se o UUID está certo e se já não está vinculado a outra pessoa deste mesmo cliente.");
-                    return;
-                }
-                alert("✅ Login vinculado com sucesso.");
-                devLog("LOGIN_VINCULADO", "Pessoa " + id + " vinculada ao login " + uuid.trim() + " (perfil: " + perfil.trim() + ")");
-                registrarLog('pessoas.acesso.aprovar', { pessoaId: id, perfil: perfil.trim(), via: 'vinculacao_manual' });
-                carregarPessoasSupabase().then(function(dados) { pessoas = dados; dev_renderPessoas(); });
-            });
-        }
-
-        function dev_desvincularLoginPessoa(id) {
-            if (!confirm("Remover o acesso ao sistema desta pessoa? Ela continua cadastrada, só perde o login.")) return;
-            dbAuth.from('pessoas').update({ user_id: null, perfil: null }).eq('id', id).then(({ error }) => {
-                if (error) {
-                    alert("❌ Falha: " + error.message);
-                    return;
-                }
-                devLog("LOGIN_DESVINCULADO", "Pessoa " + id + " perdeu o acesso ao sistema.");
-                registrarLog('pessoas.acesso.revogar', { pessoaId: id });
-                carregarPessoasSupabase().then(function(dados) { pessoas = dados; dev_renderPessoas(); });
-            });
-        }
 
         // CORRIGIDO — antes a lista de pessoas vinha de TODAS as pessoas
         // cadastradas (incluindo quem nunca logou) e a lista de ações era uma

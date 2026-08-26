@@ -1,6 +1,31 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.5 · 25/08/2026
+// Versão: 1.4.0 · 26/08/2026
+//
+// v1.4.0 — PESSOAS/MINHA EMPRESA/LICENÇA/SOBRE DE VERDADE (pedido
+// explícito): os 4 itens do grupo "Conta" no menu ⚙️ deixam de ser "Em
+// breve"/deep-link pro App/modal próprio (modal-sobre-cofre) — agora
+// montam js/comum-pessoas.js, comum-minha-empresa.js, comum-licenca.js e
+// comum-sobre.js (os MESMOS 4 arquivos que index.html usa) direto aqui,
+// via 4 novos dispatchers (ir-pessoas/ir-minha-empresa/ir-licenca/
+// ir-sobre) + 4 funções montarXCofre() novas (perto do BOOT, no fim do
+// arquivo). Nenhuma tela duplicada — telas de administração do CLIENTE,
+// não do módulo, então fazem sentido nos dois hosts sem reescrever nada.
+//
+//   - onToastCofre(): adaptador de vocabulário de toast (App fala
+//     'success'/'danger'/'info', Cofre fala 'erro'/'aviso'/default) —
+//     sem isso uma mensagem de erro do módulo compartilhado saía verde
+//     aqui.
+//   - registrarLogCofre(): NOVA — Cofre nunca escrevia em log_acessos
+//     antes (não tinha nenhuma ação que precisasse). Mesma tabela/
+//     formato de registrarLog() em index.html.
+//   - sairCofre(): NOVA — Cofre nunca teve botão "Sair" (a versão
+//     antiga da tela Sobre era só um modal com 2 linhas de versão, sem
+//     ação nenhuma). signOut + volta pra './' (index.html, onde mora a
+//     tela de login).
+//   - modal-sobre-cofre (antigo modal de Sobre) fica órfão — não
+//     apagado, mesmo princípio já usado em abrirSeletorModulo()/
+//     voltar-app/menu-conta-em-breve (ver comentário no dispatcher).
 //
 // v1.3.5 — ocorrenciaParaAlertaView() (tela cheia de Alertas) ganhou
 // ativoNome/tipoAtivo, mesmo motivo do adaptador equivalente em
@@ -71,13 +96,23 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-import { estado } from './cofre-estado.js';
+import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
 import * as nav from './cofre-navegacao.js';
 import * as docs from './cofre-documentos.js';
 import * as ativos from './cofre-ativos.js';
 import * as controles from './cofre-controles.js';
+// v1.19.0 — módulos compartilhados com o App (mesmos arquivos, mesmo
+// caminho relativo — cofre.html e index.html estão ambos na raiz do
+// repo, então './comum-X.js' funciona igual dos 2 lugares). Import
+// estático (estes 3 são sempre usados a partir do menu ⚙️, sem ganho
+// real em adiar o carregamento) — diferente do dynamic import() que
+// index.html usa, mas mesmo efeito.
+import { montarAbaSobre } from './comum-sobre.js';
+import { montarAbaLicenca } from './comum-licenca.js';
+import { montarAbaPessoas } from './comum-pessoas.js';
+import { montarAbaMinhaEmpresa, buscarDadosEmpresa } from './comum-minha-empresa.js';
 
 // ============================================================================
 // DELEGAÇÃO DE CLIQUE — um único listener cobre todo elemento (estático ou
@@ -107,25 +142,24 @@ document.addEventListener('click', async (ev) => {
         case 'ir-home': nav.mudarTela('home'); docs.montarHome(); break;
         case 'ir-ativos': nav.mudarTela('ativos'); ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value); break;
         case 'ir-alertas': nav.mudarTela('alertas'); renderAlertas(); break;
-        // Reorganização do menu ⚙️ (pedido explícito, 25/08/2026) — os 2
-        // casos abaixo (voltar-app/menu-conta-em-breve) ficaram órfãos:
-        // nenhum botão do HTML aponta mais pra eles (o item "Módulo
-        // Imóveis" virou "Imóveis" dentro do grupo Conta, usando
-        // ir-app; os 3 itens "Em breve" — Prestadores/Pessoas/Minha
-        // empresa/Licença — agora linkam de verdade). Mantidos no
-        // código (não apagados) — inofensivos, só não são mais
-        // alcançáveis pela interface.
-        case 'voltar-app': window.location.href = './'; break;
+        // v1.19.0 (pedido explícito) — Pessoas/Minha Empresa/Licença/Sobre
+        // deixam de ser deep-link/"Em breve"/modal próprio: montam os
+        // mesmos módulos compartilhados que o App usa (js/comum-*.js),
+        // direto dentro do Cofre. "menu-conta-em-breve" não tem mais
+        // nenhum botão apontando pra ele (mantido, inofensivo — mesmo
+        // princípio já usado em voltar-app/abrirSeletorModulo).
         case 'menu-conta-em-breve': fecharModal('modal-menu-conta'); mostrarToast(`${alvo.dataset.rotulo}: em breve.`); break;
-        // NOVO — deep-link pro App numa aba específica (Pessoas/Minha
-        // Empresa/Imóveis/Licença/Sobre/Prestadores), sem duplicar tela
-        // nenhuma aqui (pedido explícito: "não crie duas abas iguais").
-        // index.html v1.62.3 lê ?ir=tab-X pós-login e chama switchTab()
-        // sozinho (abrirAbaPorDeepLink()) — mesmo princípio de
+        case 'voltar-app': window.location.href = './'; break;
+        case 'ir-sobre': fecharModal('modal-menu-conta'); nav.mudarTela('sobre'); montarSobreCofre(); break;
+        case 'ir-licenca': fecharModal('modal-menu-conta'); nav.mudarTela('licenca'); montarLicencaCofre(); break;
+        case 'ir-pessoas': fecharModal('modal-menu-conta'); nav.mudarTela('pessoas'); montarPessoasCofre(); break;
+        case 'ir-minha-empresa': fecharModal('modal-menu-conta'); nav.mudarTela('minha-empresa'); montarMinhaEmpresaCofre(); break;
+        // Deep-link pro App numa aba específica — hoje só usado por
+        // "Prestadores de Serviço" (linka em tab-manutencistas, ainda sem
+        // tela própria no Cofre). index.html v1.62.3 lê ?ir=tab-X pós-
+        // login e chama switchTab() sozinho — mesmo princípio de
         // segurança de abrirCofreDocumentos() no sentido contrário:
-        // parâmetro de URL nunca é autorização, só sugestão de
-        // navegação (RLS de cada aba continua sendo quem decide o que
-        // a pessoa pode ver de verdade).
+        // parâmetro de URL nunca é autorização, só sugestão de navegação.
         case 'ir-app': window.location.href = './?ir=' + encodeURIComponent(alvo.dataset.tab || 'tab-geral'); break;
         case 'fechar-modal-generico': fecharModal('modal-generico'); break;
 
@@ -142,6 +176,10 @@ document.addEventListener('click', async (ev) => {
             ativos.renderAtivosLista('', '');
             break;
         case 'abrir-configuracoes-catalogo': fecharModal('modal-menu-conta'); docs.abrirConfiguracoes(); break;
+        // v1.19.0 — órfão desde que "Sobre" no menu ⚙️ passou a abrir a
+        // tela de verdade (ir-sobre, acima). modal-sobre-cofre continua no
+        // arquivo, não apagado (mesmo princípio de abrirSeletorModulo) —
+        // só não tem mais nenhum botão apontando pra ele.
         case 'abrir-sobre-cofre': fecharModal('modal-menu-conta'); abrirModal('modal-sobre-cofre'); break;
         case 'fechar-sobre-cofre': fecharModal('modal-sobre-cofre'); break;
         case 'abrir-bot': window.open('https://wa.me/5511978950609?text=' + encodeURIComponent('Olá, como o R.AI.Z pode me ajudar?'), '_blank', 'noopener'); break;
@@ -382,6 +420,103 @@ window.addEventListener('cofre:recarregar-eventos', async () => {
     if (telaAtual === 'ficha-ativo' && estado.ativoEmFoco) ativos.abrirFichaAtivo(estado.ativoEmFoco.id);
     if (telaAtual === 'ficha-item-controle') controles.recarregarFichaItemControle();
 });
+
+// ============================================================================
+// TELAS COMPARTILHADAS (Sobre/Licença/Pessoas/Minha Empresa) — v1.19.0
+// pedido explícito: essas 4 telas são de administração do CLIENTE, não
+// do módulo Cofre, então usam os MESMOS arquivos js/comum-*.js que
+// index.html usa (importados no topo deste arquivo). Cada montarXCofre()
+// só monta o contexto (dbAuth/clienteId/callbacks) — toda a lógica de
+// tela mora nos módulos compartilhados, nunca duplicada aqui.
+// ============================================================================
+
+// Adaptador de toast: comum-sobre.js/comum-pessoas.js/comum-minha-empresa.js
+// falam o vocabulário do App ('success'/'danger'/'info' — ver index.html
+// mostrarToast()); o Cofre fala outro ('erro'/'aviso'/default=sucesso —
+// ver cofre-ui.js mostrarToast()). Sem este adaptador, uma mensagem de
+// erro do módulo compartilhado sairia verde (cor de sucesso) no Cofre.
+function onToastCofre(msg, tipo) {
+    mostrarToast(msg, tipo === 'danger' ? 'erro' : (tipo === 'info' ? 'aviso' : undefined));
+}
+
+// Log genérico — mesma tabela/formato de registrarLog() em index.html.
+// O Cofre não tinha essa função (nada aqui precisava dela até agora);
+// existir só aqui, local, evita criar uma dependência nova em
+// cofre-api.js pra uma escrita tão simples e genérica.
+async function registrarLogCofre(acao, detalhe) {
+    try {
+        await api.dbAuth.from('log_acessos').insert({
+            cliente_id: estado.clienteId, pessoa_id: estado.pessoa?.id, acao, detalhe: detalhe || {},
+        });
+    } catch (err) {
+        console.warn('[cofre-app] Falha ao registrar log:', err.message);
+    }
+}
+
+// NOVO — Cofre nunca teve botão "Sair" (Sobre era só um modal com 2
+// linhas de versão, sem ação nenhuma). signOut + volta pra raiz do repo
+// (index.html) — é lá que mora a tela de login; ficar no Cofre depois de
+// deslogar só mostraria a tela de "sessão expirada" do bootstrap().
+async function sairCofre() {
+    await api.dbAuth.auth.signOut();
+    window.location.href = './';
+}
+
+async function montarSobreCofre() {
+    const mount = document.getElementById('mount-sobre-cofre');
+    if (!mount) return;
+    let dadosEmpresa = {};
+    try { dadosEmpresa = await buscarDadosEmpresa(api.dbAuth, estado.clienteId) || {}; }
+    catch (err) { console.warn('[cofre-app] Falha ao buscar dados da empresa pro cabeçalho do Sobre:', err.message); }
+
+    await montarAbaSobre(mount, {
+        dbAuth: api.dbAuth, clienteId: estado.clienteId, pessoaId: estado.pessoa?.id,
+        configCliente: {
+            nomeEmpresa: dadosEmpresa.nome_empresa || estado.pessoa?.clienteNome || '',
+            cnpj: dadosEmpresa.cnpj || '', cidade: dadosEmpresa.cidade || '', uf: dadosEmpresa.uf || '',
+            logoUrl: dadosEmpresa.logo_url || '',
+        },
+        appVersao: 'v' + COFRE_VERSAO,
+        // v1.19.0 — "App Raiz Patrimônio" precisa ser atualizada
+        // manualmente aqui a cada deploy do App — mesma limitação (e
+        // mesmo motivo) documentada em index.html/atualizarSecaoSobreLicenca()
+        // e no changelog de js/comum-sobre.js v1.1.0.
+        modulos: [
+            { nome: 'Cofre de Documentos', versao: 'v' + COFRE_VERSAO },
+            { nome: 'App Raiz Patrimônio', versao: 'Beta v1.65.0' },
+        ],
+        onLogout: sairCofre,
+        onToast: onToastCofre,
+    });
+}
+
+async function montarLicencaCofre() {
+    const mount = document.getElementById('mount-licenca-cofre');
+    if (!mount) return;
+    await montarAbaLicenca(mount, { dbAuth: api.dbAuth, clienteId: estado.clienteId });
+}
+
+async function montarPessoasCofre() {
+    const mount = document.getElementById('mount-pessoas-cofre');
+    if (!mount) return;
+    await montarAbaPessoas(mount, {
+        dbAuth: api.dbAuth, clienteId: estado.clienteId, perfilLogado: estado.pessoa?.perfil,
+        onToast: onToastCofre, registrarLog: registrarLogCofre,
+    });
+}
+
+async function montarMinhaEmpresaCofre() {
+    const mount = document.getElementById('mount-minha-empresa-cofre');
+    if (!mount) return;
+    await montarAbaMinhaEmpresa(mount, {
+        dbAuth: api.dbAuth, clienteId: estado.clienteId,
+        onToast: onToastCofre, registrarLog: registrarLogCofre,
+        // Sem onBrandingAtualizado de propósito — Cofre não gera recibo/
+        // PDF (nada pra reaplicar), e o nome mostrado no header
+        // (#cofre-nome-empresa) vem de `nome_empresa`, campo que este
+        // formulário não edita (trava igual ao do App).
+    });
+}
 
 // ============================================================================
 // BOOT
