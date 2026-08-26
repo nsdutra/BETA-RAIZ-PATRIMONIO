@@ -129,7 +129,7 @@ export async function criarCategoria(clienteId, nome, grupo, ordem) {
 export async function listarDocumentos(clienteId) {
     const { data, error } = await dbAuth
         .from('cofre_documentos')
-        .select('*, cofre_documento_vinculos(entidade_tipo, entidade_id, principal)')
+        .select('*, cofre_documento_vinculos(id, entidade_tipo, entidade_id, principal)')
         .eq('cliente_id', clienteId)
         .neq('status', 'excluido')
         .order('criado_em', { ascending: false });
@@ -181,6 +181,16 @@ export async function inserirDocumento(payload) {
 
 export async function atualizarDocumento(id, patch) {
     const { error } = await dbAuth.from('cofre_documentos').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+// Soft-delete do documento em si (não só desvincular) — mesma convenção
+// de exclusão de todo o Cofre (status='excluido', já filtrado em
+// listarDocumentos). Usado quando o usuário escolhe apagar os
+// documentos junto ao excluir um item de controle (pedido explícito,
+// 25/08/2026).
+export async function excluirDocumentoCompleto(id) {
+    const { error } = await dbAuth.from('cofre_documentos').update({ status: 'excluido' }).eq('id', id);
     if (error) throw error;
 }
 
@@ -350,6 +360,11 @@ export async function alternarPublicarVitrineFoto(fotoId, valor) {
     if (error) throw error;
 }
 
+export async function excluirFotoAtivo(fotoId) {
+    const { error } = await dbAuth.from('cofre_ativo_fotos').update({ status: 'excluido' }).eq('id', fotoId);
+    if (error) throw error;
+}
+
 // ============================================================================
 // ALERTAS — DERIVADOS de cofre_ocorrencias_controle (v6, pedido explícito):
 // não existe mais cadastro de alerta separado (cofre_eventos foi removida
@@ -475,7 +490,7 @@ export async function arquivarItemControle(id) {
 
 export async function buscarItemControlePorId(id) {
     const { data, error } = await dbAuth.from('cofre_itens_controle')
-        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome)')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome), cofre_ativos(nome_exibicao, tipo_ativo)')
         .eq('id', id).single();
     if (error) throw error;
     return data;

@@ -196,8 +196,11 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-gestao-imovel': ativos.abrirGestaoImovel(); break;
         case 'abrir-documentos-ativo': abrirModal('modal-documentos-ativo'); break;
         case 'fechar-documentos-ativo': fecharModal('modal-documentos-ativo'); break;
-        case 'abrir-fotos-ativo': abrirModal('modal-fotos-ativo'); break;
-        case 'fechar-fotos-ativo': fecharModal('modal-fotos-ativo'); break;
+        case 'abrir-lightbox-foto-ativo': ativos.abrirLightboxFotoAtivo(parseInt(alvo.dataset.indice, 10)); break;
+        case 'fechar-lightbox-fotos': ativos.fecharLightboxFotoAtivo(); break;
+        case 'navegar-lightbox-fotos': ativos.navegarLightboxFotoAtivo(parseInt(alvo.dataset.dir, 10)); break;
+        case 'remover-foto-ativo': await ativos.removerFotoAtivo(alvo.dataset.fotoId); break;
+        case 'alternar-mais-acoes-fotos-ativo': ativos.alternarMaisAcoesFotosAtivo(); break;
         case 'abrir-upload-no-ativo-ia': docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco); break;
         case 'abrir-upload-no-ativo-simples': docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco); break;
         case 'abrir-form-controle': await controles.abrirFormControle(); break;
@@ -229,6 +232,10 @@ document.addEventListener('click', async (ev) => {
         case 'salvar-edicao-item': await controles.salvarEdicaoItem(); break;
         case 'excluir-item-controle-atual': await controles.excluirItemControleAtual(); break;
         case 'alternar-mais-acoes-contatos-item': controles.alternarMaisAcoesContatosItem(); break;
+        case 'alternar-mais-acoes-dados-item': controles.alternarMaisAcoesDadosItem(); break;
+        case 'alternar-mais-acoes-doc-item': controles.alternarMaisAcoesDocItem(); break;
+        case 'carregar-novo-documento-item': controles.carregarNovoDocumentoItem(); break;
+        case 'excluir-documento-do-item': await controles.excluirDocumentoDoItem(alvo.dataset.vinculoId); break;
         case 'alternar-form-contato-item': controles.alternarFormContatoItem(); break;
         case 'salvar-contato-item': await controles.salvarContatoItem(); break;
 
@@ -253,6 +260,7 @@ document.addEventListener('change', async (ev) => {
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;
         case 'ic-tipo-mudou': controles.aoMudarTipoControleForm(); break;
         case 'modelo-tipo-mudou': controles.aoMudarTipoModeloControleForm(); break;
+        case 'fic-ed-tipo-mudou': controles.aoMudarTipoEditarItemForm(); break;
         default: break;
     }
 });
@@ -352,6 +360,7 @@ window.addEventListener('cofre:recarregar-documentos', async () => {
     docs.montarHome();
     const telaAtual = document.querySelector('[data-screen]:not(.hidden)')?.dataset.screen;
     if (telaAtual === 'home') docs.montarHome();
+    if (telaAtual === 'ficha-item-controle') controles.renderizarDocumentosItemControle();
 });
 window.addEventListener('cofre:recarregar-ativos', async () => {
     estado.ativos = await api.listarAtivos(estado.clienteId);

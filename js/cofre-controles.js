@@ -100,9 +100,10 @@ import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
+import { abrirUploadContextual } from './cofre-documentos.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
-    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo,
+    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo,
 } from './cofre-validacoes.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
@@ -230,11 +231,25 @@ export function voltarFichaItemControle() {
 function renderizarFichaItemControle() {
     const item = itemEmFoco;
 
-    // ---- Box Dados (revisão DS: edição virou bottom-sheet — ver
-    // abrirEditarItem()/salvarEdicaoItem() — este box agora é só leitura)
+    // ---- Box Dados (revisão DS 25/08/2026, pedido explícito) — cabeçalho
+    // agora no MESMO formato de letra/cor do componente de Ativo (ver
+    // ativoCardHtml em cofre-ativos.js: w-12 h-12 rounded-xl bg-emerald-50
+    // text-emerald-800, título text-xs font-extrabold, subtítulo
+    // text-xs var(--sage)) — ícone representa o TIPO DO ATIVO dono do
+    // item (iconeAtivo()), não mais um H3 solto genérico. Editar/Excluir
+    // migraram de pills sempre visíveis pra um painel "Mais ações"
+    // colapsável de verdade (DS §8 — antes só simulava o padrão sem o
+    // toggle).
+    document.getElementById('fic-dados-cabecalho').innerHTML = `
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(item.cofre_ativos?.tipo_ativo)}" style="width:20px;height:20px"></i></div>
+            <div class="min-w-0 flex-1">
+                <p class="text-xs font-extrabold truncate">${escapeHtml(item.titulo)}</p>
+                <p class="text-xs truncate" style="color:var(--sage)">${escapeHtml(item.cofre_ativos?.nome_exibicao || '')}${item.cofre_ativos?.nome_exibicao ? ' · ' : ''}${escapeHtml(rotuloTipoControle(item.tipo))}</p>
+            </div>
+        </div>
+    `;
     document.getElementById('fic-dados-leitura').innerHTML = `
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Título</span><b>${escapeHtml(item.titulo)}</b></div>
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Tipo</span><b>${escapeHtml(rotuloTipoControle(item.tipo))}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Subtipo</span><b>${escapeHtml(item.cofre_controle_subtipos?.nome || '—')}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data início</span><b>${formatarDataBR(item.data_base)}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data fim</span><b>${item.data_fim ? formatarDataBR(item.data_fim) : 'Sem fim de vigência'}</b></div>
@@ -242,6 +257,7 @@ function renderizarFichaItemControle() {
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Alertas gerados a partir de</span><b>${item.direcao_alerta === 'fim' ? 'Fim (retroativo)' : 'Início'}</b></div>
         <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Antecedência do alerta</span><b>${item.antecedencia_alerta_dias} dias</b></div>
     `;
+    renderizarDocumentosItemControle();
 
     // ---- Box Ocorrências (TODAS — pode haver várias, geradas para os
     // próximos 120 dias conforme a frequência do item; v6, pedido explícito)
@@ -299,6 +315,82 @@ export function alternarMaisAcoesContatosItem() {
     el.classList.toggle('hidden');
     if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
     refrescarIcones();
+}
+
+// Novos toggles (25/08/2026, pedido explícito) — mesmo corpo canônico
+// (DS §8.2), só trocam os 2 IDs.
+export function alternarMaisAcoesDadosItem() {
+    const el = document.getElementById('fic-dados-acoes');
+    const seta = document.getElementById('fic-dados-seta');
+    if (!el) return;
+    el.classList.toggle('hidden');
+    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    refrescarIcones();
+}
+
+export function alternarMaisAcoesDocItem() {
+    const el = document.getElementById('fic-doc-acoes');
+    const seta = document.getElementById('fic-doc-seta');
+    if (!el) return;
+    el.classList.toggle('hidden');
+    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    refrescarIcones();
+}
+
+// Box Documento (25/08/2026, pedido explícito) — mesma referência de box
+// de documento que existe nos Imóveis: consulta direta em
+// cofre_documento_vinculos (entidade_tipo='item_controle'), abre via
+// abrirFichaDocumento() já existente (mesmo caminho usado no resto do
+// Cofre — nunca inventei um jeito novo de abrir arquivo). Depende da
+// migration cofre_documento_vinculos_item_controle_v1 (adiciona
+// 'item_controle' ao CHECK de entidade_tipo) — sem ela, a lista sempre
+// vem vazia (não quebra, só não encontra nada pra mostrar).
+function documentosDoItemControle(itemId) {
+    return (estado.documentos || []).filter(d => (d.cofre_documento_vinculos || []).some(v => v.entidade_tipo === 'item_controle' && v.entidade_id === itemId));
+}
+
+export function renderizarDocumentosItemControle() {
+    const item = itemEmFoco;
+    if (!item) return;
+    const docsItem = documentosDoItemControle(item.id);
+    const el = document.getElementById('fic-documentos');
+    if (!el) return;
+    el.innerHTML = docsItem.length ? docsItem.map(d => {
+        const vinculo = (d.cofre_documento_vinculos || []).find(v => v.entidade_tipo === 'item_controle' && v.entidade_id === item.id);
+        return `<div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
+            <button data-action="abrir-documento" data-id="${d.id}" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+                <i data-lucide="${(d.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex-shrink:0"></i>
+                <span class="text-xs font-bold truncate">${escapeHtml(d.nome_exibicao || 'Documento')}</span>
+            </button>
+            <button data-action="excluir-documento-do-item" data-vinculo-id="${vinculo?.id || ''}" title="Remover deste item" class="flex-none p-1"><i data-lucide="x" style="width:14px;height:14px;color:#94a3b8"></i></button>
+        </div>`;
+    }).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum documento vinculado ainda.</p>`;
+    refrescarIcones();
+}
+
+// "Carregar novo" (dentro do Mais ações deste box, pedido explícito) —
+// reaproveita o modal de upload genérico já existente (mesmo usado por
+// Ativo/Imóvel/Contrato), sem nenhum código de upload novo.
+export function carregarNovoDocumentoItem() {
+    const item = itemEmFoco;
+    if (!item) return;
+    abrirUploadContextual('item_controle', item.id, item.titulo);
+}
+
+// Remove só o VÍNCULO (nunca o documento em si) — o documento continua
+// guardado no Cofre e passa a aparecer em "Em triagem" na Visão Geral
+// (classificarStatusVinculo já trata isso automaticamente pra qualquer
+// documento sem vínculo nenhum — nenhum código novo precisou disso).
+export async function excluirDocumentoDoItem(vinculoId) {
+    if (!vinculoId) { mostrarToast('Vínculo não encontrado.', 'erro'); return; }
+    if (!confirm('Remover este documento do item?\n\nO documento continua guardado no Cofre — só desvincula dele (some da lista "Em triagem" só quando for vinculado a outra coisa).')) return;
+    try {
+        await api.removerVinculo(vinculoId);
+        estado.documentos = await api.listarDocumentos(estado.clienteId);
+        renderizarDocumentosItemControle();
+        mostrarToast('Documento desvinculado.');
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
 function renderizarAcoesOcorrencia(oc) {
@@ -421,8 +513,10 @@ export async function confirmarEstornarOcorrencia(ocorrenciaId) {
 // explícito) e oferecer regenerar as ocorrências futuras.
 export function abrirEditarItem() {
     const item = itemEmFoco;
+    document.getElementById('fic-ed-tipo').value = item.tipo;
     popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
     document.getElementById('fic-ed-titulo').value = item.titulo;
+    document.getElementById('fic-ed-data-inicio').value = item.data_base || '';
     document.getElementById('fic-ed-data-fim').value = item.data_fim || '';
     document.getElementById('fic-ed-direcao-alerta').value = item.direcao_alerta || 'inicio';
     document.getElementById('fic-ed-freq-intervalo').value = item.frequencia_intervalo || '';
@@ -431,36 +525,43 @@ export function abrirEditarItem() {
     abrirModal('modal-editar-item-controle');
 }
 
+export function aoMudarTipoEditarItemForm() {
+    popularSelectSubtipoEm('fic-ed-subtipo', document.getElementById('fic-ed-tipo').value, null);
+}
+
 export function fecharEditarItem() {
     fecharModal('modal-editar-item-controle');
 }
 
 export async function salvarEdicaoItem() {
+    const tipo = document.getElementById('fic-ed-tipo').value;
     const titulo = document.getElementById('fic-ed-titulo').value.trim();
     const subtipoId = document.getElementById('fic-ed-subtipo').value || null;
+    const dataInicio = document.getElementById('fic-ed-data-inicio').value;
     const dataFim = document.getElementById('fic-ed-data-fim').value || null;
     const direcaoAlerta = document.getElementById('fic-ed-direcao-alerta').value;
     const freqIntervalo = parseInt(document.getElementById('fic-ed-freq-intervalo').value, 10) || null;
     const freqUnidade = freqIntervalo ? document.getElementById('fic-ed-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('fic-ed-antecedencia').value, 10) || 0;
     if (!titulo) { mostrarToast('Informe um título.', 'erro'); return; }
+    if (!dataInicio) { mostrarToast('Informe a data início.', 'erro'); return; }
     if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Pra gerar a partir do fim, informe a data fim.', 'erro'); return; }
-    if (dataFim && dataFim < itemEmFoco.data_base) { mostrarToast('A data fim não pode ser antes da data início.', 'erro'); return; }
+    if (dataFim && dataFim < dataInicio) { mostrarToast('A data fim não pode ser antes da data início.', 'erro'); return; }
 
     const item = itemEmFoco;
     // Campos que, se mudarem, afetam quais ocorrências futuras fazem
     // sentido existir. Antecedência do alerta NÃO entra aqui — só afeta
     // o cálculo do chip em tempo real (ocorrenciaEmAlerta em
     // cofre-validacoes.js), não as datas já gravadas. Revisão 25/08/2026
-    // (pedido explícito): data fim e direção de geração entraram nessa
-    // lista — mudar qualquer um dos dois também muda quais ocorrências
-    // futuras fazem sentido, igual à frequência.
+    // (pedido explícito): data início entrou nessa lista também — mudar
+    // o início muda a base de contagem no modo "início" da mesma forma
+    // que data fim muda no modo "fim".
     const mudouGeracaoAlertas = (freqIntervalo !== item.frequencia_intervalo) || (freqUnidade !== item.frequencia_unidade)
-        || (dataFim !== (item.data_fim || null)) || (direcaoAlerta !== (item.direcao_alerta || 'inicio'));
+        || (dataFim !== (item.data_fim || null)) || (direcaoAlerta !== (item.direcao_alerta || 'inicio')) || (dataInicio !== item.data_base);
 
     try {
-        const antes = { titulo: item.titulo, subtipo_id: item.subtipo_id, frequencia_intervalo: item.frequencia_intervalo, frequencia_unidade: item.frequencia_unidade, antecedencia_alerta_dias: item.antecedencia_alerta_dias, data_fim: item.data_fim, direcao_alerta: item.direcao_alerta };
-        const depois = { titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia, data_fim: dataFim, direcao_alerta: direcaoAlerta };
+        const antes = { tipo: item.tipo, titulo: item.titulo, subtipo_id: item.subtipo_id, frequencia_intervalo: item.frequencia_intervalo, frequencia_unidade: item.frequencia_unidade, antecedencia_alerta_dias: item.antecedencia_alerta_dias, data_base: item.data_base, data_fim: item.data_fim, direcao_alerta: item.direcao_alerta };
+        const depois = { tipo, titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia, data_base: dataInicio, data_fim: dataFim, direcao_alerta: direcaoAlerta };
         await api.atualizarItemControle(item.id, depois);
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'editar', antes, depois, pessoa_id: estado.pessoa.id, origem: 'app' });
 
@@ -473,7 +574,7 @@ export async function salvarEdicaoItem() {
             // usado em excluirItemControleAtual/excluirAtivoAtual pra
             // decisões simples de sim/não.
             const regenerar = confirm(
-                'Você mudou algo que afeta os alertas deste item (frequência, data fim ou direção de geração).\n\n' +
+                'Você mudou algo que afeta os alertas deste item (data início, data fim, frequência ou direção de geração).\n\n' +
                 'Regenerar as ocorrências futuras em aberto com as novas regras?\n\n' +
                 'OK = Regenerar (as já vencidas continuam como estão)\n' +
                 'Cancelar = Manter as ocorrências que já existem'
@@ -506,12 +607,47 @@ export async function salvarEdicaoItem() {
 }
 
 export async function excluirItemControleAtual() {
-    if (!confirm(`Excluir o item de controle "${itemEmFoco.titulo}"? Isso fica registrado e não pode ser desfeito pela interface.`)) return;
+    const item = itemEmFoco;
+    if (!confirm(`Excluir o item de controle "${item.titulo}"?\n\nTodas as ocorrências/alertas deste item somem junto da Visão Geral. Isso fica registrado e não pode ser desfeito pela interface.`)) return;
+
+    // Documentos vinculados a este item (pedido explícito, 25/08/2026) —
+    // pergunta SEPARADA, só se houver algum: apagar de vez, ou manter
+    // (nesse caso só desvincula — o documento continua guardado no
+    // Cofre e passa a aparecer em "Em triagem" na Visão Geral,
+    // classificarStatusVinculo já trata isso sozinho pra qualquer
+    // documento sem vínculo nenhum).
+    const docsDoItem = documentosDoItemControle(item.id);
+    let apagarDocumentos = false;
+    if (docsDoItem.length > 0) {
+        apagarDocumentos = confirm(
+            `Este item tem ${docsDoItem.length} documento(s) vinculado(s) ("${docsDoItem.map(d => d.nome_exibicao).join('", "')}")\n\n` +
+            `Quer apagar o(s) documento(s) também?\n\n` +
+            `OK = Apagar de vez (não pode ser desfeito pela interface)\n` +
+            `Cancelar = Manter guardado — fica pendente de vincular ("Em triagem" na Visão Geral)`
+        );
+    }
+
     try {
-        await api.arquivarItemControle(itemEmFoco.id);
-        await api.registrarHistoricoItemControle({ item_id: itemEmFoco.id, acao: 'excluir', antes: itemEmFoco, depois: null, pessoa_id: estado.pessoa.id, origem: 'app' });
-        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.desativar', { itemId: itemEmFoco.id });
-        mostrarToast('Item de controle excluído.');
+        await api.arquivarItemControle(item.id);
+        await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'excluir', antes: item, depois: null, pessoa_id: estado.pessoa.id, origem: 'app' });
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.desativar', { itemId: item.id });
+
+        for (const d of docsDoItem) {
+            const vinculo = (d.cofre_documento_vinculos || []).find(v => v.entidade_tipo === 'item_controle' && v.entidade_id === item.id);
+            if (apagarDocumentos) {
+                await api.excluirDocumentoCompleto(d.id);
+            } else if (vinculo) {
+                await api.removerVinculo(vinculo.id);
+            }
+        }
+        if (docsDoItem.length > 0) {
+            estado.documentos = await api.listarDocumentos(estado.clienteId);
+            window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+        }
+
+        mostrarToast(docsDoItem.length > 0
+            ? `Item excluído — documento(s) ${apagarDocumentos ? 'apagado(s)' : 'mantido(s), pendente(s) de vincular'}.`
+            : 'Item de controle excluído.');
         voltarFichaItemControle();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }

@@ -326,23 +326,39 @@ function montarDocumentosAtivo(a) {
 // js/cofre-controles.js (abrirFichaItemControle, box "Contatos vinculados").
 
 // ---- Fotos (privado por padrão; "selecionada p/ Vitrine" ≠ publicado — Adendo §16/§17)
+//
+// Revisão DS (25/08/2026, pedido explícito) — box visível na ficha (só
+// aparece quando há foto vinculada), não mais escondido atrás de um
+// modal só alcançável pelo Mais ações. Miniaturas de verdade agora (o
+// grid antigo só desenhava um ícone genérico cinza, nunca a foto real —
+// resolvido via signed URL, mesmo mecanismo já usado pra abrir
+// documento). Clicar abre lightbox com navegação entre as fotos (mesma
+// referência do box de fotos dos Imóveis — abrirLightboxGeral no App).
+// Remover foto e "Adicionar fotos" (Mais ações) inclusos.
+let fotosAtivoCache = [];
+let fotosAtivoUrlsCache = [];
+let lightboxFotosIndex = 0;
+
 async function montarFotosAtivo(a) {
     const fotos = await api.listarFotosAtivo(a.id);
-    renderizarGridFotos(fotos);
+    fotosAtivoCache = fotos;
+    const box = document.getElementById('fa-box-fotos');
+    if (!fotos.length) { box.classList.add('hidden'); fotosAtivoUrlsCache = []; return; }
+    box.classList.remove('hidden');
+    fotosAtivoUrlsCache = await Promise.all(fotos.map(f => api.gerarSignedUrl(f.bucket, f.storage_path, 600).catch(() => null)));
+    renderizarGridFotos();
     const inputFoto = document.getElementById('fa-foto-input');
     inputFoto.value = '';
     inputFoto.onchange = () => enviarFotosAtivo(a.id);
 }
 
-function renderizarGridFotos(fotos) {
+function renderizarGridFotos() {
     const grid = document.getElementById('fa-fotos-grid');
-    grid.innerHTML = fotos.length ? fotos.map(f => `
-        <div class="relative">
-            <div class="aspect-square rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center"><i data-lucide="image" style="color:var(--sage)"></i></div>
-            <label class="flex items-center gap-1 text-[10px] mt-1">
-                <input type="checkbox" data-action-change="alternar-vitrine-foto" data-foto-id="${f.id}" ${f.publicar_vitrine ? 'checked' : ''}> Selecionada p/ Vitrine
-            </label>
-        </div>`).join('') : `<p class="text-xs col-span-3" style="color:var(--sage)">Nenhuma foto ainda.</p>`;
+    grid.innerHTML = fotosAtivoCache.map((f, i) => `
+        <div class="relative flex-none">
+            <img src="${fotosAtivoUrlsCache[i] || ''}" data-action="abrir-lightbox-foto-ativo" data-indice="${i}" class="w-16 h-16 object-cover rounded-lg border border-slate-200 cursor-pointer">
+            <button data-action="remover-foto-ativo" data-foto-id="${f.id}" title="Remover" class="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full w-5 h-5 flex items-center justify-center shadow-sm"><i data-lucide="x" style="width:11px;height:11px;color:#64748b"></i></button>
+        </div>`).join('');
     refrescarIcones();
 }
 
@@ -351,7 +367,7 @@ async function enviarFotosAtivo(ativoId) {
     const statusEl = document.getElementById('fa-status');
     if (!arquivos.length) return;
     statusEl.textContent = 'Enviando fotos…'; statusEl.style.color = 'var(--sage)';
-    let ordem = 0;
+    let ordem = fotosAtivoCache.length;
     for (const arquivo of arquivos) {
         const fotoId = crypto.randomUUID();
         const path = `${estado.clienteId}/ativos/${ativoId}/fotos/${fotoId}_${arquivo.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
@@ -363,7 +379,44 @@ async function enviarFotosAtivo(ativoId) {
         }
     }
     statusEl.textContent = 'Fotos enviadas ✅'; statusEl.style.color = 'var(--success)';
-    renderizarGridFotos(await api.listarFotosAtivo(ativoId));
+    document.getElementById('fa-box-fotos').classList.remove('hidden');
+    await montarFotosAtivo(estado.ativoEmFoco);
+}
+
+export function alternarMaisAcoesFotosAtivo() {
+    const el = document.getElementById('fa-fotos-acoes');
+    const seta = document.getElementById('fa-fotos-seta');
+    if (!el) return;
+    el.classList.toggle('hidden');
+    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    refrescarIcones();
+}
+
+export async function removerFotoAtivo(fotoId) {
+    if (!confirm('Remover esta foto?')) return;
+    try {
+        await api.excluirFotoAtivo(fotoId);
+        mostrarToast('Foto removida.');
+        await montarFotosAtivo(estado.ativoEmFoco);
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+export function abrirLightboxFotoAtivo(indice) {
+    lightboxFotosIndex = indice;
+    document.getElementById('lightbox-fotos-img').src = fotosAtivoUrlsCache[lightboxFotosIndex] || '';
+    document.getElementById('lightbox-fotos-contador').textContent = `${lightboxFotosIndex + 1} / ${fotosAtivoUrlsCache.length}`;
+    abrirModal('modal-lightbox-fotos');
+}
+
+export function fecharLightboxFotoAtivo() {
+    fecharModal('modal-lightbox-fotos');
+}
+
+export function navegarLightboxFotoAtivo(direcao) {
+    const n = fotosAtivoUrlsCache.length;
+    lightboxFotosIndex = (lightboxFotosIndex + direcao + n) % n;
+    document.getElementById('lightbox-fotos-img').src = fotosAtivoUrlsCache[lightboxFotosIndex] || '';
+    document.getElementById('lightbox-fotos-contador').textContent = `${lightboxFotosIndex + 1} / ${n}`;
 }
 
 export async function alternarVitrineFoto(fotoId, valor) {

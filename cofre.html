@@ -10,6 +10,118 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.17.0
+  Data       : 25/08/2026
+  Título     : ITEM DE CONTROLE (DOCUMENTO + VISUAL + CASCATA + EDIÇÃO COMPLETA) + BOX DE FOTO DO ATIVO
+  Base       : v1.16.0 (25/08/2026)
+  Linhas     : cofre.html = 2536 · js/cofre-api.js = 579 · js/cofre-app.js = 388 ·
+               js/cofre-ativos.js = 432 · js/cofre-controles.js = 1118 ·
+               js/cofre-documentos.js = 738 · js/cofre-estado.js = 120 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 249 (total js/ = 3853)
+
+  CHANGELOG v1.17.0 — pedido explícito, rodada grande.
+
+    1) MENU ⚙️ — REVERSÃO (pedido explícito: nenhuma das 3 opções de
+       navegação App↔Cofre foi escolhida ainda)
+    - Pessoas/Minha Empresa/Imóveis/Licença voltam a "Em breve".
+    - "Sobre" volta a abrir o modal próprio do Cofre (mostra a versão do
+      App E do Cofre juntas) — versão do App sincronizada pra v1.62.5.
+
+    2) NOVA TABELA — vínculo de documento a item de controle
+    - Migration `cofre_documento_vinculos_item_controle_v1`: adiciona
+      'item_controle' ao CHECK de `entidade_tipo` em
+      `cofre_documento_vinculos` (antes só aceitava ativo/imóvel/
+      contrato/pagamento/pessoa/prestador/empreendimento/
+      processo_contratacao/empresa/geral). Precisou de 4 tentativas —
+      as 3 primeiras vieram "No approval received", só passou na 4ª.
+
+    3) BOX "DADOS DO ITEM" — visual no formato do componente de Ativo
+    - Cabeçalho novo (ícone circular representando o TIPO DO ATIVO dono
+      do item + título em negrito + subtítulo com nome do ativo/tipo do
+      item) — mesmo formato de letra/cor do card de Ativo
+      (w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800,
+      text-xs font-extrabold, subtítulo var(--sage)).
+    - Editar/Excluir migraram de pills sempre visíveis pra um painel
+      "Mais ações" colapsável de verdade (DS §8 — antes só imitava o
+      padrão sem o toggle).
+    - buscarItemControlePorId() (cofre-api.js) ganhou embed
+      cofre_ativos(nome_exibicao, tipo_ativo).
+
+    4) NOVO BOX — Documento (na ficha do item de controle)
+    - Mesma referência de box de documento que existe nos Imóveis:
+      linha clicável abre o documento (abrirFichaDocumento(), caminho
+      já existente — nenhum jeito novo de abrir arquivo), "x" remove só
+      o VÍNCULO (documento continua guardado, vira "Em triagem" na
+      Home — classificarStatusVinculo já tratava isso sozinho, zero
+      código novo precisou disso), "Carregar novo" mora no Mais ações
+      (reaproveita abrirUploadContextual('item_controle', ...), o mesmo
+      modal genérico usado por Ativo/Imóvel/Contrato).
+    - listarDocumentos() (cofre-api.js) ganhou o `id` do vínculo no
+      embed (precisa pra desvincular um documento específico).
+    - Listener `cofre:recarregar-documentos` (cofre-app.js) agora
+      também atualiza este box quando a ficha do item está aberta.
+
+    5) CASCATA DE EXCLUSÃO DO ITEM (pedido explícito)
+    - Ocorrências/alertas já somem automaticamente da Visão Geral (o
+      bug fix `!inner` de uma rodada anterior já cobria isso — nenhum
+      código novo precisou aqui, só o comentário/aviso no confirm()
+      ficou mais claro sobre o que acontece).
+    - Documento(s) vinculado(s): pergunta SEPARADA, só se houver algum
+      — apagar de vez (excluirDocumentoCompleto(), soft-delete real,
+      nova função em cofre-api.js) ou manter (remove só o vínculo,
+      documento vira "Em triagem" automaticamente).
+
+    6) MODAL DE EDITAR ITEM — labels em todos os campos + Tipo + Data
+       início (faltavam por completo — pedido explícito)
+    - Subtipo e Título ganharam `<label>` (antes só placeholder/sem
+      label nenhum).
+    - NOVO campo "Tipo" (seguro/manutenção/tributo) — antes não dava
+      pra editar o tipo do item depois de criado. Trocar o tipo
+      repopula o subtipo (aoMudarTipoEditarItemForm(), mesmo padrão de
+      Criar/Modelos).
+    - NOVO campo "Data início" — antes só existia no formulário de
+      CRIAR, não no de editar. Mudar a data início agora também entra
+      na detecção de "mudou algo que afeta os alertas" (mesma pergunta
+      de regenerar ocorrências que já existia pra data fim/frequência/
+      direção).
+
+    7) BOX "FOTO" DO ATIVO — reescrito do zero (pedido explícito)
+    - Antes: escondido atrás de um modal (só alcançável pelo Mais ações
+      de "Dados do ativo"), e o grid nem mostrava a foto de verdade —
+      só um ícone genérico cinza de imagem, nunca a miniatura real.
+    - Agora: box visível na ficha, só aparece quando há foto vinculada
+      (mesmo espírito do §16 — box inteiro condicional ao dado
+      existir). Miniaturas de verdade (signed URL, mesmo mecanismo já
+      usado pra abrir documento). Clicar abre lightbox em tela cheia
+      com navegação ‹/› e contador — mesma referência do box de fotos
+      dos Imóveis (index.html, abrirLightboxGeral). Botão de remover
+      por foto. "Adicionar fotos" mora no Mais ações do próprio box.
+    - modal-fotos-ativo REMOVIDO (não só desconectado — apagado de
+      verdade, porque o box novo é um substituto completo, não uma
+      opção paralela; manter os dois ia gerar 2 IDs `fa-foto-input`/
+      `fa-fotos-grid` duplicados no DOM).
+    - Nova excluirFotoAtivo() (cofre-api.js, soft-delete,
+      status='excluido').
+    - Simplificação assumida: o checkbox "Selecionada p/ Vitrine" saiu
+      do grid nesta reescrita (função `alternarVitrineFoto()` continua
+      no código, só sem gatilho na interface por enquanto — a
+      publicação real da Vitrine de qualquer forma ainda não está
+      implementada, ver HANDOFF anterior). Avisar se isso fizer falta.
+
+    - Arquivos alterados: cofre.html (box Documento + box Foto +
+      cabeçalho Dados do item + modal editar + lightbox), 6 dos 9
+      módulos JS (api/app/ativos/controles/estado — documentos não
+      mudou nesta rodada além do rótulo de entidade_tipo).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.16.0
   Data       : 25/08/2026
   Título     : EDIÇÃO E EXCLUSÃO DE MODELOS DE ITEM DE CONTROLE
@@ -1767,8 +1879,29 @@
             <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
                 <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
                 <button data-action="abrir-documentos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Documentos</button>
-                <button data-action="abrir-fotos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Fotos</button>
                 <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
+            </div>
+        </div>
+
+        <!-- Box: Foto — revisão DS 25/08/2026 (pedido explícito): visível
+             direto na ficha (não mais escondido atrás de modal), só
+             aparece quando há alguma foto vinculada (mesmo princípio §16
+             de componente vazio não aparecer — aqui invertido, o box
+             INTEIRO só existe com dado). Miniatura de verdade + clicar
+             abre lightbox com navegação + remover foto + "Adicionar
+             fotos" no Mais ações — mesma referência do box de fotos dos
+             Imóveis (index.html, abrirLightboxGeral). -->
+        <div id="fa-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
+            <div id="fa-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-fotos-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fa-fotos-seta" style="width:13px;height:13px"></i></button>
+            </div>
+            <div id="fa-fotos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <label class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer">
+                    <i data-lucide="image-plus" style="width:11px;height:11px"></i> Adicionar fotos
+                    <input type="file" id="fa-foto-input" accept="image/*" multiple class="hidden">
+                </label>
             </div>
         </div>
 
@@ -1858,8 +1991,26 @@
             <button type="button" data-action="fechar-editar-item" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="grid grid-cols-2 gap-2">
-            <select id="fic-ed-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
-            <input id="fic-ed-titulo" placeholder="Título" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Tipo</label>
+                <select id="fic-ed-tipo" data-action-change="fic-ed-tipo-mudou" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                    <option value="seguro">Seguro</option>
+                    <option value="manutencao">Manutenção</option>
+                    <option value="tributo">Tributo</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Subtipo</label>
+                <select id="fic-ed-subtipo" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs"></select>
+            </div>
+            <div class="col-span-2">
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Título</label>
+                <input id="fic-ed-titulo" placeholder="Título" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data início</label>
+                <input type="date" id="fic-ed-data-inicio" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data fim <span style="font-weight:400">(opcional)</span></label>
                 <input type="date" id="fic-ed-data-fim" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
@@ -1875,18 +2026,21 @@
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
                 <input type="number" min="1" id="fic-ed-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
-            <select id="fic-ed-freq-unidade" class="border-2 border-slate-300 rounded-lg p-2 text-xs self-end">
-                <option value="dia">Dia(s)</option>
-                <option value="semana">Semana(s)</option>
-                <option value="mes">Mês(es)</option>
-                <option value="ano">Ano(s)</option>
-            </select>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Unidade</label>
+                <select id="fic-ed-freq-unidade" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                    <option value="dia">Dia(s)</option>
+                    <option value="semana">Semana(s)</option>
+                    <option value="mes">Mês(es)</option>
+                    <option value="ano">Ano(s)</option>
+                </select>
+            </div>
             <div class="col-span-2">
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Avisar com quantos dias de antecedência</label>
                 <input type="number" min="0" id="fic-ed-antecedencia" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
         </div>
-        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente. Mudar a data fim, a direção ou a frequência impacta os alertas — o Cofre pergunta se quer regerar as ocorrências futuras ou manter as que já existem.</p>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente. Mudar a data início, a data fim, a direção ou a frequência impacta os alertas — o Cofre pergunta se quer regerar as ocorrências futuras ou manter as que já existem.</p>
         <div class="flex gap-2 mt-3">
             <button type="button" data-action="fechar-editar-item" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
             <button data-action="salvar-edicao-item" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
@@ -1910,13 +2064,39 @@
 
     <div class="space-y-3">
 
-        <!-- Box: Dados do item -->
+        <!-- Box: Dados do item — revisão DS 25/08/2026 (pedido explícito):
+             cabeçalho no mesmo formato de letra/cor do componente de Ativo
+             (fic-dados-cabecalho, montado via JS); Editar/Excluir migraram
+             pra um painel "Mais ações" colapsável de verdade (§8), não
+             mais pills sempre visíveis. -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Dados do item</h3>
-            <div id="fic-dados-leitura" class="text-sm space-y-1 mt-2"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100 gap-1.5">
-                <button data-action="abrir-editar-item" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar</button>
-                <button data-action="excluir-item-controle-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
+            <div id="fic-dados-cabecalho" class="mt-2"></div>
+            <div id="fic-dados-leitura" class="text-sm space-y-1 mt-3 pt-3 border-t border-slate-100"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-dados-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-dados-seta" style="width:13px;height:13px"></i></button>
+            </div>
+            <div id="fic-dados-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <button data-action="abrir-editar-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="pencil" style="width:11px;height:11px"></i> Editar</button>
+                <button data-action="excluir-item-controle-atual" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="trash-2" style="width:11px;height:11px"></i> Excluir</button>
+            </div>
+        </div>
+
+        <!-- Box: Documento — NOVO (25/08/2026, pedido explícito). Mesma
+             referência de box de documento que existe nos Imóveis: linha
+             clicável abre o documento (abrirFichaDocumento, caminho já
+             existente), "x" remove só o vínculo (documento continua
+             guardado, vira "Em triagem" na Home), "Carregar novo" mora no
+             Mais ações. Box SEMPRE visível (mesma exceção §16 do box
+             Contrato/Contatos vinculados — mesmo vazio, oferece a ação). -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Documento</h3>
+            <div id="fic-documentos" class="mt-1.5 space-y-1.5"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-doc-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-doc-seta" style="width:13px;height:13px"></i></button>
+            </div>
+            <div id="fic-doc-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <button data-action="carregar-novo-documento-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="upload" style="width:11px;height:11px"></i> Carregar novo</button>
             </div>
         </div>
 
@@ -2015,17 +2195,17 @@
     </div>
 </div>
 
-<!-- ===================== MODAL — FOTOS DO ATIVO ===================== -->
-<div id="modal-fotos-ativo" class="modal-overlay hidden">
-    <div class="modal-box p-5">
-        <div class="flex items-start justify-between mb-3">
-            <h3 class="text-base font-bold">Fotos</h3>
-            <button type="button" data-action="fechar-fotos-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-        </div>
-        <input type="file" id="fa-foto-input" accept="image/*" multiple class="text-xs mb-2">
-        <div id="fa-fotos-grid" class="grid grid-cols-3 gap-2"></div>
-        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Foto ≠ documento. Só fotos marcadas "Selecionada para Vitrine" ficam elegíveis à publicação — nenhuma publicação real acontece sem o backend de Vitrine (ainda não implementado nesta versão).</p>
-    </div>
+<!-- ===================== MODAL — LIGHTBOX DE FOTOS DO ATIVO ===================== -->
+<!-- Revisão DS 25/08/2026 (pedido explícito) — substitui modal-fotos-ativo
+     (agora é um box visível na ficha, ver fa-box-fotos). Camada de
+     sistema (§15 do DS) — z-[300], mesma faixa do lightbox de imagem em
+     tela cheia do App (abrirLightboxGeral). -->
+<div id="modal-lightbox-fotos" class="hidden fixed inset-0 z-[300] bg-black flex items-center justify-center">
+    <button data-action="fechar-lightbox-fotos" class="absolute top-4 right-4 text-white text-3xl leading-none z-10">&times;</button>
+    <button data-action="navegar-lightbox-fotos" data-dir="-1" class="absolute left-2 text-white text-4xl leading-none p-2 z-10">‹</button>
+    <img id="lightbox-fotos-img" class="max-h-[85vh] max-w-full object-contain">
+    <button data-action="navegar-lightbox-fotos" data-dir="1" class="absolute right-2 text-white text-4xl leading-none p-2 z-10">›</button>
+    <div id="lightbox-fotos-contador" class="absolute bottom-4 text-white text-xs font-bold"></div>
 </div>
 
 <div id="modal-upload" class="modal-overlay hidden">
@@ -2201,27 +2381,31 @@
             </button>
 
             <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
-            <button data-action="ir-app" data-tab="tab-pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="menu-conta-em-breve" data-rotulo="Pessoas" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Pessoas</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Pessoas</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <button data-action="ir-app" data-tab="tab-minha-empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="menu-conta-em-breve" data-rotulo="Minha Empresa" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="building" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Minha Empresa</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Minha Empresa</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <button data-action="ir-app" data-tab="tab-geral" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="menu-conta-em-breve" data-rotulo="Imóveis" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Imóveis</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Imóveis</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
-            <button data-action="ir-app" data-tab="tab-licenca" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="menu-conta-em-breve" data-rotulo="Licença" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></i>
-                <span class="text-sm font-medium" style="color:var(--ink)">Licença</span>
+                <span class="text-sm font-medium flex-1" style="color:var(--ink)">Licença</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-none" style="background:var(--line);color:var(--sage)">Em breve</span>
             </button>
             <a href="https://wa.me/5511947461828" target="_blank" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
             </a>
-            <button data-action="ir-app" data-tab="tab-sobre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+            <button data-action="abrir-sobre-cofre" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                 <i data-lucide="info" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Sobre</span>
             </button>
@@ -2243,7 +2427,7 @@
                  esta linha precisa ser atualizada manualmente a cada bump
                  do App (id adicionado só pra facilitar grep/busca na hora
                  do deploy — ver checklist em DEPLOY_RAIZ_PATRIMONIO.md). -->
-            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b id="sobre-versao-app-principal">Beta v1.62.0</b></div>
+            <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b id="sobre-versao-app-principal">Beta v1.62.5</b></div>
         </div>
     </div>
 </div>
@@ -2349,4 +2533,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2352 (cofre.html) — recontado na v1.16.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 2536 (cofre.html) — recontado na v1.17.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
