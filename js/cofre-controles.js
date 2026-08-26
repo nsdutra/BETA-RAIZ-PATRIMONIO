@@ -103,7 +103,7 @@ import { mudarTela } from './cofre-navegacao.js';
 import { abrirUploadContextual } from './cofre-documentos.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
-    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo,
+    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo, rotuloPapelContato,
 } from './cofre-validacoes.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
@@ -120,7 +120,7 @@ let itemEmFoco = null;
 let itemControleOrigemTela = null;
 let ocorrenciaEmAcao = null; // { ocorrenciaId, modo: 'tratar'|'reagendar'|'estornar' }
 let contatosDoItemAtual = [];
-let formContatoItemAberto = false;
+let contatoEmEdicaoId = null; // id do contato sendo editado, ou null (modo "criar novo") — pedido explícito 25/08/2026
 
 // ============================================================================
 // BOX "CONTROLES" na ficha do ativo — lista-resumo clicável
@@ -184,7 +184,6 @@ export function alternarMaisAcoesControles() {
 // ============================================================================
 export async function abrirFichaItemControle(itemId) {
     ocorrenciaEmAcao = null;
-    formContatoItemAberto = false;
     document.getElementById('fic-contatos-acoes')?.classList.add('hidden');
     // BUG FIX (25/08/2026) — só atualiza a origem se a navegação vem de
     // FORA da própria ficha (reabrir via recarregarFichaItemControle
@@ -292,18 +291,25 @@ function renderizarFichaItemControle() {
     // ---- Box Alertas vinculados: REMOVIDO (v6) — a própria ocorrência
     // (acima) já É o alerta; não existe mais cadastro de alerta avulso.
 
-    // ---- Box Contatos vinculados — revisão DS: linhas no mesmo padrão
-    // sem borda/fundo (era raiz-bloco-interno). O botão "+ Adicionar"
-    // agora vive dentro do painel de Mais ações (ver HTML), não mais
-    // como CTA tracejado centralizado.
+    // ---- Box Contatos vinculados — revisão DS 25/08/2026 (pedido
+    // explícito): linhas agora CLICÁVEIS (abrem bottom-sheet de editar/
+    // excluir — abrirEditarContatoItem), rótulo de papel amigável
+    // (rotuloPapelContato, antes mostrava o código bruto tipo
+    // "seguradora"), e atalho de WhatsApp por contato (só aparece se o
+    // contato tiver whatsapp cadastrado) — mesma mensagem padrão já
+    // usada no atalho "Acionar" da Visão Geral (acionarContatoAlerta em
+    // cofre-documentos.js), pedindo cotação de renovação.
     const elContatos = document.getElementById('fic-contatos');
     const listaContatos = contatosDoItemAtual.length
-        ? contatosDoItemAtual.map((c, idx) => `<div class="py-1.5 ${idx < contatosDoItemAtual.length - 1 ? 'border-b border-slate-50' : ''}">
-            <p class="text-xs font-bold truncate">${escapeHtml(c.nome)}</p>
-            <p class="text-[11px]" style="color:var(--sage)">${escapeHtml(c.papel)}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</p>
+        ? contatosDoItemAtual.map((c, idx) => `<div class="flex items-center gap-2 py-1.5 ${idx < contatosDoItemAtual.length - 1 ? 'border-b border-slate-50' : ''}">
+            <button data-action="abrir-editar-contato-item" data-id="${c.id}" class="flex-1 min-w-0 text-left">
+                <p class="text-xs font-bold truncate">${escapeHtml(c.nome)}</p>
+                <p class="text-[11px]" style="color:var(--sage)">${escapeHtml(rotuloPapelContato(c.papel))}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</p>
+            </button>
+            ${c.whatsapp ? `<button data-action="acionar-contato-item-direto" data-id="${c.id}" title="Chamar no WhatsApp" class="flex-none p-1.5"><i data-lucide="message-circle" style="width:15px;height:15px;color:#25D366"></i></button>` : ''}
         </div>`).join('')
         : `<p class="text-xs" style="color:var(--sage)">Nenhum contato vinculado a este item.</p>`;
-    elContatos.innerHTML = (formContatoItemAberto ? formContatoItemHtml() : '') + listaContatos;
+    elContatos.innerHTML = listaContatos;
 
     refrescarIcones();
 }
@@ -656,45 +662,92 @@ export async function excluirItemControleAtual() {
 // ---- Alertas vinculados: REMOVIDO (v6) — não existe mais cadastro de
 // alerta avulso; a ocorrência (box "Ocorrências" acima) já é o alerta.
 
-// ---- Contatos vinculados ao item
-function formContatoItemHtml() {
-    return `<div class="raiz-form-borda p-2 mb-2 space-y-2">
-        <select id="fic-ct-papel" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-            <option value="seguradora">Seguradora</option>
-            <option value="corretor">Corretor(a) de seguro</option>
-            <option value="oficina">Oficina</option>
-            <option value="assistencia">Assistência técnica</option>
-            <option value="administradora">Administradora</option>
-            <option value="advogado">Advogado(a)</option>
-            <option value="outro">Outro</option>
-        </select>
-        <input id="fic-ct-nome" placeholder="Nome" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-        <input id="fic-ct-whatsapp" placeholder="WhatsApp (opcional)" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-        <input id="fic-ct-email" placeholder="E-mail (opcional)" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-        <div class="flex justify-end gap-2">
-            <button data-action="alternar-form-contato-item" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
-            <button data-action="salvar-contato-item" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Salvar contato</button>
-        </div>
-    </div>`;
+// ---- Contatos vinculados ao item (revisão DS 25/08/2026, pedido
+// explícito) — formulário inline (raiz-form-borda) virou bottom-sheet
+// Tipo B de verdade (modal-editar-contato-item, DS §9), reaproveitado
+// tanto pra criar quanto editar (contatoEmEdicaoId decide qual). Ganhou
+// "todos os campos" da tabela (empresa/telefone/observação, antes
+// ausentes da interface) + opção de excluir.
+export function abrirNovoContatoItem() {
+    contatoEmEdicaoId = null;
+    document.getElementById('ct-ed-papel').value = 'seguradora';
+    document.getElementById('ct-ed-nome').value = '';
+    document.getElementById('ct-ed-empresa').value = '';
+    document.getElementById('ct-ed-telefone').value = '';
+    document.getElementById('ct-ed-whatsapp').value = '';
+    document.getElementById('ct-ed-email').value = '';
+    document.getElementById('ct-ed-observacao').value = '';
+    document.getElementById('modal-editar-contato-item-titulo').textContent = 'Novo contato';
+    document.getElementById('ct-ed-excluir-wrapper').classList.add('hidden');
+    abrirModal('modal-editar-contato-item');
 }
 
-export function alternarFormContatoItem() {
-    formContatoItemAberto = !formContatoItemAberto;
-    renderizarFichaItemControle();
+export function abrirEditarContatoItem(contatoId) {
+    const c = contatosDoItemAtual.find(x => x.id === contatoId);
+    if (!c) return;
+    contatoEmEdicaoId = contatoId;
+    document.getElementById('ct-ed-papel').value = c.papel;
+    document.getElementById('ct-ed-nome').value = c.nome;
+    document.getElementById('ct-ed-empresa').value = c.empresa || '';
+    document.getElementById('ct-ed-telefone').value = c.telefone || '';
+    document.getElementById('ct-ed-whatsapp').value = c.whatsapp || '';
+    document.getElementById('ct-ed-email').value = c.email || '';
+    document.getElementById('ct-ed-observacao').value = c.observacao || '';
+    document.getElementById('modal-editar-contato-item-titulo').textContent = 'Editar contato';
+    document.getElementById('ct-ed-excluir-wrapper').classList.remove('hidden');
+    abrirModal('modal-editar-contato-item');
 }
 
-export async function salvarContatoItem() {
-    const nome = document.getElementById('fic-ct-nome').value.trim();
+export function fecharEditarContatoItem() {
+    fecharModal('modal-editar-contato-item');
+}
+
+export async function salvarContatoItemModal() {
+    const nome = document.getElementById('ct-ed-nome').value.trim();
     if (!nome) { mostrarToast('Informe o nome do contato.', 'erro'); return; }
+    const payload = {
+        papel: document.getElementById('ct-ed-papel').value, nome,
+        empresa: document.getElementById('ct-ed-empresa').value.trim() || null,
+        telefone: document.getElementById('ct-ed-telefone').value.trim() || null,
+        whatsapp: document.getElementById('ct-ed-whatsapp').value.trim() || null,
+        email: document.getElementById('ct-ed-email').value.trim() || null,
+        observacao: document.getElementById('ct-ed-observacao').value.trim() || null,
+    };
     try {
-        await api.criarContato({
-            cliente_id: estado.clienteId, item_controle_id: itemEmFoco.id, papel: document.getElementById('fic-ct-papel').value, nome,
-            whatsapp: document.getElementById('fic-ct-whatsapp').value.trim() || null, email: document.getElementById('fic-ct-email').value.trim() || null,
-        });
-        mostrarToast('Contato salvo ✅');
-        formContatoItemAberto = false;
+        if (contatoEmEdicaoId) {
+            await api.atualizarContato(contatoEmEdicaoId, payload);
+            mostrarToast('Contato atualizado ✅');
+        } else {
+            await api.criarContato({ cliente_id: estado.clienteId, item_controle_id: itemEmFoco.id, ...payload });
+            mostrarToast('Contato salvo ✅');
+        }
+        fecharModal('modal-editar-contato-item');
         await recarregarFichaItemControle();
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+export async function excluirContatoItemModal() {
+    if (!contatoEmEdicaoId) return;
+    if (!confirm('Excluir este contato?')) return;
+    try {
+        await api.excluirContato(contatoEmEdicaoId);
+        mostrarToast('Contato excluído.');
+        fecharModal('modal-editar-contato-item');
+        await recarregarFichaItemControle();
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// Atalho de WhatsApp direto na lista (pedido explícito) — mesma
+// mensagem padrão já usada em acionarContatoAlerta() (cofre-documentos.js,
+// Visão Geral), pra manter consistência entre os 2 pontos de contato.
+export function acionarContatoItemDireto(contatoId) {
+    const c = contatosDoItemAtual.find(x => x.id === contatoId);
+    if (!c || !c.whatsapp) { mostrarToast('Este contato não tem WhatsApp cadastrado.', 'erro'); return; }
+    const item = itemEmFoco;
+    const descricaoItem = item.tipo ? `${item.titulo} (${rotuloTipoControle(item.tipo)})` : item.titulo;
+    const mensagem = `Olá! Poderia nos enviar uma cotação atualizada para a renovação do item de controle "${descricaoItem}"? Obrigado!`;
+    const numero = c.whatsapp.replace(/\D/g, '');
+    window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
 }
 
 // ============================================================================

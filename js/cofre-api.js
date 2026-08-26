@@ -401,6 +401,21 @@ export async function criarContato(payload) {
     if (error) throw error;
 }
 
+export async function atualizarContato(id, patch) {
+    const { error } = await dbAuth.from('cofre_contatos_acionamento').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+// DELETE de verdade (não soft-delete) — cofre_contatos_acionamento não
+// tem coluna status/ativo, diferente do resto do Cofre. Dado de baixo
+// risco (nome/telefone/e-mail), nenhuma outra tabela referencia um
+// contato excluído, então não há necessidade de preservar histórico
+// aqui como acontece com item/ativo/documento.
+export async function excluirContato(id) {
+    const { error } = await dbAuth.from('cofre_contatos_acionamento').delete().eq('id', id);
+    if (error) throw error;
+}
+
 // ============================================================================
 // CONTROLES / OCORRÊNCIAS — módulo de Alarmes (Fase 1, núcleo). Escrita
 // direta via RLS (cofre_itens_controle_write / cofre_ocorrencias_controle_write,

@@ -6,6 +6,62 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.64.0
+   LINHAS: 25053
+   DATA: 2026-08-26
+   NOVIDADES (Beta v1.64.0) — ABAS SOBRE E LICENÇA EXTRAÍDAS PRA CÓDIGO
+   COMPARTILHADO (pedido explícito): essas telas são de administração do
+   CLIENTE (empresa) — plano contratado, dados cadastrais, suporte —
+   não são conceitualmente do módulo Imóveis, e o Cofre (e módulos
+   futuros) também precisam delas. Até aqui, o Cofre resolvia isso com
+   um deep-link pra cá (?ir=tab-licenca, v1.62.3) — remendo funcional,
+   mas cada tela continuava existindo só neste arquivo. Primeira rodada
+   de uma extração maior (Pessoas e Minha Empresa ficam pra uma próxima
+   sessão, mesmo padrão) — comecei por Sobre/Licença por serem as com
+   menos funções/elementos, decisão do próprio usuário.
+
+     - 2 módulos novos: js/comum-sobre.js e js/comum-licenca.js (ver
+       changelog próprio em cada arquivo). São ES modules de verdade —
+       App e Cofre importam o MESMO arquivo; nenhum dos dois "contém" a
+       tela. Seguem a mesma Diretriz Arquitetural já usada nos módulos
+       do Cofre (cofre-api.js) e no bridge de Comunicações
+       (comunicacoes-app.js, já existente aqui): não criam client
+       Supabase próprio, recebem `dbAuth` já autenticado do host por
+       parâmetro — evita 2ª sessão/round-trip dentro da mesma página.
+     - <section id="tab-sobre">/<section id="tab-licenca"> continuam
+       existindo com os MESMOS ids (switchTab()/TAB_PARENT_MAP/
+       abrirAbaPorDeepLink() dependem deles) — só o conteúdo interno
+       virou um <div id="mount-sobre">/<div id="mount-licenca"> vazio,
+       populado via import() dinâmico.
+     - atualizarSecaoSobreLicenca()/inicializarLicenca() continuam
+       existindo com os MESMOS nomes (viraram pontes finas de ~15
+       linhas) — nenhum outro call site (switchTab(), bootstrap pós-
+       login) precisou mudar.
+     - enviarFeedbackLivreSobre() REMOVIDA (não só desativada — grep
+       confirmou zero chamadores restantes): envio de feedback da aba
+       Sobre agora é responsabilidade do módulo.
+     - aplicarBrandingCliente() perdeu as 3 linhas que escreviam direto
+       em sobre-logo/sobre-nome-empresa/sobre-dados-empresa (elementos
+       não existem mais estaticamente) — montarAbaSobre() recebe
+       CONFIG_CLIENTE inteiro e desenha esses dados sozinho.
+     - MUDANÇA DE CONCEITO (não só de lugar): a aba Licença buscava só
+       a licença do módulo 'imoveis' (hardcoded em 3 pontos). Agora
+       busca TODAS as licenças do cliente, sem filtro de módulo — hoje
+       isso não muda nada pra quase ninguém (confirmado contra o banco
+       ao vivo: 10 clientes só com 'imoveis', 1 com 'imoveis'+'gestao'
+       — a tela fica pixel-idêntica quando há só 1 licença), mas fica
+       pronto pro Cofre ganhar sua própria linha em `licencas` no
+       futuro sem precisar mexer neste arquivo de novo. Ver nota
+       completa em comum-licenca.js.
+     - LICENCA_ATUAL/carregarLicencaAtual()/dev_carregarLicenca() (usado
+       pelas checagens de limite de Imóveis — fn_verificar_limite,
+       verificarLimiteAntesDeAbrir(), painel DEV) NÃO foram tocados —
+       são hardcoded em 'imoveis' de propósito (é exatamente o que
+       devem checar) e continuam existindo à parte, sem relação com a
+       extração desta versão.
+     - Arquivos alterados/novos: index.html, js/comum-sobre.js (novo),
+       js/comum-licenca.js (novo).
+
    VERSÃO: Beta v1.63.0
    LINHAS: 25238
    DATA: 2026-08-26
@@ -7565,89 +7621,22 @@
         </section>
 
 
+        <!-- v1.64.0 (pedido explícito) — conteúdo desta aba saiu daqui:
+             agora vive em js/comum-sobre.js (módulo compartilhado — App e
+             Cofre importam o mesmo arquivo, nenhum dos dois "contém" a
+             tela). O id="tab-sobre" do <section> PRECISA continuar existindo
+             (switchTab()/TAB_PARENT_MAP/abrirAbaPorDeepLink() dependem dele)
+             — só o conteúdo interno virou um mount-point vazio, populado por
+             montarAbaSobre() (ver chamada em atualizarSecaoSobreLicenca()). -->
         <section id="tab-sobre" class="tab-content hidden">
-
-            <div class="bg-white rounded-xl border border-gray-200 p-4 text-center mb-3">
-                <img src="" id="sobre-logo" class="h-14 mx-auto mb-2 hidden" alt="Logo">
-                <h2 id="sobre-nome-empresa" class="text-xl font-black text-slate-800 mb-0.5">RUMO</h2>
-                <p id="sobre-dados-empresa" class="text-xs text-gray-500"></p>
-            </div>
-
-            <!-- FASE 1A (v1.39.2/v1.39.4) — plano/licença desta empresa, com
-                 contagem regressiva se for trial, e botão de contratar quando
-                 fizer sentido. Populado por atualizarSecaoSobreLicenca(). -->
-            <div id="sobre-licenca-box" class="hidden bg-white rounded-xl border border-gray-200 p-4 mb-3"></div>
-
-            <!-- FASE 1A (v1.39.4) — bloco de dúvidas/sugestões movido pra
-                 logo após a licença (era o último bloco da tela). As 3 vias
-                 (zap, e-mail, formulário livre) ficam juntas aqui, sem abrir
-                 modal separado — o texto livre grava direto na tabela
-                 feedback (mesmo destino que o antigo ícone flutuante). -->
-            <div class="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-                <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-2">Dúvidas, suporte ou sugestões?</p>
-                <div class="grid grid-cols-2 gap-2 mb-2.5">
-                    <a href="https://wa.me/5511947461828" target="_blank" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-white font-bold text-[12px] shadow-sm active:scale-95 transition" style="background:var(--pine)">
-                        <svg data-lucide="message-circle" style="width:17px;height:17px"></svg>
-                        WhatsApp
-                    </a>
-                    <a href="mailto:contato@raizpatrimonio.com.br" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl font-bold text-[12px] border-2 active:scale-95 transition" style="border-color:var(--pine);color:var(--pine)">
-                        <svg data-lucide="mail" style="width:17px;height:17px"></svg>
-                        E-mail
-                    </a>
-                </div>
-                <label class="block text-[10.5px] font-bold text-gray-500 mb-1">Ou escreve aqui direto:</label>
-                <textarea id="sobre-feedback-texto" placeholder="Sugestão, dúvida ou algo travou..." rows="2" class="w-full p-2 border rounded-lg text-[12.5px] mb-1.5 box-border"></textarea>
-                <button onclick="enviarFeedbackLivreSobre()" class="w-full bg-slate-700 text-white font-bold text-[12px] py-2 rounded-lg">Enviar</button>
-            </div>
-
-            <!-- FASE 1A (v1.39.5) — Sair saiu do cabeçalho (só o ícone de
-                 balão ficou lá) e mora aqui agora, dentro da aba Sobre. -->
-            <button onclick="fazerLogoutSupabase()" class="w-full bg-white border border-gray-200 text-gray-500 font-bold text-[12.5px] py-2.5 rounded-xl mb-3 flex items-center justify-center gap-2">
-                <svg data-lucide="log-out" style="width:14px;height:14px"></svg> Sair
-            </button>
-
-            <!-- FASE 1A (v1.39.4) — o parágrafo grande explicando "o que é o
-                 Raiz Patrimônio" saiu daqui (era o que mais ocupava altura,
-                 forçando rolagem). Fica só um rodapé compacto, tipo crédito/
-                 copyright: versão, site, nome da empresa. -->
-            <p class="text-center text-[10.5px] text-gray-400 leading-relaxed pt-1 pb-2">
-                Raiz Patrimônio <span id="sobre-versao-badge" class="font-mono font-bold">BETA v1.61.4</span>
-                · <a href="https://www.raizpatrimonio.com.br" target="_blank" class="underline">raizpatrimonio.com.br</a>
-            </p>
-
+            <div id="mount-sobre"></div>
         </section>
         <!-- ================= ABA: LICENÇA ================= -->
+        <!-- v1.64.0 (pedido explícito) — mesma extração da aba Sobre acima,
+             agora em js/comum-licenca.js. Populado por montarAbaLicenca()
+             (ver inicializarLicenca(), chamada por switchTab()). -->
         <section id="tab-licenca" class="tab-content hidden">
-
-            <h2 class="text-lg font-bold text-emerald-900 mb-4">Licença</h2>
-
-            <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-                <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-3">Plano Atual</p>
-                
-                <div id="licenca-plano-box" class="space-y-2">
-                    <div class="flex justify-between items-center pb-2 border-b border-gray-200">
-                        <span class="text-sm font-bold text-slate-700">Plano:</span>
-                        <span id="licenca-nome-plano" class="text-sm font-black text-emerald-700">-</span>
-                    </div>
-                    <div class="flex justify-between items-center pb-2 border-b border-gray-200">
-                        <span class="text-sm font-bold text-slate-700">Status:</span>
-                        <span id="licenca-status" class="text-sm font-bold text-emerald-600">-</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm font-bold text-slate-700">Vigência:</span>
-                        <span id="licenca-vigencia" class="text-sm font-bold text-slate-600">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl border border-gray-200 p-4">
-                <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-3">Funcionalidades Ativas com Limites</p>
-                
-                <div id="licenca-funcionalidades-box" class="space-y-3 max-h-96 overflow-y-auto">
-                    <p class="text-xs text-gray-500 text-center py-4">Carregando funcionalidades...</p>
-                </div>
-            </div>
-
+            <div id="mount-licenca"></div>
         </section>
 
     </main>
@@ -7806,7 +7795,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.63.0";
+        const APP_VERSAO = "Beta v1.64.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -7917,11 +7906,12 @@
             setLogo('logo-splash');
             setLogo('logo-header');
 
-            const sobreLogo = document.getElementById('sobre-logo');
-            if (sobreLogo && CONFIG_CLIENTE.logoUrl) {
-                sobreLogo.src = CONFIG_CLIENTE.logoUrl;
-                sobreLogo.classList.remove('hidden');
-            }
+            // v1.64.0 — as 3 linhas que escreviam direto em sobre-logo/
+            // sobre-nome-empresa/sobre-dados-empresa saíram daqui: esses
+            // elementos não existem mais estaticamente no HTML (a aba Sobre
+            // virou mount-point de js/comum-sobre.js). montarAbaSobre()
+            // recebe CONFIG_CLIENTE inteiro como parâmetro e desenha esses
+            // mesmos dados sozinho — ver atualizarSecaoSobreLicenca().
 
             const map = {
                 'pdf-logo-empresa': nome.toUpperCase(),
@@ -7930,22 +7920,11 @@
                 'pdf-nome-responsavel': CONFIG_CLIENTE.nomeResponsavel || '',
                 'pdf-nome-empresa-assinatura': nome,
                 'pdf-cnpj-assinatura': CONFIG_CLIENTE.cnpj || '-',
-                'sobre-nome-empresa': nome,
-                'sobre-nome-empresa-rodape': nome
             };
             Object.keys(map).forEach(function (id) {
                 const el = document.getElementById(id);
                 if (el) el.textContent = map[id];
             });
-
-            const sobreDados = document.getElementById('sobre-dados-empresa');
-            if (sobreDados) {
-                const partes = [];
-                if (CONFIG_CLIENTE.cnpj) partes.push('CNPJ: ' + CONFIG_CLIENTE.cnpj);
-                const cidadeUf = [CONFIG_CLIENTE.cidade, CONFIG_CLIENTE.uf].filter(Boolean).join('/');
-                if (cidadeUf) partes.push(cidadeUf);
-                sobreDados.textContent = partes.join(' · ');
-            }
 
             // Versão do app: já aplicada em window.onload a partir de APP_VERSAO
             // (fonte única, ver topo do script) — nada a fazer aqui.
@@ -12982,29 +12961,16 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        // FASE 1A (v1.39.4) — versão inline (aba Sobre) do envio de feedback
-        // livre. A antiga (modal, abrirFormFeedbackLivre/enviarFeedbackLivre)
-        // continua existindo sem uso — não removi pra não arriscar quebrar
-        // alguma referência esquecida, mas o fluxo atual é este daqui.
-        async function enviarFeedbackLivreSobre() {
-            const campo = document.getElementById('sobre-feedback-texto');
-            const texto = campo ? campo.value.trim() : '';
-            if (!texto) { mostrarToast('Escreve alguma coisa antes de enviar.', 'danger'); return; }
-            try {
-                const { error } = await dbAuth.from('feedback').insert({
-                    cliente_id: CLIENTE_ID_SUPABASE,
-                    pessoa_id: pessoaIdLogada,
-                    origem: 'icone_suspenso',
-                    comentario: texto
-                });
-                if (error) throw error;
-                mostrarToast('Feedback enviado, obrigado! 🙏', 'success');
-                campo.value = '';
-            } catch (err) {
-                mostrarToast('Não deu pra enviar agora. Tenta de novo mais tarde.', 'danger');
-                console.warn('Erro ao enviar feedback:', err.message);
-            }
-        }
+        // v1.64.0 (pedido explícito) — enviarFeedbackLivreSobre() foi
+        // REMOVIDA daqui (não só marcada como não-usada): o envio de
+        // feedback da aba Sobre agora é responsabilidade de
+        // js/comum-sobre.js (montarAbaSobre() → listener do botão
+        // "Enviar"). Confirmado por grep antes de remover: essa função só
+        // tinha 1 chamador (o onclick inline que morava dentro da aba
+        // Sobre em si, removido junto na mesma entrega) — diferente do
+        // par legado abrirFormFeedbackLivre()/enviarFeedbackLivre() logo
+        // abaixo, que é um fluxo à parte (ícone flutuante antigo) e
+        // continua existindo por precaução.
 
         function abrirFormFeedbackLivre() {
             let overlay = document.getElementById('overlay-feedback-livre');
@@ -13050,126 +13016,32 @@
 
         // NPS legado migrado para Central Omnichannel em Beta v1.43.0.
 
-        // ---------------- ABA LICENÇA (v1) — visão do próprio cliente ----------------
-        // v1.41.2 — antes esta função nem existia: switchTab('tab-licenca')
-        // chamava inicializarLicenca() condicionalmente (typeof === 'function'),
-        // então nada acontecia e a mensagem placeholder "Carregando
-        // funcionalidades..." ficava para sempre. Reaproveita a mesma licença
-        // já buscada pelo painel DEV (LICENCA_ATUAL) quando disponível, para
-        // não duplicar a consulta.
+        // ---------------- ABA LICENÇA — visão do próprio cliente ----------------
+        // v1.64.0 (pedido explícito) — REESCRITA COMPLETA: toda a lógica de
+        // busca/render que morava aqui (licença + funcionalidades com
+        // limite) saiu pra js/comum-licenca.js (módulo compartilhado — App
+        // e Cofre importam o mesmo arquivo). Esta função virou uma PONTE
+        // fina: mantém o mesmo nome/assinatura de antes de propósito, pra
+        // switchTab() (que chama inicializarLicenca() condicionalmente ao
+        // trocar pra 'tab-licenca') não precisar mudar nem uma linha.
+        //
+        // NOTA: esta ponte NÃO reaproveita LICENCA_ATUAL (a licença
+        // hardcoded pro módulo 'imoveis', usada pelas checagens de limite
+        // em verificarLimiteAntesDeAbrir()/o painel DEV — ver
+        // carregarLicencaAtual()). montarAbaLicenca() busca TODAS as
+        // licenças do cliente por conta própria (ver changelog de
+        // comum-licenca.js v1.0.0) — são responsabilidades diferentes que
+        // só coincidiam de usar o mesmo dado antes desta extração.
         async function inicializarLicenca() {
-
-            const funcBox = document.getElementById('licenca-funcionalidades-box');
-            const nomePlanoEl = document.getElementById('licenca-nome-plano');
-            const statusEl = document.getElementById('licenca-status');
-            const vigenciaEl = document.getElementById('licenca-vigencia');
-            if (!funcBox) return;
-
-            funcBox.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Carregando funcionalidades...</p>';
-
+            const mount = document.getElementById('mount-licenca');
+            if (!mount) return;
             try {
-                let lic = LICENCA_ATUAL;
-
-                if (!lic && CLIENTE_ID_SUPABASE) {
-                    const { data, error } = await dbAuth
-                        .from('licencas')
-                        .select('*')
-                        .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                        .eq('modulo', 'imoveis')
-                        .maybeSingle();
-                    if (error) throw error;
-                    lic = data;
-                    LICENCA_ATUAL = lic;
-                }
-
-                if (!lic) {
-                    nomePlanoEl.innerText = '-';
-                    statusEl.innerText = 'Sem licença cadastrada';
-                    vigenciaEl.innerText = '-';
-                    funcBox.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Nenhuma licença encontrada para esta empresa.</p>';
-                    return;
-                }
-
-                nomePlanoEl.innerText = lic.plano_codigo || '-';
-                statusEl.innerText = (lic.status || '-').toUpperCase();
-
-                const inicio = lic.data_inicio ? new Date(lic.data_inicio).toLocaleDateString('pt-BR') : '-';
-                const fim = lic.data_expiracao ? new Date(lic.data_expiracao).toLocaleDateString('pt-BR') : 'sem data de expiração';
-                vigenciaEl.innerText = `${inicio} até ${fim}`;
-
-                // Funcionalidades do plano que têm algum limite configurado
-                // (limite não nulo). Sem "join" embutido de propósito —
-                // reduz a chance de quebrar por causa de nome de relação/FK
-                // que eu não tenho como confirmar sem acesso ao banco ao vivo.
-                //
-                // BUG FIX (achado pelo usuário, 25/08/2026): a tabela real é
-                // `plano_funcionalidade` (singular, sem "s") — o código
-                // buscava `plano_funcionalidades` (plural), que não existe,
-                // e sempre dava 404. A coluna de limite também estava
-                // errada: é `limite`, não `limite_final`. Confirmado direto
-                // no schema live via Supabase MCP antes de corrigir.
-                const { data: funcs, error: errFuncs } = await dbAuth
-                    .from('plano_funcionalidade')
-                    .select('*')
-                    .eq('plano_codigo', lic.plano_codigo)
-                    .not('limite', 'is', null);
-
-                if (errFuncs) throw errFuncs;
-
-                if (!funcs || funcs.length === 0) {
-                    funcBox.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Este plano não tem funcionalidades com limite configurado.</p>';
-                    return;
-                }
-
-                // Nomes amigáveis (nome_comercial) em vez do código técnico
-                // bruto (ex.: "cofre.ver") — busca separada, sem depender de
-                // sintaxe de embed/FK que eu não confirmei existir.
-                let nomesComerciais = {};
-                try {
-                    const codigosFuncs = funcs.map(f => f.funcionalidade_codigo).filter(Boolean);
-                    const { data: funcionalidadesInfo } = await dbAuth
-                        .from('funcionalidades').select('codigo, nome_comercial').in('codigo', codigosFuncs);
-                    (funcionalidadesInfo || []).forEach(fi => { if (fi.nome_comercial) nomesComerciais[fi.codigo] = fi.nome_comercial; });
-                } catch (errNomes) {
-                    console.warn('Não foi possível carregar nomes comerciais das funcionalidades (segue com o código técnico):', errNomes.message);
-                }
-
-                const usos = await Promise.all(funcs.map(f => {
-                    const codigo = f.funcionalidade_codigo || f.funcionalidade || f.codigo;
-                    return dbAuth.rpc('fn_verificar_limite', { p_cliente_id: CLIENTE_ID_SUPABASE, p_modulo: 'imoveis', p_funcionalidade: codigo })
-                        .then(r => Array.isArray(r.data) ? r.data[0] : r.data)
-                        .catch(() => null);
-                }));
-
-                funcBox.innerHTML = funcs.map((f, i) => {
-                    const codigo = f.funcionalidade_codigo || f.funcionalidade || f.codigo || '-';
-                    const rotulo = nomesComerciais[codigo] || codigo;
-                    const uso = usos[i];
-                    const usado = uso && uso.usado != null ? uso.usado : 0;
-                    const limite = f.limite;
-                    const limiteAviso = f.limite_aviso;
-                    const pct = limite ? Math.min(100, Math.round((usado / limite) * 100)) : 0;
-                    const corBarra = pct >= 100 ? 'bg-red-500' : (pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500');
-
-                    return `
-                        <div class="border-2 border-slate-300 rounded-xl p-2.5">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-xs font-bold text-slate-700">${rotulo}</span>
-                                <span class="text-[11px] font-bold text-slate-500">${usado} / ${limite}</span>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-1.5">
-                                <div class="${corBarra} h-1.5 rounded-full" style="width:${pct}%"></div>
-                            </div>
-                            ${limiteAviso ? `<p class="text-[10px] text-gray-400 mt-1">Aviso a partir de ${limiteAviso}</p>` : ''}
-                        </div>
-                    `;
-                }).join('');
-
+                const { montarAbaLicenca } = await import('./js/comum-licenca.js');
+                await montarAbaLicenca(mount, { dbAuth, clienteId: CLIENTE_ID_SUPABASE });
             } catch (err) {
-                console.warn('Erro ao carregar Licença:', err.message);
-                funcBox.innerHTML = '<p class="text-xs text-red-500 text-center py-4">Não foi possível carregar as funcionalidades agora. Tente novamente em instantes.</p>';
+                console.warn('Falha ao carregar js/comum-licenca.js:', err.message);
+                mount.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar a tela de Licença agora.</p>';
             }
-
         }
 
         // ---------------- DEV: PAINEL DE LICENÇA (só empresa selecionada) ----------------
@@ -13314,88 +13186,31 @@
         // FASE 1A (v1.39.2). Chamado uma vez após o login (entrarNoSistema),
         // usando LICENCA_ATUAL (já carregado em entrarNaEmpresa). Não faz
         // nova consulta — só formata o que já está em memória.
+        // v1.64.0 (pedido explícito) — REESCRITA COMPLETA: toda a lógica que
+        // morava aqui (branding + card de licença compacto + dúvidas/
+        // suporte + Sair) saiu pra js/comum-sobre.js (módulo compartilhado
+        // — App e Cofre importam o mesmo arquivo, nenhum dos dois "contém"
+        // a tela). Nome da função mantido de propósito — é chamada uma
+        // única vez, no fim do bootstrap pós-login (ver entrarNoSistema()),
+        // e trocar o nome obrigaria a caçar esse único call site também;
+        // manter o nome deixa esta ponte praticamente invisível pro resto
+        // do código.
         async function atualizarSecaoSobreLicenca() {
-            const box = document.getElementById('sobre-licenca-box');
-            if (!box) return;
-
-            if (!LICENCA_ATUAL) {
-                box.classList.add('hidden');
-                return;
+            const mount = document.getElementById('mount-sobre');
+            if (!mount) return;
+            try {
+                const { montarAbaSobre } = await import('./js/comum-sobre.js');
+                await montarAbaSobre(mount, {
+                    dbAuth, clienteId: CLIENTE_ID_SUPABASE, pessoaId: pessoaIdLogada,
+                    configCliente: CONFIG_CLIENTE,
+                    appVersao: APP_VERSAO,
+                    onLogout: fazerLogoutSupabase,
+                    onToast: mostrarToast,
+                });
+            } catch (err) {
+                console.warn('Falha ao carregar js/comum-sobre.js:', err.message);
+                mount.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar a tela Sobre agora.</p>';
             }
-
-            const nomesPlano = { trial: 'Trial', standard: 'Standard', plus: 'Plus' };
-            const nomePlano = nomesPlano[LICENCA_ATUAL.plano_codigo] || LICENCA_ATUAL.plano_codigo;
-
-            let linhaExpiracao = '';
-            let botaoContratar = '';
-            let botaoCompartilhar = '';
-
-            if (LICENCA_ATUAL.plano_codigo === 'trial' && LICENCA_ATUAL.data_expiracao) {
-                const hoje = new Date();
-                const expira = new Date(LICENCA_ATUAL.data_expiracao);
-                const diasRestantes = Math.ceil((expira - hoje) / (1000 * 60 * 60 * 24));
-                const textoData = expira.toLocaleDateString('pt-BR');
-
-                if (diasRestantes > 0) {
-                    linhaExpiracao = `<p class="text-xs text-gray-500 mt-1">Expira em <strong>${textoData}</strong> — ${diasRestantes} dia${diasRestantes === 1 ? '' : 's'} restante${diasRestantes === 1 ? '' : 's'}.</p>`;
-                } else {
-                    linhaExpiracao = `<p class="text-xs mt-1" style="color:var(--danger,#c1463a)">Seu teste expirou em ${textoData}.</p>`;
-                }
-
-                botaoContratar = `
-                    <a href="https://wa.me/5511947461828?text=${encodeURIComponent('Oi! Testei o Raiz Patrimônio e quero contratar.')}" target="_blank"
-                       onclick="registrarInteresseContratacao('sobre_licenca')"
-                       class="flex items-center justify-center gap-2 w-full mt-3 py-2.5 rounded-lg text-white font-bold text-[13px] active:scale-95 transition" style="background:var(--pine)">
-                       <svg data-lucide="zap" style="width:16px;height:16px"></svg> Quero Contratar
-                    </a>`;
-
-                // FASE 1A (v1.39.6) — convite de sócio pro trial (até 5
-                // pessoas). Checa a vaga ao vivo pra não oferecer o
-                // compartilhamento se já estiver lotado.
-                try {
-                    const { count, error } = await dbAuth
-                        .from('pessoas')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('cliente_id', CLIENTE_ID_SUPABASE);
-                    if (!error && count !== null) {
-                        if (count < 5) {
-                            // CORRIGIDO (v1.39.7) — "?convite=" precisa vir
-                            // ANTES do "#", senão vira parte do fragmento
-                            // (hash) em vez de query string de verdade, e
-                            // window.location.search na landing nunca vê o
-                            // parâmetro. Formato certo: ?convite=xxx#trial.
-                            const linkConvite = 'https://www.raizpatrimonio.com.br/?convite=' + CLIENTE_ID_SUPABASE + '#trial';
-                            const msgConvite = encodeURIComponent('Oi! Estou testando o Raiz Patrimônio e você pode entrar no mesmo teste grátis comigo. É só clicar aqui e se cadastrar: ' + linkConvite);
-                            botaoCompartilhar = `
-                                <a href="https://wa.me/?text=${msgConvite}" target="_blank"
-                                   onclick="registrarLog('licenca.convite_compartilhado', { modulo: 'imoveis' })"
-                                   class="flex items-center justify-center gap-2 w-full mt-2 py-2.5 rounded-lg font-bold text-[13px] border-2 active:scale-95 transition" style="border-color:var(--pine);color:var(--pine)">
-                                   <svg data-lucide="share-2" style="width:16px;height:16px"></svg> Compartilhar com sócio (${5 - count} vaga${5 - count === 1 ? '' : 's'})
-                                </a>`;
-                        } else {
-                            botaoCompartilhar = `<p class="text-[11px] text-gray-400 text-center mt-2">Limite de 5 pessoas neste teste atingido.</p>`;
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Falha ao checar vagas do trial:', err.message);
-                }
-            }
-
-            const corBadge = LICENCA_ATUAL.plano_codigo === 'trial'
-                ? 'background:var(--brass-light,#f0c88a); color:var(--brass-deep,#a86f27)'
-                : 'background:#e8f5ed; color:#2f8b57';
-
-            box.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] text-gray-400 uppercase tracking-widest font-bold">Seu plano</span>
-                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full" style="${corBadge}">${nomePlano.toUpperCase()}</span>
-                </div>
-                ${linhaExpiracao}
-                ${botaoContratar}
-                ${botaoCompartilhar}
-            `;
-            box.classList.remove('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         async function reenviarPendencias() {

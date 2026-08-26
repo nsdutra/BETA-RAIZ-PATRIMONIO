@@ -236,8 +236,12 @@ document.addEventListener('click', async (ev) => {
         case 'alternar-mais-acoes-doc-item': controles.alternarMaisAcoesDocItem(); break;
         case 'carregar-novo-documento-item': controles.carregarNovoDocumentoItem(); break;
         case 'excluir-documento-do-item': await controles.excluirDocumentoDoItem(alvo.dataset.vinculoId); break;
-        case 'alternar-form-contato-item': controles.alternarFormContatoItem(); break;
-        case 'salvar-contato-item': await controles.salvarContatoItem(); break;
+        case 'abrir-novo-contato-item': controles.abrirNovoContatoItem(); break;
+        case 'abrir-editar-contato-item': controles.abrirEditarContatoItem(alvo.dataset.id); break;
+        case 'fechar-editar-contato-item': controles.fecharEditarContatoItem(); break;
+        case 'salvar-contato-item-modal': await controles.salvarContatoItemModal(); break;
+        case 'excluir-contato-item-modal': await controles.excluirContatoItemModal(); break;
+        case 'acionar-contato-item-direto': controles.acionarContatoItemDireto(alvo.dataset.id); break;
 
         // ---- criação assistida (deep link contexto=imovel sem ativo ainda)
         case 'fechar-criacao-assistida': fecharModal('modal-criacao-assistida'); break;

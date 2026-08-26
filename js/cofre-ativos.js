@@ -343,13 +343,19 @@ async function montarFotosAtivo(a) {
     const fotos = await api.listarFotosAtivo(a.id);
     fotosAtivoCache = fotos;
     const box = document.getElementById('fa-box-fotos');
+    // BUG FIX (25/08/2026, achado pelo usuário) — o onchange do input só
+    // era religado DEPOIS do return antecipado (sem foto nenhuma), então
+    // pra um ativo zerado o clique em "Fotos"/"Adicionar fotos" abria o
+    // seletor de arquivo, mas escolher uma foto não disparava nada —
+    // sem listener nenhum plugado. Movido pra ANTES do return, sempre
+    // religa independente de já existir foto ou não.
+    const inputFoto = document.getElementById('fa-foto-input');
+    inputFoto.value = '';
+    inputFoto.onchange = () => enviarFotosAtivo(a.id);
     if (!fotos.length) { box.classList.add('hidden'); fotosAtivoUrlsCache = []; return; }
     box.classList.remove('hidden');
     fotosAtivoUrlsCache = await Promise.all(fotos.map(f => api.gerarSignedUrl(f.bucket, f.storage_path, 600).catch(() => null)));
     renderizarGridFotos();
-    const inputFoto = document.getElementById('fa-foto-input');
-    inputFoto.value = '';
-    inputFoto.onchange = () => enviarFotosAtivo(a.id);
 }
 
 function renderizarGridFotos() {
