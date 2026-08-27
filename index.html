@@ -6,6 +6,29 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.66.1
+   LINHAS: 24927
+   DATA: 27/08/2026
+   NOVIDADES (Beta v1.66.1) — CABEÇALHO VOLTA A USAR O TOKEN --pine-deep
+   (pedido explícito, reverte a decisão da v1.21.1 do Cofre que tinha
+   ido no sentido contrário):
+
+     - `<header id="main-header">`: `bg-emerald-900` (hardcoded) →
+       `style="background:var(--pine-deep)"`. Mesmo valor de cor
+       (--pine-deep já era #152a24, muito próximo de emerald-900 —
+       #064e3b — mas não idêntico), agora via token do Design System
+       em vez de classe Tailwind fixa. Aplicado em paralelo no Cofre
+       (cofre.html v1.21.2) — os dois cabeçalhos continuam idênticos
+       entre si, só a fonte da cor mudou de "classe hardcoded" pra
+       "token compartilhado".
+     - `js/comum-sobre.js` v1.1.1 (arquivo compartilhado, recebido
+       nesta sessão pela primeira vez): botão "Enviar" (feedback)
+       alinhado ao padrão de ação principal (var(--pine)), antes
+       destoava dos 2 botões vizinhos (WhatsApp/E-mail) com
+       bg-slate-700.
+
+     - Arquivos alterados: index.html (1 linha, header).
+
    VERSÃO: Beta v1.66.0
    LINHAS: 24904
    DATA: 26/08/2026
@@ -5382,7 +5405,7 @@
 
     <!-- ================= HEADER E NAVEGAÇÃO ================= -->
 
-    <header id="main-header" class="hidden bg-emerald-900 text-white sticky top-0 z-50 shadow-md">
+    <header id="main-header" class="hidden text-white sticky top-0 z-50 shadow-md" style="background:var(--pine-deep)">
 
         <div class="p-3 flex justify-between items-center bg-emerald-950">
 
@@ -7796,7 +7819,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.66.0";
+        const APP_VERSAO = "Beta v1.66.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 

@@ -10,6 +10,40 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.21.2
+  Data       : 27/08/2026
+  Título     : CABEÇALHO VOLTA A USAR O TOKEN --pine-deep
+  Base       : v1.21.1 (27/08/2026) — reverte a decisão desse merge, no sentido contrário
+  Linhas     : cofre.html = 3019 · js/cofre-api.js = 614 · js/cofre-app.js = 531 ·
+               js/cofre-ativos.js = 465 · js/cofre-controles.js = 1251 ·
+               js/cofre-documentos.js = 740 · js/cofre-estado.js = 151 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 337 (total js/ = 4418)
+
+  CHANGELOG v1.21.2 — pedido explícito, reverte a v1.21.1: `<header>`
+  volta de `bg-emerald-900` (classe Tailwind hardcoded) pra
+  `style="background:var(--pine-deep)"` (token do Design System).
+  Aplicado em paralelo no App (index.html v1.66.1) — os dois cabeçalhos
+  continuam idênticos entre si (mesmo valor de cor, #152a24), só a
+  fonte da cor mudou de "classe hardcoded" pra "token compartilhado".
+
+  Junto nesta entrega: `js/comum-sobre.js` v1.1.1 (arquivo
+  compartilhado, recebido nesta sessão pela primeira vez) — botão
+  "Enviar" (feedback) alinhado ao padrão de ação principal
+  (var(--pine)), antes destoava dos 2 botões vizinhos (WhatsApp/
+  E-mail) com bg-slate-700. Pedido pendente desde a resposta anterior,
+  só desbloqueado agora que o arquivo chegou.
+
+    - Arquivos alterados: cofre.html (1 linha, header).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.21.1
   Data       : 27/08/2026
   Título     : MERGE — CABEÇALHO PADRONIZADO COM O IMÓVEIS (COR)
@@ -2013,7 +2047,7 @@
          da janela). Só o <main> abaixo é limitado a max-w-md, igual ao App.
          (2) Nome/selo/botões/ícone de robô (com piscar) copiados
          literalmente do App — ver Design System §5-A (novo, App vs. Cofre). -->
-    <header class="sticky top-0 z-40 bg-emerald-900">
+    <header class="sticky top-0 z-40" style="background:var(--pine-deep)">
         <div class="p-3 flex justify-between items-center">
             <div class="min-w-0">
                 <span class="text-lg font-black tracking-wider text-white/80 block leading-tight" id="cofre-nome-empresa">—</span>
@@ -2982,4 +3016,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 2985 (cofre.html) — recontado na v1.21.1; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 3019 (cofre.html) — recontado na v1.21.2; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

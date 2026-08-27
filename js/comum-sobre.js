@@ -1,6 +1,16 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.1.0 · 26/08/2026
+// Versão: 1.1.1 · 27/08/2026
+//
+// v1.1.1 — BUG FIX de conformidade visual (achado pelo usuário): botão
+// "Enviar" (feedback via texto) usava `bg-slate-700`, destoando dos 2
+// botões vizinhos no mesmo box (WhatsApp/E-mail), que já usam
+// `var(--pine)` — o padrão de ação principal do módulo de Imóveis.
+// Corrigido pra usar o mesmo token. Como este arquivo é compartilhado
+// (montado tanto dentro de index.html quanto de cofre.html via
+// mount-point), e os dois hosts já têm `--pine` definido no próprio
+// :root com o mesmo valor, a correção vale nos 2 lugares sem precisar
+// de nenhum ajuste condicional por host.
 //
 // v1.1.0 — pedido explícito: "adicione no módulo de Sobre a versão do
 // módulo do Cofre, e dos bots".
@@ -252,7 +262,7 @@ export async function montarAbaSobre(mountEl, ctx) {
             </div>
             <label class="block text-[10.5px] font-bold text-gray-500 mb-1">Ou escreve aqui direto:</label>
             <textarea id="comum-sobre-feedback-texto" placeholder="Sugestão, dúvida ou algo travou..." rows="2" class="w-full p-2 border rounded-lg text-[12.5px] mb-1.5 box-border"></textarea>
-            <button id="comum-sobre-btn-enviar-feedback" class="w-full bg-slate-700 text-white font-bold text-[12px] py-2 rounded-lg">Enviar</button>
+            <button id="comum-sobre-btn-enviar-feedback" class="w-full text-white font-bold text-[12px] py-2 rounded-lg" style="background:var(--pine)">Enviar</button>
         </div>
 
         <button id="comum-sobre-btn-sair" class="w-full bg-white border border-gray-200 text-gray-500 font-bold text-[12.5px] py-2.5 rounded-xl mb-3 flex items-center justify-center gap-2">
