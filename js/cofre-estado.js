@@ -2,6 +2,15 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
+// v1.21.1 — MERGE: cabeçalho padronizado com o Imóveis (cor) — pedido
+// explícito. Ver changelog completo em cofre.html. cofre-estado.js em
+// si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
+//
+// v1.21.0 — Menu "Imóvel" + cabeçalho do ativo dentro do box + bug fix
+// modal Documentos (pedido explícito). Ver changelog completo em
+// cofre.html. cofre-estado.js em si não mudou de conteúdo — só o
+// COFRE_VERSAO abaixo.
+//
 // v1.20.0 — MERGE de 2 branches paralelos que divergiram do mesmo
 // v1.18.0 em conversas separadas, cada um se autodenominando "v1.19.0"
 // (pedido explícito: "faça o merge"):
@@ -120,7 +129,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.20.0';
+export const COFRE_VERSAO = '1.21.1';
 
 export const estado = {
     clienteId: null,

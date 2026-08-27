@@ -197,8 +197,20 @@ export async function abrirFichaAtivo(id) {
     ativoAtualId = id;
     estado.ativoEmFoco = a;
 
-    document.getElementById('fa-nome').textContent = a.nome_exibicao;
-    document.getElementById('fa-tipo').textContent = rotuloTipoAtivo(a.tipo_ativo);
+    // Cabeçalho (pedido explícito, 26/08/2026) — vive DENTRO do box
+    // "Dados do ativo" agora, mesmo formato do "Dados do item" do item
+    // de controle: ícone circular representando o TIPO do ativo
+    // (iconeAtivo()) + nome em negrito + tipo como subtítulo. Antes
+    // ficava solto acima do box, só texto, sem ícone.
+    document.getElementById('fa-cabecalho').innerHTML = `
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
+            <div class="min-w-0 flex-1">
+                <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
+                <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
+            </div>
+        </div>
+    `;
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
     document.getElementById('fa-mais-acoes').classList.add('hidden');
 
@@ -313,8 +325,15 @@ export function abrirGestaoImovel() {
 // ---- Documentos
 function montarDocumentosAtivo(a) {
     const docs = documentosDoAtivo(a.id);
+    // BUG FIX (26/08/2026, achado pelo usuário) — clicar num documento
+    // aqui dentro (modal-documentos-ativo, legado, nunca redesenhado
+    // junto do resto) dava erro e mostrava algo "como se estivesse
+    // editando". Pedido explícito: retirar a opção de clique — vira só
+    // listagem informativa (sem data-action) até esta tela ganhar o
+    // mesmo tratamento completo que o box "Documento" do item de
+    // controle já tem (abrir/remover/carregar novo).
     document.getElementById('fa-tab-documentos').innerHTML = docs.length
-        ? docs.map(d => `<button data-action="abrir-documento" data-id="${d.id}" class="w-full text-left raiz-bloco-interno flex items-center justify-between"><span class="text-sm">${escapeHtml(d.nome_exibicao)}</span><i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--sage)"></i></button>`).join('')
+        ? docs.map(d => `<div class="w-full raiz-bloco-interno flex items-center gap-2"><i data-lucide="file-text" style="width:14px;height:14px;color:var(--sage);flex-shrink:0"></i><span class="text-sm truncate">${escapeHtml(d.nome_exibicao)}</span></div>`).join('')
         : `<p class="text-xs" style="color:var(--sage)">Nenhum documento vinculado a este ativo ainda.</p>`;
 }
 

@@ -6,6 +6,47 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.66.0
+   LINHAS: 24904
+   DATA: 26/08/2026
+   NOVIDADES (Beta v1.66.0) — DOCUMENTO NO CONTRATO + FOTO NO IMÓVEL
+   (GRAVADA NO COFRE) (pedido explícito):
+
+     1) NOVO box "Documento" na Ficha do Contrato — só aparece quando o
+        contrato está "Ativo" ou "Assinando". Mesma referência do box
+        de Documento já usado no item de controle do Cofre: linha
+        clicável abre via signed URL, "x" remove só o vínculo
+        (documento continua guardado, vira "Em triagem" no Cofre),
+        "Carregar novo" no Mais ações — upload direto pro Cofre
+        (cofre_documentos + cofre_documento_vinculos entidade_tipo=
+        'contrato'), mesmo padrão de storage já usado em
+        gerarMinutaNoCofre(). Novas funções: montarDocumentosContrato(),
+        abrirDocumentoContratoAtual(), removerDocumentoContratoAtual(),
+        carregarNovoDocumentoContrato(), alternarMaisAcoesDocContrato().
+
+     2) NOVO box "Foto" na Ficha do Imóvel — só aparece quando há foto
+        cadastrada, mesmos controles do box de Foto do Ativo no Cofre
+        (miniatura real via signed URL, lightbox com navegação —
+        reaproveita abrirLightboxGeral/fecharLightboxGeral já
+        existentes —, remover, "Adicionar fotos" no Mais ações).
+        Pill "Fotos" também no Mais ações de "Dados do imóvel"
+        (bootstrap da 1ª foto, mesmo princípio já usado no Cofre).
+     - Pedido explícito: "as fotos devem ser gravadas no módulo cofre"
+       — usa cofre_ativo_fotos (MESMA tabela do Ativo), não o
+       mecanismo próprio antigo (imo.fotos, array de base64 direto no
+       registro do imóvel — esse continua existindo, intocado, só não
+       é mais o destino de fotos NOVAS enviadas por este box).
+     - cofre_ativo_fotos é ativo_id-scoped (sem entidade_tipo/
+       entidade_id genérico) — nova buscarOuCriarAtivoCofreDoImovel()
+       acha ou cria sozinha um "ativo-ponte" no Cofre (tipo_ativo=
+       'imovel', entidade_origem_tipo='imovel', entidade_origem_id=
+       <imóvel>) na hora do primeiro upload — a pessoa nunca precisa
+       saber que esse ativo-ponte existe. Ficha só CONSULTA (nunca
+       cria) esse ativo-ponte ao abrir — criar só acontece de verdade
+       no primeiro envio de foto, não é criado em toda visita à ficha.
+
+     - Arquivos alterados: index.html (2 boxes + 10 funções novas).
+
    VERSÃO: Beta v1.65.0
    LINHAS: 24564
    DATA: 2026-08-26
@@ -7755,7 +7796,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.65.0";
+        const APP_VERSAO = "Beta v1.66.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -12932,7 +12973,7 @@
                     // de manutenção manual — vem ao vivo do banco.
                     modulos: [
                         { nome: 'App Raiz Patrimônio', versao: APP_VERSAO },
-                        { nome: 'Cofre de Documentos', versao: 'v1.19.0' },
+                        { nome: 'Cofre de Documentos', versao: 'v1.21.1' },
                     ],
                     onLogout: fazerLogoutSupabase,
                     onToast: mostrarToast,
@@ -15731,12 +15772,47 @@
                         <button onclick="copyResumo('${(`${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}`).replace(/'/g, "")}', '${imo.tipo}', ${imo.valor}, ${imo.suites || 0}, ${imo.condominio || 0})" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="copy" style="width:11px;height:11px"></svg> Copiar resumo</button>
                         ${imo.status === 'Vago' ? `<button onclick="criarContratoParaImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-plus" style="width:11px;height:11px"></svg> Criar contrato</button>` : ''}
                         ${imo.codigoIPTU ? `<button onclick="acionarZapIptuImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="message-circle" style="width:11px;height:11px"></svg> Enviar IPTU</button>` : ''}
+                        <label for="fi-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer"><svg data-lucide="image-plus" style="width:11px;height:11px"></svg> Fotos</label>
                         ${!contratos.some(c => c.imovelId === imo.id) ? `<button onclick="excluirImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trash-2" style="width:11px;height:11px"></svg> Excluir</button>` : ''}
+                    </div>
+                </div>
+
+                <!-- Input de arquivo — pedido explícito, 26/08/2026: vive
+                     FORA do box condicional "Foto" (que só aparece com
+                     foto vinculada), pra sempre estar acionável mesmo sem
+                     nenhuma foto ainda. A pill "Fotos" acima (Mais ações
+                     de Dados do imóvel) e a pill "Adicionar fotos" dentro
+                     do box Foto (mais abaixo) apontam pro MESMO input via
+                     for=, nunca 2 inputs distintos. Mesmo padrão já usado
+                     no Ativo do Cofre. -->
+                <input type="file" id="fi-foto-input" accept="image/*" multiple class="hidden" onchange="enviarFotosImovelParaCofre('${imo.id}')">
+
+                <!-- Box: Foto — NOVO (26/08/2026, pedido explícito): "no
+                     módulo de imóveis, em mais opções incluir o box de
+                     fotos similar ao do ativo. Deve só aparecer se tiver
+                     foto cadastrada e deve ter os mesmos controles do
+                     módulo do ativo. As fotos devem ser gravadas no
+                     módulo cofre." Reaproveita cofre_ativo_fotos — como
+                     essa tabela é ativo_id-scoped (não tem entidade_tipo/
+                     entidade_id genérico), o imóvel precisa de um "ativo"
+                     Cofre correspondente (tipo_ativo='imovel',
+                     entidade_origem_tipo='imovel', entidade_origem_id=
+                     <imóvel>) — buscarOuCriarAtivoCofreDoImovel() acha ou
+                     cria esse vínculo sozinho, sem pedir nada pra pessoa. -->
+                <div id="fi-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
+                    <div id="fi-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
+                    <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                        <button onclick="alternarMaisAcoesFotosImovel()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fi-fotos-seta" style="width:13px;height:13px"></svg></button>
+                    </div>
+                    <div id="fi-fotos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                        <label for="fi-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer"><svg data-lucide="image-plus" style="width:11px;height:11px"></svg> Adicionar fotos</label>
                     </div>
                 </div>`;
 
             switchTab('tab-imovel-ficha');
             renderFichaImovelUnica(imo);
+            montarFotosImovelDoCofre(imo.id);
 
         }
 
@@ -15878,6 +15954,132 @@
             el.classList.toggle('hidden');
             if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // ===================================================================
+        // Box "Foto" da Ficha do Imóvel — NOVO (26/08/2026, pedido
+        // explícito): "no módulo de imóveis, em mais opções incluir o box
+        // de fotos similar ao do ativo. Deve só aparecer se tiver foto
+        // cadastrada e deve ter os mesmos controles do módulo do ativo. As
+        // fotos devem ser gravadas no módulo cofre." Mesma referência
+        // visual/comportamental do box de Foto do Ativo no Cofre
+        // (miniatura real via signed URL, lightbox com navegação, remover,
+        // "Adicionar fotos" no Mais ações) — reaproveita o lightbox que
+        // já existe no App (abrirLightboxGeral/fecharLightboxGeral), só
+        // troca a fonte da URL (signed URL do Cofre em vez de base64).
+        //
+        // cofre_ativo_fotos é ativo_id-scoped (não tem entidade_tipo/
+        // entidade_id genérico como cofre_documento_vinculos) — por isso
+        // o imóvel precisa de um "ativo" Cofre correspondente pra guardar
+        // fotos nele. buscarOuCriarAtivoCofreDoImovel() acha (via
+        // entidade_origem_tipo='imovel' + entidade_origem_id=<imóvel>) ou
+        // cria esse ativo sozinho, na hora, sem pedir nada pra pessoa —
+        // ela nunca precisa saber que esse "ativo-ponte" existe.
+        // ===================================================================
+        let __fotosImovelCache = [];
+        let __fotosImovelUrlsCache = [];
+        let __ativoCofreDoImovelIdCache = null;
+
+        async function buscarOuCriarAtivoCofreDoImovel(imovelId) {
+            const { data: existente, error: errBusca } = await dbAuth
+                .from('cofre_ativos').select('id')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId)
+                .maybeSingle();
+            if (errBusca) throw errBusca;
+            if (existente) return existente.id;
+
+            const imo = imoveis.find(i => i.id === imovelId);
+            const nomeExibicao = imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}`.trim().replace(/^,\s*/, '') || 'Imóvel' : 'Imóvel';
+            const { data: novo, error: errCria } = await dbAuth.from('cofre_ativos').insert({
+                cliente_id: CLIENTE_ID_SUPABASE, tipo_ativo: 'imovel', nome_exibicao: nomeExibicao, status: 'ativo',
+                entidade_origem_tipo: 'imovel', entidade_origem_id: imovelId,
+                identificadores: {}, dados_especificos: {}, criado_por: pessoaIdLogada || null,
+            }).select('id').single();
+            if (errCria) throw errCria;
+            return novo.id;
+        }
+
+        async function montarFotosImovelDoCofre(imovelId) {
+            const box = document.getElementById('fi-box-fotos');
+            if (!box) return;
+            try {
+                const { data: ativoExistente } = await dbAuth
+                    .from('cofre_ativos').select('id')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId)
+                    .maybeSingle();
+                if (!ativoExistente) { box.classList.add('hidden'); __fotosImovelCache = []; __fotosImovelUrlsCache = []; return; }
+                __ativoCofreDoImovelIdCache = ativoExistente.id;
+
+                const { data: fotos, error } = await dbAuth.from('cofre_ativo_fotos').select('*').eq('ativo_id', ativoExistente.id).eq('status', 'ativo').order('ordem');
+                if (error) throw error;
+                __fotosImovelCache = fotos || [];
+                if (!__fotosImovelCache.length) { box.classList.add('hidden'); __fotosImovelUrlsCache = []; return; }
+                box.classList.remove('hidden');
+                __fotosImovelUrlsCache = await Promise.all(__fotosImovelCache.map(async f => {
+                    try { const { data } = await dbAuth.storage.from(f.bucket).createSignedUrl(f.storage_path, 600); return data ? data.signedUrl : null; }
+                    catch (e) { return null; }
+                }));
+                document.getElementById('fi-fotos-grid').innerHTML = __fotosImovelCache.map((f, i) => `
+                    <div class="relative flex-none">
+                        <img src="${__fotosImovelUrlsCache[i] || ''}" onclick="abrirLightboxGeral(${JSON.stringify(__fotosImovelUrlsCache)}, ${i})" class="w-16 h-16 object-cover rounded-lg border border-slate-200 cursor-pointer">
+                        <button onclick="removerFotoImovelDoCofre('${f.id}', '${imovelId}')" title="Remover" class="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full w-5 h-5 flex items-center justify-center shadow-sm"><svg data-lucide="x" style="width:11px;height:11px;color:#64748b"></svg></button>
+                    </div>`).join('');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (err) {
+                box.classList.add('hidden');
+                console.warn('Falha ao carregar fotos do imóvel (Cofre, não bloqueando):', err.message);
+            }
+        }
+
+        function alternarMaisAcoesFotosImovel() {
+            const el = document.getElementById('fi-fotos-acoes');
+            const seta = document.getElementById('fi-fotos-seta');
+            if (!el) return;
+            el.classList.toggle('hidden');
+            if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        async function enviarFotosImovelParaCofre(imovelId) {
+            const input = document.getElementById('fi-foto-input');
+            const arquivos = input.files;
+            if (!arquivos.length) return;
+            mostrarCarregamentoGlobal('Enviando fotos...');
+            try {
+                const ativoId = await buscarOuCriarAtivoCofreDoImovel(imovelId);
+                let ordem = __fotosImovelCache.length;
+                for (const arquivo of arquivos) {
+                    const fotoId = crypto.randomUUID();
+                    const nomeSanitizado = arquivo.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+                    const path = `${CLIENTE_ID_SUPABASE}/ativos/${ativoId}/fotos/${fotoId}_${nomeSanitizado}`;
+                    const { error: errUpload } = await dbAuth.storage.from('cofre-documentos').upload(path, arquivo, { contentType: arquivo.type || 'image/jpeg' });
+                    if (errUpload) throw errUpload;
+                    const { error: errInsert } = await dbAuth.from('cofre_ativo_fotos').insert({
+                        id: fotoId, cliente_id: CLIENTE_ID_SUPABASE, ativo_id: ativoId, bucket: 'cofre-documentos',
+                        storage_path: path, nome_arquivo: arquivo.name, ordem: ordem++, criado_por: pessoaIdLogada || null,
+                    });
+                    if (errInsert) throw errInsert;
+                }
+                input.value = '';
+                esconderCarregamentoGlobal();
+                mostrarToast('Fotos enviadas ✅', 'success');
+                await montarFotosImovelDoCofre(imovelId);
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                alert('❌ Não consegui enviar as fotos: ' + (err.message || String(err)));
+            }
+        }
+
+        async function removerFotoImovelDoCofre(fotoId, imovelId) {
+            if (!confirm('Remover esta foto?')) return;
+            try {
+                const { error } = await dbAuth.from('cofre_ativo_fotos').update({ status: 'arquivado' }).eq('id', fotoId);
+                if (error) throw error;
+                mostrarToast('Foto removida.', 'success');
+                await montarFotosImovelDoCofre(imovelId);
+            } catch (err) {
+                alert('❌ Erro ao remover: ' + (err.message || String(err)));
+            }
         }
 
         function voltarDaFichaImovel() {
@@ -17323,6 +17525,31 @@
                     </div>
                 </div>
 
+                ${(con.status === 'Ativo' || con.status === 'Assinando') ? `
+                <!-- Box: Documento — NOVO (26/08/2026, pedido explícito):
+                     "para um contrato ativo ou assinando, deve ter a opção
+                     de documentos similar à do módulo de ativos anexo".
+                     Mesma referência do box de Documento do item de
+                     controle no Cofre: linha clicável abre (signed URL),
+                     "x" remove só o vínculo (documento continua guardado,
+                     vira "Em triagem" no Cofre), "Carregar novo" no Mais
+                     ações — upload direto pro Cofre (cofre_documentos +
+                     cofre_documento_vinculos entidade_tipo='contrato'),
+                     mesmo padrão já usado em gerarMinutaNoCofre(). -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-sm text-emerald-900">Documento</h3>
+                    <div id="fc-documentos" class="mt-1.5 space-y-1.5"><p class="text-xs text-slate-500">Carregando...</p></div>
+                    <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                        <button onclick="alternarMaisAcoesDocContrato()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fc-doc-seta" style="width:13px;height:13px"></svg></button>
+                    </div>
+                    <div id="fc-doc-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                        <label class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer">
+                            <svg data-lucide="upload" style="width:11px;height:11px"></svg> Carregar novo
+                            <input type="file" id="fc-doc-input" class="hidden" onchange="carregarNovoDocumentoContrato('${con.id}')">
+                        </label>
+                    </div>
+                </div>` : ''}
+
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                     <h3 class="font-bold text-sm text-emerald-900">Recebimentos</h3>
                     <div class="mt-2 space-y-2">
@@ -17338,6 +17565,7 @@
 
             switchTab('tab-contrato-ficha');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (con.status === 'Ativo' || con.status === 'Assinando') montarDocumentosContrato(con.id);
 
         }
 
@@ -17348,6 +17576,118 @@
             el.classList.toggle('hidden');
             if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // ===================================================================
+        // Box "Documento" da Ficha do Contrato — NOVO (26/08/2026, pedido
+        // explícito): "para um contrato ativo ou assinando, deve ter a
+        // opção de documentos similar à do módulo de ativos anexo". Mesma
+        // referência de box de documento já usada no Cofre (item de
+        // controle): linha clicável abre via signed URL, "x" remove só o
+        // vínculo (documento continua guardado, vira "Em triagem" no
+        // Cofre), "Carregar novo" no Mais ações — upload direto pro Cofre,
+        // mesmo padrão de storage já usado em gerarMinutaNoCofre().
+        // ===================================================================
+        let __docsContratoAtual = [];
+
+        function alternarMaisAcoesDocContrato() {
+            const el = document.getElementById('fc-doc-acoes');
+            const seta = document.getElementById('fc-doc-seta');
+            if (!el) return;
+            el.classList.toggle('hidden');
+            if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        async function montarDocumentosContrato(contratoId) {
+            const el = document.getElementById('fc-documentos');
+            if (!el) return;
+            try {
+                const { data, error } = await dbAuth
+                    .from('cofre_documento_vinculos')
+                    .select('id, cofre_documentos!inner(id, nome_exibicao, mime_type, status)')
+                    .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId);
+                if (error) throw error;
+                __docsContratoAtual = (data || []).filter(v => v.cofre_documentos && v.cofre_documentos.status === 'ativo');
+                el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v, i) => `
+                    <div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
+                        <button onclick="abrirDocumentoContratoAtual(${i})" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+                            <svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex-shrink:0"></svg>
+                            <span class="text-xs font-bold truncate">${v.cofre_documentos.nome_exibicao || 'Documento'}</span>
+                        </button>
+                        <button onclick="removerDocumentoContratoAtual(${i})" title="Remover deste contrato" class="flex-none p-1"><svg data-lucide="x" style="width:14px;height:14px;color:#94a3b8"></svg></button>
+                    </div>`).join('') : `<p class="text-xs text-slate-500">Nenhum documento vinculado ainda.</p>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (err) {
+                el.innerHTML = `<p class="text-xs text-red-500">Não consegui carregar os documentos.</p>`;
+                console.warn('Falha ao carregar documentos do contrato (não bloqueando):', err.message);
+            }
+        }
+
+        async function abrirDocumentoContratoAtual(indice) {
+            const v = __docsContratoAtual[indice];
+            if (!v) return;
+            try {
+                const { data: doc, error } = await dbAuth.from('cofre_documentos').select('bucket, storage_path').eq('id', v.cofre_documentos.id).single();
+                if (error) throw error;
+                const { data: signed, error: errSigned } = await dbAuth.storage.from(doc.bucket).createSignedUrl(doc.storage_path, 120);
+                if (errSigned) throw errSigned;
+                window.open(signed.signedUrl, '_blank', 'noopener');
+            } catch (err) {
+                alert('❌ Não consegui abrir o documento: ' + (err.message || String(err)));
+            }
+        }
+
+        // Remove só o VÍNCULO (nunca o documento em si) — mesmo princípio
+        // já usado no Cofre: o documento continua guardado e passa a
+        // aparecer em "Em triagem" na Visão Geral do Cofre.
+        async function removerDocumentoContratoAtual(indice) {
+            const v = __docsContratoAtual[indice];
+            if (!v) return;
+            if (!confirm('Remover este documento do contrato?\n\nO documento continua guardado no Cofre — só desvincula dele.')) return;
+            try {
+                const { error } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', v.id);
+                if (error) throw error;
+                mostrarToast('Documento desvinculado.', 'success');
+                montarDocumentosContrato(fichaContratoAtualId);
+            } catch (err) {
+                alert('❌ Erro ao remover: ' + (err.message || String(err)));
+            }
+        }
+
+        async function carregarNovoDocumentoContrato(contratoId) {
+            const input = document.getElementById('fc-doc-input');
+            const arquivo = input.files[0];
+            input.value = '';
+            if (!arquivo) return;
+            mostrarCarregamentoGlobal('Enviando documento...');
+            try {
+                const nomeSanitizado = arquivo.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+                const agora = new Date();
+                const storagePath = `${CLIENTE_ID_SUPABASE}/${agora.getFullYear()}/${String(agora.getMonth() + 1).padStart(2, '0')}/contrato_${contratoId}_${Date.now()}/${nomeSanitizado}`;
+
+                const { error: errUpload } = await dbAuth.storage.from('cofre-documentos').upload(storagePath, arquivo, { contentType: arquivo.type || 'application/octet-stream' });
+                if (errUpload) throw errUpload;
+
+                const { data: docInserido, error: errDoc } = await dbAuth.from('cofre_documentos').insert({
+                    cliente_id: CLIENTE_ID_SUPABASE, nome_original: arquivo.name, nome_exibicao: arquivo.name,
+                    bucket: 'cofre-documentos', storage_path: storagePath, mime_type: arquivo.type || null,
+                    extensao: (arquivo.name.split('.').pop() || '').toLowerCase(), origem: 'app', status: 'ativo',
+                }).select('id').single();
+                if (errDoc) throw errDoc;
+
+                await dbAuth.from('cofre_documento_vinculos').insert({
+                    cliente_id: CLIENTE_ID_SUPABASE, documento_id: docInserido.id, entidade_tipo: 'contrato',
+                    entidade_id: contratoId, principal: false, criado_por: pessoaIdLogada || null,
+                });
+
+                esconderCarregamentoGlobal();
+                mostrarToast('Documento carregado ✅', 'success');
+                montarDocumentosContrato(contratoId);
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                alert('❌ Não consegui carregar o documento: ' + (err.message || String(err)));
+            }
         }
 
         function voltarDaFichaContrato() {
