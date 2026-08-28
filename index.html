@@ -6,6 +6,36 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.66.6
+   LINHAS: 25233
+   DATA: 28/08/2026
+   NOVIDADES (Beta v1.66.6) — MERGE: DEDUP DE PENDÊNCIA + FIX
+   MENSAL.BAIXAR + v1.66.4 (BOX FOTO MOVIDO + DOCUMENTOS NO IMÓVEL)
+
+   NOTA DE VERSIONAMENTO: mesma situação da v1.66.3 — esta entrega e a
+   v1.66.4 abaixo nasceram em paralelo a partir da v1.66.3 (sessões
+   diferentes), e as duas ficaram "v1.66.4" de forma independente. Áreas
+   de código sem sobreposição (conciliação de extrato de um lado, Ficha
+   do Imóvel do outro). Esta v1.66.6 é o merge: peguei o arquivo com o
+   fix do box Foto + Documentos no Imóvel como base e reapliquei por
+   cima o trabalho de conciliação — nenhum dos dois lados perdeu nada.
+
+     - BUG REAL — reimportar o mesmo extrato duplicava pendência
+       'nao_identificado' (sem contrato achado): o ramo específico de
+       conciliarTransacoes() sem contrato identificado nunca checava
+       chavesJaPendentes antes de empurrar uma pendência nova. Corrigido
+       (checagem local) + proteção definitiva no banco (índice único
+       parcial (cliente_id, chave) WHERE status='Pendente' em
+       pendencias_extrato, migration pendencias_extrato_chave_dedup_v2).
+       sincronizarPendenciaExtratoSupabase() agora grava `chave` e trata
+       conflito de índice único (23505) adotando o id existente em vez
+       de derrubar o saveAll().
+
+     - BUG REAL — 'mensal.baixa' (usado em registrarLog(), 2 pontos)
+       não batia com o código real do catálogo (`mensal.baixar` — 1
+       letra de diferença), nunca resolvia pra um nome na aba Saúde do
+       módulo de Gestão. Corrigido nos 2 pontos + comentários.
+
    VERSÃO: Beta v1.66.4
    LINHAS: 25174
    DATA: 27/08/2026
@@ -2861,9 +2891,9 @@
        gerar vitrine — todas já usavam registrarLog()). Adicionados 4
        pontos de log, cobrindo os 2 caminhos de "dar baixa" que
        existem no sistema (manual E conciliação bancária automática):
-         - liquidarMensalidade() → registrarLog('mensal.baixa', ...),
+         - liquidarMensalidade() → registrarLog('mensal.baixar', ...),
            com via:'manual'
-         - conciliarTransacoes() → registrarLog('mensal.baixa', ...)
+         - conciliarTransacoes() → registrarLog('mensal.baixar', ...)
            por item conciliado automaticamente, com
            via:'conciliacao_automatica' — essa era a lacuna mais
            importante, já que é uma baixa que acontece sem
@@ -7934,7 +7964,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.66.4";
+        const APP_VERSAO = "Beta v1.66.6";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -9865,7 +9895,14 @@
                 referencia_sugerida: pend.referenciaSugerida || null,
                 status: pend.status || 'Pendente',
                 contrato_id_sugerido: /^[0-9a-f]{8}-/i.test(pend.contratoIdSugerido || '') ? pend.contratoIdSugerido : null,
-                mensalidade_ids_sugeridas: pend.mensalidadeIdsSugeridas || []
+                mensalidade_ids_sugeridas: pend.mensalidadeIdsSugeridas || [],
+                // NOVO (28/08/2026) — índice único parcial (cliente_id, chave) WHERE
+                // status='Pendente' no banco, criado depois de um bug real de
+                // duplicação (reimportar extrato duplicava pendência sem contrato
+                // identificado). chave é sempre recalculada aqui (não confia em
+                // pend.chave vindo de fora) pra garantir consistência com o que o
+                // banco espera.
+                chave: `${pend.data}|${Number(pend.valor).toFixed(2)}|${(pend.razaoSocial || '').toUpperCase()}`
             };
 
             const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pend.id || '');
@@ -9875,7 +9912,19 @@
                 if (error) throw error;
             } else {
                 const { data: inserido, error } = await dbAuth.from('pendencias_extrato').insert(linha).select('id').single();
-                if (error) throw error;
+                if (error) {
+                    // CORRIGIDO (28/08/2026) — código 23505 aqui significa "já existe
+                    // uma pendência Pendente idêntica" (índice único parcial fez o
+                    // trabalho de dedup que o JS deveria ter feito antes). Em vez de
+                    // derrubar o saveAll() inteiro, busca a pendência existente e
+                    // adota o id dela — silenciosamente, sem duplicar.
+                    if (error.code === '23505') {
+                        const { data: existente } = await dbAuth.from('pendencias_extrato')
+                            .select('id').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('chave', linha.chave).eq('status', 'Pendente').maybeSingle();
+                        if (existente) { pend.id = existente.id; return; }
+                    }
+                    throw error;
+                }
                 pend.id = inserido.id;
             }
         }
@@ -19753,7 +19802,7 @@
             mensalidades[idx].observacaoRecibo = obsManual;
             mensalidades[idx].valorEnergia = valorEnergiaManual;
 
-            registrarLog('mensal.baixa', { mensalidadeId: menId, referencia: mensalidades[idx].referencia, valor: valorManual, banco: banco, via: 'manual' });
+            registrarLog('mensal.baixar', { mensalidadeId: menId, referencia: mensalidades[idx].referencia, valor: valorManual, banco: banco, via: 'manual' });
 
             // CORRIGIDO (v1.39.4) — antes chamava saveAll(true, ..., ['mensalidades']),
             // que resincroniza a lista INTEIRA de mensalidades (todo o
@@ -20539,6 +20588,16 @@
 
                     if (!contratoCandidato) {
 
+                        // CORRIGIDO (v1.66.3, 28/08/2026) — BUG REAL reportado: reimportar
+                        // o mesmo extrato duplicava pendências sem contrato identificado,
+                        // porque este ramo específico nunca checava chavesJaPendentes antes
+                        // de empurrar uma pendência nova (só o ramo COM contrato tinha essa
+                        // checagem, adicionada como rede de segurança depois da RPC). Também
+                        // grava `chave` agora — o banco tem um índice único parcial
+                        // (cliente_id, chave) WHERE status='Pendente' desde 28/08/2026, que
+                        // é a proteção definitiva contra isso mesmo se este check falhar.
+                        if (chavesJaPendentes.has(chave)) { qtdJaPendentes++; continue; }
+
                         // Sem contrato identificado — a RPC exige contrato_id, não dá
                         // pra chamar. Vai direto pra revisão manual, igual sempre foi.
                         pendenciasExtrato.push({
@@ -20551,7 +20610,7 @@
 
                             contratoIdSugerido: null,
 
-                            mensalidadeIdsSugeridas: []
+                            mensalidadeIdsSugeridas: [], chave
 
                         });
 
@@ -20605,7 +20664,7 @@
                                 data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento,
                                 tipo: 'nao_identificado', referenciaSugerida: referenciaEsperada, status: 'Pendente',
                                 contratoIdSugerido: contratoCandidato.id,
-                                mensalidadeIdsSugeridas: []
+                                mensalidadeIdsSugeridas: [], chave
                             });
                             qtdPendencias++;
                             continue;
@@ -20627,7 +20686,7 @@
 
                         mensalidades[idx].observacao = `Conciliado automaticamente via extrato — pagador: ${t.razaoSocial}`;
 
-                        registrarLog('mensal.baixa', { mensalidadeId: cls.mensalidade_id, referencia: referenciaEsperada, valor: t.valor, banco: 'PIX/TED (extrato)', via: 'conciliacao_automatica' });
+                        registrarLog('mensal.baixar', { mensalidadeId: cls.mensalidade_id, referencia: referenciaEsperada, valor: t.valor, banco: 'PIX/TED (extrato)', via: 'conciliacao_automatica' });
 
                         qtdConciliados++;
 
@@ -20655,7 +20714,7 @@
 
                             contratoIdSugerido: contratoCandidato.id,
 
-                            mensalidadeIdsSugeridas: cls.mensalidade_ids_sugeridas
+                            mensalidadeIdsSugeridas: cls.mensalidade_ids_sugeridas, chave
 
                         });
 
@@ -20687,7 +20746,7 @@
 
                         contratoIdSugerido: contratoCandidato.id,
 
-                        mensalidadeIdsSugeridas: []
+                        mensalidadeIdsSugeridas: [], chave
 
                     });
 
