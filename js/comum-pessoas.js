@@ -1,6 +1,32 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.0.0 · 26/08/2026
+// Versão: 1.1.0 · 28/08/2026
+//
+// v1.1.0 (28/08/2026) — NOVO, pedido explícito do Nicola: seção
+// "Comunicações (avisos automáticos)" dentro do cadastro de cada pessoa —
+// habilitar/desabilitar, por pessoa, quais avisos proativos ela recebe
+// via WhatsApp e em qual frequência (diário/semanal/quinzenal/mensal/
+// trimestral).
+//
+//   - Escopo = funcionalidades.tipo='proativa' AND ativo=true (conferido
+//     contra o banco: 7 cadastradas, 5 ativas — batem exatamente com os
+//     5 templates Meta já aprovados). Todas as 7 já tinham `descricao`
+//     preenchida — usada como texto explicativo do escopo de cada uma,
+//     mostrado direto pra pessoa (pedido explícito: "o escopo da função
+//     deve aparecer ao usuário").
+//   - Filtrado pela LICENÇA do cliente (licencas × plano_funcionalidade)
+//     — só aparece pra configurar o que a empresa realmente contratou.
+//     Mesmo raciocínio de clienteTemFuncionalidadeLicenca() no bot,
+//     portado pra JS aqui (3 consultas + join, mesmo estilo de
+//     buscarModulosPorPerfil, sem RPC nova).
+//   - Nova tabela `pessoa_preferencias_comunicacao` (migration
+//     pessoa_preferencias_comunicacao_v1, 28/08/2026) — mesmo padrão de
+//     RLS/grants de `pessoas` (tabela irmã direta).
+//   - Sem WhatsApp cadastrado na pessoa: seção continua aparecendo (não
+//     trava), mas mostra aviso de que os envios não chegam até
+//     preencher o número.
+//   - Pessoa ainda não salva (sem id): seção mostra "salve primeiro",
+//     mesmo padrão já usado pra "criar acesso".
 //
 // v1.0.0 — PRIMEIRA VERSÃO. Extraído de index.html (dev_renderPessoas()/
 // dev_salvarPessoas()/dev_removerPessoa()/dev_criarAcessoParaPessoa()/
@@ -43,7 +69,7 @@
 // segredo, mesmo padrão já replicado nesse outro arquivo).
 // ============================================================================
 
-export const COMUM_PESSOAS_VERSAO = '1.0.0';
+export const COMUM_PESSOAS_VERSAO = '1.1.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
@@ -59,6 +85,18 @@ const AREA_PARA_MODULO = {
     cofre: 'Cofre', cofre_documentos: 'Cofre',
     gestao: 'Gestão',
 };
+
+// v1.1 — rótulos de frequência de comunicação proativa. Texto do envio
+// (dias/horário) documentado uma vez só aqui — pedido explícito do
+// Nicola: "avise que os envios são por WhatsApp e saem durante a manhã,
+// informe que as semanais saem as segundas e as mensais saem dia 05".
+const FREQUENCIA_OPCOES = [
+    { valor: 'diario', rotulo: 'Diário' },
+    { valor: 'semanal', rotulo: 'Semanal (segundas)' },
+    { valor: 'quinzenal', rotulo: 'Quinzenal' },
+    { valor: 'mensal', rotulo: 'Mensal (dia 05)' },
+    { valor: 'trimestral', rotulo: 'Trimestral' },
+];
 
 // ----------------------------------------------------------------------------
 // CAMADA DE DADOS
@@ -100,8 +138,64 @@ async function buscarModulosPorPerfil(dbAuth) {
 }
 
 // ----------------------------------------------------------------------------
-// UI
+// COMUNICAÇÕES PROATIVAS (v1.1, 28/08/2026) — pedido explícito do Nicola:
+// habilitar/desabilitar por pessoa quais avisos automáticos (via WhatsApp,
+// diario-eventos) ela quer receber, e em qual frequência.
+//
+// Escopo = funcionalidades.tipo='proativa' AND ativo=true, filtradas pela
+// LICENÇA do cliente (plano_funcionalidade × licencas — mesmo raciocínio
+// de clienteTemFuncionalidadeLicenca() no bot, portado pra cá em JS: só
+// aparece pra configurar o que a empresa realmente contratou). Mesmo
+// estilo de buscarModulosPorPerfil logo acima — 3 consultas simples + join
+// em JS, sem RPC nova (as 3 tabelas já são legíveis por `authenticated`,
+// conferido contra o banco antes de escrever isto).
 // ----------------------------------------------------------------------------
+async function buscarProativasDisponiveis(dbAuth, clienteId) {
+    try {
+        const agora = new Date().toISOString();
+        const [{ data: licencas, error: e1 }, { data: planoFunc, error: e2 }, { data: funcs, error: e3 }] = await Promise.all([
+            dbAuth.from('licencas').select('plano_codigo, data_expiracao').eq('cliente_id', clienteId).eq('status', 'ativo'),
+            dbAuth.from('plano_funcionalidade').select('plano_codigo, funcionalidade_codigo'),
+            dbAuth.from('funcionalidades').select('codigo, descricao, area').eq('tipo', 'proativa').eq('ativo', true),
+        ]);
+        if (e1 || e2 || e3) throw (e1 || e2 || e3);
+
+        // Só licenças vigentes (sem data de expiração, ou expirando no futuro).
+        const planosVigentes = new Set((licencas || [])
+            .filter(l => !l.data_expiracao || l.data_expiracao > agora)
+            .map(l => l.plano_codigo));
+
+        const codigosLiberados = new Set((planoFunc || [])
+            .filter(pf => planosVigentes.has(pf.plano_codigo))
+            .map(pf => pf.funcionalidade_codigo));
+
+        return (funcs || [])
+            .filter(f => codigosLiberados.has(f.codigo))
+            .sort((a, b) => a.descricao.localeCompare(b.descricao));
+    } catch (err) {
+        console.warn('[comum-pessoas] Falha ao calcular proativas disponíveis por licença (seção de comunicações fica oculta):', err.message);
+        return [];
+    }
+}
+
+async function buscarPreferenciasComunicacao(dbAuth, clienteId) {
+    const mapa = new Map(); // chave: `${pessoaId}|${funcionalidadeCodigo}` -> { habilitado, frequencia }
+    try {
+        const { data, error } = await dbAuth
+            .from('pessoa_preferencias_comunicacao')
+            .select('pessoa_id, funcionalidade_codigo, habilitado, frequencia')
+            .eq('cliente_id', clienteId);
+        if (error) throw error;
+        (data || []).forEach(p => {
+            mapa.set(`${p.pessoa_id}|${p.funcionalidade_codigo}`, { habilitado: p.habilitado, frequencia: p.frequencia });
+        });
+    } catch (err) {
+        console.warn('[comum-pessoas] Falha ao carregar preferências de comunicação (assume padrão pra todas):', err.message);
+    }
+    return mapa;
+}
+
+
 
 function escapeAttr(s) { return (s || '').toString().replace(/"/g, '&quot;'); }
 
@@ -115,8 +209,49 @@ function badgesAcessoHtml(modulosPorPerfil, perfil) {
     ).join('')}</div>`;
 }
 
+// v1.1 — seção de comunicações proativas dentro do card da pessoa. Só
+// aparece pra pessoa já salva (precisa de pessoa_id de verdade, é FK) —
+// mesma trava já usada pra "criar acesso" logo abaixo, mesmo motivo.
+function comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap) {
+    if (!p.id) {
+        return `<div class="mt-3 pt-3 border-t border-gray-100">
+            <p class="text-[11px] font-bold text-gray-500">Comunicações (avisos automáticos)</p>
+            <p class="text-[10px] text-gray-400 mt-1">Salve esta pessoa antes de configurar os avisos que ela recebe.</p>
+        </div>`;
+    }
+    if (proativasDisponiveis.length === 0) {
+        return ''; // empresa sem nenhuma proativa liberada na licença — seção some (componente vazio não aparece)
+    }
+    const semWhatsapp = !p.whatsapp;
+    const linhas = proativasDisponiveis.map(f => {
+        const pref = preferenciasMap.get(`${p.id}|${f.codigo}`);
+        // Sem linha salva ainda = padrão do sistema: habilitado, semanal.
+        const habilitado = pref ? pref.habilitado : true;
+        const frequencia = pref ? pref.frequencia : 'semanal';
+        const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
+        return `
+            <div class="flex items-start justify-between gap-2 py-1.5 border-t border-gray-50">
+                <label class="flex items-start gap-1.5 text-[11px] text-slate-700 flex-1 min-w-0">
+                    <input type="checkbox" class="pref-comunicacao-habilitado mt-0.5" data-codigo="${f.codigo}" ${habilitado ? 'checked' : ''}>
+                    <span>${f.descricao}</span>
+                </label>
+                <select class="pref-comunicacao-frequencia text-[10px] border rounded px-1 py-1 flex-none" data-codigo="${f.codigo}">
+                    ${opcoesHtml}
+                </select>
+            </div>`;
+    }).join('');
+
+    return `
+        <div class="mt-3 pt-3 border-t border-gray-100" data-comunicacoes-pessoa="${p.id}">
+            <p class="text-[11px] font-bold text-gray-500">Comunicações (avisos automáticos)</p>
+            <p class="text-[10px] text-gray-400 mt-0.5">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
+            ${semWhatsapp ? '<p class="text-[10px] mt-1" style="color:var(--warning)">⚠️ Sem WhatsApp cadastrado — os avisos não chegam até preencher o número acima.</p>' : ''}
+            <div class="mt-1">${linhas}</div>
+        </div>`;
+}
+
 function cartaoPessoaHtml(p, idx, ctxUi) {
-    const { perfilLogado, modulosPorPerfil } = ctxUi;
+    const { perfilLogado, modulosPorPerfil, proativasDisponiveis, preferenciasMap } = ctxUi;
     const temLogin = !!p.userId;
     const ehMaster = p.perfil === 'master';
     const perfilTravado = ehMaster && perfilLogado !== 'master';
@@ -182,6 +317,7 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
                         ${podeEditarPerfil ? `<p class="text-[10px] text-gray-400 mt-1">Acesso a módulo depende do perfil — ver badges acima.</p>` : ''}
                     </div>
                 </div>
+                ${comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap)}
                 ${botaoAcesso}
             </div>
         </div>`;
@@ -216,10 +352,14 @@ export async function montarAbaPessoas(mountEl, ctx) {
 
     let pessoas = [];
     let modulosPorPerfil = new Map();
+    let proativasDisponiveis = [];
+    let preferenciasMap = new Map();
     try {
-        [pessoas, modulosPorPerfil] = await Promise.all([
+        [pessoas, modulosPorPerfil, proativasDisponiveis, preferenciasMap] = await Promise.all([
             listarPessoas(dbAuth, clienteId),
             buscarModulosPorPerfil(dbAuth),
+            buscarProativasDisponiveis(dbAuth, clienteId),
+            buscarPreferenciasComunicacao(dbAuth, clienteId),
         ]);
     } catch (err) {
         console.warn('[comum-pessoas] Falha ao carregar pessoas:', err.message);
@@ -235,7 +375,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             lista.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhuma pessoa cadastrada. Toque no "+" para adicionar.</p>';
             return;
         }
-        lista.innerHTML = visiveis.map((p, idx) => cartaoPessoaHtml(p, idx, { perfilLogado, modulosPorPerfil })).join('');
+        lista.innerHTML = visiveis.map((p, idx) => cartaoPessoaHtml(p, idx, { perfilLogado, modulosPorPerfil, proativasDisponiveis, preferenciasMap })).join('');
         if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     }
     renderLista();
@@ -389,10 +529,40 @@ export async function montarAbaPessoas(mountEl, ctx) {
                 algumErro = true;
                 console.warn('[comum-pessoas] Erro ao salvar pessoa "' + nome + '":', err.message);
             }
+
+            // v1.1 — preferências de comunicação proativa. Só existe UI pra
+            // isso em pessoa já salva (id presente) — cards de pessoa nova
+            // não têm os campos `.pref-comunicacao-*`, o querySelectorAll
+            // abaixo simplesmente não acha nada e não faz nada, sem
+            // precisar de um if separado.
+            if (id) {
+                const linhas = Array.from(card.querySelectorAll('.pref-comunicacao-habilitado')).map(chk => {
+                    const codigo = chk.dataset.codigo;
+                    const selectFreq = card.querySelector(`.pref-comunicacao-frequencia[data-codigo="${codigo}"]`);
+                    return {
+                        cliente_id: clienteId, pessoa_id: id, funcionalidade_codigo: codigo,
+                        habilitado: chk.checked, frequencia: selectFreq ? selectFreq.value : 'semanal',
+                        atualizado_em: new Date().toISOString(),
+                    };
+                });
+                if (linhas.length > 0) {
+                    try {
+                        const { error } = await dbAuth.from('pessoa_preferencias_comunicacao')
+                            .upsert(linhas, { onConflict: 'pessoa_id,funcionalidade_codigo' });
+                        if (error) throw error;
+                    } catch (err) {
+                        algumErro = true;
+                        console.warn('[comum-pessoas] Erro ao salvar preferências de comunicação de "' + nome + '":', err.message);
+                    }
+                }
+            }
         }
 
         try {
-            pessoas = await listarPessoas(dbAuth, clienteId);
+            [pessoas, preferenciasMap] = await Promise.all([
+                listarPessoas(dbAuth, clienteId),
+                buscarPreferenciasComunicacao(dbAuth, clienteId),
+            ]);
         } catch { /* mantém lista atual se o reload falhar */ }
         renderLista();
         alert(algumErro ? '⚠️ Alguma(s) pessoa(s) não foram salvas — veja o console para detalhes.' : '✅ Pessoas salvas com sucesso.');
