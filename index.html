@@ -6,6 +6,25 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.66.4
+   LINHAS: 25174
+   DATA: 27/08/2026
+   NOVIDADES (Beta v1.66.4) — BOX FOTO MOVIDO + DOCUMENTOS NO IMÓVEL
+   (pedido explícito):
+
+     1) Box "Foto" da Ficha do Imóvel movido pra depois do box
+        "Financeiro" (antes ficava logo no cabeçalho) — agora entra na
+        mesma concatenação de renderFichaImovelUnica(), herdando o
+        espaçamento padrão (space-y-3) do container automaticamente,
+        sem margem própria adicionada.
+     2) Nova pill "Documentos" no Mais ações de "Dados do imóvel" —
+        faltava por completo, não tinha como abrir a tela de cadastro
+        de documento direto do imóvel. Reaproveita abrirCofreDocumentos,
+        mesma função já usada pelo Contrato.
+
+     - Arquivos alterados: index.html (renderFichaImovelUnica +
+       abrirFichaImovel).
+
    VERSÃO: Beta v1.66.3
    LINHAS: 25159
    DATA: 27/08/2026
@@ -7915,7 +7934,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.66.3";
+        const APP_VERSAO = "Beta v1.66.4";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -15891,41 +15910,9 @@
                         <button onclick="copyResumo('${(`${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}`).replace(/'/g, "")}', '${imo.tipo}', ${imo.valor}, ${imo.suites || 0}, ${imo.condominio || 0})" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="copy" style="width:11px;height:11px"></svg> Copiar resumo</button>
                         ${imo.status === 'Vago' ? `<button onclick="criarContratoParaImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-plus" style="width:11px;height:11px"></svg> Criar contrato</button>` : ''}
                         ${imo.codigoIPTU ? `<button onclick="acionarZapIptuImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="message-circle" style="width:11px;height:11px"></svg> Enviar IPTU</button>` : ''}
+                        <button onclick="abrirCofreDocumentos('imovel', '${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="upload" style="width:11px;height:11px"></svg> Documentos</button>
                         <label for="fi-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer"><svg data-lucide="image-plus" style="width:11px;height:11px"></svg> Fotos</label>
                         ${!contratos.some(c => c.imovelId === imo.id) ? `<button onclick="excluirImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trash-2" style="width:11px;height:11px"></svg> Excluir</button>` : ''}
-                    </div>
-                </div>
-
-                <!-- Input de arquivo — pedido explícito, 26/08/2026: vive
-                     FORA do box condicional "Foto" (que só aparece com
-                     foto vinculada), pra sempre estar acionável mesmo sem
-                     nenhuma foto ainda. A pill "Fotos" acima (Mais ações
-                     de Dados do imóvel) e a pill "Adicionar fotos" dentro
-                     do box Foto (mais abaixo) apontam pro MESMO input via
-                     for=, nunca 2 inputs distintos. Mesmo padrão já usado
-                     no Ativo do Cofre. -->
-                <input type="file" id="fi-foto-input" accept="image/*" multiple class="hidden" onchange="enviarFotosImovelParaCofre('${imo.id}')">
-
-                <!-- Box: Foto — NOVO (26/08/2026, pedido explícito): "no
-                     módulo de imóveis, em mais opções incluir o box de
-                     fotos similar ao do ativo. Deve só aparecer se tiver
-                     foto cadastrada e deve ter os mesmos controles do
-                     módulo do ativo. As fotos devem ser gravadas no
-                     módulo cofre." Reaproveita cofre_ativo_fotos — como
-                     essa tabela é ativo_id-scoped (não tem entidade_tipo/
-                     entidade_id genérico), o imóvel precisa de um "ativo"
-                     Cofre correspondente (tipo_ativo='imovel',
-                     entidade_origem_tipo='imovel', entidade_origem_id=
-                     <imóvel>) — buscarOuCriarAtivoCofreDoImovel() acha ou
-                     cria esse vínculo sozinho, sem pedir nada pra pessoa. -->
-                <div id="fi-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
-                    <div id="fi-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
-                    <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                        <button onclick="alternarMaisAcoesFotosImovel()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fi-fotos-seta" style="width:13px;height:13px"></svg></button>
-                    </div>
-                    <div id="fi-fotos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                        <label for="fi-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer"><svg data-lucide="image-plus" style="width:11px;height:11px"></svg> Adicionar fotos</label>
                     </div>
                 </div>`;
 
@@ -16281,6 +16268,34 @@
                     </div>
                 </div>`;
 
+            // Box: Foto — MOVIDO (27/08/2026, pedido explícito: "depois do
+            // box financeiro. deixe o espaçamento padrão entre os
+            // boxes") — antes vivia em ficha-imovel-head (junto do
+            // cabeçalho), agora entra na MESMA concatenação de
+            // el.innerHTML abaixo, logo após htmlFinanceiro — herda o
+            // "space-y-3" do container automaticamente, sem precisar de
+            // margem própria. Input de arquivo (fi-foto-input) migrou
+            // junto — só precisa existir no DOM antes da pessoa clicar,
+            // não importa se está fisicamente antes ou depois da pill
+            // "Fotos" no Mais ações de Dados do imóvel (que aponta pra cá
+            // via for=). Reaproveita cofre_ativo_fotos — como essa tabela
+            // é ativo_id-scoped (não tem entidade_tipo/entidade_id
+            // genérico), o imóvel precisa de um "ativo" Cofre
+            // correspondente (buscarOuCriarAtivoCofreDoImovel() acha ou
+            // cria sozinho, só no primeiro envio de foto).
+            const htmlFoto = `
+                <input type="file" id="fi-foto-input" accept="image/*" multiple class="hidden" onchange="enviarFotosImovelParaCofre('${imo.id}')">
+                <div id="fi-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
+                    <div id="fi-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
+                    <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                        <button onclick="alternarMaisAcoesFotosImovel()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fi-fotos-seta" style="width:13px;height:13px"></svg></button>
+                    </div>
+                    <div id="fi-fotos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                        <label for="fi-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer"><svg data-lucide="image-plus" style="width:11px;height:11px"></svg> Adicionar fotos</label>
+                    </div>
+                </div>`;
+
             // v1.49.0 — CORRIGIDO: link direto pro Cofre removido do box
             // (pedido explícito "retirar por enquanto"). Vira um resumo com
             // filtro por tipo, mostrado inline aqui mesmo (sem sair da
@@ -16331,7 +16346,7 @@
             const temDivisaoContrato = contratoDivisaoRef && Array.isArray(contratoDivisaoRef.divisaoRepasse) && contratoDivisaoRef.divisaoRepasse.length > 0;
             const htmlDivisaoSocietaria = (!temDivisaoImovel && !temDivisaoContrato) ? '' : montarBoxDivisaoSocietaria(imo, contratoDivisaoRef);
 
-            el.innerHTML = htmlContrato + htmlFinanceiro + htmlDocumentos + htmlServicos + htmlDivisaoSocietaria;
+            el.innerHTML = htmlContrato + htmlFinanceiro + htmlFoto + htmlDocumentos + htmlServicos + htmlDivisaoSocietaria;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
 

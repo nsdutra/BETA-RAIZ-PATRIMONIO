@@ -10,6 +10,38 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.21.4
+  Data       : 27/08/2026
+  Título     : BUG FIX — GRUPO DE 4 BOTÕES DA FICHA DO DOCUMENTO QUEBRANDO LINHA
+  Base       : v1.21.3 (27/08/2026)
+  Linhas     : cofre.html = 3095 · js/cofre-api.js = 614 · js/cofre-app.js = 531 ·
+               js/cofre-ativos.js = 465 · js/cofre-controles.js = 1251 ·
+               js/cofre-documentos.js = 741 · js/cofre-estado.js = 161 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 337 (total js/ = 4429)
+
+  CHANGELOG v1.21.4 — pedido explícito: "a tela de vincular documento
+  ficou os 4 botões grandes e estão quebrando linha". Consequência
+  direta do botão "Vincular" adicionado na v1.21.3 nesse mesmo grupo
+  (Baixar/Arquivar/Excluir) — 4 botões de largura própria num
+  `flex flex-wrap` quebravam de forma desalinhada.
+
+    - `flex flex-wrap gap-2` → `grid grid-cols-2 gap-2` — 2 linhas de 2
+      botões, largura igual, alinhado. Cada botão ganhou
+      `justify-center` (antes só `items-center`) pra centralizar dentro
+      da célula do grid, já que agora a largura não é mais só o
+      conteúdo do próprio botão.
+
+    - Arquivos alterados: cofre.html (ficha do documento).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.21.3
   Data       : 27/08/2026
   Título     : BOTÃO "VINCULAR" NO PADRÃO DOS OUTROS (BAIXAR/ARQUIVAR/EXCLUIR)
@@ -2799,11 +2831,11 @@
                 </div>
             </div>
         </div>
-        <div class="flex flex-wrap gap-2">
-            <button id="fd-btn-vincular" data-action="abrir-vincular-agora" class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-1" style="background:var(--pine)"><i data-lucide="link" style="width:14px;height:14px"></i> Vincular</button>
-            <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
-            <button data-action="arquivar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 flex items-center gap-1"><i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar</button>
-            <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center gap-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
+        <div class="grid grid-cols-2 gap-2">
+            <button id="fd-btn-vincular" data-action="abrir-vincular-agora" class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="link" style="width:14px;height:14px"></i> Vincular</button>
+            <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
+            <button data-action="arquivar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 flex items-center justify-center gap-1"><i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar</button>
+            <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center justify-center gap-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
         </div>
         <p class="raiz-indicador-inline" id="fd-status"></p>
     </div>
@@ -3060,4 +3092,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 3063 (cofre.html) — recontado na v1.21.3; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 3095 (cofre.html) — recontado na v1.21.4; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

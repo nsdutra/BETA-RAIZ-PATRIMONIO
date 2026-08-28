@@ -2,6 +2,11 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
+// v1.21.4 — BUG FIX: grupo de 4 botões da ficha do documento quebrando
+// linha (flex-wrap → grid 2 colunas) — pedido explícito. Ver changelog
+// completo em cofre.html. cofre-estado.js em si não mudou de conteúdo
+// — só o COFRE_VERSAO abaixo.
+//
 // v1.21.3 — Botão "Vincular" no padrão dos outros (Baixar/Arquivar/
 // Excluir) — pedido explícito. Ver changelog completo em cofre.html.
 // cofre-estado.js em si não mudou de conteúdo — só o COFRE_VERSAO
@@ -139,7 +144,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.21.3';
+export const COFRE_VERSAO = '1.21.4';
 
 export const estado = {
     clienteId: null,
