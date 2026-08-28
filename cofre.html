@@ -10,6 +10,50 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
+  Versão     : 1.21.3
+  Data       : 27/08/2026
+  Título     : BOTÃO "VINCULAR" NO PADRÃO DOS OUTROS (BAIXAR/ARQUIVAR/EXCLUIR)
+  Base       : v1.21.2 (27/08/2026)
+  Linhas     : cofre.html = 3063 · js/cofre-api.js = 614 · js/cofre-app.js = 531 ·
+               js/cofre-ativos.js = 465 · js/cofre-controles.js = 1251 ·
+               js/cofre-documentos.js = 741 · js/cofre-estado.js = 156 ·
+               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 337 (total js/ = 4424)
+
+  CHANGELOG v1.21.3 — pedido explícito: "ao clicar num documento a
+  vincular, deve colocar a opção de vincular como botão, a exemplo das
+  outras opções/botões no final desta aba".
+
+    - Gatilho de "Vincular" era um link de texto pequeno
+      (`+ Vincular agora`, `text-xs font-bold`) solto dentro do bloco
+      de Vínculos — virou um botão de verdade (`fd-btn-vincular`),
+      mesmo estilo/grupo dos 3 botões finais (Baixar/Arquivar/
+      Excluir), com destaque de cor igual ao Baixar (var(--pine)) —
+      só aparece quando o documento está "a vincular" (sem nenhum
+      vínculo ainda), mesma condição de antes.
+    - O formulário em si (tipo + busca + lista de candidatos) não
+      mudou de lugar nem de comportamento — só o botão que abre ele.
+
+  INVESTIGADO, JÁ FUNCIONAVA — "trocar o componente de digitar pra
+  escolher pelo nome do ativo ou endereço do imóvel": conferido o
+  código (aoMudarTipoVinculoAgora/buscarCandidatosAtivo/
+  buscarCandidatosImovel + os 4 dispatchers em cofre-app.js) — o
+  formulário de "Vincular agora" já buscava e listava candidatos
+  clicáveis por nome/endereço desde antes desta entrega, sem nenhum
+  campo de digitar solto. Nenhum código novo precisou disso — só o
+  botão (acima) estava genuinamente faltando.
+
+    - Arquivos alterados: cofre.html (ficha do documento),
+      js/cofre-documentos.js (toggle de visibilidade do novo botão).
+
+  ============================================================================
+-->
+
+<!--
+  ============================================================================
+  CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
+
+  Componente : cofre.html (shell) + js/*.js (módulos)
   Versão     : 1.21.2
   Data       : 27/08/2026
   Título     : CABEÇALHO VOLTA A USAR O TOKEN --pine-deep
@@ -2740,7 +2784,6 @@
             <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Vínculos</p>
             <div id="fd-vinculos" class="flex flex-wrap gap-1 mb-2"></div>
             <div id="fd-vincular-agora-wrapper" class="hidden">
-                <button data-action="abrir-vincular-agora" class="text-xs font-bold" style="color:var(--pine)">+ Vincular agora</button>
                 <div id="fd-vincular-agora-form" class="hidden mt-2 raiz-bloco-interno">
                     <select id="fd-va-tipo" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs mb-2" data-action-change="fd-vincular-tipo-mudou">
                         <option value="empresa">Empresa (geral)</option>
@@ -2757,6 +2800,7 @@
             </div>
         </div>
         <div class="flex flex-wrap gap-2">
+            <button id="fd-btn-vincular" data-action="abrir-vincular-agora" class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-1" style="background:var(--pine)"><i data-lucide="link" style="width:14px;height:14px"></i> Vincular</button>
             <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
             <button data-action="arquivar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 flex items-center gap-1"><i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar</button>
             <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center gap-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
@@ -3016,4 +3060,4 @@
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 3019 (cofre.html) — recontado na v1.21.2; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 3063 (cofre.html) — recontado na v1.21.3; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

@@ -6,12 +6,21 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.66.2
-   LINHAS: 25112
+   VERSÃO: Beta v1.66.3
+   LINHAS: 25159
    DATA: 27/08/2026
-   NOVIDADES (Beta v1.66.2) — CONCILIAÇÃO: PDF/FOTO VIA IA + MOTOR ÚNICO
-   COM O BOT (itens 1-6 da revisão de conciliação/minuta, pedido explícito
-   do Nicola):
+   NOVIDADES (Beta v1.66.3) — MERGE: CONCILIAÇÃO (PDF/FOTO VIA IA + MOTOR
+   ÚNICO COM O BOT) + v1.66.2 (LIGHTBOX + DOCUMENTO NO CONTRATO)
+
+   NOTA DE VERSIONAMENTO: esta entrega e a v1.66.2 abaixo nasceram em
+   paralelo, cada uma a partir da mesma v1.66.1 (conversas/sessões
+   diferentes), e as duas ficaram rotuladas "v1.66.2" de forma
+   independente — colisão de número de versão, não colisão de conteúdo
+   (áreas do código completamente diferentes: conciliação de extrato de
+   um lado, lightbox de fotos + documento do contrato do outro). Esta
+   v1.66.3 é o merge dos dois: todo o trabalho de conciliação abaixo foi
+   reaplicado sobre o arquivo que já tinha o fix do lightbox + documento
+   do contrato — nenhum dos dois lados perdeu nada.
 
      - PROBLEMA 1: `<input accept=".xlsx,.xls">` na tela de Conciliação não
        deixava nem escolher um PDF no seletor de arquivo do celular —
@@ -53,6 +62,40 @@
      - Arquivos novos no repo de Edge Functions (não fazem parte deste
        repo): `_shared_extrato/extracao.ts`,
        `extrato-extrair-transacoes/index.ts`. Ver HANDOFF da entrega.
+
+   VERSÃO: Beta v1.66.2
+   LINHAS: 24965
+   DATA: 27/08/2026
+   NOVIDADES (Beta v1.66.2) — BUG FIX LIGHTBOX DE FOTOS + ADICIONAR
+   DOCUMENTO NO CONTRATO (pedido explícito):
+
+     1) BUG FIX — clicar na foto do Imóvel não abria o carrossel
+     - CAUSA: `JSON.stringify(__fotosImovelUrlsCache)` embutido direto
+       dentro do atributo `onclick="..."` — o JSON gerado usa aspas
+       duplas nas strings, colidindo com as aspas duplas do próprio
+       atributo `onclick=""` e quebrando o HTML. Corrigido pra
+       referenciar a variável global já existente
+       (`__fotosImovelUrlsCache`) direto no onclick, sem reserializar.
+
+     2) NOVO — "Adicionar documento" no Contrato, reaproveitando o
+        fluxo completo (Com IA/Upload simples)
+     - Nova pill "Adicionar documento" no Mais ações de "Dados do
+       contrato" — chama `abrirCofreDocumentos('contrato', id)`, o
+       MESMO mecanismo que já existia (usado por Imóvel/Fotos/etc.),
+       que já dispara o evento `cofre:upload-contextual` no Cofre e
+       abre `abrirUploadContextual()` — o formulário rico (Com IA/
+       Upload simples) que o Item de Controle já usa. "Usar as mesmas
+       funções", pedido explícito.
+     - O "Carregar novo" dentro do box "Documento" (entregue na sessão
+       anterior) trocou do upload bespoke próprio (sem IA) pra chamar
+       a mesma `abrirCofreDocumentos()` — consistência total, um único
+       caminho de upload pro Contrato em vez de dois diferentes.
+     - `carregarNovoDocumentoContrato()` (upload bespoke antigo) ficou
+       órfã — mantida no código, não apagada, nenhum botão aponta mais
+       pra ela.
+
+     - Arquivos alterados: index.html (box de Foto do Imóvel + Mais
+       ações/box Documento do Contrato).
 
    VERSÃO: Beta v1.66.1
    LINHAS: 24927
@@ -7872,7 +7915,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.66.2";
+        const APP_VERSAO = "Beta v1.66.3";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -16097,7 +16140,7 @@
                 }));
                 document.getElementById('fi-fotos-grid').innerHTML = __fotosImovelCache.map((f, i) => `
                     <div class="relative flex-none">
-                        <img src="${__fotosImovelUrlsCache[i] || ''}" onclick="abrirLightboxGeral(${JSON.stringify(__fotosImovelUrlsCache)}, ${i})" class="w-16 h-16 object-cover rounded-lg border border-slate-200 cursor-pointer">
+                        <img src="${__fotosImovelUrlsCache[i] || ''}" onclick="abrirLightboxGeral(__fotosImovelUrlsCache, ${i})" class="w-16 h-16 object-cover rounded-lg border border-slate-200 cursor-pointer">
                         <button onclick="removerFotoImovelDoCofre('${f.id}', '${imovelId}')" title="Remover" class="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full w-5 h-5 flex items-center justify-center shadow-sm"><svg data-lucide="x" style="width:11px;height:11px;color:#64748b"></svg></button>
                     </div>`).join('');
                 if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -17595,6 +17638,7 @@
                     </div>
                     <div id="fc-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
                         <button onclick="verHistoricoContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="history" style="width:11px;height:11px"></svg> Histórico (${(con.historico || []).length})</button>
+                        <button onclick="abrirCofreDocumentos('contrato', '${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="upload" style="width:11px;height:11px"></svg> Adicionar documento</button>
                         ${con.status === 'Assinando' && prontidaoFicha.pronto ? `<button onclick="gerarMinutaContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Gerar Minuta</button>` : ''}
                         ${temAlertaFicha ? `<button onclick="verAlertasContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="triangle-alert" style="width:11px;height:11px"></svg> Ver alertas</button>` : ''}
                         <button onclick="excluirContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trash-2" style="width:11px;height:11px"></svg> Excluir</button>
@@ -17619,10 +17663,7 @@
                         <button onclick="alternarMaisAcoesDocContrato()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fc-doc-seta" style="width:13px;height:13px"></svg></button>
                     </div>
                     <div id="fc-doc-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                        <label class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer">
-                            <svg data-lucide="upload" style="width:11px;height:11px"></svg> Carregar novo
-                            <input type="file" id="fc-doc-input" class="hidden" onchange="carregarNovoDocumentoContrato('${con.id}')">
-                        </label>
+                        <button onclick="abrirCofreDocumentos('contrato', '${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="upload" style="width:11px;height:11px"></svg> Carregar novo</button>
                     </div>
                 </div>` : ''}
 
@@ -17731,6 +17772,12 @@
             }
         }
 
+        // ÓRFÃ (27/08/2026, pedido explícito) — nenhum botão do HTML aponta
+        // mais pra cá. Substituída por abrirCofreDocumentos('contrato', id),
+        // que leva pro MESMO fluxo rico (Com IA/Upload simples) já usado
+        // pelo Item de Controle no Cofre — "usar as mesmas funções", em vez
+        // de manter este upload bespoke, mais simples e sem IA, só pra
+        // Contrato. Mantida no código (não apagada), inofensiva.
         async function carregarNovoDocumentoContrato(contratoId) {
             const input = document.getElementById('fc-doc-input');
             const arquivo = input.files[0];
@@ -20603,7 +20650,7 @@
 
                     }
 
-                    // Já existe uma pendência EM ABERTO pra essa exata linha do extrato
+                    // Já existe uma pendência EM ABERTO para essa exata linha do extrato
 
                     // (checagem local, complementar — a RPC já cobre isso por
                     // contrato+competência; isto aqui é rede de segurança extra

@@ -615,6 +615,7 @@ export async function abrirFichaDocumento(id) {
     const vincs = d.cofre_documento_vinculos || [];
     const emTriagem = vincs.length === 0;
     document.getElementById('fd-vincular-agora-wrapper').classList.toggle('hidden', !emTriagem);
+    document.getElementById('fd-btn-vincular').classList.toggle('hidden', !emTriagem);
     document.getElementById('fd-vincular-agora-form').classList.add('hidden');
     if (vincs.length === 0) {
         document.getElementById('fd-vinculos').innerHTML = `<span class="text-xs" style="color:var(--sage)">Nenhum — este documento está em triagem.</span>`;
