@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.1 · 25/08/2026
+// Versão: 1.7.0 · 29/08/2026
+//
+// v1.7.0 — pedido explícito do Nicola (revisão de mensagens pró-ativas):
+// checkbox "documento anexo esperado" no cadastro de Subtipos de item de
+// controle (categoria, não item individual) — abrirSubtiposControle(),
+// salvarSubtipoControle(), editarSubtipoControle() e
+// cancelarEdicaoSubtipo() passam a ler/gravar/popular
+// #subtipo-documento-esperado; renderizarSubtiposControle() mostra badge
+// 📎 (.raiz-badge-atributo) quando marcado. Alimenta a coluna nova
+// cofre_controle_subtipos.documento_esperado, consumida pela varredura
+// proativa solicitar.anexo_apolice do diario-eventos.
 //
 // v1.6.1 — 2 BUGS corrigidos (achados pelo usuário): (1) dropdown de
 // "papel" do contato (formContatoItemHtml) usava valores que não batiam
@@ -1013,6 +1023,7 @@ export async function abrirSubtiposControle() {
     subtipoEmEdicao = null;
     document.getElementById('subtipo-tipo').disabled = false;
     document.getElementById('subtipo-nome').value = '';
+    document.getElementById('subtipo-documento-esperado').checked = false;
     document.getElementById('subtipo-btn-salvar').textContent = 'Adicionar';
     document.getElementById('subtipo-btn-cancelar').classList.add('hidden');
     renderizarSubtiposControle();
@@ -1026,16 +1037,18 @@ export function fecharSubtiposControle() {
 export async function salvarSubtipoControle() {
     const tipo = document.getElementById('subtipo-tipo').value;
     const nome = document.getElementById('subtipo-nome').value.trim();
+    const documentoEsperado = document.getElementById('subtipo-documento-esperado').checked;
     if (!nome) { mostrarToast('Informe um nome.', 'erro'); return; }
     try {
         if (subtipoEmEdicao) {
-            await api.atualizarSubtipoControle(subtipoEmEdicao, nome);
+            await api.atualizarSubtipoControle(subtipoEmEdicao, nome, documentoEsperado);
             mostrarToast('Subtipo atualizado ✅');
             cancelarEdicaoSubtipo();
         } else {
-            await api.criarSubtipoControle(estado.clienteId, tipo, nome);
+            await api.criarSubtipoControle(estado.clienteId, tipo, nome, documentoEsperado);
             mostrarToast('Subtipo criado ✅');
             document.getElementById('subtipo-nome').value = '';
+            document.getElementById('subtipo-documento-esperado').checked = false;
         }
         subtiposCache = await api.listarSubtiposControle(estado.clienteId);
         renderizarSubtiposControle();
@@ -1058,6 +1071,7 @@ export function editarSubtipoControle(id) {
     document.getElementById('subtipo-tipo').value = s.tipo;
     document.getElementById('subtipo-tipo').disabled = true;
     document.getElementById('subtipo-nome').value = s.nome;
+    document.getElementById('subtipo-documento-esperado').checked = !!s.documento_esperado;
     document.getElementById('subtipo-btn-salvar').textContent = 'Salvar edição';
     document.getElementById('subtipo-btn-cancelar').classList.remove('hidden');
     document.getElementById('subtipo-nome').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1067,6 +1081,7 @@ export function cancelarEdicaoSubtipo() {
     subtipoEmEdicao = null;
     document.getElementById('subtipo-tipo').disabled = false;
     document.getElementById('subtipo-nome').value = '';
+    document.getElementById('subtipo-documento-esperado').checked = false;
     document.getElementById('subtipo-btn-salvar').textContent = 'Adicionar';
     document.getElementById('subtipo-btn-cancelar').classList.add('hidden');
 }
@@ -1097,7 +1112,7 @@ function renderizarSubtiposControle() {
         return `<div class="mb-3">
             <p class="text-[11px] font-bold uppercase tracking-wide mb-1" style="color:var(--sage)">${escapeHtml(rotuloTipoControle(tipo))}</p>
             ${itens.map((s, idx) => `<div class="flex items-center justify-between gap-2 py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
-                <span class="text-xs font-bold">${escapeHtml(s.nome)}</span>
+                <span class="text-xs font-bold">${escapeHtml(s.nome)} ${s.documento_esperado ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo" title="Documento anexo esperado">📎</span>` : ''}</span>
                 <div class="flex items-center gap-2 flex-none">
                     ${s.cliente_id === null ? `<span class="text-[10px]" style="color:var(--sage)">padrão do sistema</span>` : ''}
                     <button data-action="editar-subtipo-controle" data-id="${s.id}" class="text-[10px] font-bold" style="color:var(--pine)">Editar</button>

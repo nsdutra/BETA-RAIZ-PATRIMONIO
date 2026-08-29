@@ -6,7 +6,43 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.66.11
+   VERSÃO: Beta v1.67.0
+   LINHAS: 25491
+   DATA: 29/08/2026
+   NOVIDADES (Beta v1.67.0) — auditoria de paridade de Minutas pedida pelo
+   Nicola (App × bot-menu × bot-voz), 4 bugs reais confirmados e
+   corrigidos:
+   1) "Gerar Minuta" da Ficha do Contrato (gerarMinutaContrato) gravava o
+      anexo em `contratos.anexos`, coluna que não existe mais desde a
+      migração do sistema de documentos pro Cofre — o `.update()` nunca
+      checava erro, então o botão subia o arquivo, mostrava toast de
+      sucesso, mas o vínculo nunca era salvo (documento ficava órfão no
+      Storage, nunca aparecia em lugar nenhum, nem no próprio box
+      "Documento" da ficha). Corrigido eliminando a duplicação:
+      gerarMinutaContrato() agora só resolve o imóvel e delega inteiramente
+      pra gerarMinutaNoCofre() (já correta, usada pelo menu "Locação") —
+      um único caminho de geração, não dois que podem divergir de novo.
+   2) Nome de arquivo de minuta (cadastro e geração) não era intuitivo e
+      tinha 2 bugs de higienização confirmados nos dados reais: sufixo de
+      download duplicado do navegador (" (1)") virava parte do nome salvo,
+      e reenviar um arquivo (fluxo normal de edição — baixar, editar no
+      Word, reenviar) empilhava um novo timestamp em cima do antigo em vez
+      de substituir. Corrigido: nome agora vem sempre do campo "Nome da
+      minuta" (nunca do File.name bruto), com versão que sobe a cada
+      reenvio — minuta_{slug}_v{n}_{data}.docx pro modelo,
+      contrato_{locatário}_{slug-da-minuta}_{data}.docx pro contrato
+      gerado (referencia de qual modelo veio, o que não existia antes).
+   3) excluirMinuta() só apagava a linha da tabela, nunca o arquivo no
+      Storage — todo modelo excluído ficava órfão no bucket. Corrigido
+      (extrai o caminho real da signed URL, remove antes/junto da linha).
+   4) Lista de minutas cadastradas não tinha atalho pra "ver e conferir" o
+      modelo — só editar/excluir. Adicionado botão "Ver" (abre o arquivo
+      direto), pedido explícito.
+   Migration aplicada separadamente (arquivo_versao em minutas_contrato +
+   catálogo de funcionalidades). Bot (whatsapp-webhook) corrigido à parte
+   nesta mesma auditoria — ver changelog de _shared.ts.
+
+   VERSÃO ANTERIOR: Beta v1.66.11
    LINHAS: 25451
    DATA: 28/08/2026
    NOVIDADES (Beta v1.66.11) — pedido explícito do Nicola: popup "Detalhes
@@ -8074,7 +8110,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.66.11";
+        const APP_VERSAO = "Beta v1.67.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -9362,6 +9398,7 @@
                     imovelId: row.imovel_id || null,
                     arquivoUrl: row.arquivo_url || null,
                     arquivoNome: row.arquivo_nome || null,
+                    arquivoVersao: row.arquivo_versao || 1,
                     ativa: row.ativa
                 };
             });
@@ -9379,6 +9416,7 @@
                 imovel_id: item.imovelId || null,
                 arquivo_url: item.arquivoUrl || null,
                 arquivo_nome: item.arquivoNome || null,
+                arquivo_versao: item.arquivoVersao || 1,
                 ativa: item.ativa !== false
             };
 
@@ -14858,19 +14896,33 @@
                 imovelId: escopo === 'imovel' ? document.getElementById('minuta-imovel-id').value : null,
                 arquivoUrl: minutaExistente ? minutaExistente.arquivoUrl : null,
                 arquivoNome: minutaExistente ? minutaExistente.arquivoNome : null,
+                arquivoVersao: minutaExistente ? (minutaExistente.arquivoVersao || 1) : 1,
                 ativa: true
             };
 
             if (arquivoNovo) {
                 mostrarCarregamentoGlobal("Enviando arquivo do modelo...");
                 try {
-                    const nomeArquivo = `${CLIENTE_ID_SUPABASE}/minutas-modelo/${Date.now()}_${arquivoNovo.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-                    const { error: errUpload } = await dbAuth.storage.from('contratos-documentos').upload(nomeArquivo, arquivoNovo);
+                    // CORRIGIDO (v1.67.0, pedido explícito — nome de arquivo
+                    // inteligível): antes o nome salvo (arquivo_nome) e o
+                    // path no Storage vinham do File.name bruto do upload —
+                    // sem sanitizar sufixo de download duplicado do
+                    // navegador (" (1)") nem se proteger de alguém reenviar
+                    // um arquivo que já tinha sido baixado daqui antes (o
+                    // nome anterior, com seu próprio timestamp, virava parte
+                    // do nome novo). Agora o nome vem SEMPRE do campo "Nome
+                    // da minuta" (nunca do File.name), com versão que sobe a
+                    // cada reenvio em vez de empilhar timestamp:
+                    // minuta_{slug}_v{n}_{data}.docx.
+                    dados.arquivoVersao = (dados.arquivoVersao || 1) + (minutaExistente ? 1 : 0);
+                    const nomeDescritivo = `minuta_${slugArquivo(dados.nome)}_v${dados.arquivoVersao}_${dataYYYYMMDD()}.docx`;
+                    const nomeArquivo = `${CLIENTE_ID_SUPABASE}/minutas-modelo/${nomeDescritivo}`;
+                    const { error: errUpload } = await dbAuth.storage.from('contratos-documentos').upload(nomeArquivo, arquivoNovo, { upsert: true });
                     if (errUpload) throw errUpload;
                     const { data: signedData, error: errSigned } = await dbAuth.storage.from('contratos-documentos').createSignedUrl(nomeArquivo, 315360000);
                     if (errSigned) throw errSigned;
                     dados.arquivoUrl = signedData.signedUrl;
-                    dados.arquivoNome = arquivoNovo.name;
+                    dados.arquivoNome = nomeDescritivo;
                 } catch (err) {
                     esconderCarregamentoGlobal();
                     alert('❌ Falha ao enviar o arquivo: ' + (err.message || String(err)));
@@ -14893,8 +14945,35 @@
             saveAll(true, "Minuta salva com sucesso!", ['minutasContrato']);
         }
 
+        // CORRIGIDO (v1.67.0, achado em auditoria — vazamento de Storage):
+        // excluir uma minuta só apagava a linha da tabela, nunca o arquivo
+        // no bucket — todo .docx de modelo excluído ficava órfão. A URL
+        // assinada guardada já contém o caminho real dentro do bucket
+        // (.../object/sign/contratos-documentos/<path>?token=...), então dá
+        // pra extrair sem precisar de uma coluna nova só pra isso. Falha ao
+        // remover do Storage não impede a exclusão do cadastro (a linha sai
+        // de qualquer forma) — só fica registrada no console pra investigar
+        // depois, não trava a ação do usuário.
+        function extrairStoragePathDeUrlAssinada(url, bucket) {
+            if (!url) return null;
+            const marcador = `/object/sign/${bucket}/`;
+            const idx = url.indexOf(marcador);
+            if (idx === -1) return null;
+            const resto = url.slice(idx + marcador.length);
+            const semQuery = resto.split('?')[0];
+            try { return decodeURIComponent(semQuery); } catch (e) { return semQuery; }
+        }
+
         function excluirMinuta(id) {
             if (!confirm("Confirma a exclusão desta minuta?")) return;
+
+            const minuta = minutasContrato.find(m => m.id === id);
+            const storagePath = minuta ? extrairStoragePathDeUrlAssinada(minuta.arquivoUrl, 'contratos-documentos') : null;
+            if (storagePath) {
+                dbAuth.storage.from('contratos-documentos').remove([storagePath]).then(({ error }) => {
+                    if (error) console.error('excluirMinuta: falha ao remover arquivo do Storage (linha já será excluída mesmo assim):', error.message);
+                });
+            }
 
             dbAuth.from('minutas_contrato').delete().eq('id', id).then(({ error }) => {
                 if (error) logScreen('Erro ao excluir minuta no Supabase: ' + error.message, true);
@@ -14935,6 +15014,7 @@
                         <p class="text-xs font-bold text-slate-900">${m.nome}</p>
                         <p class="text-[11px] text-gray-500">${rotuloEscopo[m.escopo] || m.escopo}${detalheEscopo ? ' · ' + detalheEscopo : ''}</p>
                         <div class="flex gap-1.5 mt-2">
+                            <button onclick="window.open('${m.arquivoUrl || ''}', '_blank')" title="Ver / conferir" ${m.arquivoUrl ? '' : 'disabled'} class="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-600 rounded-full border border-slate-200 ${m.arquivoUrl ? '' : 'opacity-40 cursor-not-allowed'}"><svg data-lucide="eye" style="width:14px;height:14px"></svg></button>
                             <button onclick="editarMinuta('${m.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                             <button onclick="excluirMinuta('${m.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
                         </div>
@@ -15106,6 +15186,24 @@
         // e sobe o PDF pro mesmo bucket de documentos do contrato (Cofre de
         // Documentos), anexando automaticamente.
         // ============================================================================
+
+        // v1.67.0 — helper de nome de arquivo intuitivo, reaproveitado por
+        // salvarMinuta() e gerarMinutaNoCofre() (mesma lógica de sanitização
+        // que já existia solta/duplicada em 3 outros pontos do arquivo —
+        // aqui centralizada só pra uso novo, sem tocar nos 3 já existentes).
+        function slugArquivo(texto) {
+            return (texto || '')
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 60) || 'sem-nome';
+        }
+
+        function dataYYYYMMDD(d) {
+            const ref = d || new Date();
+            return `${ref.getFullYear()}${String(ref.getMonth() + 1).padStart(2, '0')}${String(ref.getDate()).padStart(2, '0')}`;
+        }
 
         function encontrarMinutaParaImovel(imovelId) {
             const imo = imoveis.find(i => i.id === imovelId);
@@ -15327,100 +15425,30 @@
             return { blob, placeholdersVaziosDetectados, placeholdersResiduais };
         }
 
+        // CORRIGIDO (v1.67.0 — bug real achado em auditoria de paridade da
+        // funcionalidade de Minutas): esta função gravava o anexo em
+        // `contratos.anexos`, coluna que não existe mais na tabela desde a
+        // migração do sistema de documentos pro Cofre (cofre_documentos +
+        // cofre_documento_vinculos, ver gerarMinutaNoCofre() abaixo). O
+        // `.update()` que gravava isso nunca checava erro — então o botão
+        // "Gerar Minuta" da Ficha do Contrato subia o arquivo pro bucket
+        // certo, mostrava toast de sucesso, mas o vínculo nunca era salvo:
+        // o documento ficava órfão no Storage e nunca aparecia em lugar
+        // nenhum (nem no box "Documento" da própria ficha, que já lê do
+        // Cofre). Corrigido eliminando a duplicação: esta função agora só
+        // resolve o imóvel do contrato e delega inteiramente pra
+        // gerarMinutaNoCofre() — mesma prontidão, mesmo preenchimento,
+        // mesmo destino (Cofre), sem lógica duplicada em dois lugares que
+        // podem divergir de novo no futuro.
         async function gerarMinutaContrato(contratoId) {
-
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
-
-            const imo = imoveis.find(i => i.id === con.imovelId);
-
-            // v1.46.0 — DEFESA EM PROFUNDIDADE (Especificação de Prontidão
-            // §11): mesmo que a UI esconda o botão, esta função reavalia a
-            // MESMA regra canônica de novo. Uma chamada direta via
-            // console/handler antigo num contrato incompleto é bloqueada
-            // aqui, não só escondida na tela.
-            const prontidao = avaliarProntidaoContratoParaMinuta(con, imo);
-            if (!prontidao.pronto) {
-                const linhas = [...prontidao.faltantes, ...prontidao.invalidos];
-                alert('⚠️ Minuta ainda indisponível — faltam ' + linhas.length + ' informação(ões) obrigatória(s):\n\n' + linhas.map(l => '• ' + l).join('\n') + '\n\nCompletar dados do contrato antes de gerar.');
-                return;
-            }
-
-            const minuta = encontrarMinutaParaImovel(con.imovelId);
-            if (!minuta) {
-                alert('⚠️ Nenhuma minuta cadastrada se aplica a este imóvel (nem específica, nem geral). Cadastre uma minuta em Configurações → Minutas de Contrato.');
-                return;
-            }
-            if (!minuta.arquivoUrl) {
-                alert('⚠️ Esta minuta não tem um arquivo .docx cadastrado. Edite a minuta em Configurações → Minutas de Contrato e envie o arquivo.');
-                return;
-            }
-
-            mostrarCarregamentoGlobal("Gerando minuta...");
-
-            try {
-                const respostaModelo = await fetch(minuta.arquivoUrl);
-                if (!respostaModelo.ok) throw new Error('Não consegui baixar o arquivo do modelo (HTTP ' + respostaModelo.status + ').');
-                const arrayBufferModelo = await respostaModelo.arrayBuffer();
-
-                const valores = montarValoresPlaceholdersMinuta(con, imo);
-
-                const resultadoPreenchimento = await preencherMinutaDocx(arrayBufferModelo, valores);
-
-                // v1.46.0 — Camada 4 de verdade: o MODELO REAL exigia algum
-                // placeholder que ficou vazio, ou usa um placeholder que o
-                // sistema não conhece? Bloqueia ANTES de subir o arquivo —
-                // nunca sai um .docx com "{{...}}" sobrando ou campo em branco.
-                if (resultadoPreenchimento.placeholdersVaziosDetectados.length > 0 || resultadoPreenchimento.placeholdersResiduais.length > 0) {
-                    esconderCarregamentoGlobal();
-                    const partes = [];
-                    if (resultadoPreenchimento.placeholdersVaziosDetectados.length > 0) {
-                        partes.push('Faltam dados que este modelo usa: ' + resultadoPreenchimento.placeholdersVaziosDetectados.join(', '));
-                    }
-                    if (resultadoPreenchimento.placeholdersResiduais.length > 0) {
-                        partes.push('O modelo usa placeholder(s) que o sistema não sabe preencher: ' + resultadoPreenchimento.placeholdersResiduais.join(', ') + ' (revisar o .docx do modelo ou completar cadastro correspondente)');
-                    }
-                    alert('⚠️ Minuta ainda indisponível:\n\n' + partes.join('\n'));
-                    return;
-                }
-
-                const blobPreenchido = resultadoPreenchimento.blob;
-
-                const nomeArquivo = `${CLIENTE_ID_SUPABASE}/${Date.now()}_minuta_${(con.locatario || 'contrato').replace(/[^a-zA-Z0-9]/g, '_')}.docx`;
-
-                const { error: errUpload } = await dbAuth.storage.from('contratos-documentos').upload(nomeArquivo, blobPreenchido, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-                if (errUpload) throw errUpload;
-
-                const { data: signedData, error: errSigned } = await dbAuth.storage.from('contratos-documentos').createSignedUrl(nomeArquivo, 315360000);
-                if (errSigned) throw errSigned;
-
-                const novoAnexo = { id: 'doc_' + Date.now() + Math.random().toString(36).substr(2, 4), nome: `Minuta - ${con.locatario}.docx`, url: signedData.signedUrl, tipo: 'Contrato' };
-
-                con.anexos = (con.anexos || []).concat([novoAnexo]);
-
-                await dbAuth.from('contratos').update({ anexos: con.anexos }).eq('id', con.id);
-
-                esconderCarregamentoGlobal();
-
-                registrarLog('minutas.gerar_docx', { contratoId: con.id, minutaId: minuta.id, minutaNome: minuta.nome });
-
-                renderContratos();
-
-                mostrarToast('Minuta gerada e anexada ao contrato! Baixe, confira e envie pro interessado.', 'success');
-
-
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Não consegui gerar a minuta: ' + (err.message || String(err)));
-            }
-
+            await gerarMinutaNoCofre(con.imovelId);
         }
 
         // ===================================================================
         // v1.55.0 — NOVO: "Gerar minuta" a partir do menu Locação (pedido
-        // explícito). Diferente de gerarMinutaContrato() (que sobe pro
-        // bucket antigo "contratos-documentos" e anexa em con.anexos), esta
-        // função sobe pro COFRE (cofre-documentos + cofre_documentos +
+        // explícito). Sobe pro COFRE (cofre-documentos + cofre_documentos +
         // cofre_documento_vinculos), como um documento tipo "Minuta
         // Contratual" já vinculado ao contrato. Reaproveita 100% a mesma
         // regra de prontidão/preenchimento (avaliarProntidaoContratoParaMinuta/
@@ -15435,6 +15463,15 @@
         // mas não fazia parte da checagem de prontidão do contrato). Agora
         // as duas checagens rodam ANTES de qualquer alerta, e tudo que
         // estiver faltando aparece junto, numa única mensagem.
+        // v1.67.0 — desde esta versão, esta função também é o destino de
+        // gerarMinutaContrato() (ver acima) — é o ÚNICO lugar que sobe
+        // minuta preenchida de verdade, chamado a partir dos 2 pontos de
+        // entrada (pill "Gerar Minuta" da Ficha do Contrato + menu
+        // "Locação"). Nome do arquivo gerado também corrigido nesta versão
+        // (pedido explícito): antes era só "Minuta - {locatário}.docx", sem
+        // nenhuma referência a qual modelo deu origem; agora referencia o
+        // nome da própria minuta, igual a convenção usada no cadastro do
+        // modelo (slugArquivo/dataYYYYMMDD).
         async function gerarMinutaNoCofre(imovelId) {
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
@@ -15483,7 +15520,10 @@
 
             try {
 
-                const nomeArquivo = `Minuta - ${con.locatario}.docx`;
+                // CORRIGIDO (v1.67.0, pedido explícito): nome intuitivo,
+                // referenciando o modelo de origem — igual convenção usada
+                // no cadastro da minuta (minuta_{slug}_v{n}_{data}.docx).
+                const nomeArquivo = `contrato_${slugArquivo(con.locatario)}_${slugArquivo(minuta.nome)}_${dataYYYYMMDD()}.docx`;
                 const nomeSanitizado = nomeArquivo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
                 const agora = new Date();
                 const storagePath = `${CLIENTE_ID_SUPABASE}/${agora.getFullYear()}/${String(agora.getMonth() + 1).padStart(2, '0')}/minuta_${con.id}_${Date.now()}/${nomeSanitizado}`;

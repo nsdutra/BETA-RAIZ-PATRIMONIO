@@ -10,29 +10,40 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.21.4
-  Data       : 27/08/2026
-  Título     : BUG FIX — GRUPO DE 4 BOTÕES DA FICHA DO DOCUMENTO QUEBRANDO LINHA
-  Base       : v1.21.3 (27/08/2026)
-  Linhas     : cofre.html = 3095 · js/cofre-api.js = 614 · js/cofre-app.js = 531 ·
-               js/cofre-ativos.js = 465 · js/cofre-controles.js = 1251 ·
+  Versão     : 1.21.5
+  Data       : 29/08/2026
+  Título     : Checkbox "documento anexo esperado" no cadastro de Subtipos
+  Base       : v1.21.4 (27/08/2026)
+  Linhas     : cofre.html = 3115 · js/cofre-api.js = 622 · js/cofre-app.js = 555 ·
+               js/cofre-ativos.js = 465 · js/cofre-controles.js = 1266 ·
                js/cofre-documentos.js = 741 · js/cofre-estado.js = 161 ·
-               js/cofre-navegacao.js = 224 · js/cofre-ui.js = 105 ·
-               js/cofre-validacoes.js = 337 (total js/ = 4429)
+               js/cofre-navegacao.js = 240 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 337 (total js/ = 4492)
+               [nota: cofre-app.js/cofre-navegacao.js já estavam com essa
+               contagem antes desta entrega — header da v1.21.4 estava
+               desatualizado nesses 2, corrigido aqui como parte da
+               recontagem obrigatória; nenhuma linha desses 2 arquivos foi
+               tocada nesta entrega]
 
-  CHANGELOG v1.21.4 — pedido explícito: "a tela de vincular documento
-  ficou os 4 botões grandes e estão quebrando linha". Consequência
-  direta do botão "Vincular" adicionado na v1.21.3 nesse mesmo grupo
-  (Baixar/Arquivar/Excluir) — 4 botões de largura própria num
-  `flex flex-wrap` quebravam de forma desalinhada.
+  CHANGELOG v1.21.5 — pedido explícito do Nicola (revisão geral de
+  mensagens pró-ativas): sinalizar por CATEGORIA (subtipo de item de
+  controle), não por item individual, se um documento anexo é esperado
+  — alimenta a nova varredura proativa solicitar.anexo_apolice do
+  diario-eventos (fn_diario_cofre_documento_pendente, ver migration
+  cofre_controle_subtipos_documento_esperado).
 
-    - `flex flex-wrap gap-2` → `grid grid-cols-2 gap-2` — 2 linhas de 2
-      botões, largura igual, alinhado. Cada botão ganhou
-      `justify-center` (antes só `items-center`) pra centralizar dentro
-      da célula do grid, já que agora a largura não é mais só o
-      conteúdo do próprio botão.
-
-    - Arquivos alterados: cofre.html (ficha do documento).
+    - cofre.html: checkbox novo "Documento anexo esperado" no modal
+      #modal-subtipos-controle, entre o form (Tipo/Nome) e a lista.
+    - js/cofre-controles.js: abrirSubtiposControle/salvarSubtipoControle/
+      editarSubtipoControle/cancelarEdicaoSubtipo passam a ler/gravar/
+      popular o checkbox; renderizarSubtiposControle mostra um badge 📎
+      (classe .raiz-badge-atributo, mesmo padrão do badge de energia
+      disponível — DS §14.1) ao lado do nome quando marcado.
+    - js/cofre-api.js: criarSubtipoControle() e atualizarSubtipoControle()
+      ganham parâmetro documentoEsperado (default false), gravado na
+      coluna nova cofre_controle_subtipos.documento_esperado.
+    - Sem override por item individual — mesmo princípio de "regra vive
+      num nível central" já usado no modelo de licenças.
 
   ============================================================================
 -->
@@ -3030,6 +3041,15 @@
             <div class="flex-1"><label class="text-xs font-semibold block mb-1">Nome</label><input type="text" id="subtipo-nome" placeholder="Ex.: Seguro contra incêndio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
             <button id="subtipo-btn-salvar" data-action="salvar-subtipo-controle" class="px-4 py-2 rounded-xl text-sm font-semibold text-white h-[38px]" style="background:var(--pine)">Adicionar</button>
             <button id="subtipo-btn-cancelar" data-action="cancelar-edicao-subtipo" class="hidden px-4 py-2 rounded-xl text-sm font-semibold h-[38px]" style="background:#f1f5f9;color:#475569;">Cancelar</button>
+        </div>
+        <!-- NOVO (29/08/2026) — pedido explícito do Nicola: sinalizar por
+             CATEGORIA (não por item individual) se um documento anexo é
+             esperado. Alimenta a varredura proativa solicitar.anexo_apolice
+             (fn_diario_cofre_documento_pendente) — item ativo desse subtipo
+             sem nenhum documento vinculado entra no alerta. -->
+        <div class="flex items-start gap-2 mb-3">
+            <input type="checkbox" id="subtipo-documento-esperado" class="w-4 h-4 mt-0.5">
+            <label for="subtipo-documento-esperado" class="text-xs" style="color:var(--sage)">Documento anexo esperado (ex.: apólice) — item deste subtipo sem nenhum documento vinculado entra no aviso automático de "documento pendente".</label>
         </div>
         <p class="raiz-indicador-inline mb-2" style="color:var(--sage)">Some pra escolher toda vez que criar um item de controle desse tipo — em "Novo item de controle" e ao editar.</p>
         <div id="subtipos-lista"></div>

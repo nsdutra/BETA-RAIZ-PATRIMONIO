@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.2 · 25/08/2026
+// Versão: 1.5.0 · 29/08/2026
+//
+// v1.5.0 — criarSubtipoControle() e atualizarSubtipoControle() ganham
+// parâmetro documentoEsperado (default false), gravado em
+// cofre_controle_subtipos.documento_esperado — ver changelog de
+// cofre-controles.js v1.7.0 pro fluxo completo.
 //
 // v1.4.2 — REVISÃO DE DESIGN (pedido explícito): listarOcorrenciasAbertasComItem()
 // ganhou embed aninhado cofre_ativos(nome_exibicao, tipo_ativo) dentro
@@ -472,24 +477,27 @@ export async function arquivarModeloItemControle(id) {
 // original da tabela). `codigo` é gerado a partir do nome (slug), com
 // sufixo numérico se colidir com um já existente do mesmo cliente
 // (UNIQUE (cliente_id, codigo) no banco).
-export async function criarSubtipoControle(clienteId, tipo, nome) {
+// NOVO (29/08/2026) — parâmetro documentoEsperado (pedido explícito do
+// Nicola): sinaliza se itens deste subtipo devem ter documento anexado.
+// Alimenta fn_diario_cofre_documento_pendente() no diario-eventos.
+export async function criarSubtipoControle(clienteId, tipo, nome, documentoEsperado = false) {
     const codigoBase = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'subtipo';
     let codigo = codigoBase;
     for (let tentativa = 1; tentativa <= 20; tentativa++) {
-        const { error } = await dbAuth.from('cofre_controle_subtipos').insert({ cliente_id: clienteId, tipo, codigo, nome });
+        const { error } = await dbAuth.from('cofre_controle_subtipos').insert({ cliente_id: clienteId, tipo, codigo, nome, documento_esperado: documentoEsperado });
         if (!error) return;
         if (error.code === '23505' && tentativa < 20) { codigo = `${codigoBase}_${tentativa + 1}`; continue; }
         throw error;
     }
 }
 
-// Só edita o NOME de exibição (25/08/2026, pedido explícito) — nunca o
+// Edita NOME e documento_esperado (25/08/2026 + 29/08/2026) — nunca o
 // `codigo` (chave usada internamente/em referências), nem o `tipo`
 // (mudar de seguro/manutenção/tributo depois de criado deixaria
 // qualquer item de controle já usando esse subtipo apontando pro grupo
 // errado no dropdown).
-export async function atualizarSubtipoControle(id, nome) {
-    const { error } = await dbAuth.from('cofre_controle_subtipos').update({ nome }).eq('id', id);
+export async function atualizarSubtipoControle(id, nome, documentoEsperado = false) {
+    const { error } = await dbAuth.from('cofre_controle_subtipos').update({ nome, documento_esperado: documentoEsperado }).eq('id', id);
     if (error) throw error;
 }
 
