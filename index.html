@@ -6,6 +6,32 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.66.11
+   LINHAS: 25451
+   DATA: 28/08/2026
+   NOVIDADES (Beta v1.66.11) — pedido explícito do Nicola: popup "Detalhes
+   do Imóvel" (Mais ações → Detalhes) não deixava editar "Uso do imóvel"
+   (finalidadeUso — já existia no cadastro completo e no card da lista,
+   só faltava neste popup) nem "Tamanho (m²)" (idem, já existia só no
+   cadastro completo). Adicionados os 2 campos, mesmas opções/rótulos do
+   formulário principal. Refresh ao salvar já era feito por
+   salvarDetalhesImovelPopup() pra ficha (se aberta) e lista de Imóveis
+   (se aba ativa) — nenhum campo novo precisou de lógica de refresh
+   separada, os 2 usam o mesmo salvamento/recarregamento de sempre.
+
+   VERSÃO: Beta v1.66.10
+   LINHAS: 25422
+   DATA: 28/08/2026
+   NOVIDADES (Beta v1.66.10) — BUG REAL relacionado ao equivalente já
+   corrigido no bot na mesma rodada: nomesIguaisSocio() usava igualdade
+   pura (===), o que perderia um match legítimo confirmado contra o banco
+   real (sócio da Rumo cadastrado como "Luciana Maia Silva", mas extrato
+   mostra nome legal completo "...DE ARAUJO BRANDAO"). Trocado pra
+   continência (substring) — continua rejeitando corretamente sócios com
+   sobrenome de família em comum ("Renato Maia Silva" x "Claudia Beatriz
+   Maia Silva"), mas passa a reconhecer nome cadastrado mais curto dentro
+   do nome legal completo do extrato.
+
    VERSÃO: Beta v1.66.9
    LINHAS: 25391
    DATA: 28/08/2026
@@ -8048,7 +8074,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.66.9";
+        const APP_VERSAO = "Beta v1.66.11";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -16131,6 +16157,19 @@
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Bairro <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-bairro" required value="${(imo.enderecoBairro || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Cidade <span style="color:var(--danger)">*</span></label><input type="text" id="mdi-endereco-cidade" required value="${(imo.enderecoCidade || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
                         </div>
+                        <div style="display:flex;gap:8px;">
+                            <div style="flex:1;">
+                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Uso do imóvel <span style="color:var(--danger)">*</span></label>
+                                <select id="mdi-finalidade-uso" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
+                                    <option value="long_stay">Long Stay (locação)</option>
+                                    <option value="uso_proprio">Uso próprio</option>
+                                    <option value="temporada">Temporada</option>
+                                    <option value="comercial">Comercial</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Tamanho (m²) <span style="color:var(--danger)">*</span></label><input type="number" id="mdi-tamanho" required value="${imo.tamanho || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                        </div>
                         <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label><textarea id="mdi-descricao" required rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">${(imo.descricao || '').replace(/</g, '&lt;')}</textarea></div>
                         <div style="display:flex;gap:8px;">
                             <!-- CORRIGIDO (v1.57.0 — pedido explícito): rótulo
@@ -16170,6 +16209,7 @@
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
             document.getElementById('mdi-empreendimento').value = imo.empreendimento || '';
             document.getElementById('mdi-tipo').value = imo.tipo || '';
+            document.getElementById('mdi-finalidade-uso').value = imo.finalidadeUso || 'long_stay';
         }
 
         async function salvarDetalhesImovelPopup(imovelId) {
@@ -16178,6 +16218,8 @@
 
             imo.empreendimento = document.getElementById('mdi-empreendimento').value;
             imo.tipo = document.getElementById('mdi-tipo').value;
+            imo.finalidadeUso = document.getElementById('mdi-finalidade-uso').value;
+            imo.tamanho = parseFloat(document.getElementById('mdi-tamanho').value) || 0;
             imo.enderecoRua = document.getElementById('mdi-endereco-rua').value.trim();
             imo.enderecoNum = document.getElementById('mdi-endereco-num').value.trim();
             imo.enderecoComp = document.getElementById('mdi-endereco-comp').value.trim();
@@ -20039,9 +20081,27 @@
 
         // sobrenome em comum. Nomes de pessoa exigem correspondência exata.
 
+        //
+        // CORRIGIDO (v1.66.10, 28/08/2026) — BUG REAL relacionado, achado
+        // junto do fix equivalente no bot: igualdade pura (===) perde
+        // variações legítimas de nome legal — confirmado contra o banco
+        // real que um sócio da Rumo está cadastrado só como "Luciana Maia
+        // Silva", mas aparece no extrato como "LUCIANA MAIA SILVA DE
+        // ARAUJO BRANDAO" (nome legal completo). Trocado pra continência
+        // (substring) — continua rejeitando corretamente "Renato Maia
+        // Silva" x "Claudia Beatriz Maia Silva" (nenhum é substring do
+        // outro), mas passa a reconhecer o nome cadastrado mais curto
+        // dentro do nome legal completo do extrato.
+
         function nomesIguaisSocio(a, b) {
 
-            return normalizarNomeParaComparacao(a) === normalizarNomeParaComparacao(b);
+            const na = normalizarNomeParaComparacao(a);
+
+            const nb = normalizarNomeParaComparacao(b);
+
+            if (!na || !nb) return false;
+
+            return na.includes(nb) || nb.includes(na);
 
         }
 
