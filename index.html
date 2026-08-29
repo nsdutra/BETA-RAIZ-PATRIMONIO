@@ -6,6 +6,30 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
+   VERSÃO: Beta v1.66.9
+   LINHAS: 25391
+   DATA: 28/08/2026
+   NOVIDADES (Beta v1.66.9) — mesmo bug de performance do saveAll (v1.66.7,
+   corrigido nos botões pontuais de pendência) agora também corrigido na
+   IMPORTAÇÃO DE EXTRATO EM LOTE (conciliarTransacoes):
+
+     - CAUSA: ao final da importação, `await saveAll(true, null)` (sem
+       `rotas`) sincronizava as 9 rotas inteiras — imóveis, contratos,
+       administradoras, síndicos, manutencistas e minutas incluídos, mesmo
+       essa função nunca tocando em nenhum deles. E dentro de mensalidades/
+       pendenciasExtrato, ressincronizava a carteira inteira, não só o que
+       mudou nesta importação.
+
+     - RESOLVIDO: gerarMensalidadesParaCompetencia() ganhou parâmetro
+       opcional pra devolver os IDs das mensalidades novas geradas
+       (retrocompatível — chamador que não passar nada continua igual).
+       conciliarTransacoes() rastreia toda mensalidade tocada (gerada ou
+       conciliada) e toda pendência tocada (criada ou resolvida) durante o
+       loop, e a chamada final vira `saveAll(true, null, rotasTocadas, {
+       mensalidades, pendenciasExtrato })` — só sincroniza as rotas que
+       realmente tiveram alguma mudança nesta rodada, e dentro delas, só os
+       IDs específicos tocados.
+
    VERSÃO: Beta v1.66.8
    LINHAS: 25324
    DATA: 28/08/2026
@@ -8024,7 +8048,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.66.8";
+        const APP_VERSAO = "Beta v1.66.9";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -19594,7 +19618,7 @@
 
         }
 
-        function gerarMensalidadesParaCompetencia(ref) {
+        function gerarMensalidadesParaCompetencia(ref, idsGeradosOut) {
 
             if(!contratos || contratos.length === 0) return 0;
 
@@ -19752,6 +19776,8 @@
                         taxaAdmSugerida: taxaAdmCalculada
 
                     });
+
+                    if (idsGeradosOut) idsGeradosOut.push(mensalidades[mensalidades.length - 1].id);
 
                     geradas++;
 
@@ -20595,6 +20621,14 @@
 
             const novosFingerprints = [];
 
+            // NOVO (v1.66.9, 28/08/2026) — rastreadores dos itens realmente
+            // tocados nesta importação, pra saveAll() no final sincronizar só
+            // isso (itensAlterados) em vez da carteira inteira — mesmo
+            // princípio já aplicado nos botões pontuais de pendência
+            // (v1.66.7), agora estendido pro caminho de importação em lote.
+            const idsMensalidadesAlteradas = [];
+            const idsPendenciasAlteradas = [];
+
             let qtdConciliados = 0, qtdRepasses = 0, qtdPendencias = 0, qtdIgnorados = 0, qtdJaPendentes = 0, qtdJaProcessadas = 0;
 
             // CORREÇÃO: antes de tentar conciliar qualquer coisa, garante que as
@@ -20625,7 +20659,7 @@
 
             });
 
-            competenciasDoExtrato.forEach(ref => gerarMensalidadesParaCompetencia(ref));
+            competenciasDoExtrato.forEach(ref => gerarMensalidadesParaCompetencia(ref, idsMensalidadesAlteradas));
 
             // NOVO (v1.66.2, 27/08/2026) — virou for...of (era forEach) porque
             // o bloco de crédito agora faz 1 chamada assíncrona à RPC
@@ -20705,6 +20739,8 @@
 
                         });
 
+                        idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
+
                         qtdPendencias++;
 
                         continue;
@@ -20757,6 +20793,7 @@
                                 contratoIdSugerido: contratoCandidato.id,
                                 mensalidadeIdsSugeridas: [], chave
                             });
+                            idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
                             qtdPendencias++;
                             continue;
                         }
@@ -20777,6 +20814,8 @@
 
                         mensalidades[idx].observacao = `Conciliado automaticamente via extrato — pagador: ${t.razaoSocial}`;
 
+                        idsMensalidadesAlteradas.push(mensalidades[idx].id);
+
                         registrarLog('mensal.baixar', { mensalidadeId: cls.mensalidade_id, referencia: referenciaEsperada, valor: t.valor, banco: 'PIX/TED (extrato)', via: 'conciliacao_automatica' });
 
                         qtdConciliados++;
@@ -20787,7 +20826,7 @@
 
                         const pendenciaAntiga = pendenciasExtrato.find(p => p.status === 'Pendente' && `${p.data}|${p.valor.toFixed(2)}|${p.razaoSocial.toUpperCase()}` === chave);
 
-                        if (pendenciaAntiga) pendenciaAntiga.status = 'Resolvido';
+                        if (pendenciaAntiga) { pendenciaAntiga.status = 'Resolvido'; idsPendenciasAlteradas.push(pendenciaAntiga.id); }
 
                         continue;
 
@@ -20808,6 +20847,8 @@
                             mensalidadeIdsSugeridas: cls.mensalidade_ids_sugeridas, chave
 
                         });
+
+                        idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
 
                         qtdPendencias++;
 
@@ -20840,6 +20881,8 @@
                         mensalidadeIdsSugeridas: [], chave
 
                     });
+
+                    idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
 
                     qtdPendencias++;
 
@@ -20897,7 +20940,31 @@
 
             extratoFingerprints = extratoFingerprints.concat(novosFingerprints);
 
-            await saveAll(true, null);
+            // CORRIGIDO (v1.66.9, 28/08/2026) — mesmo bug real já corrigido
+            // nos botões pontuais de pendência (v1.66.7): saveAll(true,
+            // null) sem `rotas` sincronizava as 9 rotas inteiras, mesmo essa
+            // importação só podendo tocar mensalidades/pendenciasExtrato/
+            // repasses — nunca imóveis, contratos, administradoras, síndicos,
+            // manutencistas ou minutas. Dentro de mensalidades/
+            // pendenciasExtrato, `itensAlterados` limita ainda mais: só os
+            // IDs realmente tocados nesta importação (gerados, conciliados,
+            // ou pendência resolvida/criada), não a carteira inteira — um
+            // extrato de 30 transações não paga mais o custo de
+            // ressincronizar centenas de mensalidades que não mudaram nada.
+            // `rotas` só inclui o que teve pelo menos 1 item tocado nesta
+            // rodada, pra não gastar uma sincronização à toa quando, por
+            // exemplo, nenhum repasse foi identificado.
+            const rotasTocadas = [];
+            if (idsMensalidadesAlteradas.length > 0) rotasTocadas.push('mensalidades');
+            if (idsPendenciasAlteradas.length > 0) rotasTocadas.push('pendenciasExtrato');
+            if (qtdRepasses > 0) rotasTocadas.push('repasses');
+
+            if (rotasTocadas.length > 0) {
+                await saveAll(true, null, rotasTocadas, {
+                    mensalidades: idsMensalidadesAlteradas,
+                    pendenciasExtrato: idsPendenciasAlteradas,
+                });
+            }
 
             alert(
 

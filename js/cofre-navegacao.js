@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.1.3 · 24/08/2026
+// Versão: 1.2.0 · 28/08/2026
+//
+// v1.2.0 (28/08/2026) — BUG REAL corrigido: abrirContexto('imovel', ...)
+// quando o ativo já existe (caminho mais comum) disparava só
+// 'cofre:abrir-ativo' (ficha, sem upload) — agora dispara
+// 'cofre:upload-contextual' direto, igual contrato/pagamento sempre
+// fizeram. Botão "Documentos" do Imóvel no app nunca chegava no
+// formulário de anexar arquivo.
 //
 // v1.1.3 — guarda defensiva em cofre-nome-empresa (evita "Cannot set
 // properties of null" se o elemento não existir por algum motivo — ex.:
@@ -171,7 +178,16 @@ export async function abrirContexto(tipo, ref, nomeCosmetico) {
             mudarTela('home');
             return;
         }
-        window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id: ativo.id } }));
+        // CORRIGIDO (28/08/2026) — BUG REAL reportado: o botão "Documentos"
+        // no Mais ações do Imóvel (index.html) levava pro Cofre mas nunca
+        // abria o formulário de upload — este é o caminho mais comum (o
+        // ativo já existe na maioria das vezes, depois do primeiro uso).
+        // Antes disparava 'cofre:abrir-ativo' (só a ficha do ativo, sem
+        // upload nenhum); contrato/pagamento sempre dispararam
+        // 'cofre:upload-contextual' direto — mesma função abrirCofreDocumentos()
+        // do app pros dois casos, comportamento tinha que ser igual.
+        window.dispatchEvent(new CustomEvent('cofre:upload-contextual', { detail: { entidadeTipo: 'ativo', entidadeId: ativo.id, nome: nomeCosmetico } }));
+        mudarTela('home');
         return;
     }
     if (tipo === 'contrato' || tipo === 'pagamento') {

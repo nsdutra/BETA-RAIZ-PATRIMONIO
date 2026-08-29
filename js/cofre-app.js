@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 26/08/2026
+// Versão: 1.5.0 · 28/08/2026
+//
+// v1.5.0 (28/08/2026) — BUG REAL corrigido: botão "Documentos" no Mais
+// ações do Imóvel (index.html) levava pro Cofre mas nunca chegava no
+// formulário de upload. Fluxo de criação assistida do ativo (quando
+// ainda não existe) agora vai direto pro upload ao terminar, em vez de
+// só abrir a ficha do ativo recém-criado. Ver também cofre-navegacao.js
+// (caminho mais comum — ativo já existente).
 //
 // v1.4.0 — MERGE (pedido explícito) de 2 branches paralelos que
 // divergiram do mesmo v1.3.4/v1.3.5 em conversas separadas:
@@ -351,8 +358,8 @@ function renderAlertas() {
 // ============================================================================
 let imovelPendenteCriacao = null;
 
-function abrirCriacaoAssistida(imovelId, imovel) {
-    imovelPendenteCriacao = { id: imovelId, imovel };
+function abrirCriacaoAssistida(imovelId, imovel, abrirUploadAoFinalizar) {
+    imovelPendenteCriacao = { id: imovelId, imovel, abrirUploadAoFinalizar: !!abrirUploadAoFinalizar };
     const endereco = imovel ? `${imovel.endereco_rua}, ${imovel.endereco_num || ''}` : 'este imóvel';
     document.getElementById('criacao-assistida-texto').textContent =
         `Ainda não existe um ativo do Cofre para ${endereco}. Quer criar agora, pra já guardar documentos, alertas e contatos ligados a ele?`;
@@ -362,15 +369,32 @@ function abrirCriacaoAssistida(imovelId, imovel) {
 async function confirmarCriacaoAssistida() {
     if (!imovelPendenteCriacao) return;
     try {
+        const nomeExibicao = imovelPendenteCriacao.imovel ? `${imovelPendenteCriacao.imovel.endereco_rua}, ${imovelPendenteCriacao.imovel.endereco_num || ''}` : 'Imóvel';
         const novo = await api.criarAtivo({
             cliente_id: estado.clienteId, tipo_ativo: 'imovel',
-            nome_exibicao: imovelPendenteCriacao.imovel ? `${imovelPendenteCriacao.imovel.endereco_rua}, ${imovelPendenteCriacao.imovel.endereco_num || ''}` : 'Imóvel',
+            nome_exibicao: nomeExibicao,
             status: 'ativo', entidade_origem_tipo: 'imovel', entidade_origem_id: imovelPendenteCriacao.id, criado_por: estado.pessoa.id,
         });
         fecharModal('modal-criacao-assistida');
         estado.ativos = await api.listarAtivos(estado.clienteId);
         mostrarToast('Ativo criado ✅');
-        await ativos.abrirFichaAtivo(novo.id);
+        // CORRIGIDO (28/08/2026) — BUG REAL reportado: o botão "Documentos"
+        // no Mais ações do Imóvel levava pro Cofre mas nunca chegava no
+        // formulário de upload — parava aqui, na ficha do ativo recém-
+        // criado, deixando a pessoa procurar sozinha como anexar o
+        // documento. Contrato/pagamento (mesma abrirCofreDocumentos())
+        // pulam a criação de ativo inteira e vão direto pro upload; imóvel
+        // PRECISA do ativo antes (é o jeito certo — evita vínculo órfão),
+        // mas depois de criado o objetivo da pessoa continua sendo
+        // "anexar o documento", não "ver a ficha do ativo". Só abre a
+        // ficha se o contexto que trouxe até aqui NÃO era um pedido de
+        // upload (ex.: alguém criando o ativo por outro caminho, se algum
+        // dia existir).
+        if (imovelPendenteCriacao.abrirUploadAoFinalizar) {
+            await docs.abrirUploadContextual('ativo', novo.id, nomeExibicao);
+        } else {
+            await ativos.abrirFichaAtivo(novo.id);
+        }
     } catch (err) {
         mostrarToast('Erro ao criar ativo: ' + err.message, 'erro');
     }
@@ -393,7 +417,7 @@ window.addEventListener('cofre:upload-contextual', (ev) => {
     docs.abrirUploadContextual(ev.detail.entidadeTipo, ev.detail.entidadeId, ev.detail.nome);
 });
 
-window.addEventListener('cofre:contexto-imovel-sem-ativo', (ev) => abrirCriacaoAssistida(ev.detail.imovelId, ev.detail.imovel));
+window.addEventListener('cofre:contexto-imovel-sem-ativo', (ev) => abrirCriacaoAssistida(ev.detail.imovelId, ev.detail.imovel, true));
 
 window.addEventListener('cofre:navegar-contexto', (ev) => nav.abrirContexto(ev.detail.tipo, ev.detail.ref, null));
 

@@ -144,7 +144,7 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.21.4';
+export const COFRE_VERSAO = '1.21.5';
 
 export const estado = {
     clienteId: null,

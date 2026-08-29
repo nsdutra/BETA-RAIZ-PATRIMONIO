@@ -1,6 +1,22 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.1.0 · 28/08/2026
+// Versão: 1.2.0 · 28/08/2026
+//
+// v1.2.0 (28/08/2026) — BUG REAL corrigido, reportado pelo Nicola: a
+// seção de comunicações deixava clicar no checkbox/escolher frequência,
+// mas nada era salvo. Causa: só existia UM caminho de salvamento (o botão
+// "Salvar Pessoas" lá embaixo, fora da seção), que grava TUDO de uma vez
+// (nome/e-mail/whatsapp/perfil/avisos de todos os cards). Clicar num
+// checkbox muda o estado visual na hora (comportamento normal do
+// navegador), dando a impressão de que já "pegou" — mas sem lembrar de
+// rolar até o botão distante e clicar, nada persiste. Pior: qualquer
+// re-render externo da aba (dev_renderPessoas, chamado por outras
+// rotinas do app) reconstrói a lista inteira a partir do banco,
+// descartando silenciosamente qualquer edição ainda não salva. Corrigido
+// com um botão "Salvar avisos desta pessoa" dentro da própria seção —
+// salva só aquilo, na hora, com feedback próprio — sem depender do botão
+// de baixo nem do risco de um re-render apagar a edição no meio do
+// caminho.
 //
 // v1.1.0 (28/08/2026) — NOVO, pedido explícito do Nicola: seção
 // "Comunicações (avisos automáticos)" dentro do cadastro de cada pessoa —
@@ -69,7 +85,7 @@
 // segredo, mesmo padrão já replicado nesse outro arquivo).
 // ============================================================================
 
-export const COMUM_PESSOAS_VERSAO = '1.1.0';
+export const COMUM_PESSOAS_VERSAO = '1.2.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
@@ -247,6 +263,9 @@ function comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap) {
             <p class="text-[10px] text-gray-400 mt-0.5">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
             ${semWhatsapp ? '<p class="text-[10px] mt-1" style="color:var(--warning)">⚠️ Sem WhatsApp cadastrado — os avisos não chegam até preencher o número acima.</p>' : ''}
             <div class="mt-1">${linhas}</div>
+            <button type="button" data-acao="salvar-comunicacoes" data-id="${p.id}" class="mt-2 w-full flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] py-1.5 rounded-lg font-bold">
+                <svg data-lucide="check" style="width:12px;height:12px"></svg> Salvar avisos desta pessoa
+            </button>
         </div>`;
 }
 
@@ -477,6 +496,40 @@ export async function montarAbaPessoas(mountEl, ctx) {
                 renderLista();
             } catch (err) {
                 alert('❌ Falha ao criar acesso: ' + err.message);
+            }
+            return;
+        }
+        // NOVO (v1.2) — BUG REAL corrigido: preferências de comunicação só
+        // salvavam junto do "Salvar Pessoas" (botão lá embaixo, fora de
+        // vista) — clicar no checkbox/frequência "parecia" funcionar (o
+        // navegador muda o estado visual na hora), mas sem clicar
+        // naquele botão distante nada persistia, e qualquer re-render
+        // externo (dev_renderPessoas chamado por outra rotina) descartava
+        // a mudança em memória sem aviso nenhum. Botão próprio aqui —
+        // salva só isto, com feedback imediato, sem depender de lembrar
+        // do botão de baixo nem arriscar perder a edição num re-render.
+        if (acao === 'salvar-comunicacoes') {
+            const card = alvo.closest('[data-pessoa-id]');
+            if (!card) return;
+            const linhas = Array.from(card.querySelectorAll('.pref-comunicacao-habilitado')).map(chk => {
+                const codigo = chk.dataset.codigo;
+                const selectFreq = card.querySelector(`.pref-comunicacao-frequencia[data-codigo="${codigo}"]`);
+                return {
+                    cliente_id: clienteId, pessoa_id: id, funcionalidade_codigo: codigo,
+                    habilitado: chk.checked, frequencia: selectFreq ? selectFreq.value : 'semanal',
+                    atualizado_em: new Date().toISOString(),
+                };
+            });
+            if (linhas.length === 0) return;
+            try {
+                const { error } = await dbAuth.from('pessoa_preferencias_comunicacao')
+                    .upsert(linhas, { onConflict: 'pessoa_id,funcionalidade_codigo' });
+                if (error) throw error;
+                linhas.forEach(l => preferenciasMap.set(`${l.pessoa_id}|${l.funcionalidade_codigo}`, { habilitado: l.habilitado, frequencia: l.frequencia }));
+                onToast?.('Avisos salvos.', 'success');
+                registrarLog?.('pessoas.comunicacoes.salvar', { pessoaId: id, qtd: linhas.length });
+            } catch (err) {
+                alert('❌ Falha ao salvar avisos: ' + err.message);
             }
             return;
         }
