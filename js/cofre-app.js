@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 28/08/2026
+// Versão: 1.6.0 · 29/08/2026
+//
+// v1.6.0 (29/08/2026) — 2 mudanças, sessões diferentes no mesmo dia:
+//   1) Handler de "Arquivar documento" removido do dispatcher (pedido
+//      explícito: função sem utilidade) — sem changelog próprio quando
+//      isso aconteceu (só documentado no header central de cofre.html
+//      v1.21.6); registrado aqui agora pra não deixar o histórico deste
+//      arquivo com um buraco.
+//   2) NOVO case 'marcar-ativo-vendido' no dispatcher, chamando
+//      ativos.marcarAtivoVendidoAtual() — pedido explícito do Nicola
+//      (função de marcar ativo como vendido, desativando itens de
+//      controle/alertas em cascata). Ver cofre-ativos.js v1.3.0.
 //
 // v1.5.0 (28/08/2026) — BUG REAL corrigido: botão "Documentos" no Mais
 // ações do Imóvel (index.html) levava pro Cofre mas nunca chegava no
@@ -213,7 +224,6 @@ document.addEventListener('click', async (ev) => {
         case 'excluir-alerta': await docs.excluirAlerta(id); break;
         case 'fechar-ficha-doc': docs.fecharFichaDoc(); break;
         case 'baixar-documento-atual': await docs.baixarDocumentoAtual(); break;
-        case 'arquivar-documento-atual': await docs.arquivarDocumentoAtual(); break;
         case 'excluir-documento-atual': await docs.excluirDocumentoAtual(); break;
         case 'ir-para-vinculo': await docs.irParaVinculo(alvo.dataset.tipo, alvo.dataset.id); break;
         case 'escolher-candidato-upload': docs.escolherCandidatoUpload(alvo.dataset.tipo, alvo.dataset.id, alvo.dataset.nome); break;
@@ -236,6 +246,7 @@ document.addEventListener('click', async (ev) => {
         // 'alternar-historico-ativo' removido (revisão DS, 25/08/2026) —
         // Histórico não é mais opção do Mais ações do box do Ativo.
         case 'excluir-ativo-atual': await ativos.excluirAtivoAtual(); break;
+        case 'marcar-ativo-vendido': await ativos.marcarAtivoVendidoAtual(); break;
         case 'alternar-editar-ativo': ativos.alternarEditarAtivo(); break;
         case 'salvar-edicao-ativo': await ativos.salvarEdicaoAtivo(); break;
         case 'abrir-gestao-imovel': ativos.abrirGestaoImovel(); break;

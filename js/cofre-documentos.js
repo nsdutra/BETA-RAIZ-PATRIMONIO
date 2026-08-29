@@ -655,15 +655,14 @@ export async function baixarDocumentoAtual() {
     }
 }
 
-export async function arquivarDocumentoAtual() {
-    if (!confirm('Arquivar este documento?')) return;
-    try {
-        await api.atualizarDocumento(docAtualId, { status: 'arquivado' });
-        mostrarToast('Documento arquivado.');
-        fecharFichaDoc();
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
-}
+// REMOVIDO (29/08/2026, pedido explícito — "não to vendo utilidade nesta
+// função de arquivar um documento"): arquivarDocumentoAtual() e o botão
+// correspondente na ficha do documento saíram. Escopo só de DOCUMENTO —
+// arquivar Ativo (cofre-ativos.js) e arquivar Foto (cofre-api.js) não
+// foram tocados, são funcionalidades separadas que o pedido não menciona.
+// status='arquivado' continua um valor válido no CHECK constraint de
+// cofre_documentos (documentos já arquivados antes continuam aparecendo
+// normalmente) — só não tem mais como CRIAR um novo a partir da ficha.
 
 export async function excluirDocumentoAtual() {
     if (!confirm('Excluir este documento? Esta ação fica registrada e não pode ser desfeita pela interface.')) return;

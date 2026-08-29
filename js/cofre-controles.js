@@ -1,6 +1,23 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.7.0 · 29/08/2026
+// Versão: 1.8.0 · 29/08/2026
+//
+// v1.8.0 — 2 pedidos explícitos do Nicola, mesma sessão:
+//   1) BUG FIX (achado pelo usuário, print mostrando "Em dia" no resumo
+//      da box Controles enquanto a ficha do item mostrava uma ocorrência
+//      vencendo em 3 dias): itemResumoHtml() tinha o sort de
+//      cofre_ocorrencias_controle invertido (descendente — pegava a
+//      ocorrência mais DISTANTE) e não filtrava por status_execucao=
+//      'aberto' antes de escolher qual mostrar. Corrigido pra mesmo
+//      padrão já usado em renderizarFichaItemControleDetalhes (sort
+//      ascendente) + filtro explícito. Mesmo bug corrigido em espelho no
+//      servidor — ver diario-eventos v1.8 (fn_diario_cofre_item_
+//      vencendo), que tinha uma versão irmã do mesmo problema.
+//   2) itemResumoHtml() passa a respeitar item.alerta_ativo=false
+//      (badge "Alertas desligados", neutro, em vez de chip de urgência)
+//      — consequência da função "Marcar como vendido" nova
+//      (cofre-ativos.js v1.3.0), que desativa alerta_ativo em cascata
+//      nos itens do ativo vendido.
 //
 // v1.7.0 — pedido explícito do Nicola (revisão de mensagens pró-ativas):
 // checkbox "documento anexo esperado" no cadastro de Subtipos de item de
@@ -165,10 +182,38 @@ function renderizarListaControles() {
 // text-xs, ícone à esquerda colorido por urgência em vez de status de
 // pagamento (vencido=alerta vermelho, ≤30d=relógio âmbar, em dia/sem
 // ocorrência aberta=check verde).
+//
+// BUG FIX (29/08/2026, achado pelo usuário — print mostrando "Em dia" no
+// resumo enquanto a ficha do item mostrava uma ocorrência vencendo em 3
+// dias): o sort aqui estava invertido (`x < y ? 1 : -1` = descendente),
+// pegando a ocorrência MAIS DISTANTE no tempo em vez da mais próxima —
+// oposto do sort correto já usado na ficha do item (renderizarFichaItem
+// ControleDetalhes, mais abaixo, `x > y ? 1 : -1` = ascendente). Também
+// faltava filtrar por status_execucao='aberto' ANTES de ordenar — sem
+// isso, uma ocorrência já tratada com data antiga podia "vencer" a
+// comparação mesmo havendo uma ocorrência aberta de verdade mais à
+// frente. Corrigido pra filtrar primeiro, ordenar ascendente depois —
+// mesmo padrão da ficha do item.
 function itemResumoHtml(item) {
-    const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual < y.data_prevista_atual ? 1 : -1));
-    const oc = ocorrencias[0];
-    const dias = (oc && oc.status_execucao === 'aberto') ? diasAte(oc.data_prevista_atual) : null;
+    // NOVO (29/08/2026) — item com alerta_ativo=false (ex.: ativo marcado
+    // como vendido, cascata em marcarAtivoVendido) não mostra chip de
+    // urgência — mostra "Alertas desligados" neutro, consistente com o
+    // fato de que a varredura proativa também não vai gerar aviso nenhum
+    // pra ele (mesmo campo usado nos dois lugares).
+    if (item.alerta_ativo === false) {
+        return `<button data-action="abrir-item-controle" data-id="${item.id}" class="w-full flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0 text-left">
+            <svg data-lucide="bell-off" style="width:14px;height:14px;flex:none;color:var(--sage)"></svg>
+            <div class="flex-1 min-w-0 text-xs font-bold truncate">${escapeHtml(item.titulo)} <span class="font-normal text-slate-400">· ${escapeHtml(item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))}</span></div>
+            <span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:#f1f5f9; color:#475569">Alertas desligados</span>
+            <i data-lucide="chevron-right" style="width:14px;height:14px;flex:none;color:var(--sage)"></i>
+        </button>`;
+    }
+    const abertas = (item.cofre_ocorrencias_controle || [])
+        .filter(o => o.status_execucao === 'aberto')
+        .slice()
+        .sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
+    const oc = abertas[0];
+    const dias = oc ? diasAte(oc.data_prevista_atual) : null;
     const chip = dias !== null ? chipVencimento(dias) : null;
     const icone = dias === null ? 'check-circle-2' : (dias < 0 ? 'alert-circle' : (dias <= 30 ? 'clock' : 'check-circle-2'));
     const corIcone = dias === null ? 'var(--success)' : (dias < 0 ? 'var(--danger)' : (dias <= 30 ? 'var(--warning)' : 'var(--success)'));

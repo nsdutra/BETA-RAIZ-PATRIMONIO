@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 29/08/2026
+// Versão: 1.6.0 · 29/08/2026
+//
+// v1.6.0 — nova marcarAtivoVendido(id): muda cofre_ativos.status pra
+// 'vendido' e desativa em cascata cofre_itens_controle.alerta_ativo dos
+// itens vinculados — pedido explícito do Nicola. Ver cofre-ativos.js
+// v1.3.0 pro fluxo completo (confirm, toast, disparo de
+// cofre:recarregar-eventos).
 //
 // v1.5.0 — criarSubtipoControle() e atualizarSubtipoControle() ganham
 // parâmetro documentoEsperado (default false), gravado em
@@ -332,6 +338,22 @@ export async function atualizarAtivo(id, patch) {
 export async function arquivarAtivo(id) {
     const { error } = await dbAuth.from('cofre_ativos').update({ status: 'arquivado' }).eq('id', id);
     if (error) throw error;
+}
+
+// NOVO (29/08/2026, pedido explícito) — marca o ativo como vendido E
+// desativa em cascata o alerta dos itens de controle vinculados
+// (cofre_itens_controle.alerta_ativo=false — mesmo campo que a varredura
+// proativa alertar.cofre_item_vencendo do diario-eventos já filtra por
+// `.eq('alerta_ativo', true)`, então isso já corta o alerta de ponta a
+// ponta, sem precisar mexer no servidor). Os itens em si continuam
+// existindo (não vira ativo=false neles) — só param de gerar aviso; o
+// histórico (documentos, ocorrências já tratadas) permanece intacto e
+// consultável na ficha, caso precise no futuro.
+export async function marcarAtivoVendido(id) {
+    const { error: erroAtivo } = await dbAuth.from('cofre_ativos').update({ status: 'vendido' }).eq('id', id);
+    if (erroAtivo) throw erroAtivo;
+    const { error: erroItens } = await dbAuth.from('cofre_itens_controle').update({ alerta_ativo: false }).eq('ativo_id', id);
+    if (erroItens) throw erroItens;
 }
 
 export async function buscarImovelPorId(id) {

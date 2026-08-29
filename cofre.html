@@ -10,40 +10,128 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.21.5
+  Versão     : 1.22.0
   Data       : 29/08/2026
-  Título     : Checkbox "documento anexo esperado" no cadastro de Subtipos
-  Base       : v1.21.4 (27/08/2026)
-  Linhas     : cofre.html = 3115 · js/cofre-api.js = 622 · js/cofre-app.js = 555 ·
-               js/cofre-ativos.js = 465 · js/cofre-controles.js = 1266 ·
-               js/cofre-documentos.js = 741 · js/cofre-estado.js = 161 ·
+  Título     : MERGE (Arquivar/RLS + Documento Esperado) + BUG FIX BADGE DE ITEM DE CONTROLE + FORM REORGANIZADO + FUNÇÃO "VENDIDO"
+  Base       : v1.21.6 (Arquivar/RLS) mesclada com v1.21.5 (Documento Esperado) — 2 sessões paralelas do mesmo dia, ver nota abaixo
+  Linhas     : cofre.html = 3134 · js/cofre-api.js = 644 · js/cofre-app.js = 566 ·
+               js/cofre-ativos.js = 500 · js/cofre-controles.js = 1311 ·
+               js/cofre-documentos.js = 740 · js/cofre-estado.js = 175 ·
                js/cofre-navegacao.js = 240 · js/cofre-ui.js = 105 ·
-               js/cofre-validacoes.js = 337 (total js/ = 4492)
-               [nota: cofre-app.js/cofre-navegacao.js já estavam com essa
-               contagem antes desta entrega — header da v1.21.4 estava
-               desatualizado nesses 2, corrigido aqui como parte da
-               recontagem obrigatória; nenhuma linha desses 2 arquivos foi
-               tocada nesta entrega]
+               js/cofre-validacoes.js = 337 (total js/ = 4618)
 
-  CHANGELOG v1.21.5 — pedido explícito do Nicola (revisão geral de
-  mensagens pró-ativas): sinalizar por CATEGORIA (subtipo de item de
-  controle), não por item individual, se um documento anexo é esperado
-  — alimenta a nova varredura proativa solicitar.anexo_apolice do
-  diario-eventos (fn_diario_cofre_documento_pendente, ver migration
-  cofre_controle_subtipos_documento_esperado).
+  CHANGELOG v1.22.0 — MERGE + 3 pedidos explícitos novos, mesma sessão.
 
-    - cofre.html: checkbox novo "Documento anexo esperado" no modal
-      #modal-subtipos-controle, entre o form (Tipo/Nome) e a lista.
-    - js/cofre-controles.js: abrirSubtiposControle/salvarSubtipoControle/
-      editarSubtipoControle/cancelarEdicaoSubtipo passam a ler/gravar/
-      popular o checkbox; renderizarSubtiposControle mostra um badge 📎
-      (classe .raiz-badge-atributo, mesmo padrão do badge de energia
-      disponível — DS §14.1) ao lado do nome quando marcado.
-    - js/cofre-api.js: criarSubtipoControle() e atualizarSubtipoControle()
-      ganham parâmetro documentoEsperado (default false), gravado na
-      coluna nova cofre_controle_subtipos.documento_esperado.
-    - Sem override por item individual — mesmo princípio de "regra vive
-      num nível central" já usado no modelo de licenças.
+  0) MERGE de 2 branches paralelas que divergiram do mesmo v1.21.4 no
+     mesmo dia (mesmo padrão já usado antes pra Gestão/Cofre — trilhas
+     confirmadas antes de mesclar):
+       (a) sessão anterior desta conversa — v1.21.5: checkbox "Documento
+           anexo esperado" no cadastro de Subtipos de item de controle
+           (cofre_controle_subtipos.documento_esperado), alimentando a
+           varredura solicitar.anexo_apolice do diario-eventos.
+       (b) sessão paralela (arquivo recebido nesta rodada) — v1.21.6:
+           removido botão "Arquivar" da ficha do documento + fix de RLS
+           de excluir/arquivar (2 policies sobrepostas viraram 1) — ver
+           texto completo do changelog v1.21.6 logo abaixo, preservado.
+     Nenhuma das duas trilhas tocava a mesma seção do arquivo — merge
+     sem conflito real, só reaplicação. cofre.html/js/cofre-controles.js/
+     js/cofre-api.js partiram de (a); js/cofre-app.js/js/cofre-documentos.js/
+     js/cofre-estado.js partiram de (b).
+
+  1) BUG FIX — badge da box "Controles" na ficha do ativo mostrava "Em
+     dia" pra um item com ocorrência vencendo em 3 dias (print do
+     usuário). Causa: itemResumoHtml() (cofre-controles.js) ordenava
+     cofre_ocorrencias_controle de forma invertida (pegava a ocorrência
+     mais DISTANTE, não a mais próxima) e não filtrava por
+     status_execucao='aberto' antes de escolher qual mostrar — oposto do
+     sort já correto usado na ficha do item. Corrigido; mesmo bug tinha
+     uma versão irmã no servidor (ver item 2).
+
+  2) BUG FIX — regra de alerta pró-ativo (WhatsApp) de item de controle
+     vencendo (alertar.cofre_item_vencendo, diario-eventos) usava
+     cofre_itens_controle.data_base/data_fim — data FIXA da criação do
+     item, que nunca avança. Item recorrente, depois do 1º vencimento,
+     ficava com "dias" negativo pra sempre e reenviava alerta a cada 7
+     dias indefinidamente, mesmo com o ciclo atual já tratado — diferente
+     do alerta de atraso de aluguel, que só considera a data de
+     vencimento real e vigente. Corrigido no servidor (RPC nova
+     fn_diario_cofre_item_vencendo, lê a próxima ocorrência ABERTA de
+     verdade) — ver diario-eventos v1.8, entrega separada.
+
+  3) Tela de cadastro/edição de item de controle reorganizada (pedido
+     explícito: "muito amontoada, com quebra de linha") — Data
+     início/Data fim agora lado a lado (estavam separados, Data início
+     sozinho numa linha inteira no form de criação); "Gerar ocorrências
+     a partir de" virou linha própria; "Repetir a cada" + unidade
+     mantidos juntos. Mesmo ajuste replicado nos 2 modais (criar e
+     editar) pra consistência.
+
+  4) NOVO — função "Marcar como vendido" no ativo (pedido explícito):
+     pill nova no Mais ações da ficha do ativo (cofre.html), handler
+     marcarAtivoVendidoAtual() (cofre-ativos.js) chamando
+     api.marcarAtivoVendido() (cofre-api.js) — muda cofre_ativos.status
+     pra 'vendido' (nova coluna aceita esse valor, migration aplicada) E
+     desativa em cascata cofre_itens_controle.alerta_ativo=false de todo
+     item vinculado a esse ativo. Efeito de ponta a ponta: o alerta
+     proativo do servidor já filtra por alerta_ativo=true (não precisou
+     mudar o diario-eventos pra isso), e o badge da box Controles
+     (itemResumoHtml) passa a mostrar "Alertas desligados" (neutro) em
+     vez de chip de urgência pros itens desses ativos. Badge de status do
+     ativo ganhou 3º estado visual (cor neutra, mesma família de
+     "Suspenso/Finalizado" do Design System §14).
+
+  - Arquivos alterados: cofre.html, js/cofre-api.js, js/cofre-ativos.js,
+    js/cofre-controles.js, js/cofre-app.js (case novo do dispatcher),
+    js/cofre-estado.js (sincronia de versão). js/cofre-documentos.js,
+    js/cofre-navegacao.js, js/cofre-ui.js, js/cofre-validacoes.js
+    inalterados nesta entrega (documentos.js já vem com a remoção do
+    Arquivar da sessão paralela).
+
+  ============================================================================
+-->
+
+<!--
+  HISTÓRICO PRESERVADO — v1.21.6 (sessão paralela mesclada acima)
+  ============================================================================
+  o COFRE_VERSAO em js/cofre-estado.js já estava '1.21.5' ANTES desta
+  entrega, sem changelog correspondente aqui nem nesse arquivo — pulo
+  não documentado de sessão anterior. Não reaproveitei "1.21.5" pra não
+  fingir que essa entrega é aquele pulo perdido; segui em 1.21.6.)
+
+    1) "Ajustar um erro na tela de excluir documento pendente no cofre de
+       documentos" — reportado com print do erro real: "new row violates
+       row-level security policy for table cofre_documentos" ao tentar
+       excluir um documento. Investigado contra o schema vigente: a
+       tabela tinha 2 policies PERMISSIVE separadas pra UPDATE
+       (cofre_documentos_update + cofre_documentos_excluir_soft)
+       cobrindo o mesmo comando pro mesmo role — sobreposição
+       desnecessária que dificultava até confirmar o comportamento exato
+       de combinação das duas (não consegui confirmar a causa raiz exata
+       contra o log ao vivo, indisponível no momento do diagnóstico).
+       Migration aplicada em produção: as 2 policies viraram UMA só
+       (cofre_documentos_update), preservando o MESMO desenho de
+       permissão (quem só tem 'cofre.excluir' — sem 'cofre.editar' —
+       continua só podendo virar o status pra 'excluido', nada além
+       disso; quem tem 'cofre.editar' ou é master continua podendo
+       editar qualquer campo). Não mudou nenhum arquivo deste pacote —
+       fix só de banco (RLS). Pedido: testar excluir de novo depois
+       desta entrega pra confirmar que resolveu.
+
+    2) "Eliminar a opção arquivar pois não to vendo utilidade nesta
+       função de arquivar um documento" — removido o botão "Arquivar" da
+       ficha do documento (cofre.html), o handler correspondente
+       (cofre-app.js) e a função arquivarDocumentoAtual() inteira
+       (cofre-documentos.js). Escopo só de DOCUMENTO — arquivar Ativo e
+       arquivar Foto (funcionalidades separadas, outros arquivos) não
+       foram tocados. status='arquivado' continua valor válido no CHECK
+       constraint (documentos já arquivados antes continuam aparecendo
+       normalmente) — só não tem mais como criar um novo a partir da
+       ficha. Grupo de botões da ficha do documento passa de 3 pra 2
+       (Baixar/Excluir, mais Vincular quando aplicável) no mesmo grid de
+       2 colunas da v1.21.4 — sem re-quebra de linha.
+
+    - Arquivos alterados: cofre.html (botão removido), js/cofre-app.js
+      (handler removido), js/cofre-documentos.js (função removida).
 
   ============================================================================
 -->
@@ -2334,6 +2422,7 @@
                 <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
                 <button data-action="abrir-documentos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Documentos</button>
                 <label for="fa-foto-input" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300" style="cursor:pointer">Fotos</label>
+                <button data-action="marcar-ativo-vendido" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Marcar como vendido</button>
                 <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
             </div>
         </div>
@@ -2404,7 +2493,7 @@
             </select>
             <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
-            <div class="col-span-2">
+            <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data início</label>
                 <input type="date" id="ic-data-base" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
@@ -2412,7 +2501,7 @@
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data fim <span style="font-weight:400">(opcional)</span></label>
                 <input type="date" id="ic-data-fim" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
-            <div>
+            <div class="col-span-2">
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Gerar ocorrências a partir de</label>
                 <select id="ic-direcao-alerta" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
                     <option value="inicio" selected>Início</option>
@@ -2423,12 +2512,15 @@
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
                 <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
-            <select id="ic-freq-unidade" class="border-2 border-slate-300 rounded-lg p-2 text-xs self-end">
-                <option value="dia">Dia(s)</option>
-                <option value="semana">Semana(s)</option>
-                <option value="mes" selected>Mês(es)</option>
-                <option value="ano">Ano(s)</option>
-            </select>
+            <div>
+                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Unidade</label>
+                <select id="ic-freq-unidade" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                    <option value="dia">Dia(s)</option>
+                    <option value="semana">Semana(s)</option>
+                    <option value="mes" selected>Mês(es)</option>
+                    <option value="ano">Ano(s)</option>
+                </select>
+            </div>
             <div class="col-span-2">
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Avisar com quantos dias de antecedência</label>
                 <input type="number" min="0" id="ic-antecedencia" value="7" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
@@ -2480,7 +2572,7 @@
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data fim <span style="font-weight:400">(opcional)</span></label>
                 <input type="date" id="fic-ed-data-fim" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
-            <div>
+            <div class="col-span-2">
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Gerar a partir de</label>
                 <select id="fic-ed-direcao-alerta" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
                     <option value="inicio">Início</option>
@@ -2845,7 +2937,6 @@
         <div class="grid grid-cols-2 gap-2">
             <button id="fd-btn-vincular" data-action="abrir-vincular-agora" class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="link" style="width:14px;height:14px"></i> Vincular</button>
             <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
-            <button data-action="arquivar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 flex items-center justify-center gap-1"><i data-lucide="archive" style="width:14px;height:14px"></i> Arquivar</button>
             <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center justify-center gap-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
         </div>
         <p class="raiz-indicador-inline" id="fd-status"></p>

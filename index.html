@@ -6,7 +6,64 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.67.0
+   VERSÃO: Beta v1.69.0
+   LINHAS: 26023
+   DATA: 29/08/2026
+   NOVIDADES (Beta v1.69.0) — Parte 3 da especificação de Minutas: "gerar
+   minuta a partir de um contrato real" (pedido original do Nicola,
+   respondido "achei que estava entregue já" quando viu que não estava —
+   esta versão entrega de verdade). Novo botão "Gerar de um contrato real"
+   (ícone varinha) em Configurações → Minutas de Contrato, ao lado do "+"
+   de sempre. Fluxo em 2 passos:
+
+   1) Sobe um contrato real já assinado (.docx ou .pdf) + nome/escopo da
+      minuta. O texto é extraído inteiramente no navegador (JSZip pro
+      .docx, pdf.js — biblioteca nova, CDN adicionado — pro .pdf) e
+      enviado pra uma Edge Function nova (minuta-detectar-placeholders,
+      já em produção) que chama Claude (Haiku, escalando pra Sonnet se
+      vier vazio) pra identificar quais trechos são dados variáveis
+      (nome, CPF, valores, datas) e sugerir qual dos 23 placeholders
+      oficiais cada um deveria virar.
+
+   2) Tela de conferência OBRIGATÓRIA (nunca aplica sozinho — decisão de
+      LGPD, documentada em ESPECIFICACAO_MINUTA_V2_PARIDADE_E_GERACAO_
+      AUTOMATICA.md Parte 3.2): cada trecho encontrado aparece com um
+      dropdown pré-marcado na sugestão da IA, livre pra trocar ou
+      desmarcar ("não substituir"). Só depois de confirmar é que gera o
+      arquivo de verdade.
+
+   O resultado é sempre um .docx NOVO, gerado do zero direto no
+   navegador (estrutura OOXML mínima construída via JSZip, sem depender
+   de nenhuma biblioteca de servidor) — tanto pra quem subiu .pdf quanto
+   pra quem subiu .docx. Decisão consciente, confirmada com o Nicola
+   antes de construir: não tenta preservar a formatação visual exata do
+   arquivo original (fonte, negrito, numeração de cláusula) — vira um
+   modelo limpo com formatação padrão do sistema. Quem precisar de
+   fidelidade visual exata continua tendo a opção manual de sempre
+   (upload direto de um .docx já com os {{placeholders}} escritos à
+   mão). Nome do arquivo final segue a mesma convenção já usada no
+   cadastro manual (minuta_{slug}_v1_{data}.docx) — e o contrato real
+   enviado nunca é gravado em lugar nenhum, só passa pela memória do
+   navegador e pela chamada de IA (que também não persiste o texto).
+
+   VERSÃO ANTERIOR: Beta v1.68.0
+   LINHAS: 25524
+   DATA: 29/08/2026
+   NOVIDADES (Beta v1.68.0) — pedido explícito do Nicola: "não estou
+   conseguindo anexar PDF para subir um contrato no cadastro de minutas
+   padrão". Causa raiz: o `<input accept=".docx">` do formulário de
+   cadastro de minuta bloqueava PDF de aparecer como selecionável no
+   seletor de arquivo do celular — não era bug de lógica, era o próprio
+   navegador filtrando a escolha antes de qualquer validação rodar.
+   Corrigido: `accept=".docx,.pdf"` (PDF agora é selecionável), e ao
+   escolher um PDF a mensagem agora deixa claro que a conversão
+   automática de PDF (gerar minuta a partir de um contrato real — Parte
+   3 da especificação combinada) ainda não foi construída, só
+   especificada — orienta a converter pra .docx por enquanto. Texto de
+   instrução da própria tela também atualizado, pra não sugerir uma
+   capacidade que ainda não existe.
+
+   VERSÃO ANTERIOR: Beta v1.67.0
    LINHAS: 25491
    DATA: 29/08/2026
    NOVIDADES (Beta v1.67.0) — auditoria de paridade de Minutas pedida pelo
@@ -4979,6 +5036,13 @@
          precisar de servidor. -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
+    <!-- v1.69.0 — pdf.js (Mozilla), pra extrair texto de PDF direto no
+         navegador (Parte 3 de Minutas: "gerar minuta a partir de um
+         contrato real"). Versão 3.11.174 — última build "clássica" (script
+         tag comum) antes da 4.x virar módulo ES puro, que não é o padrão
+         usado no resto deste arquivo. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <!-- ===== DESIGN SYSTEM — Sprint 1 (v1.36.0) =====
@@ -7739,6 +7803,8 @@
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Minutas de Contrato</h2>
 
+                <button id="btn-minutizar-ia" onclick="abrirWizardMinutizacao()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Gerar de um contrato real"><svg data-lucide="wand-2" style="width:20px;height:20px"></svg></button>
+
                 <button id="btn-toggle-minuta" onclick="alternarFormularioMinuta()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar minuta"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
             </div>
@@ -7823,13 +7889,13 @@
                             <button type="button" onclick="abrirAjudaPlaceholdersMinuta()" class="text-[11px] font-bold text-emerald-700 underline">Ver placeholders disponíveis</button>
                         </div>
 
-                        <p class="text-[11px] text-gray-400 mt-0.5 mb-1.5">Envie o contrato em Word (.docx), com os {{placeholders}} escritos nos pontos que variam por locatário/imóvel/contrato. Ao gerar um contrato, o sistema abre esse arquivo, substitui os placeholders pelos dados reais e salva uma cópia específica anexada ao contrato.</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5 mb-1.5">Envie o contrato em Word (.docx), com os {{placeholders}} escritos nos pontos que variam por locatário/imóvel/contrato — é esse arquivo que o sistema abre e preenche na hora de gerar um contrato de verdade. <strong>PDF ainda não é aceito aqui</strong> (a função de gerar a minuta automaticamente a partir de um contrato real em PDF/Word está em desenvolvimento — quando pronta, funciona diferente disto: você sobe o contrato já assinado e o sistema propõe os {{placeholders}} sozinho, pra você conferir antes de salvar).</p>
 
                         <div id="minuta-arquivo-atual-info" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 mb-1.5 flex items-center justify-between gap-2">
                             <a id="minuta-arquivo-atual-link" href="#" target="_blank" class="text-[12px] font-bold text-emerald-700 underline truncate flex items-center gap-1"><svg data-lucide="file-text" style="width:13px;height:13px;flex:none"></svg> <span id="minuta-arquivo-atual-nome"></span></a>
                         </div>
 
-                        <input type="file" id="minuta-arquivo-input" accept=".docx" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                        <input type="file" id="minuta-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
 
                         <p id="minuta-arquivo-novo-nome" class="text-[11px] text-emerald-700 font-bold mt-0.5"></p>
 
@@ -7841,7 +7907,83 @@
 
             </div>
 
+            <!-- v1.69.0 — Wizard "Gerar de um contrato real" (Parte 3 da
+                 especificação de Minutas). Mesmo padrão Tipo A (bottom-sheet
+                 estático, header com X, rodapé com ação) do form-minuta-
+                 wrapper acima, só que em 2 passos internos (mesmo espírito
+                 de imo-step-1/2/3), alternados via classList 'hidden'. -->
+            <div id="form-minutizar-wrapper" class="hidden">
+
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-slate-900">Gerar minuta de um contrato real</h2>
+                    <button type="button" onclick="fecharWizardMinutizacao()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
+                </div>
+
+                <div id="minz-passo-1" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
+
+                    <p class="text-[11px] text-gray-500">Suba um contrato real já assinado (Word ou PDF) — o sistema lê o texto, identifica os dados que variam (nome, CPF, valores, datas) e propõe os {{placeholders}} pra virar um modelo reaproveitável. Você confere e ajusta cada sugestão antes de salvar. O arquivo enviado aqui não fica guardado — só o modelo final, sem nenhum dado pessoal do contrato original.</p>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600">Nome da Minuta <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="minz-nome" required placeholder="Ex: Locação Comercial Padrão" class="w-full p-2 border rounded mt-1 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600">Escopo <span style="color:var(--danger)">*</span></label>
+                        <select id="minz-escopo" required onchange="atualizarCampoEscopoMinz()" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                            <option value="geral">Geral (toda a empresa)</option>
+                            <option value="empreendimento">Só um Empreendimento</option>
+                            <option value="tipo_imovel">Só um Tipo de Imóvel</option>
+                            <option value="imovel">Só um Imóvel específico</option>
+                        </select>
+                    </div>
+
+                    <div id="minz-campo-empreendimento" class="hidden">
+                        <label class="block text-xs font-bold text-gray-600">Empreendimento <span style="color:var(--danger)">*</span></label>
+                        <select id="minz-empreendimento-id" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                            <option value="">-- Selecione --</option>
+                        </select>
+                    </div>
+
+                    <div id="minz-campo-tipo" class="hidden">
+                        <label class="block text-xs font-bold text-gray-600">Tipo de Imóvel <span style="color:var(--danger)">*</span></label>
+                        <select id="minz-tipo-imovel-id" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                            <option value="">-- Selecione --</option>
+                        </select>
+                    </div>
+
+                    <div id="minz-campo-imovel" class="hidden">
+                        <label class="block text-xs font-bold text-gray-600">Imóvel <span style="color:var(--danger)">*</span></label>
+                        <input type="hidden" id="minz-imovel-id" value="">
+                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minz-imovel-id').value = id || ''; document.getElementById('minz-imovel-resumo').textContent = resumo || '-- Escolha o Imóvel --'; })" id="minz-imovel-resumo" class="raiz-campo-altura-contrato w-full p-2 border rounded mt-1 text-sm bg-gray-50 text-left truncate">-- Escolha o Imóvel --</button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600">Contrato real (.docx ou .pdf) <span style="color:var(--danger)">*</span></label>
+                        <input type="file" id="minz-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                    </div>
+
+                    <button type="button" onclick="processarArquivoMinutizacao()" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Continuar</button>
+
+                </div>
+
+                <div id="minz-passo-2" class="hidden bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
+
+                    <p class="text-[11px] text-gray-500">Confere cada trecho que a IA encontrou. Troca o placeholder se ela sugeriu errado, ou escolhe "(não substituir)" pra deixar esse trecho como está no texto final.</p>
+
+                    <div id="minz-lista-revisao" class="space-y-2"></div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" onclick="voltarPasso1Minutizacao()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Voltar</button>
+                        <button type="button" onclick="confirmarMinutizacao()" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Confirmar e gerar minuta</button>
+                    </div>
+
+                </div>
+
+            </div>
+
             <div id="lista-minutas" class="space-y-3 mb-6"></div>
+
 
         </section>
 
@@ -8110,7 +8252,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.67.0";
+        const APP_VERSAO = "Beta v1.69.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -14763,6 +14905,223 @@
         // MINUTAS DE CONTRATO (v1.42.0)
         // ============================================================================
 
+        // Lista achatada dos 23 placeholders oficiais, mesma ordem/valores
+        // dos grupos de abrirAjudaPlaceholdersMinuta() (duplicada aqui de
+        // propósito — é só dado estático, não lógica — pra popular o
+        // dropdown de revisão da minutização sem precisar destrinchar o
+        // array de grupos daquela função).
+        const PLACEHOLDERS_MINUTA_OFICIAIS = [
+            'locador_nome', 'locador_cnpj', 'locador_responsavel', 'locador_endereco', 'locador_cidade',
+            'imovel_endereco', 'imovel_empreendimento', 'imovel_tipo', 'imovel_descricao',
+            'aluguel_valor', 'aluguel_vencimento_dia', 'contrato_inicio', 'contrato_fim', 'contrato_prazo_meses', 'indice_reajuste',
+            'locatario_nome', 'locatario_documento', 'locatario_doc_tipo', 'locatario_whatsapp', 'locatario_email',
+            'locatario_endereco_atual', 'locatario_profissao', 'locatario_estado_civil',
+            'data_assinatura'
+        ];
+
+        function escaparAtributoHtmlMinz(texto) {
+            return String(texto || '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // --- Wizard "Gerar de um contrato real" (Parte 3) ---
+        let __minzEstado = null;
+
+        function abrirWizardMinutizacao() {
+            __minzEstado = null;
+            document.getElementById('minz-nome').value = '';
+            document.getElementById('minz-escopo').value = 'geral';
+            document.getElementById('minz-arquivo-input').value = '';
+            document.getElementById('minz-empreendimento-id').value = '';
+            document.getElementById('minz-tipo-imovel-id').value = '';
+            document.getElementById('minz-imovel-id').value = '';
+            document.getElementById('minz-imovel-resumo').textContent = '-- Escolha o Imóvel --';
+            popularFiltroSelectComId('minz-empreendimento-id', empreendimentosCadastrados);
+            popularFiltroSelectComId('minz-tipo-imovel-id', tiposImovelCadastrados);
+            atualizarCampoEscopoMinz();
+            document.getElementById('minz-passo-1').classList.remove('hidden');
+            document.getElementById('minz-passo-2').classList.add('hidden');
+            document.getElementById('form-minutizar-wrapper').classList.remove('hidden');
+            cancelarEdicaoMinuta();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function fecharWizardMinutizacao() {
+            __minzEstado = null;
+            document.getElementById('form-minutizar-wrapper').classList.add('hidden');
+        }
+
+        function atualizarCampoEscopoMinz() {
+            const escopo = document.getElementById('minz-escopo').value;
+            document.getElementById('minz-campo-empreendimento').classList.toggle('hidden', escopo !== 'empreendimento');
+            document.getElementById('minz-campo-tipo').classList.toggle('hidden', escopo !== 'tipo_imovel');
+            document.getElementById('minz-campo-imovel').classList.toggle('hidden', escopo !== 'imovel');
+        }
+
+        async function processarArquivoMinutizacao() {
+            const nome = document.getElementById('minz-nome').value.trim();
+            const escopo = document.getElementById('minz-escopo').value;
+            if (!nome) { alert('⚠️ Dê um nome pra essa minuta.'); return; }
+            if (escopo === 'empreendimento' && !document.getElementById('minz-empreendimento-id').value) { alert('⚠️ Selecione o empreendimento.'); return; }
+            if (escopo === 'tipo_imovel' && !document.getElementById('minz-tipo-imovel-id').value) { alert('⚠️ Selecione o tipo de imóvel.'); return; }
+            if (escopo === 'imovel' && !document.getElementById('minz-imovel-id').value) { alert('⚠️ Selecione o imóvel.'); return; }
+
+            const arquivoInput = document.getElementById('minz-arquivo-input');
+            const arquivo = arquivoInput.files && arquivoInput.files[0];
+            if (!arquivo) { alert('⚠️ Envie o contrato real (.docx ou .pdf).'); return; }
+            const nomeMinusculo = arquivo.name.toLowerCase();
+            const ehDocx = nomeMinusculo.endsWith('.docx');
+            const ehPdf = nomeMinusculo.endsWith('.pdf');
+            if (!ehDocx && !ehPdf) { alert('⚠️ Só .docx ou .pdf são aceitos aqui.'); return; }
+
+            mostrarCarregamentoGlobal('Lendo o contrato...');
+            try {
+                const arrayBuffer = await arquivo.arrayBuffer();
+                const textoOriginal = ehDocx
+                    ? await extrairTextoDocxMinutizacao(arrayBuffer)
+                    : await extrairTextoPdfMinutizacao(arrayBuffer);
+
+                mostrarCarregamentoGlobal('Identificando os dados variáveis com IA...');
+                const sugestoesBrutas = await chamarDeteccaoPlaceholdersIA(textoOriginal);
+
+                __minzEstado = {
+                    nome, escopo,
+                    empreendimentoId: escopo === 'empreendimento' ? document.getElementById('minz-empreendimento-id').value : null,
+                    tipoImovelId: escopo === 'tipo_imovel' ? document.getElementById('minz-tipo-imovel-id').value : null,
+                    imovelId: escopo === 'imovel' ? document.getElementById('minz-imovel-id').value : null,
+                    textoOriginal,
+                    sugestoes: sugestoesBrutas.map(function(s, i) {
+                        return {
+                            id: 'sug_' + i,
+                            trechoOriginal: s.trecho_original,
+                            confianca: s.confianca,
+                            // Já nasce com o valor sugerido pela IA escolhido —
+                            // a pessoa só precisa mexer no que quiser trocar
+                            // ou desmarcar, não escolher tudo do zero.
+                            placeholderEscolhido: s.placeholder,
+                        };
+                    }),
+                };
+
+                esconderCarregamentoGlobal();
+
+                if (__minzEstado.sugestoes.length === 0) {
+                    mostrarToast('A IA não encontrou nenhum trecho reconhecível pra virar placeholder neste texto. Confere se o arquivo tem o conteúdo certo, ou cadastre a minuta manualmente.', 'aviso');
+                }
+
+                renderRevisaoMinutizacao();
+                document.getElementById('minz-passo-1').classList.add('hidden');
+                document.getElementById('minz-passo-2').classList.remove('hidden');
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                alert('❌ Não consegui processar esse arquivo: ' + (err.message || String(err)));
+            }
+        }
+
+        function renderRevisaoMinutizacao() {
+            const container = document.getElementById('minz-lista-revisao');
+            if (!__minzEstado || __minzEstado.sugestoes.length === 0) {
+                container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhum trecho identificado.</p>';
+                return;
+            }
+            const opcoesHtmlBase = ['<option value="">(não substituir)</option>']
+                .concat(PLACEHOLDERS_MINUTA_OFICIAIS.map(p => `<option value="${p}">{{${p}}}</option>`))
+                .join('');
+
+            container.innerHTML = __minzEstado.sugestoes.map(function(s) {
+                const corConfianca = s.confianca === 'alta' ? 'text-emerald-700' : (s.confianca === 'media' ? 'text-amber-700' : 'text-slate-500');
+                // monta as options de novo por linha só pra marcar o
+                // "selected" certo desta sugestão especificamente.
+                const opcoes = ['<option value="">(não substituir)</option>']
+                    .concat(PLACEHOLDERS_MINUTA_OFICIAIS.map(function(p) {
+                        return `<option value="${p}" ${p === s.placeholderEscolhido ? 'selected' : ''}>{{${p}}}</option>`;
+                    })).join('');
+                return `
+                    <div class="border border-slate-200 rounded-xl p-2.5">
+                        <p class="text-xs font-bold text-slate-900 break-words">"${escaparAtributoHtmlMinz(s.trechoOriginal)}"</p>
+                        <p class="text-[11px] ${corConfianca} mt-0.5">Confiança da IA: ${s.confianca}</p>
+                        <select data-minz-id="${s.id}" onchange="atualizarPlaceholderEscolhidoMinz('${s.id}', this.value)" style="background:#f8fafc" class="w-full p-2 border rounded mt-1.5 text-xs">
+                            ${opcoes}
+                        </select>
+                    </div>`;
+            }).join('');
+        }
+
+        function atualizarPlaceholderEscolhidoMinz(id, valor) {
+            if (!__minzEstado) return;
+            const s = __minzEstado.sugestoes.find(x => x.id === id);
+            if (s) s.placeholderEscolhido = valor; // '' = não substituir
+        }
+
+        function voltarPasso1Minutizacao() {
+            document.getElementById('minz-passo-2').classList.add('hidden');
+            document.getElementById('minz-passo-1').classList.remove('hidden');
+        }
+
+        // Aplica as substituições CONFIRMADAS (placeholderEscolhido não
+        // vazio) no texto extraído — todas as ocorrências idênticas desse
+        // trecho, não só a primeira (um nome de locatário provavelmente
+        // aparece mais de uma vez no contrato inteiro).
+        function aplicarSubstituicoesTextoMinutizacao(texto, sugestoesConfirmadas) {
+            let resultado = texto;
+            sugestoesConfirmadas.forEach(function(s) {
+                if (!s.trechoOriginal || !s.placeholderEscolhido) return;
+                resultado = resultado.split(s.trechoOriginal).join(`{{${s.placeholderEscolhido}}}`);
+            });
+            return resultado;
+        }
+
+        async function confirmarMinutizacao() {
+            if (!__minzEstado) return;
+
+            const confirmadas = __minzEstado.sugestoes.filter(s => s.placeholderEscolhido);
+            if (confirmadas.length === 0) {
+                if (!confirm('Nenhum placeholder foi confirmado — a minuta vai ficar com o texto do contrato real, SEM nenhum campo variável (não serve pra reaproveitar). Continuar mesmo assim?')) return;
+            }
+
+            mostrarCarregamentoGlobal('Gerando o modelo da minuta...');
+            try {
+                const textoComPlaceholders = aplicarSubstituicoesTextoMinutizacao(__minzEstado.textoOriginal, confirmadas);
+                const linhas = [__minzEstado.nome].concat(textoComPlaceholders.split('\n'));
+                const blob = await gerarDocxDoTextoMinutizacao(__minzEstado.nome, linhas);
+
+                const nomeDescritivo = `minuta_${slugArquivo(__minzEstado.nome)}_v1_${dataYYYYMMDD()}.docx`;
+                const nomeArquivo = `${CLIENTE_ID_SUPABASE}/minutas-modelo/${nomeDescritivo}`;
+                const { error: errUpload } = await dbAuth.storage.from('contratos-documentos').upload(nomeArquivo, blob, { upsert: true });
+                if (errUpload) throw errUpload;
+                const { data: signedData, error: errSigned } = await dbAuth.storage.from('contratos-documentos').createSignedUrl(nomeArquivo, 315360000);
+                if (errSigned) throw errSigned;
+
+                const dados = {
+                    id: 'minuta_' + Date.now() + Math.random().toString(36).substr(2, 4),
+                    nome: __minzEstado.nome,
+                    escopo: __minzEstado.escopo,
+                    empreendimentoId: __minzEstado.empreendimentoId,
+                    tipoImovelId: __minzEstado.tipoImovelId,
+                    imovelId: __minzEstado.imovelId,
+                    arquivoUrl: signedData.signedUrl,
+                    arquivoNome: nomeDescritivo,
+                    arquivoVersao: 1,
+                    ativa: true,
+                };
+                minutasContrato.push(dados);
+
+                registrarLog('minutas.gerar_de_contrato_real_ia', {
+                    minutaNome: dados.nome, escopo: dados.escopo,
+                    quantidadeSugestoes: __minzEstado.sugestoes.length, quantidadeConfirmadas: confirmadas.length,
+                });
+
+                __minzEstado = null;
+                document.getElementById('form-minutizar-wrapper').classList.add('hidden');
+
+                saveAll(true, 'Minuta gerada a partir do contrato real!', ['minutasContrato']);
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                alert('❌ Não consegui gerar o modelo: ' + (err.message || String(err)));
+            }
+        }
+
         function abrirFormularioMinuta() {
             cancelarEdicaoMinuta();
             document.getElementById('form-minuta-wrapper').classList.remove('hidden');
@@ -14881,7 +15240,23 @@
                 return;
             }
             if (arquivoNovo && !arquivoNovo.name.toLowerCase().endsWith('.docx')) {
-                alert('⚠️ Só arquivos .docx são aceitos (Word). Se seu modelo está em PDF, abra e "Salvar como" .docx primeiro.');
+                const ehPdf = arquivoNovo.name.toLowerCase().endsWith('.pdf');
+                // CORRIGIDO (v1.68.0, pedido explícito — "não estou
+                // conseguindo anexar PDF"): antes o <input accept=".docx">
+                // já impedia PDF de aparecer como selecionável no seletor
+                // de arquivo do celular, então a pessoa nem chegava a ver
+                // mensagem nenhuma — parecia simplesmente "não funciona".
+                // Agora o seletor aceita PDF também (dá pra escolher), mas
+                // a mensagem deixa claro que o PDF ainda não é processado
+                // automaticamente aqui — é a funcionalidade de "gerar
+                // minuta a partir de um contrato real" (Parte 3 da
+                // especificação combinada), que ainda não foi construída,
+                // só especificada. Isto NÃO é o mesmo cadastro de sempre
+                // com um limite técnico bobo — é uma função futura
+                // diferente que ainda não existe.
+                alert(ehPdf
+                    ? '⚠️ PDF ainda não é convertido automaticamente aqui — essa função (gerar minuta a partir de um contrato real em PDF) está em desenvolvimento, ainda não pronta. Por enquanto, envie o modelo em .docx, já com os {{placeholders}} nos pontos que variam (ou abra o PDF no Word/Google Docs e "Salvar como" .docx primeiro).'
+                    : '⚠️ Só arquivos .docx (Word) ou .pdf são aceitos aqui. Se for outro formato, abra e "Salvar como" .docx primeiro.');
                 return;
             }
 
@@ -15423,6 +15798,163 @@
             const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
 
             return { blob, placeholdersVaziosDetectados, placeholdersResiduais };
+        }
+
+        // ============================================================================
+        // MINUTIZAÇÃO — Parte 3 da especificação de Minutas (v1.69.0,
+        // 29/08/2026): "gerar minuta a partir de um contrato real". Pedido
+        // original: subir um contrato real (Word ou PDF) e o sistema
+        // transforma automaticamente numa minuta padrão com os
+        // placeholders recomendados, com conferência obrigatória antes de
+        // salvar (nunca aplica sozinho — LGPD, ver
+        // ESPECIFICACAO_MINUTA_V2_PARIDADE_E_GERACAO_AUTOMATICA.md Parte 3.2).
+        //
+        // Decisão de escopo (confirmada com o Nicola antes de construir):
+        // tanto .docx quanto .pdf viram um .docx NOVO, com formatação
+        // padrão do sistema — não é uma cópia visual do arquivo original.
+        // Isso simplifica pra um único caminho de geração em vez de dois
+        // (edição cirúrgica do XML original só pra .docx + geração nova só
+        // pra .pdf), ao custo de não preservar a formatação visual exata
+        // de um .docx enviado (fonte, negrito, numeração de cláusula do
+        // arquivo original). Quem quiser preservar formatação exata
+        // continua tendo a opção manual de sempre (upload direto de um
+        // .docx já com os {{placeholders}} escritos à mão).
+        //
+        // O contrato real (com CPF/nome/endereço de gente de verdade)
+        // NUNCA é enviado ao Storage — só passa pela memória do navegador
+        // e pela chamada à IA (que também não persiste o texto, só loga
+        // metadados de uso). Ver minuta-detectar-placeholders/index.ts.
+        // ============================================================================
+
+        // --- Extração de texto ---
+
+        async function extrairTextoDocxMinutizacao(arrayBuffer) {
+            const zip = await JSZip.loadAsync(arrayBuffer);
+            const arquivoXml = zip.file('word/document.xml');
+            if (!arquivoXml) throw new Error('Arquivo .docx inválido (não encontrei word/document.xml dentro dele).');
+            let xml = await arquivoXml.async('string');
+            xml = xml.replace(/<\/w:p>/g, '\n');
+            xml = xml.replace(/<w:tab\/>/g, '\t');
+            let texto = xml.replace(/<[^>]+>/g, '');
+            texto = texto.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+            texto = texto.split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).filter(l => l.length > 0).join('\n');
+            return texto;
+        }
+
+        // Heurística de linha: pdf.js devolve os textos em fragmentos soltos
+        // com posição (x,y) — sem heurística, tudo vira uma linha só por
+        // página. Quebra em nova linha quando o Y muda mais que 2pt em
+        // relação ao fragmento anterior (mudou de linha na página real).
+        async function extrairTextoPdfMinutizacao(arrayBuffer) {
+            if (typeof pdfjsLib === 'undefined') throw new Error('Biblioteca de leitura de PDF não carregou — recarregue a página e tente de novo.');
+            if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const paginas = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                let linhaAtual = '';
+                let yAnterior = null;
+                const linhasPagina = [];
+                content.items.forEach(function(item) {
+                    const y = item.transform[5];
+                    if (yAnterior !== null && Math.abs(y - yAnterior) > 2) {
+                        if (linhaAtual.trim()) linhasPagina.push(linhaAtual.trim());
+                        linhaAtual = '';
+                    }
+                    linhaAtual += item.str + ' ';
+                    yAnterior = y;
+                });
+                if (linhaAtual.trim()) linhasPagina.push(linhaAtual.trim());
+                paginas.push(linhasPagina.join('\n'));
+            }
+            const texto = paginas.join('\n\n').trim();
+            if (texto.length < 20) throw new Error('Não consegui ler texto neste PDF — se for um PDF escaneado (imagem, sem texto selecionável), não dá pra extrair automaticamente ainda. Tenta um PDF com texto de verdade, ou converte pra .docx.');
+            return texto;
+        }
+
+        // --- Geração de um .docx novo, limpo, com formatação padrão ---
+        // Estrutura OOXML mínima válida (testada e confirmada abrindo em
+        // leitor de verdade antes de entrar aqui) — [Content_Types].xml +
+        // _rels/.rels + word/document.xml + word/_rels/document.xml.rels +
+        // word/styles.xml (2 estilos: Normal e Titulo) + docProps/core.xml
+        // + docProps/app.xml. Reaproveita escaparXml() já existente (usada
+        // por preencherMinutaDocx) — mesma função, um lugar só.
+        async function gerarDocxDoTextoMinutizacao(tituloDocumento, linhasTexto) {
+            const zip = new JSZip();
+
+            const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+                '<Default Extension="xml" ContentType="application/xml"/>' +
+                '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+                '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
+                '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+                '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>' +
+                '</Types>';
+
+            const relsRoot = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+                '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+                '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>' +
+                '</Relationships>';
+
+            const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+                '</Relationships>';
+
+            const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+                '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+                '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>' +
+                '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="Titulo"><w:name w:val="Titulo"/><w:basedOn w:val="Normal"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>' +
+                '</w:styles>';
+
+            const core = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+                '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">' +
+                `<dc:title>${escaparXml(tituloDocumento)}</dc:title><dc:creator>Raiz Patrim\u00f4nio</dc:creator>` +
+                '</cp:coreProperties>';
+
+            const appXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+                '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">' +
+                '<Application>Raiz Patrim\u00f4nio</Application></Properties>';
+
+            const paragrafosXml = linhasTexto.map(function(linha, i) {
+                if (i === 0) {
+                    return `<w:p><w:pPr><w:pStyle w:val="Titulo"/></w:pPr><w:r><w:t xml:space="preserve">${escaparXml(linha)}</w:t></w:r></w:p>`;
+                }
+                if (!linha.trim()) return '<w:p/>';
+                return `<w:p><w:pPr><w:jc w:val="both"/></w:pPr><w:r><w:t xml:space="preserve">${escaparXml(linha)}</w:t></w:r></w:p>`;
+            }).join('');
+
+            const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
+                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+                `<w:body>${paragrafosXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417"/></w:sectPr></w:body>` +
+                '</w:document>';
+
+            zip.file('[Content_Types].xml', contentTypes);
+            zip.file('_rels/.rels', relsRoot);
+            zip.file('word/document.xml', documentXml);
+            zip.file('word/_rels/document.xml.rels', docRels);
+            zip.file('word/styles.xml', styles);
+            zip.file('docProps/core.xml', core);
+            zip.file('docProps/app.xml', appXml);
+
+            return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        }
+
+        // --- Chamada à IA (Edge Function nova, minuta-detectar-placeholders) ---
+        async function chamarDeteccaoPlaceholdersIA(texto) {
+            const { data, error } = await dbAuth.functions.invoke('minuta-detectar-placeholders', {
+                body: { cliente_id: CLIENTE_ID_SUPABASE, texto },
+            });
+            if (error) throw new Error(error.message || 'Falha ao chamar a detecção de placeholders por IA.');
+            if (data?.erro) throw new Error(data.erro);
+            return data?.sugestoes || [];
         }
 
         // CORRIGIDO (v1.67.0 — bug real achado em auditoria de paridade da

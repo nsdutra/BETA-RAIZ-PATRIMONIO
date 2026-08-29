@@ -2,6 +2,15 @@
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.5.0 · 24/08/2026
 //
+// v1.21.6 — Removido botão "Arquivar" da ficha do documento + fix de RLS
+// no excluir (2 policies de UPDATE sobrepostas viraram 1). Ver changelog
+// completo em cofre.html. cofre-estado.js em si não mudou de conteúdo
+// — só o COFRE_VERSAO abaixo. NOTA: o COFRE_VERSAO já estava '1.21.5'
+// antes desta entrega, sem changelog correspondente — pulo não
+// documentado de sessão anterior, não desta entrega (ver nota em
+// cofre.html). Seguindo em 1.21.6 pra não fingir continuidade que não
+// houve.
+//
 // v1.21.4 — BUG FIX: grupo de 4 botões da ficha do documento quebrando
 // linha (flex-wrap → grid 2 colunas) — pedido explícito. Ver changelog
 // completo em cofre.html. cofre-estado.js em si não mudou de conteúdo
@@ -144,7 +153,12 @@
 // Fonte única da versão exibida (badge do header) — sincronizada com o
 // comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
 // (mesma regra de sincronia de 3 pontos já usada no app principal).
-export const COFRE_VERSAO = '1.21.5';
+//
+// NOTA (29/08/2026): pulava de '1.21.5' direto pra cá sem refletir nem a
+// v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
+// agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
+// sessões paralelas + badge fix + form fix + função Vendido).
+export const COFRE_VERSAO = '1.22.0';
 
 export const estado = {
     clienteId: null,

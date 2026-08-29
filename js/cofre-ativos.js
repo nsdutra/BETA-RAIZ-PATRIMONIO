@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.1 · 25/08/2026
+// Versão: 1.3.0 · 29/08/2026
+//
+// v1.3.0 — pedido explícito do Nicola: função "Marcar como vendido"
+// (marcarAtivoVendidoAtual, pill nova no Mais ações da ficha do ativo) —
+// muda status pra 'vendido' e desativa em cascata o alerta dos itens de
+// controle vinculados (api.marcarAtivoVendido). Badge de status
+// (montarDadosAtivo) ganha 3º estado (cor neutra, mesma família de
+// "Suspenso/Finalizado" do DS §14) — antes só tinha Ativo/Arquivado.
 //
 // v1.2.1 — BUG FIX (achado pelo usuário): excluirAtivoAtual() não
 // disparava cofre:recarregar-eventos — excluir um ativo com itens de
@@ -252,8 +259,14 @@ function montarDadosAtivo(a) {
         ? valoresPreenchidos.join(' · ')
         : 'Sem dados estruturados cadastrados ainda.';
 
+    // NOVO (29/08/2026) — 3º estado 'vendido', mesma cor neutra já usada
+    // pra "Suspenso"/"Finalizado" no resto do sistema (DS §14, "demais
+    // estados" → slate) — não é sucesso (verde) nem erro (vermelho), é
+    // só um encerramento normal do ciclo de vida do ativo.
     const badgeStatus = a.status === 'arquivado'
         ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:var(--danger-bg); color:var(--danger)">Arquivado</span>`
+        : a.status === 'vendido'
+        ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:#f1f5f9; color:#475569">Vendido</span>`
         : `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:var(--success-bg); color:var(--success)">Ativo</span>`;
 
     document.getElementById('fa-resumo-dados').innerHTML = `
@@ -279,6 +292,28 @@ export async function excluirAtivoAtual() {
         mostrarToast('Ativo excluído.');
         fecharFichaAtivo();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — itens/ocorrências do ativo excluído continuavam nos alertas da Visão Geral
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// NOVO (29/08/2026, pedido explícito) — "Marcar como vendido": diferente
+// de Excluir (soft-delete, esconde da listagem principal), aqui o ativo
+// muda de status pra 'vendido' e os itens de controle vinculados têm o
+// alerta desligado em cascata (api.marcarAtivoVendido) — param de gerar
+// aviso proativo (WhatsApp) e de acender badge de urgência na ficha, mas
+// documentos/histórico continuam intactos. Mesma tela some da listagem
+// principal (query já filtra status='ativo', igual arquivado) — se no
+// futuro fizer sentido um filtro "ver vendidos/arquivados" na lista, é
+// mudança separada, não pedida agora.
+export async function marcarAtivoVendidoAtual() {
+    const a = estado.ativoEmFoco;
+    if (!a) return;
+    if (!confirm(`Marcar "${a.nome_exibicao}" como vendido? Os itens de controle vinculados (seguro, manutenção, tributo) param de gerar alerta. O ativo some da listagem principal — histórico e documentos continuam preservados.`)) return;
+    try {
+        await api.marcarAtivoVendido(a.id);
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, nome: a.nome_exibicao, acao: 'marcar_vendido' });
+        mostrarToast('Ativo marcado como vendido — alertas desativados.');
+        fecharFichaAtivo();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // mesmo motivo do excluirAtivoAtual — itens desativados não devem continuar nos alertas da Visão Geral
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
