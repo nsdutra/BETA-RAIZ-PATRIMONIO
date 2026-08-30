@@ -6,7 +6,22 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.71.0
+   VERSÃO: Beta v1.71.1
+   LINHAS: 26199
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.71.1) — bug real achado pelo Nicola em produção:
+   quem é master em várias empresas (mesmo user_id, várias linhas em
+   pessoas — 1 por empresa) via cada termo legal pendente duplicado 1x
+   por empresa na mesma tela ("Política de Privacidade" aparecendo 10x
+   no modal). As RPCs fn_minhas_comunicacoes_opt_out e
+   fn_definir_opt_out_comunicacao agora exigem p_cliente_id explícito
+   (mesmo padrão que fn_comunicacao_proxima_app já usava) — as 2 chamadas
+   deste arquivo passam CLIENTE_ID_SUPABASE agora. fn_termos_legais_
+   pendentes também corrigida (ver comunicacoes-api.js/app.js v1.46/
+   v1.47) — nenhuma mudança nas linhas deste arquivo além de passar o
+   parâmetro novo nas 2 chamadas.
+
+   VERSÃO ANTERIOR: Beta v1.71.0
    LINHAS: 26171
    DATA: 30/08/2026
    NOVIDADES (Beta v1.71.0) — reescrita completa da frente de aceite de
@@ -8351,7 +8366,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.71.0";
+        const APP_VERSAO = "Beta v1.71.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -13848,7 +13863,7 @@
             </div>`;
 
             try {
-                const { data, error } = await dbAuth.rpc('fn_minhas_comunicacoes_opt_out');
+                const { data, error } = await dbAuth.rpc('fn_minhas_comunicacoes_opt_out', { p_cliente_id: CLIENTE_ID_SUPABASE });
                 if (error) throw error;
                 const lista = document.getElementById('lista-preferencias-comunicacao');
                 if (!data || !data.length) {
@@ -13875,7 +13890,7 @@
             const optarOutAgora = btn.dataset.atual !== '1'; // estava ativado (atual=0) -> agora desliga
             btn.disabled = true;
             try {
-                const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao', { p_comunicacao_id: comunicacaoId, p_optar_out: optarOutAgora });
+                const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao', { p_comunicacao_id: comunicacaoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_optar_out: optarOutAgora });
                 if (error) throw error;
                 btn.dataset.atual = optarOutAgora ? '1' : '0';
                 btn.style.background = optarOutAgora ? '#d7d2c4' : 'var(--pine)';

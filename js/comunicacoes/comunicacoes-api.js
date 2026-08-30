@@ -1,5 +1,13 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — API App
-// Beta v1.45.0
+// Beta v1.46.0
+//
+// v1.46.0 — BUG achado pelo Nicola: quem é master em várias empresas
+// (auth.uid() batendo em N linhas de pessoas) tomava resultado duplicado
+// — 1 por empresa — em fn_termos_legais_pendentes/fn_minhas_comunicacoes_
+// opt_out, porque essas RPCs só filtravam por user_id. Agora as duas
+// exigem clienteId explícito (a empresa atual, mesmo padrão que
+// buscarProximaComunicacao já usava). Ver changelog completo em
+// comunicacoes-app.js.
 //
 // v1.45.0 — nova buscarTermosLegaisPendentes(): base do modal único de
 // aceite (fn_termos_legais_pendentes, devolve todos de uma vez, não 1 por
@@ -48,8 +56,8 @@ export async function buscarProximaComunicacao({ pessoaId, clienteId, ctxCliente
   return Array.isArray(data) && data.length ? data[0] : null;
 }
 
-export async function buscarTermosLegaisPendentes() {
-  const { data, error } = await db().rpc('fn_termos_legais_pendentes');
+export async function buscarTermosLegaisPendentes({ clienteId }) {
+  const { data, error } = await db().rpc('fn_termos_legais_pendentes', { p_cliente_id: clienteId });
   if (error) throw error;
   return Array.isArray(data) ? data : [];
 }

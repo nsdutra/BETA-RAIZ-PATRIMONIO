@@ -1,5 +1,18 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — Adaptador App
-// Beta v1.46.0
+// Beta v1.47.0
+//
+// v1.47.0 — 2 correções pedidas pelo Nicola após testar em produção:
+// (a) BUG DE VERDADE: quem é master em várias empresas via o mesmo
+// login (auth.uid() batendo em N linhas de public.pessoas — 1 por
+// empresa) via cada termo pendente repetido N vezes na mesma tela
+// ("Política de Privacidade" aparecendo 10x). fn_termos_legais_pendentes
+// e fn_minhas_comunicacoes_opt_out agora exigem cliente_id explícito
+// (mesmo padrão que buscarProximaComunicacao já usava) — resolverTermosLegais
+// passa ctx.clienteId. (b) Não-bug, investigado e explicado ao Nicola:
+// "nenhum perfil marcado" nos 3 termos legais no Gestão é intencional —
+// fn_comunicacao_atende_regras trata ausência de regra como "elegível
+// pra todo mundo" (comportamento documentado no próprio código), correto
+// pra termo legal que precisa valer pra qualquer perfil.
 //
 // v1.46.0 — pedido explícito do Nicola após testar em produção: o aceite
 // de termos virou 1 modal SÓ (Termos + Política + Beta juntos), não mais
@@ -62,7 +75,7 @@ async function seguro(c,ctx,evento,detalhe={}){
 // via novo processar() encadeado).
 async function resolverTermosLegais(ctx){
  let pendentes;
- try{ pendentes=await buscarTermosLegaisPendentes(); }
+ try{ pendentes=await buscarTermosLegaisPendentes({clienteId:ctx.clienteId}); }
  catch(e){ console.warn('[comunicacoes] Falha ao checar termos legais:',e.message); return false; }
  if(!pendentes.length) return false;
 
