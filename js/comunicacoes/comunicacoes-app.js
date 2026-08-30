@@ -1,7 +1,30 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — Adaptador App
-// Beta v1.43.0
-import {configurarApiComunicacoes,registrarLoginComunicacoes,buscarComunicacoesCandidatas,registrarInteracao,responderNps} from './comunicacoes-api.js';
-import {selecionarComunicacao} from './comunicacoes-regras.js';
+// Beta v1.44.0
+//
+// v1.44.0 — pedido explícito do Nicola (não duplicar lógica entre app e
+// bot, implementar no banco): a escolha de qual comunicação mostrar
+// agora vem de fn_comunicacao_proxima_app (via buscarProximaComunicacao,
+// comunicacoes-api.js) — não mais de selecionarComunicacao()/
+// comunicacoes-regras.js local. O bot (whatsapp-webhook) passa a chamar
+// a MESMA função no banco (fn_comunicacao_proxima_servico), com canal
+// diferente — nenhum dos dois reimplementa a decisão.
+//
+// comunicacoes-regras.js NÃO foi removido — tests/comunicacoes.test.js
+// ainda testa comparar()/regraAtendida()/selecionarComunicacao() como
+// funções puras isoladas; deixar existir não causa mal, só não é mais
+// chamado por este arquivo.
+//
+// onConcluir agora lê c.conteudo?.acao_final dinamicamente (antes vinha
+// hardcoded 'abrir_formulario_imovel') — necessário desde que passou a
+// existir a variante "ativo" do onboarding (acao_final=
+// 'abrir_formulario_ativo', usada pelo Cofre — ver cofre-app.js).
+//
+// ctx.quantidadeImoveis/ctx.plano/ctx.perfil (index.html ainda os passa
+// no detail do evento) não são mais lidos aqui — o banco calcula tudo
+// isso sozinho a partir de pessoa_id/cliente_id. Não precisei tocar em
+// index.html pra parar de mandar esses campos: são só ignorados agora,
+// sem custo, e removê-los de lá é limpeza opcional pra outra hora.
+import {configurarApiComunicacoes,registrarLoginComunicacoes,buscarProximaComunicacao,registrarInteracao,responderNps} from './comunicacoes-api.js';
 import {renderizarOnboarding,renderizarNps,fecharComunicacao} from './comunicacoes-ui.js';
 import {obterEstadoPwa,solicitarInstalacaoPwa} from './pwa-instalacao.js';
 
@@ -19,18 +42,17 @@ async function processar(ev){
   if(!loginsRegistrados.has(chaveLogin)){
     loginsRegistrados.set(chaveLogin,await registrarLoginComunicacoes({pessoaId:ctx.pessoaId,clienteId:ctx.clienteId}));
   }
-  ctx.contadorLogin=loginsRegistrados.get(chaveLogin);
-  const cand=await buscarComunicacoesCandidatas({pessoaId:ctx.pessoaId,clienteId:ctx.clienteId});
   const pwa=obterEstadoPwa();
-  const regras={semImoveis:Number(ctx.quantidadeImoveis||0)===0,pwaInstalado:pwa.standalone,plano:ctx.plano||null,perfil:ctx.perfil||null,tela:ctx.tela||'inicio',dispositivo:pwa.navegador,contadorLogin:Number(ctx.contadorLogin||0),interacoesDesdeNps:0};
-  const c=selecionarComunicacao(cand,regras);
+  // Só o que é genuinamente de sessão/local — o resto o banco calcula.
+  const ctxCliente={pwaInstalado:pwa.standalone,tela:ctx.tela||'inicio',dispositivo:pwa.navegador};
+  const c=await buscarProximaComunicacao({pessoaId:ctx.pessoaId,clienteId:ctx.clienteId,ctxCliente});
   if(!c){ctx.onSemComunicacao?.();return;}
-  await seguro(c,ctx,'exibiu',{tela:regras.tela,dispositivo:regras.dispositivo});
+  await seguro(c,ctx,'exibiu',{tela:ctxCliente.tela,dispositivo:ctxCliente.dispositivo});
   if(c.tipo==='onboarding'&&c.formato==='modal'){
    renderizarOnboarding({comunicacao:c,estadoPwa:pwa,
     onFechar:async()=>{await seguro(c,ctx,'fechou',{motivo:'agora_nao'});fecharComunicacao();},
     onInstalar:async()=>{await seguro(c,ctx,'clicou',{acao:'instalar_pwa'});const r=await solicitarInstalacaoPwa();if(['aceito','ja_instalado'].includes(r.resultado))await seguro(c,ctx,'instalou',{resultado:r.resultado});return r;},
-    onConcluir:async()=>{await seguro(c,ctx,'concluiu',{acao_final:'abrir_formulario_imovel'});fecharComunicacao();ctx.onAcaoFinal?.('abrir_formulario_imovel');}
+    onConcluir:async()=>{const acao=c.conteudo?.acao_final||'abrir_formulario_imovel';await seguro(c,ctx,'concluiu',{acao_final:acao});fecharComunicacao();ctx.onAcaoFinal?.(acao);}
    });return;
   }
   if(c.tipo==='nps'&&c.formato==='nps_modal'){

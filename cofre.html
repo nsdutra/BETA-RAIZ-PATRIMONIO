@@ -10,16 +10,48 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.22.0
+  Versão     : 1.23.0
   Data       : 29/08/2026
-  Título     : MERGE (Arquivar/RLS + Documento Esperado) + BUG FIX BADGE DE ITEM DE CONTROLE + FORM REORGANIZADO + FUNÇÃO "VENDIDO"
-  Base       : v1.21.6 (Arquivar/RLS) mesclada com v1.21.5 (Documento Esperado) — 2 sessões paralelas do mesmo dia, ver nota abaixo
-  Linhas     : cofre.html = 3134 · js/cofre-api.js = 644 · js/cofre-app.js = 566 ·
+  Título     : CENTRAL DE COMUNICAÇÕES OMNICHANNEL PASSA A RODAR NO COFRE
+  Base       : v1.22.0 (29/08/2026)
+  Linhas     : cofre.html = 3238 · js/cofre-api.js = 644 · js/cofre-app.js = 575 ·
                js/cofre-ativos.js = 500 · js/cofre-controles.js = 1311 ·
                js/cofre-documentos.js = 740 · js/cofre-estado.js = 175 ·
-               js/cofre-navegacao.js = 240 · js/cofre-ui.js = 105 ·
-               js/cofre-validacoes.js = 337 (total js/ = 4618)
+               js/cofre-navegacao.js = 275 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 337 (total js/ = 4662)
+               [nota: contagem de cofre.html corrigida pra 3206 — a v1.22.0
+               já estava nesse tamanho de verdade, o header anterior
+               declarava 3134 por engano, não recontado direito na
+               entrega passada]
 
+  CHANGELOG v1.23.0 — pedido explícito do Nicola (fechar a "última milha"
+  dos Planos de Comunicação): app e bot precisam chamar a MESMA função de
+  decisão no banco (fn_comunicacao_proxima_app/_servico, ver migrations
+  da sessão de revisão de mensagens pró-ativas). O app principal
+  (index.html) já tinha a Central de Comunicações desde a v1.43 — o
+  Cofre nunca teve nenhuma integração. Cofre.html em si não mudou de
+  conteúdo nesta entrega — só os 3 arquivos abaixo:
+
+    - js/cofre-navegacao.js (v1.3.0): bootstrap() dispara
+      'raiz:comunicacoes:processar' depois de carregarTudo(), mesmo
+      evento que index.html usa. onAcaoFinal trata a variante "ativo"
+      do onboarding (dispara 'cofre:abrir-form-ativo') e é defensivo
+      com a variante "imóvel" (não deveria disparar aqui).
+    - js/cofre-app.js (v1.7.0): novo listener 'cofre:abrir-form-ativo'
+      → ativos.abrirFormAtivo().
+    - js/cofre-estado.js: COFRE_VERSAO sincronizado.
+
+  Módulos js/comunicacoes/*.js (compartilhados com index.html, não
+  duplicados) também mudaram nesta entrega — ver changelog próprio em
+  comunicacoes-app.js/comunicacoes-api.js: a seleção de qual comunicação
+  mostrar agora vem de fn_comunicacao_proxima_app (banco), não mais de
+  selecionarComunicacao() local — isso beneficia app E Cofre ao mesmo
+  tempo, por serem o mesmo módulo.
+
+  ============================================================================
+-->
+
+<!--
   CHANGELOG v1.22.0 — MERGE + 3 pedidos explícitos novos, mesma sessão.
 
   0) MERGE de 2 branches paralelas que divergiram do mesmo v1.21.4 no

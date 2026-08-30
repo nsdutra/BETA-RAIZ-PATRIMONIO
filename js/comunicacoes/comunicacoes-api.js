@@ -1,5 +1,12 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — API App
-// Beta v1.43.0
+// Beta v1.44.0
+//
+// v1.44.0 — nova buscarProximaComunicacao(): chama fn_comunicacao_proxima_app,
+// que já devolve a comunicação vencedora (regras avaliadas no banco) — ver
+// changelog completo em comunicacoes-app.js. buscarComunicacoesCandidatas()
+// mantida (não removida): não é mais chamada por comunicacoes-app.js, mas
+// nenhum outro caller foi confirmado ausente — remover função pública sem
+// certeza é risco desnecessário pra um ganho de limpeza pequeno.
 let clienteSupabase = null;
 
 export function configurarApiComunicacoes(dbAuth) { clienteSupabase = dbAuth; }
@@ -22,6 +29,19 @@ export async function buscarComunicacoesCandidatas({ pessoaId, clienteId }) {
   });
   if (error) throw error;
   return Array.isArray(data) ? data : [];
+}
+
+// NOVO (v1.44.0) — substitui buscarComunicacoesCandidatas() + seleção local
+// no fluxo real. ctxCliente carrega só o que é genuinamente de sessão (PWA
+// instalado, tela atual, dispositivo) — tudo o mais (imóveis, contrato,
+// recebimento, login, uso do bot, licença) o banco já calcula sozinho.
+// Devolve a comunicação já escolhida, ou null se nenhuma bateu.
+export async function buscarProximaComunicacao({ pessoaId, clienteId, ctxCliente = {} }) {
+  const { data, error } = await db().rpc('fn_comunicacao_proxima_app', {
+    p_pessoa_id: pessoaId, p_cliente_id: clienteId, p_ctx_cliente: ctxCliente
+  });
+  if (error) throw error;
+  return Array.isArray(data) && data.length ? data[0] : null;
 }
 
 export async function registrarInteracao({ comunicacaoId,pessoaId,clienteId,evento,detalhe={},correlacaoId=null }) {

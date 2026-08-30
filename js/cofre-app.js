@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.0 · 29/08/2026
+// Versão: 1.7.0 · 29/08/2026
+//
+// v1.7.0 — novo listener 'cofre:abrir-form-ativo' (chama ativos.
+// abrirFormAtivo()) — acionado pela Central de Comunicações quando o
+// onboarding variante "ativo" é concluído (ver cofre-navegacao.js v1.3.0).
 //
 // v1.6.0 (29/08/2026) — 2 mudanças, sessões diferentes no mesmo dia:
 //   1) Handler de "Arquivar documento" removido do dispatcher (pedido
@@ -422,6 +426,11 @@ window.addEventListener('cofre:dados-carregados', () => {
 window.addEventListener('cofre:montar-home', () => docs.montarHome());
 
 window.addEventListener('cofre:abrir-ativo', (ev) => ativos.abrirFichaAtivo(ev.detail.id));
+// NOVO (v1.x, 29/08/2026) — acionado pela Central de Comunicações
+// (onboarding variante "ativo", ver cofre-navegacao.js bootstrap()) ao
+// concluir o passo final: abre o form de cadastro de ativo, mesmo botão
+// "+" que a tela já usa.
+window.addEventListener('cofre:abrir-form-ativo', () => ativos.abrirFormAtivo());
 window.addEventListener('cofre:abrir-documento', (ev) => docs.abrirFichaDocumento(ev.detail.id));
 
 window.addEventListener('cofre:upload-contextual', (ev) => {

@@ -158,7 +158,7 @@
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
-export const COFRE_VERSAO = '1.22.0';
+export const COFRE_VERSAO = '1.23.0';
 
 export const estado = {
     clienteId: null,

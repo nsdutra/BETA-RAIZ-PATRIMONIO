@@ -6,7 +6,25 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.69.0
+   VERSÃO: Beta v1.69.1
+   LINHAS: 26047
+   DATA: 29/08/2026
+   NOVIDADES (Beta v1.69.1) — pedido explícito do Nicola: app e bot
+   precisam decidir "qual comunicação mostrar agora" chamando a MESMA
+   função no banco (não duplicar lógica) — ver migrations da sessão de
+   Planos de Comunicação (fn_comunicacao_proxima_app/_servico).
+
+   js/comunicacoes/comunicacoes-app.js e comunicacoes-api.js (módulos
+   compartilhados, não vivem neste arquivo) trocaram a seleção local
+   (selecionarComunicacao()/comunicacoes-regras.js) por uma chamada a
+   fn_comunicacao_proxima_app — ver changelog completo nesses 2
+   arquivos. Aqui em index.html, só 1 mudança pontual: onAcaoFinal
+   ganhou um branch defensivo pra 'abrir_formulario_ativo' (a variante
+   "ativo" do onboarding pertence ao Cofre, que agora também dispara
+   este mesmo evento — ver cofre-navegacao.js v1.3.0) — não deveria
+   disparar aqui, mas não pode travar silenciosamente se disparar.
+
+   VERSÃO ANTERIOR: Beta v1.69.0
    LINHAS: 26023
    DATA: 29/08/2026
    NOVIDADES (Beta v1.69.0) — Parte 3 da especificação de Minutas: "gerar
@@ -8252,7 +8270,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.69.0";
+        const APP_VERSAO = "Beta v1.69.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -12585,6 +12603,12 @@
                                 tela: 'inicio',
                                 onAcaoFinal: function(acao) {
                                     if (acao === 'abrir_formulario_imovel') abrirFormularioImovel();
+                                    // Defensivo (v1.44.0): a variante "ativo" do onboarding é
+                                    // do Cofre (cofre.html tem seu próprio dispatch agora) — não
+                                    // deveria disparar aqui, mas se algum dia um cliente com os
+                                    // 2 módulos cair nessa variante dentro do app principal, não
+                                    // pode travar silenciosamente sem feedback nenhum.
+                                    else if (acao === 'abrir_formulario_ativo') mostrarToast('Esse cadastro fica no Cofre de Documentos.', 'info');
                                 },
                                 onToast: function(msg, tipo) { mostrarToast(msg, tipo); }
                             }

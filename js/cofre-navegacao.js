@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 28/08/2026
+// Versão: 1.3.0 · 29/08/2026
+//
+// v1.3.0 — pedido explícito do Nicola: Central de Comunicações Omnichannel
+// passa a rodar também no Cofre (antes só existia em index.html). Novo
+// dispatch de 'raiz:comunicacoes:processar' no fim de bootstrap(), mesmo
+// evento/módulo compartilhado (js/comunicacoes/*.js) que o app principal
+// usa — onAcaoFinal trata 'abrir_formulario_ativo' (dispara
+// 'cofre:abrir-form-ativo', ver cofre-app.js) e é defensivo com
+// 'abrir_formulario_imovel' (não deveria ocorrer aqui, mas não trava se
+// ocorrer). Não precisa mais passar quantidadeImoveis/plano/perfil no
+// detail — a seleção agora é decidida no banco (fn_comunicacao_proxima_app)
+// a partir de pessoaId/clienteId.
 //
 // v1.2.0 (28/08/2026) — BUG REAL corrigido: abrirContexto('imovel', ...)
 // quando o ativo já existe (caminho mais comum) disparava só
@@ -103,6 +114,30 @@ export async function bootstrap() {
     refrescarIcones();
 
     await carregarTudo();
+
+    // NOVO (v1.3.0, 29/08/2026) — Central de Comunicações Omnichannel
+    // agora também roda no Cofre (antes só existia em index.html). Mesmo
+    // evento, mesmo módulo compartilhado (js/comunicacoes/*.js) — só o
+    // onAcaoFinal muda, porque "abrir formulário de ativo" é uma ação do
+    // Cofre, não do app principal. tela/quantidadeImoveis/plano/perfil
+    // não são mais necessários no detail (o banco calcula tudo a partir
+    // de pessoaId/clienteId agora) — mantidos aqui só onde ainda fazem
+    // sentido (tela, pro contexto local de PWA/dispositivo).
+    window.dispatchEvent(new CustomEvent('raiz:comunicacoes:processar', {
+        detail: {
+            dbAuth: api.dbAuth,
+            pessoaId: estado.pessoa.id,
+            clienteId: estado.clienteId,
+            tela: 'cofre-home',
+            onAcaoFinal: function (acao) {
+                if (acao === 'abrir_formulario_ativo') window.dispatchEvent(new CustomEvent('cofre:abrir-form-ativo'));
+                // Defensivo: a variante "imóvel" pertence ao app principal — não
+                // deveria disparar aqui, mas não pode travar se disparar.
+                else if (acao === 'abrir_formulario_imovel') mostrarToast('Esse cadastro fica no Raiz Patrimônio (app principal).', 'info');
+            },
+            onToast: function (msg, tipo) { mostrarToast(msg, tipo); }
+        }
+    }));
 
     if (contextoParam && refParam) {
         await abrirContexto(contextoParam, refParam, nomeParam);
