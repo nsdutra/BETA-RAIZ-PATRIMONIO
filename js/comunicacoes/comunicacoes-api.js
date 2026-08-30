@@ -1,5 +1,9 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — API App
-// Beta v1.44.0
+// Beta v1.45.0
+//
+// v1.45.0 — nova buscarTermosLegaisPendentes(): base do modal único de
+// aceite (fn_termos_legais_pendentes, devolve todos de uma vez, não 1 por
+// vez) — ver changelog completo em comunicacoes-app.js/ui.js.
 //
 // v1.44.0 — nova buscarProximaComunicacao(): chama fn_comunicacao_proxima_app,
 // que já devolve a comunicação vencedora (regras avaliadas no banco) — ver
@@ -42,6 +46,12 @@ export async function buscarProximaComunicacao({ pessoaId, clienteId, ctxCliente
   });
   if (error) throw error;
   return Array.isArray(data) && data.length ? data[0] : null;
+}
+
+export async function buscarTermosLegaisPendentes() {
+  const { data, error } = await db().rpc('fn_termos_legais_pendentes');
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
 }
 
 export async function registrarInteracao({ comunicacaoId,pessoaId,clienteId,evento,detalhe={},correlacaoId=null }) {
