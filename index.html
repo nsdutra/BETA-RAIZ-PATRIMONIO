@@ -6,7 +6,35 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.70.1
+   VERSÃO: Beta v1.71.0
+   LINHAS: 26171
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.71.0) — reescrita completa da frente de aceite de
+   termos, pedido explícito do Nicola após revisão de arquitetura: Termos
+   de Uso/Política de Privacidade/Termo de Beta deixaram de ser um sistema
+   à parte (js/comunicacoes/consentimento-*.js, RPCs fn_termos_pendentes/
+   fn_registrar_consentimento) e migraram DE VERDADE pro motor de
+   comunicações — cada um é uma comunicacao real (dispensavel=false,
+   prioridade 1000/999/998, 1ª/2ª/3ª msg do plano Onboarding). Dispatch
+   pós-login voltou a chamar 'raiz:comunicacoes:processar' direto (sem o
+   wrapper 'raiz:termos:verificar' da v1.70.0) — comunicacoes-app.js
+   reconhece dispensavel=false sozinho e chama renderizarAceite()
+   (comunicacoes-ui.js v1.45.0), um modal sem botão de fechar, igual ao
+   antigo só que dentro do mesmo motor que onboarding/NPS/upsell — e
+   encadeia automaticamente pro próximo pendente (Termos → Política →
+   Beta) sem precisar de lógica extra aqui.
+
+   js/comunicacoes/consentimento-{api,ui,app}.js ficam OBSOLETOS — não são
+   mais carregados por este arquivo (tag <script> removida). Não foram
+   apagados do repositório automaticamente; remover na próxima limpeza.
+
+   Menu ⚙️ Configurações → grupo Conta: "Comunicações comerciais" (toggle
+   único) virou "Preferências de comunicação" (lista, 1 toggle por
+   mensagem que permite opt-out — fn_minhas_comunicacoes_opt_out/
+   fn_definir_opt_out_comunicacao) — pedido explícito do Nicola pra não
+   ficar só 1 liga/desliga geral.
+
+   VERSÃO ANTERIOR: Beta v1.70.1
    LINHAS: 26138
    DATA: 30/08/2026
    NOVIDADES (Beta v1.70.1) — toggle "Comunicações comerciais" no menu ⚙️
@@ -6027,17 +6055,15 @@
                     <span class="text-sm font-medium" style="color:var(--ink)">Licença</span>
                 </button>
 
-                <!-- v1.70.0 — toggle de comunicações comerciais (LGPD).
-                     NÃO fecha o menu ao clicar (diferente dos botões de
-                     navegação acima) — é uma preferência, a pessoa espera
-                     ver o próprio estado mudar antes de sair da tela.
-                     Não afeta avisos operacionais do próprio contrato
-                     (vencimento, atraso) — só onboarding/adoção/upsell/NPS
-                     via WhatsApp (ver Política de Privacidade §5). -->
-                <button onclick="alternarComunicacaoComercial()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <!-- v1.71.0 — trocado o toggle único por "Preferências de comunicação",
+                     que abre uma lista com 1 toggle por mensagem (fn_minhas_comunicacoes_
+                     opt_out/fn_definir_opt_out_comunicacao) — pedido explícito do Nicola:
+                     "colocar este liga e desliga pra todas as mensagens". Mensagens
+                     obrigatórias (Termos, Política, Beta) nem aparecem na lista —
+                     permite_opt_out=false pra essas. -->
+                <button onclick="fecharMenuConta(); abrirPreferenciasComunicacao()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Comunicações comerciais</span>
-                    <span id="comunicacao-comercial-status" class="text-[11px] font-bold" style="color:var(--sage)">···</span>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Preferências de comunicação</span>
                 </button>
 
                 <a href="https://wa.me/5511947461828" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
@@ -8325,7 +8351,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.70.1";
+        const APP_VERSAO = "Beta v1.71.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -12643,38 +12669,36 @@
                         // não reabrir a mesma aba de novo à força.
                         abrirAbaPorDeepLink();
 
-                        // Beta v1.70.0 — Aceite de Termos/LGPD entra ANTES da Central de
-                        // Comunicações. Antes este bloco disparava
-                        // 'raiz:comunicacoes:processar' direto; agora dispara
-                        // 'raiz:termos:verificar' (novo módulo consentimento-app.js), que
-                        // só repassa pra Central de Comunicações depois de resolver aceite
-                        // pendente (ou na hora, se não houver nada pendente) — nunca os 2
-                        // modais concorrem. comunicacoes-app.js não mudou nada.
+                        // Beta v1.71.0 — REVERTIDO pra chamar 'raiz:comunicacoes:processar'
+                        // direto de novo (era assim até v1.69.1). O wrapper
+                        // 'raiz:termos:verificar' (v1.70.0) ficou obsoleto: Termos de
+                        // Uso/Política de Privacidade/Termo de Beta migraram pro motor de
+                        // comunicações de verdade (dispensavel=false, prioridade máxima,
+                        // 1ª msg do plano Onboarding) — comunicacoes-app.js agora trata
+                        // isso sozinho (renderizarAceite, ver comunicacoes-ui.js v1.45.0).
+                        // js/comunicacoes/consentimento-*.js (3 arquivos) ficam obsoletos —
+                        // não são mais carregados por este arquivo, podem ser removidos do
+                        // repo na próxima limpeza.
                         garantirBotaoFeedback();
-                        window.dispatchEvent(new CustomEvent('raiz:termos:verificar', {
+                        window.dispatchEvent(new CustomEvent('raiz:comunicacoes:processar', {
                             detail: {
                                 dbAuth: dbAuth,
                                 pessoaId: pessoaIdLogada,
                                 clienteId: CLIENTE_ID_SUPABASE,
-                                comunicacoesDetail: {
-                                    dbAuth: dbAuth,
-                                    pessoaId: pessoaIdLogada,
-                                    clienteId: CLIENTE_ID_SUPABASE,
-                                    quantidadeImoveis: Array.isArray(imoveis) ? imoveis.length : 0,
-                                    plano: LICENCA_ATUAL ? LICENCA_ATUAL.plano_codigo : null,
-                                    perfil: perfilLogado,
-                                    tela: 'inicio',
-                                    onAcaoFinal: function(acao) {
-                                        if (acao === 'abrir_formulario_imovel') abrirFormularioImovel();
-                                        // Defensivo (v1.44.0): a variante "ativo" do onboarding é
-                                        // do Cofre (cofre.html tem seu próprio dispatch agora) — não
-                                        // deveria disparar aqui, mas se algum dia um cliente com os
-                                        // 2 módulos cair nessa variante dentro do app principal, não
-                                        // pode travar silenciosamente sem feedback nenhum.
-                                        else if (acao === 'abrir_formulario_ativo') mostrarToast('Esse cadastro fica no Cofre de Documentos.', 'info');
-                                    },
-                                    onToast: function(msg, tipo) { mostrarToast(msg, tipo); }
-                                }
+                                quantidadeImoveis: Array.isArray(imoveis) ? imoveis.length : 0,
+                                plano: LICENCA_ATUAL ? LICENCA_ATUAL.plano_codigo : null,
+                                perfil: perfilLogado,
+                                tela: 'inicio',
+                                onAcaoFinal: function(acao) {
+                                    if (acao === 'abrir_formulario_imovel') abrirFormularioImovel();
+                                    // Defensivo (v1.44.0): a variante "ativo" do onboarding é
+                                    // do Cofre (cofre.html tem seu próprio dispatch agora) — não
+                                    // deveria disparar aqui, mas se algum dia um cliente com os
+                                    // 2 módulos cair nessa variante dentro do app principal, não
+                                    // pode travar silenciosamente sem feedback nenhum.
+                                    else if (acao === 'abrir_formulario_ativo') mostrarToast('Esse cadastro fica no Cofre de Documentos.', 'info');
+                                },
+                                onToast: function(msg, tipo) { mostrarToast(msg, tipo); }
                             }
                         }));
                         atualizarSecaoSobreLicenca(); // FASE 1A (v1.39.2)
@@ -13798,44 +13822,69 @@
         function abrirMenuConta() {
             document.getElementById('modal-menu-conta')?.classList.remove('hidden');
             if (typeof lucide !== 'undefined') lucide.createIcons();
-            carregarStatusComunicacaoComercial();
         }
 
-        // v1.70.0 — LGPD: status/toggle de comunicações comerciais
-        // (onboarding/adoção/upsell/NPS via WhatsApp — RPCs novas no banco,
-        // ver fn_aceita_comunicacao_comercial/fn_definir_opt_out_
-        // comunicacao_comercial). Ausência de registro em consentimentos =
-        // aceita (mesmo default documentado na Política de Privacidade §5).
-        async function carregarStatusComunicacaoComercial() {
-            const el = document.getElementById('comunicacao-comercial-status');
-            if (!el || !dbAuth) return;
+        // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
+        // mensagem que permite opt-out (permite_opt_out=true) — substitui o
+        // toggle único "Comunicações comerciais" da v1.70.x. Mensagens
+        // obrigatórias (Termos de Uso, Política de Privacidade, Termo de
+        // Beta) não aparecem aqui — não fazem parte da lista retornada por
+        // fn_minhas_comunicacoes_opt_out() (permite_opt_out=false pra elas).
+        // Modal criado dinamicamente (mesmo padrão do overlay da Central de
+        // Comunicações) — não precisa de wrapper estático no HTML.
+        async function abrirPreferenciasComunicacao() {
+            let overlay = document.getElementById('overlay-preferencias-comunicacao');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'overlay-preferencias-comunicacao';
+                overlay.style.cssText = 'position:fixed;inset:0;z-index:470;background:rgba(23,33,30,.5);display:flex;align-items:flex-end;justify-content:center;padding:0';
+                overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+                document.body.appendChild(overlay);
+            }
+            overlay.innerHTML = `<div style="width:100%;max-width:480px;background:var(--paper,#faf9f5);border-radius:18px 18px 0 0;max-height:80vh;overflow-y:auto;padding:20px">
+                <h3 style="font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--ink,#17211e);margin:0 0 4px">Preferências de comunicação</h3>
+                <p style="font-size:12px;color:var(--sage,#6b857a);margin:0 0 16px">Avisos sobre seus contratos e imóveis não entram aqui — continuam normalmente.</p>
+                <div id="lista-preferencias-comunicacao" style="display:flex;flex-direction:column;gap:2px">Carregando...</div>
+            </div>`;
+
             try {
-                const { data, error } = await dbAuth.rpc('fn_meus_ultimos_consentimentos');
+                const { data, error } = await dbAuth.rpc('fn_minhas_comunicacoes_opt_out');
                 if (error) throw error;
-                const registro = (data || []).find(r => r.tipo === 'comunicacao_comercial_whatsapp');
-                const aceita = registro ? registro.aceito : true;
-                el.textContent = aceita ? 'Ativado' : 'Desativado';
+                const lista = document.getElementById('lista-preferencias-comunicacao');
+                if (!data || !data.length) {
+                    lista.innerHTML = '<p style="font-size:13px;color:var(--sage,#6b857a);padding:8px 0">Nenhuma preferência configurável no momento.</p>';
+                    return;
+                }
+                lista.innerHTML = data.map(item => `
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#e6e3da)">
+                        <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${item.titulo || item.codigo}</span>
+                        <button data-comunicacao-id="${item.comunicacao_id}" data-atual="${item.optou_out ? '1' : '0'}"
+                            onclick="alternarPreferenciaComunicacao(this)"
+                            style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;background:${item.optou_out ? '#d7d2c4' : 'var(--pine,#1e3a32)'};transition:background .15s">
+                            <span style="position:absolute;top:2px;left:${item.optou_out ? '2px' : '22px'};width:20px;height:20px;border-radius:999px;background:#fff;transition:left .15s"></span>
+                        </button>
+                    </div>`).join('');
             } catch (err) {
-                console.warn('[comunicacao-comercial] falha ao carregar status:', err.message);
-                el.textContent = '';
+                document.getElementById('lista-preferencias-comunicacao').innerHTML = '<p style="font-size:13px;color:#c1463a;padding:8px 0">Não foi possível carregar suas preferências agora.</p>';
+                console.warn('[preferencias-comunicacao] falha ao carregar:', err.message);
             }
         }
 
-        async function alternarComunicacaoComercial() {
-            const el = document.getElementById('comunicacao-comercial-status');
-            if (!el || !dbAuth) return;
-            const aceitaAtual = el.textContent === 'Ativado';
-            const textoAnterior = el.textContent;
-            el.textContent = '···';
+        async function alternarPreferenciaComunicacao(btn) {
+            const comunicacaoId = btn.dataset.comunicacaoId;
+            const optarOutAgora = btn.dataset.atual !== '1'; // estava ativado (atual=0) -> agora desliga
+            btn.disabled = true;
             try {
-                const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao_comercial', { p_aceita: !aceitaAtual });
+                const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao', { p_comunicacao_id: comunicacaoId, p_optar_out: optarOutAgora });
                 if (error) throw error;
-                el.textContent = !aceitaAtual ? 'Ativado' : 'Desativado';
-                mostrarToast(!aceitaAtual ? 'Comunicações comerciais ativadas.' : 'Comunicações comerciais desativadas.', 'success');
+                btn.dataset.atual = optarOutAgora ? '1' : '0';
+                btn.style.background = optarOutAgora ? '#d7d2c4' : 'var(--pine)';
+                btn.querySelector('span').style.left = optarOutAgora ? '2px' : '22px';
             } catch (err) {
-                el.textContent = textoAnterior;
                 mostrarToast('Não foi possível salvar sua preferência.', 'danger');
-                console.warn('[comunicacao-comercial] falha ao alternar:', err.message);
+                console.warn('[preferencias-comunicacao] falha ao alternar:', err.message);
+            } finally {
+                btn.disabled = false;
             }
         }
 
@@ -26143,7 +26192,6 @@
 
     </div>
 
-    <script type="module" src="./js/comunicacoes/consentimento-app.js"></script>
     <script type="module" src="./js/comunicacoes/comunicacoes-app.js"></script>
 
 </body>

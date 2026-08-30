@@ -10,23 +10,24 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.24.0
+  Versão     : 1.25.0
   Data       : 30/08/2026
-  Título     : ACEITE DE TERMOS/LGPD ENTRA ANTES DA CENTRAL DE COMUNICAÇÕES
-  Base       : v1.23.0 (29/08/2026)
-  Novidades  : cofre-navegacao.js v1.4.0 — dispatch pós-login trocou de
-               'raiz:comunicacoes:processar' pra 'raiz:termos:verificar'
-               (mesma mudança já feita em index.html v1.70.0). Sem isso,
-               quem loga direto pelo Cofre passava batido pelo modal de
-               aceite de Termos de Uso/Política de Privacidade/Termo de
-               Beta. cofre.html ganhou 1 linha (nova tag de script pro
-               módulo compartilhado js/comunicacoes/consentimento-app.js —
-               mesmo módulo novo usado por index.html, não duplicado).
-  Linhas     : cofre.html = 3239 · js/cofre-api.js = 644 · js/cofre-app.js = 575 ·
+  Título     : ACEITE DE TERMOS MIGRA DE VERDADE PRO MOTOR DE COMUNICAÇÕES
+  Base       : v1.24.0 (30/08/2026)
+  Novidades  : cofre-navegacao.js v1.5.0 — revertido pra
+               'raiz:comunicacoes:processar' direto (era
+               'raiz:termos:verificar' na v1.24.0). Termos de Uso/Política
+               de Privacidade/Termo de Beta viraram comunicações reais
+               (dispensavel=false, prioridade máxima) — comunicacoes-
+               app.js/ui.js (compartilhados com index.html) tratam o
+               aceite bloqueante sozinhos agora, sem precisar de wrapper.
+               cofre.html perdeu 1 linha (tag de script do módulo
+               consentimento-app.js, que ficou obsoleto).
+  Linhas     : cofre.html = 3246 · js/cofre-api.js = 644 · js/cofre-app.js = 575 ·
                js/cofre-ativos.js = 500 · js/cofre-controles.js = 1311 ·
-               js/cofre-documentos.js = 740 · js/cofre-estado.js = 180 ·
-               js/cofre-navegacao.js = 291 · js/cofre-ui.js = 105 ·
-               js/cofre-validacoes.js = 337 (total js/ = 4683)
+               js/cofre-documentos.js = 740 · js/cofre-estado.js = 185 ·
+               js/cofre-navegacao.js = 289 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 337 (total js/ = 4686)
                [nota: contagem de cofre.html corrigida pra 3206 — a v1.22.0
                já estava nesse tamanho de verdade, o header anterior
                declarava 3134 por engano, não recontado direito na
@@ -3240,8 +3241,7 @@
      realocados pra escala real (ver C-1b). -->
 <div id="toast" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm font-semibold z-[500]" style="background:var(--pine)"></div>
 
-<script type="module" src="./js/comunicacoes/consentimento-app.js"></script>
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 3239 (cofre.html) — recontado na v1.24.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 3246 (cofre.html) — recontado na v1.25.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

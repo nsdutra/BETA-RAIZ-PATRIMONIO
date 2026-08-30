@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 30/08/2026
+// Versão: 1.5.0 · 30/08/2026
+//
+// v1.5.0 — REVERTIDO pra 'raiz:comunicacoes:processar' direto (mesma
+// reversão de index.html v1.71.0). Termos de Uso/Política de Privacidade/
+// Termo de Beta migraram pro motor de comunicações de verdade — não
+// precisam mais de um wrapper próprio antes de disparar a Central de
+// Comunicações. js/comunicacoes/consentimento-app.js (usado por este
+// arquivo desde a v1.4.0) fica obsoleto, junto com consentimento-{api,
+// ui}.js — não são mais importados por cofre.html (tag removida).
 //
 // v1.4.0 — Aceite de Termos/LGPD entra ANTES da Central de Comunicações
 // também aqui (mesma mudança de index.html v1.70.0) — dispatch trocou de
@@ -124,34 +132,24 @@ export async function bootstrap() {
 
     await carregarTudo();
 
-    // v1.4.0 (30/08/2026) — Aceite de Termos/LGPD entra ANTES da Central de
-    // Comunicações aqui também (mesma mudança já feita em index.html —
-    // pedido explícito do Nicola, "evoluir com tudo" na frente de
-    // conformidade legal). Sem isso, quem loga direto pelo Cofre passava
-    // batido pelo modal de aceite. Dispatch trocou de
-    // 'raiz:comunicacoes:processar' pra 'raiz:termos:verificar' — o novo
-    // módulo consentimento-app.js (compartilhado com index.html, mesmo
-    // padrão de js/comunicacoes/*.js) só repassa pra Central de
-    // Comunicações depois de resolver o aceite. Nenhuma outra linha deste
-    // bloco mudou.
-    window.dispatchEvent(new CustomEvent('raiz:termos:verificar', {
+    // v1.5.0 (30/08/2026) — REVERTIDO pra chamar 'raiz:comunicacoes:processar'
+    // direto de novo (era assim até v1.3.0). O wrapper 'raiz:termos:verificar'
+    // (v1.4.0) ficou obsoleto: Termos de Uso/Política de Privacidade/Termo de
+    // Beta migraram pro motor de comunicações de verdade — comunicacoes-
+    // app.js (compartilhado com index.html) trata isso sozinho agora.
+    window.dispatchEvent(new CustomEvent('raiz:comunicacoes:processar', {
         detail: {
             dbAuth: api.dbAuth,
             pessoaId: estado.pessoa.id,
             clienteId: estado.clienteId,
-            comunicacoesDetail: {
-                dbAuth: api.dbAuth,
-                pessoaId: estado.pessoa.id,
-                clienteId: estado.clienteId,
-                tela: 'cofre-home',
-                onAcaoFinal: function (acao) {
-                    if (acao === 'abrir_formulario_ativo') window.dispatchEvent(new CustomEvent('cofre:abrir-form-ativo'));
-                    // Defensivo: a variante "imóvel" pertence ao app principal — não
-                    // deveria disparar aqui, mas não pode travar se disparar.
-                    else if (acao === 'abrir_formulario_imovel') mostrarToast('Esse cadastro fica no Raiz Patrimônio (app principal).', 'info');
-                },
-                onToast: function (msg, tipo) { mostrarToast(msg, tipo); }
-            }
+            tela: 'cofre-home',
+            onAcaoFinal: function (acao) {
+                if (acao === 'abrir_formulario_ativo') window.dispatchEvent(new CustomEvent('cofre:abrir-form-ativo'));
+                // Defensivo: a variante "imóvel" pertence ao app principal — não
+                // deveria disparar aqui, mas não pode travar se disparar.
+                else if (acao === 'abrir_formulario_imovel') mostrarToast('Esse cadastro fica no Raiz Patrimônio (app principal).', 'info');
+            },
+            onToast: function (msg, tipo) { mostrarToast(msg, tipo); }
         }
     }));
 

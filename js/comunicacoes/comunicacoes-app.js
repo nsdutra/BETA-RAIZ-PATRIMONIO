@@ -1,5 +1,15 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — Adaptador App
-// Beta v1.44.0
+// Beta v1.45.0
+//
+// v1.45.0 — pedido explícito do Nicola (frente de conformidade LGPD):
+// Termos de Uso/Política de Privacidade/Termo de Beta migraram pro motor
+// de comunicações (dispensavel=false, formato='modal_bloqueante',
+// prioridade máxima, 1ª msg do plano Onboarding — ver migrations
+// 30/08/2026). Substitui os módulos separados js/comunicacoes/
+// consentimento-{api,ui,app}.js, que ficam obsoletos (não removidos do
+// repo automaticamente — Nicola remove na próxima limpeza). index.html/
+// cofre-navegacao.js voltam a disparar 'raiz:comunicacoes:processar'
+// direto, sem o wrapper 'raiz:termos:verificar' que existia antes.
 //
 // v1.44.0 — pedido explícito do Nicola (não duplicar lógica entre app e
 // bot, implementar no banco): a escolha de qual comunicação mostrar
@@ -25,7 +35,7 @@
 // index.html pra parar de mandar esses campos: são só ignorados agora,
 // sem custo, e removê-los de lá é limpeza opcional pra outra hora.
 import {configurarApiComunicacoes,registrarLoginComunicacoes,buscarProximaComunicacao,registrarInteracao,responderNps} from './comunicacoes-api.js';
-import {renderizarOnboarding,renderizarNps,fecharComunicacao} from './comunicacoes-ui.js';
+import {renderizarOnboarding,renderizarNps,renderizarAceite,fecharComunicacao} from './comunicacoes-ui.js';
 import {obterEstadoPwa,solicitarInstalacaoPwa} from './pwa-instalacao.js';
 
 const loginsRegistrados=new Map();
@@ -48,6 +58,17 @@ async function processar(ev){
   const c=await buscarProximaComunicacao({pessoaId:ctx.pessoaId,clienteId:ctx.clienteId,ctxCliente});
   if(!c){ctx.onSemComunicacao?.();return;}
   await seguro(c,ctx,'exibiu',{tela:ctxCliente.tela,dispositivo:ctxCliente.dispositivo});
+  // NOVO (v1.45.0) — dispensavel=false vem ANTES dos outros formatos:
+  // aceite obrigatório nunca deve cair no fallback "formato não
+  // implementado" mesmo que o formato mude no futuro. Só cobre
+  // tipo='onboarding' por enquanto (o único caso real hoje).
+  if(c.dispensavel===false&&c.formato==='modal_bloqueante'){
+   renderizarAceite({comunicacao:c,
+    onConfirmar:async()=>{await seguro(c,ctx,'aceitou',{});fecharComunicacao();ctx.onAcaoConcluida?.(c.codigo);
+     // Encadeia: pode ter mais 1 pendente (ex. Política logo após Termos).
+     window.dispatchEvent(new CustomEvent('raiz:comunicacoes:processar',{detail:ctx}));}
+   });return;
+  }
   if(c.tipo==='onboarding'&&c.formato==='modal'){
    renderizarOnboarding({comunicacao:c,estadoPwa:pwa,
     onFechar:async()=>{await seguro(c,ctx,'fechou',{motivo:'agora_nao'});fecharComunicacao();},

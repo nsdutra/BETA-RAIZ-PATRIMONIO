@@ -1,5 +1,13 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — UI App
-// Beta v1.43.1
+// Beta v1.45.0
+//
+// v1.45.0 — NOVA renderizarAceite(): modal SEM botão de fechar/pular —
+// pra comunicações com dispensavel=false (ex. aceite de Termos de Uso/
+// Política de Privacidade/Termo de Beta, migradas pro motor de
+// comunicações nesta entrega). Mesmo overlay/z-index dos outros modais
+// (baseOverlay) — só não tem NENHUM jeito de fechar sem confirmar. Isso é
+// deliberado: o Design System documenta esta como a única exceção
+// aceitável de modal bloqueante, e aqui é justamente aceite de termo.
 const ID='raiz-comunicacao-overlay';
 export function fecharComunicacao(){ document.getElementById(ID)?.remove(); }
 function svg(nome){
@@ -15,6 +23,39 @@ function baseOverlay(){
  const o=document.createElement('div');o.id=ID;
  o.style.cssText='position:fixed;inset:0;z-index:480;background:rgba(23,33,30,.58);display:flex;align-items:center;justify-content:center;padding:20px;';
  document.body.appendChild(o);return o;
+}
+export function renderizarAceite({comunicacao,onConfirmar}){
+ const o=baseOverlay();
+ const url=comunicacao.conteudo?.url||'#';
+ o.innerHTML=`<div style="width:100%;max-width:380px;background:var(--paper,#faf9f5);border-radius:18px;box-shadow:0 24px 60px -25px rgba(0,0,0,.55);overflow:hidden">
+  <div style="padding:24px 24px 4px">
+   <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-size:19px;margin:0 0 6px;color:var(--ink,#17211e)">${comunicacao.titulo}</h2>
+   <p style="font-size:13px;line-height:1.5;color:var(--sage,#6b857a);margin:0 0 16px">${comunicacao.mensagem||''}</p>
+  </div>
+  <div style="padding:0 24px">
+   <a href="${url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:#f7f4ed;border-radius:10px;color:var(--pine,#1e3a32);font-weight:700;font-size:13px;text-decoration:none">📄 Ler ${comunicacao.titulo}</a>
+  </div>
+  <div style="padding:14px 24px 0">
+   <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--sage,#6b857a);cursor:pointer">
+    <input type="checkbox" id="rc-aceite-checkbox" style="margin-top:2px">
+    Li e concordo.
+   </label>
+  </div>
+  <div style="padding:16px 24px 24px">
+   <button id="rc-aceite-confirmar" type="button" disabled style="width:100%;border:0;border-radius:12px;background:var(--pine,#1e3a32);color:#fff;padding:13px;font-weight:800;cursor:not-allowed;opacity:.5">Aceitar e continuar</button>
+  </div>
+ </div>`;
+ const checkbox=o.querySelector('#rc-aceite-checkbox'),btn=o.querySelector('#rc-aceite-confirmar');
+ checkbox.addEventListener('change',()=>{
+  btn.disabled=!checkbox.checked;
+  btn.style.opacity=checkbox.checked?'1':'.5';
+  btn.style.cursor=checkbox.checked?'pointer':'not-allowed';
+ });
+ btn.addEventListener('click',async()=>{
+  btn.disabled=true;btn.textContent='Registrando...';
+  try{ await onConfirmar?.(); }
+  catch(e){ btn.disabled=false;btn.textContent='Aceitar e continuar';alert('Não foi possível registrar seu aceite. Tente novamente.');console.warn('[comunicacoes]',e.message); }
+ });
 }
 export function renderizarOnboarding({comunicacao,estadoPwa,onFechar,onConcluir,onInstalar}){
  const passos=comunicacao.conteudo?.passos||[];let indice=0;const o=baseOverlay();
