@@ -6,7 +6,49 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.69.1
+   VERSÃO: Beta v1.70.1
+   LINHAS: 26138
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.70.1) — toggle "Comunicações comerciais" no menu ⚙️
+   Configurações → grupo Conta, entre Licença e Suporte (RPCs já existiam
+   no banco desde a entrega anterior, só faltava o botão). Não fecha o
+   menu ao clicar — carrega o estado atual toda vez que o menu abre
+   (carregarStatusComunicacaoComercial, chamada de dentro de
+   abrirMenuConta) e alterna via fn_definir_opt_out_comunicacao_comercial.
+   Só afeta onboarding/adoção/upsell/NPS via WhatsApp — nunca os avisos
+   operacionais do próprio contrato (vencimento, atraso), que são
+   pessoa_preferencias_comunicacao, sistema separado.
+
+   VERSÃO ANTERIOR: Beta v1.70.0
+   LINHAS: 26057
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.70.0) — Aceite de Termos de Uso/Política de
+   Privacidade/Termo de Beta (LGPD), pedido explícito do Nicola: "evoluir
+   com tudo" na frente de conformidade legal. 3 módulos novos em
+   js/comunicacoes/ (consentimento-api.js, consentimento-ui.js,
+   consentimento-app.js), espelhando o mesmo padrão de
+   comunicacoes-api.js/ui.js/app.js já existente — nenhuma lógica de
+   decisão no front-end, tudo resolvido pela RPC nova fn_termos_pendentes
+   (considera ambiente_teste do cliente pra saber se também exige o Termo
+   de Beta).
+
+   No fluxo pós-login, o dispatch de 'raiz:comunicacoes:processar' virou
+   'raiz:termos:verificar' — o novo módulo só repassa pra Central de
+   Comunicações depois de resolver o aceite (nada pendente, ou pendente e
+   confirmado), pra nunca competir com o modal de onboarding/NPS.
+   comunicacoes-app.js não foi tocado.
+
+   Modal SEM botão de fechar/sem clique-fora-fecha — bloqueante de
+   propósito (mesma exceção documentada no DS §9 pro Tipo A): a pessoa não
+   pode continuar usando o app sem aceitar os termos vigentes.
+
+   Pendente pra próxima entrega: trocar os links placeholder de
+   LINKS_TERMOS (consentimento-app.js) pelas URLs públicas reais assim que
+   os 3 documentos forem publicados; toggle "Comunicações comerciais" no
+   menu ⚙️ Configurações (RPC fn_definir_opt_out_comunicacao_comercial já
+   existe no banco, só falta o botão).
+
+   VERSÃO ANTERIOR: Beta v1.69.1
    LINHAS: 26047
    DATA: 29/08/2026
    NOVIDADES (Beta v1.69.1) — pedido explícito do Nicola: app e bot
@@ -5985,6 +6027,19 @@
                     <span class="text-sm font-medium" style="color:var(--ink)">Licença</span>
                 </button>
 
+                <!-- v1.70.0 — toggle de comunicações comerciais (LGPD).
+                     NÃO fecha o menu ao clicar (diferente dos botões de
+                     navegação acima) — é uma preferência, a pessoa espera
+                     ver o próprio estado mudar antes de sair da tela.
+                     Não afeta avisos operacionais do próprio contrato
+                     (vencimento, atraso) — só onboarding/adoção/upsell/NPS
+                     via WhatsApp (ver Política de Privacidade §5). -->
+                <button onclick="alternarComunicacaoComercial()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Comunicações comerciais</span>
+                    <span id="comunicacao-comercial-status" class="text-[11px] font-bold" style="color:var(--sage)">···</span>
+                </button>
+
                 <a href="https://wa.me/5511947461828" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
                     <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
@@ -8270,7 +8325,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.69.1";
+        const APP_VERSAO = "Beta v1.70.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -12588,29 +12643,38 @@
                         // não reabrir a mesma aba de novo à força.
                         abrirAbaPorDeepLink();
 
-                        // Beta v1.43.0 — Central de Comunicações Omnichannel.
-                        // Ela registra o login, escolhe no máximo uma jornada e
-                        // orquestra onboarding/NPS sem concorrência.
+                        // Beta v1.70.0 — Aceite de Termos/LGPD entra ANTES da Central de
+                        // Comunicações. Antes este bloco disparava
+                        // 'raiz:comunicacoes:processar' direto; agora dispara
+                        // 'raiz:termos:verificar' (novo módulo consentimento-app.js), que
+                        // só repassa pra Central de Comunicações depois de resolver aceite
+                        // pendente (ou na hora, se não houver nada pendente) — nunca os 2
+                        // modais concorrem. comunicacoes-app.js não mudou nada.
                         garantirBotaoFeedback();
-                        window.dispatchEvent(new CustomEvent('raiz:comunicacoes:processar', {
+                        window.dispatchEvent(new CustomEvent('raiz:termos:verificar', {
                             detail: {
                                 dbAuth: dbAuth,
                                 pessoaId: pessoaIdLogada,
                                 clienteId: CLIENTE_ID_SUPABASE,
-                                quantidadeImoveis: Array.isArray(imoveis) ? imoveis.length : 0,
-                                plano: LICENCA_ATUAL ? LICENCA_ATUAL.plano_codigo : null,
-                                perfil: perfilLogado,
-                                tela: 'inicio',
-                                onAcaoFinal: function(acao) {
-                                    if (acao === 'abrir_formulario_imovel') abrirFormularioImovel();
-                                    // Defensivo (v1.44.0): a variante "ativo" do onboarding é
-                                    // do Cofre (cofre.html tem seu próprio dispatch agora) — não
-                                    // deveria disparar aqui, mas se algum dia um cliente com os
-                                    // 2 módulos cair nessa variante dentro do app principal, não
-                                    // pode travar silenciosamente sem feedback nenhum.
-                                    else if (acao === 'abrir_formulario_ativo') mostrarToast('Esse cadastro fica no Cofre de Documentos.', 'info');
-                                },
-                                onToast: function(msg, tipo) { mostrarToast(msg, tipo); }
+                                comunicacoesDetail: {
+                                    dbAuth: dbAuth,
+                                    pessoaId: pessoaIdLogada,
+                                    clienteId: CLIENTE_ID_SUPABASE,
+                                    quantidadeImoveis: Array.isArray(imoveis) ? imoveis.length : 0,
+                                    plano: LICENCA_ATUAL ? LICENCA_ATUAL.plano_codigo : null,
+                                    perfil: perfilLogado,
+                                    tela: 'inicio',
+                                    onAcaoFinal: function(acao) {
+                                        if (acao === 'abrir_formulario_imovel') abrirFormularioImovel();
+                                        // Defensivo (v1.44.0): a variante "ativo" do onboarding é
+                                        // do Cofre (cofre.html tem seu próprio dispatch agora) — não
+                                        // deveria disparar aqui, mas se algum dia um cliente com os
+                                        // 2 módulos cair nessa variante dentro do app principal, não
+                                        // pode travar silenciosamente sem feedback nenhum.
+                                        else if (acao === 'abrir_formulario_ativo') mostrarToast('Esse cadastro fica no Cofre de Documentos.', 'info');
+                                    },
+                                    onToast: function(msg, tipo) { mostrarToast(msg, tipo); }
+                                }
                             }
                         }));
                         atualizarSecaoSobreLicenca(); // FASE 1A (v1.39.2)
@@ -13734,6 +13798,45 @@
         function abrirMenuConta() {
             document.getElementById('modal-menu-conta')?.classList.remove('hidden');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+            carregarStatusComunicacaoComercial();
+        }
+
+        // v1.70.0 — LGPD: status/toggle de comunicações comerciais
+        // (onboarding/adoção/upsell/NPS via WhatsApp — RPCs novas no banco,
+        // ver fn_aceita_comunicacao_comercial/fn_definir_opt_out_
+        // comunicacao_comercial). Ausência de registro em consentimentos =
+        // aceita (mesmo default documentado na Política de Privacidade §5).
+        async function carregarStatusComunicacaoComercial() {
+            const el = document.getElementById('comunicacao-comercial-status');
+            if (!el || !dbAuth) return;
+            try {
+                const { data, error } = await dbAuth.rpc('fn_meus_ultimos_consentimentos');
+                if (error) throw error;
+                const registro = (data || []).find(r => r.tipo === 'comunicacao_comercial_whatsapp');
+                const aceita = registro ? registro.aceito : true;
+                el.textContent = aceita ? 'Ativado' : 'Desativado';
+            } catch (err) {
+                console.warn('[comunicacao-comercial] falha ao carregar status:', err.message);
+                el.textContent = '';
+            }
+        }
+
+        async function alternarComunicacaoComercial() {
+            const el = document.getElementById('comunicacao-comercial-status');
+            if (!el || !dbAuth) return;
+            const aceitaAtual = el.textContent === 'Ativado';
+            const textoAnterior = el.textContent;
+            el.textContent = '···';
+            try {
+                const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao_comercial', { p_aceita: !aceitaAtual });
+                if (error) throw error;
+                el.textContent = !aceitaAtual ? 'Ativado' : 'Desativado';
+                mostrarToast(!aceitaAtual ? 'Comunicações comerciais ativadas.' : 'Comunicações comerciais desativadas.', 'success');
+            } catch (err) {
+                el.textContent = textoAnterior;
+                mostrarToast('Não foi possível salvar sua preferência.', 'danger');
+                console.warn('[comunicacao-comercial] falha ao alternar:', err.message);
+            }
         }
 
         function fecharMenuConta() {
@@ -26040,6 +26143,7 @@
 
     </div>
 
+    <script type="module" src="./js/comunicacoes/consentimento-app.js"></script>
     <script type="module" src="./js/comunicacoes/comunicacoes-app.js"></script>
 
 </body>

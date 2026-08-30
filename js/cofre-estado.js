@@ -137,6 +137,11 @@
 // v1.3.1 — bump de COFRE_VERSAO: header simplificado (sem seletor de
 // módulos), cofre-app.js v1.1.2 / cofre-navegacao.js v1.1.1.
 //
+// v1.4.0 (cofre-navegacao.js) — bump de COFRE_VERSAO: Aceite de Termos/LGPD
+// entra antes da Central de Comunicações (mesma mudança de index.html
+// v1.70.0) — sem isso, quem loga direto pelo Cofre passava batido pelo
+// modal de aceite. Ver changelog completo em cofre-navegacao.js v1.4.0.
+//
 // v1.3.0 — bump de COFRE_VERSAO: nova aba Controles na ficha do ativo
 // (criar item de controle + tratar/reagendar/estornar ocorrência), módulo
 // novo cofre-controles.js v1.0.0.
@@ -158,7 +163,7 @@
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
-export const COFRE_VERSAO = '1.23.0';
+export const COFRE_VERSAO = '1.24.0';
 
 export const estado = {
     clienteId: null,

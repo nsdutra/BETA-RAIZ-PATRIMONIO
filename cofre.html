@@ -10,15 +10,23 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.23.0
-  Data       : 29/08/2026
-  Título     : CENTRAL DE COMUNICAÇÕES OMNICHANNEL PASSA A RODAR NO COFRE
-  Base       : v1.22.0 (29/08/2026)
-  Linhas     : cofre.html = 3238 · js/cofre-api.js = 644 · js/cofre-app.js = 575 ·
+  Versão     : 1.24.0
+  Data       : 30/08/2026
+  Título     : ACEITE DE TERMOS/LGPD ENTRA ANTES DA CENTRAL DE COMUNICAÇÕES
+  Base       : v1.23.0 (29/08/2026)
+  Novidades  : cofre-navegacao.js v1.4.0 — dispatch pós-login trocou de
+               'raiz:comunicacoes:processar' pra 'raiz:termos:verificar'
+               (mesma mudança já feita em index.html v1.70.0). Sem isso,
+               quem loga direto pelo Cofre passava batido pelo modal de
+               aceite de Termos de Uso/Política de Privacidade/Termo de
+               Beta. cofre.html ganhou 1 linha (nova tag de script pro
+               módulo compartilhado js/comunicacoes/consentimento-app.js —
+               mesmo módulo novo usado por index.html, não duplicado).
+  Linhas     : cofre.html = 3239 · js/cofre-api.js = 644 · js/cofre-app.js = 575 ·
                js/cofre-ativos.js = 500 · js/cofre-controles.js = 1311 ·
-               js/cofre-documentos.js = 740 · js/cofre-estado.js = 175 ·
-               js/cofre-navegacao.js = 275 · js/cofre-ui.js = 105 ·
-               js/cofre-validacoes.js = 337 (total js/ = 4662)
+               js/cofre-documentos.js = 740 · js/cofre-estado.js = 180 ·
+               js/cofre-navegacao.js = 291 · js/cofre-ui.js = 105 ·
+               js/cofre-validacoes.js = 337 (total js/ = 4683)
                [nota: contagem de cofre.html corrigida pra 3206 — a v1.22.0
                já estava nesse tamanho de verdade, o header anterior
                declarava 3134 por engano, não recontado direito na
@@ -3232,7 +3240,8 @@
      realocados pra escala real (ver C-1b). -->
 <div id="toast" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-white text-sm font-semibold z-[500]" style="background:var(--pine)"></div>
 
+<script type="module" src="./js/comunicacoes/consentimento-app.js"></script>
 <script type="module" src="./js/cofre-app.js"></script>
 </body>
 </html>
-<!-- TOTAL_LINHAS_DECLARADO: 3095 (cofre.html) — recontado na v1.21.4; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->
+<!-- TOTAL_LINHAS_DECLARADO: 3239 (cofre.html) — recontado na v1.24.0; lógica vive em js/*.js, ver contagem por arquivo no cabeçalho acima -->

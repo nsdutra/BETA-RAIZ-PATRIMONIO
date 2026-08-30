@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.0 · 29/08/2026
+// Versão: 1.4.0 · 30/08/2026
+//
+// v1.4.0 — Aceite de Termos/LGPD entra ANTES da Central de Comunicações
+// também aqui (mesma mudança de index.html v1.70.0) — dispatch trocou de
+// 'raiz:comunicacoes:processar' pra 'raiz:termos:verificar'. Sem isso,
+// quem loga direto pelo Cofre passava batido pelo modal de aceite de
+// Termos de Uso/Política de Privacidade/Termo de Beta. Ver changelog
+// completo no bloco do bootstrap() mais abaixo, e em
+// js/comunicacoes/consentimento-app.js (módulo novo, compartilhado com
+// index.html).
 //
 // v1.3.0 — pedido explícito do Nicola: Central de Comunicações Omnichannel
 // passa a rodar também no Cofre (antes só existia em index.html). Novo
@@ -115,27 +124,34 @@ export async function bootstrap() {
 
     await carregarTudo();
 
-    // NOVO (v1.3.0, 29/08/2026) — Central de Comunicações Omnichannel
-    // agora também roda no Cofre (antes só existia em index.html). Mesmo
-    // evento, mesmo módulo compartilhado (js/comunicacoes/*.js) — só o
-    // onAcaoFinal muda, porque "abrir formulário de ativo" é uma ação do
-    // Cofre, não do app principal. tela/quantidadeImoveis/plano/perfil
-    // não são mais necessários no detail (o banco calcula tudo a partir
-    // de pessoaId/clienteId agora) — mantidos aqui só onde ainda fazem
-    // sentido (tela, pro contexto local de PWA/dispositivo).
-    window.dispatchEvent(new CustomEvent('raiz:comunicacoes:processar', {
+    // v1.4.0 (30/08/2026) — Aceite de Termos/LGPD entra ANTES da Central de
+    // Comunicações aqui também (mesma mudança já feita em index.html —
+    // pedido explícito do Nicola, "evoluir com tudo" na frente de
+    // conformidade legal). Sem isso, quem loga direto pelo Cofre passava
+    // batido pelo modal de aceite. Dispatch trocou de
+    // 'raiz:comunicacoes:processar' pra 'raiz:termos:verificar' — o novo
+    // módulo consentimento-app.js (compartilhado com index.html, mesmo
+    // padrão de js/comunicacoes/*.js) só repassa pra Central de
+    // Comunicações depois de resolver o aceite. Nenhuma outra linha deste
+    // bloco mudou.
+    window.dispatchEvent(new CustomEvent('raiz:termos:verificar', {
         detail: {
             dbAuth: api.dbAuth,
             pessoaId: estado.pessoa.id,
             clienteId: estado.clienteId,
-            tela: 'cofre-home',
-            onAcaoFinal: function (acao) {
-                if (acao === 'abrir_formulario_ativo') window.dispatchEvent(new CustomEvent('cofre:abrir-form-ativo'));
-                // Defensivo: a variante "imóvel" pertence ao app principal — não
-                // deveria disparar aqui, mas não pode travar se disparar.
-                else if (acao === 'abrir_formulario_imovel') mostrarToast('Esse cadastro fica no Raiz Patrimônio (app principal).', 'info');
-            },
-            onToast: function (msg, tipo) { mostrarToast(msg, tipo); }
+            comunicacoesDetail: {
+                dbAuth: api.dbAuth,
+                pessoaId: estado.pessoa.id,
+                clienteId: estado.clienteId,
+                tela: 'cofre-home',
+                onAcaoFinal: function (acao) {
+                    if (acao === 'abrir_formulario_ativo') window.dispatchEvent(new CustomEvent('cofre:abrir-form-ativo'));
+                    // Defensivo: a variante "imóvel" pertence ao app principal — não
+                    // deveria disparar aqui, mas não pode travar se disparar.
+                    else if (acao === 'abrir_formulario_imovel') mostrarToast('Esse cadastro fica no Raiz Patrimônio (app principal).', 'info');
+                },
+                onToast: function (msg, tipo) { mostrarToast(msg, tipo); }
+            }
         }
     }));
 
