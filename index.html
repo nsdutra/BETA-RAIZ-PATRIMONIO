@@ -6,7 +6,64 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.75.1
+   VERSÃO: Beta v1.80.0
+   LINHAS: 27210
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.80.0) — Primeira fatia de frontend do módulo único
+   (trem v1.80, ver DIAGNOSTICO_E_PLANO_MAJOR_RELEASE_RAIZ_v2_1.md e
+   DIRETRIZES_TECNICAS_IMPLEMENTACAO_RAIZ_v2_0.md). Nova aba "Ativos" na
+   barra inferior, AO LADO de Imóveis (aditivo — nada foi removido/
+   substituído; a decisão de aposentar Imóveis/cofre.html fica pra depois).
+   Reaproveita o Cofre inteiro (js/cofre-*.js, 7933 linhas) sem copiar nem
+   reescrever: o HTML de cofre.html (15 blocos de nível 0 — #app-cofre +
+   13 modais + #toast; #tela-bootstrap/#tela-erro-acesso ficaram de fora,
+   viram placeholder vazio) foi extraído pra js/ativos/ativos-markup.js
+   (arquivo novo, fora deste); js/ativos/ativos-boot.js injeta esse HTML
+   num container vazio (#ativos-mount-point, dentro da nova
+   <section id="tab-ativos">) e importa ./js/cofre-app.js dinamicamente
+   na primeira vez que a aba é aberta — mesmo padrão de import() sob
+   demanda já usado pelas abas de Configurações (Licença/Sobre/Pessoas/
+   Minha Empresa). Cobertura de ids conferida antes de extrair: dos 157
+   que js/cofre-*.js referencia, 148 vêm do HTML extraído e 9 são criados
+   em tempo de execução pelo próprio JS — nenhum ficou de fora. Ajuste
+   feito no processo (sem tocar nos arquivos do Cofre): nav.bootstrap()
+   escolhe a empresa pela ordem da lista da pessoa a menos que ache
+   ?cliente_id= na URL — ativos-boot.js seta esse parâmetro (com o
+   CLIENTE_ID_SUPABASE já ativo no App) antes do import e restaura a URL
+   limpa logo depois (history.replaceState, sem reload, sem entrar no
+   histórico do navegador) — sem isso um usuário multi-empresa veria a
+   aba Ativos abrir na empresa errada. Zero colisão de id confirmada
+   entre os 157 do Cofre e os 496 já existentes neste arquivo antes desta
+   entrega. Nenhuma linha do Cofre foi colada aqui — só o wiring (1 botão
+   de nav, 1 <section> vazia, 1 chamada dentro de switchTab()) — é a
+   estratégia pedida explicitamente pelo Nicola pra não deixar este
+   arquivo crescer mais a cada área nova do módulo único.
+
+   VERSÃO ANTERIOR: Beta v1.76.0
+   LINHAS: 27181
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.76.0) — Trem v1.71 do roadmap "Major Release" (ver
+   DIAGNOSTICO_E_PLANO_MAJOR_RELEASE_RAIZ_v2_1.md), item P0 de segurança.
+   Achado real (não teórico): a tela pública de contratação (?contratar=
+   <token>) lia e gravava direto em processos_contratacao via dbAuth,
+   contando com a RLS pra filtrar por token — mas as policies
+   "anon_le_processo_pelo_token"/"anon_preenche_processo_pendente" nunca
+   checavam o token, só status+prazo. Qualquer chamada anônima à Data API
+   (fora do app) enxergava/alterava os 76 processos pendentes de qualquer
+   cliente, sem precisar do link. minutas_contrato também tinha SELECT
+   liberado pra anon sem nenhum uso real no front. Corrigido no banco
+   (RPCs fn_processo_publico_obter/fn_processo_publico_preencher,
+   SECURITY DEFINER, validam token+status+prazo dentro da função; anon
+   perdeu SELECT/UPDATE nas duas tabelas) e aqui no front (as duas telas
+   trocaram dbAuth.from(...) por dbAuth.rpc(...) — ver comentários em
+   iniciarModoContratacaoPublica). De quebra, fn_sou_master() deixou de
+   comparar a string 'master' e passou a ler uma tabela de parâmetro
+   (plataforma_operadores) — não muda nada visível, fecha a possibilidade
+   de um usuário 'master' de empresa cliente ganhar acesso de plataforma
+   no futuro. Detalhe técnico completo no documento de diretrizes desta
+   sessão.
+
+   VERSÃO ANTERIOR: Beta v1.75.1
    LINHAS: 27162
    DATA: 30/08/2026
    NOVIDADES (Beta v1.75.1) — BUG REAL corrigido, achado investigando por
@@ -6157,6 +6214,16 @@
             <span class="text-[10px] font-bold">Imóveis</span>
         </button>
 
+        <!-- v1.80.0 — NOVO, aditivo (ao lado de Imóveis, não substitui):
+             reaproveita o Cofre inteiro (js/cofre-*.js) dentro do App, sem
+             copiar nem reescrever nada — ver js/ativos/ativos-boot.js pro
+             porquê de cada etapa. Cofre continua existindo como página
+             separada (cofre.html) até a decisão de aposentá-la. -->
+        <button onclick="switchTab('tab-ativos')" id="btn-tab-ativos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+            <svg data-lucide="boxes" style="width:21px;height:21px"></svg>
+            <span class="text-[10px] font-bold">Ativos</span>
+        </button>
+
         <button onclick="switchTab('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="wallet" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Financeiro</span>
@@ -6720,6 +6787,15 @@
              Histórico reaproveita 100% verHistoricoContrato() já existente.
              Documentos: Cofre ainda não implementado (trilha separada) — aviso
              honesto "em breve", sem simular integração que não existe. -->
+
+        <!-- v1.80.0 — container vazio de propósito. O conteúdo real (Cofre
+             reaproveitado) só é injetado na primeira vez que a aba é aberta
+             — ver montarAtivosTab() em switchTab() e js/ativos/ativos-boot.js.
+             Isso é o que mantém este arquivo do tamanho que já está: nenhuma
+             linha do Cofre foi colada aqui, só este container. -->
+        <section id="tab-ativos" class="tab-content">
+            <div id="ativos-mount-point"></div>
+        </section>
 
         <section id="tab-imovel-ficha" class="tab-content">
 
@@ -8575,7 +8651,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.75.1";
+        const APP_VERSAO = "Beta v1.80.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -14244,6 +14320,16 @@
             }
             if (tabId === 'tab-licenca' && typeof inicializarLicenca === 'function') {
                 inicializarLicenca();
+            }
+            // v1.80.0 — Ativos: import dinâmico, mesmo padrão já usado pras
+            // abas de Configurações (Licença/Sobre/Pessoas/Minha Empresa)
+            // logo acima. montarAtivosTab() só faz alguma coisa na primeira
+            // chamada (controla isso sozinha) — chamar de novo em toda troca
+            // de aba é barato e evita ter que lembrar de checar antes.
+            if (tabId === 'tab-ativos') {
+                import('./js/ativos/ativos-boot.js').then(({ montarAtivosTab }) => {
+                    montarAtivosTab(CLIENTE_ID_SUPABASE);
+                });
             }
             if (tabId === 'tab-parametrizacoes' && typeof dev_param_inicializar === 'function') {
                 dev_param_inicializar();
@@ -25406,43 +25492,39 @@
 
         // ============================================================================
         // MODO PÚBLICO — TELA DO INTERESSADO (v1.42.0)
-        // Acessado via ?contratar=<token>, sem login. Usa o mesmo dbAuth (client
-        // anon), governado pelas RLS policies de processos_contratacao — só
-        // enxerga (e só consegue atualizar) o processo daquele token exato,
-        // enquanto ele estiver "aguardando_preenchimento" e dentro da validade.
+        // Acessado via ?contratar=<token>, sem login.
+        //
+        // v1.76.0 — CORRIGIDO (achado real de segurança, P0): até a v1.75.1 esta
+        // tela lia processos_contratacao direto (dbAuth.from(...).select(...)) e
+        // confiava que a RLS filtrava por token. Não filtrava — as policies
+        // "anon_le_processo_pelo_token"/"anon_preenche_processo_pendente" só
+        // checavam status+prazo, nunca o token; o filtro .eq('token', token)
+        // era só do lado do app. Qualquer chamada anônima direta à Data API
+        // (sem passar pelo app) listava/alterava os processos pendentes de
+        // QUALQUER cliente. Corrigido no banco (migration v1.76.0): anon perdeu
+        // SELECT/UPDATE nessa tabela; o acesso público passou a ser só por RPC
+        // (fn_processo_publico_obter / fn_processo_publico_preencher), que
+        // validam token+status+prazo dentro da função (SECURITY DEFINER) e
+        // devolvem só os campos que esta tela precisa — nunca a linha inteira.
         // ============================================================================
 
         let processoContratacaoAtual = null;
+        let tokenContratacaoPublicaAtual = null;
 
         async function iniciarModoContratacaoPublica(token) {
 
             document.getElementById('tela-contratacao-publica').classList.remove('hidden');
+            tokenContratacaoPublicaAtual = token;
 
             try {
-                // v1.44.1 — CORRIGIDO (bug real, reportado em produção): o
-                // select abaixo pedia "imoveis(...,tipo)", mas a coluna
-                // imoveis.tipo não existe mais (virou tipo_id, FK para
-                // tipos_imovel, numa migration anterior a esta trilha).
-                // PostgREST rejeitava a query inteira com 42703 e a tela
-                // pública de contratação nunca chegava a carregar (link
-                // "Não consegui carregar os dados deste link agora").
-                // Correção mínima: parar de pedir a coluna inexistente.
-                // NÃO troquei por "tipos_imovel(nome)" porque o papel anon
-                // não tem GRANT de SELECT em tipos_imovel e a RLS dessa
-                // tabela depende de sessão autenticada (meus_clientes()) —
-                // exporia erro de novo (ou vazio) para o visitante público.
-                // Mostrar o tipo do imóvel nesta tela exige uma policy de
-                // RLS nova para anon, decisão de segurança que não tomo
-                // sem validação explícita; ver observação no HANDOFF.
-                const { data: processo, error } = await dbAuth
-                    .from('processos_contratacao')
-                    .select('*, imoveis(endereco_rua, endereco_num, endereco_comp, endereco_bairro, endereco_cidade)')
-                    .eq('token', token)
-                    .maybeSingle();
+                const { data: linhas, error } = await dbAuth
+                    .rpc('fn_processo_publico_obter', { p_token: token });
 
                 if (error) throw error;
 
-                // RLS já filtra por status='aguardando_preenchimento' e prazo —
+                const processo = Array.isArray(linhas) ? linhas[0] : linhas;
+
+                // A RPC já valida token+status='aguardando_preenchimento'+prazo —
                 // se vier vazio, é porque o link expirou, já foi usado, ou não existe.
                 if (!processo) {
                     mostrarErroContratacaoPublica('Este link não é mais válido — já foi usado ou expirou. Peça um novo link a quem te enviou este.');
@@ -25451,9 +25533,8 @@
 
                 processoContratacaoAtual = processo;
 
-                const imo = processo.imoveis;
-                const resumoImovel = imo
-                    ? `${imo.endereco_rua || ''}, ${imo.endereco_num || ''}${imo.endereco_comp ? ' - ' + imo.endereco_comp : ''}, ${imo.endereco_bairro || ''}, ${imo.endereco_cidade || ''}`
+                const resumoImovel = processo.imovel_endereco_rua
+                    ? `${processo.imovel_endereco_rua}, ${processo.imovel_endereco_num || ''}${processo.imovel_endereco_comp ? ' - ' + processo.imovel_endereco_comp : ''}, ${processo.imovel_endereco_bairro || ''}, ${processo.imovel_endereco_cidade || ''}`
                     : 'Imóvel selecionado';
 
                 document.getElementById('contratacao-publica-imovel-resumo').textContent = resumoImovel;
@@ -25593,24 +25674,24 @@
             const documento = document.getElementById('cp-documento').value.trim();
             const digitosDoc = documento.replace(/\D/g, '');
 
-            const dadosEnvio = {
-                interessado_nome: document.getElementById('cp-nome').value.trim(),
-                interessado_doc_tipo: digitosDoc.length > 11 ? 'CNPJ' : 'CPF',
-                interessado_documento: documento,
-                interessado_whatsapp: document.getElementById('cp-whatsapp').value.trim(),
-                interessado_email: document.getElementById('cp-email').value.trim() || null,
-                interessado_endereco_atual: montarEnderecoContratacaoPublica(),
-                interessado_profissao: document.getElementById('cp-profissao').value.trim() || null,
-                interessado_estado_civil: document.getElementById('cp-estado-civil').value || null,
-                interessado_obs: null,
-                status: 'preenchido'
-            };
-
             try {
-                const { error } = await dbAuth
-                    .from('processos_contratacao')
-                    .update(dadosEnvio)
-                    .eq('id', processoContratacaoAtual.id);
+                // v1.76.0 — trocado de UPDATE direto (dbAuth.from(...).update(...))
+                // pra RPC (fn_processo_publico_preencher): a função revalida
+                // token+status+prazo no servidor antes de gravar, e o status
+                // final ('preenchido') é decidido dentro da função, nunca
+                // aceito do cliente — fecha a mesma exposição corrigida na
+                // leitura (ver comentário no início de iniciarModoContratacaoPublica).
+                const { error } = await dbAuth.rpc('fn_processo_publico_preencher', {
+                    p_token: tokenContratacaoPublicaAtual,
+                    p_nome: document.getElementById('cp-nome').value.trim(),
+                    p_doc_tipo: digitosDoc.length > 11 ? 'CNPJ' : 'CPF',
+                    p_documento: documento,
+                    p_whatsapp: document.getElementById('cp-whatsapp').value.trim(),
+                    p_email: document.getElementById('cp-email').value.trim() || null,
+                    p_endereco_atual: montarEnderecoContratacaoPublica(),
+                    p_profissao: document.getElementById('cp-profissao').value.trim() || null,
+                    p_estado_civil: document.getElementById('cp-estado-civil').value || null
+                });
 
                 if (error) throw error;
 
