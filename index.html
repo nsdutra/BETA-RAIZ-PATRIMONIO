@@ -6,7 +6,62 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.72.1
+   VERSÃO: Beta v1.73.1
+   LINHAS: 26846
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.73.1) — 2 pedidos do Nicola, seguindo a v1.73.0:
+     1) statusAoEditarFinalidadeUso() (NOVA) — editar o Uso de um imóvel
+        já existente agora também acompanha o status, não só a criação
+        (decisão explícita, revertendo a de 25/08). Só mexe quando a
+        finalidade REALMENTE mudou: entrando em uso_proprio/temporada
+        sempre vira o status correspondente; saindo delas volta pra Vago
+        (nunca houve contrato rodando nesse meio tempo — bloqueado por
+        iniciarProcessoContratacao); mudança entre 2 finalidades
+        "normais" não mexe (evita resetar status de um imóvel já
+        Ativo/Suspenso por causa de contrato real). Ligada nos 2 pontos
+        de edição de Uso que existem (saveImovel — formulário principal;
+        salvarDetalhesImovelPopup — popup "Detalhes do Imóvel").
+     2) Vagas de garagem — proposta lida e decidida: NÃO cria campo novo,
+        reaproveita o campo "Descrição" que já existe no popup "Detalhes
+        do Imóvel" (mdi-descricao) e já está ligado ao placeholder
+        imovel_descricao. Só ganhou rótulo/dica melhor (exemplo com vaga
+        de garagem e numeração de salas) pra orientar o preenchimento.
+
+   VERSÃO ANTERIOR: Beta v1.73.0
+   LINHAS: 26794
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.73.0) — 4 correções pedidas pelo Nicola testando a
+   entrega de Fiadores/Minutas:
+     1) BUG REAL GRAVE: abrirDadosNovoContratoPopup() só reconhecia
+        contrato existente com status 'Assinando' — mas salvarDados
+        NovoContratoPopup() define status='Ativo' direto pra contrato
+        novo (nunca passa por 'Assinando' nesse fluxo). Reabrir "Dados
+        Novo Contrato" depois de salvar não encontrava mais o contrato,
+        mostrava tudo vazio de novo (fiador incluso) e, se salvo de novo,
+        criava um CONTRATO DUPLICADO. Corrigido usando
+        obterContratoPrincipalDoImovel() (já existente, mesmo critério
+        usado no resto do sistema) em vez do filtro estreito por status.
+     2) "Gerar Minuta" (ficha do contrato) nunca oferecia escolha mesmo
+        havendo mais de uma minuta aplicável — delegava direto sem checar.
+        Agora usa listarMinutasAplicaveis() e abre o mesmo picker de
+        "Conferir minuta padrão" quando há mais de uma opção.
+     3) Os 2 pickers (Gerar Minuta / Conferir minuta padrão) misturavam
+        as ações "ver" e "gerar" na mesma tela. Agora
+        abrirPickerMinutasAplicaveis() recebe um `modo` — Gerar Minuta só
+        oferece "gerar" por opção, Conferir minuta padrão só oferece "ver".
+     4) extrairTextoPdfMinutizacao() — BUG REAL de formatação achado num
+        contrato real (palavras saindo partidas: "c asado", "9 15", "s
+        eja"). Juntava fragmentos de texto do PDF sempre com espaço; agora
+        só insere espaço quando há um vão de verdade entre fragmentos
+        (kerning da fonte original partia uma mesma palavra em vários
+        fragmentos sem espaço real entre eles).
+   Também: PLACEHOLDERS_OFICIAIS e o prompt de minuta-detectar-
+   placeholders (Edge Function) corrigidos — locador removido da lista
+   (fica sempre fixo) e fiador_1_*/fiador_2_* adicionados (existiam no
+   app, nunca tinham sincronizado com o que a IA tem permissão de
+   sugerir) — ver changelog completo naquele arquivo.
+
+   VERSÃO ANTERIOR: Beta v1.72.1
    LINHAS: 26697
    DATA: 30/08/2026
    NOVIDADES (Beta v1.72.1) — MERGE com sessão paralela do mesmo dia
@@ -8420,7 +8475,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.72.1";
+        const APP_VERSAO = "Beta v1.73.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -14659,6 +14714,28 @@
             return 'Vago';
         }
 
+        // NOVO (30/08/2026) — pedido explícito do Nicola: editar o Uso de
+        // um imóvel já existente agora TAMBÉM acompanha o status (antes
+        // só a criação fazia isso — ver comentário de
+        // statusInicialPorFinalidadeUso acima, que documentava a decisão
+        // anterior). Só mexe no status quando a finalidade REALMENTE
+        // mudou, e só nas transições que fazem sentido sem ambiguidade:
+        // entrando em uso_proprio/temporada (que bloqueiam contrato de
+        // aluguel — iniciarProcessoContratacao) sempre vira o status
+        // correspondente; saindo delas volta pra Vago (nunca houve
+        // contrato rodando nesse meio tempo, justamente por causa desse
+        // bloqueio). Mudança entre 2 finalidades "normais" (ex.: long_stay
+        // -> comercial) NÃO mexe no status — o imóvel pode já estar Ativo/
+        // Suspenso/Finalizado por causa de um contrato real, que não tem
+        // nada a ver com o tipo de uso declarado.
+        function statusAoEditarFinalidadeUso(finalidadeAntiga, finalidadeNova, statusAtual) {
+            if (finalidadeAntiga === finalidadeNova) return statusAtual;
+            if (finalidadeNova === 'uso_proprio') return 'Em uso';
+            if (finalidadeNova === 'temporada') return 'Em Breve';
+            if (finalidadeAntiga === 'uso_proprio' || finalidadeAntiga === 'temporada') return 'Vago';
+            return statusAtual;
+        }
+
         function saveImovel(e) {
 
             e.preventDefault();
@@ -14755,7 +14832,9 @@
 
                 divisao: divisao,
 
-                status: id ? imoveis.find(i => i.id === id).status : statusInicialPorFinalidadeUso(document.getElementById('imo-finalidade-uso').value),
+                status: id
+                    ? statusAoEditarFinalidadeUso(imoveis.find(i => i.id === id).finalidadeUso, document.getElementById('imo-finalidade-uso').value, imoveis.find(i => i.id === id).status)
+                    : statusInicialPorFinalidadeUso(document.getElementById('imo-finalidade-uso').value),
 
                 // v7.3.3 — sindicoId/manutencistaId são calculados por cascata
                 // (a partir do empreendimento) em recalcularVinculosSindicos() e
@@ -16385,6 +16464,18 @@
         // com posição (x,y) — sem heurística, tudo vira uma linha só por
         // página. Quebra em nova linha quando o Y muda mais que 2pt em
         // relação ao fragmento anterior (mudou de linha na página real).
+        // CORRIGIDO (30/08/2026) — BUG REAL achado pelo Nicola testando com
+        // um contrato real: palavras saíam quebradas ("c asado" em vez de
+        // "casado", "9 15" em vez de "915", "s eja" em vez de "seja"). A
+        // versão anterior inserida SEMPRE um espaço entre fragmentos
+        // (`item.str + ' '`) — mas o pdf.js frequentemente devolve UMA
+        // MESMA palavra partida em vários fragmentos (por kerning/hinting
+        // da fonte no PDF original), sem espaço real entre eles. Agora só
+        // insere espaço quando há um vão de verdade entre o fim de um
+        // fragmento e o início do próximo (maior que ~30% da largura média
+        // de caractere daquele fragmento) — palavra partida por kerning
+        // (vão pequeno/zero) não ganha espaço; palavras realmente
+        // separadas (vão maior) continuam ganhando.
         async function extrairTextoPdfMinutizacao(arrayBuffer) {
             if (typeof pdfjsLib === 'undefined') throw new Error('Biblioteca de leitura de PDF não carregou — recarregue a página e tente de novo.');
             if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -16397,14 +16488,31 @@
                 const content = await page.getTextContent();
                 let linhaAtual = '';
                 let yAnterior = null;
+                let xFimAnterior = null;
                 const linhasPagina = [];
                 content.items.forEach(function(item) {
                     const y = item.transform[5];
+                    const x = item.transform[4];
                     if (yAnterior !== null && Math.abs(y - yAnterior) > 2) {
                         if (linhaAtual.trim()) linhasPagina.push(linhaAtual.trim());
                         linhaAtual = '';
+                        xFimAnterior = null;
                     }
-                    linhaAtual += item.str + ' ';
+                    if (item.str) {
+                        // vão real entre o fim do fragmento anterior e o
+                        // início deste — largura de caractere estimada a
+                        // partir da escala horizontal do próprio fragmento
+                        // (transform[0]), não um valor fixo (PDFs têm
+                        // fontes/zoom diferentes entre si).
+                        const larguraCharEstimada = Math.max(Math.abs(item.transform[0]) * 0.5, 1);
+                        const vao = xFimAnterior !== null ? x - xFimAnterior : 0;
+                        const precisaEspaco = xFimAnterior !== null
+                            && !/^\s/.test(item.str)
+                            && !linhaAtual.endsWith(' ')
+                            && vao > larguraCharEstimada;
+                        linhaAtual += (precisaEspaco ? ' ' : '') + item.str;
+                        xFimAnterior = x + (item.width || 0);
+                    }
                     yAnterior = y;
                 });
                 if (linhaAtual.trim()) linhasPagina.push(linhaAtual.trim());
@@ -16512,9 +16620,25 @@
         // gerarMinutaNoCofre() — mesma prontidão, mesmo preenchimento,
         // mesmo destino (Cofre), sem lógica duplicada em dois lugares que
         // podem divergir de novo no futuro.
+        // CORRIGIDO (30/08/2026, pedido explícito do Nicola testando):
+        // antes "Gerar Minuta" nunca oferecia escolha (delegava direto pra
+        // gerarMinutaNoCofre sem checar se havia mais de 1 minuta
+        // aplicável) — só "Conferir minuta padrão" mostrava o picker, e
+        // esse picker misturava as 2 ações (ver/gerar) na mesma tela.
+        // Agora os 2 botões usam o MESMO listarMinutasAplicaveis() e o
+        // MESMO abrirPickerMinutasAplicaveis(), só com o `modo` diferente
+        // — "Gerar Minuta" só oferece "gerar" por opção, "Conferir minuta
+        // padrão" só oferece "visualizar" por opção. Com só 1 aplicável,
+        // os 2 continuam pulando o picker (comportamento idêntico a antes).
         async function gerarMinutaContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
+
+            const aplicaveis = listarMinutasAplicaveis(con.imovelId);
+            if (aplicaveis.length > 1) {
+                abrirPickerMinutasAplicaveis(con.imovelId, aplicaveis, 'gerar');
+                return;
+            }
             await gerarMinutaNoCofre(con.imovelId);
         }
 
@@ -17307,7 +17431,7 @@
                             </div>
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Tamanho (m²) <span style="color:var(--danger)">*</span></label><input type="number" id="mdi-tamanho" required value="${imo.tamanho || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
                         </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label><textarea id="mdi-descricao" required rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">${(imo.descricao || '').replace(/</g, '&lt;')}</textarea></div>
+                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label><textarea id="mdi-descricao" required rows="3" placeholder="Ex.: conjunto de salas 901 a 915 do 9º pavimento, com 4 vagas de garagem (números 40, 41, 47 e 48) no pavimento G3" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">${(imo.descricao || '').replace(/</g, '&lt;')}</textarea><p style="font-size:10px;color:#94a3b8;margin-top:2px;">Inclua aqui detalhes que a minuta pode precisar — numeração de salas/unidades, vagas de garagem, características especiais.</p></div>
                         <div style="display:flex;gap:8px;">
                             <!-- CORRIGIDO (v1.57.0 — pedido explícito): rótulo
                                  "Valor do aluguel" → "Expectativa aluguel"
@@ -17355,6 +17479,12 @@
 
             imo.empreendimento = document.getElementById('mdi-empreendimento').value;
             imo.tipo = document.getElementById('mdi-tipo').value;
+            // NOVO (30/08/2026) — status acompanha a mudança de Uso aqui
+            // também (ver statusAoEditarFinalidadeUso) — antes só o
+            // formulário principal (saveImovel) fazia isso, e só na
+            // criação; agora os 2 pontos de edição de Uso ficam
+            // consistentes entre si.
+            imo.status = statusAoEditarFinalidadeUso(imo.finalidadeUso, document.getElementById('mdi-finalidade-uso').value, imo.status);
             imo.finalidadeUso = document.getElementById('mdi-finalidade-uso').value;
             imo.tamanho = parseFloat(document.getElementById('mdi-tamanho').value) || 0;
             imo.enderecoRua = document.getElementById('mdi-endereco-rua').value.trim();
@@ -18020,7 +18150,20 @@
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
 
-            const con = contratos.find(c => c.imovelId === imovelId && c.status === 'Assinando') || null;
+            // CORRIGIDO (bug real, achado 30/08/2026 testando Fiadores,
+            // mas pré-existente — não introduzido agora): o filtro antigo
+            // (`c.status === 'Assinando'`) só reconhecia o contrato
+            // enquanto ele estivesse "Assinando" — assim que salvo, o
+            // status vira 'Ativo' direto (ver salvarDadosNovoContratoPopup,
+            // linha con-status) e este popup PARAVA de encontrar o
+            // contrato que ele mesmo acabou de criar. Reabrir "Dados Novo
+            // Contrato" depois de salvar mostrava tudo vazio de novo
+            // (fiador incluso) e, se salvo de novo, CRIAVA UM CONTRATO
+            // DUPLICADO em vez de atualizar o existente. Corrigido usando
+            // o mesmo helper que o resto do sistema já usa pra achar "o"
+            // contrato de um imóvel (obterContratoPrincipalDoImovel —
+            // prioriza Ativo > Assinando > Suspenso > Finalizado).
+            const con = obterContratoPrincipalDoImovel(imovelId);
 
             // NOVO (30/08/2026) — carrega fiadores já cadastrados pra este
             // contrato (se existir) antes de montar o HTML do popup.
@@ -24903,12 +25046,18 @@
                 return;
             }
 
-            abrirPickerMinutasAplicaveis(imovelId, aplicaveis);
+            abrirPickerMinutasAplicaveis(imovelId, aplicaveis, 'visualizar');
         }
 
         const ESCOPO_MINUTA_ROTULO = { geral: 'Geral (toda empresa)', empreendimento: 'Empreendimento', tipo_imovel: 'Tipo de imóvel', imovel: 'Este imóvel específico' };
 
-        function abrirPickerMinutasAplicaveis(imovelId, aplicaveis) {
+        // CORRIGIDO (30/08/2026) — `modo` ('gerar'|'visualizar') decide
+        // qual ÚNICA ação cada opção do picker oferece — antes misturava
+        // "Ver modelo em branco" e "Usar esta e gerar" na mesma tela,
+        // pedido explícito do Nicola pra separar: quem clicou "Gerar
+        // Minuta" quer escolher qual GERAR; quem clicou "Conferir minuta
+        // padrão" quer escolher qual VER — não as duas coisas juntas.
+        function abrirPickerMinutasAplicaveis(imovelId, aplicaveis, modo) {
             document.getElementById('modal-picker-minutas')?.remove();
             const modal = document.createElement('div');
             modal.id = 'modal-picker-minutas';
@@ -24916,7 +25065,7 @@
             modal.innerHTML = `
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:80vh;overflow-y:auto;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Mais de uma minuta se aplica — escolha uma</h3>
+                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Mais de uma minuta se aplica — escolha qual ${modo === 'gerar' ? 'gerar' : 'ver'}</h3>
                         <button onclick="document.getElementById('modal-picker-minutas').remove()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
@@ -24924,17 +25073,17 @@
                             <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;">
                                 <p style="font-size:13px;font-weight:bold;color:#1e293b;margin-bottom:2px;">${(m.nome || '').replace(/</g, '&lt;')}</p>
                                 <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Escopo: ${ESCOPO_MINUTA_ROTULO[m.escopo] || m.escopo}</p>
-                                <div style="display:flex;gap:6px;">
-                                    <button onclick="window.open('${m.arquivoUrl}', '_blank')" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Ver modelo em branco</button>
-                                    <button onclick="document.getElementById('modal-picker-minutas').remove(); gerarMinutaNoCofre('${imovelId}', '${m.id}');" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Usar esta e gerar</button>
-                                </div>
+                                ${modo === 'gerar'
+                                    ? `<button onclick="document.getElementById('modal-picker-minutas').remove(); gerarMinutaNoCofre('${imovelId}', '${m.id}');" style="width:100%;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Gerar com este modelo</button>`
+                                    : `<button onclick="window.open('${m.arquivoUrl}', '_blank')" style="width:100%;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Ver modelo em branco</button>`
+                                }
                             </div>
                         `).join('')}
                     </div>
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
-            registrarLog('minutas.picker_aberto', { imovelId, qtdOpcoes: aplicaveis.length });
+            registrarLog('minutas.picker_aberto', { imovelId, qtdOpcoes: aplicaveis.length, modo });
         }
 
 
