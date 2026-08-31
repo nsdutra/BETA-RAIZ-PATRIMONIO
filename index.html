@@ -6,7 +6,29 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.80.0
+   VERSÃO: Beta v1.84.0
+   LINHAS: 27265
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.84.0) — Trem v1.84, fatia 1 (módulo único, parte
+   front). Duas mudanças, nenhuma delas neste arquivo diretamente — o
+   próprio index.html não mudou além da versão:
+   1) js/ativos/ativos-boot.js corrige o achado do Nicola testando
+      v1.80.0: o Cofre reaproveitado trazia cabeçalho e nav interna
+      próprios, duplicando o que o App já mostra por fora. Cabeçalho
+      escondido de vez (puro duplicado). Nav interna (Home/Triagem x
+      Ativos, funcional dentro do Cofre) NÃO escondida — só reposicionada
+      do rodapé fixo pro topo, como sub-aba compacta; os cliques
+      continuam funcionando, nenhum cofre-*.js foi tocado.
+   2) fn_criar_ativo(cliente_id, tipo_ativo, nome_exibicao, dados jsonb)
+      no banco — motor único de criação (imóvel → grava em imoveis, o
+      trigger já existente espelha em cofre_ativos sozinho; qualquer
+      outro tipo → grava direto em cofre_ativos). Testado com sessão
+      real (imóvel + veículo, revertido depois). O formulário front que
+      chama este RPC ainda não existe — só o motor; formulário fica pra
+      próxima fatia do v1.84, junto com partes/partes_papeis nos fluxos
+      reais e a ficha buscando os campos de imóvel que faltam.
+
+   VERSÃO ANTERIOR: Beta v1.80.0
    LINHAS: 27210
    DATA: 31/08/2026
    NOVIDADES (Beta v1.80.0) — Primeira fatia de frontend do módulo único
@@ -8651,7 +8673,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.80.0";
+        const APP_VERSAO = "Beta v1.84.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 

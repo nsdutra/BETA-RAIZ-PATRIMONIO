@@ -49,6 +49,34 @@ export async function montarAtivosTab(clienteIdAtual) {
     const { ATIVOS_MARKUP } = await import('./ativos-markup.js');
     container.innerHTML = ATIVOS_MARKUP;
 
+    // v1.84.0 — pedido do Nicola, testando a v1.80.0: o Cofre trouxe o
+    // próprio cabeçalho e a própria nav interna (Home/Ativos) junto,
+    // duplicando o que o App já mostra por fora. Correção só de CSS,
+    // escopada em #ativos-mount-point — não toca em nenhum cofre-*.js:
+    //  - cabeçalho: escondido de vez (puro duplicado do header do App,
+    //    zero função perdida).
+    //  - nav interna: NÃO escondida — ela alterna Home/Triagem (alertas)
+    //    x Ativos (lista) dentro do próprio Cofre, esconder quebraria o
+    //    acesso a uma das duas telas. Só reposicionada do rodapé fixo
+    //    (que brigava visualmente com a barra de baixo do App) pro topo,
+    //    como sub-aba compacta. Os cliques (data-action) continuam
+    //    funcionando exatamente como antes.
+    if (!document.getElementById('ativos-boot-style-fix')) {
+        const style = document.createElement('style');
+        style.id = 'ativos-boot-style-fix';
+        style.textContent = `
+            #ativos-mount-point > #app-cofre > header { display: none !important; }
+            #ativos-mount-point > #app-cofre > nav.bottom-nav {
+                position: static !important;
+                box-shadow: none !important;
+                border-bottom: 1px solid var(--line, #e6e3da);
+                border-top: none !important;
+            }
+            #ativos-mount-point > #app-cofre > nav.bottom-nav .max-w-md { max-width: 100% !important; }
+        `;
+        document.head.appendChild(style);
+    }
+
     // 2) garante que o Cofre resolve a MESMA empresa que já está ativa no App
     const urlOriginal = window.location.href;
     const params = new URLSearchParams(window.location.search);
