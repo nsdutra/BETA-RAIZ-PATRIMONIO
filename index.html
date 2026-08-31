@@ -6,7 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.75.0
+   VERSÃO: Beta v1.75.1
+   LINHAS: 27162
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.75.1) — BUG REAL corrigido, achado investigando por
+   que "salvando contrato não gera Assinando" persistia mesmo após a
+   v1.75.0 (confirmei no banco: nenhum contrato novo, de fato, tinha sido
+   criado — não era confusão com dado antigo). Causa real: saveContrato()
+   tem 6 pontos de saída antecipada com alert() (CPF/CNPJ inválido, sem
+   imóvel selecionado, soma de rateio errada, vigência obrigatória, guarda
+   de duplo clique, exceção pega no catch) — nenhum deles nunca tinha
+   retornado `false` de verdade pro caller. salvarDadosNovoContratoPopup()
+   (o popup "Dados Novo Contrato") chamava saveContrato() sem checar
+   retorno nenhum — o alert() piscava e sumia, e o popup fechava do mesmo
+   jeito, parecendo sucesso, mesmo com ZERO gravação no banco (CPF de
+   teste que falha no dígito verificador é a causa mais provável — ex.:
+   "123.456.789-00"). Agora os 6 pontos retornam `false` explicitamente, e
+   o popup confere isso antes de prosseguir — se a validação barrar, o
+   popup continua aberto com o alerta visível, não fecha mais sozinho.
+
+   VERSÃO ANTERIOR: Beta v1.75.0
    LINHAS: 27116
    DATA: 30/08/2026
    NOVIDADES (Beta v1.75.0) — 6 pedidos do Nicola, testando a v1.74.x:
@@ -8556,7 +8575,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.75.0";
+        const APP_VERSAO = "Beta v1.75.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -18473,7 +18492,16 @@
 
             const descricaoTexto = document.getElementById('dnc-descricao').value.trim();
 
-            saveContrato({ preventDefault: () => {} });
+            // CORRIGIDO (bug real, 30/08/2026, pedido explícito do Nicola):
+            // saveContrato() agora retorna `false` quando alguma validação
+            // barra a gravação (ver changelog completo dentro dela) — antes
+            // esse retorno nunca era checado aqui, e o popup fechava
+            // normalmente (parecendo sucesso) mesmo quando nada tinha sido
+            // salvo de verdade (ex.: CPF de teste inválido). Sem isso, o
+            // fluxo abaixo (histórico da descrição, fechar modal) rodava
+            // em cima de um contrato que nunca existiu.
+            const salvou = saveContrato({ preventDefault: () => {} });
+            if (salvou === false) return;
 
             // Descrição/observação vira histórico à parte (mesmo padrão dos
             // demais popups desta ficha) — saveContrato() não tem campo de
@@ -20140,7 +20168,7 @@
             // essa trava, um toque duplo no botão disparava dois salvamentos
             // quase juntos, e cada um enviava os mesmos anexos novos de novo.
             const btnSalvar = document.getElementById('btn-salvar-con');
-            if (btnSalvar && btnSalvar.disabled) return;
+            if (btnSalvar && btnSalvar.disabled) return false;
             if (btnSalvar) { btnSalvar.disabled = true; setTimeout(function() { btnSalvar.disabled = false; }, 4000); }
 
             try {
@@ -20162,7 +20190,7 @@
                 const somaDivisaoContrato = divisaoContratoAtual.reduce(function(acc, s) { return acc + (s.pct || 0); }, 0);
                 if (somaDivisaoContrato !== 100) {
                     alert("⚠️ A soma do rateio deste contrato precisa ser exatamente 100%. Total atual: " + somaDivisaoContrato + "%");
-                    return;
+                    return false;
                 }
             }
 
@@ -20170,17 +20198,33 @@
 
             devLog("FORM_CONTRATO", `Iniciando rotina de submissão. ID: ${id || 'NOVO'}, Imovel ID: ${imoId}`);
 
-            if(!imoId) return alert("⚠️ Selecione um imóvel.");
+            // CORRIGIDO (bug real, 30/08/2026, pedido explícito do Nicola:
+            // "salvando contrato e ele não tá gerando um contrato"): estas
+            // validações sempre existiram e sempre pararam a gravação —
+            // mas NENHUMA delas era vista por quem chamava saveContrato()
+            // diretamente (salvarDadosNovoContratoPopup, o popup "Dados
+            // Novo Contrato"). O alert() aparecia e sumia rápido, e a
+            // função de fora, sem checar o retorno, fechava o popup do
+            // mesmo jeito — parecia que tinha salvo, mas nada tinha ido
+            // pro banco (CPF de teste inválido é a causa mais comum: um
+            // CPF que não passa no dígito verificador barra aqui,
+            // silenciosamente, pro caller). Todo ponto de saída antecipada
+            // desta função agora retorna `false` explicitamente — quem
+            // chama por fora (ver salvarDadosNovoContratoPopup) confere
+            // isso antes de fechar/mostrar sucesso.
+            if(!imoId) { alert("⚠️ Selecione um imóvel."); return false; }
 
             if(docTipo === 'CPF' && !validarCPF(docVal)) {
 
-                return alert("⚠️ O documento informado não é um CPF válido.");
+                alert("⚠️ O documento informado não é um CPF válido.");
+                return false;
 
             }
 
             if(docTipo === 'CNPJ' && !validarCNPJ(docVal)) {
 
-                return alert("⚠️ O documento informado não é um CNPJ válido.");
+                alert("⚠️ O documento informado não é um CNPJ válido.");
+                return false;
 
             }
 
@@ -20200,7 +20244,7 @@
             // houver um novo valor/reajuste digitado no painel de reajuste.
             if (!isNaN(novoValorDigitado) && novoValorDigitado > 0 && !document.getElementById('con-vigente-desde').value) {
                 alert("⚠️ Informe a vigência da alteração (data a partir de quando o novo valor passa a valer).");
-                return;
+                return false;
             }
 
             let valorFinal, valorAnteriorFinal;
@@ -20558,6 +20602,8 @@
                 alert("⚠️ Erro ao salvar o contrato: " + err.message + "\n\nPor favor, copie esta mensagem e me envie para eu corrigir.");
 
                 devLog("ERRO_SALVAR_CONTRATO", `Falha ao salvar contrato: ${err.message}`, err);
+
+                return false;
 
             }
 
