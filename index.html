@@ -6,7 +6,51 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.74.0
+   VERSÃO: Beta v1.75.0
+   LINHAS: 27116
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.75.0) — 6 pedidos do Nicola, testando a v1.74.x:
+     1) BUG CRÍTICO corrigido — GRANT esquecido na criação de
+        contrato_fiadores (migration à parte, já aplicada): faltava
+        GRANT SELECT/INSERT/UPDATE/DELETE pro papel `authenticated`. RLS
+        só é avaliado DEPOIS do GRANT permitir a operação — sem ele, toda
+        consulta falhava com "permission denied" (403), confirmado no
+        console do navegador. A gravação (via RPC SECURITY DEFINER)
+        provavelmente sempre funcionou — só a LEITURA (consulta direta)
+        estava bloqueada, por isso "salva mas ao voltar não tem nada lá".
+        2 fiadores já estavam salvos no banco, invisíveis, confirmando.
+     2) Box "Documentos" da ficha do IMÓVEL (diferente do box "Documento"
+        da ficha do CONTRATO, corrigido na v1.74.0) — ganhou data/hora +
+        exclusão de verdade, mesmo padrão. TAMBÉM: parou de criar um chip
+        "Contrato anterior" automático pra cada contrato Finalizado do
+        imóvel — pedido explícito: "documentos de contrato só devem ser
+        mostrados se o contrato estiver no contexto da tela". Consultar
+        documento de contrato encerrado agora passa por "Outros
+        Contratos" (ver item 3), que já mostra o contrato antes dos
+        documentos dele.
+     3) Box "Sem contrato em andamento" (quando não há contrato ativo mas
+        há encerrado no histórico) ganhou o botão "Outros contratos" —
+        reaproveita abrirOutrosContratosImovel(), já existia noutro
+        contexto, só faltava oferecer aqui.
+     4) statusAoEditarFinalidadeUso() — REFINADO: saindo de Uso Próprio/
+        Temporada, antes ia sempre pra 'Vago'. Agora checa de verdade se
+        existe contrato operacional pro imóvel — vai pra 'Alugado' se
+        tiver, 'Vago' se não tiver.
+     5) Contrato novo por "Dados Novo Contrato" nascia direto 'Ativo' —
+        pedido explícito: agora nasce 'Assinando' (mesmo status que o
+        formulário da Vitrine usa, e que gerarMinutaNoCofre() já exigia
+        pra achar o contrato — isso destrava "Gerar Minuta" pra contrato
+        cadastrado internamente, não só via Vitrine). Vira 'Ativo' depois
+        via "Alterar Status", que já dispara a geração automática do item
+        a receber (v1.74.0, item 3).
+     6) Nome genérico "Minuta - {locatário}.docx" nos documentos —
+        investigado: não bate com o padrão que gerarMinutaNoCofre() gera
+        (contrato_{locatário}_{minuta}_{data}.docx) — são documentos de
+        upload manual anterior à geração automática, não bug de código
+        atual. Testar de novo com uma minuta gerada do zero depois desta
+        entrega pra confirmar.
+
+   VERSÃO ANTERIOR: Beta v1.74.0
    LINHAS: 26995
    DATA: 30/08/2026
    NOVIDADES (Beta v1.74.0) — 3 pedidos do Nicola, testando a v1.73.x:
@@ -8512,7 +8556,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.74.0";
+        const APP_VERSAO = "Beta v1.75.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -14771,17 +14815,24 @@
         // mudou, e só nas transições que fazem sentido sem ambiguidade:
         // entrando em uso_proprio/temporada (que bloqueiam contrato de
         // aluguel — iniciarProcessoContratacao) sempre vira o status
-        // correspondente; saindo delas volta pra Vago (nunca houve
-        // contrato rodando nesse meio tempo, justamente por causa desse
-        // bloqueio). Mudança entre 2 finalidades "normais" (ex.: long_stay
-        // -> comercial) NÃO mexe no status — o imóvel pode já estar Ativo/
-        // Suspenso/Finalizado por causa de um contrato real, que não tem
-        // nada a ver com o tipo de uso declarado.
-        function statusAoEditarFinalidadeUso(finalidadeAntiga, finalidadeNova, statusAtual) {
+        // correspondente.
+        // CORRIGIDO (30/08/2026) — pedido explícito, 2ª rodada: saindo de
+        // uso_proprio/temporada, antes ia sempre pra 'Vago' (assumia que
+        // nunca houve contrato rodando nesse meio tempo). Mas o imóvel
+        // pode já ter voltado a ter um contrato operacional cadastrado
+        // manualmente nesse período — agora checa de verdade: se existe
+        // contrato não-Finalizado pra esse imóvel, vai pra 'Alugado';
+        // senão, 'Vago'. Precisa do 4º parâmetro (imovelId) só pra essa
+        // checagem — contratos já é array global, não precisa passar ele
+        // inteiro.
+        function statusAoEditarFinalidadeUso(finalidadeAntiga, finalidadeNova, statusAtual, imovelId) {
             if (finalidadeAntiga === finalidadeNova) return statusAtual;
             if (finalidadeNova === 'uso_proprio') return 'Em uso';
             if (finalidadeNova === 'temporada') return 'Em Breve';
-            if (finalidadeAntiga === 'uso_proprio' || finalidadeAntiga === 'temporada') return 'Vago';
+            if (finalidadeAntiga === 'uso_proprio' || finalidadeAntiga === 'temporada') {
+                const temContratoOperacional = imovelId && contratos.some(c => c.imovelId === imovelId && c.status !== 'Finalizado');
+                return temContratoOperacional ? 'Alugado' : 'Vago';
+            }
             return statusAtual;
         }
 
@@ -14882,7 +14933,7 @@
                 divisao: divisao,
 
                 status: id
-                    ? statusAoEditarFinalidadeUso(imoveis.find(i => i.id === id).finalidadeUso, document.getElementById('imo-finalidade-uso').value, imoveis.find(i => i.id === id).status)
+                    ? statusAoEditarFinalidadeUso(imoveis.find(i => i.id === id).finalidadeUso, document.getElementById('imo-finalidade-uso').value, imoveis.find(i => i.id === id).status, id)
                     : statusInicialPorFinalidadeUso(document.getElementById('imo-finalidade-uso').value),
 
                 // v7.3.3 — sindicoId/manutencistaId são calculados por cascata
@@ -17533,7 +17584,7 @@
             // formulário principal (saveImovel) fazia isso, e só na
             // criação; agora os 2 pontos de edição de Uso ficam
             // consistentes entre si.
-            imo.status = statusAoEditarFinalidadeUso(imo.finalidadeUso, document.getElementById('mdi-finalidade-uso').value, imo.status);
+            imo.status = statusAoEditarFinalidadeUso(imo.finalidadeUso, document.getElementById('mdi-finalidade-uso').value, imo.status, imo.id);
             imo.finalidadeUso = document.getElementById('mdi-finalidade-uso').value;
             imo.tamanho = parseFloat(document.getElementById('mdi-tamanho').value) || 0;
             imo.enderecoRua = document.getElementById('mdi-endereco-rua').value.trim();
@@ -17962,7 +18013,15 @@
                 <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                     <button onclick="alternarMaisAcoesSemContratoFicha()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fic-sem-contrato-seta" style="width:13px;height:13px"></svg></button>
                 </div>
-                <div id="fic-sem-contrato-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex justify-end">
+                <div id="fic-sem-contrato-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                    <!-- NOVO (30/08/2026, pedido explícito): "dar a
+                         possibilidade de consultar o contrato que foi
+                         encerrado" — reaproveita abrirOutrosContratosImovel(),
+                         já existia (chamado de dentro de montarBoxContratoFicha
+                         quando HÁ um contrato ativo + históricos); só faltava
+                         oferecer aqui também, pro caso de não haver nenhum
+                         ativo no momento. -->
+                    ${finalizados.length > 0 ? `<button onclick="abrirOutrosContratosImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="layers" style="width:11px;height:11px"></svg> Outros contratos</button>` : ''}
                     <button onclick="iniciarProcessoContratacao('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Locação</button>
                 </div>
             </div>`;
@@ -18370,7 +18429,20 @@
             // diff/histórico — tudo isso já existe lá.
             document.getElementById('con-id').value = contratoId || '';
             document.getElementById('con-imovel').value = imovelId;
-            document.getElementById('con-status').value = contratoId ? (contratos.find(c => c.id === contratoId)?.status || 'Assinando') : 'Ativo';
+            // CORRIGIDO (30/08/2026, pedido explícito do Nicola: "salvando
+            // contrato e ele não tá gerando um contrato no status
+            // assinando"): contrato novo por este popup pulava direto pra
+            // 'Ativo', nunca passava por 'Assinando' — inconsistente com o
+            // resto do sistema, que trata 'Assinando' como "aguardando
+            // revisão/assinatura" (mesmo status que o formulário público
+            // da Vitrine usa) e é EXIGIDO por gerarMinutaNoCofre() pra
+            // achar o contrato ("Ainda não há um contrato 'Assinando'
+            // para este imóvel..."). Cadastrar via "Dados Novo Contrato"
+            // (staff, não Vitrine) agora também nasce 'Assinando' — vira
+            // 'Ativo' depois, de propósito, via "Alterar Status" (mesmo
+            // fluxo que já dispara a geração automática de item a
+            // receber — ver salvarAlterarStatusContrato()).
+            document.getElementById('con-status').value = contratoId ? (contratos.find(c => c.id === contratoId)?.status || 'Assinando') : 'Assinando';
             document.getElementById('con-locatario').value = document.getElementById('dnc-locatario').value.trim();
             document.getElementById('con-cpf').value = document.getElementById('dnc-cpf').value.trim();
             formatarMascaraDocumento();
@@ -18837,14 +18909,24 @@
             listaEl.innerHTML = '';
 
             const principal = todosContratos.find(c => c.status !== 'Finalizado');
-            const outros = todosContratos.filter(c => c.status === 'Finalizado');
 
+            // CORRIGIDO (30/08/2026, pedido explícito do Nicola): "os
+            // documentos dos contratos só devem ser mostrados se o
+            // contrato estiver no contexto da tela". Antes, todo contrato
+            // FINALIZADO deste imóvel ganhava seu próprio chip "Contrato
+            // anterior N" aqui — mostrando os documentos dele mesmo sem
+            // nenhum box de contrato correspondente visível na tela (ex.:
+            // "Sem contrato em andamento" em cima, mas os documentos do
+            // encerrado apareciam do mesmo jeito, sem contexto nenhum).
+            // Removido esse loop — documentos de contrato encerrado agora
+            // só aparecem de dentro do contexto certo (ficha daquele
+            // contrato / "Outros Contratos", que já mostra os detalhes
+            // dele antes dos documentos).
             const candidatos = [
                 { chave: 'imovel_fotos', label: 'Fotos', tipo: 'imovel', ref: imo.id, subtipo: 'fotos' },
                 { chave: 'imovel_seguro', label: 'Seguro', tipo: 'imovel', ref: imo.id, subtipo: 'seguro' },
             ];
             if (principal) candidatos.push({ chave: 'contrato_principal', label: 'Contrato', tipo: 'contrato', ref: principal.id });
-            outros.forEach((c, i) => candidatos.push({ chave: 'contrato_' + c.id, label: `Contrato anterior${outros.length > 1 ? ' ' + (i + 1) : ''}`, tipo: 'contrato', ref: c.id }));
 
             const existencias = await Promise.all(candidatos.map(async c => {
                 if (c.subtipo === 'fotos') {
@@ -18911,32 +18993,41 @@
             try {
                 const { data, error } = await dbAuth
                     .from('cofre_documento_vinculos')
-                    .select('cofre_documentos!inner(id, nome_exibicao, mime_type, categoria_id, status, validade_em, bucket, storage_path, cofre_categorias(nome))')
+                    // NOVO (30/08/2026) — criado_em (pedido explícito: faltava
+                    // data/hora no box).
+                    .select('id, criado_em, cofre_documentos!inner(id, nome_exibicao, mime_type, categoria_id, status, validade_em, bucket, storage_path, cofre_categorias(nome))')
                     .eq('entidade_tipo', escolhido.tipo)
                     .eq('entidade_id', escolhido.ref);
                 if (error) throw error;
 
-                let docs = (data || []).map(v => v.cofre_documentos).filter(d => d && d.status === 'ativo');
+                let docs = (data || []).filter(v => v.cofre_documentos && v.cofre_documentos.status === 'ativo');
 
                 if (escolhido.subtipo === 'seguro') {
-                    docs = docs.filter(d => (d.cofre_categorias?.nome || '').toLowerCase().includes('seguro'));
+                    docs = docs.filter(v => (v.cofre_documentos.cofre_categorias?.nome || '').toLowerCase().includes('seguro'));
                 }
 
                 // Pedido explícito: ordenado decrescente por vigência
                 // (documentos sem validade_em vão pro final).
-                docs.sort((a, b) => (b.validade_em || '').localeCompare(a.validade_em || ''));
+                docs.sort((a, b) => (b.cofre_documentos.validade_em || '').localeCompare(a.cofre_documentos.validade_em || ''));
 
                 // CORRIGIDO (v1.56.0 — pedido explícito): agora clicável —
                 // abre o documento numa aba nova, via signed URL (mesma
                 // função gerarSignedUrl/createSignedUrl que o próprio Cofre
                 // já usa pra isso, não inventei um caminho novo de acesso
                 // ao Storage).
-                listaEl.innerHTML = docs.length > 0 ? docs.map((d, i) => `
-                    <div onclick="abrirDocumentoFicha(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); abrirDocumentoFicha(${i});}" role="button" tabindex="0" class="flex items-center gap-2 border border-slate-100 rounded-lg p-2 cursor-pointer active:bg-gray-50 transition">
-                        <svg data-lucide="${(d.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex:none"></svg>
-                        <div class="flex-1 min-w-0 text-xs font-bold truncate">${d.nome_exibicao || 'Documento'}</div>
-                        ${d.validade_em ? `<div class="text-[10px] text-slate-400 flex-none">até ${formatarDataBR(d.validade_em)}</div>` : ''}
-                        <svg data-lucide="chevron-right" style="width:14px;height:14px;color:#cbd5e1;flex:none"></svg>
+                // NOVO (30/08/2026) — data/hora exibida + botão de excluir
+                // de verdade (mesmo padrão do box da ficha do contrato —
+                // ver removerDocumentoFichaAtual).
+                listaEl.innerHTML = docs.length > 0 ? docs.map((v, i) => `
+                    <div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
+                        <div onclick="abrirDocumentoFicha(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); abrirDocumentoFicha(${i});}" role="button" tabindex="0" class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer active:bg-gray-50 transition">
+                            <svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex:none"></svg>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold truncate">${v.cofre_documentos.nome_exibicao || 'Documento'}</div>
+                                <div class="text-[10px] text-slate-400">${v.criado_em ? new Date(v.criado_em).toLocaleString('pt-BR') : ''}${v.cofre_documentos.validade_em ? ' · até ' + formatarDataBR(v.cofre_documentos.validade_em) : ''}</div>
+                            </div>
+                        </div>
+                        <button onclick="removerDocumentoFichaAtual(${i})" title="Excluir documento" class="flex-none p-1"><svg data-lucide="trash-2" style="width:14px;height:14px;color:#94a3b8"></svg></button>
                     </div>`).join('') : `<p class="text-[11px] text-slate-500">Nenhum documento nesta categoria.</p>`;
 
                 window.__docsFichaAtual = docs;
@@ -18951,7 +19042,8 @@
         // v1.56.0 — abre o documento clicado numa aba nova, via signed URL
         // (120s, mesmo padrão/duração já usado no Cofre).
         async function abrirDocumentoFicha(indice) {
-            const doc = (window.__docsFichaAtual || [])[indice];
+            const v = (window.__docsFichaAtual || [])[indice];
+            const doc = v?.cofre_documentos;
             if (!doc) return;
             try {
                 const { data, error } = await dbAuth.storage.from(doc.bucket || 'cofre-documentos').createSignedUrl(doc.storage_path, 120);
@@ -18959,6 +19051,35 @@
                 window.open(data.signedUrl, '_blank');
             } catch (err) {
                 alert('❌ Não consegui abrir o documento: ' + (err.message || String(err)));
+            }
+        }
+
+        // NOVO (30/08/2026, pedido explícito: "não está sendo possível
+        // excluir") — exclui de verdade (Storage + cofre_documentos +
+        // vínculo), mesmo padrão de removerDocumentoContratoAtual (box de
+        // Documento da ficha do contrato).
+        async function removerDocumentoFichaAtual(indice) {
+            const v = (window.__docsFichaAtual || [])[indice];
+            const doc = v?.cofre_documentos;
+            if (!v || !doc) return;
+            if (!confirm('Excluir este documento definitivamente?\n\nNão fica guardado no Cofre depois — essa ação não pode ser desfeita.')) return;
+            try {
+                const { error: errVinculo } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', v.id);
+                if (errVinculo) throw errVinculo;
+
+                const { error: errDoc } = await dbAuth.from('cofre_documentos').delete().eq('id', doc.id);
+                if (errDoc) throw errDoc;
+
+                if (doc.bucket && doc.storage_path) {
+                    const { error: errStorage } = await dbAuth.storage.from(doc.bucket).remove([doc.storage_path]);
+                    if (errStorage) console.warn('Linha excluída, mas o arquivo no Storage não pôde ser removido (órfão, não crítico):', errStorage.message);
+                }
+
+                mostrarToast('Documento excluído.', 'success');
+                const chipAtivo = document.querySelector('#ficha-imovel-doc-filtros button.bg-slate-700');
+                if (chipAtivo) selecionarFiltroDocumentoFicha(chipAtivo.id.replace('doc-filtro-', ''));
+            } catch (err) {
+                alert('❌ Erro ao excluir: ' + (err.message || String(err)));
             }
         }
 
