@@ -6,7 +6,44 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.73.1
+   VERSÃO: Beta v1.74.0
+   LINHAS: 26995
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.74.0) — 3 pedidos do Nicola, testando a v1.73.x:
+     1) Box "Documento" da ficha do contrato — agora mostra data/hora de
+        cada documento (criado_em do vínculo, não existia antes) e o
+        botão de remover passou a EXCLUIR de verdade (Storage +
+        cofre_documentos + vínculo), não só desvincular como antes —
+        pedido explícito ("não está sendo possível excluir").
+     2) Fiador "sumindo" ao voltar — BUG REAL (race condition) achado: um
+        contrato novo nasce com id LOCAL temporário (tipo
+        'con_1735689000123') até sincronizarContratoSupabase() (async,
+        dentro de saveAll()) terminar e trocar pelo UUID real. Reabrir
+        "Dados Novo Contrato"/"Editar" de fiadores rápido demais (antes
+        dessa troca terminar) buscava fiadores com um id que a tabela não
+        reconhece — falha silenciosa, parecia que "sumiu". Corrigido com
+        aguardarIdRealDoContrato() — espera o id real resolver (até 5s)
+        antes de buscar, em vez de falhar calado.
+     3) NOVO: ao mudar o status de um contrato pra Ativo, se ele ainda não
+        tem NENHUM item a receber gerado, gera automaticamente o da
+        competência atual — só pra esse contrato (gerarMensalidades
+        ParaCompetencia ganhou um 3º parâmetro opcional contratoIdFiltro,
+        reaproveita a mesma trava anti-duplicidade que o botão manual do
+        Financeiro já tinha).
+
+   VERSÃO ANTERIOR: Beta v1.73.2
+   LINHAS: 26867
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.73.2) — BUG REAL corrigido, achado pelo Nicola:
+   alterar o status de um contrato ("Ações → Alterar Status") já
+   atualizava imo.status corretamente (dado certo, gravado certo no
+   Supabase) — só faltava mandar a LISTA de imóveis se redesenhar com o
+   valor novo. Sem isso, o card na lista de Imóveis só mostrava o status
+   atualizado depois de um F5 manual. Adicionado o mesmo `if
+   (...tab-imoveis) renderImoveis()` que salvarDetalhesImovelPopup() já
+   usava, em salvarAlterarStatusContrato().
+
+   VERSÃO ANTERIOR: Beta v1.73.1
    LINHAS: 26846
    DATA: 30/08/2026
    NOVIDADES (Beta v1.73.1) — 2 pedidos do Nicola, seguindo a v1.73.0:
@@ -8475,7 +8512,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.73.1";
+        const APP_VERSAO = "Beta v1.74.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -11184,6 +11221,18 @@
         // contrato() — não mexe em nenhum outro campo do contrato, não
         // precisa passar por saveContrato().
         async function abrirEdicaoFiadoresPopup(contratoId) {
+            // NOVO (30/08/2026) — mesma proteção de abrirDadosNovoContratoPopup
+            // contra id temporário ainda não sincronizado (ver comentário
+            // completo em aguardarIdRealDoContrato).
+            if (contratoId && !idEhUuidValido(contratoId)) {
+                const con = contratos.find(c => c.id === contratoId);
+                if (con) {
+                    mostrarCarregamentoGlobal('Só um instante, ainda sincronizando...');
+                    await aguardarIdRealDoContrato(con);
+                    contratoId = con.id;
+                    esconderCarregamentoGlobal();
+                }
+            }
             await carregarFiadoresContrato(contratoId);
 
             document.getElementById('modal-fiadores-standalone')?.remove();
@@ -18146,6 +18195,31 @@
         // de validação/diff/histórico que já existia, sem duplicar nada
         // disso aqui.
         // ===================================================================
+        // NOVO (30/08/2026) — BUG REAL (race condition) achado pelo Nicola:
+        // um contrato recém-criado nasce com um id LOCAL temporário (tipo
+        // 'con_1735689000123', não um UUID) — só vira o UUID real depois
+        // que sincronizarContratoSupabase() (assíncrono, disparado dentro
+        // de saveAll()) termina e muda con.id por referência. Reabrir
+        // "Dados Novo Contrato" rápido demais depois de salvar (ou testar
+        // em sequência) encontra o contrato certo, mas com esse id ainda
+        // temporário — carregarFiadoresContrato() tentava consultar
+        // contrato_fiadores com um id que não é UUID, a consulta falhava,
+        // e o erro era só logado no console (silencioso pro usuário):
+        // fiadores pareciam "sumidos", mas na verdade a consulta nunca
+        // tinha rodado de verdade. Espera até uns segundos pelo id real
+        // antes de seguir (o objeto `con` é o MESMO, só o campo .id muda).
+        function idEhUuidValido(id) {
+            return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || '');
+        }
+        async function aguardarIdRealDoContrato(con, tentativasMax = 20) {
+            let tentativas = 0;
+            while (!idEhUuidValido(con.id) && tentativas < tentativasMax) {
+                await new Promise(r => setTimeout(r, 250));
+                tentativas++;
+            }
+            return idEhUuidValido(con.id);
+        }
+
         async function abrirDadosNovoContratoPopup(imovelId) {
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
@@ -18164,6 +18238,16 @@
             // contrato de um imóvel (obterContratoPrincipalDoImovel —
             // prioriza Ativo > Assinando > Suspenso > Finalizado).
             const con = obterContratoPrincipalDoImovel(imovelId);
+
+            // NOVO (30/08/2026) — ver comentário de aguardarIdRealDoContrato
+            // acima: se o contrato encontrado ainda tem id temporário
+            // (sincronização em andamento), espera resolver antes de
+            // buscar fiadores — sem isso, a busca falhava silenciosamente.
+            if (con && !idEhUuidValido(con.id)) {
+                mostrarCarregamentoGlobal('Só um instante, ainda sincronizando...');
+                await aguardarIdRealDoContrato(con);
+                esconderCarregamentoGlobal();
+            }
 
             // NOVO (30/08/2026) — carrega fiadores já cadastrados pra este
             // contrato (se existir) antes de montar o HTML do popup.
@@ -18442,8 +18526,40 @@
                 fecharModalCampoContrato();
                 mostrarToast('Status do contrato atualizado!', 'success');
                 registrarLog('contratos.alterar_status', { contratoId, statusAntigo, statusNovo: acao });
+
+                // NOVO (30/08/2026) — pedido explícito do Nicola: ao ativar
+                // um contrato que ainda não tem NENHUM item a receber
+                // gerado (comum quando o contrato pula direto pra Ativo,
+                // sem passar por Assinando — ver v1.73.0), gera já a
+                // competência atual pra ESSE contrato só (gerarMensalidades
+                // Para Competencia com contratoIdFiltro — mesma rotina do
+                // botão manual do Financeiro, trava anti-duplicidade já
+                // embutida). Silencioso se não gerar nada (ex.: contrato
+                // com início no futuro) — não é erro, só não há nada a
+                // cobrar ainda.
+                if (acao === 'Ativo' && !mensalidades.some(m => m.contratoId === contratoId)) {
+                    const hoje = new Date();
+                    const refAtual = String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+                    const idsGerados = [];
+                    const qtdGerada = gerarMensalidadesParaCompetencia(refAtual, idsGerados, contratoId);
+                    if (qtdGerada > 0) {
+                        await saveAll(true, null, ['mensalidades'], idsGerados);
+                        mostrarToast('Item a receber de ' + refAtual + ' gerado.', 'success');
+                        registrarLog('mensalidades.gerar_automatico_ativacao', { contratoId, referencia: refAtual });
+                    }
+                }
+
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                // CORRIGIDO (bug real, 30/08/2026): alterar o status do
+                // contrato JÁ atualizava imo.status corretamente (ver
+                // bloco logo acima) e já persistia no Supabase — só
+                // faltava mandar a LISTA de imóveis se redesenhar com o
+                // dado novo. Sem isso, o card na lista só mostrava o
+                // status certo depois de um F5 (que busca tudo de novo do
+                // banco) — o dado sempre esteve certo, só a tela não
+                // repintava sozinha.
+                if (document.querySelector('.tab-content.active')?.id === 'tab-imoveis') renderImoveis();
             } catch (err) {
                 esconderCarregamentoGlobal();
                 alert('❌ Não consegui alterar o status: ' + (err.message || String(err)));
@@ -19275,17 +19391,24 @@
             try {
                 const { data, error } = await dbAuth
                     .from('cofre_documento_vinculos')
-                    .select('id, cofre_documentos!inner(id, nome_exibicao, mime_type, status)')
-                    .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId);
+                    // NOVO (30/08/2026) — criado_em (do vínculo, é quando o
+                    // documento passou a valer PRA ESSE contrato — pedido
+                    // explícito: faltava data/hora no box).
+                    .select('id, criado_em, cofre_documentos!inner(id, nome_exibicao, mime_type, status)')
+                    .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId)
+                    .order('criado_em', { ascending: false });
                 if (error) throw error;
                 __docsContratoAtual = (data || []).filter(v => v.cofre_documentos && v.cofre_documentos.status === 'ativo');
                 el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v, i) => `
                     <div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
                         <button onclick="abrirDocumentoContratoAtual(${i})" class="flex items-center gap-2 flex-1 min-w-0 text-left">
                             <svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex-shrink:0"></svg>
-                            <span class="text-xs font-bold truncate">${v.cofre_documentos.nome_exibicao || 'Documento'}</span>
+                            <span class="min-w-0">
+                                <span class="text-xs font-bold truncate block">${v.cofre_documentos.nome_exibicao || 'Documento'}</span>
+                                <span class="text-[10px] text-slate-400">${v.criado_em ? new Date(v.criado_em).toLocaleString('pt-BR') : ''}</span>
+                            </span>
                         </button>
-                        <button onclick="removerDocumentoContratoAtual(${i})" title="Remover deste contrato" class="flex-none p-1"><svg data-lucide="x" style="width:14px;height:14px;color:#94a3b8"></svg></button>
+                        <button onclick="removerDocumentoContratoAtual(${i})" title="Excluir documento" class="flex-none p-1"><svg data-lucide="trash-2" style="width:14px;height:14px;color:#94a3b8"></svg></button>
                     </div>`).join('') : `<p class="text-xs text-slate-500">Nenhum documento vinculado ainda.</p>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } catch (err) {
@@ -19308,20 +19431,37 @@
             }
         }
 
-        // Remove só o VÍNCULO (nunca o documento em si) — mesmo princípio
-        // já usado no Cofre: o documento continua guardado e passa a
-        // aparecer em "Em triagem" na Visão Geral do Cofre.
+        // CORRIGIDO (30/08/2026, pedido explícito do Nicola: "não está
+        // sendo possível excluir"): antes só desvinculava (o documento
+        // continuava existindo no Cofre, "Em triagem") — nome do botão e
+        // da confirmação diziam "Remover"/desvincular, mas o pedido era
+        // "excluir" de verdade. Agora apaga o arquivo do Storage + a linha
+        // de cofre_documentos + o vínculo — os 3, não só o vínculo. Não
+        // reaproveitável depois (diferente do "Em triagem" de antes) —
+        // por isso a confirmação agora avisa que é definitivo.
         async function removerDocumentoContratoAtual(indice) {
             const v = __docsContratoAtual[indice];
             if (!v) return;
-            if (!confirm('Remover este documento do contrato?\n\nO documento continua guardado no Cofre — só desvincula dele.')) return;
+            if (!confirm('Excluir este documento definitivamente?\n\nNão fica guardado no Cofre depois — essa ação não pode ser desfeita.')) return;
             try {
-                const { error } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', v.id);
-                if (error) throw error;
-                mostrarToast('Documento desvinculado.', 'success');
+                const { data: doc, error: errBusca } = await dbAuth.from('cofre_documentos').select('bucket, storage_path').eq('id', v.cofre_documentos.id).single();
+                if (errBusca) throw errBusca;
+
+                const { error: errVinculo } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', v.id);
+                if (errVinculo) throw errVinculo;
+
+                const { error: errDoc } = await dbAuth.from('cofre_documentos').delete().eq('id', v.cofre_documentos.id);
+                if (errDoc) throw errDoc;
+
+                if (doc?.bucket && doc?.storage_path) {
+                    const { error: errStorage } = await dbAuth.storage.from(doc.bucket).remove([doc.storage_path]);
+                    if (errStorage) console.warn('Linha excluída, mas o arquivo no Storage não pôde ser removido (órfão, não crítico):', errStorage.message);
+                }
+
+                mostrarToast('Documento excluído.', 'success');
                 montarDocumentosContrato(fichaContratoAtualId);
             } catch (err) {
-                alert('❌ Erro ao remover: ' + (err.message || String(err)));
+                alert('❌ Erro ao excluir: ' + (err.message || String(err)));
             }
         }
 
@@ -21006,7 +21146,14 @@
 
         }
 
-        function gerarMensalidadesParaCompetencia(ref, idsGeradosOut) {
+        // NOVO (30/08/2026) — 3º parâmetro opcional `contratoIdFiltro`:
+        // quando informado, processa SÓ aquele contrato (usado por
+        // salvarAlterarStatusContrato() ao ativar um contrato sem nenhum
+        // item a receber ainda — pedido explícito do Nicola: "rodar a
+        // rotina apenas para este imóvel"). Sem o parâmetro, comportamento
+        // idêntico a antes (processa todos os contratos da competência —
+        // usado por gerarMensalidades(), botão manual do Financeiro).
+        function gerarMensalidadesParaCompetencia(ref, idsGeradosOut, contratoIdFiltro) {
 
             if(!contratos || contratos.length === 0) return 0;
 
@@ -21020,7 +21167,9 @@
 
             const diasTotaisMes = dataUltimoDiaCompetencia.getDate();
 
-            contratos.forEach(con => {
+            const contratosAlvo = contratoIdFiltro ? contratos.filter(c => c.id === contratoIdFiltro) : contratos;
+
+            contratosAlvo.forEach(con => {
 
                 // CORRIGIDO (v1.58.0 — pedido explícito): contratos
                 // "Assinando" não devem gerar mensalidades — ainda não
