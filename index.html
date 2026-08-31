@@ -6,20 +6,74 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.71.1
-   LINHAS: 26199
+   VERSÃO: Beta v1.72.1
+   LINHAS: 26697
    DATA: 30/08/2026
-   NOVIDADES (Beta v1.71.1) — bug real achado pelo Nicola em produção:
-   quem é master em várias empresas (mesmo user_id, várias linhas em
-   pessoas — 1 por empresa) via cada termo legal pendente duplicado 1x
-   por empresa na mesma tela ("Política de Privacidade" aparecendo 10x
-   no modal). As RPCs fn_minhas_comunicacoes_opt_out e
-   fn_definir_opt_out_comunicacao agora exigem p_cliente_id explícito
-   (mesmo padrão que fn_comunicacao_proxima_app já usava) — as 2 chamadas
-   deste arquivo passam CLIENTE_ID_SUPABASE agora. fn_termos_legais_
-   pendentes também corrigida (ver comunicacoes-api.js/app.js v1.46/
-   v1.47) — nenhuma mudança nas linhas deste arquivo além de passar o
-   parâmetro novo nas 2 chamadas.
+   NOVIDADES (Beta v1.72.1) — MERGE com sessão paralela do mesmo dia
+   (v1.71.1, partiu da mesma base v1.71.0 que a v1.72.0 abaixo): bug real
+   achado pelo Nicola em produção — quem é master em várias empresas
+   (mesmo user_id, várias linhas em pessoas) via cada termo legal
+   pendente duplicado 1x por empresa na mesma tela ("Política de
+   Privacidade" 10x no modal). fn_minhas_comunicacoes_opt_out e
+   fn_definir_opt_out_comunicacao agora exigem p_cliente_id explícito no
+   banco (já aplicado, confirmado via MCP antes de mesclar) — as 2
+   chamadas deste arquivo passam CLIENTE_ID_SUPABASE agora. Sem isso, a
+   1ª chamada quebraria (a RPC só existe com o parâmetro agora) e a 2ª
+   usaria uma versão antiga ainda com o bug. PENDÊNCIA: o resto desta
+   correção mora em comunicacoes-api.js v1.46 e comunicacoes-app.js
+   v1.47 (sessão paralela) — não fazem parte deste merge, preciso
+   receber os 2 arquivos separadamente antes de publicar tudo junto.
+
+   VERSÃO: Beta v1.72.0
+   LINHAS: 26679
+   DATA: 30/08/2026
+   NOVIDADES (Beta v1.72.0) — Fiadores de contrato, pedido explícito do
+   Nicola (proposta lida e aprovada antes de implementar): tabela nova
+   contrato_fiadores (0/1/2+ por contrato, ver migration
+   contrato_fiadores.sql), cadastrada pela tela do App e usada como fonte
+   de dado pra Minuta.
+     - Cadastro: seção nova dentro do popup "Dados Novo Contrato"
+       (abrirDadosNovoContratoPopup) — nome, CPF, RG, profissão, estado
+       civil, regime de bens, cônjuge (obrigatório assinar se casado(a)
+       fora de separação total/obrigatória — Art. 1.647 CC), contato,
+       endereço, garantia patrimonial (matrícula de imóvel) opcional.
+       Salvo via substituir_fiadores_contrato() (RPC nova, mesmo padrão
+       delete+insert de substituir_divisao_repasse_contrato), disparado
+       de dentro de sincronizarContratoSupabase() — trava de segurança
+       nova (fiadoresContratoAtualPertenceAoId) evita que uma sobra de
+       fiadoresContratoAtual de um popup aberto antes seja gravada em
+       cima do contrato errado.
+     - Edição fora do fluxo de criação: abrirEdicaoFiadoresPopup() (NOVA)
+       — abrirDadosNovoContratoPopup só reconhece contrato 'Assinando';
+       este popup focado funciona em qualquer status, chamado direto do
+       botão "Editar" na seção de Fiadores da ficha do contrato.
+     - Exibição: ficha do contrato (abrirFichaContrato, agora async) ganha
+       seção "Fiadores" — nome, documento, estado civil, e se há imóvel
+       em garantia.
+     - Minuta: montarValoresPlaceholdersMinuta() ganha 3º parâmetro
+       fiadores — placeholders fiador_1_* a fiador_4_* (nome/cpf/rg/
+       profissão/estado civil/regime de bens/cônjuge/garantia
+       patrimonial) + fiadores_qtd. Fiador inexistente fica com string
+       vazia — o mecanismo JÁ EXISTENTE de checagem em preencherMinutaDocx
+       (placeholdersVaziosDetectados) descobre sozinho se a minuta
+       escolhida precisa de fiador e ele não foi cadastrado; nenhuma
+       lógica de validação nova foi criada, só o dicionário foi ampliado.
+     - Escolha de minuta: listarMinutasAplicaveis() (NOVA) — diferente de
+       encontrarMinutaParaImovel() (resolve UMA só, a mais específica,
+       usada pelo atalho "Gerar Minuta"), devolve TODAS as minutas ativas
+       aplicáveis ao imóvel. baixarMinutaPadraoImovel() ("Conferir minuta
+       padrão") abre um picker quando há mais de uma — cada opção pode
+       "Ver modelo em branco" ou "Usar esta e gerar" (segue o mesmo fluxo
+       de validação de gerarMinutaNoCofre, agora com 2º parâmetro opcional
+       minutaIdEscolhida). Com só 1 aplicável, comportamento idêntico a
+       antes (abre direto, sem picker).
+     - BUG REAL corrigido de quebra (achado nesta sessão, não introduzido
+       agora): sincronizarContratoSupabase() nunca gravava
+       locatario_endereco_atual/_profissao/_estado_civil no Supabase —
+       ficavam só na memória local da sessão, se perdiam a cada reload.
+       Usado por montarValoresPlaceholdersMinuta(); sem isso, o
+       placeholder do locatário na minuta ficava vazio depois do primeiro
+       reload mesmo tendo sido preenchido uma vez.
 
    VERSÃO ANTERIOR: Beta v1.71.0
    LINHAS: 26171
@@ -8366,7 +8420,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.71.1";
+        const APP_VERSAO = "Beta v1.72.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -9862,6 +9916,19 @@
                 aluguel_antecipado: con.alugelAntecipado === 'Sim',
                 whatsapp: con.whatsapp || null,
                 email: con.email || null,
+                // CORRIGIDO (bug real, achado 30/08/2026 durante a entrega
+                // de Fiadores): estes 3 campos existem no formulário (dnc-
+                // endereco/profissao/estado-civil), existem na tabela
+                // contratos, e eram lidos em contratoDados — mas nunca
+                // chegavam a entrar nesta `linha` persistida. Ficavam só
+                // na memória local da sessão; qualquer preenchimento se
+                // perdia ao recarregar a página. Usado por
+                // montarValoresPlaceholdersMinuta() — sem isso, o
+                // placeholder do locatário na minuta ficava vazio depois
+                // do primeiro reload, mesmo tendo sido preenchido.
+                locatario_endereco_atual: con.locatarioEnderecoAtual || null,
+                locatario_profissao: con.locatarioProfissao || null,
+                locatario_estado_civil: con.locatarioEstadoCivil || null,
                 inicio: con.inicio || null,
                 fim: con.fim || null,
                 valor: con.valor || null,
@@ -9948,6 +10015,25 @@
                     p_linhas: linhasDivisao
                 });
                 if (errDiv) throw errDiv;
+            }
+
+            // NOVO (30/08/2026) — Fiadores, mesmo padrão de divisaoRepasse
+            // acima (RPC "substituir por completo"). Só mexe na tabela
+            // quando con.fiadores vier definido (a trava em saveContrato()
+            // garante isso só acontece quando fiadoresContratoAtual
+            // realmente pertence a ESTE contrato) — undefined (não veio
+            // deste fluxo) não toca em nada, evita apagar fiador já salvo
+            // por engano num save vindo de outro caminho.
+            if (Array.isArray(con.fiadores)) {
+                const linhasFiadores = con.fiadores.map(function(f, i) {
+                    return Object.assign({}, f, { ordem: i + 1 });
+                });
+                const { error: errFiadores } = await dbAuth.rpc('substituir_fiadores_contrato', {
+                    p_contrato_id: contratoId,
+                    p_cliente_id: CLIENTE_ID_SUPABASE,
+                    p_linhas: linhasFiadores
+                });
+                if (errFiadores) throw errFiadores;
             }
 
             return contratoId;
@@ -10969,6 +11055,204 @@
         // contrato (não altera a divisão do imóvel). Mesmo padrão de
         // adicionar/remover/ajustar % já usado em Imóveis.
         let divisaoContratoAtual = [];
+
+        // NOVO (30/08/2026) — Fiadores do contrato, pedido explícito do
+        // Nicola. Mesmo espírito de divisaoContratoAtual (estado local
+        // editado no popup "Dados Novo Contrato", persistido junto do
+        // contrato via sincronizarContratoSupabase → substituir_fiadores_
+        // contrato, mesmo padrão delete+insert de substituir_divisao_
+        // repasse_contrato). Ao contrário da divisão (poucos campos,
+        // prompt() basta), fiador tem ~15 campos — inputs inline com
+        // atualizarCampoFiador(index, campo, valor) como handler único
+        // delegado, em vez de uma função por campo.
+        let fiadoresContratoAtual = [];
+        // Trava de segurança: registra de QUAL contrato fiadoresContratoAtual
+        // foi carregado. saveContrato() só inclui fiadores no payload se
+        // baterem com o id sendo salvo agora — evita que uma sobra de
+        // fiadoresContratoAtual de um popup aberto antes (outro contrato,
+        // ou nenhum) seja gravada em cima do contrato errado caso
+        // saveContrato() seja chamado por outro caminho (form-contrato
+        // legado) sem passar por carregarFiadoresContrato() antes.
+        let fiadoresContratoAtualPertenceAoId = null;
+
+        const FIADOR_CAMPO_VAZIO = {
+            nome: '', doc_tipo: 'CPF', cpf: '', rg: '', rg_orgao_expedidor: '',
+            nacionalidade: 'brasileiro(a)', data_nascimento: '', profissao: '', estado_civil: '',
+            regime_bens: '', conjuge_nome: '', conjuge_cpf: '', conjuge_rg: '', conjuge_profissao: '',
+            whatsapp: '', email: '', endereco_atual: '',
+            possui_imovel_proprio: false, imovel_matricula: '', imovel_cartorio_registro: '', imovel_endereco: ''
+        };
+
+        async function carregarFiadoresContrato(contratoId) {
+            fiadoresContratoAtualPertenceAoId = contratoId || '__novo__';
+            if (!contratoId) { fiadoresContratoAtual = []; return; }
+            const { data, error } = await dbAuth.from('contrato_fiadores')
+                .select('*').eq('contrato_id', contratoId).order('ordem');
+            if (error) { console.error('carregarFiadoresContrato:', error.message); fiadoresContratoAtual = []; return; }
+            fiadoresContratoAtual = (data || []).map(function(f) {
+                return {
+                    nome: f.nome || '', doc_tipo: f.doc_tipo || 'CPF', cpf: f.cpf || '',
+                    rg: f.rg || '', rg_orgao_expedidor: f.rg_orgao_expedidor || '',
+                    nacionalidade: f.nacionalidade || 'brasileiro(a)', data_nascimento: f.data_nascimento || '',
+                    profissao: f.profissao || '', estado_civil: f.estado_civil || '', regime_bens: f.regime_bens || '',
+                    conjuge_nome: f.conjuge_nome || '', conjuge_cpf: f.conjuge_cpf || '',
+                    conjuge_rg: f.conjuge_rg || '', conjuge_profissao: f.conjuge_profissao || '',
+                    whatsapp: f.whatsapp || '', email: f.email || '', endereco_atual: f.endereco_atual || '',
+                    possui_imovel_proprio: !!f.possui_imovel_proprio, imovel_matricula: f.imovel_matricula || '',
+                    imovel_cartorio_registro: f.imovel_cartorio_registro || '', imovel_endereco: f.imovel_endereco || ''
+                };
+            });
+        }
+
+        function adicionarFiadorPopup() {
+            fiadoresContratoAtual.push(Object.assign({}, FIADOR_CAMPO_VAZIO));
+            renderFiadoresPopup();
+        }
+
+        function removerFiadorPopup(index) {
+            fiadoresContratoAtual.splice(index, 1);
+            renderFiadoresPopup();
+        }
+
+        function atualizarCampoFiador(index, campo, valor) {
+            if (!fiadoresContratoAtual[index]) return;
+            fiadoresContratoAtual[index][campo] = (campo === 'possui_imovel_proprio') ? !!valor : valor;
+        }
+
+        // NOVO (30/08/2026) — popup FOCADO só em fiadores, independente do
+        // status do contrato. abrirDadosNovoContratoPopup() só reconhece
+        // contrato com status 'Assinando' (é o fluxo de criação) — pra um
+        // contrato já 'Ativo' (ou qualquer outro status), este é o
+        // caminho pra editar fiadores sem precisar passar pelo formulário
+        // completo/legado (editarContrato(), que "Editar contrato" da
+        // ficha ainda chama). Salva direto via substituir_fiadores_
+        // contrato() — não mexe em nenhum outro campo do contrato, não
+        // precisa passar por saveContrato().
+        async function abrirEdicaoFiadoresPopup(contratoId) {
+            await carregarFiadoresContrato(contratoId);
+
+            document.getElementById('modal-fiadores-standalone')?.remove();
+            const modal = document.createElement('div');
+            modal.id = 'modal-fiadores-standalone';
+            modal.style = 'position:fixed;inset:0;z-index:97;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
+            modal.innerHTML = `
+                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Fiadores do contrato</h3>
+                        <button onclick="document.getElementById('modal-fiadores-standalone').remove()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                        <button type="button" onclick="adicionarFiadorPopup()" style="background:var(--pine);color:#fff;font-weight:bold;font-size:11px;padding:6px 10px;border:none;border-radius:6px;">+ Adicionar fiador</button>
+                    </div>
+                    <div id="dnc-fiadores-lista"></div>
+                    <div style="display:flex;gap:8px;margin-top:14px;">
+                        <button onclick="salvarFiadoresStandalone('${contratoId}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+                        <button onclick="document.getElementById('modal-fiadores-standalone').remove()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Sair</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            renderFiadoresPopup();
+        }
+
+        async function salvarFiadoresStandalone(contratoId) {
+            const btn = document.querySelector('#modal-fiadores-standalone button[onclick^="salvarFiadoresStandalone"]');
+            if (btn) btn.disabled = true;
+            try {
+                const linhas = fiadoresContratoAtual
+                    .filter(f => f.nome && f.cpf)
+                    .map((f, i) => Object.assign({}, f, { ordem: i + 1 }));
+                const { error } = await dbAuth.rpc('substituir_fiadores_contrato', {
+                    p_contrato_id: contratoId,
+                    p_cliente_id: CLIENTE_ID_SUPABASE,
+                    p_linhas: linhas
+                });
+                if (error) throw error;
+                document.getElementById('modal-fiadores-standalone')?.remove();
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                mostrarToast('Fiadores salvos.', 'success');
+            } catch (err) {
+                alert('❌ Não consegui salvar os fiadores: ' + (err.message || String(err)));
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        // Estilo inline igual ao resto do popup "Dados Novo Contrato"
+        // (mesma classe de input/label já usada lá — não inventei um
+        // padrão visual novo).
+        function renderFiadoresPopup() {
+            const listaEl = document.getElementById('dnc-fiadores-lista');
+            if (!listaEl) return;
+
+            if (fiadoresContratoAtual.length === 0) {
+                listaEl.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Nenhum fiador cadastrado. Nem todo contrato precisa — só adicione se a minuta escolhida exigir.</p>';
+                return;
+            }
+
+            listaEl.innerHTML = fiadoresContratoAtual.map(function(f, i) {
+                const campo = function(rotulo, chave, tipo, obrigatorioVisual) {
+                    tipo = tipo || 'text';
+                    const v = (f[chave] || '').toString().replace(/"/g, '&quot;');
+                    return `<div style="flex:1;min-width:140px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">${rotulo}${obrigatorioVisual ? ' <span style="color:var(--danger)">*</span>' : ''}</label>
+                        <input type="${tipo}" value="${v}" onchange="atualizarCampoFiador(${i}, '${chave}', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;"></div>`;
+                };
+                return `
+                <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;background:#f8fafc;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <span style="font-size:11px;font-weight:bold;color:#334155;">Fiador ${i + 1}</span>
+                        <button type="button" onclick="removerFiadorPopup(${i})" style="color:#ef4444;font-weight:bold;font-size:11px;background:none;border:none;">Remover ✕</button>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                        ${campo('Nome completo', 'nome', 'text', true)}
+                        ${campo('CPF/CNPJ', 'cpf', 'text', true)}
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                        ${campo('RG', 'rg')}
+                        ${campo('Órgão expedidor', 'rg_orgao_expedidor')}
+                        ${campo('Nacionalidade', 'nacionalidade')}
+                        ${campo('Data de nascimento', 'data_nascimento', 'date')}
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                        ${campo('Profissão', 'profissao')}
+                        <div style="flex:1;min-width:140px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">Estado civil</label>
+                            <select onchange="atualizarCampoFiador(${i}, 'estado_civil', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;background:#fff;">
+                                <option value="">-- Selecione --</option>
+                                ${['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União estável'].map(op => `<option ${f.estado_civil === op ? 'selected' : ''}>${op}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div style="flex:1;min-width:180px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">Regime de bens</label>
+                            <select onchange="atualizarCampoFiador(${i}, 'regime_bens', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;background:#fff;">
+                                <option value="">-- Se casado(a) --</option>
+                                ${['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens', 'Separação obrigatória de bens', 'Participação final nos aquestos'].map(op => `<option ${f.regime_bens === op ? 'selected' : ''}>${op}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <p style="font-size:10px;color:#94a3b8;margin:0 0 4px;">Cônjuge (obrigatório assinar junto se casado(a) fora de separação total/obrigatória de bens — Art. 1.647 do Código Civil):</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                        ${campo('Nome do cônjuge', 'conjuge_nome')}
+                        ${campo('CPF do cônjuge', 'conjuge_cpf')}
+                        ${campo('RG do cônjuge', 'conjuge_rg')}
+                        ${campo('Profissão do cônjuge', 'conjuge_profissao')}
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                        ${campo('WhatsApp', 'whatsapp')}
+                        ${campo('E-mail', 'email', 'email')}
+                    </div>
+                    <div style="margin-bottom:6px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">Endereço atual</label>
+                        <textarea rows="2" onchange="atualizarCampoFiador(${i}, 'endereco_atual', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;">${(f.endereco_atual || '').replace(/</g, '&lt;')}</textarea>
+                    </div>
+                    <label style="font-size:11px;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                        <input type="checkbox" ${f.possui_imovel_proprio ? 'checked' : ''} onchange="atualizarCampoFiador(${i}, 'possui_imovel_proprio', this.checked)"> Possui imóvel próprio quitado (garantia patrimonial)
+                    </label>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        ${campo('Matrícula do imóvel', 'imovel_matricula')}
+                        ${campo('Cartório de registro', 'imovel_cartorio_registro')}
+                        ${campo('Endereço do imóvel', 'imovel_endereco')}
+                    </div>
+                </div>`;
+            }).join('');
+        }
 
         function exibirDivisaoImovelNoContrato(imovelId, divisaoJaSalva) {
             const box = document.getElementById('con-divisao-imovel-info');
@@ -15782,6 +16066,27 @@
                 || null;
         }
 
+        // NOVO (30/08/2026) — pedido explícito do Nicola: "pode ter 2 ou
+        // mais tipos de minuta aplicáveis a um mesmo imóvel... o sistema
+        // deve permitir a escolha de qual minuta padrão usar". Diferente
+        // de encontrarMinutaParaImovel() (resolve UMA só, a mais
+        // específica, pro atalho rápido "Gerar Minuta"), esta devolve
+        // TODAS as ativas que se aplicam, em qualquer nível da cascata —
+        // usada só pelo picker de "Conferir minuta padrão".
+        function listarMinutasAplicaveis(imovelId) {
+            const imo = imoveis.find(i => i.id === imovelId);
+            if (!imo) return [];
+
+            return minutasContrato.filter(m => {
+                if (m.ativa === false) return false;
+                if (m.escopo === 'imovel') return m.imovelId === imovelId;
+                if (m.escopo === 'tipo_imovel') return m.tipoImovelId === imo.tipoId;
+                if (m.escopo === 'empreendimento') return m.empreendimentoId === imo.empreendimentoId;
+                if (m.escopo === 'geral') return true;
+                return false;
+            });
+        }
+
         function extensoData(dataStr) {
             if (!dataStr) return '';
             const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -15875,11 +16180,21 @@
 
         }
 
-        function montarValoresPlaceholdersMinuta(con, imo) {
+        // v1.42.1 — monta o dicionário de placeholders a partir do contrato,
+        // imóvel e empresa. Documentação completa de cada placeholder está
+        // na migration SQL (migration_v2_minutas_contrato_e_processos_contratacao.sql).
+        // NOVO (30/08/2026) — 3º parâmetro `fiadores` (array, opcional):
+        // placeholders fiador_1_*/fiador_2_*/etc. Fiador que não existe
+        // fica com todas as chaves em '' — é assim que o mecanismo JÁ
+        // EXISTENTE de checagem em preencherMinutaDocx() (placeholdersVazios
+        // Detectados) descobre sozinho se a minuta escolhida precisa de
+        // fiador e ele não foi cadastrado — nenhuma lógica de validação
+        // nova foi criada aqui, só populado o dicionário.
+        function montarValoresPlaceholdersMinuta(con, imo, fiadores) {
             const enderecoEmpresa = [CONFIG_CLIENTE.endereco, CONFIG_CLIENTE.complemento, CONFIG_CLIENTE.bairro, CONFIG_CLIENTE.cidade, CONFIG_CLIENTE.uf].filter(Boolean).join(', ');
             const enderecoImovel = [imo?.enderecoRua, imo?.enderecoNum, imo?.enderecoComp, imo?.enderecoBairro, imo?.enderecoCidade].filter(Boolean).join(', ');
 
-            return {
+            const valores = {
                 locador_nome: CONFIG_CLIENTE.nomeEmpresa || '',
                 locador_cnpj: CONFIG_CLIENTE.cnpj || '',
                 locador_responsavel: CONFIG_CLIENTE.nomeResponsavel || '',
@@ -15905,6 +16220,40 @@
                 locatario_estado_civil: con?.locatarioEstadoCivil || '',
                 data_assinatura: extensoData(new Date().toISOString().slice(0, 10))
             };
+
+            // Até 4 fiadores previstos nos placeholders (fiador_1_ a
+            // fiador_4_) — na prática o normal é 0/1/2, mas não trava a
+            // minuta se algum dia precisar de mais; fiador inexistente
+            // simplesmente fica com string vazia em todas as chaves.
+            for (let i = 1; i <= 4; i++) {
+                const f = (fiadores || [])[i - 1] || null;
+                const p = 'fiador_' + i + '_';
+                valores[p + 'nome'] = f?.nome || '';
+                valores[p + 'cpf'] = f?.cpf || '';
+                valores[p + 'doc_tipo'] = f?.doc_tipo || '';
+                valores[p + 'rg'] = f?.rg || '';
+                valores[p + 'rg_orgao_expedidor'] = f?.rg_orgao_expedidor || '';
+                valores[p + 'nacionalidade'] = f?.nacionalidade || '';
+                valores[p + 'data_nascimento'] = f?.data_nascimento ? formatarDataBR(f.data_nascimento) : '';
+                valores[p + 'profissao'] = f?.profissao || '';
+                valores[p + 'estado_civil'] = f?.estado_civil || '';
+                valores[p + 'regime_bens'] = f?.regime_bens || '';
+                valores[p + 'conjuge_nome'] = f?.conjuge_nome || '';
+                valores[p + 'conjuge_cpf'] = f?.conjuge_cpf || '';
+                valores[p + 'conjuge_rg'] = f?.conjuge_rg || '';
+                valores[p + 'conjuge_profissao'] = f?.conjuge_profissao || '';
+                valores[p + 'whatsapp'] = f?.whatsapp || '';
+                valores[p + 'email'] = f?.email || '';
+                valores[p + 'endereco_atual'] = f?.endereco_atual || '';
+                valores[p + 'imovel_matricula'] = f?.imovel_matricula || '';
+                valores[p + 'imovel_cartorio_registro'] = f?.imovel_cartorio_registro || '';
+                valores[p + 'imovel_endereco'] = f?.imovel_endereco || '';
+            }
+            // fiadores_qtd — útil pra um trecho condicional simples no
+            // modelo tipo "Este contrato tem {{fiadores_qtd}} fiador(es)."
+            valores.fiadores_qtd = (fiadores || []).length;
+
+            return valores;
         }
 
         // v1.42.1 — escapa caracteres especiais de XML (o texto vai direto
@@ -16195,7 +16544,14 @@
         // nenhuma referência a qual modelo deu origem; agora referencia o
         // nome da própria minuta, igual a convenção usada no cadastro do
         // modelo (slugArquivo/dataYYYYMMDD).
-        async function gerarMinutaNoCofre(imovelId) {
+        // v1.70.0 (30/08/2026) — 2º parâmetro opcional `minutaIdEscolhida`:
+        // quando informado (vindo do picker de "Conferir minuta padrão"
+        // com mais de uma opção aplicável — ver listarMinutasAplicaveis),
+        // usa ESSA minuta específica em vez de resolver sozinho por
+        // encontrarMinutaParaImovel(). Sem o parâmetro, comportamento
+        // idêntico a antes (botão "Gerar Minuta" continua resolvendo
+        // sozinho pela mais específica).
+        async function gerarMinutaNoCofre(imovelId, minutaIdEscolhida) {
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
 
@@ -16205,7 +16561,9 @@
                 return;
             }
 
-            const minuta = encontrarMinutaParaImovel(imovelId);
+            const minuta = minutaIdEscolhida
+                ? minutasContrato.find(m => m.id === minutaIdEscolhida && m.ativa !== false)
+                : encontrarMinutaParaImovel(imovelId);
             if (!minuta || !minuta.arquivoUrl) {
                 alert('⚠️ Nenhuma minuta cadastrada se aplica a este imóvel.');
                 return;
@@ -16216,13 +16574,25 @@
             const prontidao = avaliarProntidaoContratoParaMinuta(con, imo);
             const problemasCombinados = [...prontidao.faltantes, ...prontidao.invalidos];
 
+            // NOVO (30/08/2026) — fiadores do contrato, pra alimentar o
+            // dicionário de placeholders (ver montarValoresPlaceholdersMinuta).
+            let fiadoresDoContrato = [];
+            try {
+                const { data: fiadoresData, error: errFiadores } = await dbAuth.from('contrato_fiadores')
+                    .select('*').eq('contrato_id', con.id).order('ordem');
+                if (errFiadores) throw errFiadores;
+                fiadoresDoContrato = fiadoresData || [];
+            } catch (err) {
+                console.error('gerarMinutaNoCofre: falha ao buscar fiadores (segue sem eles):', err.message || err);
+            }
+
             let arrayBufferModelo, resultadoPreenchimento;
             try {
                 const respostaModelo = await fetch(minuta.arquivoUrl);
                 if (!respostaModelo.ok) throw new Error('Não consegui baixar o arquivo do modelo (HTTP ' + respostaModelo.status + ').');
                 arrayBufferModelo = await respostaModelo.arrayBuffer();
 
-                const valores = montarValoresPlaceholdersMinuta(con, imo);
+                const valores = montarValoresPlaceholdersMinuta(con, imo, fiadoresDoContrato);
                 resultadoPreenchimento = await preencherMinutaDocx(arrayBufferModelo, valores);
 
                 resultadoPreenchimento.placeholdersVaziosDetectados.forEach(p => problemasCombinados.push('Campo usado no modelo, ainda vazio: ' + p));
@@ -16235,7 +16605,11 @@
 
             if (problemasCombinados.length > 0) {
                 esconderCarregamentoGlobal();
-                alert('⚠️ Minuta ainda indisponível — faltam ' + problemasCombinados.length + ' informação(ões):\n\n' + problemasCombinados.map(l => '• ' + l).join('\n') + '\n\nCompletar os dados antes de gerar.');
+                // NOVO — se algum problema menciona "fiador_", oferece o
+                // atalho pra já abrir o cadastro em vez de só avisar.
+                const faltaFiador = problemasCombinados.some(p => p.toLowerCase().includes('fiador_'));
+                const sufixoFiador = faltaFiador ? '\n\nA minuta escolhida exige dados de fiador — toque em "Dados Contrato" pra cadastrar.' : '';
+                alert('⚠️ Minuta ainda indisponível — faltam ' + problemasCombinados.length + ' informação(ões):\n\n' + problemasCombinados.map(l => '• ' + l).join('\n') + sufixoFiador + '\n\nCompletar os dados antes de gerar.');
                 return;
             }
 
@@ -17642,11 +18016,15 @@
         // de validação/diff/histórico que já existia, sem duplicar nada
         // disso aqui.
         // ===================================================================
-        function abrirDadosNovoContratoPopup(imovelId) {
+        async function abrirDadosNovoContratoPopup(imovelId) {
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
 
             const con = contratos.find(c => c.imovelId === imovelId && c.status === 'Assinando') || null;
+
+            // NOVO (30/08/2026) — carrega fiadores já cadastrados pra este
+            // contrato (se existir) antes de montar o HTML do popup.
+            await carregarFiadoresContrato(con?.id || null);
 
             document.getElementById('modal-campo-contrato')?.remove();
 
@@ -17724,6 +18102,16 @@
                              ao salvar (mesmo padrão de observação usado nos
                              demais popups desta ficha). -->
                         <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição / observação</label><textarea id="dnc-descricao" rows="2" placeholder="Escreva aqui uma observação..." style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></textarea></div>
+
+                        <!-- NOVO (30/08/2026) — Fiadores, pedido explícito do
+                             Nicola. 0, 1, 2 ou mais por contrato. -->
+                        <div style="border-top:1px solid #e2e8f0;padding-top:10px;margin-top:4px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <span style="font-size:12px;font-weight:bold;color:#1e293b;">Fiadores</span>
+                                <button type="button" onclick="adicionarFiadorPopup()" style="background:var(--pine);color:#fff;font-weight:bold;font-size:11px;padding:6px 10px;border:none;border-radius:6px;">+ Adicionar fiador</button>
+                            </div>
+                            <div id="dnc-fiadores-lista"></div>
+                        </div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
                         <button onclick="salvarDadosNovoContratoPopup('${imovelId}', ${con ? `'${con.id}'` : 'null'})" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
@@ -17732,6 +18120,8 @@
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            renderFiadoresPopup();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         function salvarDadosNovoContratoPopup(imovelId, contratoId) {
@@ -18570,7 +18960,7 @@
         // ===================================================================
         let fichaContratoAtualId = null;
 
-        function abrirFichaContrato(id) {
+        async function abrirFichaContrato(id) {
 
             fichaContratoAtualId = id;
             const con = contratos.find(c => c.id === id);
@@ -18580,6 +18970,21 @@
             const enderecoImo = imo ? `${imo.empreendimento || ''} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '-';
             const mensalidadesDoContrato = mensalidades.filter(m => m.contratoId === con.id).slice().sort((a, b) => (b.referencia || '').localeCompare(a.referencia || ''));
             const ultimas = mensalidadesDoContrato.slice(0, 4);
+
+            // NOVO (30/08/2026) — Fiadores, pra exibir no detalhe do
+            // contrato (pedido explícito). Busca direto (não reaproveita
+            // fiadoresContratoAtual — é estado do POPUP de edição, essa
+            // ficha é só leitura e pode ser aberta sem o popup nunca ter
+            // rodado nesta sessão).
+            let fiadoresDaFicha = [];
+            try {
+                const { data: fiadoresFichaData, error: errFiadoresFicha } = await dbAuth.from('contrato_fiadores')
+                    .select('*').eq('contrato_id', con.id).order('ordem');
+                if (errFiadoresFicha) throw errFiadoresFicha;
+                fiadoresDaFicha = fiadoresFichaData || [];
+            } catch (err) {
+                console.error('abrirFichaContrato: falha ao buscar fiadores:', err.message || err);
+            }
 
             const corBadge = con.status === 'Ativo' ? 'bg-green-100 text-green-800'
                 : con.status === 'Assinando' ? 'bg-blue-100 text-blue-800'
@@ -18615,6 +19020,27 @@
                     ${con.status === 'Assinando' && !prontidaoFicha.pronto ? `
                     <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">Minuta ainda indisponível — faltam ${prontidaoFicha.faltantes.length + prontidaoFicha.invalidos.length} informação(ões) obrigatória(s).</p>
                     ` : ''}
+
+                    <!-- NOVO (30/08/2026) — Fiadores, exibição no detalhe
+                         do contrato (pedido explícito). Edição fica no
+                         popup "Dados Contrato" (abrirDadosNovoContratoPopup). -->
+                    <div class="mt-3 pt-3 border-t border-slate-100">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <p class="text-[11px] font-bold text-slate-500">Fiadores (${fiadoresDaFicha.length})</p>
+                            <button onclick="abrirEdicaoFiadoresPopup('${con.id}')" class="text-[11px] font-bold" style="color:var(--pine)">Editar</button>
+                        </div>
+                        ${fiadoresDaFicha.length === 0
+                            ? `<p class="text-[11px] text-slate-400">Nenhum cadastrado. Toque em "Editar" pra adicionar, se a minuta exigir.</p>`
+                            : fiadoresDaFicha.map(f => `
+                                <div class="text-[11px] bg-slate-50 border border-slate-200 rounded-lg p-2 mb-1.5">
+                                    <span class="font-bold text-slate-700">${(f.nome || '').replace(/</g, '&lt;')}</span>
+                                    <span class="text-slate-400"> · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}</span>
+                                    ${f.estado_civil ? `<span class="text-slate-400"> · ${f.estado_civil}</span>` : ''}
+                                    ${f.possui_imovel_proprio ? `<span class="text-emerald-600"> · imóvel em garantia</span>` : ''}
+                                </div>
+                            `).join('')
+                        }
+                    </div>
 
                     <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
                         <button onclick="abrirEdicaoContratoContextual('${con.id}', 'fichaContrato', '${con.id}')" class="text-xs font-bold flex items-center gap-1" style="color:var(--pine)"><svg data-lucide="pencil" style="width:13px;height:13px"></svg> Editar contrato</button>
@@ -19408,6 +19834,20 @@
                 imovelId: imoId,
 
                 divisaoRepasse: divisaoContratoAtual.map(function(s) { return { nome: s.nome, percentual: s.pct }; }),
+
+                // NOVO (30/08/2026) — mesmo padrão de divisaoRepasse: lê
+                // direto do estado global fiadoresContratoAtual (populado
+                // pelo popup "Dados Novo Contrato"). Cards sem nome/cpf
+                // preenchido são descartados aqui (evita persistir linha
+                // vazia se o usuário só clicou "+ Adicionar fiador" e
+                // desistiu) — mesma regra que substituir_fiadores_
+                // contrato() também aplica no banco, em dobro de propósito.
+                // SÓ inclui se fiadoresContratoAtual foi carregado PRA
+                // ESTE MESMO contrato (trava contra sobra de outro popup —
+                // ver comentário em fiadoresContratoAtualPertenceAoId).
+                fiadores: (fiadoresContratoAtualPertenceAoId === (id || '__novo__'))
+                    ? fiadoresContratoAtual.filter(function(f) { return f.nome && f.cpf; })
+                    : undefined,
 
                 status: document.getElementById('con-status').value,
 
@@ -24447,11 +24887,54 @@
         // minuta padrão (o modelo em si, sem preencher nada) — não confundir
         // com gerarMinutaContrato(), que preenche os dados de um contrato
         // específico. Aqui é só "dar uma olhada" no modelo que será usado.
+        // v1.70.0 (30/08/2026) — quando houver MAIS DE UMA minuta aplicável
+        // ao imóvel, abre um picker (pedido explícito do Nicola) em vez de
+        // pegar a primeira sozinho — o cliente escolhe qual ver, e pode
+        // seguir direto pro fluxo de geração com a escolhida
+        // (gerarMinutaNoCofre(imovelId, minutaId)). Com só 1 aplicável,
+        // comportamento idêntico a antes (abre direto, sem picker).
         function baixarMinutaPadraoImovel(imovelId) {
-            const minuta = encontrarMinutaParaImovel(imovelId);
-            if (!minuta || !minuta.arquivoUrl) { alert('⚠️ Nenhuma minuta padrão disponível para este imóvel.'); return; }
-            window.open(minuta.arquivoUrl, '_blank');
-            registrarLog('minutas.conferir_padrao', { imovelId, minutaId: minuta.id });
+            const aplicaveis = listarMinutasAplicaveis(imovelId);
+            if (aplicaveis.length === 0) { alert('⚠️ Nenhuma minuta padrão disponível para este imóvel.'); return; }
+
+            if (aplicaveis.length === 1) {
+                window.open(aplicaveis[0].arquivoUrl, '_blank');
+                registrarLog('minutas.conferir_padrao', { imovelId, minutaId: aplicaveis[0].id });
+                return;
+            }
+
+            abrirPickerMinutasAplicaveis(imovelId, aplicaveis);
+        }
+
+        const ESCOPO_MINUTA_ROTULO = { geral: 'Geral (toda empresa)', empreendimento: 'Empreendimento', tipo_imovel: 'Tipo de imóvel', imovel: 'Este imóvel específico' };
+
+        function abrirPickerMinutasAplicaveis(imovelId, aplicaveis) {
+            document.getElementById('modal-picker-minutas')?.remove();
+            const modal = document.createElement('div');
+            modal.id = 'modal-picker-minutas';
+            modal.style = 'position:fixed;inset:0;z-index:97;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
+            modal.innerHTML = `
+                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:80vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Mais de uma minuta se aplica — escolha uma</h3>
+                        <button onclick="document.getElementById('modal-picker-minutas').remove()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        ${aplicaveis.map(m => `
+                            <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;">
+                                <p style="font-size:13px;font-weight:bold;color:#1e293b;margin-bottom:2px;">${(m.nome || '').replace(/</g, '&lt;')}</p>
+                                <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Escopo: ${ESCOPO_MINUTA_ROTULO[m.escopo] || m.escopo}</p>
+                                <div style="display:flex;gap:6px;">
+                                    <button onclick="window.open('${m.arquivoUrl}', '_blank')" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Ver modelo em branco</button>
+                                    <button onclick="document.getElementById('modal-picker-minutas').remove(); gerarMinutaNoCofre('${imovelId}', '${m.id}');" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Usar esta e gerar</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            registrarLog('minutas.picker_aberto', { imovelId, qtdOpcoes: aplicaveis.length });
         }
 
 
