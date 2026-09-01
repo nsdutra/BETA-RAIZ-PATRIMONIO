@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.0 · 29/08/2026
+// Versão: 1.4.0 · 31/08/2026
+//
+// v1.4.0 — 2 mudanças, pedido do Nicola (trem v1.85/v1.86):
+// 1) popularSelectTipoAtivo() ganha 3 tipos novos (aeronave, embarcacao,
+//    colecao_bem_valor) — catálogo de campos correspondente foi pra
+//    cofre-validacoes.js v1.3.0. CHECK de cofre_ativos.tipo_ativo já
+//    ampliado no banco (migration v1.84.9) antes desta entrega.
+// 2) montarDadosAtivo() virou async: quando o ativo referencia um imóvel
+//    do App (entidade_origem_tipo='imovel'), busca e mostra IPTU/valor
+//    de mercado/uso ali mesmo (api.buscarResumoImovelOrigem), além do
+//    botão "Abrir gestão do imóvel" que já existia (mantido). Pra
+//    qualquer outro caso, comportamento idêntico a antes.
 //
 // v1.3.0 — pedido explícito do Nicola: função "Marcar como vendido"
 // (marcarAtivoVendidoAtual, pill nova no Mais ações da ficha do ativo) —
@@ -87,7 +98,7 @@ let ativoAtualId = null;
 export function popularSelectTipoAtivo() {
     const sel = document.getElementById('at-tipo');
     if (!sel || sel.options.length) return;
-    sel.innerHTML = ['veiculo', 'veiculo_blindado', 'imovel', 'terreno', 'vida_protecao', 'obra_arte', 'outro']
+    sel.innerHTML = ['veiculo', 'veiculo_blindado', 'imovel', 'terreno', 'vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro']
         .map(t => `<option value="${t}">${rotuloTipoAtivo(t)}</option>`).join('');
 }
 
@@ -221,7 +232,7 @@ export async function abrirFichaAtivo(id) {
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
     document.getElementById('fa-mais-acoes').classList.add('hidden');
 
-    montarDadosAtivo(a);
+    await montarDadosAtivo(a);
     montarDocumentosAtivo(a);
     await montarControlesAtivo(a);
     await montarFotosAtivo(a);
@@ -244,9 +255,36 @@ export function alternarMaisAcoesAtivo() {
 }
 
 // ---- Dados do ativo (box 1 — campos estruturados por tipo, incl. valor estimado)
-function montarDadosAtivo(a) {
+// v1.85 — virou async: quando o ativo referencia um imóvel do App
+// (entidade_origem_tipo='imovel'), busca IPTU/valor de mercado/uso/tipo
+// de locação e mostra ali dentro, além do botão "Abrir gestão do imóvel"
+// que já existia (mantido — navegar pra edição completa continua útil,
+// isto aqui é só o resumo rápido pra não precisar sair da ficha só pra
+// ver o valor). Pra ativo NÃO vinculado (imóvel solto no Cofre, ou
+// qualquer outro tipo), comportamento idêntico ao de antes.
+async function montarDadosAtivo(a) {
     const origemWrapper = document.getElementById('fa-resumo-origem-imovel');
-    origemWrapper.classList.toggle('hidden', a.entidade_origem_tipo !== 'imovel');
+    const ehImovelVinculado = a.entidade_origem_tipo === 'imovel';
+    origemWrapper.classList.toggle('hidden', !ehImovelVinculado);
+
+    if (ehImovelVinculado) {
+        const resumoImovel = await api.buscarResumoImovelOrigem(a.entidade_origem_id);
+        const usoLabel = { residencial: 'Residencial', comercial: 'Comercial', industrial: 'Industrial', terreno: 'Terreno', rural: 'Rural' };
+        const linhas = [];
+        if (resumoImovel?.uso) linhas.push(`<span>${usoLabel[resumoImovel.uso] || escapeHtml(resumoImovel.uso)}</span>`);
+        if (resumoImovel?.valor_mercado) linhas.push(`<span>Valor de mercado: R$ ${Number(resumoImovel.valor_mercado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`);
+        if (resumoImovel?.iptu) linhas.push(`<span>IPTU: R$ ${Number(resumoImovel.iptu).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ano</span>`);
+        const resumoHtml = linhas.length
+            ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-2" style="color:var(--sage)">${linhas.join('')}</div>`
+            : `<p class="text-xs mt-2" style="color:var(--sage)">Sem IPTU/valor de mercado/uso cadastrado no imóvel ainda.</p>`;
+        const bloco = origemWrapper.querySelector('[data-resumo-imovel]') || (() => {
+            const div = document.createElement('div');
+            div.setAttribute('data-resumo-imovel', '');
+            origemWrapper.appendChild(div);
+            return div;
+        })();
+        bloco.innerHTML = resumoHtml;
+    }
 
     // Descrição corrida (não tabela) + badge de status, mesmo padrão do
     // card/ficha de Imóvel no App (pedido explícito).

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 25/08/2026
+// Versão: 1.3.0 · 31/08/2026
+//
+// v1.3.0 — pesquisa própria do Nicola: 3 tipos de ativo novos (aeronave,
+// embarcacao, colecao_bem_valor) em rotuloTipoAtivo/iconeAtivo/
+// CAMPOS_POR_TIPO_ATIVO — mesmo padrão dos tipos existentes. Ícones
+// Lucide escolhidos (plane/sailboat/gem) não confirmados visualmente
+// nesta sessão — conferir ao testar.
 //
 // v1.2.0 — D-2 (revisão DS, decisão do proprietário: "chips migram pro
 // [badge] do Imóveis"): chipVencimento() migrada do sistema de pill
@@ -97,11 +103,11 @@ export function mascarar(valor, visiveisNoFinal = 4) {
 // (prompt corretivo §10 — nada de campo único "identificadores" genérico).
 // ============================================================================
 export function rotuloTipoAtivo(t) {
-    return { veiculo: 'Veículo', veiculo_blindado: 'Veículo blindado', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', obra_arte: 'Obra de arte', outro: 'Outro' }[t] || t;
+    return { veiculo: 'Veículo', veiculo_blindado: 'Veículo blindado', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', obra_arte: 'Obra de arte', outro: 'Outro', aeronave: 'Aeronave', embarcacao: 'Embarcação', colecao_bem_valor: 'Coleção / bem de valor' }[t] || t;
 }
 
 export function iconeAtivo(t) {
-    return { veiculo: 'car', veiculo_blindado: 'shield', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', obra_arte: 'image', outro: 'package' }[t] || 'package';
+    return { veiculo: 'car', veiculo_blindado: 'shield', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', obra_arte: 'image', outro: 'package', aeronave: 'plane', embarcacao: 'sailboat', colecao_bem_valor: 'gem' }[t] || 'package';
 }
 
 // Campos estruturados por tipo (convenção documentada em migration_cofre_v1_1_0.sql §3;
@@ -172,6 +178,35 @@ export const CAMPOS_POR_TIPO_ATIVO = {
     ],
     outro: [
         { chave: 'descricao_livre', label: 'Descrição', obrigatorio: false },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
+    ],
+    // NOVO (31/08/2026, pesquisa do Nicola) — 3 tipos novos, mesmo padrão
+    // dos demais (campo obrigatório mínimo pra identificar o bem +
+    // valor_estimado em todos, pra somatório de portfólio continuar
+    // funcionando sem switch por tipo).
+    aeronave: [
+        { chave: 'matricula_aeronave', label: 'Matrícula (prefixo)', obrigatorio: true },
+        { chave: 'fabricante', label: 'Fabricante', obrigatorio: false },
+        { chave: 'modelo', label: 'Modelo', obrigatorio: false },
+        { chave: 'ano', label: 'Ano', obrigatorio: false, tipo: 'number' },
+        { chave: 'numero_serie', label: 'Número de série', obrigatorio: false, mascarar: true },
+        { chave: 'horas_voo', label: 'Horas de voo (total)', obrigatorio: false, tipo: 'number' },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
+    ],
+    embarcacao: [
+        { chave: 'nome_embarcacao', label: 'Nome da embarcação', obrigatorio: false },
+        { chave: 'registro_capitania', label: 'Registro (Capitania dos Portos)', obrigatorio: true },
+        { chave: 'fabricante', label: 'Fabricante', obrigatorio: false },
+        { chave: 'modelo', label: 'Modelo', obrigatorio: false },
+        { chave: 'ano', label: 'Ano', obrigatorio: false, tipo: 'number' },
+        { chave: 'marina_local', label: 'Marina / local de guarda', obrigatorio: false },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
+    ],
+    colecao_bem_valor: [
+        { chave: 'categoria', label: 'Categoria (joia, relógio, vinho, antiguidade...)', obrigatorio: false },
+        { chave: 'descricao_item', label: 'Descrição do item', obrigatorio: false },
+        { chave: 'local_armazenamento', label: 'Local de armazenamento', obrigatorio: false },
+        { chave: 'ultima_avaliacao', label: 'Data da última avaliação', obrigatorio: false, tipo: 'date' },
         { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
 };

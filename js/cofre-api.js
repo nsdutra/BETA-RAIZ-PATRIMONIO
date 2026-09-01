@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.0 · 29/08/2026
+// Versão: 1.7.0 · 31/08/2026
+//
+// v1.7.0 — buscarResumoImovelOrigem(imovelId): nova, busca uso/tipo_locacao/
+// iptu/valor_mercado/codigo_iptu de imoveis — fecha a lacuna da ficha do
+// ativo não trazer esses campos pra imóvel vinculado (ver changelog de
+// cofre-ativos.js v1.4.0 pro consumo). Erro engolido de propósito (retorna
+// null) — se o imóvel de origem não existir mais, a ficha não deve quebrar.
 //
 // v1.6.0 — nova marcarAtivoVendido(id): muda cofre_ativos.status pra
 // 'vendido' e desativa em cascata cofre_itens_controle.alerta_ativo dos
@@ -322,6 +328,28 @@ export async function buscarAtivoPorOrigemImovel(clienteId, imovelId) {
     const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId).maybeSingle();
     if (error) throw error;
     return data;
+}
+
+// NOVO (31/08/2026, trem v1.85) — a ficha do ativo, pro caso de imóvel
+// vinculado ao App (entidade_origem_tipo='imovel'), até aqui só mostrava
+// um texto genérico + botão "Abrir gestão do imóvel", sem trazer o dado
+// aqui dentro. IPTU/valor de mercado/uso/tipo de locação existem em
+// imoveis desde v1.77.0 mas nunca eram buscados pela ficha do Cofre —
+// esta função fecha essa lacuna. Erro é engolido (retorna null) de
+// propósito: se o imóvel de origem não existir mais por algum motivo,
+// a ficha não deve quebrar, só não mostra o resumo extra.
+export async function buscarResumoImovelOrigem(imovelId) {
+    try {
+        const { data, error } = await dbAuth.from('imoveis')
+            .select('uso, tipo_locacao, iptu, valor_mercado, codigo_iptu')
+            .eq('id', imovelId)
+            .maybeSingle();
+        if (error) throw error;
+        return data;
+    } catch (e) {
+        console.warn('[cofre-api] buscarResumoImovelOrigem falhou:', e);
+        return null;
+    }
 }
 
 export async function criarAtivo(payload) {
