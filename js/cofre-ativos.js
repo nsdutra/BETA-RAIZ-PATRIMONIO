@@ -178,9 +178,64 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         chipAtivoAtual = filtroTipo ? -1 : 0;
     }
 
+    // v1.8.0 (pedido explícito, 01/09/2026: "ajustar o modal de
+    // consultas para consultar nos campos chaves de ativo, contrato e
+    // itens de controle. ajuste para filtrar por status, por alerta")
+    // — filtroStatus/filtroAlerta são lidos DIRETO do DOM aqui dentro
+    // (não viram parâmetro da função) de propósito: são "sticky" — só o
+    // próprio modal os define, então qualquer chamada existente
+    // (chips, digitação no campo de busca, ir-ativos) continua
+    // funcionando sem precisar passar 2 argumentos novos — os filtros
+    // de status/alerta simplesmente se somam ao que já estava rodando.
+    const filtroStatus = document.getElementById('filtro-ativo-status')?.value || '';
+    const filtroAlerta = document.getElementById('filtro-ativo-alerta')?.value || '';
+
+    // Busca por texto agora cobre 3 campos-chave, não só o nome do
+    // ativo: locatário do contrato principal (quando o ativo referencia
+    // um imóvel) e título de qualquer item de controle vinculado —
+    // "consultar nos campos chaves de ativo, contrato e itens de
+    // controle". ocorrenciasPorAtivo é montado 1x por render (não por
+    // item da lista) — mesmo cuidado de desempenho já usado no
+    // agrupamento por empreendimento.
+    const ocorrenciasPorAtivo = {};
+    estado.ocorrenciasAbertas.forEach(oc => {
+        const idAtivo = oc.cofre_itens_controle?.ativo_id;
+        if (!idAtivo) return;
+        (ocorrenciasPorAtivo[idAtivo] = ocorrenciasPorAtivo[idAtivo] || []).push(oc);
+    });
+
+    const ativoBateComBusca = (a, resumo) => {
+        if (!termo) return true;
+        if (a.nome_exibicao.toLowerCase().includes(termo)) return true;
+        if (resumo?.contratoPrincipal?.locatario && resumo.contratoPrincipal.locatario.toLowerCase().includes(termo)) return true;
+        const ocorrencias = ocorrenciasPorAtivo[a.id] || [];
+        return ocorrencias.some(oc => (oc.cofre_itens_controle?.titulo || '').toLowerCase().includes(termo));
+    };
+
+    const ativoBateComStatus = (a, resumo) => {
+        if (!filtroStatus) return true;
+        // "prop:<status>" checa o status do IMÓVEL (Vago/Alugado/
+        // Assinando); "ativo:<status>" checa cofre_ativos.status
+        // (ativo/vendido/arquivado) — 2 vocabulários diferentes, o
+        // prefixo diz qual campo olhar. Ver modal-busca-ativos.
+        const [tipoFiltro, valor] = filtroStatus.split(':');
+        if (tipoFiltro === 'prop') return resumo?.status === valor;
+        if (tipoFiltro === 'ativo') return (a.status || 'ativo') === valor;
+        return true;
+    };
+
+    const ativoBateComAlerta = (a) => {
+        if (!filtroAlerta) return true;
+        const temAlerta = (ocorrenciasPorAtivo[a.id] || []).length > 0;
+        return filtroAlerta === 'com' ? temAlerta : !temAlerta;
+    };
+
     const lista = estado.ativos.filter(a => {
         if (tiposFiltro && !tiposFiltro.includes(a.tipo_ativo)) return false;
-        if (termo && !a.nome_exibicao.toLowerCase().includes(termo)) return false;
+        const resumo = a.entidade_origem_tipo === 'imovel' ? resumoImoveisPorId.get(a.entidade_origem_id) : null;
+        if (!ativoBateComBusca(a, resumo)) return false;
+        if (!ativoBateComStatus(a, resumo)) return false;
+        if (!ativoBateComAlerta(a)) return false;
         return true;
     });
 

@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.2.0 · 25/08/2026
+// Versão: 1.3.0 · 01/09/2026
+//
+// v1.3.0 (pedido explícito, 01/09/2026: "apenas um modal deve ser
+// aberto por vez") — abrirModal() passou a fechar qualquer outro
+// .modal-overlay que já estivesse aberto antes de abrir o novo. Antes,
+// nada impedia 2+ modais ficarem abertos ao mesmo tempo se um fluxo
+// disparasse um modal de dentro de outro sem fechar o anterior
+// primeiro.
 //
 // v1.2.0 — D-2 (revisão DS): chipStatusVinculoHtml() migrada pro badge
 // oficial §14 (BADGE_NEUTRO/BADGE_PENDENTE/BADGE_OK, importados de
@@ -24,6 +31,15 @@ export function mostrarToast(msg, tipo) {
 }
 
 export function abrirModal(id) {
+    // v1.3.0 — fecha qualquer OUTRO .modal-overlay que já esteja aberto
+    // antes de abrir este. document.querySelectorAll pega todos os
+    // modais de nível 0 (não olha o modal-generico dinâmico à parte,
+    // que também usa esta classe e já se recria do zero a cada
+    // chamada — fechar ele junto é seguro, ele só perderia estado que
+    // já ia ser descartado mesmo).
+    document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(el => {
+        if (el.id !== id) el.classList.add('hidden');
+    });
     document.getElementById(id)?.classList.remove('hidden');
     refrescarIcones();
 }

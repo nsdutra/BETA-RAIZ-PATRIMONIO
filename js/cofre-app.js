@@ -244,6 +244,12 @@ document.addEventListener('click', async (ev) => {
         case 'limpar-filtro-ativos':
             document.getElementById('filtro-ativo-tipo').value = '';
             document.getElementById('filtro-ativo-busca').value = '';
+            // v1.14.0 (pedido explícito) — status/alerta entraram no
+            // modal de busca junto com os 2 campos que já existiam.
+            const selStatus = document.getElementById('filtro-ativo-status');
+            if (selStatus) selStatus.value = '';
+            const selAlerta = document.getElementById('filtro-ativo-alerta');
+            if (selAlerta) selAlerta.value = '';
             ativos.renderAtivosLista('', '');
             break;
         // v1.5.0 (31/08/2026, "Fase A" da fusão Ativos/Imóveis, pedido
@@ -431,6 +437,12 @@ document.getElementById('busca-global-input')?.addEventListener('input', debounc
 document.getElementById('busca-global-status')?.addEventListener('change', () => docs.renderizarBuscaGlobal());
 document.getElementById('filtro-ativo-tipo')?.addEventListener('change', () => ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value));
 document.getElementById('filtro-ativo-busca')?.addEventListener('input', debounce(() => ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value), 200));
+// v1.14.0 (pedido explícito, 01/09/2026) — Status/Alerta são lidos de
+// dentro de renderAtivosLista() diretamente do DOM (ver cofre-ativos.js
+// v1.8.0) — aqui só preciso disparar o re-render passando tipo/texto
+// como sempre; os 2 novos entram sozinhos.
+document.getElementById('filtro-ativo-status')?.addEventListener('change', () => ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value));
+document.getElementById('filtro-ativo-alerta')?.addEventListener('change', () => ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value));
 
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 

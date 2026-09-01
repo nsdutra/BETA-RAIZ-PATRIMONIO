@@ -6,7 +6,52 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.95.0
+   VERSÃO: Beta v1.96.0
+   LINHAS: 28946
+   DATA: 01/09/2026
+   NOVIDADES (Beta v1.96.0) — itens 4, 5 e 6 da sequência de pedidos
+   sobre a aba Ativos e o menu do App.
+
+   4) BOTÕES/MODAIS NO PADRÃO DE IMÓVEIS — achado real, não só ajuste:
+      as classes .modal-overlay/.modal-box, usadas por 15 modais
+      diferentes do Cofre (busca de ativos, upload, ficha de documento,
+      categorias, sub-tipos, modelos de controle etc.), NUNCA tiveram
+      CSS definido no contexto embutido no App — existiam só no <head>
+      do cofre.html, que nunca foi extraído junto (só o <body> foi
+      trazido). Corrigido: CSS adicionado (ver ativos-markup.js),
+      mesmo padrão bottom-sheet que o resto do app usa. "Apenas um
+      modal por vez": abrirModal() (cofre-ui.js) agora fecha qualquer
+      outro .modal-overlay aberto antes de abrir um novo.
+
+   5) MODAL DE CONSULTA AMPLIADO — busca por texto agora casa com nome
+      do ativo, locatário do contrato principal e título de item de
+      controle vinculado. 2 filtros novos: Status (Vago/Alugado/
+      Assinando pra imóveis; Ativo/Vendido/Arquivado pra outros ativos)
+      e Alerta (com/sem ocorrência pendente). Aplicam ao vivo.
+
+   6) TELA NOVA "PARTES" — cadastro único de pessoas/empresas que já
+      aparecem como locatário, fiador, interessado ou proprietário
+      (unificação de contrapartes, trens anteriores) — evita
+      recadastrar o mesmo CPF/CNPJ em contextos diferentes. Mesmo
+      padrão visual e de código do cadastro de Síndico (formulário
+      liga/desliga, lista com editar/excluir). No menu Configurações,
+      grupo Empresa, ao lado de Pessoas & acessos/Minha Empresa.
+      Diferença honesta do padrão de síndico: sem checkbox de vínculo
+      (síndico vincula empreendimentos; aqui os PAPÉIS continuam sendo
+      atribuídos automaticamente pelos fluxos de contrato/imóvel já
+      existentes — esta tela é só o cadastro da parte em si, mostrando
+      os papéis já atribuídos como informação). Atribuir um papel novo
+      direto desta tela (escolhendo o imóvel/contrato) é maior, fora
+      desta entrega.
+
+   Validado: node --check no bloco JS extraído, balanceamento de tags
+   com variação ZERO em relação ao arquivo do início desta sessão (só
+   os elementos void, como <input>, aumentaram — esperado, void não
+   tem fechamento pra contar), zero função ou id duplicado, GRANT/RLS
+   de partes e partes_papeis conferidos no banco antes de escrever
+   qualquer query.
+
+   VERSÃO ANTERIOR: Beta v1.95.0
    LINHAS: 28561
    DATA: 01/09/2026
    NOVIDADES (Beta v1.95.0) — pedidos explícitos sobre a Visão Geral e o
@@ -7038,6 +7083,16 @@
                     <span class="text-sm font-medium" style="color:var(--ink)">Minha Empresa</span>
                 </button>
 
+                <!-- v1.96.0 (pedido explícito, 01/09/2026: "vamos
+                     escrever uma nova tela para cadastro de partes...
+                     inclua isto no menu bonequinho") — REAL, mesmo
+                     padrão visual de Pessoas & acessos/Minha Empresa
+                     logo acima. -->
+                <button onclick="fecharMenuConta(); switchTab('tab-partes')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="contact" style="width:18px;height:18px;color:var(--sprout)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Partes</span>
+                </button>
+
                 <!-- v1.46.0 — navegação entre módulos. O Cofre (trilha
                      paralela "Conversa B") agora tem app real
                      (cofre.html); antes disso não fazia sentido linkar.
@@ -8926,6 +8981,148 @@
 
         </section>
 
+        <!-- v1.96.0 (pedido explícito, 01/09/2026: "vamos escrever uma
+             nova tela para cadastro de partes... use os padrões já
+             existente em cadastro de síndico") — MESMA estrutura de
+             tab-sindicos linha por linha: breadcrumb Voltar, título +
+             botão toggle "+", descrição, formulário liga/desliga,
+             lista embaixo. Gerencia a tabela partes (cadastro base —
+             nome/documento/contato), que já existe desde a unificação
+             de contrapartes (locatário/fiador/interessado/proprietário
+             — 31/08 a 29/08/2026, trens anteriores).
+             Diferença honesta do padrão de síndico: aqui não há
+             checkbox de "empreendimentos atendidos" — os PAPÉIS
+             (locatário/fiador/interessado/proprietário) continuam
+             sendo atribuídos automaticamente pelos fluxos já existentes
+             (criar contrato, substituir fiadores, etc.), nunca daqui.
+             Esta tela é o cadastro/consulta da PESSOA em si (evita
+             recadastro duplicado quando o mesmo CPF já é parte em outro
+             contexto) — a lista mostra os papéis que a parte já tem,
+             como informação, não como campo editável. Fundir os 2 (dar
+             pra atribuir um papel novo direto daqui, escolhendo o
+             imóvel/contrato) é maior — precisaria de uma tela de
+             vínculo por tipo de papel, ficou de fora desta entrega. -->
+        <section id="tab-partes" class="tab-content hidden">
+
+            <button onclick="switchTab('tab-parametrizacoes')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
+
+            <div class="flex items-center gap-3 mb-4">
+
+                <h2 class="text-lg font-bold text-emerald-900 flex-1">Partes</h2>
+
+                <button id="btn-toggle-parte" onclick="alternarFormularioParte()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar parte"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+
+            </div>
+
+            <p class="text-[11px] text-gray-500 mb-4">Cadastro único de pessoas e empresas que já aparecem como locatário, fiador, interessado ou proprietário — evita recadastrar o mesmo CPF/CNPJ em contextos diferentes. Os papéis são atribuídos automaticamente pelos fluxos de contrato/imóvel; aqui é só o cadastro da parte em si.</p>
+
+            <div id="form-parte-wrapper" class="hidden">
+
+                <div class="flex justify-between items-center mb-4">
+
+                    <h2 class="text-lg font-bold text-slate-900" id="form-parte-titulo">Cadastrar Parte</h2>
+
+                </div>
+
+                <form id="form-parte" onsubmit="salvarParte(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
+
+                    <input type="hidden" id="parte-id">
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-600">Nome <span style="color:var(--danger)">*</span></label>
+
+                        <input type="text" id="parte-nome" required class="w-full p-2 border rounded mt-1 text-sm">
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-600">Documento (CPF ou CNPJ)</label>
+
+                        <input type="text" id="parte-documento" oninput="formatarMascaraDocumentoGenerico(this, 'parte-doc-indicador')" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm">
+
+                        <p id="parte-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-600">Nome Fantasia</label>
+
+                        <input type="text" id="parte-nome-fantasia" placeholder="Se for pessoa jurídica" class="w-full p-2 border rounded mt-1 text-sm">
+
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+
+                        <div>
+
+                            <label class="block text-xs font-bold text-gray-600">WhatsApp</label>
+
+                            <input type="tel" id="parte-whatsapp" oninput="aplicarMascaraTelefone(this); validarTelefoneComIndicador(this, 'parte-whatsapp-indicador');" placeholder="(11) 91234-5678" class="w-full p-2 border rounded mt-1 text-sm">
+
+                            <p id="parte-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+
+                        </div>
+
+                        <div>
+
+                            <label class="block text-xs font-bold text-gray-600">E-mail</label>
+
+                            <input type="email" id="parte-email" oninput="validarEmailComIndicador(this, 'parte-email-indicador')" class="w-full p-2 border rounded mt-1 text-sm">
+
+                            <p id="parte-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-600">Endereço</label>
+
+                        <input type="text" id="parte-endereco" class="w-full p-2 border rounded mt-1 text-sm">
+
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+
+                        <div>
+
+                            <label class="block text-xs font-bold text-gray-600">Profissão</label>
+
+                            <input type="text" id="parte-profissao" class="w-full p-2 border rounded mt-1 text-sm">
+
+                        </div>
+
+                        <div>
+
+                            <label class="block text-xs font-bold text-gray-600">Estado civil</label>
+
+                            <select id="parte-estado-civil" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                                <option value="">Não informado</option>
+                                <option value="Solteiro(a)">Solteiro(a)</option>
+                                <option value="Casado(a)">Casado(a)</option>
+                                <option value="Divorciado(a)">Divorciado(a)</option>
+                                <option value="Viúvo(a)">Viúvo(a)</option>
+                                <option value="União estável">União estável</option>
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Parte</button>
+
+                </form>
+
+            </div>
+
+            <div id="lista-partes" class="space-y-3 mb-6"></div>
+
+        </section>
+
         <section id="tab-manutencistas" class="tab-content hidden">
 
             <button onclick="switchTab('tab-parametrizacoes')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
@@ -9516,7 +9713,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.95.0";
+        const APP_VERSAO = "Beta v1.96.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -15267,6 +15464,11 @@
             // só busca quando a pessoa realmente abre Resultados.
             if (tabId === 'tab-relatorios' && typeof montarResumoResultados === 'function') {
                 montarResumoResultados();
+            }
+            // v1.96.0 (pedido explícito) — Partes: mesmo padrão de
+            // lazy-load, só busca quando a pessoa abre a aba de verdade.
+            if (tabId === 'tab-partes' && typeof carregarPartes === 'function') {
+                carregarPartes();
             }
             // v1.80.0 — Ativos: import dinâmico, mesmo padrão já usado pras
             // abas de Configurações (Licença/Sobre/Pessoas/Minha Empresa)
@@ -28406,6 +28608,189 @@
             }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
+        }
+
+        // ---- PARTES (v1.96.0, pedido explícito, 01/09/2026) ----
+        // "use os padrões já existente em cadastro de síndico" — mesma
+        // forma (abrir/alternar/cancelar/editar/salvar/excluir/render),
+        // mas CRUD direto no Supabase (dbAuth.from('partes')), não pelo
+        // array local + saveAll() em lote que síndico/manutencista/
+        // administradora usam — partes é tabela nova (unificação de
+        // contrapartes, trens anteriores), nunca fez parte desse
+        // sistema de lote, e não faria sentido começar a fazer agora só
+        // por consistência com um padrão mais antigo.
+        // papeisPorParte é um Map<parte_id, string[]> carregado 1x
+        // junto com a lista (1 query só pra todos os papéis, não 1 por
+        // parte) — mostrado como badge informativo no card, nunca
+        // editável aqui (ver comentário no HTML, tab-partes, pro
+        // porquê).
+        let partesCliente = [];
+        let papeisPorParte = {};
+
+        async function carregarPartes() {
+            const container = document.getElementById('lista-partes');
+            if (container) container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Carregando...</p>';
+            try {
+                const { data: dataPartes, error: erroPartes } = await dbAuth.from('partes')
+                    .select('*')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                    .order('nome');
+                if (erroPartes) throw erroPartes;
+                partesCliente = dataPartes || [];
+
+                const { data: dataPapeis, error: erroPapeis } = await dbAuth.from('partes_papeis')
+                    .select('parte_id, papel')
+                    .eq('ativo', true);
+                if (erroPapeis) throw erroPapeis;
+
+                papeisPorParte = {};
+                (dataPapeis || []).forEach(p => {
+                    (papeisPorParte[p.parte_id] = papeisPorParte[p.parte_id] || []).push(p.papel);
+                });
+            } catch (err) {
+                console.warn('[partes] Falha ao carregar:', err.message);
+                if (container) container.innerHTML = '<p class="text-xs text-center text-red-500 py-4">Não foi possível carregar agora.</p>';
+                return;
+            }
+            renderPartes();
+        }
+
+        function abrirFormParte() {
+            cancelarEdicaoParte();
+            document.getElementById('form-parte-wrapper').classList.remove('hidden');
+            sincronizarBotaoToggleServico('parte');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function alternarFormularioParte() {
+            const wrapper = document.getElementById('form-parte-wrapper');
+            if (wrapper && !wrapper.classList.contains('hidden')) {
+                cancelarEdicaoParte();
+            } else {
+                abrirFormParte();
+            }
+        }
+
+        function cancelarEdicaoParte() {
+            document.getElementById('parte-id').value = '';
+            document.getElementById('form-parte').reset();
+            document.getElementById('form-parte-titulo').innerText = 'Cadastrar Parte';
+            document.getElementById('form-parte-wrapper').classList.add('hidden');
+            sincronizarBotaoToggleServico('parte');
+        }
+
+        function editarParte(id) {
+            const parte = partesCliente.find(p => p.id === id);
+            if (!parte) return;
+
+            document.getElementById('parte-id').value = parte.id;
+            document.getElementById('parte-nome').value = parte.nome || '';
+            document.getElementById('parte-documento').value = parte.documento || '';
+            document.getElementById('parte-nome-fantasia').value = parte.nome_fantasia || '';
+            document.getElementById('parte-whatsapp').value = parte.whatsapp || '';
+            document.getElementById('parte-email').value = parte.email || '';
+            document.getElementById('parte-endereco').value = parte.endereco || '';
+            document.getElementById('parte-profissao').value = parte.profissao || '';
+            document.getElementById('parte-estado-civil').value = parte.estado_civil || '';
+
+            document.getElementById('form-parte-titulo').innerText = 'Editar Parte';
+            document.getElementById('form-parte-wrapper').classList.remove('hidden');
+            sincronizarBotaoToggleServico('parte');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function salvarParte(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('parte-id').value;
+            const documento = document.getElementById('parte-documento').value.trim();
+            const digitos = documento.replace(/\D/g, '');
+
+            if (digitos.length > 0) {
+                const tipo = digitos.length > 11 ? 'CNPJ' : 'CPF';
+                if (tipo === 'CPF' && !validarCPF(documento)) {
+                    alert("⚠️ O documento informado não é um CPF válido.");
+                    return;
+                }
+                if (tipo === 'CNPJ' && !validarCNPJ(documento)) {
+                    alert("⚠️ O documento informado não é um CNPJ válido.");
+                    return;
+                }
+            }
+
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                nome: document.getElementById('parte-nome').value.trim(),
+                doc_tipo: digitos.length > 11 ? 'CNPJ' : (digitos.length > 0 ? 'CPF' : null),
+                documento: documento || null,
+                nome_fantasia: document.getElementById('parte-nome-fantasia').value.trim() || null,
+                whatsapp: document.getElementById('parte-whatsapp').value.trim() || null,
+                email: document.getElementById('parte-email').value.trim() || null,
+                endereco: document.getElementById('parte-endereco').value.trim() || null,
+                profissao: document.getElementById('parte-profissao').value.trim() || null,
+                estado_civil: document.getElementById('parte-estado-civil').value || null,
+            };
+
+            try {
+                if (id) {
+                    const { error } = await dbAuth.from('partes').update(linha).eq('id', id);
+                    if (error) throw error;
+                } else {
+                    const { error } = await dbAuth.from('partes').insert(linha);
+                    if (error) throw error;
+                }
+                mostrarToast('Parte salva com sucesso!');
+                cancelarEdicaoParte();
+                await carregarPartes();
+            } catch (err) {
+                alert('⚠️ Não foi possível salvar: ' + err.message);
+            }
+        }
+
+        async function excluirParte(id) {
+            if ((papeisPorParte[id] || []).length > 0) {
+                alert("⚠️ Não é possível excluir: esta parte tem papel(éis) ativo(s) (locatário, fiador, interessado ou proprietário). Desvincule pelo contrato/imóvel antes de excluir o cadastro.");
+                return;
+            }
+            if (!confirm("Confirma a exclusão desta parte?")) return;
+            try {
+                const { error } = await dbAuth.from('partes').delete().eq('id', id);
+                if (error) throw error;
+                mostrarToast('Parte excluída.');
+                await carregarPartes();
+            } catch (err) {
+                alert('⚠️ Não foi possível excluir: ' + err.message);
+            }
+        }
+
+        function renderPartes() {
+            const container = document.getElementById('lista-partes');
+            if (!container) return;
+
+            if (partesCliente.length === 0) {
+                container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhuma parte cadastrada.</p>';
+                return;
+            }
+
+            const rotuloPapel = { locatario: 'Locatário', fiador: 'Fiador', interessado: 'Interessado', proprietario: 'Proprietário' };
+
+            container.innerHTML = partesCliente.map(parte => {
+                const papeis = papeisPorParte[parte.id] || [];
+                const badgesPapeis = papeis.map(p => `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">${rotuloPapel[p] || p}</span>`).join(' ');
+                return `
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-xs font-bold text-slate-900">${parte.nome}${parte.nome_fantasia ? ' · ' + parte.nome_fantasia : ''}</p>
+                        <p class="text-[11px] text-gray-500">${parte.doc_tipo || 'Documento'}: ${parte.documento || '-'}</p>
+                        ${(parte.whatsapp || parte.email) ? `<p class="text-[11px] text-gray-500">${parte.whatsapp || ''}${parte.whatsapp && parte.email ? ' · ' : ''}${parte.email || ''}</p>` : ''}
+                        ${badgesPapeis ? `<div class="flex flex-wrap gap-1 mt-1.5">${badgesPapeis}</div>` : `<p class="text-[11px] text-gray-400 italic mt-1">Sem papel atribuído ainda</p>`}
+                        <div class="flex gap-1.5 mt-2">
+                            <button onclick="editarParte('${parte.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
+                            <button onclick="excluirParte('${parte.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // ---- MANUTENCISTAS ----

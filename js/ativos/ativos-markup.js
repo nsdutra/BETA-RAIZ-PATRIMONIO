@@ -129,6 +129,28 @@ export const ATIVOS_MARKUP = `<style>
        repetir em cada lugar que usa a classe. -->
     .raiz-sem-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
     .raiz-sem-scrollbar::-webkit-scrollbar { display: none; }
+
+    /* v1.95.1 (01/09/2026, pedido explícito: "os botões devem funcionar
+       da mesma forma que no módulo de imóveis, abrindo modais no bottom
+       sheet") — ACHADO REAL, não só ajuste: .modal-overlay/.modal-box
+       são usadas por 15 modais diferentes deste módulo (busca de
+       ativos, upload, ficha de documento, sugestões de IA, criação
+       assistida, categorias, sub-tipos, modelos de controle, menu de
+       conta do Cofre, sobre) — e essas 2 classes NUNCA tiveram CSS
+       definido no contexto embutido no App. No cofre.html standalone
+       elas vêm do <style> do <head>, que nunca foi extraído junto (só o
+       <body> foi trazido pra cá, ver comentário no topo do arquivo) —
+       um vazio real, presente desde a v1.80.0, só agora encontrado.
+       Mesmo padrão bottom-sheet Tipo B do Design System (sobe de baixo,
+       cantos só em cima, fundo escurecido) — igual ao resto do app.
+       display:flex vem de regra de CLASSE (:not(.hidden)), nunca
+       inline junto com position:fixed no mesmo elemento — é a mesma
+       armadilha já documentada no Design System (§9, Tipo A): estilo
+       inline sempre vence .hidden por especificidade CSS. */
+    .modal-overlay { position: fixed; inset: 0; z-index: 96; align-items: flex-end; justify-content: center; background: rgba(23,33,30,.5); }
+    .modal-overlay:not(.hidden) { display: flex; }
+    .modal-box { background: #fff; border-radius: 16px 16px 0 0; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; }
+
 </style><div id="tela-bootstrap" class="hidden"></div>
 <div id="tela-erro-acesso" class="hidden"></div>
 
@@ -836,7 +858,19 @@ export const ATIVOS_MARKUP = `<style>
             <button data-action="fechar-busca-ativos" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
         </div>
         <div class="p-3 space-y-3">
-            <input id="filtro-ativo-busca" type="text" placeholder="Buscar por nome do ativo…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
+            <!-- v1.8.0 (pedido explícito, 01/09/2026: "ajustar o modal de
+                 consultas para consultar nos campos chaves de ativo,
+                 contrato e itens de controle. ajuste para filtrar por
+                 status, por alerta") — o campo de texto agora casa com
+                 nome do ativo, locatário do contrato principal e título
+                 de item de controle vinculado (ver renderAtivosLista()).
+                 2 dropdowns novos: Status (2 vocabulários — imóvel
+                 Vago/Alugado/Assinando, ou ativo em geral ativo/vendido/
+                 arquivado, sinalizados por optgroup) e Alerta (tem/não
+                 tem ocorrência aberta vinculada). Aplicam ao vivo
+                 (onchange), mesmo padrão do Overlay de Busca do resto
+                 do app — sem botão "Aplicar". -->
+            <input id="filtro-ativo-busca" type="text" placeholder="Buscar por nome, locatário ou item de controle…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
             <select id="filtro-ativo-tipo" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
                 <option value="">Todos os tipos</option>
                 <option value="veiculo">Veículos</option>
@@ -846,6 +880,24 @@ export const ATIVOS_MARKUP = `<style>
                 <option value="vida_protecao">Vida / proteção</option>
                 <option value="obra_arte">Obras de arte</option>
                 <option value="outro">Outros</option>
+            </select>
+            <select id="filtro-ativo-status" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
+                <option value="">Todos os status</option>
+                <optgroup label="Imóveis">
+                    <option value="prop:Vago">Vago</option>
+                    <option value="prop:Alugado">Alugado</option>
+                    <option value="prop:Assinando">Assinando</option>
+                </optgroup>
+                <optgroup label="Outros ativos">
+                    <option value="ativo:ativo">Ativo</option>
+                    <option value="ativo:vendido">Vendido</option>
+                    <option value="ativo:arquivado">Arquivado</option>
+                </optgroup>
+            </select>
+            <select id="filtro-ativo-alerta" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
+                <option value="">Qualquer alerta</option>
+                <option value="com">Só com alerta pendente</option>
+                <option value="sem">Só sem alerta</option>
             </select>
             <button type="button" data-action="limpar-filtro-ativos" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
         </div>
