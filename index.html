@@ -6,7 +6,64 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.91.0
+   VERSÃO: Beta v1.92.0
+   LINHAS: 28135
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.92.0) — Mudança de paleta de cores, decisão de
+   design já tomada em conversa separada (documento de instruções
+   colado nesta sessão) — aplicada com rigor, sem redesenhar nada.
+
+   2 tokens novos no :root, mesma família de matiz do --pine já
+   existente: --sprout (#3f8163) e --sprout-light (#dcebe0). Regra:
+   --pine/--pine-deep ficam reservados pra telas de AUTORIDADE (contrato,
+   minuta, fiador, divisão societária de contrato — qualquer tela que
+   precisa parecer séria de propósito); --sprout vira o padrão do DIA A
+   DIA (header, barra de baixo, menu Configurações, botões "Salvar" fora
+   de contexto de contrato).
+
+   Antes de trocar qualquer coisa: grep de TODO uso de var(--pine)/
+   var(--pine-deep) no arquivo (68 pontos reais), classificados em
+   autoridade × dia a dia × ambíguo. Como passou de 15 pontos, PAREI e
+   mostrei a lista completa pro Nicola antes de mexer em código (regra
+   do próprio pedido, mesmo critério já usado pra escopo de rename de
+   coluna). Confirmado: (a) escopo só index.html nesta entrega —
+   cofre.html fica pra depois; (b) os pontos ambíguos (trocar de empresa,
+   pessoas & acessos, minha empresa, distribuição de sócios do imóvel,
+   toggle genérico, toast, banner de upsell) entram como dia a dia.
+
+   48 pontos viraram --sprout: header principal, indicador da barra de
+   baixo (JS + CSS), os 18 ícones do menu Configurações, os 2 cards hero
+   (Visão Geral e Resumo de Resultados — gradiente pine-deep→pine virou
+   sprout SÓLIDO, porque não existe --sprout-deep nos tokens definidos;
+   sinalizando essa decisão, não escondendo), os 5 segmentos de 2 botões
+   (Imóveis/Ativos, Recebimentos/Atrasados, Resumo/Distribuição), Salvar
+   Imóvel, Confirmar Retirada, toast informativo, banner de upsell de
+   plano, toggle de preferência de comunicação, dots do onboarding.
+
+   18 pontos ficaram --pine de propósito (autoridade, contrato/minuta/
+   fiador): confirmado 1 a 1 depois da troca, por conteúdo (não por
+   número de linha, que mudou ao inserir os tokens no :root) — nenhum
+   deles foi tocado.
+
+   Teste de contraste (WCAG AA) rodado ANTES de aplicar, não assumido:
+   branco sobre --sprout = 4,63:1 — passa AA pra texto normal (mínimo
+   4.5), mas com margem pequena; recomendo conferência visual em
+   aparelho real. --sprout como TEXTO sobre --sprout-light = 3,75:1 —
+   FALHA AA pra texto normal (só serve pra elementos grandes/ícones,
+   nunca texto de corpo nessa combinação — nenhum ponto desta entrega
+   usa essa combinação, registrado aqui como limite conhecido pra
+   entregas futuras).
+
+   Documento DESIGN_SYSTEM_RAIZ_PATRIMONIO não estava anexado nesta
+   conversa — o patch da paleta foi entregue como arquivo avulso, pronto
+   pra aplicar quando o documento real vier (ver mensagem de entrega).
+
+   cofre.html e Módulo de Gestão (raiz-gestao)/raiz-site ficaram fora
+   desta entrega, de propósito (decidido antes de começar). Nenhum
+   arquivo novo entrou no fluxo de deploy — é o mesmo index.html de
+   sempre, só editado.
+
+   VERSÃO ANTERIOR: Beta v1.91.0
    LINHAS: 28067
    DATA: 31/08/2026
    NOVIDADES (Beta v1.91.0) — Sequência de pedidos explícitos, todos
@@ -5781,9 +5838,20 @@
         .raiz-badge-atributo { background: var(--warning-bg); color: var(--warning); }
 
         /* Tokens de marca — usar nos componentes novos (toast, onboarding, badges).
-           Mesmos valores da landing page (www.raizpatrimonio.com.br). */
+           Mesmos valores da landing page (www.raizpatrimonio.com.br).
+           v1.92.0 (31/08/2026, pedido explícito, decisão de design já
+           tomada em conversa separada) — --sprout/--sprout-light novos,
+           mesma família de matiz do --pine. Regra de uso (ver
+           DESIGN_SYSTEM_RAIZ_PATRIMONIO, patch v2.1): --pine/--pine-deep
+           ficam reservados pra telas de autoridade (contrato, minuta,
+           fiador, divisão societária de CONTRATO) — não tocados nesta
+           entrega. --sprout vira o padrão do dia a dia (header, barra de
+           baixo, menu Configurações, botões "Salvar" fora de contrato).
+           Não são 2 marcas — mesma raiz, peso num lugar, abertura no
+           outro. */
         :root{
             --pine:#1e3a32; --pine-deep:#152a24; --pine-light:#2d5347;
+            --sprout:#3f8163; --sprout-light:#dcebe0;
             --brass:#c68a3b; --brass-deep:#a86f27; --brass-light:#f0c88a;
             --sage:#6b857a; --ink:#17211e; --paper:#faf9f5; --line:#e6e3da;
             --success:#2f8b57; --success-bg:#e8f5ed;
@@ -5801,18 +5869,18 @@
            classe .raiz-btn-toggle no botão e alternar .ativo via JS junto
            com o hidden do painel correspondente. */
         .raiz-btn-toggle.ativo {
-            background: var(--pine) !important;
+            background: var(--sprout) !important;
             color: #fff !important;
-            border-color: var(--pine) !important;
+            border-color: var(--sprout) !important;
         }
 
         /* v1.41.2 — mesmo princípio, só que para os botões menores "..."
            (reajuste de contrato, "Energia/multa/taxa" da aba Mensal): fundo
            escurece enquanto o painel abaixo dele está aberto. */
         .raiz-btn-toggle-mini.ativo {
-            background: var(--pine) !important;
+            background: var(--sprout) !important;
             color: #fff !important;
-            border-color: var(--pine) !important;
+            border-color: var(--sprout) !important;
         }
 
         /* v1.41.3 — CORRIGIDO: os botões +/X de Síndico/Manutencista/
@@ -5878,7 +5946,7 @@
         #bottom-nav-bar button{position:relative}
         #bottom-nav-bar button.bottomnav-active::before{
             content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
-            width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--pine);
+            width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--sprout);
         }
 
         .rubrica-digital {
@@ -6392,7 +6460,7 @@
 
     <!-- ================= HEADER E NAVEGAÇÃO ================= -->
 
-    <header id="main-header" class="hidden text-white sticky top-0 z-50 shadow-md" style="background:var(--pine-deep)">
+    <header id="main-header" class="hidden text-white sticky top-0 z-50 shadow-md" style="background:var(--sprout)">
 
         <div class="p-3 flex justify-between items-center bg-emerald-950">
 
@@ -6597,7 +6665,7 @@
                  atualizarMenuContaHeader() sempre que a empresa é
                  carregada/trocada (mesmo hook do avatar do header). -->
             <div class="flex items-center gap-3 px-5 pt-4 pb-4 border-b" style="border-color:var(--line)">
-                <div id="sheet-avatar-iniciais" class="w-11 h-11 rounded-full flex items-center justify-center text-white font-extrabold text-sm flex-none" style="background:var(--pine)">–</div>
+                <div id="sheet-avatar-iniciais" class="w-11 h-11 rounded-full flex items-center justify-center text-white font-extrabold text-sm flex-none" style="background:var(--sprout)">–</div>
                 <div class="min-w-0">
                     <p id="sheet-nome-usuario" class="text-sm font-bold truncate" style="color:var(--ink)">-</p>
                     <p id="sheet-empresa-perfil" class="text-[11px] truncate" style="color:var(--sage)">-</p>
@@ -6612,7 +6680,7 @@
                 <!-- "Meu perfil" — Em breve: não existe tela de perfil
                      pessoal ainda (edição do próprio nome/e-mail/senha). -->
                 <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="user-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="user-circle" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium flex-1" style="color:var(--ink)">Meu perfil</span>
                     <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
                 </button>
@@ -6620,7 +6688,7 @@
                 <!-- "Trocar de empresa" — REAL (v1.89.0): reaproveita a
                      trocarEmpresa() que já existia só na aba DEV. -->
                 <button onclick="fecharMenuConta(); trocarEmpresa()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="arrow-left-right" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="arrow-left-right" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Trocar de empresa</span>
                 </button>
 
@@ -6633,12 +6701,12 @@
                      v1.89.0 — só mudou de grupo (era "Conta" no fim do menu,
                      agora é "Conta" no topo) — mesma função, mesmo botão. -->
                 <button onclick="fecharMenuConta(); abrirPreferenciasComunicacao()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Preferências de comunicação</span>
                 </button>
 
                 <a href="https://wa.me/5511947461828" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
-                    <svg data-lucide="life-buoy" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="life-buoy" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
                 </a>
 
@@ -6648,32 +6716,32 @@
                 <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Cadastros e prestadores</p>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-minutas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="file-signature" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="file-signature" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Minutas de Contrato</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-sindicos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="building-2" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="building-2" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Síndicos / Gestoras</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-administradoras')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="briefcase" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="briefcase" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Administradoras</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-manutencistas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="wrench" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="wrench" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Manutencistas</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-tipo-imovel')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="home" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="home" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Imóvel</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-tipo-empreendimento')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="landmark" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="landmark" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Empreendimento</span>
                 </button>
 
@@ -6681,7 +6749,7 @@
                      vive dentro do formulário de cada imóvel (parteRumo/
                      sócios por linha), não existe tela própria consolidada. -->
                 <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="handshake" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="handshake" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium flex-1" style="color:var(--ink)">Sócios &amp; cotas</span>
                     <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
                 </button>
@@ -6690,7 +6758,7 @@
                      (calendário de IPTU e afins, v1.86.0) só é editável hoje via
                      SQL/seed — não tem tela de administração pro Nicola ainda. -->
                 <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium flex-1" style="color:var(--ink)">Modelos de controle</span>
                     <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
                 </button>
@@ -6704,12 +6772,12 @@
                 <!-- v1.89.0 — rótulo alinhado ao protótipo ("Pessoas &
                      acessos"); mesmo botão, mesma tab-pessoas de sempre. -->
                 <button onclick="fecharMenuConta(); switchTab('tab-pessoas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="users" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Pessoas &amp; acessos</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-minha-empresa')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="building" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="building" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Minha Empresa</span>
                 </button>
 
@@ -6747,7 +6815,7 @@
                      já mostra as barras de uso por funcionalidade — não
                      precisei duplicar aqui, só sinalizar o plano de cara. -->
                 <button onclick="fecharMenuConta(); switchTab('tab-licenca')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="badge-check" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium flex-1" style="color:var(--ink)">Licença &amp; uso</span>
                     <span id="badge-plano-menu-conta" class="hidden text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:var(--brass-light,#f0c88a);color:var(--brass-deep,#a86f27)"></span>
                 </button>
@@ -6759,7 +6827,7 @@
                      mascote no header (abrirBotWhatsapp()), não é uma
                      segunda integração, é a mesma com 2ª porta de entrada. -->
                 <button onclick="fecharMenuConta(); abrirBotWhatsapp()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="bot" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="bot" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">WhatsApp (R.AI.Z)</span>
                 </button>
 
@@ -6768,7 +6836,7 @@
                      certificado A1 pra emissão direta ainda não tem tela
                      nem decisão de guarda fechada. -->
                 <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="file-check-2" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="file-check-2" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium flex-1" style="color:var(--ink)">Certificado / NFS-e</span>
                     <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
                 </button>
@@ -6778,7 +6846,7 @@
                      uma tela própria de conexão/gestão de conta bancária
                      ainda não existe. -->
                 <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="banknote" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="banknote" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium flex-1" style="color:var(--ink)">Banco (extrato)</span>
                     <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
                 </button>
@@ -6791,7 +6859,7 @@
                      DEPLOY_RAIZ_PATRIMONIO.md §2); a página já linka
                      Política de Privacidade e Termo de Beta no rodapé. -->
                 <a href="https://raizpatrimonio.com.br/termos-de-uso" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
-                    <svg data-lucide="scroll-text" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="scroll-text" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Termos &amp; privacidade</span>
                 </a>
 
@@ -6799,7 +6867,7 @@
                      do menu antigo, agora é "Legal" no fim do novo, mesma
                      posição relativa que o protótipo usa) — mesma tela. -->
                 <button onclick="fecharMenuConta(); switchTab('tab-sobre')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="info" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <svg data-lucide="info" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Sobre</span>
                 </button>
 
@@ -6831,7 +6899,7 @@
 
         <section id="tab-geral" class="tab-content active">
 
-            <div class="rounded-2xl p-4 text-white shadow" style="background:linear-gradient(135deg,var(--pine-deep),var(--pine))">
+            <div class="rounded-2xl p-4 text-white shadow" style="background:var(--sprout)">
                 <div class="text-xs opacity-80 font-semibold">Como está seu patrimônio hoje</div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
                     <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Imóveis</div><div id="geral-total-imoveis" class="text-xl font-extrabold mt-1">0</div></div>
@@ -6873,7 +6941,7 @@
                  navegação — "Imóveis" deixou de ter ícone próprio na
                  barra de baixo, agora vive aqui dentro de "Ativos". -->
             <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-imoveis')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Imóveis</button>
+                <button onclick="switchTab('tab-imoveis')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Imóveis</button>
                 <button onclick="switchTab('tab-ativos')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Ativos</button>
             </div>
 
@@ -7209,7 +7277,7 @@
                     <!-- fim imo-step-3 -->
 
                     <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button type="submit" id="btn-salvar-imo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar Imóvel</button>
+                        <button type="submit" id="btn-salvar-imo" style="flex:1;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar Imóvel</button>
                         <button type="button" onclick="fecharCadastroImovelModal()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
                     </div>
 
@@ -7251,7 +7319,7 @@
                  abertura da aba. Aqui, como irmão do container, sobrevive. -->
             <div class="flex gap-2 mb-3">
                 <button onclick="switchTab('tab-imoveis')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Imóveis</button>
-                <button onclick="switchTab('tab-ativos')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Ativos</button>
+                <button onclick="switchTab('tab-ativos')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Ativos</button>
             </div>
 
             <div id="ativos-mount-point"></div>
@@ -7917,7 +7985,7 @@
                  v1.52.0), agora reaproveitada como o vínculo entre as duas
                  abas em vez de filtro interno. -->
             <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Recebimentos</button>
+                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Recebimentos</button>
                 <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Atrasados</button>
             </div>
 
@@ -8078,7 +8146,7 @@
 
             <div class="flex gap-2 mb-3">
                 <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Atrasados</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Atrasados</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos e
@@ -8169,7 +8237,7 @@
                  deixou de ter ícone próprio na barra e passou a viver
                  dentro de Resultados, junto de Métricas. -->
             <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Resumo</button>
+                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Resumo</button>
                 <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Distribuição</button>
             </div>
 
@@ -8250,7 +8318,7 @@
 
             <div class="flex gap-2 mb-3">
                 <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Resumo</button>
-                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Distribuição</button>
+                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Distribuição</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): título "Distribuições"
@@ -9155,7 +9223,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.91.0";
+        const APP_VERSAO = "Beta v1.92.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -11726,7 +11794,7 @@
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
                         <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="confirmarRegistrarRetiradaPopup()" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Confirmar Retirada</button>
+                        <button onclick="confirmarRegistrarRetiradaPopup()" style="flex:1;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Confirmar Retirada</button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);
@@ -14278,7 +14346,7 @@
             const cores = {
                 success: { bg: 'var(--success)', icon: 'check-circle-2' },
                 danger:  { bg: 'var(--danger)',  icon: 'alert-circle' },
-                info:    { bg: 'var(--pine)',    icon: 'loader-circle' }
+                info:    { bg: 'var(--sprout)',    icon: 'loader-circle' }
             };
             const cor = cores[tipo] || cores.success;
 
@@ -14374,7 +14442,7 @@
                     <p style="font-size:13.5px; color:#4a5852; margin-bottom:20px;">Pra continuar cadastrando, é só contratar o Raiz Patrimônio — a gente libera na hora.</p>
                     <a href="https://wa.me/5511947461828?text=${mensagemZap}" target="_blank"
                        onclick="registrarInteresseContratacao('${origemLog || 'banner_limite'}')"
-                       style="display:block; background:var(--pine,#1e3a32); color:#fff; font-weight:700; padding:12px; border-radius:999px; text-decoration:none; margin-bottom:10px;">
+                       style="display:block; background:var(--sprout,#3f8163); color:#fff; font-weight:700; padding:12px; border-radius:999px; text-decoration:none; margin-bottom:10px;">
                        Contrate agora
                     </a>
                     <button onclick="document.getElementById('overlay-banner-contratacao').remove()" style="background:none;border:none;color:#6b857a;font-size:13px;font-weight:600;cursor:pointer;">Agora não</button>
@@ -14428,7 +14496,7 @@
                         style="width:100%; border:1px solid var(--line,#e6e3da); border-radius:10px; padding:10px; font-size:13.5px; margin-bottom:14px; font-family:inherit; box-sizing:border-box;"></textarea>
                     <div style="display:flex; gap:8px;">
                         <button onclick="document.getElementById('overlay-feedback-livre').remove()" style="flex:1; background:#f2efe7; color:#4a5852; font-weight:600; padding:10px; border-radius:999px; border:none; font-size:13px; cursor:pointer;">Cancelar</button>
-                        <button onclick="enviarFeedbackLivre()" style="flex:1.4; background:var(--pine,#1e3a32); color:#fff; font-weight:700; padding:10px; border-radius:999px; border:none; font-size:13px; cursor:pointer;">Enviar</button>
+                        <button onclick="enviarFeedbackLivre()" style="flex:1.4; background:var(--sprout,#3f8163); color:#fff; font-weight:700; padding:10px; border-radius:999px; border:none; font-size:13px; cursor:pointer;">Enviar</button>
                     </div>
                 </div>
             `;
@@ -14836,8 +14904,8 @@
                 btnDestaque.classList.add('bottomnav-active');
                 const svg = btnDestaque.querySelector('svg');
                 const label = btnDestaque.querySelector('span');
-                if (svg) svg.style.color = 'var(--pine)';
-                if (label) label.style.color = 'var(--pine)';
+                if (svg) svg.style.color = 'var(--sprout)';
+                if (label) label.style.color = 'var(--sprout)';
             }
 
             devLog("NAVEGACAO", `Usuário acessou a aba: ${tabId}`);
@@ -15034,7 +15102,7 @@
                         <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${item.titulo || item.codigo}</span>
                         <button data-comunicacao-id="${item.comunicacao_id}" data-atual="${item.optou_out ? '1' : '0'}"
                             onclick="alternarPreferenciaComunicacao(this)"
-                            style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;background:${item.optou_out ? '#d7d2c4' : 'var(--pine,#1e3a32)'};transition:background .15s">
+                            style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;background:${item.optou_out ? '#d7d2c4' : 'var(--sprout,#3f8163)'};transition:background .15s">
                             <span style="position:absolute;top:2px;left:${item.optou_out ? '2px' : '22px'};width:20px;height:20px;border-radius:999px;background:#fff;transition:left .15s"></span>
                         </button>
                     </div>`).join('');
@@ -15052,7 +15120,7 @@
                 const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao', { p_comunicacao_id: comunicacaoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_optar_out: optarOutAgora });
                 if (error) throw error;
                 btn.dataset.atual = optarOutAgora ? '1' : '0';
-                btn.style.background = optarOutAgora ? '#d7d2c4' : 'var(--pine)';
+                btn.style.background = optarOutAgora ? '#d7d2c4' : 'var(--sprout)';
                 btn.querySelector('span').style.left = optarOutAgora ? '2px' : '22px';
             } catch (err) {
                 mostrarToast('Não foi possível salvar sua preferência.', 'danger');
@@ -15468,7 +15536,7 @@
                 const dot = document.getElementById('imo-step-dot-' + i);
                 if (dot) {
                     dot.style.width = (i === destino) ? '24px' : '6px';
-                    dot.style.background = (i === destino) ? 'var(--pine)' : 'var(--line)';
+                    dot.style.background = (i === destino) ? 'var(--sprout)' : 'var(--line)';
                 }
             }
 
@@ -18189,7 +18257,7 @@
 
             // --- Card 1: KPIs consolidados (fn_resumo_resultados) ---
             if (resumo) {
-                html += `<div class="rounded-2xl p-4 text-white shadow mb-3" style="background:linear-gradient(135deg,var(--pine-deep),var(--pine))">
+                html += `<div class="rounded-2xl p-4 text-white shadow mb-3" style="background:var(--sprout)">
                     <div class="text-xs opacity-80 font-semibold">Recebido (últimos 12 meses)</div>
                     <div class="text-2xl font-extrabold mt-1">${formatarMoedaBR(resumo.recebido_12m)}</div>
                     <div class="grid grid-cols-2 gap-2 mt-3">
@@ -18492,7 +18560,7 @@
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
                         <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarDetalhesImovelPopup('${imo.id}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+                        <button onclick="salvarDetalhesImovelPopup('${imo.id}')" style="flex:1;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);
@@ -20159,8 +20227,8 @@
 
                     <p style="font-size:11px;font-weight:bold;color:#64748b;margin-bottom:4px;">Divisão do Imóvel</p>
                     <div id="dvs-lista-imovel"></div>
-                    <button onclick="dvsAdicionarLinha('imovel')" style="font-size:11px;font-weight:bold;color:var(--pine);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
-                    <button onclick="salvarDivisaoImovelPopup('${imovelId}')" style="width:100%;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:8px;border:none;border-radius:8px;margin-top:4px;">Salvar divisão do imóvel</button>
+                    <button onclick="dvsAdicionarLinha('imovel')" style="font-size:11px;font-weight:bold;color:var(--sprout);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
+                    <button onclick="salvarDivisaoImovelPopup('${imovelId}')" style="width:100%;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:8px;border:none;border-radius:8px;margin-top:4px;">Salvar divisão do imóvel</button>
 
                     ${con ? `
                     <p style="font-size:11px;font-weight:bold;color:#64748b;margin:16px 0 4px;">Divisão do Contrato</p>
