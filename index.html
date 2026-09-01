@@ -6,7 +6,59 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.90.0
+   VERSÃO: Beta v1.91.0
+   LINHAS: 28067
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.91.0) — Sequência de pedidos explícitos, todos
+   conferidos contra o protótipo (PROTOTIPO_MODULO_UNICO_RAIZ_v1_0.html)
+   e, pra Resultados/Diagnóstico tributário, contra uma sessão anterior
+   (busca em conversas passadas) que já tinha construído e testado o
+   backend — só nunca tinha ganhado tela.
+
+   1) BARRA DE BAIXO — Contratos mudou de posição, agora vem logo depois
+      de Ativos (antes de Financeiro) — ordem exata do protótipo (Visão
+      geral · Ativos · Contratos · Financeiro · Resultados). Só trocou
+      de lugar no HTML.
+
+   2) ALERTAS FUNDIDOS + DIAGNÓSTICO TRIBUTÁRIO NA VISÃO GERAL — o card
+      "Atenção necessária" (tab-geral) agora funde 2 sinais que só
+      existiam em telas separadas: (a) controles do Cofre vencidos/
+      vencendo em 14 dias (cofre_ocorrencias_controle, mesma query de
+      listarOcorrenciasAbertasComItem() do Cofre, chamada aqui pelo
+      dbAuth do próprio index.html); (b) 1 item resumido de "Diagnóstico
+      tributário" (fn_leitura_tributaria_sinais, RPC já pronta e testada
+      desde v1.85.0 — achei via busca em conversa anterior, nunca tinha
+      tela nenhuma). Os itens síncronos que já existiam (inadimplência,
+      contratos assinando/com alerta, vagos) não foram tocados — os 2
+      novos chegam um instante depois, sem bloquear o resto, dentro do
+      MESMO card (nunca um card à parte). Ver carregarPontosAtencaoFundidos().
+
+   3) RESULTADOS — "Resumo" de verdade no topo da aba (antes só existia
+      "Métricas", o relatório antigo por filtro — intocado, só ganhou
+      resumo em cima): card de KPIs (fn_resumo_resultados — recebido
+      12m, ocupação, yield bruto, cobertura de valor de mercado) +
+      card "Diagnóstico tributário" completo (mesma RPC do item 2, aqui
+      sinal-por-sinal com detalhe) + nota honesta de "Cenário econômico"
+      (IPCA/Selic — continua bloqueado, projeto sem pg_net/http
+      instalado, precisa de Edge Function; não é código faltando, é
+      infraestrutura). Ver montarResumoResultados().
+
+   Achado ao investigar: as 2 RPCs (fn_resumo_resultados,
+   fn_leitura_tributaria_sinais) já existiam prontas, testadas com
+   sessão real e corretamente protegidas (REVOKE ALL FROM PUBLIC + GRANT
+   EXECUTE só pra authenticated, conferido no banco antes de usar) desde
+   v1.85.0 — só nunca tinham ganhado NENHUMA tela. Zero migration nova
+   nesta entrega, só front consumindo o que já existia.
+
+   O QUE FICOU DE FORA, DE PROPÓSITO (pedido também explícito, não
+   esquecido): "os ativos e imóveis devem também se fundir" + navegação
+   por tipo dentro de Ativos, com sub-funções ao entrar no ativo — é o
+   item de maior risco de tudo que foi pedido (mexe na única fonte de
+   receita hoje, o fluxo de contrato/cobrança do Rumo, sem poder testar
+   em navegador) e fica de fora deste trem de propósito. Ver mensagem de
+   entrega pra proposta de como fatiar isso com segurança.
+
+   VERSÃO ANTERIOR: Beta v1.90.0
    LINHAS: 27784
    DATA: 31/08/2026
    NOVIDADES (Beta v1.90.0) — Dois pedidos explícitos na sequência da
@@ -6460,6 +6512,16 @@
             <span class="text-[10px] font-bold">Ativos</span>
         </button>
 
+        <!-- v1.91.0 (pedido explícito, 31/08/2026) — Contratos mudou de
+             posição: agora vem logo depois de Ativos, antes de
+             Financeiro — ordem exata do protótipo (Visão geral · Ativos ·
+             Contratos · Financeiro · Resultados). Só trocou de lugar no
+             HTML, a tela em si (tab-contratos) não foi tocada. -->
+        <button onclick="switchTab('tab-contratos')" id="btn-tab-contratos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+            <svg data-lucide="file-text" style="width:21px;height:21px"></svg>
+            <span class="text-[10px] font-bold">Contratos</span>
+        </button>
+
         <button onclick="switchTab('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="wallet" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Financeiro</span>
@@ -6474,11 +6536,6 @@
              certo (Financeiro/Resultados) continua acendendo quando você
              está numa dessas telas — sem isso, o destaque da barra ficaria
              errado ao entrar nelas. -->
-
-        <button onclick="switchTab('tab-contratos')" id="btn-tab-contratos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="file-text" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Contratos</span>
-        </button>
 
         <button onclick="switchTab('tab-relatorios')" id="btn-tab-relatorios" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="bar-chart-3" style="width:21px;height:21px"></svg>
@@ -8116,6 +8173,22 @@
                 <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Distribuição</button>
             </div>
 
+            <!-- v1.91.0 (pedido explícito, 31/08/2026) — "Resumo" de
+                 verdade, batendo com o protótipo: KPIs consolidados
+                 (fn_resumo_resultados) + Diagnóstico tributário completo
+                 (fn_leitura_tributaria_sinais) — as 2 RPCs já existiam no
+                 backend desde v1.85.0, nunca tinham ganhado tela até
+                 agora (ver montarResumoResultados()). "Métricas" logo
+                 abaixo é o relatório detalhado que já existia (filtro por
+                 imóvel/período) — intocado, só ganhou este resumo em
+                 cima. Cenário econômico (IPCA/Selic) continua fora,
+                 sinalizado honestamente dentro do mount: projeto não tem
+                 pg_net/http instalado (conferido em v1.85.0), precisa de
+                 Edge Function — não é código faltando, é infraestrutura. -->
+            <div id="resultados-resumo-mount" class="mb-4">
+                <p class="text-xs text-slate-400 text-center py-6">Carregando resumo...</p>
+            </div>
+
             <h2 class="text-lg font-bold text-emerald-900 mb-4">Métricas</h2>
 
             <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-200">
@@ -9082,7 +9155,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.90.0";
+        const APP_VERSAO = "Beta v1.91.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -14783,6 +14856,14 @@
             if (tabId === 'tab-licenca' && typeof inicializarLicenca === 'function') {
                 inicializarLicenca();
             }
+            // v1.91.0 (pedido explícito) — "Resumo" novo no topo de
+            // Resultados (fn_resumo_resultados/fn_leitura_tributaria_sinais,
+            // já existiam no backend desde v1.85.0, nunca tinham tela).
+            // Mesmo padrão de lazy-load das outras abas de Configurações —
+            // só busca quando a pessoa realmente abre Resultados.
+            if (tabId === 'tab-relatorios' && typeof montarResumoResultados === 'function') {
+                montarResumoResultados();
+            }
             // v1.80.0 — Ativos: import dinâmico, mesmo padrão já usado pras
             // abas de Configurações (Licença/Sobre/Pessoas/Minha Empresa)
             // logo acima. montarAtivosTab() só faz alguma coisa na primeira
@@ -17936,20 +18017,222 @@
                 </button>`);
             }
 
+            // v1.91.0 (pedido explícito, 31/08/2026) — wrapper fixo pros 2
+            // sinais fundidos (controles do Cofre + diagnóstico tributário,
+            // ver carregarPontosAtencaoFundidos() logo abaixo). Sempre
+            // existe, mesmo vazio — carregarPontosAtencaoFundidos()
+            // substitui só o CONTEÚDO dele a cada chamada (idempotente),
+            // nunca duplica em re-renders repetidos desta função.
             const listaEl = document.getElementById('geral-atencao-lista');
             if (listaEl) {
-                listaEl.innerHTML = itens.length > 0
+                const baseHtml = itens.length > 0
                     ? itens.join('')
-                    : `<p class="text-xs text-slate-500">Nada pedindo atenção agora. 🎉</p>`;
+                    : `<p class="text-xs text-slate-500" id="geral-atencao-vazio">Nada pedindo atenção agora. 🎉</p>`;
+                listaEl.innerHTML = baseHtml + '<div id="geral-atencao-fundidos"></div>';
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
+            // v1.91.0 — roda em paralelo, sem bloquear o que já foi
+            // renderizado acima (síncrono, mesmo comportamento de sempre).
+            // Ver função pra detalhe de cada uma das 2 buscas.
+            carregarPontosAtencaoFundidos();
+
+        }
+
+        // v1.91.0 (pedido explícito, 31/08/2026) — "os alertas devem se
+        // fundir" + "a visão geral do ativo deve se integrar com a visão
+        // geral do imóvel" + "o diagnóstico tributário deve começar a
+        // aparecer". Funde na MESMA lista "Atenção necessária" (nunca um
+        // card à parte) 2 sinais que até aqui só existiam em telas
+        // separadas:
+        //   1) Controles do Cofre vencidos/vencendo nos próximos 14 dias
+        //      (cofre_ocorrencias_controle) — MESMA query de
+        //      listarOcorrenciasAbertasComItem() (js/cofre-api.js), só que
+        //      chamada aqui pelo dbAuth do próprio index.html em vez do
+        //      cliente Supabase separado do Cofre. Mesmo banco, mesma RLS,
+        //      leitura pura — não é um risco novo (as 2 conexões
+        //      redundantes já existem hoje, ver ativos-boot.js).
+        //   2) fn_leitura_tributaria_sinais(p_cliente_id) — RPC já criada
+        //      e testada desde v1.85.0 (`SECURITY DEFINER`, `GRANT EXECUTE`
+        //      só pra `authenticated`, conferido no banco antes de usar
+        //      aqui), mas nunca tinha ganhado NENHUMA tela até agora — só
+        //      existia no backend. Resumida aqui em 1 item ("Diagnóstico
+        //      tributário"); o detalhe sinal-por-sinal mora em
+        //      Resultados > Leitura tributária (ver montarResumoResultados()).
+        // Falha em qualquer uma das 2 buscas não quebra a Visão Geral — só
+        // o wrapper fica vazio; os itens síncronos (inadimplência, etc.)
+        // continuam intactos, renderizados antes desta função nem rodar.
+        async function carregarPontosAtencaoFundidos() {
+            const wrapper = document.getElementById('geral-atencao-fundidos');
+            if (!wrapper || !CLIENTE_ID_SUPABASE) return;
+
+            const itensFundidos = [];
+
+            try {
+                const { data: ocorrencias, error } = await dbAuth.from('cofre_ocorrencias_controle')
+                    .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                    .eq('status_execucao', 'aberto')
+                    .eq('cofre_itens_controle.ativo', true)
+                    .order('data_prevista_atual');
+                if (error) throw error;
+
+                const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+                const em14dias = new Date(hoje); em14dias.setDate(em14dias.getDate() + 14);
+                const vencidos = (ocorrencias || []).filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') < hoje);
+                const vencendo = (ocorrencias || []).filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') >= hoje && new Date(o.data_prevista_atual + 'T00:00:00') <= em14dias);
+
+                if (vencidos.length > 0) {
+                    itensFundidos.push(`<button onclick="switchTab('tab-ativos')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
+                        <div class="w-9 h-9 rounded-lg bg-red-50 text-red-700 flex items-center justify-center flex-none"><svg data-lucide="alarm-clock-off" style="width:16px;height:16px"></svg></div>
+                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">${vencidos.length} controle${vencidos.length > 1 ? 's' : ''} do Cofre vencido${vencidos.length > 1 ? 's' : ''}</div><div class="text-[11px] text-slate-500">IPTU, seguro ou manutenção — abrir Ativos</div></div>
+                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
+                    </button>`);
+                }
+                if (vencendo.length > 0) {
+                    itensFundidos.push(`<button onclick="switchTab('tab-ativos')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
+                        <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-none"><svg data-lucide="alarm-clock" style="width:16px;height:16px"></svg></div>
+                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">${vencendo.length} controle${vencendo.length > 1 ? 's' : ''} vencendo nos próximos 14 dias</div><div class="text-[11px] text-slate-500">IPTU, seguro ou manutenção — abrir Ativos</div></div>
+                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
+                    </button>`);
+                }
+            } catch (err) {
+                console.warn('[visao-geral] Falha ao carregar controles do Cofre:', err.message);
+            }
+
+            try {
+                const { data: sinais, error } = await dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE });
+                if (error) throw error;
+                if (sinais && sinais.length > 0) {
+                    const totalOcorrencias = sinais.reduce((soma, s) => soma + (s.contagem || 0), 0);
+                    itensFundidos.push(`<button onclick="switchTab('tab-relatorios')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-none"><svg data-lucide="landmark" style="width:16px;height:16px"></svg></div>
+                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">Diagnóstico tributário — ${sinais.length} ponto${sinais.length > 1 ? 's' : ''} pra conferir</div><div class="text-[11px] text-slate-500">Reforma tributária/NFS-e · ${totalOcorrencias} ocorrência${totalOcorrencias > 1 ? 's' : ''} na carteira · ver Resultados</div></div>
+                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
+                    </button>`);
+                }
+            } catch (err) {
+                console.warn('[visao-geral] Falha ao carregar diagnóstico tributário:', err.message);
+            }
+
+            wrapper.innerHTML = itensFundidos.join('');
+
+            // Se os itens síncronos deram vazio ("Nada pedindo atenção")
+            // mas chegou algo aqui, o parágrafo de vazio ficaria mentindo.
+            if (itensFundidos.length > 0) {
+                document.getElementById('geral-atencao-vazio')?.remove();
+            }
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // ===================================================================
-        // v1.45.0 (Correção de Direção UX — ADENDO v1.43.1 + PROMPT_CLAUDE_
-        // CORRECAO_UX_IMOVEIS_V2) — FICHA DO IMÓVEL é o prontuário central.
+        // v1.91.0 (pedido explícito, 31/08/2026) — "Resumo" de Resultados,
+        // batendo com o protótipo (PROTOTIPO_MODULO_UNICO_RAIZ_v1_0.html,
+        // page-resultados). As 2 RPCs (fn_resumo_resultados,
+        // fn_leitura_tributaria_sinais) já existiam prontas e testadas no
+        // banco desde v1.85.0 — nunca tinham ganhado NENHUMA tela até
+        // agora, só existiam no backend. Chamada 1x toda vez que a aba é
+        // aberta (switchTab), mesmo padrão das outras abas de
+        // Configurações — leitura pura, barata, não precisa de guarda de
+        // "já carregou".
+        // Cenário econômico (IPCA/IGP-M/Selic) fica de fora, sinalizado
+        // honestamente dentro do próprio mount — projeto não tem
+        // pg_net/http instalado (conferido em v1.85.0), precisa de Edge
+        // Function pra buscar a API SGS do Banco Central; não é código
+        // faltando, é infraestrutura pendente.
+        // ===================================================================
+        const CATEGORIA_SINAL_LABEL = {
+            contrato: 'Contrato',
+            cadastro: 'Cadastro',
+            carteira: 'Carteira',
+            proprietario: 'Proprietário'
+        };
+        const CATEGORIA_SINAL_ICONE = {
+            contrato: 'file-signature',
+            cadastro: 'clipboard-list',
+            carteira: 'boxes',
+            proprietario: 'user'
+        };
+
+        async function montarResumoResultados() {
+            const mount = document.getElementById('resultados-resumo-mount');
+            if (!mount || !CLIENTE_ID_SUPABASE) return;
+
+            mount.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Carregando resumo...</p>';
+
+            let resumo = null;
+            let sinais = [];
+            let erroResumo = null;
+            let erroSinais = null;
+
+            try {
+                const { data, error } = await dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE });
+                if (error) throw error;
+                resumo = Array.isArray(data) ? data[0] : data;
+            } catch (err) {
+                erroResumo = err.message;
+                console.warn('[resultados] Falha ao carregar fn_resumo_resultados:', err.message);
+            }
+
+            try {
+                const { data, error } = await dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE });
+                if (error) throw error;
+                sinais = data || [];
+            } catch (err) {
+                erroSinais = err.message;
+                console.warn('[resultados] Falha ao carregar fn_leitura_tributaria_sinais:', err.message);
+            }
+
+            let html = '';
+
+            // --- Card 1: KPIs consolidados (fn_resumo_resultados) ---
+            if (resumo) {
+                html += `<div class="rounded-2xl p-4 text-white shadow mb-3" style="background:linear-gradient(135deg,var(--pine-deep),var(--pine))">
+                    <div class="text-xs opacity-80 font-semibold">Recebido (últimos 12 meses)</div>
+                    <div class="text-2xl font-extrabold mt-1">${formatarMoedaBR(resumo.recebido_12m)}</div>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Ocupação</div><div class="text-lg font-extrabold mt-1">${resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—'}</div></div>
+                        <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Inadimplência (acumulada)</div><div class="text-lg font-extrabold text-red-100 mt-1">${formatarMoedaBR(resumo.inadimplencia_valor)}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Yield bruto (a.a.)</div><div class="text-lg font-extrabold mt-1">${resumo.yield_bruto_anual_pct != null ? resumo.yield_bruto_anual_pct + '%' : '—'}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Cobertura valor mercado</div><div class="text-lg font-extrabold mt-1">${resumo.cobertura_valor_mercado_pct != null ? resumo.cobertura_valor_mercado_pct + '%' : '—'}</div></div>
+                    </div>
+                    <div class="text-[10.5px] opacity-70 mt-3">${resumo.imoveis_com_valor_mercado}/${resumo.total_imoveis} imóveis com valor de mercado cadastrado · yield e cobertura melhoram conforme o cadastro completa.</div>
+                </div>`;
+            } else {
+                html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3"><p class="text-xs text-red-500">Não foi possível carregar o resumo agora${erroResumo ? ' (' + erroResumo + ')' : ''}.</p></div>`;
+            }
+
+            // --- Card 2: Diagnóstico tributário (fn_leitura_tributaria_sinais) ---
+            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3">
+                <h3 class="font-bold text-sm text-emerald-900">Diagnóstico tributário</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Pré-check com base nos dados cadastrados — não substitui análise fiscal. Tom de notícia, nunca recomendação.</p>`;
+            if (erroSinais) {
+                html += `<p class="text-xs text-red-500 mt-3">Não foi possível carregar o diagnóstico agora (${erroSinais}).</p>`;
+            } else if (sinais.length === 0) {
+                html += `<p class="text-xs text-slate-500 mt-3">Nenhum sinal encontrado na carteira no momento.</p>`;
+            } else {
+                html += '<div class="mt-3 space-y-2">' + sinais.map(s => `
+                    <div class="flex items-start gap-3 p-2.5 rounded-xl border border-slate-200">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-none"><svg data-lucide="${CATEGORIA_SINAL_ICONE[s.categoria] || 'info'}" style="width:16px;height:16px"></svg></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">${CATEGORIA_SINAL_LABEL[s.categoria] || s.categoria}</span><span class="text-[10.5px] font-bold text-slate-600">${s.contagem} ocorrência${s.contagem > 1 ? 's' : ''}</span></div>
+                            <div class="text-[12px] text-slate-700 mt-1 leading-snug">${s.detalhe}</div>
+                        </div>
+                    </div>`).join('') + '</div>';
+            }
+            html += `</div>`;
+
+            // --- Card 3: Cenário econômico (bloqueado, honesto) ---
+            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-1">
+                <h3 class="font-bold text-sm text-emerald-900">Cenário econômico</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">IPCA, IGP-M e Selic — pendente. Este projeto ainda não tem <code>pg_net</code> instalado pra buscar a API do Banco Central; entra quando a Edge Function de indicadores for construída.</p>
+            </div>`;
+
+            mount.innerHTML = html;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
         // Resumo/Contrato/Financeiro são só LEITURA, montados a partir dos
         // arrays já carregados. Nenhuma função de renderização das abas
         // Contratos/Financeiro foi duplicada — os CTAs abrem a tela cheia já

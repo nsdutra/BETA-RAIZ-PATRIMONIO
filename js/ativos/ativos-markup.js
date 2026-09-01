@@ -1,6 +1,6 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.1.0 · 31/08/2026
+// Versão: 1.2.0 · 31/08/2026
 //
 // Guarda o HTML do Cofre (extraído de cofre.html, 31/08/2026) como string,
 // pra não fazer o index.html crescer mais — ele só injeta este conteúdo
@@ -24,6 +24,13 @@
 // escondidos) porque nav.bootstrap() (cofre-navegacao.js) referencia os
 // dois sem checar null — sem o placeholder, o boot quebra com
 // TypeError antes de mostrar qualquer coisa.
+//
+// v1.2.0 (31/08/2026, "Fase A" da fusão Ativos/Imóveis, pedido explícito)
+// — container #ativos-chips-tipo novo, vazio de propósito (populado via
+// JS por renderChipsAtivos(), cofre-ativos.js v1.5.0) — chips
+// Todos/Imóveis/Veículos/Outros com contador, batendo com o protótipo.
+// Aditivo: o dropdown fino de subtipo (dentro do modal "Buscar/
+// Filtrar") não foi tocado, continua existindo do lado dos chips.
 //
 // v1.1.0 (31/08/2026, pedido explícito) — 1 ícone novo ("Visão geral do
 // Cofre", data-action="ir-home") na barra da tela data-screen="ativos".
@@ -170,6 +177,17 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
             </div>
+
+            <!-- v1.5.0 (31/08/2026, pedido explícito, "Fase A" da fusão
+                 Ativos/Imóveis) — chips de tipo, batendo com o protótipo
+                 (Todos/Imóveis/Veículos/Outros, com contador). Populados
+                 por renderChipsAtivos() (cofre-ativos.js) — sempre que a
+                 lista muda, os contadores mudam junto. Filtro ADITIVO: o
+                 dropdown fino dentro de "Buscar/Filtrar" (7+ subtipos)
+                 continua existindo do jeito que estava, pra quem quiser
+                 filtrar por um subtipo específico (ex.: só Terrenos) —
+                 os chips são só o atalho rápido pros 3 grupos grandes. -->
+            <div id="ativos-chips-tipo" class="flex gap-2 overflow-x-auto pb-1 mb-3"></div>
 
             <div id="ativos-lista" class="space-y-2"></div>
             <div id="ativos-estado-vazio" class="hidden text-center py-14">

@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 31/08/2026
+// Versão: 1.5.0 · 31/08/2026
+//
+// v1.5.0 — "Fase A" da fusão Ativos/Imóveis (pedido explícito,
+// 31/08/2026): chips de tipo (Todos/Imóveis/Veículos/Outros, com
+// contador) acima da lista, batendo com o protótipo. renderAtivosLista()
+// ganhou suporte a array em filtroTipo (agrupa mais de 1 tipo por chip),
+// 100% retrocompatível — quem já chamava com string (dropdown fino do
+// modal "Buscar/Filtrar", listeners em cofre-app.js) continua funcionando
+// idêntico a antes. Ver GRUPOS_CHIP_TIPO/renderChipsAtivos/
+// aplicarFiltroChipAtivos logo abaixo da função.
 //
 // v1.4.0 — 2 mudanças, pedido do Nicola (trem v1.85/v1.86):
 // 1) popularSelectTipoAtivo() ganha 3 tipos novos (aeronave, embarcacao,
@@ -104,15 +113,81 @@ export function popularSelectTipoAtivo() {
 
 export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const termo = filtroTexto.toLowerCase().trim();
+    // v1.5.0 — filtroTipo agora aceita string (comportamento de sempre,
+    // usado pelo dropdown fino do modal "Buscar/Filtrar") OU array
+    // (usado pelos chips novos, que agrupam mais de um tipo — ex.:
+    // "Veículos" = veiculo + veiculo_blindado). null/'' continuam
+    // significando "sem filtro de tipo", igual sempre foi.
+    const tiposFiltro = Array.isArray(filtroTipo) ? filtroTipo : (filtroTipo ? [filtroTipo] : null);
+
+    // Sincroniza qual chip aparece "aceso": se este filtro veio do
+    // dropdown fino (string específica, não array) e não é vazio,
+    // nenhum dos 4 chips corresponde 1:1 — apaga o destaque (-1) pra não
+    // mentir. Filtro vazio ('') volta pro mesmo estado do chip "Todos"
+    // (cobre o botão "Limpar filtros" do modal também, sem precisar
+    // tocar nele). Array (veio de um clique em chip) não mexe aqui —
+    // aplicarFiltroChipAtivos() já setou o índice certo antes de chamar.
+    if (!Array.isArray(filtroTipo)) {
+        chipAtivoAtual = filtroTipo ? -1 : 0;
+    }
+
     const lista = estado.ativos.filter(a => {
-        if (filtroTipo && a.tipo_ativo !== filtroTipo) return false;
+        if (tiposFiltro && !tiposFiltro.includes(a.tipo_ativo)) return false;
         if (termo && !a.nome_exibicao.toLowerCase().includes(termo)) return false;
         return true;
     });
     document.getElementById('ativos-lista').innerHTML = lista.map(ativoCardHtml).join('');
     document.getElementById('ativos-estado-vazio').classList.toggle('hidden', estado.ativos.length !== 0);
     document.getElementById('ativos-lista').classList.toggle('hidden', estado.ativos.length === 0);
+    renderChipsAtivos();
     refrescarIcones();
+}
+
+// ============================================================================
+// CHIPS DE TIPO — "Fase A" da fusão Ativos/Imóveis (v1.5.0, 31/08/2026,
+// pedido explícito). Agrupa os 10 tipos granulares (usados no dropdown
+// fino do modal "Buscar/Filtrar", que continua existindo do lado disso)
+// em 4 chips largos, batendo com o protótipo (PROTOTIPO_MODULO_UNICO_
+// RAIZ_v1_0.html): Todos/Imóveis/Veículos/Outros, cada um com contador
+// ao vivo. Chamada de dentro de renderAtivosLista() — nunca precisa ser
+// chamada separadamente, os contadores ficam sempre sincronizados com a
+// lista atual sem eu ter que caçar todos os outros call-sites de
+// renderAtivosLista() espalhados pelo app.
+// ============================================================================
+const GRUPOS_CHIP_TIPO = [
+    { rotulo: 'Todos', tipos: null },
+    { rotulo: 'Imóveis', tipos: ['imovel', 'terreno'] },
+    { rotulo: 'Veículos', tipos: ['veiculo', 'veiculo_blindado'] },
+    { rotulo: 'Outros', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro'] },
+];
+
+// Índice do chip ativo — 0 ("Todos") é o estado inicial. Só muda quando
+// a própria pessoa clica num chip (aplicarFiltroChipAtivos); escolher um
+// subtipo fino pelo dropdown do modal não mexe aqui de propósito (são 2
+// filtros independentes, o dropdown fino não tem chip correspondente 1:1).
+let chipAtivoAtual = 0;
+
+function renderChipsAtivos() {
+    const wrap = document.getElementById('ativos-chips-tipo');
+    if (!wrap) return; // cofre.html standalone não tem este container ainda — no-op seguro
+    wrap.innerHTML = GRUPOS_CHIP_TIPO.map((g, i) => {
+        const qtd = g.tipos ? estado.ativos.filter(a => g.tipos.includes(a.tipo_ativo)).length : estado.ativos.length;
+        const ativo = i === chipAtivoAtual;
+        return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="flex-none text-[11px] font-bold px-3 py-1.5 rounded-full transition ${ativo ? 'text-white' : 'bg-white text-slate-600 border border-slate-300'}" ${ativo ? 'style="background:var(--pine)"' : ''}>${escapeHtml(g.rotulo)} · ${qtd}</button>`;
+    }).join('');
+}
+
+// Chamada pelo dispatch central (cofre-app.js, case 'filtrar-ativos-chip').
+// Limpa o dropdown fino do modal de propósito — os 2 filtros de tipo não
+// deveriam ficar "brigando" (um mostrando subtipo, outro mostrando
+// grupo); clicar um chip sempre volta o dropdown fino pra "Todos os tipos".
+export function aplicarFiltroChipAtivos(indice) {
+    if (indice < 0 || indice >= GRUPOS_CHIP_TIPO.length) return;
+    chipAtivoAtual = indice;
+    const selTipo = document.getElementById('filtro-ativo-tipo');
+    if (selTipo) selTipo.value = '';
+    const termoAtual = document.getElementById('filtro-ativo-busca')?.value || '';
+    renderAtivosLista(GRUPOS_CHIP_TIPO[indice].tipos, termoAtual);
 }
 
 function ativoCardHtml(a) {

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.7.0 · 29/08/2026
+// Versão: 1.8.0 · 31/08/2026
+//
+// v1.8.0 — "Fase A" da fusão Ativos/Imóveis (pedido explícito,
+// 31/08/2026): novo case 'filtrar-ativos-chip' no dispatcher, delega
+// pra ativos.aplicarFiltroChipAtivos() (cofre-ativos.js v1.5.0) — chips
+// de tipo (Todos/Imóveis/Veículos/Outros) acima da lista de Ativos.
+// Nenhum case existente foi tocado.
 //
 // v1.7.0 — novo listener 'cofre:abrir-form-ativo' (chama ativos.
 // abrirFormAtivo()) — acionado pela Central de Comunicações quando o
@@ -198,6 +204,13 @@ document.addEventListener('click', async (ev) => {
             document.getElementById('filtro-ativo-busca').value = '';
             ativos.renderAtivosLista('', '');
             break;
+        // v1.5.0 (31/08/2026, "Fase A" da fusão Ativos/Imóveis, pedido
+        // explícito) — chips de tipo (Todos/Imóveis/Veículos/Outros)
+        // acima da lista. data-chip-indice vem de renderChipsAtivos()
+        // (cofre-ativos.js); a função decide o grupo de tipos e chama
+        // renderAtivosLista() por dentro — nada de lógica de filtro
+        // duplicada aqui, só delega.
+        case 'filtrar-ativos-chip': ativos.aplicarFiltroChipAtivos(Number(alvo.dataset.chipIndice)); break;
         case 'abrir-configuracoes-catalogo': fecharModal('modal-menu-conta'); docs.abrirConfiguracoes(); break;
         case 'abrir-sobre-cofre': fecharModal('modal-menu-conta'); abrirModal('modal-sobre-cofre'); break;
         case 'fechar-sobre-cofre': fecharModal('modal-sobre-cofre'); break;
