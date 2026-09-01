@@ -6,7 +6,66 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.84.1
+   VERSÃO: Beta v1.88.0
+   LINHAS: 27394
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.88.0) — Consolidação da barra de baixo, seguindo a
+   proposta do protótipo (PROTOTIPO_MODULO_UNICO_RAIZ_v1_0.html), com uma
+   correção de leitura no caminho: no protótipo, "Distribuição" mora
+   dentro de RESULTADOS (não de Financeiro) — corrigido antes de codar.
+
+   Barra: 6 ícones agora (era 6 também, mas 2 trocaram de identidade) —
+   Visão Geral · Imóveis · Ativos · Financeiro · Contratos · Resultados.
+   Cobranças e Distrib. deixaram de ter ícone próprio; Contratos e
+   Relatórios (que só viviam no menu) ganharam. Diferença honesta do
+   protótipo: Imóveis continua separada de Ativos — a decisão de unificar
+   o formulário de criação ficou pra revisão final, deixei como estava.
+
+   Mecanismo usado — TAB_PARENT_MAP (já existia, não inventei nada novo):
+   tab-inadimplencia aponta pra tab-mensal, tab-socios aponta pra
+   tab-relatorios — o destaque do ícone certo continua acendendo mesmo
+   sem botão próprio. Dentro de cada tela, um segmento de 2 botões
+   (Recebimentos/Atrasados dentro de Financeiro; Resumo/Distribuição
+   dentro de Resultados) faz o vínculo visual — só chama switchTab() pro
+   outro id, NENHUM HTML das 4 telas foi movido ou mesclado. Risco baixo
+   de propósito: mexer na lógica interna de 4 telas financeiras
+   complexas sem poder testar em navegador seria imprudente.
+
+   Achado no caminho: "Financeiro" (tab-mensal) já tem conciliação de
+   extrato embutida — não existe "Saídas" como tela ainda (só o banco,
+   lancamentos, sem UI) — por isso o segmento tem 2 opções, não 3 como o
+   protótipo mostrava; UI de Saídas fica pra quando o backend tiver
+   consumidor de verdade.
+
+   Menu do bonequinho: "Contratos (todos)" e "Relatórios" saíram do grupo
+   "Cadastros e prestadores" (promovidos pra barra nesta mesma entrega —
+   nunca tirar de um lugar sem o substituto já existir junto).
+
+   VERSÃO ANTERIOR: Beta v1.87.0
+   LINHAS: 27324
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.87.0) — Primeiro passo da unificação de menus
+   (pedido explícito, inspirado na proposta do protótipo do módulo
+   único). Duas mudanças, só no menu do bonequinho ("Configurações"):
+   1) Removido o item "Cofre de Documentos" (abria cofre.html sem
+      contexto) — redundante desde que a aba Ativos (v1.80.0) já embute
+      o Cofre inteiro. A função abrirCofreDocumentos() em si NÃO foi
+      tocada — continua usada em vários pontos do app pra abrir o Cofre
+      COM contexto (ex.: botão "Documentos" num card de imóvel).
+   2) Menu reagrupado em 3 grupos (renomeados no lugar, sem mover botão
+      nenhum — mais seguro que reordenar): "Cadastros e prestadores"
+      (era "Imóveis": Contratos, Relatórios, Minutas, Síndicos,
+      Administradoras, Manutencistas, Tipo de Imóvel/Empreendimento —
+      Contratos/Relatórios continuam aqui até serem promovidos pra barra
+      de baixo, trem futuro), "Empresa" (era 2ª metade de "Conta":
+      Pessoas, Minha Empresa, Licença), "Conta" (cabeçalho novo, antes
+      de Preferências/Suporte/Sobre). Nenhum grupo "Integrações"/
+      "Desenvolvedor" foi inventado — nada existe ainda pra popular eles.
+   Barra de baixo NÃO foi tocada nesta entrega — consolidar Financeiro/
+   Cobranças/Distrib. e promover Contratos/Resultados é a próxima etapa,
+   maior e mais arriscada, fica pra trem dedicado.
+
+   VERSÃO ANTERIOR: Beta v1.84.1
    LINHAS: 27291
    DATA: 31/08/2026
    NOVIDADES (Beta v1.84.1) — CORREÇÃO DE PROCESSO: a troca do insert
@@ -6266,14 +6325,24 @@
             <span class="text-[10px] font-bold">Financeiro</span>
         </button>
 
-        <button onclick="switchTab('tab-inadimplencia')" id="btn-tab-inadimplencia" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="badge-dollar-sign" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Cobranças</span>
+        <!-- v1.88.0 — pedido explícito, seguindo a proposta do protótipo:
+             Cobranças (tab-inadimplencia) e Distrib. (tab-socios) saem como
+             botão próprio da barra — nenhuma das duas telas foi tocada por
+             dentro, só deixaram de ter ícone aqui. Continuam alcançáveis
+             por um segmento dentro de Financeiro/Resultados (ver início de
+             cada <section>) e por TAB_PARENT_MAP, que garante que o ícone
+             certo (Financeiro/Resultados) continua acendendo quando você
+             está numa dessas telas — sem isso, o destaque da barra ficaria
+             errado ao entrar nelas. -->
+
+        <button onclick="switchTab('tab-contratos')" id="btn-tab-contratos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+            <svg data-lucide="file-text" style="width:21px;height:21px"></svg>
+            <span class="text-[10px] font-bold">Contratos</span>
         </button>
 
-        <button onclick="switchTab('tab-socios')" id="btn-tab-socios" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="users" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Distrib.</span>
+        <button onclick="switchTab('tab-relatorios')" id="btn-tab-relatorios" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+            <svg data-lucide="bar-chart-3" style="width:21px;height:21px"></svg>
+            <span class="text-[10px] font-bold">Resultados</span>
         </button>
 
     </nav>
@@ -6301,17 +6370,14 @@
                      contexto do imóvel; Relatórios vive na Visão Geral),
                      mas continuam telas completas e por isso ganham porta
                      de entrada aqui, sem perder nenhuma função. -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Imóveis</p>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-contratos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="file-text" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Contratos (todos)</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-relatorios')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="bar-chart-3" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Relatórios</span>
-                </button>
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Cadastros e prestadores</p>
+                <!-- v1.87.0 — renomeado de "Imóveis" (pedido explícito,
+                     31/08/2026, inspirado na proposta do protótipo do
+                     módulo único).
+                     v1.88.0 — "Contratos (todos)" e "Relatórios" SAÍRAM
+                     daqui: promovidos pra botão próprio na barra de baixo
+                     nesta mesma entrega (nunca tirar de um lugar sem o
+                     substituto já existir — o substituto entrou junto). -->
 
                 <button onclick="fecharMenuConta(); switchTab('tab-minutas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="file-signature" style="width:18px;height:18px;color:var(--pine)"></svg>
@@ -6346,7 +6412,7 @@
                 <!-- v1.41.5 — item "Dev" retirado do menu por hora (acesso
                      interno continua disponível via duplo-clique na logo). -->
 
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Empresa</p>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-pessoas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></svg>
@@ -6370,18 +6436,22 @@
                      v1.61.2 — menu "Módulos" e "Serviços" removidos como
                      grupos próprios (pedido explícito); Cofre de
                      Documentos passou a viver dentro de "Conta", junto de
-                     Pessoas/Minha Empresa. -->
-                <div id="menu-grupo-modulos" class="hidden">
-                    <button id="btn-abrir-cofre" onclick="abrirCofreDocumentos()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                        <svg data-lucide="archive" style="width:18px;height:18px;color:var(--pine)"></svg>
-                        <span class="text-sm font-medium" style="color:var(--ink)">Cofre de Documentos</span>
-                    </button>
-                </div>
+                     Pessoas/Minha Empresa.
+                     v1.87.0 — REMOVIDO (pedido explícito, 31/08/2026):
+                     a aba Ativos (v1.80.0) já embute o Cofre inteiro —
+                     este atalho genérico virou uma segunda porta pro
+                     mesmo lugar. A função abrirCofreDocumentos() NÃO foi
+                     tocada — continua usada em vários pontos do app pra
+                     abrir o Cofre COM contexto (ex.: botão "Documentos"
+                     num card de imóvel, linha ~17617) — só este item de
+                     menu sem contexto nenhum saiu. -->
 
                 <button onclick="fecharMenuConta(); switchTab('tab-licenca')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Licença</span>
                 </button>
+
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
 
                 <!-- v1.71.0 — trocado o toggle único por "Preferências de comunicação",
                      que abre uma lista com 1 toggle por mensagem (fn_minhas_comunicacoes_
@@ -7488,6 +7558,16 @@
 
         <section id="tab-mensal" class="tab-content">
 
+            <!-- v1.88.0 — segmento pra Atrasados (tab-inadimplencia), que
+                 deixou de ter ícone próprio na barra — mesma lógica visual
+                 do "Lista/Atrasos" que já existiu aqui antes (removido em
+                 v1.52.0), agora reaproveitada como o vínculo entre as duas
+                 abas em vez de filtro interno. -->
+            <div class="flex gap-2 mb-3">
+                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Atrasados</button>
+            </div>
+
             <!-- v1.51.0 — "< Voltar" condicional: só aparece quando esta
                  aba foi aberta filtrada a partir da ficha do imóvel
                  (abrirFinanceiroFiltradoImovel) — no uso normal pela barra
@@ -7643,6 +7723,11 @@
 
         <section id="tab-inadimplencia" class="tab-content">
 
+            <div class="flex gap-2 mb-3">
+                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Atrasados</button>
+            </div>
+
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos e
                  título "Atrasos" removidos. Descrição curta + ícone de lupa
                  no mesmo padrão de Imóveis/Financeiro. Filtros que estavam
@@ -7727,6 +7812,14 @@
 
         <section id="tab-relatorios" class="tab-content">
 
+            <!-- v1.88.0 — segmento pra Distribuição (tab-socios), que
+                 deixou de ter ícone próprio na barra e passou a viver
+                 dentro de Resultados, junto de Métricas. -->
+            <div class="flex gap-2 mb-3">
+                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Resumo</button>
+                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Distribuição</button>
+            </div>
+
             <h2 class="text-lg font-bold text-emerald-900 mb-4">Métricas</h2>
 
             <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-200">
@@ -7785,6 +7878,11 @@
         <!-- ================= ABA: SÓCIOS ================= -->
 
         <section id="tab-socios" class="tab-content">
+
+            <div class="flex gap-2 mb-3">
+                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Resumo</button>
+                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Distribuição</button>
+            </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): título "Distribuições"
                  removido; descrição curta + ícones (+ / buscar) no mesmo
@@ -8688,7 +8786,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.84.1";
+        const APP_VERSAO = "Beta v1.88.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -14280,7 +14378,12 @@
             'tab-vitrine': 'tab-imoveis',
             'tab-imovel-ficha': 'tab-imoveis',
             'tab-recebimento-detalhe': 'tab-imoveis',
-            'tab-contrato-ficha': 'tab-contratos'
+            'tab-contrato-ficha': 'tab-contratos',
+            // v1.88.0 — Cobranças e Distrib. saíram de botão próprio na
+            // barra (ver comentário na v1.88.0 acima do nav); sem isso, o
+            // destaque acenderia errado (ou nenhum) ao entrar nessas telas.
+            'tab-inadimplencia': 'tab-mensal',
+            'tab-socios': 'tab-relatorios'
         };
 
         // v1.62.3 (pedido explícito) — deep-link pós-login via ?ir=tab-X.
