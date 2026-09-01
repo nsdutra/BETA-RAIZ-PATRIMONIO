@@ -6,7 +6,53 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.94.2
+   VERSÃO: Beta v1.95.0
+   LINHAS: 28561
+   DATA: 01/09/2026
+   NOVIDADES (Beta v1.95.0) — pedidos explícitos sobre a Visão Geral e o
+   carregamento da aba Ativos, todos verificados contra 2 screenshots
+   reais.
+
+   1) ALERTAS DA VISÃO GERAL UNIFICADOS — achado real: 8 tipos de ponto
+      de atenção, cada um com HTML repetido à mão em sessões diferentes.
+      A inconsistência de espaçamento que você reparou vinha de um
+      wrapper aninhado (#geral-atencao-fundidos) sem a mesma classe
+      space-y-2 do container pai. Corrigido com uma função só,
+      pontoAtencaoHtml() — impossível divergir por acidente daqui pra
+      frente.
+      Resposta direta à sua pergunta ("as funções de carregamento estão
+      unificadas? quais oportunidades de centralizar?"): NÃO estavam —
+      2 funções, a maior com 3 buscas em SEQUÊNCIA. Unificadas em
+      carregarDadosAssincronosVisaoGeral(), 1 função só, as 4 buscas
+      (KPIs + controles + tributário + triagem) disparadas TODAS JUNTAS
+      via Promise.allSettled — é a causa raiz de "cada componente
+      carregando num tempo diferente". Achado no caminho: uma chamada
+      órfã à função antiga (carregarKpisVisaoGeral()) que eu tinha
+      esquecido de remover numa entrega anterior — corrigida.
+
+   2) DELAY DA ABA ATIVOS — causa real: o módulo inteiro do Cofre só
+      começava a baixar no instante do primeiro toque na aba.
+      prefetchModuloAtivos() pré-carrega os mesmos imports em segundo
+      plano, ocioso (requestIdleCallback), logo após o login — quando a
+      pessoa abre Ativos de verdade, o navegador já tem tudo em cache.
+      Zero mudança em ativos-boot.js.
+
+   3) LISTA DE ATIVOS — agrupamento por empreendimento (ver
+      ativos-markup.js/cofre-ativos.js v1.6.0/v1.8.0), mesmo critério
+      da lista antiga de Imóveis.
+
+   4) FICHA DO ATIVO — 2 bugs reais achados com screenshot: grade de
+      dados do imóvel quebrada (entrava dentro de um flex de 2 filhos
+      só) e abas rolando horizontalmente sem precisar. Linguagem "por
+      módulo" removida ("Este ativo referencia um imóvel já
+      cadastrado", "aqui é só o vínculo") — ver changelog completo nos
+      arquivos do Cofre.
+
+   Validado: node --check no bloco JS extraído, balanceamento de tags
+   idêntico ao arquivo antes desta edição, zero chamada de código ativo
+   às 2 funções antigas de Visão Geral (só sobrou menção em comentário).
+
+   VERSÃO ANTERIOR: Beta v1.94.2
    LINHAS: 28469
    DATA: 31/08/2026
    NOVIDADES (Beta v1.94.2) — 2 pedidos explícitos: (1) "os documentos
@@ -9470,7 +9516,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.94.2";
+        const APP_VERSAO = "Beta v1.95.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -13629,8 +13675,51 @@
             // v1.46.0 — não bloqueia entrada no sistema; roda em paralelo.
             verificarAcessoCofreEAtualizarMenu();
 
+            // v1.95.0 (pedido explícito: "a lista de ativos está demorando
+            // pra carregar... o que podemos ajustar?") — pré-carrega o
+            // módulo do Cofre em segundo plano, ocioso, logo após o login
+            // — ver prefetchModuloAtivos() pro porquê.
+            prefetchModuloAtivos();
+
             entrarNoSistema();
 
+        }
+
+        // v1.95.0 (pedido explícito, 01/09/2026) — causa real do delay ao
+        // abrir Ativos pela 1ª vez: o módulo inteiro do Cofre
+        // (ativos-markup.js + cofre-app.js e toda a árvore de import dela
+        // — cofre-navegacao/ativos/documentos/controles/api/ui/estado/
+        // validacoes.js) só começava a baixar no instante em que a pessoa
+        // tocava na aba — rede + parse acontecendo bem na hora que mais
+        // atrapalha.
+        //
+        // Corrigido SEM mudar nenhuma linha de ativos-boot.js: pré-
+        // carrega os 2 imports de nível mais alto (o resto da árvore vem
+        // junto automaticamente, é assim que import estático de módulo
+        // ES funciona) em segundo plano, OCIOSO — requestIdleCallback
+        // quando existe (a maioria dos navegadores Android/desktop),
+        // setTimeout como fallback pra Safari/iOS (não tem
+        // requestIdleCallback). Nunca compete com o carregamento crítico
+        // da Visão Geral, que continua acontecendo primeiro.
+        //
+        // Quando a pessoa realmente abre a aba Ativos, montarAtivosTab()
+        // (ativos-boot.js) chama os MESMOS 2 imports — o navegador já tem
+        // tudo no cache de módulos ES e resolve na hora, sem 2ª requisição
+        // de rede. Resolução de URL de módulo é por caminho ABSOLUTO
+        // resolvido, não pela string literal do import — './js/ativos/
+        // ativos-markup.js' (daqui) e './ativos-markup.js' (de dentro de
+        // js/ativos/ativos-boot.js) apontam pro mesmo arquivo, mesmo
+        // cache.
+        function prefetchModuloAtivos() {
+            const disparar = () => {
+                import('./js/ativos/ativos-markup.js').catch(() => {});
+                import('./js/cofre-app.js').catch(() => {});
+            };
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(disparar, { timeout: 4000 });
+            } else {
+                setTimeout(disparar, 2500);
+            }
         }
 
         // Mostra a tela de escolha — só aparece para quem tem acesso a MAIS DE
@@ -18276,13 +18365,28 @@
             return m.status === 'Inadimplente' && !mensalidadeEmAtraso(m);
         }
 
-        function renderVisaoGeral() {
+        // v1.95.0 (pedido explícito, 01/09/2026: "os componentes estão
+        // espaçados de forma diferente... as funções de carregamento
+        // estão unificadas? quais oportunidades de centralizar?") —
+        // template ÚNICO pra TODO ponto de atenção da Visão Geral
+        // (síncrono ou assíncrono, imóvel/contrato ou Cofre). Antes
+        // desta versão existiam 8 blocos de HTML quase idênticos,
+        // digitados à mão em sessões diferentes — a inconsistência
+        // visual que você reparou veio exatamente disso: um wrapper
+        // aninhado (#geral-atencao-fundidos) não tinha a mesma classe
+        // de espaçamento (space-y-2) do container pai, então os itens
+        // async ficavam sem gap entre si. Corrigido aqui (função única,
+        // impossível divergir por acidente) e no HTML (ver linha do
+        // #geral-atencao-fundidos, ganhou space-y-2 também).
+        function pontoAtencaoHtml({ icone, corBg, corTexto, titulo, subtitulo, onclick }) {
+            return `<button onclick="${onclick}" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
+                <div class="w-9 h-9 rounded-lg ${corBg} ${corTexto} flex items-center justify-center flex-none"><svg data-lucide="${icone}" style="width:16px;height:16px"></svg></div>
+                <div class="flex-1 min-w-0"><div class="text-xs font-bold">${titulo}</div><div class="text-[11px] text-slate-500">${subtitulo}</div></div>
+                <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
+            </button>`;
+        }
 
-            // v1.93.0 — hero novo (Patrimônio sob gestão + Recebido do mês
-            // + Ocupação), assíncrono, roda em paralelo sem bloquear o
-            // resto desta função (que continua 100% síncrona, lendo só
-            // os arrays já em memória, como sempre foi).
-            carregarKpisVisaoGeral();
+        function renderVisaoGeral() {
 
             const totalImoveis = imoveis.length;
             const alugados = imoveis.filter(i => i.status === 'Alugado').length;
@@ -18306,11 +18410,12 @@
             const itens = [];
 
             if (inadimplentes > 0) {
-                itens.push(`<button onclick="switchTab('tab-inadimplencia')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                    <div class="w-9 h-9 rounded-lg bg-red-50 text-red-700 flex items-center justify-center flex-none"><svg data-lucide="badge-dollar-sign" style="width:16px;height:16px"></svg></div>
-                    <div class="flex-1 min-w-0"><div class="text-xs font-bold">${inadimplentes} recebimento${inadimplentes > 1 ? 's' : ''} em atraso</div><div class="text-[11px] text-slate-500">Abrir Cobranças</div></div>
-                    <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                </button>`);
+                itens.push(pontoAtencaoHtml({
+                    icone: 'badge-dollar-sign', corBg: 'bg-red-50', corTexto: 'text-red-700',
+                    titulo: `${inadimplentes} recebimento${inadimplentes > 1 ? 's' : ''} em atraso`,
+                    subtitulo: 'Abrir Cobranças',
+                    onclick: "switchTab('tab-inadimplencia')"
+                }));
             }
 
             const contratosAssinando = contratos.filter(c => c.status === 'Assinando' && !imovelIsentoDeAlertas(c.imovelId));
@@ -18322,11 +18427,12 @@
                 // sincronizado automaticamente quando um contrato nasce/
                 // muda pra esse status), sem banner nenhum — só filtra e
                 // mostra a lista.
-                itens.push(`<button onclick="document.getElementById('imoveis-filtro-status').value='Assinando'; switchTab('tab-imoveis'); renderImoveis();" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                    <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-none"><svg data-lucide="file-signature" style="width:16px;height:16px"></svg></div>
-                    <div class="flex-1 min-w-0"><div class="text-xs font-bold">${contratosAssinando.length} contrato${contratosAssinando.length > 1 ? 's' : ''} aguardando assinatura</div><div class="text-[11px] text-slate-500">Gerado${contratosAssinando.length > 1 ? 's' : ''} pela Vitrine, revisar e assinar</div></div>
-                    <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                </button>`);
+                itens.push(pontoAtencaoHtml({
+                    icone: 'file-signature', corBg: 'bg-blue-50', corTexto: 'text-blue-700',
+                    titulo: `${contratosAssinando.length} contrato${contratosAssinando.length > 1 ? 's' : ''} aguardando assinatura`,
+                    subtitulo: `Gerado${contratosAssinando.length > 1 ? 's' : ''} pela Vitrine, revisar e assinar`,
+                    onclick: "document.getElementById('imoveis-filtro-status').value='Assinando'; switchTab('tab-imoveis'); renderImoveis();"
+                }));
             }
 
             const contratosComAlerta = contratos.filter(c => c.status !== 'Assinando' && !imovelIsentoDeAlertas(c.imovelId) && (contratoPrecisaRevisao(c) || contratoVencido(c)));
@@ -18335,72 +18441,78 @@
                 // Visão Geral, marca o filtro real "Todos com alerta" no
                 // overlay de busca de Imóveis (não existe mais banner nem
                 // filtro paralelo).
-                itens.push(`<button onclick="document.getElementById('imoveis-filtro-alerta').value='qualquer'; switchTab('tab-imoveis'); renderImoveis();" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                    <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-none"><svg data-lucide="calendar-clock" style="width:16px;height:16px"></svg></div>
-                    <div class="flex-1 min-w-0"><div class="text-xs font-bold">${contratosComAlerta.length} contrato${contratosComAlerta.length > 1 ? 's' : ''} com alerta</div><div class="text-[11px] text-slate-500">Reajuste pendente ou vigência vencida</div></div>
-                    <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                </button>`);
+                itens.push(pontoAtencaoHtml({
+                    icone: 'calendar-clock', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
+                    titulo: `${contratosComAlerta.length} contrato${contratosComAlerta.length > 1 ? 's' : ''} com alerta`,
+                    subtitulo: 'Reajuste pendente ou vigência vencida',
+                    onclick: "document.getElementById('imoveis-filtro-alerta').value='qualquer'; switchTab('tab-imoveis'); renderImoveis();"
+                }));
             }
 
             if (vagos > 0) {
-                itens.push(`<button onclick="document.getElementById('imoveis-filtro-status').value='Vago'; switchTab('tab-imoveis'); renderImoveis();" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                    <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-none"><svg data-lucide="house-plus" style="width:16px;height:16px"></svg></div>
-                    <div class="flex-1 min-w-0"><div class="text-xs font-bold">${vagos} imóve${vagos > 1 ? 'is' : 'l'} vago${vagos > 1 ? 's' : ''}</div><div class="text-[11px] text-slate-500">Potencial de receita não realizado</div></div>
-                    <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                </button>`);
+                itens.push(pontoAtencaoHtml({
+                    icone: 'house-plus', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
+                    titulo: `${vagos} imóve${vagos > 1 ? 'is' : 'l'} vago${vagos > 1 ? 's' : ''}`,
+                    subtitulo: 'Potencial de receita não realizado',
+                    onclick: "document.getElementById('imoveis-filtro-status').value='Vago'; switchTab('tab-imoveis'); renderImoveis();"
+                }));
             }
 
-            // v1.91.0 (pedido explícito, 31/08/2026) — wrapper fixo pros 2
-            // sinais fundidos (controles do Cofre + diagnóstico tributário,
-            // ver carregarPontosAtencaoFundidos() logo abaixo). Sempre
-            // existe, mesmo vazio — carregarPontosAtencaoFundidos()
-            // substitui só o CONTEÚDO dele a cada chamada (idempotente),
-            // nunca duplica em re-renders repetidos desta função.
+            // v1.91.0 (pedido explícito, 31/08/2026) — wrapper fixo pros
+            // pontos de atenção assíncronos (controles do Cofre +
+            // diagnóstico tributário + em triagem), ver
+            // carregarDadosAssincronosVisaoGeral() logo abaixo. Sempre
+            // existe, mesmo vazio — a função substitui só o CONTEÚDO dele
+            // a cada chamada (idempotente), nunca duplica em re-renders
+            // repetidos desta função.
             const listaEl = document.getElementById('geral-atencao-lista');
             if (listaEl) {
                 const baseHtml = itens.length > 0
                     ? itens.join('')
                     : `<p class="text-xs text-slate-500" id="geral-atencao-vazio">Nada pedindo atenção agora. 🎉</p>`;
-                listaEl.innerHTML = baseHtml + '<div id="geral-atencao-fundidos"></div>';
+                listaEl.innerHTML = baseHtml + '<div id="geral-atencao-fundidos" class="space-y-2"></div>';
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
-            // v1.91.0 — roda em paralelo, sem bloquear o que já foi
-            // renderizado acima (síncrono, mesmo comportamento de sempre).
-            // Ver função pra detalhe de cada uma das 2 buscas.
-            carregarPontosAtencaoFundidos();
+            // v1.95.0 — 1 função só, dispara as 4 buscas assíncronas da
+            // Visão Geral (KPIs do hero + controles do Cofre +
+            // diagnóstico tributário + triagem) TODAS JUNTAS, em
+            // paralelo. Antes eram 2 funções (carregarKpisVisaoGeral +
+            // carregarPontosAtencaoFundidos), a 2ª com 3 buscas em
+            // SEQUÊNCIA (await uma de cada vez) — cada card aparecia
+            // num instante diferente, dando sensação de tela remontando
+            // aos pedaços. Ver função pra detalhe de cada busca.
+            carregarDadosAssincronosVisaoGeral();
 
         }
 
-        // v1.91.0 (pedido explícito, 31/08/2026) — "os alertas devem se
-        // fundir" + "a visão geral do ativo deve se integrar com a visão
-        // geral do imóvel" + "o diagnóstico tributário deve começar a
-        // aparecer". Funde na MESMA lista "Atenção necessária" (nunca um
-        // card à parte) 2 sinais que até aqui só existiam em telas
-        // separadas:
-        //   1) Controles do Cofre vencidos/vencendo nos próximos 14 dias
-        //      (cofre_ocorrencias_controle) — MESMA query de
-        //      listarOcorrenciasAbertasComItem() (js/cofre-api.js), só que
-        //      chamada aqui pelo dbAuth do próprio index.html em vez do
-        //      cliente Supabase separado do Cofre. Mesmo banco, mesma RLS,
-        //      leitura pura — não é um risco novo (as 2 conexões
-        //      redundantes já existem hoje, ver ativos-boot.js).
-        //   2) fn_leitura_tributaria_sinais(p_cliente_id) — RPC já criada
-        //      e testada desde v1.85.0 (`SECURITY DEFINER`, `GRANT EXECUTE`
-        //      só pra `authenticated`, conferido no banco antes de usar
-        //      aqui), mas nunca tinha ganhado NENHUMA tela até agora — só
-        //      existia no backend. Resumida aqui em 1 item ("Diagnóstico
-        //      tributário"); o detalhe sinal-por-sinal mora em
-        //      Resultados > Leitura tributária (ver montarResumoResultados()).
-        // Falha em qualquer uma das 2 buscas não quebra a Visão Geral — só
-        // o wrapper fica vazio; os itens síncronos (inadimplência, etc.)
-        // continuam intactos, renderizados antes desta função nem rodar.
-        // v1.93.0 (pedido explícito) — formata valor em notação compacta
-        // pt-BR pro hero da Visão Geral ("R$ 34,2 mi" em vez do valor
-        // cheio) — mesmo padrão do protótipo. Só 2 faixas (mi/mil) porque
-        // é o que a carteira real usa hoje; valores abaixo de mil caem no
-        // formatarMoedaBR() de sempre, sem inventar uma 3ª faixa não usada.
+        // v1.95.0 (pedido explícito, 01/09/2026: "as funções de
+        // carregamento destes alertas estão unificadas? quais
+        // oportunidades de centralizar as funções agora que estamos
+        // unificando?") — SIM, havia oportunidade real, e esta versão
+        // aproveita: carregarKpisVisaoGeral() + carregarPontosAtencaoFundidos()
+        // (2 funções, a 2ª com 3 buscas em SEQUÊNCIA — await uma de
+        // cada vez dentro do mesmo bloco) viraram 1 função só, com as 4
+        // buscas disparadas TODAS JUNTAS via Promise.allSettled — não
+        // Promise.all, de propósito: 1 busca falhar não pode cancelar
+        // as outras 3 (cada card continua independente na hora de
+        // falhar, só não na hora de CARREGAR, que agora é junto).
+        // Efeito prático: os cards do hero e os pontos de atenção
+        // assíncronos aparecem todos no mesmo instante, não mais um de
+        // cada vez conforme cada busca resolve sozinha — é a causa raiz
+        // do "cada componente carregando num tempo diferente" que você
+        // reparou.
+        //
+        // Herda dos comentários anteriores (histórico, não repetir):
+        // controles do Cofre = mesma query de listarOcorrenciasAbertasComItem()
+        // (js/cofre-api.js), chamada aqui pelo dbAuth do próprio
+        // index.html — mesmo banco/RLS, não é conexão nova (ver
+        // ativos-boot.js pra contexto da 2ª conexão já aceita).
+        // fn_leitura_tributaria_sinais/fn_resumo_resultados — RPCs já
+        // existiam desde v1.85.0, só ganharam tela nesta sequência de
+        // versões. Documentos em triagem — mesma classificação que a
+        // Home antiga do Cofre usava (ver ativos-markup.js).
         function formatarValorCompacto(valor) {
             const n = Number(valor) || 0;
             if (n >= 1000000) return 'R$ ' + (n / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi';
@@ -18408,124 +18520,104 @@
             return formatarMoedaBR(n);
         }
 
-        // v1.93.0 (pedido explícito, 31/08/2026) — KPIs do hero da Visão
-        // Geral, no padrão do protótipo. Reaproveita fn_resumo_resultados
-        // (mesma RPC já usada em Resultados desde v1.85.0/v1.91.0) — zero
-        // lógica nova de agregação, só uma 2ª tela consumindo o mesmo
-        // dado. Falha aqui não quebra o resto da Visão Geral (que já
-        // renderizou de forma síncrona antes desta função ser chamada).
-        async function carregarKpisVisaoGeral() {
+        async function carregarDadosAssincronosVisaoGeral() {
             if (!CLIENTE_ID_SUPABASE) return;
-            try {
-                const { data, error } = await dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE });
-                if (error) throw error;
-                const resumo = Array.isArray(data) ? data[0] : data;
-                if (!resumo) return;
 
-                const elPatrimonio = document.getElementById('geral-patrimonio-total');
-                if (elPatrimonio) elPatrimonio.textContent = formatarValorCompacto(resumo.soma_valor_mercado);
-
-                const elRecebidoMes = document.getElementById('geral-recebido-mes');
-                if (elRecebidoMes) elRecebidoMes.textContent = formatarValorCompacto(resumo.recebido_mes_atual);
-
-                const elOcupacao = document.getElementById('geral-ocupacao-pct');
-                if (elOcupacao) elOcupacao.textContent = resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—';
-            } catch (err) {
-                console.warn('[visao-geral] Falha ao carregar KPIs do hero:', err.message);
-            }
-        }
-
-        async function carregarPontosAtencaoFundidos() {
             const wrapper = document.getElementById('geral-atencao-fundidos');
-            if (!wrapper || !CLIENTE_ID_SUPABASE) return;
 
-            const itensFundidos = [];
-
-            try {
-                const { data: ocorrencias, error } = await dbAuth.from('cofre_ocorrencias_controle')
+            const [resResumo, resControles, resTributario, resTriagem] = await Promise.allSettled([
+                dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE }),
+                dbAuth.from('cofre_ocorrencias_controle')
                     .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
                     .eq('status_execucao', 'aberto')
                     .eq('cofre_itens_controle.ativo', true)
-                    .order('data_prevista_atual');
-                if (error) throw error;
+                    .order('data_prevista_atual'),
+                dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE }),
+                dbAuth.from('cofre_documentos').select('id, cofre_documento_vinculos(entidade_tipo)').eq('cliente_id', CLIENTE_ID_SUPABASE)
+            ]);
 
+            // --- KPIs do hero (Patrimônio sob gestão / Recebido / Ocupação) ---
+            if (resResumo.status === 'fulfilled' && !resResumo.value.error) {
+                const resumo = Array.isArray(resResumo.value.data) ? resResumo.value.data[0] : resResumo.value.data;
+                if (resumo) {
+                    const elPatrimonio = document.getElementById('geral-patrimonio-total');
+                    if (elPatrimonio) elPatrimonio.textContent = formatarValorCompacto(resumo.soma_valor_mercado);
+                    const elRecebidoMes = document.getElementById('geral-recebido-mes');
+                    if (elRecebidoMes) elRecebidoMes.textContent = formatarValorCompacto(resumo.recebido_mes_atual);
+                    const elOcupacao = document.getElementById('geral-ocupacao-pct');
+                    if (elOcupacao) elOcupacao.textContent = resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—';
+                }
+            } else {
+                console.warn('[visao-geral] Falha ao carregar KPIs do hero:', resResumo.reason?.message || resResumo.value?.error?.message);
+            }
+
+            if (!wrapper) return;
+
+            const itensFundidos = [];
+
+            // --- controles do Cofre (vencidos / vencendo em 14 dias) ---
+            if (resControles.status === 'fulfilled' && !resControles.value.error) {
+                const ocorrencias = resControles.value.data || [];
                 const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
                 const em14dias = new Date(hoje); em14dias.setDate(em14dias.getDate() + 14);
-                const vencidos = (ocorrencias || []).filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') < hoje);
-                const vencendo = (ocorrencias || []).filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') >= hoje && new Date(o.data_prevista_atual + 'T00:00:00') <= em14dias);
-
+                const vencidos = ocorrencias.filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') < hoje);
+                const vencendo = ocorrencias.filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') >= hoje && new Date(o.data_prevista_atual + 'T00:00:00') <= em14dias);
                 if (vencidos.length > 0) {
-                    itensFundidos.push(`<button onclick="switchTab('tab-ativos')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                        <div class="w-9 h-9 rounded-lg bg-red-50 text-red-700 flex items-center justify-center flex-none"><svg data-lucide="alarm-clock-off" style="width:16px;height:16px"></svg></div>
-                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">${vencidos.length} controle${vencidos.length > 1 ? 's' : ''} do Cofre vencido${vencidos.length > 1 ? 's' : ''}</div><div class="text-[11px] text-slate-500">IPTU, seguro ou manutenção — abrir Ativos</div></div>
-                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                    </button>`);
+                    itensFundidos.push(pontoAtencaoHtml({
+                        icone: 'alarm-clock-off', corBg: 'bg-red-50', corTexto: 'text-red-700',
+                        titulo: `${vencidos.length} controle${vencidos.length > 1 ? 's' : ''} do Cofre vencido${vencidos.length > 1 ? 's' : ''}`,
+                        subtitulo: 'IPTU, seguro ou manutenção — abrir Ativos',
+                        onclick: "switchTab('tab-ativos')"
+                    }));
                 }
                 if (vencendo.length > 0) {
-                    itensFundidos.push(`<button onclick="switchTab('tab-ativos')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                        <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-none"><svg data-lucide="alarm-clock" style="width:16px;height:16px"></svg></div>
-                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">${vencendo.length} controle${vencendo.length > 1 ? 's' : ''} vencendo nos próximos 14 dias</div><div class="text-[11px] text-slate-500">IPTU, seguro ou manutenção — abrir Ativos</div></div>
-                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                    </button>`);
+                    itensFundidos.push(pontoAtencaoHtml({
+                        icone: 'alarm-clock', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
+                        titulo: `${vencendo.length} controle${vencendo.length > 1 ? 's' : ''} vencendo nos próximos 14 dias`,
+                        subtitulo: 'IPTU, seguro ou manutenção — abrir Ativos',
+                        onclick: "switchTab('tab-ativos')"
+                    }));
                 }
-            } catch (err) {
-                console.warn('[visao-geral] Falha ao carregar controles do Cofre:', err.message);
+            } else {
+                console.warn('[visao-geral] Falha ao carregar controles do Cofre:', resControles.reason?.message || resControles.value?.error?.message);
             }
 
-            try {
-                const { data: sinais, error } = await dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE });
-                if (error) throw error;
-                if (sinais && sinais.length > 0) {
+            // --- diagnóstico tributário ---
+            if (resTributario.status === 'fulfilled' && !resTributario.value.error) {
+                const sinais = resTributario.value.data || [];
+                if (sinais.length > 0) {
                     const totalOcorrencias = sinais.reduce((soma, s) => soma + (s.contagem || 0), 0);
-                    itensFundidos.push(`<button onclick="switchTab('tab-relatorios')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                        <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-none"><svg data-lucide="landmark" style="width:16px;height:16px"></svg></div>
-                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">Diagnóstico tributário — ${sinais.length} ponto${sinais.length > 1 ? 's' : ''} pra conferir</div><div class="text-[11px] text-slate-500">Reforma tributária/NFS-e · ${totalOcorrencias} ocorrência${totalOcorrencias > 1 ? 's' : ''} na carteira · ver Resultados</div></div>
-                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                    </button>`);
+                    itensFundidos.push(pontoAtencaoHtml({
+                        icone: 'landmark', corBg: 'bg-blue-50', corTexto: 'text-blue-700',
+                        titulo: `Diagnóstico tributário — ${sinais.length} ponto${sinais.length > 1 ? 's' : ''} pra conferir`,
+                        subtitulo: `Reforma tributária/NFS-e · ${totalOcorrencias} ocorrência${totalOcorrencias > 1 ? 's' : ''} na carteira · ver Resultados`,
+                        onclick: "switchTab('tab-relatorios')"
+                    }));
                 }
-            } catch (err) {
-                console.warn('[visao-geral] Falha ao carregar diagnóstico tributário:', err.message);
+            } else {
+                console.warn('[visao-geral] Falha ao carregar diagnóstico tributário:', resTributario.reason?.message || resTributario.value?.error?.message);
             }
 
-            // v1.94.2 (31/08/2026, pedido explícito: "os documentos em
-            // triagem e qq outro alerta que venha do sistema deve estar
-            // na aba de visão geral integrada do app") — substitui a
-            // Home antiga do Cofre (data-screen="home", APAGADA nesta
-            // versão — ver ativos-markup.js) como lugar de mostrar
-            // "documentos em triagem". Mesma classificação da Home
-            // antiga (classificarStatusVinculo em cofre-validacoes.js:
-            // documento com ZERO linhas em cofre_documento_vinculos =
-            // triagem) — replicada aqui como query direta (dbAuth do
-            // próprio index.html) porque tab-geral pode renderizar
-            // antes da aba Ativos/Cofre ter carregado (estado.documentos
-            // só existe depois disso) — não dá pra depender do estado
-            // do Cofre aqui.
-            try {
-                const { data: docsCliente, error } = await dbAuth.from('cofre_documentos')
-                    .select('id, cofre_documento_vinculos(entidade_tipo)')
-                    .eq('cliente_id', CLIENTE_ID_SUPABASE);
-                if (error) throw error;
-                const emTriagem = (docsCliente || []).filter(d => !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0);
+            // --- documentos em triagem ---
+            if (resTriagem.status === 'fulfilled' && !resTriagem.value.error) {
+                const emTriagem = (resTriagem.value.data || []).filter(d => !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0);
                 if (emTriagem.length > 0) {
-                    itensFundidos.push(`<button onclick="switchTab('tab-ativos')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                        <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-none"><svg data-lucide="inbox" style="width:16px;height:16px"></svg></div>
-                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">${emTriagem.length} documento${emTriagem.length > 1 ? 's' : ''} em triagem</div><div class="text-[11px] text-slate-500">Sem contexto resolvido ainda — abrir Ativos</div></div>
-                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-                    </button>`);
+                    itensFundidos.push(pontoAtencaoHtml({
+                        icone: 'inbox', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
+                        titulo: `${emTriagem.length} documento${emTriagem.length > 1 ? 's' : ''} em triagem`,
+                        subtitulo: 'Sem contexto resolvido ainda — abrir Ativos',
+                        onclick: "switchTab('tab-ativos')"
+                    }));
                 }
-            } catch (err) {
-                console.warn('[visao-geral] Falha ao carregar documentos em triagem:', err.message);
+            } else {
+                console.warn('[visao-geral] Falha ao carregar documentos em triagem:', resTriagem.reason?.message || resTriagem.value?.error?.message);
             }
 
             wrapper.innerHTML = itensFundidos.join('');
-
-            // Se os itens síncronos deram vazio ("Nada pedindo atenção")
-            // mas chegou algo aqui, o parágrafo de vazio ficaria mentindo.
             if (itensFundidos.length > 0) {
                 document.getElementById('geral-atencao-vazio')?.remove();
             }
-
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 

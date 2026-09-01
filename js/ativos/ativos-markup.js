@@ -1,6 +1,26 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.5.0 · 31/08/2026
+// Versão: 1.6.0 · 01/09/2026
+//
+// v1.6.0 — 2 correções achadas com screenshot real, pedido explícito
+// ("a lista de ativos está bem diferente... elimine qq menção que seja
+// por módulo"):
+//   1) BUG REAL: a grade de dados do imóvel (aba Dados da ficha)
+//      entrava como 3º filho dentro de #fa-resumo-origem-imovel, um
+//      <div flex justify-between> com só 2 filhos previstos — layout
+//      quebrava (grade "flutuando" ao lado do texto). Corrigido: grade
+//      ganhou container próprio (#fa-dados-imovel-grid), fora do flex.
+//      Frase "Este ativo referencia um imóvel já cadastrado" SAIU —
+//      expunha a arquitetura por trás em vez de mostrar o dado.
+//   2) Abas da ficha (Dados/Documentos/Controles/Contratos/Fotos)
+//      pararam de rolar horizontalmente (overflow-x-auto removido,
+//      flex-1 no lugar de flex-none) — as 5 cabem sem rolar; a barra
+//      cinza estranha da screenshot é muito provavelmente o indicador
+//      de rolagem nativo de navegadores Android/Samsung Internet, que
+//      não respeita as técnicas de esconder scrollbar via CSS. Corrige
+//      a causa (rolagem desnecessária), não só o sintoma.
+//   Subtítulo da aba Contratos reescrito ("aqui é só o vínculo" saiu —
+//   mesma limpeza de linguagem por módulo).
 //
 // v1.5.0 (31/08/2026, pedido explícito: "apague a aba antiga do cofre
 // de visão geral pra irmos reduzindo e limpando o html") — data-screen=
@@ -325,21 +345,47 @@ export const ATIVOS_MARKUP = `<style>
          nenhuma mudança de JS precisou pra isso. -->
     <div id="fa-cabecalho" class="mt-3"></div>
 
-    <div class="flex gap-1 overflow-x-auto raiz-sem-scrollbar mt-4 mb-3" style="border-bottom:1px solid var(--line)">
-        <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-none text-xs font-bold px-3 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="fotos" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Fotos</button>
+    <!-- v1.95.0 (pedido explícito, 01/09/2026, achado com screenshot
+         real) — overflow-x-auto REMOVIDO daqui: as 5 abas cabem
+         tranquilamente numa tela de celular comum sem precisar rolar
+         (~300px de conteúdo numa viewport de 380px+); a barra cinza
+         estranha com setas que você viu na screenshot é muito
+         provavelmente o indicador de rolagem nativo de alguns
+         navegadores Android/Samsung Internet pra overflow-x:auto, que
+         NÃO respeita as técnicas de esconder scrollbar via CSS (elas
+         funcionam pro scrollbar "clássico" do desktop, não pro
+         indicador touch de alguns navegadores mobile). Trocado flex-none
+         por flex-1 (5 abas dividem o espaço igualmente, sem faltar
+         nem sobrar) — elimina a rolagem, e junto o problema, na raiz,
+         em vez de só tentar esconder o sintoma. Chips de tipo (Ativos,
+         mais itens, pode legitimamente precisar rolar) mantêm
+         overflow-x-auto + raiz-sem-scrollbar como estavam. -->
+    <div class="flex gap-1 mt-4 mb-3" style="border-bottom:1px solid var(--line)">
+        <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="fotos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Fotos</button>
     </div>
 
     <!-- ===== Painel: Dados ===== -->
     <div id="fa-painel-dados" class="fa-painel space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <div id="fa-resumo-origem-imovel" class="hidden raiz-bloco-interno flex items-center justify-between text-sm">
-                <span>Este ativo referencia um imóvel já cadastrado.</span>
-                <button data-action="abrir-gestao-imovel" class="text-xs font-bold" style="color:var(--sprout)">Abrir gestão do imóvel →</button>
-            </div>
+            <!-- v1.95.0 (pedido explícito, 01/09/2026, achado com screenshot
+                 real) — BUG REAL corrigido: #fa-resumo-origem-imovel era
+                 flex+justify-between com 2 filhos (frase + botão); o JS
+                 (montarDadosAtivo) entrava um 3º filho ali dentro (a
+                 grade de dados) — 3 itens flex numa linha só quebravam o
+                 layout inteiro (a grade "flutuava" ao lado da frase em
+                 vez de ficar embaixo). Corrigido: grade agora tem
+                 container PRÓPRIO (#fa-dados-imovel-grid), fora do flex.
+                 Também "não temos mais dois módulos... elimine qq menção
+                 que seja por módulo": a frase "Este ativo referencia um
+                 imóvel já cadastrado" (que expunha a arquitetura por
+                 trás em vez de mostrar o dado) SAIU — o link de editar
+                 virou parte do cabeçalho da própria grade, sem chamar
+                 atenção pra existir "um imóvel" separado do "ativo". -->
+            <div id="fa-dados-imovel-grid" class="hidden mb-3"></div>
             <div id="fa-resumo-dados" class="text-sm space-y-1"></div>
 
             <div id="fa-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2">
@@ -409,17 +455,18 @@ export const ATIVOS_MARKUP = `<style>
     <!-- ===== Painel: Contratos (NOVO, v1.93.0, pedido explícito) =====
          Só existe conteúdo de verdade quando o ativo referencia um
          imóvel (entidade_origem_tipo='imovel') — outros tipos de ativo
-         não têm contrato de locação neste sistema. "Relação, não fusão"
-         (mesmo texto do protótipo): o contrato tem ficha própria dele
-         (reajuste, minuta, rescisão, tudo isso continua exclusivo da
-         aba Contratos do App) — aqui é só o vínculo, leitura direta da
+         não têm contrato de locação neste sistema. Leitura direta da
          tabela contratos via cofre-api.js (mesma conexão redundante já
          aceita, ver ativos-boot.js), sem duplicar nenhuma lógica de
-         negócio de contrato. -->
+         negócio de contrato (reajuste, minuta, rescisão continuam só na
+         aba Contratos do App).
+         v1.95.0 — subtítulo reescrito: "aqui é só o vínculo com este
+         ativo" expunha a mesma dualidade ("vínculo" pressupõe 2 coisas
+         separadas) — pedido explícito de eliminar linguagem por módulo. -->
     <div id="fa-painel-contratos" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Contratos</h3>
-            <p class="text-[11px] mt-0.5" style="color:var(--sage)">O contrato tem a ficha própria dele (reajuste, minuta, rescisão) — aqui só o vínculo com este ativo.</p>
+            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Reajuste, minuta e rescisão continuam na aba Contratos.</p>
             <div id="fa-contratos-lista" class="mt-3 space-y-2"></div>
         </div>
     </div>

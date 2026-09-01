@@ -1,6 +1,26 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.7.0 · 31/08/2026
+// Versão: 1.8.0 · 01/09/2026
+//
+// v1.8.0 — pedido explícito, 01/09/2026, achado com screenshot real:
+//   1) BUG REAL corrigido em montarDadosAtivo(): a grade de dados do
+//      imóvel entrava dentro de um flex justify-between de 2 filhos —
+//      layout quebrava. Agora escreve em #fa-dados-imovel-grid, container
+//      próprio (ver ativos-markup.js v1.6.0).
+//   2) "Sem dados estruturados cadastrados ainda." deixou de aparecer
+//      pra ativo vinculado a imóvel sem dados_especificos preenchidos —
+//      a grade acima já É o dado de verdade; mostrar essa frase ficava
+//      confuso ("veja como aparece, ruim, precisa já aparecer os dados
+//      do imóvel").
+//   3) "Este ativo referencia um imóvel já cadastrado" e "Abrir gestão
+//      do imóvel →" reescritos — cabeçalho "Dados do imóvel" + link
+//      "Editar →", sem expor a existência de 2 sistemas separados
+//      ("não temos mais dois módulos... elimine qq menção que seja por
+//      módulo").
+//   4) renderAtivosLista() ganhou agrupamento por empreendimento, mesmo
+//      critério da lista antiga de Imóveis (só agrupa com >10 imóveis
+//      na carteira) — pedido explícito: "prefiro o padrão da lista
+//      antiga de imóveis".
 //
 // v1.7.0 — ajustes de qualidade pedidos depois do Nicola testar a
 // v1.94.0 em navegador de verdade ("perdeu a formatação da lista com
@@ -163,9 +183,44 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         if (termo && !a.nome_exibicao.toLowerCase().includes(termo)) return false;
         return true;
     });
-    document.getElementById('ativos-lista').innerHTML = lista.map(ativoCardHtml).join('');
+
+    const container = document.getElementById('ativos-lista');
+
+    // v1.7.0 (pedido explícito, 01/09/2026: "a lista de ativos está bem
+    // diferente da lista antiga de imóveis... prefiro o padrão da lista
+    // antiga, favor ajustar") — agrupamento por empreendimento, MESMO
+    // critério da lista antiga (index.html, renderImoveis()): só agrupa
+    // quando há mais de 10 imóveis no TOTAL da carteira (traço do porte
+    // da carteira, não do filtro do momento). Ativos que não são imóvel
+    // (sem empreendimento) caem em "(Outros ativos)", sempre por último
+    // — hoje (Rumo) isso nunca acontece, mas o critério já vem pronto
+    // pra quando existirem veículos/outros tipos na carteira.
+    const totalImoveisNaCarteira = estado.ativos.filter(a => a.entidade_origem_tipo === 'imovel').length;
+
+    if (totalImoveisNaCarteira > 10) {
+        const grupos = {};
+        lista.forEach(a => {
+            const resumo = a.entidade_origem_tipo === 'imovel' ? resumoImoveisPorId.get(a.entidade_origem_id) : null;
+            const chave = resumo?.empreendimento || (a.entidade_origem_tipo === 'imovel' ? '(Sem empreendimento)' : '(Outros ativos)');
+            (grupos[chave] = grupos[chave] || []).push(a);
+        });
+        const nomesGrupos = Object.keys(grupos).sort((x, y) => {
+            if (x === '(Outros ativos)') return 1;
+            if (y === '(Outros ativos)') return -1;
+            return x.localeCompare(y);
+        });
+        container.innerHTML = nomesGrupos.map(nome => `
+            <div class="mb-1">
+                <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 px-1 mb-2 mt-4 first:mt-0">${escapeHtml(nome)} <span class="text-slate-400">(${grupos[nome].length})</span></p>
+                <div class="space-y-2">${grupos[nome].map(ativoCardHtml).join('')}</div>
+            </div>
+        `).join('');
+    } else {
+        container.innerHTML = `<div class="space-y-2">${lista.map(ativoCardHtml).join('')}</div>`;
+    }
+
     document.getElementById('ativos-estado-vazio').classList.toggle('hidden', estado.ativos.length !== 0);
-    document.getElementById('ativos-lista').classList.toggle('hidden', estado.ativos.length === 0);
+    container.classList.toggle('hidden', estado.ativos.length === 0);
     renderChipsAtivos();
     refrescarIcones();
 }
@@ -506,22 +561,33 @@ async function montarContratosAtivo(a) {
 // ver o valor). Pra ativo NÃO vinculado (imóvel solto no Cofre, ou
 // qualquer outro tipo), comportamento idêntico ao de antes.
 async function montarDadosAtivo(a) {
-    const origemWrapper = document.getElementById('fa-resumo-origem-imovel');
+    const gridWrapper = document.getElementById('fa-dados-imovel-grid');
     const ehImovelVinculado = a.entidade_origem_tipo === 'imovel';
-    origemWrapper.classList.toggle('hidden', !ehImovelVinculado);
+    gridWrapper.classList.toggle('hidden', !ehImovelVinculado);
 
     if (ehImovelVinculado) {
         // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") —
         // grade completa 2 colunas (Inscrição imobiliária/UF-Município/
         // Uso/Tipo de locação/Valor de mercado/IPTU/Endereço completo),
         // igual ao mockup — antes era só um resumo em texto corrido
-        // (uso/valor/IPTU numa linha só). "Relação, não fusão": isto é
-        // LEITURA — editar esses campos continua sendo só pelo formulário
-        // de verdade do imóvel ("Abrir gestão do imóvel →" logo abaixo),
-        // porque cofre_ativos.dados_especificos (o que "Editar dados"
-        // desta ficha edita) e imoveis (endereço/IPTU/valor de mercado)
-        // são tabelas diferentes — fundir os 2 formulários de escrita é
+        // (uso/valor/IPTU numa linha só). Isto é LEITURA — editar esses
+        // campos continua sendo só pelo formulário de verdade do imóvel
+        // (link "Editar →" no cabeçalho da grade), porque
+        // cofre_ativos.dados_especificos (o que "Editar dados" desta
+        // ficha edita) e imoveis (endereço/IPTU/valor de mercado) são
+        // tabelas diferentes — fundir os 2 formulários de escrita é
         // decisão maior, fora desta entrega.
+        //
+        // v1.95.0 (pedido explícito, 01/09/2026, achado com screenshot
+        // real) — BUG REAL corrigido: a grade entrava como 3º filho
+        // dentro de um <div flex justify-between> que já tinha 2 filhos
+        // (frase + botão) — o layout inteiro quebrava (grade flutuando
+        // ao lado do texto em vez de embaixo). Corrigido: gridWrapper
+        // agora é um container PRÓPRIO (#fa-dados-imovel-grid), fora de
+        // qualquer flex row. Também "não temos mais dois módulos...
+        // elimine qq menção que seja por módulo": a frase "Este ativo
+        // referencia um imóvel já cadastrado" SAIU — o link de editar
+        // virou parte do cabeçalho da própria grade.
         const resumoImovel = await api.buscarResumoImovelOrigem(a.entidade_origem_id);
         const usoLabel = { residencial: 'Residencial', comercial: 'Comercial', industrial: 'Industrial', terreno: 'Terreno', rural: 'Rural' };
         const locacaoLabel = { longa_duracao: 'Longa duração', temporada: 'Temporada', comercial: 'Comercial' };
@@ -543,28 +609,29 @@ async function montarDadosAtivo(a) {
             ? `<div class="col-span-2"><dt class="text-[10px]" style="color:var(--sage)">Endereço completo</dt><dd class="text-[13px] font-bold mt-0.5">${escapeHtml(enderecoCompleto)}</dd></div>`
             : '';
 
-        const resumoHtml = (campos.length || campoEndereco)
-            ? `<dl class="grid grid-cols-2 gap-x-3 gap-y-2 mt-2">${campos.join('')}${campoEndereco}</dl>`
-            : `<p class="text-xs mt-2" style="color:var(--sage)">Sem endereço/IPTU/valor de mercado/uso cadastrado no imóvel ainda.</p>`;
-        const bloco = origemWrapper.querySelector('[data-resumo-imovel]') || (() => {
-            const div = document.createElement('div');
-            div.setAttribute('data-resumo-imovel', '');
-            origemWrapper.appendChild(div);
-            return div;
-        })();
-        bloco.innerHTML = resumoHtml;
+        const cabecalho = `<div class="flex items-center justify-between mb-2">
+            <h4 class="text-[10px] font-bold uppercase tracking-wide" style="color:var(--sage)">Dados do imóvel</h4>
+            <button data-action="abrir-gestao-imovel" class="text-xs font-bold flex-none" style="color:var(--sprout)">Editar →</button>
+        </div>`;
+
+        gridWrapper.innerHTML = (campos.length || campoEndereco)
+            ? cabecalho + `<dl class="grid grid-cols-2 gap-x-3 gap-y-2">${campos.join('')}${campoEndereco}</dl>`
+            : cabecalho + `<p class="text-xs" style="color:var(--sage)">Sem endereço/IPTU/valor de mercado/uso cadastrado ainda.</p>`;
     }
 
-    // Descrição corrida (não tabela) + badge de status, mesmo padrão do
-    // card/ficha de Imóvel no App (pedido explícito).
+    // v1.95.0 — pra ativo vinculado a imóvel, a grade acima JÁ é o dado
+    // de verdade — mostrar "Sem dados estruturados cadastrados ainda."
+    // aqui embaixo (que se refere só a cofre_ativos.dados_especificos,
+    // um conceito interno que não devia aparecer pro usuário) ficava
+    // confuso: parecia que faltava informação quando na verdade a
+    // grade acima já tinha tudo (achado direto, pedido explícito: "veja
+    // como aparece, ruim, precisa já aparecer os dados do imóvel").
+    // Pra ativo SEM imóvel vinculado, comportamento intacto.
     const camposDefinidos = CAMPOS_POR_TIPO_ATIVO[a.tipo_ativo] || [];
     const dados = a.dados_especificos || {};
     const valoresPreenchidos = camposDefinidos
         .filter(c => dados[c.chave])
         .map(c => c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dados[c.chave]));
-    const descricaoCorrida = valoresPreenchidos.length
-        ? valoresPreenchidos.join(' · ')
-        : 'Sem dados estruturados cadastrados ainda.';
 
     // NOVO (29/08/2026) — 3º estado 'vendido', mesma cor neutra já usada
     // pra "Suspenso"/"Finalizado" no resto do sistema (DS §14, "demais
@@ -576,11 +643,18 @@ async function montarDadosAtivo(a) {
         ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:#f1f5f9; color:#475569">Vendido</span>`
         : `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:var(--success-bg); color:var(--success)">Ativo</span>`;
 
-    document.getElementById('fa-resumo-dados').innerHTML = `
-        <div class="flex items-start justify-between gap-2">
-            <p class="text-xs flex-1" style="color:var(--sage)">${descricaoCorrida}</p>
-            ${badgeStatus}
-        </div>`;
+    if (ehImovelVinculado && valoresPreenchidos.length === 0) {
+        document.getElementById('fa-resumo-dados').innerHTML = `<div class="flex items-center justify-end">${badgeStatus}</div>`;
+    } else {
+        const descricaoCorrida = valoresPreenchidos.length
+            ? valoresPreenchidos.join(' · ')
+            : 'Sem dados estruturados cadastrados ainda.';
+        document.getElementById('fa-resumo-dados').innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+                <p class="text-xs flex-1" style="color:var(--sage)">${descricaoCorrida}</p>
+                ${badgeStatus}
+            </div>`;
+    }
 
     refrescarIcones();
 }
