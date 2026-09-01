@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.9.0 · 31/08/2026
+// Versão: 1.10.0 · 01/09/2026
+//
+// v1.10.0 — buscarFluxoFinanceiroAtivo(ativoId): nova, pedido explícito
+// ("adicione a um ativo um novo chip de fluxo financeiro"). Chama a RPC
+// fn_fluxo_financeiro_ativo (nova, SECURITY INVOKER — RLS de cliente_id
+// já existente em mensalidades/contratos/lancamentos/partes faz o
+// isolamento sozinha, sem precisar elevar privilégio). Só LEITURA — a
+// escrita (novo lançamento) não duplica lógica aqui, é sempre uma ponte
+// pra abrirNovaDespesa() do App (index.html), mesmo princípio já usado
+// em abrirGestaoImovel(). Testado como authenticated real antes de
+// entrar (SET LOCAL ROLE authenticated + RLS), não só via este client
+// SECURITY INVOKER assumido.
 //
 // v1.9.0 — buscarResumoImoveisParaCards(clienteId): nova, pedido
 // explícito ("perdeu a formatação da lista... como referência a lista
@@ -386,6 +397,30 @@ export async function buscarContratosDoImovel(imovelId) {
     } catch (e) {
         console.warn('[cofre-api] buscarContratosDoImovel falhou:', e);
         return [];
+    }
+}
+
+// v1.10.0 (NOVO, pedido explícito, 01/09/2026) — chip "Financeiro" da
+// ficha do ativo. 1 chamada só (RPC já une entradas+saídas e calcula os
+// totais de 6 meses no banco, ver migration fn_fluxo_financeiro_ativo) —
+// nenhum join feito aqui no cliente. Funciona pra QUALQUER tipo_ativo
+// (não só imóvel): entradas só existem quando o ativo referencia um
+// imóvel do App (a RPC já resolve isso sozinha), saídas funcionam pra
+// qualquer um, via ativo_id direto — nenhuma dependência de "imoveis"
+// nova sendo introduzida aqui, propositalmente (ver Diretrizes Técnicas).
+export async function buscarFluxoFinanceiroAtivo(ativoId) {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_fluxo_financeiro_ativo', { p_ativo_id: ativoId });
+        if (error) throw error;
+        const linha = (data && data[0]) || { total_entradas_6m: 0, total_saidas_6m: 0, itens: [] };
+        return {
+            totalEntradas6m: Number(linha.total_entradas_6m || 0),
+            totalSaidas6m: Number(linha.total_saidas_6m || 0),
+            itens: linha.itens || []
+        };
+    } catch (e) {
+        console.warn('[cofre-api] buscarFluxoFinanceiroAtivo falhou:', e);
+        return { totalEntradas6m: 0, totalSaidas6m: 0, itens: [] };
     }
 }
 

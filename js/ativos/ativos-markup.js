@@ -1,6 +1,17 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.7.0 · 01/09/2026
+// Versão: 1.8.0 · 01/09/2026
+//
+// v1.8.0 — 6ª aba na ficha do ativo: Financeiro (NOVO, pedido explícito,
+// "adicione a um ativo um novo chip de fluxo financeiro onde é possível
+// ver as entradas e saídas daquele ativo. Permita lançamento por este
+// chip também e um atalho para a tela de saídas financeiras"). Botão
+// novo na fileira de abas (flex-1, 6 no lugar de 5) + painel novo
+// (#fa-painel-financeiro: 2 mini-cards de resumo + lista + 2 botões-
+// ponte pro App). Conteúdo montado por montarFinanceiroAtivo()
+// (cofre-ativos.js v1.10.0) — nenhum HTML de formulário de despesa
+// entrou aqui, os 2 botões são pontes (data-action="fa-novo-lancamento"
+// / "fa-ver-saidas-ativo", registrados em cofre-app.js v1.15.0).
 //
 // v1.7.0 — data-action-change="ativo-imovel-origem-mudou" no select
 // "Qual imóvel?" (pedido explícito, "modal não traz os campos certos"
@@ -386,11 +397,23 @@ export const ATIVOS_MARKUP = `<style>
          em vez de só tentar esconder o sintoma. Chips de tipo (Ativos,
          mais itens, pode legitimamente precisar rolar) mantêm
          overflow-x-auto + raiz-sem-scrollbar como estavam. -->
+    <!-- v1.7.0 (01/09/2026, pedido explícito, "adicione a um ativo um
+         novo chip de fluxo financeiro") — 6ª aba: Financeiro. Mesma
+         classe flex-1 das outras 5 (v1.95.0 já tinha eliminado a rolagem
+         horizontal nesta fileira de propósito) — "Financeiro" tem
+         comprimento parecido com "Documentos"/"Controles", cabe no
+         mesmo espírito sem reintroduzir rolagem. Vale conferir com
+         screenshot real depois do deploy (mesma prática já usada nesta
+         tela outras vezes), mas escolhi manter flex-1 em vez de trazer
+         de volta overflow-x-auto porque essa rolagem foi uma correção
+         explícita recente (v1.95.0) — reverter pra caber 1 aba a mais
+         iria contra o pedido de então. -->
     <div class="flex gap-1 mt-4 mb-3" style="border-bottom:1px solid var(--line)">
         <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
         <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>
         <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Financeiro</button>
         <button data-action="fa-trocar-aba" data-fa-aba="fotos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Fotos</button>
     </div>
 
@@ -494,6 +517,31 @@ export const ATIVOS_MARKUP = `<style>
             <h3 class="font-bold text-sm text-emerald-900">Contratos</h3>
             <p class="text-[11px] mt-0.5" style="color:var(--sage)">Reajuste, minuta e rescisão continuam na aba Contratos.</p>
             <div id="fa-contratos-lista" class="mt-3 space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- ===== Painel: Financeiro (NOVO, v1.7.0, pedido explícito,
+         01/09/2026) — entradas e saídas deste ativo. Só leitura +
+         2 pontes pro App (Nova despesa / Ver tudo em Saídas); nenhum
+         formulário de despesa vive aqui dentro, pra não duplicar a
+         lógica que já existe na aba Saídas do Financeiro (mesmo
+         princípio já usado no botão "Abrir gestão do imóvel" da aba
+         Dados). Preenchido por montarFinanceiroAtivo() (cofre-ativos.js
+         v1.10.0). -->
+    <div id="fa-painel-financeiro" class="fa-painel hidden space-y-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Financeiro</h3>
+            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Entradas e saídas ligadas a este ativo.</p>
+            <div id="fa-financeiro-resumo" class="grid grid-cols-2 gap-2 mt-3"></div>
+            <div id="fa-financeiro-lista" class="mt-3 space-y-2"></div>
+            <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                <button data-action="fa-novo-lancamento" class="flex-1 text-xs font-bold px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 border border-slate-300 flex items-center justify-center gap-1">
+                    <i data-lucide="plus" style="width:12px;height:12px"></i> Novo lançamento
+                </button>
+                <button data-action="fa-ver-saidas-ativo" class="flex-1 text-xs font-bold px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 border border-slate-300 flex items-center justify-center gap-1">
+                    <i data-lucide="wallet" style="width:12px;height:12px"></i> Ver tudo em Saídas
+                </button>
+            </div>
         </div>
     </div>
 

@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.14.0 · 01/09/2026
+// Versão: 1.15.0 · 01/09/2026
+//
+// v1.15.0 — 2 cases novos pro chip "Financeiro" da ficha do ativo (NOVO,
+// pedido explícito, "adicione a um ativo um novo chip de fluxo
+// financeiro... permita lançamento por este chip também e um atalho
+// para a tela de saídas financeiras"): 'fa-novo-lancamento' e
+// 'fa-ver-saidas-ativo', delegando pra ativos.abrirNovoLancamentoDoAtivo()/
+// ativos.abrirSaidasDoAtivo() (cofre-ativos.js v1.10.0) — mesmo padrão
+// de ponte já usado em 'cadastrar-imovel-app'/'abrir-gestao-imovel',
+// nenhuma lógica de formulário duplicada aqui.
 //
 // v1.14.0 — "vasculhe todo o código" (pedido explícito, 01/09/2026):
 // case 'voltar-app' corrigido — rotulado "Imóvel" (dentro do menu de
@@ -385,6 +394,11 @@ document.addEventListener('click', async (ev) => {
         // 'fa-trocar-aba' cobre a troca entre as 5 abas da ficha
         // (Dados/Documentos/Controles/Contratos/Fotos).
         case 'fa-trocar-aba': ativos.faTrocarAba(alvo.dataset.faAba); break;
+        // v1.15.0 (NOVO) — chip Financeiro da ficha do ativo: "Novo
+        // lançamento" e "Ver tudo em Saídas" são pontes pro App (ver
+        // cofre-ativos.js v1.10.0 pro porquê de não duplicar formulário).
+        case 'fa-novo-lancamento': ativos.abrirNovoLancamentoDoAtivo(); break;
+        case 'fa-ver-saidas-ativo': ativos.abrirSaidasDoAtivo(); break;
         case 'abrir-lightbox-foto-ativo': ativos.abrirLightboxFotoAtivo(parseInt(alvo.dataset.indice, 10)); break;
         case 'fechar-lightbox-fotos': ativos.fecharLightboxFotoAtivo(); break;
         case 'navegar-lightbox-fotos': ativos.navegarLightboxFotoAtivo(parseInt(alvo.dataset.dir, 10)); break;

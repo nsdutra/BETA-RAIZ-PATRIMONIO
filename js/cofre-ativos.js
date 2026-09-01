@@ -1,6 +1,24 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.9.0 · 01/09/2026
+// Versão: 1.10.0 · 01/09/2026
+//
+// v1.10.0 — 6ª aba da ficha do ativo: Financeiro (NOVO, pedido explícito,
+// 01/09/2026, "adicione a um ativo um novo chip de fluxo financeiro").
+// montarFinanceiroAtivo() lê fn_fluxo_financeiro_ativo via cofre-api.js
+// (1 chamada só, união de entradas+saídas já feita no banco) e preenche
+// 2 mini-cards (Entradas/Saídas, últimos 6 meses) + lista dos últimos
+// lançamentos. Escrita NÃO é duplicada aqui — os 2 botões do painel são
+// pontes pro App (mesmo princípio de abrirGestaoImovel()):
+//   - abrirNovoLancamentoDoAtivo(): switchTab('tab-saidas') +
+//     window.abrirNovaDespesa(ativoId) já com o ativo pré-selecionado.
+//   - abrirSaidasDoAtivo(): switchTab('tab-saidas') +
+//     window.abrirSaidasFiltradasPorAtivo(ativoId, nome) — mesma aba
+//     cheia de Saídas, já filtrada por este ativo, com "< Voltar".
+// Chamada nova dentro de abrirFichaAtivo(), junto das outras 4 (mesmo
+// padrão: tudo montado de uma vez, faTrocarAba() só troca visibilidade).
+// Vínculo sempre por ativo_id (cofre_ativos), nunca por imovel_id direto
+// — funciona pra qualquer tipo_ativo (veículo, aeronave etc.), não só
+// imóvel, já pensando no Raiz Agro/frota (ver Diretrizes Técnicas §2).
 //
 // v1.9.0 — 2 bugs reais corrigidos, pedido explícito ("vasculhe todo o
 // código... editar imóvel está indo pra tela inicial" + "modal não traz
@@ -578,6 +596,7 @@ export async function abrirFichaAtivo(id) {
     await montarControlesAtivo(a);
     await montarContratosAtivo(a);
     await montarFotosAtivo(a);
+    await montarFinanceiroAtivo(a);
 
     // v1.93.0 — toda vez que a ficha abre, começa na aba "Dados" (mesmo
     // comportamento do protótipo: "Ficha abre sempre em Resumo" já era
@@ -656,6 +675,90 @@ async function montarContratosAtivo(a) {
     } catch (err) {
         painel.innerHTML = `<p class="text-xs text-red-500">Não foi possível carregar os contratos agora.</p>`;
         console.warn('[cofre-ativos] montarContratosAtivo falhou:', err.message);
+    }
+}
+
+// ============================================================================
+// FINANCEIRO (NOVO, v1.10.0, pedido explícito, 01/09/2026) — "adicione a
+// um ativo um novo chip de fluxo financeiro onde é possível ver as
+// entradas e saídas daquele ativo". Só LEITURA aqui (fn_fluxo_financeiro_
+// ativo, cofre-api.js) — os 2 botões de ação são pontes pro App, nunca
+// duplicam o formulário de despesa (abrirNovaDespesa já existe lá,
+// mesmo princípio de abrirGestaoImovel logo abaixo).
+// ============================================================================
+async function montarFinanceiroAtivo(a) {
+    const painelResumo = document.getElementById('fa-financeiro-resumo');
+    const painelLista = document.getElementById('fa-financeiro-lista');
+    if (!painelResumo || !painelLista) return;
+
+    painelResumo.innerHTML = `<p class="text-xs col-span-2" style="color:var(--sage)">Carregando...</p>`;
+    painelLista.innerHTML = '';
+
+    const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtData = (iso) => iso ? formatarDataBR(iso) : '—';
+
+    const fluxo = await api.buscarFluxoFinanceiroAtivo(a.id);
+
+    painelResumo.innerHTML = `
+        <div class="bg-emerald-50 rounded-lg p-2.5 border border-emerald-100">
+            <p class="text-[10px] font-bold uppercase" style="color:var(--sage)">Entradas (6 meses)</p>
+            <p class="text-sm font-extrabold text-emerald-800 mt-0.5">${fmtMoeda(fluxo.totalEntradas6m)}</p>
+        </div>
+        <div class="bg-amber-50 rounded-lg p-2.5 border border-amber-100">
+            <p class="text-[10px] font-bold uppercase" style="color:var(--sage)">Saídas (6 meses)</p>
+            <p class="text-sm font-extrabold text-amber-800 mt-0.5">${fmtMoeda(fluxo.totalSaidas6m)}</p>
+        </div>`;
+
+    if (!fluxo.itens.length) {
+        painelLista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Nenhum lançamento ainda pra este ativo.</p>`;
+    } else {
+        painelLista.innerHTML = fluxo.itens.map(it => {
+            const ehEntrada = it.direcao === 'entrada';
+            const corValor = ehEntrada ? 'color:var(--success)' : 'color:var(--ink)';
+            const sinal = ehEntrada ? '+ ' : '– ';
+            const badge = it.status === 'realizado'
+                ? `<span class="bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded font-black">Pago</span>`
+                : `<span class="bg-slate-100 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-black">${ehEntrada ? 'A receber' : 'A pagar'}</span>`;
+            return `
+                <div class="raiz-bloco-interno">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold truncate">${escapeHtml(it.descricao || '')}</p>
+                            <p class="text-[11px]" style="color:var(--sage)">${it.fornecedor ? escapeHtml(it.fornecedor) + ' · ' : ''}${fmtData(it.data_pagamento || it.vencimento)}</p>
+                        </div>
+                        <div class="flex-none text-right">
+                            <p class="text-xs font-bold" style="${corValor}">${sinal}${fmtMoeda(it.valor)}</p>
+                            ${badge}
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+    refrescarIcones();
+}
+
+// Ponte pro App — mesmo princípio de abrirGestaoImovel() logo abaixo:
+// nenhuma lógica de formulário duplicada aqui, só troca de aba + chamada
+// da função que já existe no index.html, com o ativo já pré-selecionado.
+export function abrirNovoLancamentoDoAtivo() {
+    const a = estado.ativoEmFoco;
+    if (!a) return;
+    if (typeof window.switchTab === 'function' && typeof window.abrirNovaDespesa === 'function') {
+        window.switchTab('tab-saidas');
+        window.abrirNovaDespesa(a.id);
+    } else {
+        mostrarToast('Lançamento de despesa só disponível dentro do app principal.', 'erro');
+    }
+}
+
+export function abrirSaidasDoAtivo() {
+    const a = estado.ativoEmFoco;
+    if (!a) return;
+    if (typeof window.switchTab === 'function' && typeof window.abrirSaidasFiltradasPorAtivo === 'function') {
+        window.switchTab('tab-saidas');
+        window.abrirSaidasFiltradasPorAtivo(a.id, a.nome_exibicao);
+    } else {
+        mostrarToast('Tela de Saídas só disponível dentro do app principal.', 'erro');
     }
 }
 

@@ -6,9 +6,53 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.96.3
-   LINHAS: 29199
+   VERSÃO: Beta v1.97.0
+   LINHAS: 29937
    DATA: 01/09/2026
+   NOVIDADES (Beta v1.97.0) — pedido explícito: "vamos evoluir para o
+   item financeiro, iniciando a escrita de tela para as despesas e
+   saidas... adicione a um ativo um novo chip de fluxo financeiro".
+
+   Aba nova "Saídas" (tab-saidas), 3ª pill do segmento de Financeiro
+   (Recebimentos · Atrasados · Saídas — mesmo componente/posicionamento
+   dos outros 2, pra trocar de pill não mudar nada de lugar). CRUD
+   completo de despesa: criar, editar, dar baixa (com data/forma de
+   pagamento), estornar, excluir — tudo em public.lancamentos
+   (direcao='saida'), tabela que já existia mas estava vazia (a
+   Distribuição já lia dela via fn_apurar_distribuicao, então essa
+   entrega também corrige um número que já estava sendo mostrado
+   errado — saídas sempre em zero).
+
+   Migration aditiva aplicada: lancamentos ganhou descricao/vencimento/
+   data_pagamento/forma_pagamento/parte_id/observacao. Fornecedor SEMPRE
+   resolve pra uma linha de partes (pedido explícito, "prefiro que
+   tenha um registro, mesmo que incompleto") — o popup de Nova Despesa
+   cria a parte na hora se ainda não existir, nunca grava nome livre
+   solto. Vínculo com patrimônio é sempre por ativo_id (cofre_ativos),
+   nunca imovel_id — decisão já tomada na tabela, esta entrega só
+   respeita (ver DIAGNOSTICO_ELIMINAR_TABELA_IMOVEIS).
+
+   Ficha do ativo ganhou 6ª aba "Financeiro" (ver ativos-markup.js
+   v1.8.0/cofre-ativos.js v1.10.0): resumo de entradas/saídas dos
+   últimos 6 meses + lista, com "Novo lançamento" e "Ver tudo em
+   Saídas" — as 2 ações são pontes pro App (abrirNovaDespesa/
+   abrirSaidasFiltradasPorAtivo), nenhum formulário duplicado.
+
+   RPC nova fn_fluxo_financeiro_ativo (SECURITY INVOKER, testada como
+   authenticated real antes de entrar) une entradas (mensalidades, via
+   ativo→imóvel de origem→contrato) e saídas (lancamentos, direto por
+   ativo_id — funciona pra qualquer tipo de ativo, não só imóvel).
+
+   Conciliação de extrato bancário FICA DE FORA desta entrega (pedido
+   explícito) — outra pendência.
+
+   Redesenho completo de navegação por chips na ficha do ativo (chips
+   com sub-itens, chip Propriedade, ações movidas pra dentro do chip)
+   CONTINUA pendente — o chip Financeiro é o passo concreto possível
+   dentro desse item maior, não o redesenho inteiro (que ainda precisa
+   de sessão própria com estrutura confirmada, como já registrado em
+   PENDENCIAS_RAIZ_PATRIMONIO_2026_09_01.md).
+
    NOVIDADES (Beta v1.96.3) — pedido explícito: "criar uma tela
    especifica para o alertas sobre patrimonio... acessivel pelo menu
    bonequinho... retire a descricao dos alertas da sessao de
@@ -6501,6 +6545,72 @@
         </div>
     </div>
 
+    <!-- v1.97.0 (NOVO, 01/09/2026) — overlay de busca/filtro da aba
+         Saídas, mesmo componente reaproveitado (Recebimentos/Atrasados/
+         Distribuição). Sem botão "Fechar" no rodapé, só "Limpar
+         filtros" + X + clicar fora — mesma regra da seção 10 do Design
+         System. -->
+    <div id="modal-busca-saidas" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
+            <div class="p-3 border-b flex items-center justify-between flex-none">
+                <span class="font-bold text-slate-800">Buscar / Filtrar</span>
+                <button type="button" onclick="fecharBuscaSaidas()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
+            </div>
+            <div class="p-3 space-y-3 overflow-y-auto">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
+                    <input type="text" id="saidas-busca-texto" placeholder="Descrição, fornecedor..." oninput="renderSaidas()" class="w-full p-2 border rounded-lg text-sm mt-1">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Competência</label>
+                    <select id="saidas-filtro-competencia" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                        <option value="todos">Todas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Status</label>
+                    <select id="saidas-filtro-status" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                        <option value="todos">Todos</option>
+                        <option value="pago">Pago</option>
+                        <option value="a_vencer">A vencer</option>
+                        <option value="atrasado">Atrasado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Categoria</label>
+                    <select id="saidas-filtro-categoria" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                        <option value="todos">Todas</option>
+                        <option value="iptu">IPTU</option>
+                        <option value="condominio">Condomínio</option>
+                        <option value="manutencao">Manutenção</option>
+                        <option value="seguro">Seguro</option>
+                        <option value="taxa_adm">Taxa administrativa</option>
+                        <option value="tributo">Tributo</option>
+                        <option value="repasse_socio">Repasse a sócio</option>
+                        <option value="reembolso">Reembolso</option>
+                        <option value="aluguel">Aluguel (repasse a terceiro)</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Ativo vinculado</label>
+                    <input type="hidden" id="saidas-filtro-ativo" value="todos">
+                    <select id="saidas-filtro-ativo-select" onchange="document.getElementById('saidas-filtro-ativo').value = this.value; renderSaidas();" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Fornecedor</label>
+                    <select id="saidas-filtro-fornecedor" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+                <button type="button" onclick="document.getElementById('saidas-busca-texto').value=''; document.getElementById('saidas-filtro-competencia').value='todos'; document.getElementById('saidas-filtro-status').value='todos'; document.getElementById('saidas-filtro-categoria').value='todos'; document.getElementById('saidas-filtro-ativo').value='todos'; document.getElementById('saidas-filtro-ativo-select').value='todos'; document.getElementById('saidas-filtro-fornecedor').value='todos'; renderSaidas();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- v1.52.0 — overlay de busca/filtro da aba Distribuição, mesmo
          componente. Filtros que já existiam (Sócio/Tipo/Mês/Ano) só
          migraram de lugar — IDs preservados, renderSociosDistribricao()
@@ -8427,6 +8537,7 @@
             <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
                 <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Recebimentos</button>
                 <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Atrasados</button>
+                <button onclick="switchTab('tab-saidas')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Saídas</button>
             </div>
 
             <!-- v1.51.0 — "< Voltar" condicional: só aparece quando esta
@@ -8587,6 +8698,7 @@
             <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
                 <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Recebimentos</button>
                 <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Atrasados</button>
+                <button onclick="switchTab('tab-saidas')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Saídas</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos e
@@ -8640,7 +8752,54 @@
 
         </section>
 
+        <!-- ================= ABA: SAÍDAS (NOVA, v1.97.0, 01/09/2026) =================
+             Pedido explícito ("evoluir pro item financeiro, iniciando a
+             escrita de tela para as despesas e saídas"). Mesma
+             usabilidade/posicionamento de Recebimentos/Atrasados —
+             segmento no topo, descrição+ícones na mesma linha, resumo
+             logo abaixo, lista agrupada por competência — pra trocar de
+             pill não "pular" nada de lugar. Vínculo com patrimônio
+             sempre por ativo_id (cofre_ativos), nunca imovel_id direto —
+             ver DIAGNOSTICO_ELIMINAR_TABELA_IMOVEIS: lancamentos já
+             nasceu assim, esta tela só respeita o desenho existente.
+             Conciliação de extrato FICA DE FORA desta entrega (pedido
+             explícito) — é outra pendência. -->
+
+        <section id="tab-saidas" class="tab-content">
+
+            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
+                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Atrasados</button>
+                <button onclick="switchTab('tab-saidas')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Saídas</button>
+            </div>
+
+            <!-- "< Voltar" condicional, mesmo padrão de btn-voltar-financeiro
+                 (só aparece quando esta aba foi aberta filtrada a partir do
+                 chip Financeiro da ficha do ativo). -->
+            <button id="btn-voltar-saidas" onclick="voltarDasSaidasFiltradas()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
+
+            <div class="flex items-center gap-2 mb-4">
+                <p class="text-[11px] text-gray-500 flex-1 text-left">Despesas e saídas do patrimônio — pagas e a pagar.</p>
+                <button id="btn-saidas-busca" onclick="abrirBuscaSaidas()" title="Buscar/filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
+                <button id="btn-nova-despesa" onclick="abrirNovaDespesa()" title="Nova despesa" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            </div>
+
+            <div class="rounded-2xl p-4 text-white shadow mb-4" style="background:var(--sprout)">
+                <div class="text-xs opacity-80 font-semibold">Total previsto — <span id="saidas-resumo-competencia">—</span></div>
+                <div id="saidas-resumo-total" class="text-2xl font-extrabold mt-1">R$ 0,00</div>
+                <div class="grid grid-cols-3 gap-2 mt-3">
+                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Pago</div><div id="saidas-resumo-pago" class="text-lg font-extrabold mt-1">R$ 0</div></div>
+                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">A vencer</div><div id="saidas-resumo-avencer" class="text-lg font-extrabold mt-1">R$ 0</div></div>
+                    <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Atrasado</div><div id="saidas-resumo-atrasado" class="text-lg font-extrabold text-red-100 mt-1">R$ 0</div></div>
+                </div>
+            </div>
+
+            <div id="lista-saidas" class="space-y-3"></div>
+
+        </section>
+
         <!-- ================= ABA: VITRINE (SHOWCASE) ================= -->
+
 
         <section id="tab-vitrine" class="tab-content">
 
@@ -9867,7 +10026,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.96.3";
+        const APP_VERSAO = "Beta v1.97.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -10055,6 +10214,18 @@
         let repasses = [];
 
         let pendenciasExtrato = [];
+
+        // v1.97.0 (NOVO, 01/09/2026) — Saídas/despesas (public.lancamentos,
+        // direcao='saida'). ativosParaSelect/partesParaSelect são caches
+        // lazy (carregados só quando o popup de despesa abre pela 1ª vez),
+        // não fazem parte do boot pesado de imoveis/contratos/mensalidades.
+        let lancamentos = [];
+
+        let ativosParaSelect = null; // null = ainda não carregado (distinto de [])
+
+        let partesParaSelect = null;
+
+        let gruposSaidasAbertos = null;
 
         let gruposMensalAbertos = null; // null = ainda não inicializado (abre só o mês mais recente)
 
@@ -11601,6 +11772,79 @@
                     envioLog: (row.envio_log && !Array.isArray(row.envio_log)) ? row.envio_log : null
                 };
             });
+        }
+
+        // v1.97.0 (NOVO, 01/09/2026) — Saídas/despesas. Lê direto de
+        // public.lancamentos (RLS por cliente_id já isola, mesmo padrão de
+        // mensalidades/partes) com embed de partes(nome) e
+        // cofre_ativos(nome_exibicao) — 1 query só, sem N+1 por card.
+        // direcao='saida' aqui: esta tela nunca escreve/lê 'entrada' (isso
+        // é sempre mensalidades, a fonte de verdade de recebimento).
+        async function carregarLancamentosSupabase() {
+            const { data, error } = await dbAuth.from('lancamentos')
+                .select('*, partes(nome), cofre_ativos(nome_exibicao)')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                .eq('direcao', 'saida');
+            if (error) throw error;
+            return (data || []).map(function(row) {
+                return {
+                    id: row.id,
+                    descricao: row.descricao || '',
+                    categoria: row.categoria,
+                    valor: Number(row.valor || 0),
+                    competencia: row.competencia,
+                    vencimento: row.vencimento,
+                    status: row.status,
+                    dataPagamento: row.data_pagamento,
+                    formaPagamento: row.forma_pagamento,
+                    ativoId: row.ativo_id || null,
+                    ativoNome: row.cofre_ativos ? row.cofre_ativos.nome_exibicao : '',
+                    parteId: row.parte_id || null,
+                    parteNome: row.partes ? row.partes.nome : '',
+                    reembolsavel: !!row.reembolsavel,
+                    observacao: row.observacao || ''
+                };
+            });
+        }
+
+        // Lazy — só busca na 1ª vez que o popup de despesa abre (cacheado
+        // em memória depois). Fonte: cofre_ativos direto (mesma tabela que
+        // a aba Ativos usa) — nunca imoveis, propositalmente (ver
+        // Diretrizes Técnicas / DIAGNOSTICO_ELIMINAR_TABELA_IMOVEIS).
+        async function carregarAtivosParaSelectSupabase() {
+            if (ativosParaSelect !== null) return ativosParaSelect;
+            try {
+                const { data, error } = await dbAuth.from('cofre_ativos')
+                    .select('id, nome_exibicao, tipo_ativo')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                    .eq('status', 'ativo')
+                    .order('nome_exibicao');
+                if (error) throw error;
+                ativosParaSelect = data || [];
+            } catch (err) {
+                logScreen(`Erro ao buscar ativos pro seletor de despesa: ${err.message || String(err)}`, true);
+                ativosParaSelect = [];
+            }
+            return ativosParaSelect;
+        }
+
+        // Lazy, mesmo espírito. Fornecedor SEMPRE resolve pra uma linha de
+        // partes (pedido explícito do Nicola, 01/09/2026) — sem coluna de
+        // nome livre em lancamentos.
+        async function carregarPartesParaSelectSupabase() {
+            if (partesParaSelect !== null) return partesParaSelect;
+            try {
+                const { data, error } = await dbAuth.from('partes')
+                    .select('id, nome')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                    .order('nome');
+                if (error) throw error;
+                partesParaSelect = data || [];
+            } catch (err) {
+                logScreen(`Erro ao buscar partes pro seletor de despesa: ${err.message || String(err)}`, true);
+                partesParaSelect = [];
+            }
+            return partesParaSelect;
         }
 
         async function sincronizarMensalidadeSupabase(men) {
@@ -14320,6 +14564,18 @@
                 repasses = JSON.parse(localStorage.getItem(chaveLocal('repasses'))) || [];
             }
 
+            // v1.97.0 (NOVO) — Saídas/despesas. Mesmo padrão de try/catch
+            // dos blocos acima; sem fallback de localStorage (tabela nova,
+            // sem histórico legado pra recuperar de cache antigo).
+            try {
+                logScreen("=== Buscando saídas/despesas (Supabase) ===");
+                lancamentos = await carregarLancamentosSupabase();
+                logScreen(`Saídas carregadas do Supabase: ${lancamentos.length}.`);
+            } catch (errLanc) {
+                logScreen(`Erro ao buscar saídas no Supabase: ${errLanc.message || String(errLanc)}`, true);
+                lancamentos = [];
+            }
+
             try {
                 logScreen("=== Buscando links de vitrine (Supabase) ===");
                 links = await carregarLinksVitrineSupabase();
@@ -15534,6 +15790,9 @@
             // barra (ver comentário na v1.88.0 acima do nav); sem isso, o
             // destaque acenderia errado (ou nenhum) ao entrar nessas telas.
             'tab-inadimplencia': 'tab-mensal',
+            // v1.97.0 (NOVO) — Saídas entra no mesmo grupo de Financeiro
+            // (mesmo ícone da barra inferior acende), igual Atrasados.
+            'tab-saidas': 'tab-mensal',
             'tab-socios': 'tab-relatorios'
         };
 
@@ -20995,6 +21254,485 @@
             const origem = financeiroFiltradoOrigem;
             financeiroFiltradoOrigem = null;
             if (origem) { abrirFichaImovel(origem); } else { renderMensalidades(); }
+        }
+
+        // ============================================================================
+        // SAÍDAS / DESPESAS (NOVO, v1.97.0, 01/09/2026)
+        // Pedido explícito: "evoluir pro item financeiro, iniciando a
+        // escrita de tela para as despesas e saídas". Conciliação de
+        // extrato FICA DE FORA (outra pendência). Fornecedor SEMPRE
+        // resolve pra uma linha de public.partes (pedido explícito,
+        // "prefiro que tenha um registro, mesmo que incompleto") — nunca
+        // texto livre solto no lançamento.
+        // ============================================================================
+
+        // "Atrasado" NUNCA é lido de um campo gravado — sempre calculado
+        // (vencimento < hoje). Mesma lição já aprendida em Recebimentos
+        // (v1.63.0): gravar esse estado já causou bug de badge errado.
+        function estaAtrasadaDespesa(d) {
+            if (d.status !== 'previsto' || !d.vencimento) return false;
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            return new Date(d.vencimento + 'T00:00:00') < hoje;
+        }
+
+        function popularFiltrosSaidas() {
+            const selComp = document.getElementById('saidas-filtro-competencia');
+            const selAtivo = document.getElementById('saidas-filtro-ativo-select');
+            const selFornecedor = document.getElementById('saidas-filtro-fornecedor');
+            if (!selComp || !selAtivo || !selFornecedor) return;
+
+            const valComp = selComp.value || 'todos';
+            const valAtivo = selAtivo.value || 'todos';
+            const valForn = selFornecedor.value || 'todos';
+
+            const competencias = [...new Set(lancamentos.map(d => dataParaCompetencia(d.competencia)))]
+                .sort((a, b) => { const [ma, aa] = a.split('/'); const [mb, ab] = b.split('/'); return (ab + mb).localeCompare(aa + ma); });
+            selComp.innerHTML = '<option value="todos">Todas</option>' + competencias.map(c => `<option value="${c}">${c}</option>`).join('');
+            selComp.value = competencias.includes(valComp) ? valComp : 'todos';
+
+            const ativosUsados = [...new Map(lancamentos.filter(d => d.ativoId).map(d => [d.ativoId, d.ativoNome])).entries()];
+            selAtivo.innerHTML = '<option value="todos">Todos</option>' + ativosUsados.map(([id, nome]) => `<option value="${id}">${escapeHtmlSaidas(nome)}</option>`).join('');
+            selAtivo.value = ativosUsados.some(([id]) => id === valAtivo) ? valAtivo : 'todos';
+
+            const fornecedoresUsados = [...new Map(lancamentos.filter(d => d.parteId).map(d => [d.parteId, d.parteNome])).entries()];
+            selFornecedor.innerHTML = '<option value="todos">Todos</option>' + fornecedoresUsados.map(([id, nome]) => `<option value="${id}">${escapeHtmlSaidas(nome)}</option>`).join('');
+            selFornecedor.value = fornecedoresUsados.some(([id]) => id === valForn) ? valForn : 'todos';
+        }
+
+        function escapeHtmlSaidas(s) {
+            return (s || '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function renderSaidas() {
+            const container = document.getElementById('lista-saidas');
+            if (!container) return;
+
+            popularFiltrosSaidas();
+
+            const fComp = document.getElementById('saidas-filtro-competencia')?.value || 'todos';
+            const fStatus = document.getElementById('saidas-filtro-status')?.value || 'todos';
+            const fCategoria = document.getElementById('saidas-filtro-categoria')?.value || 'todos';
+            const fAtivo = document.getElementById('saidas-filtro-ativo')?.value || 'todos';
+            const fFornecedor = document.getElementById('saidas-filtro-fornecedor')?.value || 'todos';
+            const termoBusca = (document.getElementById('saidas-busca-texto')?.value || '').trim().toLowerCase();
+
+            const filtradas = lancamentos.filter(d => {
+                if (fComp !== 'todos' && dataParaCompetencia(d.competencia) !== fComp) return false;
+                if (fCategoria !== 'todos' && d.categoria !== fCategoria) return false;
+                if (fAtivo !== 'todos' && d.ativoId !== fAtivo) return false;
+                if (fFornecedor !== 'todos' && d.parteId !== fFornecedor) return false;
+                const atrasada = estaAtrasadaDespesa(d);
+                if (fStatus === 'pago' && d.status !== 'realizado') return false;
+                if (fStatus === 'atrasado' && !atrasada) return false;
+                if (fStatus === 'a_vencer' && (d.status === 'realizado' || atrasada)) return false;
+                if (termoBusca) {
+                    const campos = [d.descricao, d.parteNome, d.ativoNome];
+                    if (!campos.some(c => (c || '').toLowerCase().includes(termoBusca))) return false;
+                }
+                return true;
+            });
+
+            // ---- resumo (hero) — sempre sobre TODAS as saídas da
+            // competência mais recente do conjunto filtrado, não sobre a
+            // lista já filtrada por status (senão o resumo "sumiria"
+            // junto com o filtro que ele mesmo descreve).
+            const competenciaAtual = dataParaCompetencia(new Date().toISOString().slice(0, 10));
+            const doMes = lancamentos.filter(d => dataParaCompetencia(d.competencia) === competenciaAtual);
+            const totalMes = doMes.reduce((s, d) => s + d.valor, 0);
+            const totalPago = doMes.filter(d => d.status === 'realizado').reduce((s, d) => s + d.valor, 0);
+            const totalAtrasado = doMes.filter(d => estaAtrasadaDespesa(d)).reduce((s, d) => s + d.valor, 0);
+            const totalAVencer = totalMes - totalPago - totalAtrasado;
+            document.getElementById('saidas-resumo-competencia').textContent = competenciaAtual;
+            document.getElementById('saidas-resumo-total').textContent = formatarMoedaBR(totalMes);
+            document.getElementById('saidas-resumo-pago').textContent = formatarMoedaBR(totalPago);
+            document.getElementById('saidas-resumo-avencer').textContent = formatarMoedaBR(totalAVencer);
+            document.getElementById('saidas-resumo-atrasado').textContent = formatarMoedaBR(totalAtrasado);
+
+            // ---- lista agrupada por competência, mesmo padrão de Recebimentos
+            const grupos = {};
+            filtradas.forEach(d => { const c = dataParaCompetencia(d.competencia); (grupos[c] = grupos[c] || []).push(d); });
+            const competenciasOrdenadas = Object.keys(grupos).sort((a, b) => {
+                const [ma, aa] = a.split('/'), [mb, ab] = b.split('/');
+                return (ab + mb).localeCompare(aa + ma);
+            });
+
+            if (gruposSaidasAbertos === null) {
+                gruposSaidasAbertos = new Set(competenciasOrdenadas.length > 0 ? [competenciasOrdenadas[0]] : []);
+            }
+
+            if (!competenciasOrdenadas.length) {
+                container.innerHTML = `<p class="text-xs text-center py-8" style="color:var(--sage)">Nenhuma despesa encontrada.</p>`;
+                return;
+            }
+
+            container.innerHTML = competenciasOrdenadas.map(comp => {
+                const itens = grupos[comp];
+                const totalGrupo = itens.reduce((s, d) => s + d.valor, 0);
+                const aberto = gruposSaidasAbertos.has(comp);
+
+                const cards = itens.map(d => {
+                    const atrasada = estaAtrasadaDespesa(d);
+                    let corBorda = 'border-slate-300', badge = `<span class="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded font-black">A vencer</span>`;
+                    if (d.status === 'realizado') { corBorda = 'border-emerald-500'; badge = `<span class="bg-green-100 text-green-800 text-[11px] px-2 py-0.5 rounded font-black">Pago</span>`; }
+                    else if (atrasada) { corBorda = 'border-amber-500'; badge = `<span class="bg-amber-100 text-amber-800 text-[11px] px-2 py-0.5 rounded font-black">Atrasado</span>`; }
+
+                    return `
+                        <div onclick="abrirEditarDespesa('${d.id}')" class="bg-white p-3 rounded-xl shadow-sm border-l-4 ${corBorda} space-y-1.5 cursor-pointer active:scale-[0.99] transition">
+                            <div class="flex justify-between items-start gap-2">
+                                <div class="min-w-0">
+                                    <p class="text-xs font-bold text-slate-900 truncate">${escapeHtmlSaidas(d.descricao)}</p>
+                                    <p class="text-[11px] text-gray-500">${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}</p>
+                                </div>
+                                <div class="flex-none">${badge}</div>
+                            </div>
+                            ${d.ativoNome ? `<p class="text-[11px] text-gray-400"><svg data-lucide="map-pin" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> ${escapeHtmlSaidas(d.ativoNome)}</p>` : ''}
+                            <div class="flex justify-between items-center pt-1">
+                                <span class="text-[11px] text-gray-500">${d.vencimento ? 'Vence ' + formatarDataBR(d.vencimento) : 'Sem vencimento'}${d.reembolsavel ? ' · <span class="text-blue-600 font-bold">reembolsável</span>' : ''}</span>
+                                <span class="text-sm font-bold" style="color:var(--ink)">${formatarMoedaBR(d.valor)}</span>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                return `
+                    <div>
+                        <button onclick="alternarGrupoSaidas('${comp}')" class="w-full flex items-center justify-between px-1 py-2">
+                            <span class="text-xs font-bold uppercase tracking-wide" style="color:var(--sage)">${comp}</span>
+                            <span class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-slate-600">${formatarMoedaBR(totalGrupo)}</span>
+                                <svg data-lucide="chevron-down" style="width:14px;height:14px;transform:rotate(${aberto ? '180' : '0'}deg);transition:transform .15s"></svg>
+                            </span>
+                        </button>
+                        <div class="space-y-2 ${aberto ? '' : 'hidden'}">${cards}</div>
+                    </div>`;
+            }).join('');
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function rotuloCategoriaSaida(v) {
+            const mapa = { iptu: 'IPTU', condominio: 'Condomínio', manutencao: 'Manutenção', seguro: 'Seguro', taxa_adm: 'Taxa administrativa', tributo: 'Tributo', repasse_socio: 'Repasse a sócio', reembolso: 'Reembolso', aluguel: 'Aluguel (repasse a terceiro)', outro: 'Outro' };
+            return mapa[v] || v;
+        }
+
+        function alternarGrupoSaidas(comp) {
+            if (gruposSaidasAbertos.has(comp)) gruposSaidasAbertos.delete(comp); else gruposSaidasAbertos.add(comp);
+            renderSaidas();
+        }
+
+        function abrirBuscaSaidas() {
+            const modal = document.getElementById('modal-busca-saidas');
+            modal.classList.remove('hidden');
+            modal.onclick = (ev) => { if (ev.target === modal) fecharBuscaSaidas(); };
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        function fecharBuscaSaidas() {
+            document.getElementById('modal-busca-saidas').classList.add('hidden');
+        }
+
+        // "Ver tudo em Saídas" a partir do chip Financeiro da ficha do
+        // ativo (cofre-ativos.js v1.10.0) — mesmo espírito de
+        // abrirFinanceiroFiltradoImovel, adaptado: a origem aqui é o
+        // MÓDULO Ativos (que vive numa pilha de navegação própria,
+        // switchTab('tab-ativos') simplesmente revela o que já estava
+        // montado lá dentro — não precisa reabrir a ficha explicitamente).
+        let saidasFiltradasOrigemAtiva = false;
+        function abrirSaidasFiltradasPorAtivo(ativoId, nomeAtivo) {
+            saidasFiltradasOrigemAtiva = true;
+            document.getElementById('saidas-filtro-ativo').value = ativoId;
+            const selAtivo = document.getElementById('saidas-filtro-ativo-select');
+            popularFiltrosSaidas();
+            if (selAtivo) selAtivo.value = ativoId;
+            document.getElementById('btn-voltar-saidas')?.classList.remove('hidden');
+            renderSaidas();
+        }
+        function voltarDasSaidasFiltradas() {
+            document.getElementById('btn-voltar-saidas')?.classList.add('hidden');
+            document.getElementById('saidas-filtro-ativo').value = 'todos';
+            const selAtivo = document.getElementById('saidas-filtro-ativo-select');
+            if (selAtivo) selAtivo.value = 'todos';
+            saidasFiltradasOrigemAtiva = false;
+            switchTab('tab-ativos');
+        }
+
+        // ---- Popup Tipo B (Nova Despesa / Editar Despesa) ----
+        let despesaEmEdicaoId = null;
+
+        async function abrirNovaDespesa(ativoIdPreSelecionado) {
+            despesaEmEdicaoId = null;
+            await montarPopupDespesa(null, ativoIdPreSelecionado || null);
+        }
+
+        async function abrirEditarDespesa(id) {
+            despesaEmEdicaoId = id;
+            const d = lancamentos.find(x => x.id === id);
+            await montarPopupDespesa(d, null);
+        }
+
+        async function montarPopupDespesa(d, ativoPreSelecionadoId) {
+            mostrarCarregamentoGlobal('Carregando...');
+            const [ativosOpts, partesOpts] = await Promise.all([carregarAtivosParaSelectSupabase(), carregarPartesParaSelectSupabase()]);
+            esconderCarregamentoGlobal();
+
+            document.getElementById('modal-campo-contrato')?.remove();
+
+            const ehEdicao = !!d;
+            const jaFoiPaga = ehEdicao && d.status === 'realizado';
+            const ativoSelecionado = d ? d.ativoId : ativoPreSelecionadoId;
+
+            const optsAtivos = `<option value="">Nenhum (despesa avulsa)</option>` + ativosOpts.map(a =>
+                `<option value="${a.id}" ${a.id === ativoSelecionado ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('');
+            const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
+                `<option value="${p.id}" ${p.id === d?.parteId ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
+                `<option value="__novo__">+ Novo fornecedor</option>`;
+            const optsCategorias = ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'outro']
+                .map(v => `<option value="${v}" ${v === d?.categoria ? 'selected' : ''}>${rotuloCategoriaSaida(v)}</option>`).join('');
+            const optsFormaPagamento = ['pix', 'boleto', 'transferencia', 'dinheiro', 'outro']
+                .map(v => `<option value="${v}" ${v === d?.formaPagamento ? 'selected' : ''}>${v.charAt(0).toUpperCase() + v.slice(1)}</option>`).join('');
+
+            const competenciaPadrao = d ? dataParaCompetencia(d.competencia) : dataParaCompetencia(new Date().toISOString().slice(0, 10));
+            const opcoesComp = [...new Set([competenciaPadrao, ...gerarProximasCompetencias(3)])];
+            const optsCompetencia = opcoesComp.map(c => `<option value="${c}" ${c === competenciaPadrao ? 'selected' : ''}>${c}</option>`).join('');
+
+            const modal = document.createElement('div');
+            modal.id = 'modal-campo-contrato';
+            modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
+            modal.innerHTML = `
+                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:88vh;overflow-y:auto;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">${ehEdicao ? 'Detalhes da despesa' : 'Nova despesa'}</h3>
+                        <button onclick="fecharPopupDespesa()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div>
+                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label>
+                            <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Categoria <span style="color:var(--danger)">*</span></label>
+                                <select id="desp-categoria" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsCategorias}</select>
+                            </div>
+                            <div>
+                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Valor (R$) <span style="color:var(--danger)">*</span></label>
+                                <input id="desp-valor" type="number" step="0.01" value="${d?.valor ?? ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Vencimento <span style="color:var(--danger)">*</span></label>
+                                <input id="desp-vencimento" type="date" value="${d?.vencimento || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                            </div>
+                            <div>
+                                <label style="font-size:11px;font-weight:bold;color:#64748b;">Competência <span style="color:var(--danger)">*</span></label>
+                                <select id="desp-competencia" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsCompetencia}</select>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Ativo vinculado (opcional)</label>
+                            <select id="desp-ativo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsAtivos}</select>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Fornecedor / beneficiário</label>
+                            <select id="desp-fornecedor" onchange="alternarNovoFornecedor(this.value)" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsPartes}</select>
+                            <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:6px;display:none;">
+                            <p style="font-size:10px;color:#94a3b8;margin-top:2px;">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>
+                        </div>
+                        <div style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border-radius:8px;padding:8px;">
+                            <input id="desp-reembolsavel" type="checkbox" ${d?.reembolsavel ? 'checked' : ''} style="margin-top:2px;">
+                            <label for="desp-reembolsavel" style="font-size:11px;color:#475569;">Reembolsável — não entra no cálculo de líquido dos sócios</label>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Observação</label>
+                            <textarea id="desp-observacao" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;resize:none;">${escapeHtmlSaidas(d?.observacao || '')}</textarea>
+                        </div>
+                        ${ehEdicao && !jaFoiPaga ? `
+                        <div style="border-top:1px dashed #e6e3da;padding-top:10px;margin-top:2px;">
+                            <p style="font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:.02em;color:var(--brass-deep);margin-bottom:6px;">Dar baixa</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label style="font-size:11px;font-weight:bold;color:#64748b;">Data do pagamento</label>
+                                    <input id="desp-data-pgto" type="date" value="${new Date().toISOString().slice(0, 10)}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                                </div>
+                                <div>
+                                    <label style="font-size:11px;font-weight:bold;color:#64748b;">Forma de pagamento</label>
+                                    <select id="desp-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;"><option value="">— não definida —</option>${optsFormaPagamento}</select>
+                                </div>
+                            </div>
+                            <button onclick="confirmarPagamentoDespesa('${d.id}')" style="width:100%;margin-top:8px;background:var(--success);color:#fff;font-weight:bold;font-size:13px;padding:9px;border:none;border-radius:8px;">✓ Confirmar pagamento</button>
+                        </div>` : ''}
+                        ${jaFoiPaga ? `
+                        <div style="background:var(--success-bg);border-radius:8px;padding:10px;">
+                            <p style="font-size:12px;color:#166534;font-weight:bold;">✓ Paga em ${formatarDataBR(d.dataPagamento)}${d.formaPagamento ? ' via ' + d.formaPagamento.toUpperCase() : ''}</p>
+                            <button onclick="estornarPagamentoDespesa('${d.id}')" style="margin-top:6px;background:transparent;border:none;color:#92400e;font-size:11px;font-weight:bold;text-decoration:underline;padding:0;">Estornar pagamento</button>
+                        </div>` : ''}
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:14px;">
+                        <button onclick="fecharPopupDespesa()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
+                        <button onclick="salvarDespesa()" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+                    </div>
+                    ${ehEdicao ? `<button onclick="excluirDespesa('${d.id}')" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--danger);font-size:11px;font-weight:bold;padding:4px;">Excluir despesa</button>` : ''}
+                </div>`;
+            document.body.appendChild(modal);
+            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // "MM/AAAA" das próximas N competências a partir de hoje — só pro
+        // select de Competência ter opções futuras plausíveis além da
+        // atual (não é geração de lançamento nenhum, só rótulo de mês).
+        function gerarProximasCompetencias(n) {
+            const lista = [];
+            const base = new Date();
+            for (let i = 0; i < n; i++) {
+                const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
+                lista.push(String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear());
+            }
+            return lista;
+        }
+
+        function alternarNovoFornecedor(valor) {
+            document.getElementById('desp-fornecedor-novo-nome').style.display = (valor === '__novo__') ? 'block' : 'none';
+        }
+
+        function fecharPopupDespesa() {
+            document.getElementById('modal-campo-contrato')?.remove();
+            despesaEmEdicaoId = null;
+        }
+
+        function competenciaParaData(comp) {
+            const [mes, ano] = comp.split('/');
+            return `${ano}-${mes}-01`;
+        }
+
+        async function salvarDespesa() {
+            const descricao = document.getElementById('desp-descricao').value.trim();
+            const categoria = document.getElementById('desp-categoria').value;
+            const valor = parseFloat(document.getElementById('desp-valor').value);
+            const vencimento = document.getElementById('desp-vencimento').value;
+            const competencia = document.getElementById('desp-competencia').value;
+            const ativoId = document.getElementById('desp-ativo').value || null;
+            const reembolsavel = document.getElementById('desp-reembolsavel').checked;
+            const observacao = document.getElementById('desp-observacao').value.trim();
+            const fornecedorSel = document.getElementById('desp-fornecedor').value;
+            const novoFornecedorNome = document.getElementById('desp-fornecedor-novo-nome').value.trim();
+
+            if (!descricao || !categoria || isNaN(valor) || !vencimento || !competencia) {
+                mostrarToast('Preencha descrição, categoria, valor, vencimento e competência.', 'danger');
+                return;
+            }
+            if (fornecedorSel === '__novo__' && !novoFornecedorNome) {
+                mostrarToast('Informe o nome do novo fornecedor, ou selecione um existente.', 'danger');
+                return;
+            }
+
+            mostrarCarregamentoGlobal('Salvando...');
+            try {
+                let parteId = (fornecedorSel && fornecedorSel !== '__novo__') ? fornecedorSel : null;
+
+                // Fornecedor novo: cria a `parte` PRIMEIRO (mesmo que
+                // incompleta — só nome), nunca grava texto livre no
+                // lançamento (pedido explícito do Nicola, 01/09/2026).
+                if (fornecedorSel === '__novo__') {
+                    const { data: novaParte, error: errParte } = await dbAuth.from('partes')
+                        .insert({ cliente_id: CLIENTE_ID_SUPABASE, nome: novoFornecedorNome })
+                        .select('id, nome').single();
+                    if (errParte) throw errParte;
+                    parteId = novaParte.id;
+                    partesParaSelect = null; // invalida cache — próxima abertura já traz o novo
+                }
+
+                const payload = {
+                    cliente_id: CLIENTE_ID_SUPABASE,
+                    direcao: 'saida',
+                    categoria, descricao, valor,
+                    vencimento, competencia: competenciaParaData(competencia),
+                    ativo_id: ativoId, parte_id: parteId,
+                    reembolsavel, observacao: observacao || null
+                };
+
+                if (despesaEmEdicaoId) {
+                    const { error } = await dbAuth.from('lancamentos').update(payload).eq('id', despesaEmEdicaoId);
+                    if (error) throw error;
+                } else {
+                    const { error } = await dbAuth.from('lancamentos').insert({ ...payload, status: 'previsto' });
+                    if (error) throw error;
+                }
+
+                lancamentos = await carregarLancamentosSupabase();
+                esconderCarregamentoGlobal();
+                mostrarToast('Despesa salva.', 'success');
+                fecharPopupDespesa();
+                renderSaidas();
+                if (typeof renderSociosDistribricao === 'function') renderSociosDistribricao();
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                mostrarToast('Erro ao salvar despesa: ' + err.message, 'danger');
+                logScreen('Erro ao salvar despesa: ' + err.message, true);
+            }
+        }
+
+        async function confirmarPagamentoDespesa(id) {
+            const dataPgto = document.getElementById('desp-data-pgto').value;
+            const formaPgto = document.getElementById('desp-forma-pgto').value || null;
+            if (!dataPgto) { mostrarToast('Informe a data do pagamento.', 'danger'); return; }
+
+            mostrarCarregamentoGlobal('Salvando...');
+            try {
+                const { error } = await dbAuth.from('lancamentos').update({
+                    status: 'realizado', data_pagamento: dataPgto, forma_pagamento: formaPgto
+                }).eq('id', id);
+                if (error) throw error;
+                lancamentos = await carregarLancamentosSupabase();
+                esconderCarregamentoGlobal();
+                mostrarToast('Pagamento confirmado.', 'success');
+                fecharPopupDespesa();
+                renderSaidas();
+                if (typeof renderSociosDistribricao === 'function') renderSociosDistribricao();
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                mostrarToast('Erro ao confirmar pagamento: ' + err.message, 'danger');
+                logScreen('Erro ao confirmar pagamento de despesa: ' + err.message, true);
+            }
+        }
+
+        async function estornarPagamentoDespesa(id) {
+            if (!confirm('Estornar este pagamento? A despesa volta a "previsto".')) return;
+            mostrarCarregamentoGlobal('Salvando...');
+            try {
+                const { error } = await dbAuth.from('lancamentos').update({
+                    status: 'previsto', data_pagamento: null, forma_pagamento: null
+                }).eq('id', id);
+                if (error) throw error;
+                lancamentos = await carregarLancamentosSupabase();
+                esconderCarregamentoGlobal();
+                mostrarToast('Pagamento estornado.', 'success');
+                fecharPopupDespesa();
+                renderSaidas();
+                if (typeof renderSociosDistribricao === 'function') renderSociosDistribricao();
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                mostrarToast('Erro ao estornar pagamento: ' + err.message, 'danger');
+                logScreen('Erro ao estornar pagamento de despesa: ' + err.message, true);
+            }
+        }
+
+        async function excluirDespesa(id) {
+            if (!confirm('Excluir esta despesa? Ação não pode ser desfeita.')) return;
+            mostrarCarregamentoGlobal('Excluindo...');
+            try {
+                const { error } = await dbAuth.from('lancamentos').delete().eq('id', id);
+                if (error) throw error;
+                lancamentos = lancamentos.filter(d => d.id !== id);
+                esconderCarregamentoGlobal();
+                mostrarToast('Despesa excluída.', 'success');
+                fecharPopupDespesa();
+                renderSaidas();
+                if (typeof renderSociosDistribricao === 'function') renderSociosDistribricao();
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                mostrarToast('Erro ao excluir despesa: ' + err.message, 'danger');
+                logScreen('Erro ao excluir despesa: ' + err.message, true);
+            }
         }
 
         function alternarMaisAcoesServicosFicha() {
