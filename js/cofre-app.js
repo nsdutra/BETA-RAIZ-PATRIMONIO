@@ -1,6 +1,21 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.11.0 · 31/08/2026
+// Versão: 1.12.0 · 31/08/2026
+//
+// v1.12.0 — ajustes de qualidade pedidos depois do Nicola testar a
+// v1.94.0 em navegador de verdade:
+//   1) BUG REAL corrigido: 'cadastrar-imovel-app' não funcionava — o
+//      modal (#form-imovel-wrapper) é position:fixed mas vive dentro de
+//      <section id="tab-imoveis">, que fica display:none quando não é
+//      a aba ativa. display:none no ancestral esconde tudo dentro,
+//      mesmo filho position:fixed. Corrigido trocando pra tab-imoveis
+//      ANTES de abrir o modal.
+//   2) Novo case 'ir-vitrine-app' — ponte pra tab-vitrine (aba normal,
+//      sem o mesmo problema — switchTab() já lida nativamente).
+//   3) Barra da lista de Ativos reorganizada (ver ativos-markup.js
+//      v1.4.1): Localizar/Vitrine/Adicionar/Carregar documento.
+//      'cadastrar-imovel-app' NÃO saiu do dispatcher — só mudou de
+//      lugar no HTML (agora dentro do form "Novo ativo").
 //
 // v1.11.0 — "seguir com a unificação" (pedido explícito, 31/08/2026):
 // novo case 'cadastrar-imovel-app' — ponte defensiva pra
@@ -282,7 +297,7 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
         case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;
         case 'alternar-mais-acoes-ativo': ativos.alternarMaisAcoesAtivo(); break;
-        // v1.10.0 (31/08/2026, pedido explícito, "seguir com a
+        // v1.11.0 (31/08/2026, pedido explícito, "seguir com a
         // unificação") — ponte pra abrirCadastroImovelModal(), função
         // NATIVA do index.html (não é código do Cofre) — só existe
         // quando este arquivo roda embutido no App (ver js/ativos/
@@ -290,9 +305,32 @@ document.addEventListener('click', async (ev) => {
         // defensiva (typeof) de propósito: se um dia este botão for
         // reaproveitado em outro contexto sem essa função, não quebra
         // com "is not a function", só não faz nada.
+        // BUG REAL corrigido (31/08/2026, achado pelo Nicola: "o botao
+        // casinha com + ao apertar nao funciona") — o modal de cadastro
+        // (#form-imovel-wrapper) é position:fixed, mas vive DENTRO de
+        // <section id="tab-imoveis">, que fica display:none quando não
+        // é a aba ativa. display:none no ANCESTRAL esconde tudo dentro,
+        // mesmo um filho position:fixed — não existe workaround de CSS
+        // pra isso, é comportamento padrão do navegador. Corrigido
+        // trocando pra tab-imoveis PRIMEIRO (mesmo padrão que os
+        // atalhos de "Atenção necessária" da Visão Geral já usam),
+        // então abrindo o modal por cima — não moveu o modal de lugar
+        // no HTML (risco maior, fora de escopo desta correção).
         case 'cadastrar-imovel-app':
-            if (typeof window.abrirCadastroImovelModal === 'function') window.abrirCadastroImovelModal();
-            else mostrarToast('Cadastro de imóvel só disponível dentro do app principal.', 'erro');
+            if (typeof window.switchTab === 'function' && typeof window.abrirCadastroImovelModal === 'function') {
+                window.switchTab('tab-imoveis');
+                window.abrirCadastroImovelModal();
+            } else {
+                mostrarToast('Cadastro de imóvel só disponível dentro do app principal.', 'erro');
+            }
+            break;
+        // v1.94.1 (31/08/2026, pedido explícito) — "Vitrine" na barra da
+        // lista de Ativos: ponte pra tab-vitrine, aba de nível normal
+        // do App (não um modal preso — switchTab() já lida nativamente,
+        // sem o mesmo problema de display:none do cadastrar-imovel-app).
+        case 'ir-vitrine-app':
+            if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine');
+            else mostrarToast('Vitrine só disponível dentro do app principal.', 'erro');
             break;
         // 'alternar-historico-ativo' removido (revisão DS, 25/08/2026) —
         // Histórico não é mais opção do Mais ações do box do Ativo.
@@ -473,6 +511,11 @@ async function confirmarCriacaoAssistida() {
 // ============================================================================
 window.addEventListener('cofre:dados-carregados', () => {
     ativos.popularSelectTipoAtivo();
+    // v1.12.0 (pedido explícito, "perdeu a formatação... como referência
+    // a lista de imóveis antiga") — busca em paralelo, não bloqueia o
+    // resto do boot. Assim que resolver, re-renderiza a lista (se já
+    // estiver em tela) com os cards ricos no lugar dos genéricos.
+    ativos.carregarResumoImoveisParaCards();
 });
 
 // v1.8.0 (31/08/2026, pedido explícito) — disparado por nav.bootstrap()

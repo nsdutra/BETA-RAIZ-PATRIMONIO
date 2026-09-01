@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-boot.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.1.0 · 31/08/2026
+// Versão: 1.2.0 · 31/08/2026
+//
+// v1.2.0 — indicador de carregamento (pedido explícito, "a tela tem um
+// delay de carregamento") — spinner + texto mostrados IMEDIATAMENTE,
+// antes do import assíncrono do módulo do Cofre começar. Não reduz o
+// tempo real de carregamento — só deixa de parecer tela travada/quebrada.
 //
 // Ponto de entrada da aba Ativos nova, chamado 1x pelo index.html (dentro de
 // switchTab, na primeira vez que 'tab-ativos' é aberta). Faz 4 coisas, nesta
@@ -79,6 +84,21 @@ export async function montarAtivosTab(clienteIdAtual) {
         console.error('[ativos-boot] #ativos-mount-point não existe no index.html.');
         return;
     }
+
+    // v1.94.1 (31/08/2026, pedido explícito: "a tela tem um delay de
+    // carregamento") — mostra alguma coisa IMEDIATAMENTE, antes de
+    // qualquer import assíncrono começar (o import do módulo do Cofre
+    // inteiro, na 1ª vez, é o que mais demora — arquivo de markup
+    // sozinho tem ~85KB, fora o resto da árvore de cofre-*.js). O delay
+    // em si não diminui — ainda precisa baixar e montar tudo — mas
+    // deixa de parecer que a tela travou ou quebrou, que era o
+    // problema relatado (tela em branco, sem nenhum sinal de que algo
+    // estava acontecendo).
+    container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 gap-3">
+        <svg style="width:28px;height:28px;color:var(--sprout);animation:raiz-girar 0.8s linear infinite" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+        <p class="text-xs" style="color:var(--sage)">Carregando Ativos...</p>
+        <style>@keyframes raiz-girar { to { transform: rotate(360deg); } }</style>
+    </div>`;
 
     // 1) injeta o markup extraído do Cofre
     const { ATIVOS_MARKUP } = await import('./ativos-markup.js');

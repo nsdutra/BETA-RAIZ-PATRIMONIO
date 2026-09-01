@@ -1,6 +1,20 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.0 · 31/08/2026
+// Versão: 1.7.0 · 31/08/2026
+//
+// v1.7.0 — ajustes de qualidade pedidos depois do Nicola testar a
+// v1.94.0 em navegador de verdade ("perdeu a formatação da lista com
+// ícones, tamanho e cores... como referência a lista de imóveis
+// antiga"): ativoCardHtml() reescrita — ativos do tipo imóvel agora
+// mostram a MESMA formatação da lista antiga de Imóveis (empreendimento
+// · tipo · finalidade no título, endereço, locatário+aluguel, selo de
+// status colorido, foto real quando houver), lendo de
+// resumoImoveisPorId (Map carregado 1x por carregarResumoImoveisParaCards(),
+// nunca 1 busca por card). Ativos de outros tipos continuam com o card
+// genérico de sempre. "+ Cadastrar novo imóvel" (aoMudarTipoAtivo) —
+// novo link dentro do form "Novo ativo" > "Qual imóvel?", substituindo
+// o botão separado da barra (removido, estava quebrado — ver
+// ativos-markup.js v1.4.1/cofre-app.js v1.12.0 pro bug real).
 //
 // v1.6.0 — "evoluir a exemplo do protótipo" (pedido explícito,
 // 31/08/2026): ficha do ativo reestruturada de boxes empilhados pra
@@ -203,12 +217,88 @@ export function aplicarFiltroChipAtivos(indice) {
     renderAtivosLista(GRUPOS_CHIP_TIPO[indice].tipos, termoAtual);
 }
 
+// v1.7.0 (31/08/2026, pedido explícito, "perdeu a formatação... como
+// referência a lista de imóveis antiga") — resumoImoveisPorId é um Map
+// carregado 1x (carregarResumoImoveisParaCards(), disparada em
+// 'cofre:dados-carregados', mesmo padrão de popularSelectTipoAtivo())
+// com empreendimento/tipo/finalidade/status/foto/contrato principal de
+// TODOS os imóveis do cliente, numa tacada só — nunca 1 busca por card
+// (isso sim deixaria a lista lenta de verdade).
+let resumoImoveisPorId = new Map();
+
+export async function carregarResumoImoveisParaCards() {
+    try {
+        resumoImoveisPorId = await api.buscarResumoImoveisParaCards(estado.clienteId);
+    } catch (e) {
+        console.warn('[cofre-ativos] Falha ao carregar resumo de imóveis pra cards:', e.message);
+        return;
+    }
+    // Só re-renderiza se a lista já estiver montada em tela — sem
+    // forçar a tela abrir, e preservando o filtro/chip que a pessoa já
+    // tiver escolhido (nunca reseta pra "Todos" por baixo dos panos).
+    const listaEl = document.getElementById('ativos-lista');
+    if (!listaEl) return;
+    const tiposFiltroAtual = chipAtivoAtual >= 0 ? GRUPOS_CHIP_TIPO[chipAtivoAtual]?.tipos : (document.getElementById('filtro-ativo-tipo')?.value || '');
+    const termoAtual = document.getElementById('filtro-ativo-busca')?.value || '';
+    renderAtivosLista(tiposFiltroAtual, termoAtual);
+}
+
 function ativoCardHtml(a) {
-    // Card = identidade + status + contexto + próxima ação (Adendo §20) —
-    // sem fileira de ícones de ação; o card inteiro abre a ficha.
     const ocorrenciasDoAtivo = estado.ocorrenciasAbertas.filter(oc => oc.cofre_itens_controle?.ativo_id === a.id);
     const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
     const chip = chipVencimento(proximo);
+
+    // v1.7.0 — ativo do tipo imóvel COM resumo carregado: mesma "cara"
+    // exata da lista antiga de Imóveis (montarCabecalhoImovelHtml, no
+    // index.html) — avatar com foto real (ou casinha), título
+    // "Empreendimento · Tipo · Finalidade", endereço, situação
+    // (locatário/status à esquerda, aluguel à direita) e selo de status
+    // colorido (Vago=âmbar/Assinando=azul/Alugado=verde/demais=cinza).
+    // Sem resumo ainda carregado (1ª renderização, antes do bulk fetch
+    // resolver) ou ativo de outro tipo: cai no card genérico de sempre.
+    const resumoImovel = a.entidade_origem_tipo === 'imovel' ? resumoImoveisPorId.get(a.entidade_origem_id) : null;
+
+    if (resumoImovel) {
+        const finalidadeLabel = { long_stay: 'Long Stay', uso_proprio: 'Uso Pessoal', temporada: 'Temporada', comercial: 'Comercial', outro: 'Outro' };
+        const principal = resumoImovel.contratoPrincipal;
+        let situacaoEsquerda, situacaoDireita;
+        if (!principal) {
+            situacaoEsquerda = 'Sem contrato cadastrado';
+            situacaoDireita = '';
+        } else if (principal.status === 'Finalizado') {
+            situacaoEsquerda = 'Sem contrato em andamento';
+            situacaoDireita = '';
+        } else {
+            situacaoEsquerda = (principal.locatario || '-') + (principal.status !== 'Ativo' ? ` · ${principal.status}` : '');
+            situacaoDireita = 'R$ ' + Number(principal.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        const badgeClasse = resumoImovel.status === 'Vago' ? 'bg-amber-100 text-amber-800'
+            : resumoImovel.status === 'Assinando' ? 'bg-blue-100 text-blue-800'
+            : resumoImovel.status === 'Alugado' ? 'bg-green-100 text-green-800'
+            : 'bg-slate-100 text-slate-700';
+        const titulo = [resumoImovel.empreendimento || 'Sem empreendimento', resumoImovel.tipo, finalidadeLabel[resumoImovel.finalidadeUso] || 'Long Stay'].filter(Boolean).join(' · ');
+
+        return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-start">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none overflow-hidden">
+                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-xs font-extrabold text-emerald-950 truncate">${escapeHtml(titulo)}</h3>
+                <div class="text-xs text-slate-500 truncate">${escapeHtml(a.nome_exibicao)}</div>
+                <div class="flex items-center justify-between gap-2 mt-1">
+                    <span class="text-xs text-slate-700 truncate">${escapeHtml(situacaoEsquerda)}</span>
+                    ${situacaoDireita ? `<span class="text-xs text-slate-700 flex-none">${situacaoDireita}</span>` : ''}
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-1 flex-none">
+                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded ${badgeClasse}">${escapeHtml(resumoImovel.status)}</span>
+                ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+            </div>
+        </button>`;
+    }
+
+    // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
+    // ainda carregado) — mesmo formato de sempre.
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
         <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">

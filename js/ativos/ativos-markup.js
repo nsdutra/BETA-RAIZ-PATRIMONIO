@@ -1,6 +1,21 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.4.0 · 31/08/2026
+// Versão: 1.4.1 · 31/08/2026
+//
+// v1.4.1 — ajustes de qualidade pedidos depois do Nicola testar a
+// v1.94.0 em navegador de verdade:
+//   1) <style> novo (1x, topo do template) — esconde a barra de
+//      rolagem das 2 fileiras horizontais (chips de tipo + abas da
+//      ficha), sem desligar a rolagem em si ("anexo uma barra de
+//      rolagem que fica feia... não usar este recurso").
+//   2) Barra de botões da lista de Ativos reorganizada: Localizar/
+//      Vitrine (novo)/Adicionar/Carregar documento (novo). "Visão
+//      geral do Cofre" (ir-home) REMOVIDA — pedido explícito ("eliminar
+//      o 1º botão que leva pra tela de visão geral antiga"). "Cadastrar
+//      imóvel" (casinha+) SAIU da barra — não apagada, virou link "+
+//      Cadastrar novo imóvel" dentro do form "Novo ativo" > "Qual
+//      imóvel?", que é onde o bug real dela também foi corrigido (ver
+//      cofre-app.js v1.12.0).
 //
 // v1.4.0 (31/08/2026, pedido explícito, "seguir com a unificação") —
 // botão novo "Cadastrar novo imóvel" na barra da tela data-screen=
@@ -75,7 +90,19 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
+export const ATIVOS_MARKUP = `<style>
+    /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
+       rolagem que fica feia... ao rolar os chips não mostrar a barra")
+       — esconde a barra de rolagem SEM desligar a rolagem em si, nas 2
+       fileiras horizontais deste módulo (chips de tipo + abas da ficha
+       do ativo). Cross-browser: scrollbar-width (Firefox), -ms-overflow-
+       style (Edge antigo), ::-webkit-scrollbar (Chrome/Safari/Edge novo).
+       1x só aqui — <style> injetado via innerHTML funciona normal
+       (diferente de <script>, que não executa assim), então não precisa
+       repetir em cada lugar que usa a classe. -->
+    .raiz-sem-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+    .raiz-sem-scrollbar::-webkit-scrollbar { display: none; }
+</style><div id="tela-bootstrap" class="hidden"></div>
 <div id="tela-erro-acesso" class="hidden"></div>
 
 <div id="app-cofre" class="hidden">
@@ -189,43 +216,41 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
         <section data-screen="ativos" class="hidden">
             <div class="flex items-center gap-2 mb-4">
                 <p class="text-[11px] flex-1 text-left" style="color:var(--sage)">Bens e proteções acompanhados pelo Cofre.</p>
-                <!-- v1.1.0 (31/08/2026, pedido explícito) — a tela padrão da
-                     aba Ativos deixou de ser a Home interna do Cofre (que
-                     duplicava a Visão Geral de verdade do App) — ver
-                     ativos-boot.js v1.1.0. Este ícone é a única porta de
-                     entrada que sobrou pra Home (KPIs de ativos/alertas/
-                     documentos, "Em triagem", "Comece pelo documento") e,
-                     a partir dela, Alertas ("Ver todos →" dentro da Home) —
-                     nada foi removido, só deixou de ser o padrão. Mesmo
-                     data-action="ir-home" de sempre, mesmo case já tratado
-                     em cofre-app.js. -->
-                <button data-action="ir-home" title="Visão geral do Cofre (alertas e documentos em triagem)" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
-                    <i data-lucide="layout-dashboard" style="width:20px;height:20px"></i>
-                </button>
-                <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
+                <!-- v1.94.1 (31/08/2026, pedido explícito) — barra
+                     reorganizada: "Localizar / Vitrine / Adicionar /
+                     Carregar documento" — 4 ações, batendo com o que a
+                     lista antiga de Imóveis sempre ofereceu.
+                     REMOVIDOS: "Visão geral do Cofre" (ir-home, 1º
+                     botão de antes) — pedido explícito, levava pra uma
+                     tela de Visão Geral que duplicava a de verdade do
+                     App; "Cadastrar imóvel" (casinha+) — não removido
+                     de fato, só mudou de endereço: virou link "+
+                     Cadastrar novo imóvel" dentro do próprio formulário
+                     "Novo ativo" > "Qual imóvel?" (ver aoMudarTipoAtivo,
+                     cofre-ativos.js), onde faz mais sentido estar. -->
+                <button data-action="abrir-busca-ativos" title="Localizar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
                     <i data-lucide="search" style="width:20px;height:20px"></i>
                 </button>
-                <!-- v1.94.0 (pedido explícito, "seguir com a unificação") —
-                     desde que o segmento Imóveis/Ativos saiu (tab-imoveis
-                     virou tela secundária, sem porta de entrada própria
-                     na navegação principal), cadastrar um imóvel NOVO
-                     precisava de um caminho sempre disponível — sem isso,
-                     alguém só chegaria no formulário de cadastro se já
-                     existisse um alerta pendente na Visão Geral (vago,
-                     contrato assinando etc.), o que não é garantido.
-                     Ponte pra função NATIVA do App (abrirCadastroImovelModal,
-                     mesmo formulário completo de sempre — endereço, IPTU,
-                     tipo — nada reescrito aqui). Funciona de qualquer aba
-                     porque o modal é posição fixa (position:fixed), não
-                     depende de tab-imoveis estar "ativa" por baixo — só
-                     existe quando embutido no App (window.
-                     abrirCadastroImovelModal), por isso o data-action
-                     correspondente em cofre-app.js checa antes de chamar. -->
-                <button data-action="cadastrar-imovel-app" title="Cadastrar novo imóvel" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
-                    <i data-lucide="house-plus" style="width:20px;height:20px"></i>
+                <!-- "Vitrine" — ponte pra tab-vitrine (fluxo de sempre,
+                     seleção múltipla de imóveis + link único). Ao
+                     contrário do "Cadastrar imóvel", tab-vitrine é uma
+                     aba de nível normal (não um modal preso dentro de
+                     outra aba escondida) — switchTab() já lida com isso
+                     nativamente, sem o mesmo bug de display:none. -->
+                <button data-action="ir-vitrine-app" title="Vitrine" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
+                    <i data-lucide="image" style="width:20px;height:20px"></i>
                 </button>
-                <button data-action="abrir-form-ativo" id="btn-toggle-ativo" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Novo ativo">
+                <button data-action="abrir-form-ativo" id="btn-toggle-ativo" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Adicionar">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+                <!-- "Carregar documento" — mesmo fluxo de sempre
+                     (abrir-upload-home, já existia no dispatcher, usado
+                     antes só pelo card "Comece pelo documento" da Home
+                     interna do Cofre) — upload rápido sem precisar abrir
+                     um ativo específico primeiro, decide o vínculo (ou
+                     deixa em triagem) depois. -->
+                <button data-action="abrir-upload-home" title="Carregar documento" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
+                    <i data-lucide="upload" style="width:20px;height:20px"></i>
                 </button>
             </div>
 
@@ -238,7 +263,7 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
                  continua existindo do jeito que estava, pra quem quiser
                  filtrar por um subtipo específico (ex.: só Terrenos) —
                  os chips são só o atalho rápido pros 3 grupos grandes. -->
-            <div id="ativos-chips-tipo" class="flex gap-2 overflow-x-auto pb-1 mb-3"></div>
+            <div id="ativos-chips-tipo" class="flex gap-2 overflow-x-auto raiz-sem-scrollbar pb-1 mb-3"></div>
 
             <div id="ativos-lista" class="space-y-2"></div>
             <div id="ativos-estado-vazio" class="hidden text-center py-14">
@@ -275,6 +300,18 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
                         <label class="text-xs font-semibold block mb-1">Qual imóvel?</label>
                         <select id="at-origem-imovel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></select>
                         <p class="raiz-indicador-inline" style="color:var(--sage)">Não duplica dados — este ativo só guarda documentos/fotos/alertas específicos do Cofre; o imóvel em si continua em Imóveis.</p>
+                        <!-- v1.94.1 (31/08/2026, pedido explícito) — substitui
+                             o botão "Cadastrar imóvel" separado na barra da
+                             lista (removido, estava quebrado e virou
+                             confuso ter 2 portas pra Novo Ativo). O
+                             cadastro de imóvel novo agora mora AQUI dentro,
+                             junto de "Qual imóvel?" — faz mais sentido:
+                             quem tá escolhendo um imóvel existente e não
+                             acha o que precisa, cadastra ali mesmo, sem
+                             sair do formulário. Ponte pra
+                             abrirCadastroImovelModal() nativa do App (mesmo
+                             data-action="cadastrar-imovel-app" de sempre). -->
+                        <button type="button" data-action="cadastrar-imovel-app" class="text-xs font-bold mt-1.5" style="color:var(--sprout)">+ Cadastrar novo imóvel</button>
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
@@ -308,7 +345,7 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
          nenhuma mudança de JS precisou pra isso. -->
     <div id="fa-cabecalho" class="mt-3"></div>
 
-    <div class="flex gap-1 overflow-x-auto mt-4 mb-3" style="border-bottom:1px solid var(--line)">
+    <div class="flex gap-1 overflow-x-auto raiz-sem-scrollbar mt-4 mb-3" style="border-bottom:1px solid var(--line)">
         <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-none text-xs font-bold px-3 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
         <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>

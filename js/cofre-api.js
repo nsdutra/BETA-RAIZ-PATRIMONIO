@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.8.0 · 31/08/2026
+// Versão: 1.9.0 · 31/08/2026
+//
+// v1.9.0 — buscarResumoImoveisParaCards(clienteId): nova, pedido
+// explícito ("perdeu a formatação da lista... como referência a lista
+// de imóveis antiga") — alimenta o enriquecimento visual dos cards de
+// ativos do tipo imóvel na lista unificada. 1 query só (join embutido),
+// nunca por card.
 //
 // v1.8.0 — buscarContratosDoImovel(imovelId): nova, pedido explícito
 // ("evoluir a exemplo do protótipo") — alimenta a aba Contratos nova da
@@ -381,6 +387,56 @@ export async function buscarContratosDoImovel(imovelId) {
         console.warn('[cofre-api] buscarContratosDoImovel falhou:', e);
         return [];
     }
+}
+
+// NOVO (31/08/2026, pedido explícito) — "perdeu a formatação da lista
+// com ícones, tamanho e cores... como referência a tela a lista de
+// imóveis antiga". A lista unificada de Ativos mostrava só nome+tipo
+// genérico pros imóveis (perdendo empreendimento/status colorido/
+// locatário/aluguel que a lista antiga de Imóveis sempre teve). Busca
+// tudo de uma vez só (1 query de imóveis com join embutido — mesmo
+// padrão PostgREST já usado por carregarImoveisSupabase() no
+// index.html, `tipos_imovel(nome), empreendimentos(nome)` — + 1 query
+// de contratos), monta um Map por imóvel — ativoCardHtml() só lê daqui,
+// nunca faz busca por card (isso sim causaria lentidão de verdade numa
+// lista de 49+ itens). Mesmo mapeamento de status Supabase→rótulo e
+// mesma prioridade de "contrato principal" que o index.html usa
+// (mapStatusSupabaseParaAntigo/PRIORIDADE_STATUS_CONTRATO) — não
+// inventei um critério novo, copiei o critério real.
+const PRIORIDADE_STATUS_CONTRATO_CARD = { Ativo: 1, Assinando: 2, Suspenso: 3, Finalizado: 4 };
+const STATUS_IMOVEL_SUPABASE_PARA_ROTULO = { disponivel: 'Vago', alugado: 'Alugado', assinando: 'Assinando', manutencao: 'Vago', reservado: 'Vago', em_uso: 'Em uso', em_breve: 'Em Breve' };
+
+export async function buscarResumoImoveisParaCards(clienteId) {
+    const resumo = new Map();
+    try {
+        const { data: imoveisRows, error: e1 } = await dbAuth.from('imoveis')
+            .select('id, status, finalidade_uso, fotos, tipos_imovel(nome), empreendimentos(nome)')
+            .eq('cliente_id', clienteId);
+        if (e1) throw e1;
+
+        const { data: contratosRows, error: e2 } = await dbAuth.from('contratos')
+            .select('imovel_id, status, locatario, valor')
+            .eq('cliente_id', clienteId);
+        if (e2) throw e2;
+
+        (imoveisRows || []).forEach(imo => {
+            const contratosDoImovel = (contratosRows || [])
+                .filter(c => c.imovel_id === imo.id)
+                .sort((a, b) => (PRIORIDADE_STATUS_CONTRATO_CARD[a.status] || 9) - (PRIORIDADE_STATUS_CONTRATO_CARD[b.status] || 9));
+            const foto = (Array.isArray(imo.fotos) && imo.fotos.length > 0 && typeof imo.fotos[0] === 'string' && imo.fotos[0].length > 5) ? imo.fotos[0] : null;
+            resumo.set(imo.id, {
+                empreendimento: imo.empreendimentos?.nome || '',
+                tipo: imo.tipos_imovel?.nome || '',
+                finalidadeUso: imo.finalidade_uso || '',
+                status: STATUS_IMOVEL_SUPABASE_PARA_ROTULO[imo.status] || 'Vago',
+                foto,
+                contratoPrincipal: contratosDoImovel[0] || null
+            });
+        });
+    } catch (e) {
+        console.warn('[cofre-api] buscarResumoImoveisParaCards falhou:', e);
+    }
+    return resumo;
 }
 
 export async function criarAtivo(payload) {
