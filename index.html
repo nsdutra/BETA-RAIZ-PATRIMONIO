@@ -6,7 +6,127 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.88.0
+   VERSÃO: Beta v1.90.0
+   LINHAS: 27784
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.90.0) — Dois pedidos explícitos na sequência da
+   v1.89.0: (1) "no menu ativo, ainda aparece a visão geral do ativo e ao
+   final os botões visão geral e ativo. Isto já deveria ter sido
+   unificado"; (2) "pode também unificar o imóveis e ativos que tinha
+   deixado para o final".
+
+   1) HOME INTERNA DO COFRE, DENTRO DA ABA ATIVOS — deixou de ser a tela
+      padrão. js/ativos/ativos-boot.js (v1.1.0) agora escuta o evento
+      'cofre:dados-carregados' e, um instante depois (setTimeout 0 — dá
+      tempo do próprio nav.bootstrap() do Cofre terminar sua sequência,
+      senão minha troca de tela seria sobrescrita pela dele), força a
+      tela pra 'ativos' (lista) com as MESMAS funções que o antigo botão
+      "Ativos" do switcher já chamava — mudarTela('ativos') +
+      renderAtivosLista(). O switcher (nav.bottom-nav interna, que só
+      tinha sido REPOSICIONADA em v1.84.0) agora é ESCONDIDA de vez.
+      Nada de cofre-navegacao.js/cofre-app.js foi tocado (também usados
+      pelo cofre.html standalone, que não deveria mudar de
+      comportamento) — a correção inteira vive na camada de integração.
+      Nenhum acesso foi perdido: a Home (KPIs de ativos/alertas/docs,
+      "Em triagem", "Comece pelo documento") e, a partir dela, Alertas
+      continuam existindo — só passaram a ser alcançáveis por 1 ícone
+      novo ("Visão geral do Cofre") na barra da lista de Ativos, em vez
+      de tela padrão. Ver js/ativos/ativos-markup.js (v1.1.0).
+
+   2) IMÓVEIS UNIFICADO COM ATIVOS NA NAVEGAÇÃO — barra de baixo passa de
+      6 pra 5 ícones (Visão Geral · Ativos · Financeiro · Contratos ·
+      Resultados), batendo com o protótipo desde sempre. Mesmo mecanismo
+      já validado em v1.88.0 pra Cobranças/Distrib.: segmento de 2
+      botões (Imóveis/Ativos) no topo de CADA UMA das duas telas, só
+      chamando switchTab() — NENHUM HTML ou lógica de negócio foi movido
+      ou mesclado entre tab-imoveis e tab-ativos, as duas continuam
+      100% intactas por dentro. TAB_PARENT_MAP atualizado: tab-imoveis e
+      suas 3 telas-filhas (vitrine, ficha do imóvel, detalhe de
+      recebimento) passam a acender o ícone "Ativos" — o lookup não é
+      encadeado, então as 4 entradas precisaram apontar direto pra
+      'tab-ativos', não só 'tab-imoveis' (que não tem mais botão na
+      barra). Diferença honesta do protótipo, mantida como estava: o
+      FORMULÁRIO de criação de Imóveis continua separado do formulário
+      "Novo ativo" do Cofre — só a navegação foi unificada, a decisão de
+      fundir os dois cadastros de dado continua em aberto (é bem maior,
+      mexe em sincronização de dado real, não só navegação).
+
+   Achado ao entregar o item 1): js/ativos/ativos-boot.js e
+   js/ativos/ativos-markup.js existem desde v1.80.0/v1.84.0 mas NUNCA
+   tinham entrado no manifesto do Deploy_Raiz.ps1 — corrigido junto
+   (script sobe pra v2.3, DEPLOY_RAIZ_PATRIMONIO.md sobe pra v2.6, ver
+   changelog de lá).
+
+   Validado: node --check no bloco JS extraído (limpo), balanceamento de
+   div/button/svg/section/span/a/p/nav comparado com o arquivo antes
+   desta edição (nenhum diff piorou), zero referência solta a
+   btn-tab-imoveis (removido de propósito). Ainda SEM teste em navegador
+   de verdade — mesma ressalva de sempre, prioridade #1 de quem testar,
+   com atenção especial a: (a) o setTimeout(0) do item 1 é uma técnica
+   de coordenação entre módulos que nunca tinha sido usada neste projeto
+   — merece confirmação visual de que a lista de Ativos aparece direto,
+   sem "piscar" a Home antes; (b) os 2 segmentos novos (Imóveis/Ativos)
+   precisam ser conferidos lado a lado com os já existentes (Financeiro/
+   Cobranças) pra bater visualmente.
+
+   VERSÃO ANTERIOR: Beta v1.89.0
+   LINHAS: 27678
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.89.0) — Menu do bonequinho ("Configurações")
+   reestruturado seguindo a proposta do protótipo (pedido explícito,
+   "avançar com os ajustes do menu bonequinho conforme protótipo").
+
+   1) Cabeçalho de identidade novo dentro do próprio sheet: avatar com
+      iniciais (ex.: "Nicola Santos Dutra" -> "ND") + nome + empresa ·
+      perfil — preenchido por atualizarMenuContaHeader(), chamada 1x em
+      entrarNaEmpresa() logo depois de aplicarBrandingCliente() (mesmo
+      ponto em que socioLogado/perfilLogado/CONFIG_CLIENTE/LICENCA_ATUAL
+      já estão todos carregados — zero consulta nova ao banco). O mesmo
+      avatar substitui o ícone genérico de pessoa no gatilho do header.
+
+   2) Grupos reorganizados pra bater com o protótipo: Conta (novo, no
+      topo) · Cadastros e prestadores (mantido, 100% intocado nos 6 itens
+      que já existiam) · Empresa · Plano · Integrações (novo) · Legal
+      (novo). Todo item que já tinha tela própria continua com ela —
+      só mudou de grupo (Preferências de comunicação/Suporte foram pra
+      "Conta"; Sobre foi pra "Legal"; "Pessoas" virou "Pessoas &
+      acessos" no rótulo, mesma tab-pessoas de sempre).
+
+   3) 5 itens do protótipo que ainda não têm tela de verdade por trás
+      entram como linha desabilitada com selo "Em breve" (mesmo padrão
+      já usado em botões de mídia sem arquivo — opacity-40 +
+      cursor-not-allowed): Meu perfil, Sócios & cotas, Modelos de
+      controle, Certificado/NFS-e, Banco (extrato). Zero gate de licença
+      por trás — é só estrutura visual, igual o painel v1.39.8 antigo já
+      fazia antes de Sobre/Suporte virarem reais.
+
+   4) "Trocar de empresa" virou REAL fora da aba DEV — resolve a lacuna
+      apontada no handoff de 31/08/2026 ("não localizei nenhum seletor
+      de empresa em lugar nenhum do app", achado comparando contra o
+      protótipo). Reaproveita a trocarEmpresa() que já existia pronta
+      (recarrega a página; verificarAcessoEEntrar() mostra a seleção de
+      novo se a pessoa tiver mais de 1 empresa) — zero função nova.
+
+   5) "WhatsApp (R.AI.Z)" (grupo Integrações) chama a MESMA
+      abrirBotWhatsapp() do ícone do mascote no header — 2ª porta de
+      entrada pra mesma função, não uma integração nova.
+
+   6) "Termos & privacidade" (grupo Legal) linka direto pro raiz-site —
+      raizpatrimonio.com.br/termos-de-uso, SEM www (é o CNAME real, ver
+      DEPLOY_RAIZ_PATRIMONIO.md §2); a própria página já linka Política
+      de Privacidade e Termo de Beta no rodapé, não precisei duplicar.
+
+   7) "Licença & uso" ganhou selo do plano atual (Trial/Standard/Plus),
+      lido de LICENCA_ATUAL.plano_codigo (já em memória) — sem fetch novo.
+
+   Validado: node --check no bloco JS extraído (limpo), balanceamento de
+   div/button/svg/section/span/a comparado linha a linha com o arquivo
+   ANTES desta edição — nenhum diff piorou (mesma lógica de "comparar
+   com o original, não com um ideal teórico" já registrada nas
+   Diretrizes Técnicas §3.9). Ainda SEM teste em navegador de verdade —
+   mesma ressalva do handoff anterior, prioridade #1 de quem testar.
+
+   VERSÃO ANTERIOR: Beta v1.88.0
    LINHAS: 27394
    DATA: 31/08/2026
    NOVIDADES (Beta v1.88.0) — Consolidação da barra de baixo, seguindo a
@@ -6259,8 +6379,18 @@
                     </svg>
                 </button>
 
-                <button onclick="abrirMenuConta()" title="Configurações" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition">
-                    <svg data-lucide="user" style="width:18px;height:18px"></svg>
+                <!-- v1.89.0 — avatar com iniciais no lugar do ícone genérico
+                     de pessoa (pedido explícito, seguindo o protótipo do
+                     módulo único: gatilho mostra as iniciais de quem está
+                     logado, não um ícone anônimo). Os dois elementos
+                     coexistem: o SVG genérico fica como estado inicial
+                     (antes de atualizarMenuContaHeader() rodar, ou se por
+                     algum motivo socioLogado vier vazio) e as iniciais
+                     assumem por cima assim que há nome — ver
+                     atualizarMenuContaHeader(). -->
+                <button id="btn-conta-avatar" onclick="abrirMenuConta()" title="Configurações" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition">
+                    <svg data-lucide="user" id="icone-conta-avatar-fallback" style="width:18px;height:18px"></svg>
+                    <span id="iniciais-conta-avatar" class="hidden text-[12px] font-extrabold text-white tracking-wide"></span>
                 </button>
 
             </div>
@@ -6298,6 +6428,18 @@
          Cobranças ganha ícone próprio (antes vivia só como toggle dentro
          de Recebimentos). Contratos e Relatórios continuam existindo e
          acessíveis, só mudaram de porta de entrada — ver Configurações. -->
+    <!-- v1.90.0 (pedido explícito, 31/08/2026) — "Imóveis" SAIU daqui:
+         unificado com Ativos, igual o protótipo sempre propôs (5 ícones,
+         não 6) — decisão que tinha ficado pra "revisão final" desde
+         v1.88.0. Mesmo mecanismo já validado pra Cobranças/Distrib.
+         (v1.88.0): a tela tab-imoveis em si NÃO foi tocada, NENHUM HTML
+         foi movido/mesclado com o Cofre — só deixou de ter ícone próprio.
+         Alcançável por um segmento (Imóveis/Ativos) dentro das duas
+         seções, mais TAB_PARENT_MAP (ver mais abaixo), que garante que o
+         ícone "Ativos" acende tanto em tab-ativos quanto em tab-imoveis e
+         suas telas-filhas (vitrine, ficha do imóvel, detalhe de
+         recebimento). -->
+
     <nav id="bottom-nav-bar" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40" style="padding-bottom:env(safe-area-inset-bottom)">
 
         <button onclick="switchTab('tab-geral')" id="btn-tab-geral" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
@@ -6305,16 +6447,14 @@
             <span class="text-[10px] font-bold">Visão Geral</span>
         </button>
 
-        <button onclick="switchTab('tab-imoveis')" id="btn-tab-imoveis" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="home" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Imóveis</span>
-        </button>
-
-        <!-- v1.80.0 — NOVO, aditivo (ao lado de Imóveis, não substitui):
-             reaproveita o Cofre inteiro (js/cofre-*.js) dentro do App, sem
-             copiar nem reescrever nada — ver js/ativos/ativos-boot.js pro
-             porquê de cada etapa. Cofre continua existindo como página
-             separada (cofre.html) até a decisão de aposentá-la. -->
+        <!-- v1.80.0 — reaproveita o Cofre inteiro (js/cofre-*.js) dentro do
+             App, sem copiar nem reescrever nada — ver js/ativos/ativos-
+             boot.js pro porquê de cada etapa. Cofre continua existindo
+             como página separada (cofre.html) até a decisão de
+             aposentá-la.
+             v1.90.0 — passou a ser também a porta de entrada de Imóveis
+             (ver segmento Imóveis/Ativos dentro desta seção e de
+             tab-imoveis) — mesmo ícone, mesma tela, só ganhou o vizinho. -->
         <button onclick="switchTab('tab-ativos')" id="btn-tab-ativos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="boxes" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Ativos</span>
@@ -6347,13 +6487,46 @@
 
     </nav>
 
-    <!-- ================= PAINEL "CONTA" (v1.39.8) =================
-         Sobre e Suporte funcionam de verdade. Licença/Plano/Pessoas ficam
-         estruturados aqui mas marcados "Em breve" — as telas próprias ainda
-         não existem (Pessoas hoje só vive dentro do DEV puro; Licença/Plano
-         de verdade estão sendo construídos em outra frente, e eu não devo
-         mexer nisso agora). Serviços é real, vai direto pra aba que já
-         existe. -->
+    <!-- ================= PAINEL "CONTA" =================
+         v1.89.0 — REESTRUTURADO seguindo a proposta do protótipo
+         (PROTOTIPO_MODULO_UNICO_RAIZ_v1_0.html, seção "Menu do
+         bonequinho"), pedido explícito de 31/08/2026. Mudanças:
+           1) Cabeçalho novo (bloco #sheet-avatar-iniciais/#sheet-nome-
+              usuario/#sheet-empresa-perfil, preenchido por
+              atualizarMenuContaHeader()) — mostra quem está logado,
+              como o protótipo faz, sem precisar abrir mais nada.
+           2) Grupos renomeados/reordenados pra bater com o protótipo:
+              Conta (novo, no topo) · Cadastros e prestadores (mantido,
+              intocado nos 6 itens que já existiam) · Empresa · Plano ·
+              Integrações (novo) · Legal (novo).
+           3) NENHUM item existente perdeu a própria tela — só mudou de
+              grupo (regra de sempre: nunca tirar acesso sem substituto).
+           4) Itens do protótipo que ainda NÃO têm tela de verdade por
+              trás entram como linha desabilitada com selo "Em breve"
+              (mesmo padrão visual de botão `disabled` +
+              opacity-40/cursor-not-allowed já usado em outros pontos do
+              app, ex. o botão "Ver" de mídia sem arquivo) — em vez de
+              ficar de fora ou virar um link morto: Meu perfil, Sócios &
+              cotas, Modelos de controle, Certificado/NFS-e, Banco
+              (extrato). Zero gate de licença por trás disso — é só
+              estrutura visual, igual o antigo painel v1.39.8 já fazia
+              com Sobre/Suporte antes deles ficarem reais.
+           5) "Trocar de empresa" deixa de existir só dentro da aba DEV:
+              a função trocarEmpresa() já existia pronta (recarrega a
+              página; verificarAcessoEEntrar() mostra a seleção de novo
+              se a pessoa tiver mais de 1 empresa) — só ganhou uma porta
+              de entrada real pro usuário comum. Resolve a lacuna
+              apontada no handoff de 31/08/2026 ("não localizei nenhum
+              seletor de empresa em lugar nenhum do app").
+           6) "WhatsApp (R.AI.Z)" (grupo Integrações) chama a MESMA
+              abrirBotWhatsapp() do ícone do mascote no header — não é
+              uma segunda integração, é a mesma função com uma segunda
+              porta de entrada, documentada.
+           7) "Termos & privacidade" (grupo Legal) linka direto pra
+              raiz-site (raizpatrimonio.com.br/termos-de-uso, SEM www —
+              ver nota do CNAME real em DEPLOY_RAIZ_PATRIMONIO.md §2); a
+              própria página já linka política de privacidade e termo de
+              beta no rodapé, não precisei duplicar os 3 links aqui. -->
     <div id="modal-menu-conta" class="hidden fixed inset-0 z-[90] flex items-end justify-center" style="background:rgba(23,33,30,.5)" onclick="if(event.target===this) fecharMenuConta()">
 
         <div class="w-full max-w-md rounded-t-2xl shadow-2xl overflow-hidden" style="background:var(--paper)">
@@ -6363,21 +6536,59 @@
                 <button onclick="fecharMenuConta()" class="text-slate-400 hover:text-white font-bold text-sm bg-emerald-900 w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
 
+            <!-- v1.89.0 — cabeçalho de identidade (novo), preenchido por
+                 atualizarMenuContaHeader() sempre que a empresa é
+                 carregada/trocada (mesmo hook do avatar do header). -->
+            <div class="flex items-center gap-3 px-5 pt-4 pb-4 border-b" style="border-color:var(--line)">
+                <div id="sheet-avatar-iniciais" class="w-11 h-11 rounded-full flex items-center justify-center text-white font-extrabold text-sm flex-none" style="background:var(--pine)">–</div>
+                <div class="min-w-0">
+                    <p id="sheet-nome-usuario" class="text-sm font-bold truncate" style="color:var(--ink)">-</p>
+                    <p id="sheet-empresa-perfil" class="text-[11px] truncate" style="color:var(--sage)">-</p>
+                </div>
+            </div>
+
             <div class="p-4 space-y-1 overflow-y-auto" style="max-height:70vh; padding-bottom:calc(24px + env(safe-area-inset-bottom))">
 
-                <!-- v1.44.0 (Imóveis V2 — Fase 1) — Contratos e Relatórios
-                     saíram da barra inferior (Contratos agora vive no
-                     contexto do imóvel; Relatórios vive na Visão Geral),
-                     mas continuam telas completas e por isso ganham porta
-                     de entrada aqui, sem perder nenhuma função. -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Cadastros e prestadores</p>
-                <!-- v1.87.0 — renomeado de "Imóveis" (pedido explícito,
-                     31/08/2026, inspirado na proposta do protótipo do
-                     módulo único).
-                     v1.88.0 — "Contratos (todos)" e "Relatórios" SAÍRAM
-                     daqui: promovidos pra botão próprio na barra de baixo
-                     nesta mesma entrega (nunca tirar de um lugar sem o
-                     substituto já existir — o substituto entrou junto). -->
+                <!-- ===== Grupo: Conta (novo, v1.89.0) ===== -->
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Conta</p>
+
+                <!-- "Meu perfil" — Em breve: não existe tela de perfil
+                     pessoal ainda (edição do próprio nome/e-mail/senha). -->
+                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
+                    <svg data-lucide="user-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Meu perfil</span>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
+                </button>
+
+                <!-- "Trocar de empresa" — REAL (v1.89.0): reaproveita a
+                     trocarEmpresa() que já existia só na aba DEV. -->
+                <button onclick="fecharMenuConta(); trocarEmpresa()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="arrow-left-right" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Trocar de empresa</span>
+                </button>
+
+                <!-- v1.71.0 — trocado o toggle único por "Preferências de comunicação",
+                     que abre uma lista com 1 toggle por mensagem (fn_minhas_comunicacoes_
+                     opt_out/fn_definir_opt_out_comunicacao) — pedido explícito do Nicola:
+                     "colocar este liga e desliga pra todas as mensagens". Mensagens
+                     obrigatórias (Termos, Política, Beta) nem aparecem na lista —
+                     permite_opt_out=false pra essas.
+                     v1.89.0 — só mudou de grupo (era "Conta" no fim do menu,
+                     agora é "Conta" no topo) — mesma função, mesmo botão. -->
+                <button onclick="fecharMenuConta(); abrirPreferenciasComunicacao()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Preferências de comunicação</span>
+                </button>
+
+                <a href="https://wa.me/5511947461828" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
+                    <svg data-lucide="life-buoy" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
+                </a>
+
+                <!-- ===== Grupo: Cadastros e prestadores (v1.87.0/v1.88.0,
+                     intocado nesta entrega além de 2 linhas "Em breve"
+                     novas no fim) ===== -->
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Cadastros e prestadores</p>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-minutas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="file-signature" style="width:18px;height:18px;color:var(--pine)"></svg>
@@ -6409,14 +6620,35 @@
                     <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Empreendimento</span>
                 </button>
 
+                <!-- "Sócios & cotas" — Em breve: hoje a divisão societária só
+                     vive dentro do formulário de cada imóvel (parteRumo/
+                     sócios por linha), não existe tela própria consolidada. -->
+                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
+                    <svg data-lucide="handshake" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Sócios &amp; cotas</span>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
+                </button>
+
+                <!-- "Modelos de controle" — Em breve: cofre_modelos_item_controle
+                     (calendário de IPTU e afins, v1.86.0) só é editável hoje via
+                     SQL/seed — não tem tela de administração pro Nicola ainda. -->
+                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
+                    <svg data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Modelos de controle</span>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
+                </button>
+
                 <!-- v1.41.5 — item "Dev" retirado do menu por hora (acesso
                      interno continua disponível via duplo-clique na logo). -->
 
+                <!-- ===== Grupo: Empresa ===== -->
                 <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Empresa</p>
 
+                <!-- v1.89.0 — rótulo alinhado ao protótipo ("Pessoas &
+                     acessos"); mesmo botão, mesma tab-pessoas de sempre. -->
                 <button onclick="fecharMenuConta(); switchTab('tab-pessoas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="users" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Pessoas</span>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Pessoas &amp; acessos</span>
                 </button>
 
                 <button onclick="fecharMenuConta(); switchTab('tab-minha-empresa')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
@@ -6446,29 +6678,69 @@
                      num card de imóvel, linha ~17617) — só este item de
                      menu sem contexto nenhum saiu. -->
 
+                <!-- ===== Grupo: Plano ===== -->
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Plano</p>
+
+                <!-- v1.89.0 — rótulo alinhado ao protótipo ("Licença & uso");
+                     ganhou selo do plano atual (#badge-plano-menu-conta),
+                     preenchido por atualizarBadgePlanoMenu() a partir de
+                     LICENCA_ATUAL.plano_codigo (já carregado por
+                     carregarLicencaAtual() — nenhuma consulta nova ao
+                     banco). A tela em si (mount-licenca/comum-licenca.js)
+                     já mostra as barras de uso por funcionalidade — não
+                     precisei duplicar aqui, só sinalizar o plano de cara. -->
                 <button onclick="fecharMenuConta(); switchTab('tab-licenca')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="badge-check" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Licença</span>
+                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Licença &amp; uso</span>
+                    <span id="badge-plano-menu-conta" class="hidden text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:var(--brass-light,#f0c88a);color:var(--brass-deep,#a86f27)"></span>
                 </button>
 
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
+                <!-- ===== Grupo: Integrações (novo, v1.89.0) ===== -->
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Integrações</p>
 
-                <!-- v1.71.0 — trocado o toggle único por "Preferências de comunicação",
-                     que abre uma lista com 1 toggle por mensagem (fn_minhas_comunicacoes_
-                     opt_out/fn_definir_opt_out_comunicacao) — pedido explícito do Nicola:
-                     "colocar este liga e desliga pra todas as mensagens". Mensagens
-                     obrigatórias (Termos, Política, Beta) nem aparecem na lista —
-                     permite_opt_out=false pra essas. -->
-                <button onclick="fecharMenuConta(); abrirPreferenciasComunicacao()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Preferências de comunicação</span>
+                <!-- "WhatsApp (R.AI.Z)" — REAL: mesma função do ícone do
+                     mascote no header (abrirBotWhatsapp()), não é uma
+                     segunda integração, é a mesma com 2ª porta de entrada. -->
+                <button onclick="fecharMenuConta(); abrirBotWhatsapp()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="bot" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">WhatsApp (R.AI.Z)</span>
                 </button>
 
-                <a href="https://wa.me/5511947461828" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
-                    <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--pine)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
+                <!-- "Certificado / NFS-e" — Em breve: NFS-e hoje é só
+                     pré-nota (fn_gerar_ficha_prenota); custódia de
+                     certificado A1 pra emissão direta ainda não tem tela
+                     nem decisão de guarda fechada. -->
+                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
+                    <svg data-lucide="file-check-2" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Certificado / NFS-e</span>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
+                </button>
+
+                <!-- "Banco (extrato)" — Em breve: a conciliação de extrato já
+                     existe embutida dentro de Financeiro (tab-mensal), mas
+                     uma tela própria de conexão/gestão de conta bancária
+                     ainda não existe. -->
+                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
+                    <svg data-lucide="banknote" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Banco (extrato)</span>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
+                </button>
+
+                <!-- ===== Grupo: Legal (novo, v1.89.0) ===== -->
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Legal</p>
+
+                <!-- "Termos & privacidade" — REAL: linka pro raiz-site
+                     (domínio SEM www, é o CNAME real — ver
+                     DEPLOY_RAIZ_PATRIMONIO.md §2); a página já linka
+                     Política de Privacidade e Termo de Beta no rodapé. -->
+                <a href="https://raizpatrimonio.com.br/termos-de-uso" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
+                    <svg data-lucide="scroll-text" style="width:18px;height:18px;color:var(--pine)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Termos &amp; privacidade</span>
                 </a>
 
+                <!-- v1.89.0 — "Sobre" só mudou de grupo (era "Conta" no fim
+                     do menu antigo, agora é "Legal" no fim do novo, mesma
+                     posição relativa que o protótipo usa) — mesma tela. -->
                 <button onclick="fecharMenuConta(); switchTab('tab-sobre')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="info" style="width:18px;height:18px;color:var(--pine)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Sobre</span>
@@ -6535,6 +6807,18 @@
         <!-- ================= ABA: IMÓVEIS ================= -->
 
         <section id="tab-imoveis" class="tab-content">
+
+            <!-- v1.90.0 (pedido explícito, 31/08/2026) — segmento Imóveis/
+                 Ativos, mesmo padrão já usado em Financeiro/Cobranças e
+                 Resultados/Distrib. (v1.88.0): só chama switchTab(), NADA
+                 de HTML foi movido/mesclado entre as duas telas. É este
+                 segmento (+ TAB_PARENT_MAP) que faz a unificação de
+                 navegação — "Imóveis" deixou de ter ícone próprio na
+                 barra de baixo, agora vive aqui dentro de "Ativos". -->
+            <div class="flex gap-2 mb-3">
+                <button onclick="switchTab('tab-imoveis')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Imóveis</button>
+                <button onclick="switchTab('tab-ativos')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Ativos</button>
+            </div>
 
             <!-- v1.47.0 — REDESENHO DA ABA IMÓVEIS (pedido explícito):
                  - contador de imóveis removido do topo;
@@ -6901,6 +7185,18 @@
              Isso é o que mantém este arquivo do tamanho que já está: nenhuma
              linha do Cofre foi colada aqui, só este container. -->
         <section id="tab-ativos" class="tab-content">
+
+            <!-- v1.90.0 — segmento espelhado do de tab-imoveis (ver
+                 comentário lá). Fica FORA de #ativos-mount-point de
+                 propósito: aquele container é sobrescrito via innerHTML
+                 toda vez que montarAtivosTab() injeta o Cofre — um
+                 elemento estático DENTRO dele seria apagado na primeira
+                 abertura da aba. Aqui, como irmão do container, sobrevive. -->
+            <div class="flex gap-2 mb-3">
+                <button onclick="switchTab('tab-imoveis')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Imóveis</button>
+                <button onclick="switchTab('tab-ativos')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--pine, #1e3a32);color:#fff">Ativos</button>
+            </div>
+
             <div id="ativos-mount-point"></div>
         </section>
 
@@ -8786,7 +9082,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.88.0";
+        const APP_VERSAO = "Beta v1.90.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -12929,6 +13225,12 @@
 
             aplicarBrandingCliente();
 
+            // v1.89.0 — avatar com iniciais (header + sheet do menu Conta)
+            // e selo do plano atual. Roda aqui porque é o primeiro ponto em
+            // que socioLogado/perfilLogado/CONFIG_CLIENTE/LICENCA_ATUAL já
+            // estão todos preenchidos.
+            atualizarMenuContaHeader();
+
             document.getElementById('area-login-supabase').classList.add('hidden');
             const areaSelecao = document.getElementById('area-selecao-empresa');
             if (areaSelecao) areaSelecao.classList.add('hidden');
@@ -14374,10 +14676,19 @@
         // continuam de fora do mapa de propósito — vivem em Configurações e
         // simplesmente não destacam nada na barra, comportamento já esperado
         // (mesmo padrão de Sobre/DEV/Parametrizações).
+        // v1.90.0 — Imóveis unificado com Ativos (mesmo ícone da barra,
+        // pedido explícito). tab-vitrine/tab-imovel-ficha/tab-recebimento-
+        // detalhe apontavam pra 'tab-imoveis' antes — essa referência NÃO
+        // é encadeada (o lookup abaixo não resolve 2 níveis), então as 3
+        // precisaram ser atualizadas direto pra 'tab-ativos' junto com
+        // 'tab-imoveis' — senão o destaque da barra ficaria apagado (sem
+        // nenhum ícone aceso) ao navegar nessas telas, já que btn-tab-
+        // imoveis deixou de existir.
         const TAB_PARENT_MAP = {
-            'tab-vitrine': 'tab-imoveis',
-            'tab-imovel-ficha': 'tab-imoveis',
-            'tab-recebimento-detalhe': 'tab-imoveis',
+            'tab-vitrine': 'tab-ativos',
+            'tab-imovel-ficha': 'tab-ativos',
+            'tab-recebimento-detalhe': 'tab-ativos',
+            'tab-imoveis': 'tab-ativos',
             'tab-contrato-ficha': 'tab-contratos',
             // v1.88.0 — Cobranças e Distrib. saíram de botão próprio na
             // barra (ver comentário na v1.88.0 acima do nav); sem isso, o
@@ -14520,6 +14831,85 @@
             const tabAtiva = document.querySelector('.tab-content.active');
             if (tabAtiva) switchTab(tabAtiva.id);
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // ===================================================================
+        // v1.89.0 — CABEÇALHO DE IDENTIDADE DO MENU "CONTA" (novo)
+        // Preenche o avatar com iniciais (gatilho no header + cabeçalho do
+        // próprio sheet) e o selo do plano atual, seguindo o protótipo do
+        // módulo único. Nenhuma consulta nova ao banco — só lê variáveis
+        // que já existem em memória depois do login (socioLogado,
+        // perfilLogado, CONFIG_CLIENTE, LICENCA_ATUAL).
+        // ===================================================================
+
+        // "Nicola Santos Dutra" -> "ND" (1ª letra do primeiro nome + 1ª
+        // letra do último). Nome de 1 palavra só usa as 2 primeiras letras
+        // dela. Nunca quebra com nome vazio/nulo — devolve '' pro chamador
+        // decidir o fallback.
+        function iniciaisNome(nome) {
+            if (!nome) return '';
+            const partes = nome.trim().split(/\s+/).filter(Boolean);
+            if (partes.length === 0) return '';
+            if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+            return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+        }
+
+        // Chamada 1x em entrarNaEmpresa(), depois que socioLogado/
+        // perfilLogado/CONFIG_CLIENTE/LICENCA_ATUAL já estão todos
+        // preenchidos (mesmo ponto onde aplicarBrandingCliente() já roda).
+        // Atualiza 2 lugares: o avatar do botão do header (substitui o
+        // ícone genérico de pessoa) e o cabeçalho do próprio sheet do
+        // menu "Conta" (avatar maior + nome + empresa/perfil).
+        function atualizarMenuContaHeader() {
+            const iniciais = iniciaisNome(socioLogado);
+
+            // --- avatar pequeno, botão do header ---
+            const spanHeader = document.getElementById('iniciais-conta-avatar');
+            const svgHeaderFallback = document.getElementById('icone-conta-avatar-fallback');
+            if (spanHeader) {
+                if (iniciais) {
+                    spanHeader.textContent = iniciais;
+                    spanHeader.classList.remove('hidden');
+                    if (svgHeaderFallback) svgHeaderFallback.classList.add('hidden');
+                } else {
+                    // sem nome ainda (não deveria acontecer pós-login, mas
+                    // não custa manter o ícone genérico como rede de segurança)
+                    spanHeader.classList.add('hidden');
+                    if (svgHeaderFallback) svgHeaderFallback.classList.remove('hidden');
+                }
+            }
+
+            // --- avatar grande + nome + empresa/perfil, dentro do sheet ---
+            const avatarSheet = document.getElementById('sheet-avatar-iniciais');
+            if (avatarSheet) avatarSheet.textContent = iniciais || '?';
+
+            const nomeEl = document.getElementById('sheet-nome-usuario');
+            if (nomeEl) nomeEl.textContent = socioLogado || '-';
+
+            const empresaPerfilEl = document.getElementById('sheet-empresa-perfil');
+            if (empresaPerfilEl) {
+                const empresa = (CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '-';
+                empresaPerfilEl.textContent = perfilLogado ? (empresa + ' · ' + perfilLogado) : empresa;
+            }
+
+            atualizarBadgePlanoMenu();
+        }
+
+        // Selo do plano atual ("Trial"/"Standard"/"Plus"...) ao lado de
+        // "Licença & uso" no grupo Plano. Lê LICENCA_ATUAL.plano_codigo
+        // (já carregado por carregarLicencaAtual(), sem fetch novo). Some
+        // (fica hidden) se por algum motivo a empresa não tiver licença
+        // carregada ainda — nunca mostra um selo vazio ou "undefined".
+        function atualizarBadgePlanoMenu() {
+            const badge = document.getElementById('badge-plano-menu-conta');
+            if (!badge) return;
+            const codigo = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo;
+            if (!codigo) {
+                badge.classList.add('hidden');
+                return;
+            }
+            badge.textContent = codigo.charAt(0).toUpperCase() + codigo.slice(1);
+            badge.classList.remove('hidden');
         }
 
         function abrirMenuConta() {

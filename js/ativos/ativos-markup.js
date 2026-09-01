@@ -1,6 +1,6 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.0.0 · 31/08/2026
+// Versão: 1.1.0 · 31/08/2026
 //
 // Guarda o HTML do Cofre (extraído de cofre.html, 31/08/2026) como string,
 // pra não fazer o index.html crescer mais — ele só injeta este conteúdo
@@ -24,6 +24,16 @@
 // escondidos) porque nav.bootstrap() (cofre-navegacao.js) referencia os
 // dois sem checar null — sem o placeholder, o boot quebra com
 // TypeError antes de mostrar qualquer coisa.
+//
+// v1.1.0 (31/08/2026, pedido explícito) — 1 ícone novo ("Visão geral do
+// Cofre", data-action="ir-home") na barra da tela data-screen="ativos".
+// É ESTE ARQUIVO que é uma cópia própria (extraída de cofre.html), não o
+// cofre.html de verdade — editar aqui NÃO afeta a página standalone
+// (cofre.html continua com seu switcher normal). Existe porque a Home
+// interna do Cofre deixou de ser a tela padrão da aba Ativos (ver
+// ativos-boot.js v1.1.0) e o switcher (nav.bottom-nav) foi escondido —
+// sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
+// ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
 export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
@@ -140,6 +150,19 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
         <section data-screen="ativos" class="hidden">
             <div class="flex items-center gap-2 mb-4">
                 <p class="text-[11px] flex-1 text-left" style="color:var(--sage)">Bens e proteções acompanhados pelo Cofre.</p>
+                <!-- v1.1.0 (31/08/2026, pedido explícito) — a tela padrão da
+                     aba Ativos deixou de ser a Home interna do Cofre (que
+                     duplicava a Visão Geral de verdade do App) — ver
+                     ativos-boot.js v1.1.0. Este ícone é a única porta de
+                     entrada que sobrou pra Home (KPIs de ativos/alertas/
+                     documentos, "Em triagem", "Comece pelo documento") e,
+                     a partir dela, Alertas ("Ver todos →" dentro da Home) —
+                     nada foi removido, só deixou de ser o padrão. Mesmo
+                     data-action="ir-home" de sempre, mesmo case já tratado
+                     em cofre-app.js. -->
+                <button data-action="ir-home" title="Visão geral do Cofre (alertas e documentos em triagem)" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
+                    <i data-lucide="layout-dashboard" style="width:20px;height:20px"></i>
+                </button>
                 <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
                     <i data-lucide="search" style="width:20px;height:20px"></i>
                 </button>
