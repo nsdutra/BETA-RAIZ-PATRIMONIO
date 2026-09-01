@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 25/08/2026
+// Versão: 1.6.0 · 31/08/2026
+//
+// v1.6.0 (31/08/2026, pedido explícito, "apague a aba antiga do cofre
+// de visão geral pra irmos reduzindo e limpando o html") — montarHome()
+// ganhou guarda defensiva (elemento nulo = não faz nada). Embutido no
+// App (ativos-boot.js), data-screen="home" foi APAGADA (ver
+// ativos-markup.js v1.5.0) — "Em triagem"/"Atenção necessária"
+// migraram pra Visão Geral de verdade (index.html v1.94.2). Esta
+// função em si NÃO foi apagada — cofre.html standalone ainda tem a
+// Home de verdade, ainda funciona 100% lá.
 //
 // v1.5.0 — ALERTAS NO PADRÃO VISUAL DO IMÓVEIS (pedido explícito):
 // alertaCardHtml() reescrita — mesmo box de ícone (w-9 h-9 rounded-lg),
@@ -89,7 +98,19 @@ function ocorrenciaParaAlertaViewHome(oc) {
     };
 }
 
+// v1.26.0 (31/08/2026, pedido explícito) — guarda defensiva no topo:
+// embutido no App (ativos-boot.js), data-screen="home" foi APAGADA
+// (ver ativos-markup.js) — "Em triagem"/"Atenção necessária" migraram
+// pra Visão Geral de verdade (index.html, carregarPontosAtencaoFundidos()).
+// Esta função continua existindo porque cofre.html standalone ainda tem
+// a Home de verdade (arquivo NÃO tocado) — só não pode mais assumir que
+// os elementos existem. kpi-total-ativos é o 1º elemento que a Home
+// sempre teve; se ele não existir, nenhum dos outros existe também
+// (são todos da mesma seção) — checagem única, sem repetir em cada
+// linha.
 export function montarHome() {
+    if (!document.getElementById('kpi-total-ativos')) return;
+
     document.getElementById('kpi-total-ativos').textContent = estado.ativos.length;
     document.getElementById('kpi-total-docs').textContent = estado.documentos.length;
 

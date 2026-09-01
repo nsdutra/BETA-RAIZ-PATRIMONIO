@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.12.0 · 31/08/2026
+// Versão: 1.13.0 · 31/08/2026
+//
+// v1.13.0 — "apague a aba antiga do cofre de visão geral" (pedido
+// explícito): renderAlertas() ganhou guarda defensiva, mesma razão de
+// montarHome() (cofre-documentos.js v1.6.0) — data-screen="alertas" foi
+// apagada do markup embutido no App.
 //
 // v1.12.0 — ajustes de qualidade pedidos depois do Nicola testar a
 // v1.94.0 em navegador de verdade:
@@ -448,7 +453,13 @@ function ocorrenciaParaAlertaView(oc) {
     };
 }
 
+// v1.12.0 (31/08/2026, pedido explícito) — guarda defensiva: embutido
+// no App, data-screen="alertas" foi APAGADA junto com a Home (ver
+// ativos-markup.js v1.5.0) — já estava órfã antes disso (nenhum botão
+// chamava 'ir-alertas' desde 25/08/2026). Mantida por causa do
+// cofre.html standalone, que não foi tocado.
 function renderAlertas() {
+    if (!document.getElementById('alertas-lista')) return;
     const alertasView = [...estado.ocorrenciasAbertas].map(ocorrenciaParaAlertaView)
         .sort((a, b) => (a.data_vencimento || '') > (b.data_vencimento || '') ? 1 : -1);
     document.getElementById('alertas-lista').innerHTML = alertasView.map(docs.alertaCardHtml).join('');

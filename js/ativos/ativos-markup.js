@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.4.1 · 31/08/2026
+// Versão: 1.5.0 · 31/08/2026
+//
+// v1.5.0 (31/08/2026, pedido explícito: "apague a aba antiga do cofre
+// de visão geral pra irmos reduzindo e limpando o html") — data-screen=
+// "home" e data-screen="alertas" APAGADAS (~65 linhas). "Em triagem" e
+// "Atenção necessária" (que a Home mostrava) migraram pra Visão Geral
+// de verdade (index.html v1.94.2, carregarPontosAtencaoFundidos()) —
+// ver comentário completo no lugar onde as seções foram removidas.
 //
 // v1.4.1 — ajustes de qualidade pedidos depois do Nicola testar a
 // v1.94.0 em navegador de verdade:
@@ -144,73 +151,46 @@ export const ATIVOS_MARKUP = `<style>
 
     <main class="max-w-md mx-auto px-4 py-5">
 
-        <!-- ===================== HOME ===================== -->
-        <section data-screen="home">
-            <!-- Revisão DS: cores/tamanho corrigidos pra bater 1:1 com o
-                 card "Como está seu patrimônio hoje" da Visão Geral do App
-                 (index.html #tab-geral) — antes usava tokens de marca
-                 (--brass-light/--pine-light) em vez de branco com opacidade,
-                 números em text-2xl (App usa text-xl), e o box de alerta em
-                 dourado em vez de vermelho. Ver Design System §5-A. -->
-            <div class="rounded-2xl p-5 text-white shadow" style="background:linear-gradient(135deg,var(--pine-deep),var(--pine))">
-                <p class="text-xs opacity-80 font-semibold">Visão geral do patrimônio</p>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">ativos controlados</div><div class="text-xl font-extrabold mt-1" id="kpi-total-ativos">–</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">alertas próximos</div><div class="text-xl font-extrabold mt-1" id="kpi-vencendo">–</div></div>
-                    <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">precisam atenção</div><div class="text-xl font-extrabold text-red-100 mt-1" id="kpi-vencidos">–</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">documentos guardados</div><div class="text-xl font-extrabold mt-1" id="kpi-total-docs">–</div></div>
-                </div>
-            </div>
+        <!-- ===================== HOME + ALERTAS — APAGADAS (31/08/2026,
+             pedido explícito: "os documentos em triagem e qq outro
+             alerta que venha do sistema deve estar na aba de visão
+             geral integrada do app... apague a aba antiga do cofre de
+             visão geral pra irmos reduzindo e limpando o html").
 
-            <div class="mt-4 raiz-form-borda p-4" style="border: 2px solid var(--brass-light)">
-                <div class="flex items-start gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:var(--warning-bg)"><i data-lucide="sparkles" style="width:18px;height:18px;color:var(--warning)"></i></div>
-                    <div class="flex-1">
-                        <p class="text-sm font-bold">Comece pelo documento</p>
-                        <p class="text-xs mt-1" style="color:var(--sage)">Envie uma apólice, IPTU, contrato ou comprovante. O Cofre pergunta o contexto quando não tiver certeza — nunca associa sozinho com baixa confiança.</p>
-                        <button data-action="abrir-upload-home" class="mt-3 px-4 py-2 rounded-xl text-white text-sm font-semibold" style="background:var(--pine)">Adicionar documento</button>
-                    </div>
-                </div>
-            </div>
+             O que cada uma mostrava e pra onde foi:
+               - KPIs (ativos controlados/alertas próximos/documentos
+                 guardados) — não eram alertas, eram só contadores;
+                 removidos sem substituto (Patrimônio sob gestão, no
+                 tab-geral real do App, já cobre o mesmo espírito).
+               - "Comece pelo documento" (upload rápido sem escolher
+                 ativo antes) — já virou o botão "Carregar documento" na
+                 barra da lista de Ativos (v1.94.1), mesma ação
+                 (abrir-upload-home), só mudou de endereço.
+               - "Em triagem" — MOVIDO pra Visão Geral de verdade
+                 (tab-geral, index.html) — ver carregarPontosAtencaoFundidos()
+                 v1.94.2, mesma classificação (documento com 0 vínculos).
+               - "Atenção necessária" (controles vencidos/vencendo) — JÁ
+                 tinha sido fundido na Visão Geral desde a v1.91.0
+                 (carregarPontosAtencaoFundidos) — esta seção da Home era
+                 puramente redundante desde então, só ninguém tinha
+                 apagado ainda.
+               - Tela "Alertas" (tela cheia) — já estava ÓRFÃ antes desta
+                 versão: nenhum botão no HTML chamava mais 'ir-alertas'
+                 (o "Ver todos →" que levava até ela tinha sido removido
+                 numa revisão de 25/08/2026, documentada no próprio
+                 código, sem que a seção em si tivesse sido apagada
+                 junto). As ações "Tratar"/"Acionar" que ela oferecia não
+                 se perdem — abrem o mesmo lugar que já é alcançável
+                 direto pela ficha do ativo (aba Controles → item →
+                 tratar), só sem o atalho de lista consolidada.
 
-            <div id="home-triagem-wrapper" class="hidden mt-6">
-                <div class="flex items-center justify-between mb-2">
-                    <h2 class="text-sm font-bold flex items-center gap-2"><i data-lucide="inbox" style="width:16px;height:16px;color:var(--warning)"></i> Em triagem</h2>
-                    <button data-action="abrir-busca-global" class="text-xs font-semibold" style="color:var(--pine)">Ver todos →</button>
-                </div>
-                <p class="text-xs mb-2" style="color:var(--sage)">Documentos ainda sem contexto resolvido — não são "gerais da empresa", precisam de uma decisão.</p>
-                <div id="home-lista-triagem" class="space-y-2"></div>
-            </div>
-
-            <!-- Revisão de design (25/08/2026, pedido explícito) — igual
-                 1:1 ao card "Atenção necessária" da Visão Geral do Imóveis
-                 (index.html, linha ~5301): mesmo wrapper (bg-white p-4
-                 rounded-xl shadow-sm border border-gray-200), mesmo título
-                 (text-emerald-900) + subtítulo (text-[11px] text-slate-500).
-                 "Ver todos" removido — sem limite de 5 itens na lista (ver
-                 montarHome em cofre-documentos.js), não há nada escondido
-                 que precise de um atalho pra ver o resto. -->
-            <div class="bg-white p-4 rounded-xl shadow-sm mt-6 border border-gray-200">
-                <h3 class="font-bold text-sm text-emerald-900">Atenção necessária</h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">O que pede alguma ação agora.</p>
-                <div id="home-lista-alertas" class="mt-3 space-y-2"></div>
-            </div>
-        </section>
-
-        <!-- ===================== ALERTAS (tela cheia, só leitura — v6: 100%
-             derivado de cofre_ocorrencias_controle, sem cadastro manual;
-             acessível só via "Ver todos →" da Home, não está mais na
-             bottom-nav) ===================== -->
-        <section data-screen="alertas" class="hidden">
-            <button data-action="ir-home" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Visão Geral</button>
-            <h2 class="text-sm font-bold mb-1">Alertas</h2>
-            <p class="text-xs mb-3" style="color:var(--sage)">Vencimentos dos itens de controle cadastrados. Toque num alerta para tratar, reagendar ou ver o item.</p>
-            <div id="alertas-lista" class="space-y-2 hidden"></div>
-            <div id="alertas-estado-vazio" class="hidden text-center py-14">
-                <i data-lucide="bell-off" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
-                <p class="text-sm font-semibold">Nenhum alerta em aberto</p>
-            </div>
-        </section>
+             cofre-documentos.js (montarHome) e cofre-app.js
+             (renderAlertas) NÃO foram apagados — são arquivos
+             compartilhados com o cofre.html standalone, que continua
+             com as duas telas normalmente. Só ganharam guarda defensiva
+             (elemento nulo = não faz nada) pra não quebrar quando
+             chamados aqui dentro, onde os elementos não existem mais.
+             Ver changelog completo desta versão no index.html. -->
 
         <!-- ===================== ATIVOS (lista) ===================== -->
         <section data-screen="ativos" class="hidden">

@@ -6,7 +6,50 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.94.0
+   VERSÃO: Beta v1.94.2
+   LINHAS: 28469
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.94.2) — 2 pedidos explícitos: (1) "os documentos
+   em triagem e qq outro alerta que venha do sistema deve estar na aba
+   de visão geral integrada do app"; (2) "apague a aba antiga do cofre
+   de visão geral pra irmos reduzindo e limpando o html".
+
+   1) "Em triagem" fundido na Visão Geral — carregarPontosAtencaoFundidos()
+      (tab-geral) ganhou um 3º sinal: documentos sem nenhum vínculo
+      (mesma classificação que a Home antiga do Cofre usava —
+      classificarStatusVinculo, 0 linhas em cofre_documento_vinculos =
+      triagem), como query própria (não dá pra depender de
+      estado.documentos do Cofre aqui — pode não ter carregado ainda se
+      a pessoa nunca abriu a aba Ativos). Zero lógica nova de negócio,
+      só uma 2ª fonte de leitura pro mesmo critério.
+
+   2) Home + Alertas antigas do Cofre APAGADAS de dentro do App —
+      ver js/ativos/ativos-markup.js v1.5.0 (~65 linhas de HTML a
+      menos). O que cada uma mostrava:
+        - KPIs (ativos controlados/alertas próximos/docs guardados) —
+          removidos sem substituto, não eram alertas.
+        - "Comece pelo documento" — já virava o botão "Carregar
+          documento" da barra de Ativos desde a v1.94.1, redundante.
+        - "Em triagem" — migrado pra cá (item 1 acima).
+        - "Atenção necessária" (controles vencidos/vencendo) — já
+          tinha sido fundido aqui desde a v1.91.0; a seção da Home era
+          puramente redundante desde então.
+        - Tela "Alertas" — já estava ÓRFÃ antes desta versão (nenhum
+          botão chamava mais 'ir-alertas' desde uma revisão de
+          25/08/2026, código nunca tinha sido limpo). As ações "Tratar/
+          Acionar" que oferecia continuam alcançáveis do mesmo jeito de
+          sempre: ficha do ativo → aba Controles → item → tratar.
+      cofre-documentos.js (montarHome) e cofre-app.js (renderAlertas)
+      NÃO foram apagados — são compartilhados com o cofre.html
+      standalone, que continua com as 2 telas normais. Só ganharam
+      guarda defensiva (elemento nulo = não faz nada) pra não quebrar
+      quando chamadas aqui dentro.
+
+   Validado: node --check nos 4 arquivos tocados (index.html +
+   ativos-markup.js + cofre-app.js + cofre-documentos.js), balanceamento
+   de tags idêntico ao arquivo antes desta edição.
+
+   VERSÃO ANTERIOR: Beta v1.94.0
    LINHAS: 28396
    DATA: 31/08/2026
    NOVIDADES (Beta v1.94.0) — "Vamos seguir com o que falta, unificação"
@@ -9427,7 +9470,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.94.0";
+        const APP_VERSAO = "Beta v1.94.2";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -18443,6 +18486,36 @@
                 }
             } catch (err) {
                 console.warn('[visao-geral] Falha ao carregar diagnóstico tributário:', err.message);
+            }
+
+            // v1.94.2 (31/08/2026, pedido explícito: "os documentos em
+            // triagem e qq outro alerta que venha do sistema deve estar
+            // na aba de visão geral integrada do app") — substitui a
+            // Home antiga do Cofre (data-screen="home", APAGADA nesta
+            // versão — ver ativos-markup.js) como lugar de mostrar
+            // "documentos em triagem". Mesma classificação da Home
+            // antiga (classificarStatusVinculo em cofre-validacoes.js:
+            // documento com ZERO linhas em cofre_documento_vinculos =
+            // triagem) — replicada aqui como query direta (dbAuth do
+            // próprio index.html) porque tab-geral pode renderizar
+            // antes da aba Ativos/Cofre ter carregado (estado.documentos
+            // só existe depois disso) — não dá pra depender do estado
+            // do Cofre aqui.
+            try {
+                const { data: docsCliente, error } = await dbAuth.from('cofre_documentos')
+                    .select('id, cofre_documento_vinculos(entidade_tipo)')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE);
+                if (error) throw error;
+                const emTriagem = (docsCliente || []).filter(d => !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0);
+                if (emTriagem.length > 0) {
+                    itensFundidos.push(`<button onclick="switchTab('tab-ativos')" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
+                        <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-none"><svg data-lucide="inbox" style="width:16px;height:16px"></svg></div>
+                        <div class="flex-1 min-w-0"><div class="text-xs font-bold">${emTriagem.length} documento${emTriagem.length > 1 ? 's' : ''} em triagem</div><div class="text-[11px] text-slate-500">Sem contexto resolvido ainda — abrir Ativos</div></div>
+                        <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
+                    </button>`);
+                }
+            } catch (err) {
+                console.warn('[visao-geral] Falha ao carregar documentos em triagem:', err.message);
             }
 
             wrapper.innerHTML = itensFundidos.join('');
