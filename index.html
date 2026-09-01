@@ -6,7 +6,22 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.84.0
+   VERSÃO: Beta v1.84.1
+   LINHAS: 27291
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.84.1) — CORREÇÃO DE PROCESSO: a troca do insert
+   direto por fn_criar_ativo no ramo de criação de sincronizarImovelSupabase()
+   (linha ~9690) tinha sido feita na cópia de trabalho mas nunca chegou a
+   ser versionada nem recopiada pro arquivo entregue — a v1.84.0 que saiu
+   antes NÃO tinha essa troca, apesar do changelog dela mencionar. Corrigido
+   agora: dbAuth.rpc('fn_criar_ativo', {p_tipo_ativo:'imovel', p_dados:linha})
+   no lugar de dbAuth.from('imoveis').insert(linha) — só o ramo de criação,
+   update e divisão societária seguem intocados. Lição: depois de editar a
+   cópia de trabalho, sempre recopiar pro output antes de considerar uma
+   entrega "atual" — checagem de md5sum entre as duas cópias vira parte do
+   checklist de entrega a partir de agora.
+
+   VERSÃO ANTERIOR: Beta v1.84.0
    LINHAS: 27265
    DATA: 31/08/2026
    NOVIDADES (Beta v1.84.0) — Trem v1.84, fatia 1 (módulo único, parte
@@ -8673,7 +8688,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.84.0";
+        const APP_VERSAO = "Beta v1.84.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -9685,9 +9700,20 @@
                 if (error) throw error;
                 imovelId = imo.id;
             } else {
-                const { data: inserido, error } = await dbAuth.from('imoveis').insert(linha).select('id').single();
+                // v1.84.0 — trocado o insert direto por fn_criar_ativo (motor único
+                // de criação, ver DIRETRIZES_TECNICAS/DIAGNOSTICO_PLANO). Só este
+                // ramo mudou — update acima e divisão societária abaixo continuam
+                // exatamente como estavam. "linha" já tem todos os campos com o
+                // nome de coluna certo (não o nome do objeto `imo` em memória),
+                // então passa direto como p_dados.
+                const { data: criado, error } = await dbAuth.rpc('fn_criar_ativo', {
+                    p_cliente_id: CLIENTE_ID_SUPABASE,
+                    p_tipo_ativo: 'imovel',
+                    p_nome_exibicao: null,
+                    p_dados: linha
+                }).single();
                 if (error) throw error;
-                imovelId = inserido.id;
+                imovelId = criado.imovel_id;
                 imo.id = imovelId; // o app em memória passa a usar o id de verdade do Postgres
             }
 
