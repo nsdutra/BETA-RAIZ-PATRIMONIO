@@ -1,6 +1,14 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.2.0 · 31/08/2026
+// Versão: 1.4.0 · 31/08/2026
+//
+// v1.4.0 (31/08/2026, pedido explícito, "seguir com a unificação") —
+// botão novo "Cadastrar novo imóvel" na barra da tela data-screen=
+// "ativos" (data-action="cadastrar-imovel-app", ponte defensiva pra
+// abrirCadastroImovelModal() do App — ver cofre-app.js v1.11.0). Existe
+// porque o segmento Imóveis/Ativos saiu (index.html v1.94.0) — sem um
+// caminho sempre disponível, cadastrar imóvel novo dependeria de existir
+// algum alerta pendente na Visão Geral pra levar até tab-imoveis.
 //
 // Guarda o HTML do Cofre (extraído de cofre.html, 31/08/2026) como string,
 // pra não fazer o index.html crescer mais — ele só injeta este conteúdo
@@ -9,7 +17,7 @@
 //
 // O QUE FOI EXTRAÍDO: os 15 blocos de nível 0 do <body> do cofre.html —
 // #app-cofre (o shell principal) + 13 modais (#modal-busca-global,
-// #modal-busca-ativos, #modal-documentos-ativo, #modal-lightbox-fotos,
+// #modal-busca-ativos, #modal-lightbox-fotos,
 // #modal-upload, #modal-ficha-doc, #modal-sugestoes-ia,
 // #modal-criacao-assistida, #modal-menu-conta, #modal-sobre-cofre,
 // #modal-categorias, #modal-subtipos-controle, #modal-modelos-controle)
@@ -17,6 +25,8 @@
 // via getElementById, 148 vêm deste HTML estático e 9 são criados em tempo
 // de execução pelo próprio JS (modal-generico e campos de formulário
 // injetados via innerHTML) — nenhum ficou de fora.
+// v1.3.0 — #modal-documentos-ativo SAIU da lista (removido, ver changelog
+// abaixo) — 14 blocos de nível 0 agora, não mais 15.
 //
 // #tela-bootstrap e #tela-erro-acesso do cofre.html NÃO foram trazidos —
 // o index.html já tem tela de carregamento e tratamento de sessão
@@ -24,6 +34,28 @@
 // escondidos) porque nav.bootstrap() (cofre-navegacao.js) referencia os
 // dois sem checar null — sem o placeholder, o boot quebra com
 // TypeError antes de mostrar qualquer coisa.
+//
+// v1.3.0 (31/08/2026, pedido explícito: "unificar a lista de ativos e
+// imóveis. Ao clicar no ativo/imóvel, deve evoluir a exemplo do
+// protótipo") — ficha do ativo (data-screen="ficha-ativo") reestruturada
+// de boxes empilhados pra 5 abas (Dados/Documentos/Controles/Contratos/
+// Fotos), igual ao mockup (PROTOTIPO_MODULO_UNICO_RAIZ_v1_0.html,
+// page-ficha). Detalhe técnico completo no changelog do index.html desta
+// mesma entrega — resumo aqui:
+//   - fa-cabecalho mudou de lugar (era dentro do box "Dados do ativo",
+//     agora é o cabeçalho da ficha inteira, acima das abas) — mesmo id.
+//   - #modal-documentos-ativo REMOVIDO — conteúdo (2 botões de upload +
+//     #fa-tab-documentos) movido pra dentro da aba Documentos, inline.
+//   - Aba Contratos é NOVA — #fa-contratos-lista, populada por
+//     montarContratosAtivo() (cofre-ativos.js v1.6.0), só quando o ativo
+//     referencia um imóvel.
+//   - #fa-fotos-vazio novo — estado vazio da aba Fotos (antes, sem foto,
+//     o box simplesmente não existia; numa aba própria isso pareceria
+//     tela quebrada).
+// Mudança de padrão DELIBERADA, só nesta tela — o resto do app (ficha do
+// imóvel, ficha do contrato) continua com boxes empilhados, decisão de
+// Design System de 25/08/2026 ("menu suspenso com abas não é o padrão
+// do projeto"). Registrado aqui pra não parecer inconsistência.
 //
 // v1.2.0 (31/08/2026, "Fase A" da fusão Ativos/Imóveis, pedido explícito)
 // — container #ativos-chips-tipo novo, vazio de propósito (populado via
@@ -173,6 +205,25 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
                 <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
                     <i data-lucide="search" style="width:20px;height:20px"></i>
                 </button>
+                <!-- v1.94.0 (pedido explícito, "seguir com a unificação") —
+                     desde que o segmento Imóveis/Ativos saiu (tab-imoveis
+                     virou tela secundária, sem porta de entrada própria
+                     na navegação principal), cadastrar um imóvel NOVO
+                     precisava de um caminho sempre disponível — sem isso,
+                     alguém só chegaria no formulário de cadastro se já
+                     existisse um alerta pendente na Visão Geral (vago,
+                     contrato assinando etc.), o que não é garantido.
+                     Ponte pra função NATIVA do App (abrirCadastroImovelModal,
+                     mesmo formulário completo de sempre — endereço, IPTU,
+                     tipo — nada reescrito aqui). Funciona de qualquer aba
+                     porque o modal é posição fixa (position:fixed), não
+                     depende de tab-imoveis estar "ativa" por baixo — só
+                     existe quando embutido no App (window.
+                     abrirCadastroImovelModal), por isso o data-action
+                     correspondente em cofre-app.js checa antes de chamar. -->
+                <button data-action="cadastrar-imovel-app" title="Cadastrar novo imóvel" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
+                    <i data-lucide="house-plus" style="width:20px;height:20px"></i>
+                </button>
                 <button data-action="abrir-form-ativo" id="btn-toggle-ativo" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Novo ativo">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
@@ -241,83 +292,89 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
 
     <button data-action="voltar-ficha-ativo" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Ativos</button>
 
-    <div class="mt-4 space-y-3">
+    <!-- v1.93.0 (pedido explícito, 31/08/2026, "evoluir a exemplo do
+         protótipo") — ficha reestruturada de boxes empilhados pra abas
+         (Dados/Documentos/Controles/Contratos/Fotos), igual ao mockup
+         (PROTOTIPO_MODULO_UNICO_RAIZ_v1_0.html, page-ficha). Isto é uma
+         mudança deliberada de padrão nesta tela específica — o resto do
+         app (ficha do imóvel, ficha do contrato) continua com boxes
+         empilhados (padrão do Design System, "menu suspenso com abas
+         não é o padrão do projeto" — decisão de 25/08/2026). Registrando
+         a diferença aqui pra não parecer inconsistência não percebida:
+         é intencional, pedido explícito, só nesta tela.
+         fa-cabecalho MUDOU DE LUGAR (antes vivia dentro do box "Dados do
+         ativo", agora é o cabeçalho da ficha inteira, acima das abas) —
+         mesmo id, mesma função abrirFichaAtivo() que já preenchia,
+         nenhuma mudança de JS precisou pra isso. -->
+    <div id="fa-cabecalho" class="mt-3"></div>
 
-        <!-- Box: Dados do ativo — revisão DS 26/08/2026 (pedido explícito):
-             cabeçalho (ícone do tipo + nome + tipo) agora vive DENTRO do
-             box, mesmo formato já usado no "Dados do item" do item de
-             controle (fa-cabecalho, montado via JS) — antes ficava solto
-             acima do box, sem ícone, e o box em si abria só com "Sem
-             dados estruturados cadastrados ainda." -->
+    <div class="flex gap-1 overflow-x-auto mt-4 mb-3" style="border-bottom:1px solid var(--line)">
+        <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-none text-xs font-bold px-3 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="fotos" class="fa-subtab flex-none text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Fotos</button>
+    </div>
+
+    <!-- ===== Painel: Dados ===== -->
+    <div id="fa-painel-dados" class="fa-painel space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Dados do ativo</h3>
-            <div id="fa-cabecalho" class="mt-2"></div>
-            <div id="fa-resumo-origem-imovel" class="hidden raiz-bloco-interno flex items-center justify-between text-sm mt-2">
+            <div id="fa-resumo-origem-imovel" class="hidden raiz-bloco-interno flex items-center justify-between text-sm">
                 <span>Este ativo referencia um imóvel já cadastrado.</span>
-                <button data-action="abrir-gestao-imovel" class="text-xs font-bold" style="color:var(--pine)">Abrir gestão do imóvel →</button>
+                <button data-action="abrir-gestao-imovel" class="text-xs font-bold" style="color:var(--sprout)">Abrir gestão do imóvel →</button>
             </div>
-            <div id="fa-resumo-dados" class="text-sm space-y-1 mt-3 pt-3 border-t border-slate-100"></div>
+            <div id="fa-resumo-dados" class="text-sm space-y-1"></div>
 
             <div id="fa-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2">
                 <div id="fa-editar-campos" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                 <div class="flex justify-end gap-2 mt-3">
                     <button data-action="alternar-editar-ativo" class="px-3 py-2 rounded-xl text-xs border-2 border-slate-300">Cancelar</button>
-                    <button data-action="salvar-edicao-ativo" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--pine)">Salvar</button>
+                    <button data-action="salvar-edicao-ativo" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--sprout)">Salvar</button>
                 </div>
             </div>
-
-            <!-- fa-historico-wrapper removido (revisão DS, 25/08/2026) —
-                 pedido explícito: "Histórico" não deve ter opção no Mais
-                 ações do box do Ativo. A caixa "Dados do ativo" já mostra
-                 quem criou/quando inline (ver montarDadosAtivo). -->
 
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">
                     Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-seta" style="width:13px;height:13px"></i>
                 </button>
             </div>
+            <!-- v1.93.0 — pill "Documentos" SAIU daqui: virou aba própria,
+                 não precisa mais de atalho dentro de Mais ações. Fotos/
+                 Marcar como vendido/Excluir continuam (não são abas). -->
             <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
                 <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
-                <button data-action="abrir-documentos-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Documentos</button>
                 <label for="fa-foto-input" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300" style="cursor:pointer">Fotos</label>
                 <button data-action="marcar-ativo-vendido" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Marcar como vendido</button>
                 <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
             </div>
         </div>
+    </div>
 
-        <!-- Input de arquivo — pedido explícito, 25/08/2026: vive FORA do
-             box condicional "Foto" (que só aparece com foto vinculada),
-             pra sempre estar acionável mesmo sem nenhuma foto ainda. Os 2
-             gatilhos (pill "Fotos" acima, no Mais ações de "Dados do
-             ativo" — bootstrap da 1ª foto — e "Adicionar fotos" dentro
-             do próprio box Foto, mais abaixo) apontam pro MESMO input via
-             \`for=\`, nunca 2 inputs distintos. accept="image/*" já
-             oferece "Galeria"/"Biblioteca de fotos" nativamente no
-             seletor do celular, ao lado de Câmera. -->
-        <input type="file" id="fa-foto-input" accept="image/*" multiple class="hidden">
-
-        <!-- Box: Foto — revisão DS 25/08/2026 (pedido explícito): visível
-             direto na ficha (não mais escondido atrás de modal), só
-             aparece quando há alguma foto vinculada (mesmo princípio §16
-             de componente vazio não aparecer — aqui invertido, o box
-             INTEIRO só existe com dado). Miniatura de verdade + clicar
-             abre lightbox com navegação + remover foto + "Adicionar
-             fotos" no Mais ações — mesma referência do box de fotos dos
-             Imóveis (index.html, abrirLightboxGeral). -->
-        <div id="fa-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
-            <div id="fa-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-fotos-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fa-fotos-seta" style="width:13px;height:13px"></i></button>
+    <!-- ===== Painel: Documentos =====
+         v1.93.0 — antes era um MODAL (modal-documentos-ativo, aberto via
+         pill "Documentos" em Mais ações). Movido pra cá, inline, igual
+         ao protótipo — mesmos 2 botões de upload (Com IA/Upload simples,
+         mesmos data-action de sempre) + mesma lista (#fa-tab-documentos,
+         mesmo id, mesma montarDocumentosAtivo() que já preenchia —
+         nenhuma mudança de JS precisou só por causa da mudança de
+         lugar). O modal em si foi removido do HTML (ver changelog). -->
+    <div id="fa-painel-documentos" class="fa-painel hidden space-y-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900 mb-2">Documentos</h3>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sprout); color:var(--sprout)">
+                    <i data-lucide="sparkles" style="width:16px;height:16px"></i> Com IA
+                </button>
+                <button data-action="abrir-upload-no-ativo-simples" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sage); color:var(--sage)">
+                    <i data-lucide="upload" style="width:16px;height:16px"></i> Upload simples
+                </button>
             </div>
-            <div id="fa-fotos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <label for="fa-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer">
-                    <i data-lucide="image-plus" style="width:11px;height:11px"></i> Adicionar fotos
-                </label>
-            </div>
+            <div id="fa-tab-documentos" class="space-y-2"></div>
         </div>
+    </div>
 
-        <!-- Box: Controles (itens/ocorrências — módulo de Alarmes) -->
+    <!-- ===== Painel: Controles ===== -->
+    <div id="fa-painel-controles" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
             <div id="fa-tab-controles" class="mt-1.5"></div>
@@ -330,9 +387,56 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
                 <button data-action="abrir-form-controle" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Criar item de controle</button>
             </div>
         </div>
-
-        <p class="raiz-indicador-inline" id="fa-status"></p>
     </div>
+
+    <!-- ===== Painel: Contratos (NOVO, v1.93.0, pedido explícito) =====
+         Só existe conteúdo de verdade quando o ativo referencia um
+         imóvel (entidade_origem_tipo='imovel') — outros tipos de ativo
+         não têm contrato de locação neste sistema. "Relação, não fusão"
+         (mesmo texto do protótipo): o contrato tem ficha própria dele
+         (reajuste, minuta, rescisão, tudo isso continua exclusivo da
+         aba Contratos do App) — aqui é só o vínculo, leitura direta da
+         tabela contratos via cofre-api.js (mesma conexão redundante já
+         aceita, ver ativos-boot.js), sem duplicar nenhuma lógica de
+         negócio de contrato. -->
+    <div id="fa-painel-contratos" class="fa-painel hidden space-y-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Contratos</h3>
+            <p class="text-[11px] mt-0.5" style="color:var(--sage)">O contrato tem a ficha própria dele (reajuste, minuta, rescisão) — aqui só o vínculo com este ativo.</p>
+            <div id="fa-contratos-lista" class="mt-3 space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- ===== Painel: Fotos ===== -->
+    <div id="fa-painel-fotos" class="fa-painel hidden space-y-3">
+        <div id="fa-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
+            <div id="fa-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-fotos-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fa-fotos-seta" style="width:13px;height:13px"></i></button>
+            </div>
+            <div id="fa-fotos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <label for="fa-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer">
+                    <i data-lucide="image-plus" style="width:11px;height:11px"></i> Adicionar fotos
+                </label>
+            </div>
+        </div>
+        <!-- v1.93.0 — estado vazio novo: antes, sem foto, a aba inteira
+             ficaria em branco (fa-box-fotos escondido por
+             montarFotosAtivo() quando não há foto) — dentro de uma aba
+             própria isso ficaria estranho (parece tela quebrada, não
+             "sem dado"). Alternado por montarFotosAtivo() junto com o
+             box, sempre o oposto um do outro. -->
+        <div id="fa-fotos-vazio" class="hidden text-center py-10">
+            <i data-lucide="image" style="width:32px;height:32px;color:var(--sage)" class="mx-auto mb-2"></i>
+            <p class="text-xs" style="color:var(--sage)">Nenhuma foto cadastrada ainda.</p>
+            <label for="fa-foto-input" class="inline-block mt-3 text-xs font-bold px-3 py-2 rounded-lg" style="background:var(--sprout);color:#fff;cursor:pointer">+ Adicionar fotos</label>
+        </div>
+    </div>
+
+    <input type="file" id="fa-foto-input" accept="image/*" multiple class="hidden">
+
+    <p class="raiz-indicador-inline mt-3" id="fa-status"></p>
 </section>
 
 <!-- ===================== MODAL — CRIAR ITEM DE CONTROLE (bottom-sheet) ===================== -->
@@ -684,23 +788,12 @@ export const ATIVOS_MARKUP = `<div id="tela-bootstrap" class="hidden"></div>
     </div>
 </div>
 
-<div id="modal-documentos-ativo" class="modal-overlay hidden">
-    <div class="modal-box p-5">
-        <div class="flex items-start justify-between mb-3">
-            <h3 class="text-base font-bold">Documentos</h3>
-            <button type="button" data-action="fechar-documentos-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-        </div>
-        <div class="grid grid-cols-2 gap-2 mb-3">
-            <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--pine-light); color:var(--pine)">
-                <i data-lucide="sparkles" style="width:16px;height:16px"></i> Com IA
-            </button>
-            <button data-action="abrir-upload-no-ativo-simples" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sage); color:var(--sage)">
-                <i data-lucide="upload" style="width:16px;height:16px"></i> Upload simples
-            </button>
-        </div>
-        <div id="fa-tab-documentos" class="space-y-2"></div>
-    </div>
-</div>
+<!-- v1.93.0 — modal-documentos-ativo REMOVIDO: conteúdo (botões de
+     upload + #fa-tab-documentos) movido pra dentro da aba "Documentos"
+     da ficha do ativo (data-screen="ficha-ativo" > #fa-painel-documentos),
+     inline, batendo com o protótipo. abrir-documentos-ativo/fechar-
+     documentos-ativo saíram do dispatcher (cofre-app.js) junto — nada
+     mais referencia este modal. -->
 
 <div id="modal-lightbox-fotos" class="hidden fixed inset-0 z-[300] bg-black flex items-center justify-center">
     <button data-action="fechar-lightbox-fotos" class="absolute top-4 right-4 text-white text-3xl leading-none z-10">&times;</button>

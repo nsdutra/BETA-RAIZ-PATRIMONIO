@@ -1,6 +1,28 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.8.0 · 31/08/2026
+// Versão: 1.11.0 · 31/08/2026
+//
+// v1.11.0 — "seguir com a unificação" (pedido explícito, 31/08/2026):
+// novo case 'cadastrar-imovel-app' — ponte defensiva pra
+// abrirCadastroImovelModal() (função nativa do index.html, só existe
+// quando embutido no App). Existe porque o segmento Imóveis/Ativos saiu
+// da navegação (ver index.html v1.94.0) — cadastrar um imóvel novo
+// precisava continuar sempre alcançável, não só quando havia alerta
+// pendente na Visão Geral.
+//
+// v1.10.0 — "evoluir a exemplo do protótipo" (pedido explícito,
+// 31/08/2026): novo case 'fa-trocar-aba' (troca de aba na ficha do
+// ativo, delega pra ativos.faTrocarAba()). 'abrir-documentos-ativo'/
+// 'fechar-documentos-ativo' SAÍRAM do dispatcher — o modal que abriam
+// foi removido (conteúdo virou aba inline, ver ativos-markup.js v1.3.0/
+// cofre-ativos.js v1.6.0).
+//
+// v1.9.0 — novo listener 'cofre:abrir-configuracao' (pedido explícito,
+// 31/08/2026): disparado por nav.bootstrap() (cofre-navegacao.js v1.6.0)
+// quando a URL trouxe ?abrir=categorias|subtipos|modelos, vindo do menu
+// Configurações do App (index.html, abrirConfiguracaoCofre()) — essas 3
+// telas só tinham porta de entrada dentro do próprio menu ⚙️ do Cofre
+// até agora.
 //
 // v1.8.0 — "Fase A" da fusão Ativos/Imóveis (pedido explícito,
 // 31/08/2026): novo case 'filtrar-ativos-chip' no dispatcher, delega
@@ -260,6 +282,18 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
         case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;
         case 'alternar-mais-acoes-ativo': ativos.alternarMaisAcoesAtivo(); break;
+        // v1.10.0 (31/08/2026, pedido explícito, "seguir com a
+        // unificação") — ponte pra abrirCadastroImovelModal(), função
+        // NATIVA do index.html (não é código do Cofre) — só existe
+        // quando este arquivo roda embutido no App (ver js/ativos/
+        // ativos-boot.js), nunca no cofre.html standalone. Checagem
+        // defensiva (typeof) de propósito: se um dia este botão for
+        // reaproveitado em outro contexto sem essa função, não quebra
+        // com "is not a function", só não faz nada.
+        case 'cadastrar-imovel-app':
+            if (typeof window.abrirCadastroImovelModal === 'function') window.abrirCadastroImovelModal();
+            else mostrarToast('Cadastro de imóvel só disponível dentro do app principal.', 'erro');
+            break;
         // 'alternar-historico-ativo' removido (revisão DS, 25/08/2026) —
         // Histórico não é mais opção do Mais ações do box do Ativo.
         case 'excluir-ativo-atual': await ativos.excluirAtivoAtual(); break;
@@ -267,8 +301,13 @@ document.addEventListener('click', async (ev) => {
         case 'alternar-editar-ativo': ativos.alternarEditarAtivo(); break;
         case 'salvar-edicao-ativo': await ativos.salvarEdicaoAtivo(); break;
         case 'abrir-gestao-imovel': ativos.abrirGestaoImovel(); break;
-        case 'abrir-documentos-ativo': abrirModal('modal-documentos-ativo'); break;
-        case 'fechar-documentos-ativo': fecharModal('modal-documentos-ativo'); break;
+        // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") —
+        // 'abrir-documentos-ativo'/'fechar-documentos-ativo' SAÍRAM: o
+        // modal que abriam (modal-documentos-ativo) foi removido —
+        // conteúdo virou aba inline (#fa-painel-documentos). No lugar,
+        // 'fa-trocar-aba' cobre a troca entre as 5 abas da ficha
+        // (Dados/Documentos/Controles/Contratos/Fotos).
+        case 'fa-trocar-aba': ativos.faTrocarAba(alvo.dataset.faAba); break;
         case 'abrir-lightbox-foto-ativo': ativos.abrirLightboxFotoAtivo(parseInt(alvo.dataset.indice, 10)); break;
         case 'fechar-lightbox-fotos': ativos.fecharLightboxFotoAtivo(); break;
         case 'navegar-lightbox-fotos': ativos.navegarLightboxFotoAtivo(parseInt(alvo.dataset.dir, 10)); break;
@@ -434,6 +473,20 @@ async function confirmarCriacaoAssistida() {
 // ============================================================================
 window.addEventListener('cofre:dados-carregados', () => {
     ativos.popularSelectTipoAtivo();
+});
+
+// v1.8.0 (31/08/2026, pedido explícito) — disparado por nav.bootstrap()
+// (cofre-navegacao.js v1.6.0) quando a URL trouxe ?abrir=categorias|
+// subtipos|modelos — vindo do menu Configurações do App (index.html,
+// abrirConfiguracaoCofre()). Roda DEPOIS de montarHome()/mudarTela('home')
+// (ver bootstrap()), então a tela de fundo já existe antes do modal abrir
+// por cima. tela desconhecida = no-op silencioso (nunca quebra o boot
+// por causa de um parâmetro de URL malformado).
+window.addEventListener('cofre:abrir-configuracao', async (ev) => {
+    const tela = ev.detail?.tela;
+    if (tela === 'categorias') docs.abrirConfiguracoes();
+    else if (tela === 'subtipos') await controles.abrirSubtiposControle();
+    else if (tela === 'modelos') await controles.abrirModelosControle();
 });
 
 window.addEventListener('cofre:montar-home', () => docs.montarHome());

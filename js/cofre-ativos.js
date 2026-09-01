@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 31/08/2026
+// Versão: 1.6.0 · 31/08/2026
+//
+// v1.6.0 — "evoluir a exemplo do protótipo" (pedido explícito,
+// 31/08/2026): ficha do ativo reestruturada de boxes empilhados pra
+// abas (Dados/Documentos/Controles/Contratos/Fotos), igual ao mockup.
+// Nova faTrocarAba() (troca de aba, tudo já montado de uma vez em
+// abrirFichaAtivo() — nenhuma busca nova ao trocar); nova
+// montarContratosAtivo() (aba Contratos, NOVA — lê contratos via
+// api.buscarContratosDoImovel(), só quando o ativo referencia um
+// imóvel); montarFotosAtivo() ganhou estado vazio (#fa-fotos-vazio,
+// necessário porque a aba Fotos agora existe mesmo sem foto nenhuma).
+// Mudança deliberada de padrão SÓ NESTA TELA — o resto do app continua
+// com boxes empilhados (ver nota completa no changelog do index.html
+// e no comentário de ativos-markup.js v1.3.0).
 //
 // v1.5.0 — "Fase A" da fusão Ativos/Imóveis (pedido explícito,
 // 31/08/2026): chips de tipo (Todos/Imóveis/Veículos/Outros, com
@@ -290,16 +303,17 @@ export async function abrirFichaAtivo(id) {
     ativoAtualId = id;
     estado.ativoEmFoco = a;
 
-    // Cabeçalho (pedido explícito, 26/08/2026) — vive DENTRO do box
-    // "Dados do ativo" agora, mesmo formato do "Dados do item" do item
-    // de controle: ícone circular representando o TIPO do ativo
-    // (iconeAtivo()) + nome em negrito + tipo como subtítulo. Antes
-    // ficava solto acima do box, só texto, sem ícone.
+    // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") —
+    // fa-cabecalho deixou de viver DENTRO do box "Dados do ativo" e virou
+    // o cabeçalho da ficha inteira, acima das abas (mesma posição do
+    // .ficha-head do protótipo) — por isso o texto cresceu um pouco
+    // (text-xs -> text-sm no nome) pra não ficar pequeno demais como
+    // título de página. Mesmo id, mesmo innerHTML, só o tamanho mudou.
     document.getElementById('fa-cabecalho').innerHTML = `
         <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
             <div class="min-w-0 flex-1">
-                <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
+                <p class="text-sm font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
                 <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
             </div>
         </div>
@@ -310,9 +324,35 @@ export async function abrirFichaAtivo(id) {
     await montarDadosAtivo(a);
     montarDocumentosAtivo(a);
     await montarControlesAtivo(a);
+    await montarContratosAtivo(a);
     await montarFotosAtivo(a);
 
+    // v1.93.0 — toda vez que a ficha abre, começa na aba "Dados" (mesmo
+    // comportamento do protótipo: "Ficha abre sempre em Resumo" já era
+    // regra deste projeto desde antes das abas existirem — só reaplicado
+    // aqui em cima do mecanismo novo).
+    faTrocarAba('dados');
+
     mudarTela('ficha-ativo');
+}
+
+// v1.93.0 (pedido explícito, 31/08/2026, "evoluir a exemplo do
+// protótipo") — troca de aba dentro da ficha do ativo (Dados/
+// Documentos/Controles/Contratos/Fotos). Todo o CONTEÚDO de cada aba já
+// é montado de uma vez em abrirFichaAtivo() (nenhuma busca nova
+// acontece ao trocar de aba) — esta função só troca visibilidade +
+// destaque visual, mesmo espírito leve do trocarSub() do protótipo.
+export function faTrocarAba(nomeAba) {
+    document.querySelectorAll('.fa-subtab').forEach(btn => {
+        const ativo = btn.dataset.faAba === nomeAba;
+        btn.style.color = ativo ? 'var(--sprout)' : '';
+        btn.style.borderBottomColor = ativo ? 'var(--sprout)' : 'transparent';
+        btn.classList.toggle('text-slate-500', !ativo);
+    });
+    document.querySelectorAll('.fa-painel').forEach(painel => {
+        painel.classList.toggle('hidden', painel.id !== 'fa-painel-' + nomeAba);
+    });
+    refrescarIcones();
 }
 
 export function fecharFichaAtivo() {
@@ -329,6 +369,44 @@ export function alternarMaisAcoesAtivo() {
     refrescarIcones();
 }
 
+// v1.93.0 (NOVO, pedido explícito, "evoluir a exemplo do protótipo") —
+// aba Contratos: só existe conteúdo de verdade quando o ativo referencia
+// um imóvel do App (entidade_origem_tipo='imovel') — outros tipos de
+// ativo (veículo, obra de arte etc.) não têm contrato de locação neste
+// sistema. "Relação, não fusão" (mesmo princípio do protótipo): lê
+// direto a tabela contratos via cofre-api.js (mesma conexão redundante
+// já aceita, ver ativos-boot.js) — NENHUMA lógica de negócio de
+// contrato (reajuste, minuta, rescisão) foi duplicada aqui, é só leitura.
+async function montarContratosAtivo(a) {
+    const painel = document.getElementById('fa-contratos-lista');
+    if (!painel) return;
+
+    if (a.entidade_origem_tipo !== 'imovel') {
+        painel.innerHTML = `<p class="text-xs" style="color:var(--sage)">Contratos só existem pra ativos do tipo imóvel.</p>`;
+        return;
+    }
+
+    try {
+        const lista = await api.buscarContratosDoImovel(a.entidade_origem_id);
+        if (!lista.length) {
+            painel.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhum contrato vinculado a este imóvel ainda.</p>`;
+            return;
+        }
+        const rotuloStatus = { Ativo: 'Vigente', Assinando: 'Aguardando assinatura', Suspenso: 'Suspenso', Finalizado: 'Finalizado' };
+        painel.innerHTML = lista.map(c => `
+            <div class="raiz-bloco-interno">
+                <div class="flex justify-between items-start gap-2">
+                    <span class="text-sm font-bold">${escapeHtml(c.locatario || 'Locatário não informado')}</span>
+                    <span class="text-sm font-bold flex-none" style="color:var(--sprout)">R$ ${Number(c.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <p class="text-xs mt-0.5" style="color:var(--sage)">${rotuloStatus[c.status] || escapeHtml(c.status || '')}${c.fim ? ' · até ' + formatarDataBR(c.fim) : ''}</p>
+            </div>`).join('');
+    } catch (err) {
+        painel.innerHTML = `<p class="text-xs text-red-500">Não foi possível carregar os contratos agora.</p>`;
+        console.warn('[cofre-ativos] montarContratosAtivo falhou:', err.message);
+    }
+}
+
 // ---- Dados do ativo (box 1 — campos estruturados por tipo, incl. valor estimado)
 // v1.85 — virou async: quando o ativo referencia um imóvel do App
 // (entidade_origem_tipo='imovel'), busca IPTU/valor de mercado/uso/tipo
@@ -343,15 +421,41 @@ async function montarDadosAtivo(a) {
     origemWrapper.classList.toggle('hidden', !ehImovelVinculado);
 
     if (ehImovelVinculado) {
+        // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") —
+        // grade completa 2 colunas (Inscrição imobiliária/UF-Município/
+        // Uso/Tipo de locação/Valor de mercado/IPTU/Endereço completo),
+        // igual ao mockup — antes era só um resumo em texto corrido
+        // (uso/valor/IPTU numa linha só). "Relação, não fusão": isto é
+        // LEITURA — editar esses campos continua sendo só pelo formulário
+        // de verdade do imóvel ("Abrir gestão do imóvel →" logo abaixo),
+        // porque cofre_ativos.dados_especificos (o que "Editar dados"
+        // desta ficha edita) e imoveis (endereço/IPTU/valor de mercado)
+        // são tabelas diferentes — fundir os 2 formulários de escrita é
+        // decisão maior, fora desta entrega.
         const resumoImovel = await api.buscarResumoImovelOrigem(a.entidade_origem_id);
         const usoLabel = { residencial: 'Residencial', comercial: 'Comercial', industrial: 'Industrial', terreno: 'Terreno', rural: 'Rural' };
-        const linhas = [];
-        if (resumoImovel?.uso) linhas.push(`<span>${usoLabel[resumoImovel.uso] || escapeHtml(resumoImovel.uso)}</span>`);
-        if (resumoImovel?.valor_mercado) linhas.push(`<span>Valor de mercado: R$ ${Number(resumoImovel.valor_mercado).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`);
-        if (resumoImovel?.iptu) linhas.push(`<span>IPTU: R$ ${Number(resumoImovel.iptu).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/ano</span>`);
-        const resumoHtml = linhas.length
-            ? `<div class="flex flex-wrap gap-x-3 gap-y-1 text-xs mt-2" style="color:var(--sage)">${linhas.join('')}</div>`
-            : `<p class="text-xs mt-2" style="color:var(--sage)">Sem IPTU/valor de mercado/uso cadastrado no imóvel ainda.</p>`;
+        const locacaoLabel = { longa_duracao: 'Longa duração', temporada: 'Temporada', comercial: 'Comercial' };
+        const campo = (rotulo, valor) => valor
+            ? `<div><dt class="text-[10px]" style="color:var(--sage)">${escapeHtml(rotulo)}</dt><dd class="text-[13px] font-bold mt-0.5">${valor}</dd></div>`
+            : '';
+        const enderecoPartes = [resumoImovel?.endereco_rua, resumoImovel?.endereco_num].filter(Boolean).join(', ');
+        const enderecoCompleto = [enderecoPartes, resumoImovel?.endereco_bairro, [resumoImovel?.endereco_cidade, resumoImovel?.uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
+
+        const campos = [
+            campo('Inscrição imobiliária', resumoImovel?.cib ? escapeHtml(resumoImovel.cib) : ''),
+            campo('UF / Município', (resumoImovel?.uf && resumoImovel?.endereco_cidade) ? escapeHtml(resumoImovel.uf) + ' · ' + escapeHtml(resumoImovel.endereco_cidade) : ''),
+            campo('Uso', resumoImovel?.uso ? (usoLabel[resumoImovel.uso] || escapeHtml(resumoImovel.uso)) : ''),
+            campo('Tipo de locação', resumoImovel?.tipo_locacao ? (locacaoLabel[resumoImovel.tipo_locacao] || escapeHtml(resumoImovel.tipo_locacao)) : ''),
+            campo('Valor de mercado', resumoImovel?.valor_mercado ? 'R$ ' + Number(resumoImovel.valor_mercado).toLocaleString('pt-BR') : ''),
+            campo('IPTU (anual)', resumoImovel?.iptu ? 'R$ ' + Number(resumoImovel.iptu).toLocaleString('pt-BR') : ''),
+        ].filter(Boolean);
+        const campoEndereco = enderecoCompleto
+            ? `<div class="col-span-2"><dt class="text-[10px]" style="color:var(--sage)">Endereço completo</dt><dd class="text-[13px] font-bold mt-0.5">${escapeHtml(enderecoCompleto)}</dd></div>`
+            : '';
+
+        const resumoHtml = (campos.length || campoEndereco)
+            ? `<dl class="grid grid-cols-2 gap-x-3 gap-y-2 mt-2">${campos.join('')}${campoEndereco}</dl>`
+            : `<p class="text-xs mt-2" style="color:var(--sage)">Sem endereço/IPTU/valor de mercado/uso cadastrado no imóvel ainda.</p>`;
         const bloco = origemWrapper.querySelector('[data-resumo-imovel]') || (() => {
             const div = document.createElement('div');
             div.setAttribute('data-resumo-imovel', '');
@@ -518,6 +622,14 @@ async function montarFotosAtivo(a) {
     const fotos = await api.listarFotosAtivo(a.id);
     fotosAtivoCache = fotos;
     const box = document.getElementById('fa-box-fotos');
+    // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") — a
+    // aba Fotos agora existe mesmo sem foto nenhuma (antes, o box inteiro
+    // só existia como parte de uma lista de boxes empilhados — sem foto,
+    // ele simplesmente não aparecia, e não tinha problema porque outros
+    // boxes preenchiam a tela). Dentro de uma ABA própria, ficar em
+    // branco pareceria tela quebrada — #fa-fotos-vazio (estado vazio com
+    // call-to-action) alterna sempre no sentido OPOSTO de fa-box-fotos.
+    const vazio = document.getElementById('fa-fotos-vazio');
     // BUG FIX (25/08/2026, achado pelo usuário) — o onchange do input só
     // era religado DEPOIS do return antecipado (sem foto nenhuma), então
     // pra um ativo zerado o clique em "Fotos"/"Adicionar fotos" abria o
@@ -527,7 +639,13 @@ async function montarFotosAtivo(a) {
     const inputFoto = document.getElementById('fa-foto-input');
     inputFoto.value = '';
     inputFoto.onchange = () => enviarFotosAtivo(a.id);
-    if (!fotos.length) { box.classList.add('hidden'); fotosAtivoUrlsCache = []; return; }
+    if (!fotos.length) {
+        box.classList.add('hidden');
+        if (vazio) vazio.classList.remove('hidden');
+        fotosAtivoUrlsCache = [];
+        return;
+    }
+    if (vazio) vazio.classList.add('hidden');
     box.classList.remove('hidden');
     fotosAtivoUrlsCache = await Promise.all(fotos.map(f => api.gerarSignedUrl(f.bucket, f.storage_path, 600).catch(() => null)));
     renderizarGridFotos();

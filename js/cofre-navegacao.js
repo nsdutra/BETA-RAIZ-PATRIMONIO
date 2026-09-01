@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 30/08/2026
+// Versão: 1.6.0 · 31/08/2026
+//
+// v1.6.0 — bootstrap() ganhou suporte a ?abrir=categorias|subtipos|
+// modelos (pedido explícito, 31/08/2026): abre direto uma tela de
+// configuração do Cofre que só tinha porta de entrada dentro do próprio
+// menu ⚙️ do Cofre até agora — agora alcançável também pelo menu
+// Configurações do App (index.html, abrirConfiguracaoCofre()). Mesmo
+// espírito de segurança do contexto/ref já existente: parâmetro de URL
+// nunca é autorização, só sugestão de navegação.
 //
 // v1.5.0 — REVERTIDO pra 'raiz:comunicacoes:processar' direto (mesma
 // reversão de index.html v1.71.0). Termos de Uso/Política de Privacidade/
@@ -77,6 +85,16 @@ export async function bootstrap() {
     const refParam = params.get('ref');
     const nomeParam = params.get('nome'); // cosmético apenas — ver cabeçalho
     const clienteIdCompat = params.get('cliente_id'); // compatibilidade v1.0.0
+    // v1.4.0 (31/08/2026, pedido explícito) — 'categorias'|'subtipos'|
+    // 'modelos': abre direto uma tela de CONFIGURAÇÃO do Cofre, vinda do
+    // menu Configurações do App (index.html, abrirConfiguracaoCofre()) —
+    // essas 3 telas só tinham porta de entrada dentro do próprio menu ⚙️
+    // do Cofre até agora. Mesmo espírito de contexto/ref (parâmetro de
+    // URL nunca é autorização, só sugestão de navegação — a checagem de
+    // permissão de verdade continua sendo cofre.categorias/etc. dentro
+    // de cada função abrirConfiguracoes()/abrirSubtiposControle()/
+    // abrirModelosControle()).
+    const abrirParam = params.get('abrir');
 
     const user = await api.obterUsuarioAtual();
     if (!user) return falhaAcesso('Sua sessão expirou. Volte ao Raiz Patrimônio e faça login novamente.');
@@ -155,6 +173,10 @@ export async function bootstrap() {
 
     if (contextoParam && refParam) {
         await abrirContexto(contextoParam, refParam, nomeParam);
+    } else if (abrirParam) {
+        montarHome();
+        mudarTela('home');
+        window.dispatchEvent(new CustomEvent('cofre:abrir-configuracao', { detail: { tela: abrirParam } }));
     } else {
         montarHome();
         mudarTela('home');

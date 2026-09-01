@@ -6,7 +6,145 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.92.0
+   VERSÃO: Beta v1.94.0
+   LINHAS: 28396
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.94.0) — "Vamos seguir com o que falta, unificação"
+   (pedido explícito). Fecha o 2º item que tinha ficado de fora da
+   v1.93.0: Imóveis deixa de ser destino de navegação de mesmo nível
+   que Ativos.
+
+   O QUE MUDOU:
+   1) Segmento "Imóveis / Ativos" REMOVIDO dos dois lados. Ativos passa
+      a ser o único destino primário — os chips de tipo (v1.5.0 do
+      Cofre) já filtram só imóveis quando alguém quer ver só isso, não
+      precisa mais de uma tela irmã pra isso.
+   2) tab-imoveis virou tela SECUNDÁRIA — mesmo padrão já usado em
+      tab-vitrine ("< Imóveis"): agora tem breadcrumb "< Ativos" no
+      lugar do segmento. Continua 100% funcional por dentro (cadastro,
+      vitrine, filtros por empreendimento/status) — só mudou a PORTA de
+      entrada, nenhuma linha de lógica de negócio foi tocada.
+   3) NOVO botão "Cadastrar novo imóvel" na barra da aba Ativos —
+      investiguei antes de remover o segmento: sem esse botão, cadastrar
+      um imóvel novo dependeria de existir algum alerta pendente na
+      Visão Geral (vago, contrato assinando) pra levar até tab-imoveis
+      — no caso comum (carteira em dia, zero alertas), ficaria sem
+      NENHUM caminho até o cadastro. Corrigido com uma ponte direta:
+      abrirCadastroImovelModal() (função nativa do App, mesmo formulário
+      completo de sempre) chamada a partir de dentro da aba Ativos —
+      funciona porque o modal é position:fixed, não depende de
+      tab-imoveis estar "ativa" por baixo. Ponte defensiva (checa
+      typeof antes de chamar) do lado do Cofre.
+
+   O QUE FICOU DE FORA, de propósito (não é o mesmo item, é o outro que
+   também tinha ficado pendente na v1.93.0): fundir os 2 formulários de
+   ESCRITA — hoje "Editar dados" na ficha do ativo ainda edita
+   cofre_ativos.dados_especificos (JSON), e o endereço/IPTU/valor de
+   mercado de verdade (tabela imoveis) só se edita mesmo é abrindo
+   "Abrir gestão do imóvel →", que leva pra tab-imoveis. Fazer o
+   "Editar dados" da ficha do ativo escrever direto na tabela imoveis é
+   mudança de maior risco (mexe no caminho de escrita do dado mais
+   crítico do sistema) — fica pra confirmar depois que esta entrega for
+   testada em navegador de verdade. Ver lista de pendências atualizada
+   no fim da conversa.
+
+   Validado: node --check nos 3 arquivos tocados (index.html +
+   ativos-markup.js + cofre-app.js), balanceamento de tags comparado
+   com a versão imediatamente anterior, TAB_PARENT_MAP conferido (já
+   apontava tab-imoveis → tab-ativos desde v1.90.0, não precisou mudar).
+
+   VERSÃO ANTERIOR: Beta v1.93.0
+   LINHAS: 28339
+   DATA: 31/08/2026
+   NOVIDADES (Beta v1.93.0) — 5 pedidos explícitos na mesma entrega,
+   todos conferidos contra 3 screenshots reais do protótipo rodando
+   (não só o HTML/CSS lido antes) que o Nicola anexou.
+
+   1) IMÓVEIS+ATIVOS — FICHA EVOLUÍDA PRO PADRÃO DO PROTÓTIPO. A ficha
+      do ativo (dentro de js/ativos, injetada na aba Ativos) deixou de
+      ser boxes empilhados e virou 5 ABAS: Dados · Documentos ·
+      Controles · Contratos · Fotos — igual ao mockup. Mudança
+      DELIBERADA de padrão só nesta tela (o resto do app continua com
+      boxes empilhados, decisão de Design System de 25/08/2026 — "menu
+      suspenso com abas não é o padrão do projeto"; registrado nos
+      changelogs dos arquivos do Cofre pra não parecer inconsistência
+      não percebida).
+        - Aba Dados: grade completa (Inscrição imobiliária, UF/
+          Município, Uso, Tipo de locação, Valor de mercado, IPTU,
+          Endereço completo) — antes só um resumo em texto corrido.
+          "Abrir gestão do imóvel →" continua ali: editar esses campos
+          ainda é só pelo formulário de verdade do imóvel (cofre_ativos.
+          dados_especificos e imoveis são tabelas diferentes — fundir
+          os 2 formulários de escrita é decisão maior, fora desta
+          entrega).
+        - Aba Documentos: modal-documentos-ativo REMOVIDO, virou
+          conteúdo inline (mesmos 2 botões de upload, mesma lista).
+        - Aba Contratos: NOVA — mostra os contratos vinculados ao
+          imóvel (locatário, valor, status, vigência), lendo direto a
+          tabela contratos via cofre-api.js. "Relação, não fusão" (like
+          o protótipo): é só leitura, o contrato continua tendo ficha
+          própria completa (reajuste/minuta/rescisão) só na aba
+          Contratos do App — nada disso foi duplicado aqui.
+        - Aba Fotos: ganhou estado vazio de verdade (antes, sem foto, a
+          aba ficaria em branco).
+      Confirmado no banco antes de mexer: os 49 imóveis do Rumo já
+      estão 100% sincronizados com cofre_ativos (nenhum órfão) — a
+      base de dados pra unificação já era segura.
+      FICOU DE FORA, de propósito: fundir os 2 formulários de escrita
+      (editar imóvel completo dentro da própria ficha do ativo, sem
+      precisar do botão "Abrir gestão") e aposentar a aba Imóveis como
+      destino de navegação próprio — são mudanças de escopo maior,
+      tocam o fluxo diário do Rumo, ficam pra confirmar depois de testar
+      esta entrega em navegador de verdade.
+
+   2) MENU CONFIGURAÇÕES — 3 telas do Cofre que nunca tinham porta de
+      entrada aqui: "Categoria de Documento" e "Sub-tipos de item de
+      controle" são NOVAS; "Modelos de controle" deixou de estar
+      marcada (errado) como "Em breve" — já existia e funcionava no
+      Cofre, eu não tinha conferido lá antes de marcar como pendente na
+      v1.89.0. Ponte técnica nova: cofre-navegacao.js ganhou suporte a
+      ?abrir=categorias|subtipos|modelos (mesmo espírito de segurança
+      do contexto/ref que já existia — parâmetro de URL nunca é
+      autorização).
+
+   3) SELETORES VIRARAM CHIPS — os 3 pares de segmento (Imóveis/Ativos,
+      Recebimentos/Atrasados, Resumo/Distribuição) trocaram do estilo
+      "2 botões 50/50" pro estilo pill do protótipo (fundo cinza claro,
+      item ativo em branco com sombra).
+
+   4) VISÃO GERAL — hero redesenhado no padrão do protótipo: "Patrimônio
+      sob gestão" (valor total) + Recebido do mês + Ocupação — reaproveita
+      fn_resumo_resultados (mesma RPC de Resultados, zero lógica nova).
+      Diferença honesta do protótipo: "Inadimplência" continua como
+      CONTAGEM, não virou porcentagem — a RPC não devolve uma taxa
+      pronta e eu não tinha uma base clara (% de quê?) pra calcular uma
+      sem arriscar mostrar um número que parece preciso mas não é.
+
+   5) HEADER — label "Imóveis" removido de baixo do nome da empresa. E
+      um BUG REAL da v1.92.0 corrigido no caminho: a div interna do
+      header tinha uma classe Tailwind fixa (bg-emerald-950) cobrindo o
+      var(--sprout) que a mudança de paleta tinha aplicado — o header
+      nunca mudou de cor de verdade até agora.
+
+   ACHADO NÃO RESOLVIDO NESTA ENTREGA, registrado pra não esquecer: além
+   dos 68 pontos var(--pine) já tratados na v1.92.0, o arquivo tem 72
+   usos de classes Tailwind fixas (bg-emerald-950/900/800/700/600) que
+   representam a marca só que FORA do sistema de tokens — só a do header
+   foi corrigida (bloqueava o item 5). As outras 71 continuam como
+   estavam; não mexi sem mostrar a lista primeiro, mesmo critério já
+   validado antes pra troca de paleta.
+
+   Validado: node --check em cada um dos 7 arquivos tocados (index.html
+   + 6 arquivos do Cofre), balanceamento de tags comparado com a versão
+   anterior a cada edição, zero id novo duplicado, zero referência
+   remanescente aos 2 data-action do modal removido. GRANT de SELECT em
+   contratos pra authenticated confirmado no banco antes de escrever
+   buscarContratosDoImovel(). Ainda SEM teste em navegador de verdade —
+   a ficha em abas é a peça de maior risco visual desta entrega (nunca
+   usei este padrão de abas antes, mesmo já validando a mecânica com
+   cuidado) — prioridade #1 de quem testar.
+
+   VERSÃO ANTERIOR: Beta v1.92.0
    LINHAS: 28135
    DATA: 31/08/2026
    NOVIDADES (Beta v1.92.0) — Mudança de paleta de cores, decisão de
@@ -6460,15 +6598,27 @@
 
     <!-- ================= HEADER E NAVEGAÇÃO ================= -->
 
-    <header id="main-header" class="hidden text-white sticky top-0 z-50 shadow-md" style="background:var(--sprout)">
+    <header id="main-header" class="hidden text-white sticky top-0 z-50 shadow-md">
 
-        <div class="p-3 flex justify-between items-center bg-emerald-950">
+        <!-- v1.93.0 (31/08/2026, pedido explícito) — 2 correções juntas:
+             1) Label "Imóveis" removido — não fazia mais sentido desde
+             que a barra de baixo deixou de ter uma aba "Imóveis" própria
+             (v1.90.0, unificada com Ativos).
+             2) BUG achado ao mexer aqui: esta div tinha a classe Tailwind
+             fixa `bg-emerald-950` cobrindo o `background:var(--sprout)`
+             que a v1.92.0 (mudança de paleta) tinha aplicado no
+             <header> pai — o header nunca mudou de cor de verdade,
+             porque o fundo visível de sempre era este div interno, não
+             o header. Corrigido: `bg-emerald-950` saiu, `var(--sprout)`
+             entrou aqui (que é o elemento que realmente aparece). Ver
+             changelog completo desta versão pra outros pontos com o
+             mesmo problema (Tailwind emerald-* hardcoded, fora do
+             sistema de tokens) que ainda ficaram de fora. -->
+        <div class="p-3 flex justify-between items-center" style="background:var(--sprout)">
 
             <div class="cursor-pointer active:scale-95 transition-transform select-none min-w-0" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
                 <span id="logo-header" class="text-lg font-black tracking-wider text-white/80 block leading-tight">RAIZ</span>
-
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-white/80 inline-block mt-0.5">Imóveis</span>
 
                 <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse ml-1">OFFLINE</span>
 
@@ -6754,13 +6904,31 @@
                     <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
                 </button>
 
-                <!-- "Modelos de controle" — Em breve: cofre_modelos_item_controle
-                     (calendário de IPTU e afins, v1.86.0) só é editável hoje via
-                     SQL/seed — não tem tela de administração pro Nicola ainda. -->
-                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
+                <!-- v1.93.0 (pedido explícito, 31/08/2026) — "Categoria de
+                     Documento" e "Sub-tipos de item de controle": REAIS,
+                     achadas comparando o menu ⚙️ antigo do Cofre com o
+                     menu ⚙️ deste App — as duas só tinham porta de
+                     entrada lá dentro, nunca aqui. Abrem via
+                     abrirConfiguracaoCofre() (cofre.html?abrir=...). -->
+                <button onclick="fecharMenuConta(); abrirConfiguracaoCofre('categorias')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="tags" style="width:18px;height:18px;color:var(--sprout)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Categoria de Documento</span>
+                </button>
+
+                <button onclick="fecharMenuConta(); abrirConfiguracaoCofre('subtipos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="list-tree" style="width:18px;height:18px;color:var(--sprout)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Sub-tipos de item de controle</span>
+                </button>
+
+                <!-- v1.93.0 — "Modelos de controle" deixa de ser "Em breve":
+                     achado comparando com o menu ⚙️ do Cofre que a tela já
+                     existe e funciona (cofre_modelos_item_controle tem
+                     administração própria desde antes — eu tinha marcado
+                     errado como pendente na v1.89.0, sem checar o Cofre
+                     primeiro). Corrigido. -->
+                <button onclick="fecharMenuConta(); abrirConfiguracaoCofre('modelos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Modelos de controle</span>
-                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Modelos de controle</span>
                 </button>
 
                 <!-- v1.41.5 — item "Dev" retirado do menu por hora (acesso
@@ -6899,14 +7067,40 @@
 
         <section id="tab-geral" class="tab-content active">
 
+            <!-- v1.93.0 (pedido explícito, 31/08/2026) — hero redesenhado
+                 no padrão do protótipo: "Patrimônio sob gestão" (valor
+                 total de mercado) como número grande, 3 KPIs embaixo
+                 (Recebido do mês / Ocupação / Em atraso). Preenchido por
+                 carregarKpisVisaoGeral() — reaproveita a MESMA RPC já
+                 usada em Resultados (fn_resumo_resultados, existe desde
+                 v1.85.0), sem duplicar lógica nem inventar outra fonte
+                 de número financeiro.
+                 Diferença honesta do protótipo: o mockup mostra
+                 "Inadimplência" como PORCENTAGEM (ex. "3,2%") — a RPC
+                 devolve valor em R$ e quantidade de mensalidades, não
+                 uma taxa pronta, e eu não tenho uma base clara (% de
+                 quê?) pra calcular uma sem arriscar mostrar um número
+                 que pareça preciso mas não seja. Mantive contagem
+                 ("Em atraso"), que já era o dado real mostrado aqui
+                 antes desta versão. -->
             <div class="rounded-2xl p-4 text-white shadow" style="background:var(--sprout)">
-                <div class="text-xs opacity-80 font-semibold">Como está seu patrimônio hoje</div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Imóveis</div><div id="geral-total-imoveis" class="text-xl font-extrabold mt-1">0</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Alugados</div><div id="geral-alugados" class="text-xl font-extrabold mt-1">0</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Vagos</div><div id="geral-vagos" class="text-xl font-extrabold mt-1">0</div></div>
-                    <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Em atraso</div><div id="geral-inadimplentes" class="text-xl font-extrabold text-red-100 mt-1">0</div></div>
+                <div class="text-xs opacity-80 font-semibold">Patrimônio sob gestão</div>
+                <div id="geral-patrimonio-total" class="text-2xl font-extrabold mt-1">—</div>
+                <div class="grid grid-cols-3 gap-2 mt-3">
+                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Recebido (mês)</div><div id="geral-recebido-mes" class="text-lg font-extrabold mt-1">—</div></div>
+                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Ocupação</div><div id="geral-ocupacao-pct" class="text-lg font-extrabold mt-1">—</div></div>
+                    <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Em atraso</div><div id="geral-inadimplentes" class="text-lg font-extrabold text-red-100 mt-1">0</div></div>
                 </div>
+            </div>
+
+            <!-- Contadores antigos (Imóveis/Alugados/Vagos) preservados,
+                 escondidos — vários trechos do app ainda podem consultar
+                 estes ids; nenhum deles foi removido do DOM, só saíram
+                 do hero visível. -->
+            <div class="hidden">
+                <span id="geral-total-imoveis">0</span>
+                <span id="geral-alugados">0</span>
+                <span id="geral-vagos">0</span>
             </div>
 
             <div class="bg-white p-4 rounded-xl shadow-sm mt-4 border border-gray-200">
@@ -6939,11 +7133,14 @@
                  de HTML foi movido/mesclado entre as duas telas. É este
                  segmento (+ TAB_PARENT_MAP) que faz a unificação de
                  navegação — "Imóveis" deixou de ter ícone próprio na
-                 barra de baixo, agora vive aqui dentro de "Ativos". -->
-            <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-imoveis')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Imóveis</button>
-                <button onclick="switchTab('tab-ativos')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Ativos</button>
-            </div>
+                 barra de baixo, agora vive aqui dentro de "Ativos".
+                 v1.94.0 (pedido explícito, "seguir com a unificação") —
+                 segmento SUBSTITUÍDO por breadcrumb: Imóveis deixou de
+                 ser destino de mesmo nível que Ativos — agora é tela
+                 secundária (mesmo padrão já usado em tab-vitrine, "<
+                 Imóveis"). Continua 100% funcional por dentro (cadastro,
+                 vitrine, filtros) — só mudou a PORTA de entrada. -->
+            <button onclick="switchTab('tab-ativos')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Ativos</button>
 
             <!-- v1.47.0 — REDESENHO DA ABA IMÓVEIS (pedido explícito):
                  - contador de imóveis removido do topo;
@@ -7316,11 +7513,18 @@
                  propósito: aquele container é sobrescrito via innerHTML
                  toda vez que montarAtivosTab() injeta o Cofre — um
                  elemento estático DENTRO dele seria apagado na primeira
-                 abertura da aba. Aqui, como irmão do container, sobrevive. -->
-            <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-imoveis')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Imóveis</button>
-                <button onclick="switchTab('tab-ativos')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Ativos</button>
-            </div>
+                 abertura da aba. Aqui, como irmão do container, sobrevive.
+                 v1.94.0 (pedido explícito, "seguir com a unificação") —
+                 segmento REMOVIDO: Ativos deixou de alternar com uma
+                 tela "Imóveis" irmã — agora é o único destino. tab-
+                 imoveis continua existindo e 100% funcional (cadastro,
+                 vitrine, filtros), só deixou de ser uma opção de mesmo
+                 nível — vira tela secundária, com breadcrumb "< Ativos"
+                 (mesmo padrão já usado em tab-vitrine/"< Imóveis"),
+                 alcançável por: "Abrir gestão do imóvel →" (na aba
+                 Dados da ficha do ativo), pelos atalhos de "Atenção
+                 necessária" na Visão Geral, e pelo botão "Cadastrar
+                 imóvel" novo aqui embaixo. -->
 
             <div id="ativos-mount-point"></div>
         </section>
@@ -7984,9 +8188,9 @@
                  do "Lista/Atrasos" que já existiu aqui antes (removido em
                  v1.52.0), agora reaproveitada como o vínculo entre as duas
                  abas em vez de filtro interno. -->
-            <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Atrasados</button>
+            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
+                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Atrasados</button>
             </div>
 
             <!-- v1.51.0 — "< Voltar" condicional: só aparece quando esta
@@ -8144,9 +8348,9 @@
 
         <section id="tab-inadimplencia" class="tab-content">
 
-            <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Atrasados</button>
+            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
+                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Atrasados</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos e
@@ -8236,9 +8440,9 @@
             <!-- v1.88.0 — segmento pra Distribuição (tab-socios), que
                  deixou de ter ícone próprio na barra e passou a viver
                  dentro de Resultados, junto de Métricas. -->
-            <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Resumo</button>
-                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Distribuição</button>
+            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
+                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Resumo</button>
+                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Distribuição</button>
             </div>
 
             <!-- v1.91.0 (pedido explícito, 31/08/2026) — "Resumo" de
@@ -8316,9 +8520,9 @@
 
         <section id="tab-socios" class="tab-content">
 
-            <div class="flex gap-2 mb-3">
-                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-slate-100 text-slate-600">Resumo</button>
-                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg" style="background:var(--sprout, #3f8163);color:#fff">Distribuição</button>
+            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
+                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Resumo</button>
+                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Distribuição</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): título "Distribuições"
@@ -9223,7 +9427,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.92.0";
+        const APP_VERSAO = "Beta v1.94.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -15174,6 +15378,18 @@
             window.location.href = url;
         }
 
+        // v1.93.0 (pedido explícito, 31/08/2026) — variante de
+        // abrirCofreDocumentos() pra abrir direto numa tela de
+        // CONFIGURAÇÃO do Cofre (Categoria de Documento, Sub-tipos/
+        // Modelos de item de controle) — 3 telas que só existiam dentro
+        // do próprio menu ⚙️ do Cofre, nunca tinham porta de entrada
+        // aqui. Mesmo padrão de URL de sempre (cliente_id sempre junto,
+        // parâmetro de URL nunca é autorização) — só troca contexto/ref
+        // por abrir. Ver cofre-navegacao.js v1.6.0/cofre-app.js v1.9.0.
+        function abrirConfiguracaoCofre(tela) {
+            window.location.href = 'cofre.html?cliente_id=' + encodeURIComponent(CLIENTE_ID_SUPABASE || '') + '&abrir=' + encodeURIComponent(tela);
+        }
+
         function atualizarDropdownFiltrosDinamicos() {
 
             const selectInadMes = document.getElementById('inad-filtro-mes');
@@ -18019,6 +18235,12 @@
 
         function renderVisaoGeral() {
 
+            // v1.93.0 — hero novo (Patrimônio sob gestão + Recebido do mês
+            // + Ocupação), assíncrono, roda em paralelo sem bloquear o
+            // resto desta função (que continua 100% síncrona, lendo só
+            // os arrays já em memória, como sempre foi).
+            carregarKpisVisaoGeral();
+
             const totalImoveis = imoveis.length;
             const alugados = imoveis.filter(i => i.status === 'Alugado').length;
             const vagos = imoveis.filter(i => i.status === 'Vago').length;
@@ -18131,6 +18353,45 @@
         // Falha em qualquer uma das 2 buscas não quebra a Visão Geral — só
         // o wrapper fica vazio; os itens síncronos (inadimplência, etc.)
         // continuam intactos, renderizados antes desta função nem rodar.
+        // v1.93.0 (pedido explícito) — formata valor em notação compacta
+        // pt-BR pro hero da Visão Geral ("R$ 34,2 mi" em vez do valor
+        // cheio) — mesmo padrão do protótipo. Só 2 faixas (mi/mil) porque
+        // é o que a carteira real usa hoje; valores abaixo de mil caem no
+        // formatarMoedaBR() de sempre, sem inventar uma 3ª faixa não usada.
+        function formatarValorCompacto(valor) {
+            const n = Number(valor) || 0;
+            if (n >= 1000000) return 'R$ ' + (n / 1000000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' mi';
+            if (n >= 1000) return 'R$ ' + Math.round(n / 1000).toLocaleString('pt-BR') + ' mil';
+            return formatarMoedaBR(n);
+        }
+
+        // v1.93.0 (pedido explícito, 31/08/2026) — KPIs do hero da Visão
+        // Geral, no padrão do protótipo. Reaproveita fn_resumo_resultados
+        // (mesma RPC já usada em Resultados desde v1.85.0/v1.91.0) — zero
+        // lógica nova de agregação, só uma 2ª tela consumindo o mesmo
+        // dado. Falha aqui não quebra o resto da Visão Geral (que já
+        // renderizou de forma síncrona antes desta função ser chamada).
+        async function carregarKpisVisaoGeral() {
+            if (!CLIENTE_ID_SUPABASE) return;
+            try {
+                const { data, error } = await dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE });
+                if (error) throw error;
+                const resumo = Array.isArray(data) ? data[0] : data;
+                if (!resumo) return;
+
+                const elPatrimonio = document.getElementById('geral-patrimonio-total');
+                if (elPatrimonio) elPatrimonio.textContent = formatarValorCompacto(resumo.soma_valor_mercado);
+
+                const elRecebidoMes = document.getElementById('geral-recebido-mes');
+                if (elRecebidoMes) elRecebidoMes.textContent = formatarValorCompacto(resumo.recebido_mes_atual);
+
+                const elOcupacao = document.getElementById('geral-ocupacao-pct');
+                if (elOcupacao) elOcupacao.textContent = resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—';
+            } catch (err) {
+                console.warn('[visao-geral] Falha ao carregar KPIs do hero:', err.message);
+            }
+        }
+
         async function carregarPontosAtencaoFundidos() {
             const wrapper = document.getElementById('geral-atencao-fundidos');
             if (!wrapper || !CLIENTE_ID_SUPABASE) return;
