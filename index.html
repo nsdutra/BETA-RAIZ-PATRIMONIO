@@ -6,7 +6,56 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.96.0
+   VERSÃO: Beta v1.96.1
+   LINHAS: 29049
+   DATA: 01/09/2026
+   NOVIDADES (Beta v1.96.1) — 1 bug crítico corrigido + 1 bug de
+   navegação + 1 migração de dados, todos pedidos explícitos depois do
+   Nicola testar a v1.96.0.
+
+   1) BUG CRÍTICO CORRIGIDO — "a lista de imóveis não está carregando",
+      achado pelo console real do Nicola: "Falha no bootstrap do Cofre:
+      TypeError: Cannot read properties of null (reading 'classList')
+      at Module.bootstrap". Causa raiz: o prefetch da v1.95.0
+      (prefetchModuloAtivos) usava import(), que não só baixa o módulo,
+      EXECUTA — e a última linha de cofre-app.js chama nav.bootstrap()
+      sozinha, sem checar nada. No momento do prefetch (logo após
+      login, Ativos nunca foi aberta) o HTML do Cofre ainda não existe
+      em tela — bootstrap() tentava mexer em elemento que não existia,
+      crashava. Pior: módulo ES só avalia 1 vez — depois desse crash, a
+      aba Ativos ficava morta pra sempre, mesmo abrindo ela de verdade
+      depois. Corrigido com a ferramenta certa: <link
+      rel="modulepreload">, que baixa e compila sem executar nem uma
+      linha. Reforço extra em cofre-navegacao.js (bootstrap()/
+      falhaAcesso() ganharam guarda defensiva, 2ª camada).
+
+   2) "AO SAIR DA ABA DE PARTES, APARECE ESTA TELA DE PARÂMETROS QUE
+      DEVE SER ELIMINADA" — os botões "Voltar" de Síndicos/
+      Administradoras/Manutencistas/Partes apontavam pra
+      tab-parametrizacoes, uma tela morta desde que esses cadastros
+      ganharam porta de entrada direta no menu Configurações (a própria
+      tela já dizia "estes cadastros agora têm telas próprias" — nunca
+      foi atualizada quando isso mudou). Removidos os 4 "Voltar" —
+      mesmo padrão já correto de Tipo de Empreendimento/Tipo de Imóvel,
+      que nunca tiveram esse botão.
+
+   3) MIGRAÇÃO — prestadores (síndico/administradora/manutencista, 11
+      linhas) e fiadores (contrato_fiadores, 1 linha) migrados pra
+      partes/partes_papeis. Aditivo e idempotente: prestadores/
+      contrato_fiadores continuam existindo do jeito que estavam,
+      partes é só o espelho de identidade (mesmo princípio já usado pra
+      locatário/proprietário desde v1.84.3-8). Dedup por CPF/CNPJ
+      funcionou corretamente — achei um caso real de CPF repetido entre
+      2 prestadores diferentes (dado de teste), virou 1 parte só com os
+      2 papéis. Verificado direto no banco depois de aplicar, não só
+      "rodou sem erro".
+
+   Validado: node --check no bloco JS extraído, balanceamento de tags
+   com variação ZERO desde o início desta sessão, migração conferida
+   com SELECT de verificação (contagem batendo 11 prestador + 1 fiador
+   + 2 proprietario, exatamente o esperado).
+
+   VERSÃO ANTERIOR: Beta v1.96.0
    LINHAS: 28946
    DATA: 01/09/2026
    NOVIDADES (Beta v1.96.0) — itens 4, 5 e 6 da sequência de pedidos
@@ -8888,8 +8937,17 @@
 
         <section id="tab-sindicos" class="tab-content hidden">
 
-            <button onclick="switchTab('tab-parametrizacoes')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
-
+            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
+                 de partes, aparece esta tela de parametros que deve ser
+                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
+                 tab-parametrizacoes, uma tela morta desde que este
+                 cadastro ganhou porta de entrada direta no menu
+                 Configurações (a própria tab-parametrizacoes já diz
+                 "estes cadastros agora têm telas próprias" — nunca foi
+                 atualizada quando isso mudou). Mesmo padrão já correto
+                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
+                 alcançadas pelo menu não têm "pai" de tab, não levam
+                 breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Síndicos / Gestoras</h2>
@@ -9004,8 +9062,17 @@
              vínculo por tipo de papel, ficou de fora desta entrega. -->
         <section id="tab-partes" class="tab-content hidden">
 
-            <button onclick="switchTab('tab-parametrizacoes')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
-
+            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
+                 de partes, aparece esta tela de parametros que deve ser
+                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
+                 tab-parametrizacoes, uma tela morta desde que este
+                 cadastro ganhou porta de entrada direta no menu
+                 Configurações (a própria tab-parametrizacoes já diz
+                 "estes cadastros agora têm telas próprias" — nunca foi
+                 atualizada quando isso mudou). Mesmo padrão já correto
+                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
+                 alcançadas pelo menu não têm "pai" de tab, não levam
+                 breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Partes</h2>
@@ -9125,8 +9192,17 @@
 
         <section id="tab-manutencistas" class="tab-content hidden">
 
-            <button onclick="switchTab('tab-parametrizacoes')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
-
+            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
+                 de partes, aparece esta tela de parametros que deve ser
+                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
+                 tab-parametrizacoes, uma tela morta desde que este
+                 cadastro ganhou porta de entrada direta no menu
+                 Configurações (a própria tab-parametrizacoes já diz
+                 "estes cadastros agora têm telas próprias" — nunca foi
+                 atualizada quando isso mudou). Mesmo padrão já correto
+                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
+                 alcançadas pelo menu não têm "pai" de tab, não levam
+                 breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Manutencistas</h2>
@@ -9188,8 +9264,17 @@
 
         <section id="tab-administradoras" class="tab-content hidden">
 
-            <button onclick="switchTab('tab-parametrizacoes')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
-
+            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
+                 de partes, aparece esta tela de parametros que deve ser
+                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
+                 tab-parametrizacoes, uma tela morta desde que este
+                 cadastro ganhou porta de entrada direta no menu
+                 Configurações (a própria tab-parametrizacoes já diz
+                 "estes cadastros agora têm telas próprias" — nunca foi
+                 atualizada quando isso mudou). Mesmo padrão já correto
+                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
+                 alcançadas pelo menu não têm "pai" de tab, não levam
+                 breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
                 <h2 class="text-lg font-bold text-emerald-900 flex-1">Administradoras</h2>
@@ -9713,7 +9798,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.96.0";
+        const APP_VERSAO = "Beta v1.96.1";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -13890,27 +13975,39 @@
         // tocava na aba — rede + parse acontecendo bem na hora que mais
         // atrapalha.
         //
-        // Corrigido SEM mudar nenhuma linha de ativos-boot.js: pré-
-        // carrega os 2 imports de nível mais alto (o resto da árvore vem
-        // junto automaticamente, é assim que import estático de módulo
-        // ES funciona) em segundo plano, OCIOSO — requestIdleCallback
-        // quando existe (a maioria dos navegadores Android/desktop),
-        // setTimeout como fallback pra Safari/iOS (não tem
-        // requestIdleCallback). Nunca compete com o carregamento crítico
-        // da Visão Geral, que continua acontecendo primeiro.
+        // BUG REAL corrigido (01/09/2026, achado pelo Nicola via console:
+        // "Falha no bootstrap do Cofre: TypeError: Cannot read properties
+        // of null (reading 'classList') at Module.bootstrap") — a v1.95.0
+        // original usava import('./js/cofre-app.js') pra pré-carregar.
+        // import() não só BAIXA o módulo, ele EXECUTA — e a última linha
+        // de cofre-app.js chama nav.bootstrap() automaticamente, sem
+        // checar nada. No momento do prefetch (logo após o login, aba
+        // Ativos nunca foi aberta) o HTML do Cofre ainda nem existe em
+        // tela (#tela-bootstrap/#app-cofre só entram no DOM quando
+        // montarAtivosTab() roda de verdade) — bootstrap() tentava mexer
+        // em elementos que não existiam, crashava. Pior: módulo ES só
+        // avalia 1 vez — depois desse crash, quando a pessoa finalmente
+        // abria Ativos de verdade, o import() de montarAtivosTab() achava
+        // o módulo já "resolvido" no cache e NÃO rodava bootstrap() de
+        // novo — a aba ficava morta pra sempre depois do prefetch.
         //
-        // Quando a pessoa realmente abre a aba Ativos, montarAtivosTab()
-        // (ativos-boot.js) chama os MESMOS 2 imports — o navegador já tem
-        // tudo no cache de módulos ES e resolve na hora, sem 2ª requisição
-        // de rede. Resolução de URL de módulo é por caminho ABSOLUTO
-        // resolvido, não pela string literal do import — './js/ativos/
-        // ativos-markup.js' (daqui) e './ativos-markup.js' (de dentro de
-        // js/ativos/ativos-boot.js) apontam pro mesmo arquivo, mesmo
-        // cache.
+        // Corrigido com a ferramenta certa pra isto: <link
+        // rel="modulepreload">, que baixa E compila o módulo (mais toda
+        // a árvore de import dela) SEM executar nem uma linha — só
+        // quando um import() de verdade acontecer depois (montarAtivosTab(),
+        // ao abrir a aba), o corpo do módulo roda, dessa vez com o HTML
+        // já injetado corretamente. Isso é literalmente pra que
+        // modulepreload existe (diferente de <link rel="preload"
+        // as="script">, que não entende módulos ES/import).
         function prefetchModuloAtivos() {
             const disparar = () => {
-                import('./js/ativos/ativos-markup.js').catch(() => {});
-                import('./js/cofre-app.js').catch(() => {});
+                ['./js/ativos/ativos-markup.js', './js/cofre-app.js'].forEach(caminho => {
+                    if (document.querySelector(`link[rel="modulepreload"][href="${caminho}"]`)) return;
+                    const link = document.createElement('link');
+                    link.rel = 'modulepreload';
+                    link.href = caminho;
+                    document.head.appendChild(link);
+                });
             };
             if ('requestIdleCallback' in window) {
                 requestIdleCallback(disparar, { timeout: 4000 });
@@ -28772,7 +28869,13 @@
                 return;
             }
 
-            const rotuloPapel = { locatario: 'Locatário', fiador: 'Fiador', interessado: 'Interessado', proprietario: 'Proprietário' };
+            // v1.96.1 (pedido explícito, "migrar os manutencistas,
+            // fiadores e demais partes pra tabela de partes") —
+            // 'prestador' entrou nos rótulos: síndico/administradora/
+            // manutencista compartilham esse papel genérico (o tipo
+            // específico continua em prestadores.tipo, não duplicado
+            // aqui).
+            const rotuloPapel = { locatario: 'Locatário', fiador: 'Fiador', interessado: 'Interessado', proprietario: 'Proprietário', prestador: 'Prestador' };
 
             container.innerHTML = partesCliente.map(parte => {
                 const papeis = papeisPorParte[parte.id] || [];

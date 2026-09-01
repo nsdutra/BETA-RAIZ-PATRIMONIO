@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.0 · 31/08/2026
+// Versão: 1.6.1 · 01/09/2026
+//
+// v1.6.1 — BUG REAL corrigido, achado pelo Nicola via console do
+// navegador ("Falha no bootstrap do Cofre: TypeError: Cannot read
+// properties of null (reading 'classList') at Module.bootstrap"):
+// causa raiz era o prefetch do index.html (v1.95.0) chamando import()
+// em vez de <link rel="modulepreload"> — import() executa o módulo
+// (dispara bootstrap() automaticamente, sem o HTML do Cofre existir
+// ainda). Corrigido na origem (ver index.html v1.96.1), mas
+// bootstrap()/falhaAcesso() também ganharam guarda defensiva aqui
+// (2ª camada, mesmo padrão já usado em montarHome()/renderAlertas())
+// — custa pouco blindar contra a mesma classe de erro acontecer de
+// novo por outro caminho.
 //
 // v1.6.0 — bootstrap() ganhou suporte a ?abrir=categorias|subtipos|
 // modelos (pedido explícito, 31/08/2026): abre direto uma tela de
@@ -137,8 +149,13 @@ export async function bootstrap() {
     if (elSobreVersao) elSobreVersao.textContent = 'v' + COFRE_VERSAO;
     const badgeVersao = document.getElementById('badge-versao-cofre');
     if (badgeVersao) badgeVersao.textContent = 'v' + COFRE_VERSAO;
-    document.getElementById('tela-bootstrap').classList.add('hidden');
-    document.getElementById('app-cofre').classList.remove('hidden');
+    // v1.6.1 (01/09/2026) — guarda defensiva: 2ª camada de proteção
+    // contra bootstrap() rodar antes do HTML do Cofre existir no DOM
+    // (a causa real do crash foi corrigida na origem — ver
+    // prefetchModuloAtivos() no index.html — mas custa pouco blindar
+    // aqui também, mesmo padrão já usado em montarHome()/renderAlertas()).
+    document.getElementById('tela-bootstrap')?.classList.add('hidden');
+    document.getElementById('app-cofre')?.classList.remove('hidden');
     // Categorias não é mais aba de navegação (Adendo §3) — vive atrás do
     // ícone de engrenagem no header. Esconder o ícone inteiro pra quem não
     // tem cofre.categorias evita abrir um modal vazio sem explicação.
@@ -196,10 +213,15 @@ async function tentarResolverEmpresaPorContexto(pessoaRows, contexto, ref) {
     return null;
 }
 
+// v1.6.1 (01/09/2026) — mesma guarda defensiva de bootstrap(): #tela-
+// erro-acesso é um placeholder vazio no contexto embutido (não tem
+// #erro-acesso-msg dentro) — sem isso, um perfil sem 'cofre.ver'
+// crasharia aqui igual ao bug do bootstrap() achado pelo Nicola.
 function falhaAcesso(mensagem) {
-    document.getElementById('erro-acesso-msg').textContent = mensagem;
-    document.getElementById('tela-bootstrap').classList.add('hidden');
-    document.getElementById('tela-erro-acesso').classList.remove('hidden');
+    const elMsg = document.getElementById('erro-acesso-msg');
+    if (elMsg) elMsg.textContent = mensagem;
+    document.getElementById('tela-bootstrap')?.classList.add('hidden');
+    document.getElementById('tela-erro-acesso')?.classList.remove('hidden');
     refrescarIcones();
 }
 
