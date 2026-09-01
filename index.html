@@ -6,7 +6,36 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.96.1
+   VERSÃO: Beta v1.96.3
+   LINHAS: 29199
+   DATA: 01/09/2026
+   NOVIDADES (Beta v1.96.3) — pedido explícito: "criar uma tela
+   especifica para o alertas sobre patrimonio... acessivel pelo menu
+   bonequinho... retire a descricao dos alertas da sessao de
+   resultados... deixe ele apenas aparecer como alerta na visao geral,
+   ao clicar abra esta nova tela."
+
+   Tela nova tab-alertas, no menu Configurações (grupo próprio, "Alertas",
+   no topo do menu — maior visibilidade que os grupos de cadastro
+   abaixo). 2 seções: "Controles do patrimônio" (IPTU/seguro/manutenção
+   vencidos/vencendo — detalhe item por item, coisa que a Visão Geral
+   nunca mostrou, só contagem) e "Diagnóstico tributário" (MOVIDO de
+   Resultados pra cá — mesmo rendering, só de endereço novo).
+
+   Resultados perdeu o card "Diagnóstico tributário" (só ficaram KPIs +
+   Cenário econômico) — a busca de fn_leitura_tributaria_sinais também
+   saiu de montarResumoResultados(), não fica mais duplicada em 2
+   lugares.
+
+   Visão Geral: os 3 itens de alerta que antes abriam Ativos/Resultados
+   (2 de controles + 1 de tributário) agora abrem tab-alertas — a Visão
+   Geral resume, a tela nova detalha.
+
+   Validado: node --check no bloco JS extraído, balanceamento de tags
+   idêntico ao início desta sessão, 4 usos confirmados de
+   switchTab('tab-alertas') (3 na Visão Geral + 1 no menu).
+
+   VERSÃO ANTERIOR: Beta v1.96.1
    LINHAS: 29049
    DATA: 01/09/2026
    NOVIDADES (Beta v1.96.1) — 1 bug crítico corrigido + 1 bug de
@@ -7007,8 +7036,22 @@
 
             <div class="p-4 space-y-1 overflow-y-auto" style="max-height:70vh; padding-bottom:calc(24px + env(safe-area-inset-bottom))">
 
+                <!-- ===== Grupo: Alertas (novo, v1.96.3, pedido explícito:
+                     "criar uma tela especifica para o alertas sobre
+                     patrimonio... acessivel pelo menu bonequinho") —
+                     fica no topo do menu de propósito: é o item mais
+                     operacional (o que pede atenção agora), maior
+                     visibilidade que os grupos de cadastro/configuração
+                     abaixo. -->
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Alertas</p>
+
+                <button onclick="fecharMenuConta(); switchTab('tab-alertas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                    <svg data-lucide="bell" style="width:18px;height:18px;color:var(--sprout)"></svg>
+                    <span class="text-sm font-medium" style="color:var(--ink)">Alertas do patrimônio</span>
+                </button>
+
                 <!-- ===== Grupo: Conta (novo, v1.89.0) ===== -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Conta</p>
+                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
 
                 <!-- "Meu perfil" — Em breve: não existe tela de perfil
                      pessoal ainda (edição do próprio nome/e-mail/senha). -->
@@ -8709,6 +8752,32 @@
 
         </section>
 
+        <!-- v1.96.3 (01/09/2026, pedido explícito: "criar uma tela
+             especifica para o alertas sobre patrimonio... acessivel
+             pelo menu bonequinho... retire a descricao dos alertas da
+             sessao de resultados... deixe ele apenas aparecer como
+             alerta na visao geral, ao clicar abra esta nova tela") —
+             tela nova, alcançada só pelo menu Configurações (mesmo
+             padrão de Partes/Categoria de Documento — sem "Voltar",
+             lição da v1.96.1). Reúne o detalhe completo dos 2 alertas
+             "sobre patrimônio" que antes ficavam espalhados: controles
+             do Cofre (vencidos/vencendo — antes só contagem na Visão
+             Geral, sem detalhe em lugar nenhum) e diagnóstico
+             tributário (antes vivia dentro de Resultados, SAIU de lá —
+             ver montarResumoResultados()). A Visão Geral continua
+             mostrando o resumo (contagem), só o clique passou a trazer
+             pra cá em vez de Ativos/Resultados. -->
+        <section id="tab-alertas" class="tab-content hidden">
+
+            <h2 class="text-lg font-bold text-emerald-900 mb-1">Alertas</h2>
+            <p class="text-[11px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção) e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
+
+            <div id="alertas-patrimonio-mount">
+                <p class="text-xs text-slate-400 text-center py-6">Carregando...</p>
+            </div>
+
+        </section>
+
         <!-- ================= ABA: SÓCIOS ================= -->
 
         <section id="tab-socios" class="tab-content">
@@ -9798,7 +9867,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.96.1";
+        const APP_VERSAO = "Beta v1.96.3";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -15567,6 +15636,10 @@
             if (tabId === 'tab-partes' && typeof carregarPartes === 'function') {
                 carregarPartes();
             }
+            // v1.96.3 (pedido explícito) — Alertas: mesmo padrão.
+            if (tabId === 'tab-alertas' && typeof montarAlertasPatrimonio === 'function') {
+                montarAlertasPatrimonio();
+            }
             // v1.80.0 — Ativos: import dinâmico, mesmo padrão já usado pras
             // abas de Configurações (Licença/Sobre/Pessoas/Minha Empresa)
             // logo acima. montarAtivosTab() só faz alguma coisa na primeira
@@ -18862,20 +18935,26 @@
                 const em14dias = new Date(hoje); em14dias.setDate(em14dias.getDate() + 14);
                 const vencidos = ocorrencias.filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') < hoje);
                 const vencendo = ocorrencias.filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') >= hoje && new Date(o.data_prevista_atual + 'T00:00:00') <= em14dias);
+                // v1.96.3 (pedido explícito, "criar uma tela especifica
+                // para o alertas sobre patrimonio... ao clicar nele,
+                // abra esta nova tela") — os 2 itens de controle e o de
+                // tributário (logo abaixo) agora abrem tab-alertas (a
+                // tela nova, com o detalhe item por item) em vez de
+                // Ativos/Resultados.
                 if (vencidos.length > 0) {
                     itensFundidos.push(pontoAtencaoHtml({
                         icone: 'alarm-clock-off', corBg: 'bg-red-50', corTexto: 'text-red-700',
                         titulo: `${vencidos.length} controle${vencidos.length > 1 ? 's' : ''} do Cofre vencido${vencidos.length > 1 ? 's' : ''}`,
-                        subtitulo: 'IPTU, seguro ou manutenção — abrir Ativos',
-                        onclick: "switchTab('tab-ativos')"
+                        subtitulo: 'IPTU, seguro ou manutenção — ver Alertas',
+                        onclick: "switchTab('tab-alertas')"
                     }));
                 }
                 if (vencendo.length > 0) {
                     itensFundidos.push(pontoAtencaoHtml({
                         icone: 'alarm-clock', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
                         titulo: `${vencendo.length} controle${vencendo.length > 1 ? 's' : ''} vencendo nos próximos 14 dias`,
-                        subtitulo: 'IPTU, seguro ou manutenção — abrir Ativos',
-                        onclick: "switchTab('tab-ativos')"
+                        subtitulo: 'IPTU, seguro ou manutenção — ver Alertas',
+                        onclick: "switchTab('tab-alertas')"
                     }));
                 }
             } else {
@@ -18890,8 +18969,8 @@
                     itensFundidos.push(pontoAtencaoHtml({
                         icone: 'landmark', corBg: 'bg-blue-50', corTexto: 'text-blue-700',
                         titulo: `Diagnóstico tributário — ${sinais.length} ponto${sinais.length > 1 ? 's' : ''} pra conferir`,
-                        subtitulo: `Reforma tributária/NFS-e · ${totalOcorrencias} ocorrência${totalOcorrencias > 1 ? 's' : ''} na carteira · ver Resultados`,
-                        onclick: "switchTab('tab-relatorios')"
+                        subtitulo: `Reforma tributária/NFS-e · ${totalOcorrencias} ocorrência${totalOcorrencias > 1 ? 's' : ''} na carteira · ver Alertas`,
+                        onclick: "switchTab('tab-alertas')"
                     }));
                 }
             } else {
@@ -18956,9 +19035,7 @@
             mount.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Carregando resumo...</p>';
 
             let resumo = null;
-            let sinais = [];
             let erroResumo = null;
-            let erroSinais = null;
 
             try {
                 const { data, error } = await dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE });
@@ -18967,15 +19044,6 @@
             } catch (err) {
                 erroResumo = err.message;
                 console.warn('[resultados] Falha ao carregar fn_resumo_resultados:', err.message);
-            }
-
-            try {
-                const { data, error } = await dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE });
-                if (error) throw error;
-                sinais = data || [];
-            } catch (err) {
-                erroSinais = err.message;
-                console.warn('[resultados] Falha ao carregar fn_leitura_tributaria_sinais:', err.message);
             }
 
             let html = '';
@@ -18997,31 +19065,113 @@
                 html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3"><p class="text-xs text-red-500">Não foi possível carregar o resumo agora${erroResumo ? ' (' + erroResumo + ')' : ''}.</p></div>`;
             }
 
-            // --- Card 2: Diagnóstico tributário (fn_leitura_tributaria_sinais) ---
-            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3">
-                <h3 class="font-bold text-sm text-emerald-900">Diagnóstico tributário</h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">Pré-check com base nos dados cadastrados — não substitui análise fiscal. Tom de notícia, nunca recomendação.</p>`;
-            if (erroSinais) {
-                html += `<p class="text-xs text-red-500 mt-3">Não foi possível carregar o diagnóstico agora (${erroSinais}).</p>`;
-            } else if (sinais.length === 0) {
-                html += `<p class="text-xs text-slate-500 mt-3">Nenhum sinal encontrado na carteira no momento.</p>`;
-            } else {
-                html += '<div class="mt-3 space-y-2">' + sinais.map(s => `
-                    <div class="flex items-start gap-3 p-2.5 rounded-xl border border-slate-200">
-                        <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-none"><svg data-lucide="${CATEGORIA_SINAL_ICONE[s.categoria] || 'info'}" style="width:16px;height:16px"></svg></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">${CATEGORIA_SINAL_LABEL[s.categoria] || s.categoria}</span><span class="text-[10.5px] font-bold text-slate-600">${s.contagem} ocorrência${s.contagem > 1 ? 's' : ''}</span></div>
-                            <div class="text-[12px] text-slate-700 mt-1 leading-snug">${s.detalhe}</div>
-                        </div>
-                    </div>`).join('') + '</div>';
-            }
-            html += `</div>`;
+            // v1.96.3 (01/09/2026, pedido explícito: "retire a descrição
+            // dos alertas da sessão de resultados... deixe ele apenas
+            // aparecer como alerta na visão geral, ao clicar abra esta
+            // nova tela") — card "Diagnóstico tributário" SAIU daqui,
+            // mudou pra tela própria (tab-alertas, menu Configurações).
+            // fn_leitura_tributaria_sinais() não é mais buscada aqui —
+            // só em montarAlertasPatrimonio() agora, sem duplicar a
+            // busca em 2 lugares.
 
-            // --- Card 3: Cenário econômico (bloqueado, honesto) ---
+            // --- Card 2: Cenário econômico (bloqueado, honesto) ---
             html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-1">
                 <h3 class="font-bold text-sm text-emerald-900">Cenário econômico</h3>
                 <p class="text-[11px] text-slate-500 mt-0.5">IPCA, IGP-M e Selic — pendente. Este projeto ainda não tem <code>pg_net</code> instalado pra buscar a API do Banco Central; entra quando a Edge Function de indicadores for construída.</p>
             </div>`;
+
+            mount.innerHTML = html;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.96.3 (01/09/2026, pedido explícito, "criar uma tela
+        // especifica para o alertas sobre patrimonio") — tela nova
+        // (tab-alertas, menu Configurações), 2 seções:
+        //   1) Controles do Cofre vencidos/vencendo — MESMA query já
+        //      usada em carregarDadosAssincronosVisaoGeral() (Visão
+        //      Geral), mas aqui detalhada item por item (lá era só
+        //      contagem) — é o "clicar abre esta nova tela" fazendo
+        //      sentido: a Visão Geral resume, aqui está o detalhe.
+        //   2) Diagnóstico tributário — MESMO rendering que vivia em
+        //      Resultados (CATEGORIA_SINAL_LABEL/ICONE, definidos perto
+        //      de montarResumoResultados(), reaproveitados sem
+        //      duplicar), só que a busca agora só acontece aqui.
+        async function montarAlertasPatrimonio() {
+            const mount = document.getElementById('alertas-patrimonio-mount');
+            if (!mount || !CLIENTE_ID_SUPABASE) return;
+
+            mount.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Carregando...</p>';
+
+            const [resControles, resTributario] = await Promise.allSettled([
+                dbAuth.from('cofre_ocorrencias_controle')
+                    .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                    .eq('status_execucao', 'aberto')
+                    .eq('cofre_itens_controle.ativo', true)
+                    .order('data_prevista_atual'),
+                dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE })
+            ]);
+
+            let html = '';
+
+            // --- Seção 1: Controles do Cofre ---
+            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3">
+                <h3 class="font-bold text-sm text-emerald-900">Controles do patrimônio</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">IPTU, seguro e manutenção com vencimento cadastrado — toque num ativo pra abrir a ficha dele.</p>`;
+            if (resControles.status === 'fulfilled' && !resControles.value.error) {
+                const ocorrencias = resControles.value.data || [];
+                const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+                if (ocorrencias.length === 0) {
+                    html += `<p class="text-xs mt-3" style="color:var(--sage)">Nenhum controle em aberto no momento.</p>`;
+                } else {
+                    html += '<div class="mt-3 space-y-2">' + ocorrencias.map(oc => {
+                        const item = oc.cofre_itens_controle;
+                        const nomeAtivo = item?.cofre_ativos?.nome_exibicao || 'Ativo';
+                        let rotuloData = '—';
+                        let corData = 'text-slate-500';
+                        if (oc.data_prevista_atual) {
+                            const dataPrevista = new Date(oc.data_prevista_atual + 'T00:00:00');
+                            const dias = Math.round((dataPrevista - hoje) / 86400000);
+                            if (dias < 0) { rotuloData = `Venceu há ${Math.abs(dias)}d`; corData = 'text-red-600'; }
+                            else if (dias === 0) { rotuloData = 'Vence hoje'; corData = 'text-amber-600'; }
+                            else { rotuloData = `Vence em ${dias}d`; corData = dias <= 14 ? 'text-amber-600' : 'text-slate-500'; }
+                        }
+                        return `<button onclick="switchTab('tab-ativos')" class="w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
+                            <div class="min-w-0">
+                                <div class="text-xs font-bold truncate">${(item?.titulo || 'Controle').replace(/</g, '&lt;')}</div>
+                                <div class="text-[11px] text-slate-500 truncate">${nomeAtivo.replace(/</g, '&lt;')}</div>
+                            </div>
+                            <span class="text-[11px] font-bold flex-none ${corData}">${rotuloData}</span>
+                        </button>`;
+                    }).join('') + '</div>';
+                }
+            } else {
+                html += `<p class="text-xs text-red-500 mt-3">Não foi possível carregar os controles agora.</p>`;
+            }
+            html += `</div>`;
+
+            // --- Seção 2: Diagnóstico tributário ---
+            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-1">
+                <h3 class="font-bold text-sm text-emerald-900">Diagnóstico tributário</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Pré-check com base nos dados cadastrados — não substitui análise fiscal. Tom de notícia, nunca recomendação.</p>`;
+            if (resTributario.status === 'fulfilled' && !resTributario.value.error) {
+                const sinais = resTributario.value.data || [];
+                if (sinais.length === 0) {
+                    html += `<p class="text-xs mt-3" style="color:var(--sage)">Nenhum sinal encontrado na carteira no momento.</p>`;
+                } else {
+                    html += '<div class="mt-3 space-y-2">' + sinais.map(s => `
+                        <div class="flex items-start gap-3 p-2.5 rounded-xl border border-slate-200">
+                            <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-none"><svg data-lucide="${CATEGORIA_SINAL_ICONE[s.categoria] || 'info'}" style="width:16px;height:16px"></svg></div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">${CATEGORIA_SINAL_LABEL[s.categoria] || s.categoria}</span><span class="text-[10.5px] font-bold text-slate-600">${s.contagem} ocorrência${s.contagem > 1 ? 's' : ''}</span></div>
+                                <div class="text-[12px] text-slate-700 mt-1 leading-snug">${s.detalhe}</div>
+                            </div>
+                        </div>`).join('') + '</div>';
+                }
+            } else {
+                html += `<p class="text-xs text-red-500 mt-3">Não foi possível carregar o diagnóstico agora.</p>`;
+            }
+            html += `</div>`;
 
             mount.innerHTML = html;
             if (typeof lucide !== 'undefined') lucide.createIcons();

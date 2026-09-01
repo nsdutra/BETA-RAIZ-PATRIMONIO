@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.6.0 · 01/09/2026
+// Versão: 1.7.0 · 01/09/2026
+//
+// v1.7.0 — data-action-change="ativo-imovel-origem-mudou" no select
+// "Qual imóvel?" (pedido explícito, "modal não traz os campos certos"
+// — ver cofre-ativos.js v1.9.0/cofre-app.js v1.14.0).
 //
 // v1.6.0 — 2 correções achadas com screenshot real, pedido explícito
 // ("a lista de ativos está bem diferente... elimine qq menção que seja
@@ -320,7 +324,7 @@ export const ATIVOS_MARKUP = `<style>
                     </div>
                     <div id="at-origem-imovel-wrapper" class="hidden sm:col-span-2">
                         <label class="text-xs font-semibold block mb-1">Qual imóvel?</label>
-                        <select id="at-origem-imovel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></select>
+                        <select id="at-origem-imovel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-imovel-origem-mudou"></select>
                         <p class="raiz-indicador-inline" style="color:var(--sage)">Não duplica dados — este ativo só guarda documentos/fotos/alertas específicos do Cofre; o imóvel em si continua em Imóveis.</p>
                         <!-- v1.94.1 (31/08/2026, pedido explícito) — substitui
                              o botão "Cadastrar imóvel" separado na barra da

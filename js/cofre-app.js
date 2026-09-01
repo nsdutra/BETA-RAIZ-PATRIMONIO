@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.13.0 · 31/08/2026
+// Versão: 1.14.0 · 01/09/2026
+//
+// v1.14.0 — "vasculhe todo o código" (pedido explícito, 01/09/2026):
+// case 'voltar-app' corrigido — rotulado "Imóvel" (dentro do menu de
+// conta do Cofre) mas fazia reload pra './' sem parâmetro, pousando em
+// Visão Geral. Trocado por switchTab('tab-imoveis'), sem reload — hoje
+// inalcançável na prática (o header que continha o botão já é escondido
+// via CSS), corrigido mesmo assim por higiene (código morto enganoso).
+// Novo case 'ativo-imovel-origem-mudou' — ver cofre-ativos.js v1.9.0.
 //
 // v1.13.0 — "apague a aba antiga do cofre de visão geral" (pedido
 // explícito): renderAlertas() ganhou guarda defensiva, mesma razão de
@@ -216,7 +224,23 @@ document.addEventListener('click', async (ev) => {
         // é o módulo principal em si, não faz sentido montar aqui.
         // "menu-conta-em-breve" segue existindo pra Prestadores de
         // Serviço (ainda sem tela própria) e qualquer outro item futuro.
-        case 'voltar-app': window.location.href = './'; break;
+        //
+        // v1.96.2 (01/09/2026, "vasculhe todo o código... pra evitar
+        // que isto ainda tenha") — BUG REAL corrigido, mesma classe do
+        // achado em abrirGestaoImovel(): rotulado "Imóvel" mas mandava
+        // pra './' (reload completo, sem parâmetro nenhum) — pousava
+        // sempre em tab-geral (Visão Geral), nunca em Imóveis. Este
+        // botão específico está dentro do <header> do Cofre, que já é
+        // escondido via CSS no contexto embutido (ver ativos-boot.js) —
+        // hoje inalcançável na prática — mas corrigido mesmo assim
+        // (código morto enganoso é pior que código morto neutro, e o
+        // header pode voltar a aparecer no futuro). Mesma ponte de
+        // sempre: switchTab() em vez de reload.
+        case 'voltar-app':
+            fecharModal('modal-menu-conta');
+            if (typeof window.switchTab === 'function') window.switchTab('tab-imoveis');
+            else window.location.href = './';
+            break;
         case 'menu-conta-em-breve': fecharModal('modal-menu-conta'); mostrarToast(`${alvo.dataset.rotulo}: em breve.`); break;
         case 'ir-sobre': fecharModal('modal-menu-conta'); nav.mudarTela('sobre'); montarSobreCofre(); break;
         case 'ir-licenca': fecharModal('modal-menu-conta'); nav.mudarTela('licenca'); montarLicencaCofre(); break;
@@ -230,7 +254,11 @@ document.addEventListener('click', async (ev) => {
         // switchTab() sozinho (abrirAbaPorDeepLink()) — mesmo princípio
         // de segurança de abrirCofreDocumentos() no sentido contrário:
         // parâmetro de URL nunca é autorização, só sugestão de
-        // navegação.
+        // navegação. Este SIM funciona (index.html trata ?ir=), ao
+        // contrário do ?abrir=imovel que abrirGestaoImovel() usava
+        // errado — deixado como reload de propósito, é código morto
+        // (nenhum botão chama), não vale o esforço de trocar por
+        // ponte agora.
         case 'ir-app': window.location.href = './?ir=' + encodeURIComponent(alvo.dataset.tab || 'tab-geral'); break;
         case 'fechar-modal-generico': fecharModal('modal-generico'); break;
 
@@ -420,6 +448,11 @@ document.addEventListener('change', async (ev) => {
     const acao = alvo.dataset.actionChange;
     switch (acao) {
         case 'ativo-tipo-mudou': await ativos.aoMudarTipoAtivo(); break;
+        // v1.96.2 (pedido explícito, "nao traz os campos... nao todos
+        // os campos de imovel que tinhamos antes") — reage à escolha
+        // de "Qual imóvel?", não só à troca de tipo (ver
+        // atualizarCamposEstruturadosAtivo() em cofre-ativos.js).
+        case 'ativo-imovel-origem-mudou': ativos.atualizarCamposEstruturadosAtivo(); break;
         case 'upload-vinculo-tipo-mudou': await docs.aoMudarTipoVinculoUpload(); break;
         case 'fd-vincular-tipo-mudou': await docs.aoMudarTipoVinculoAgora(); break;
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;

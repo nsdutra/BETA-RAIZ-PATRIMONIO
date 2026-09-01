@@ -1,6 +1,24 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.8.0 · 01/09/2026
+// Versão: 1.9.0 · 01/09/2026
+//
+// v1.9.0 — 2 bugs reais corrigidos, pedido explícito ("vasculhe todo o
+// código... editar imóvel está indo pra tela inicial" + "modal não traz
+// os campos certos"):
+//   1) abrirGestaoImovel(): fazia window.location.href = './?abrir=
+//      imovel&ref=...' — RELOAD COMPLETO da página, e index.html nunca
+//      soube tratar ?abrir=imovel (só tratava ?ir=tab-X e ?abrir=
+//      categorias|subtipos|modelos) — sempre pousava em tab-geral
+//      (Visão Geral), nunca no imóvel. Corrigido com a mesma ponte já
+//      usada em cadastrar-imovel-app: switchTab('tab-imoveis') +
+//      editarImovel(id) direto, sem reload, sem perder estado.
+//   2) atualizarCamposEstruturadosAtivo() (nova, separada de
+//      aoMudarTipoAtivo): os campos matrícula/endereço/área/valor
+//      estimado (CAMPOS_POR_TIPO_ATIVO.imovel) apareciam SEMPRE que
+//      tipo=Imóvel, mesmo já tendo escolhido um imóvel existente em
+//      "Qual imóvel?" — redundante (o dado já existe na tabela
+//      imoveis) e criava a confusão de "campos errados aparecendo".
+//      Agora só aparecem quando NÃO há imóvel vinculado selecionado.
 //
 // v1.8.0 — pedido explícito, 01/09/2026, achado com screenshot real:
 //   1) BUG REAL corrigido em montarDadosAtivo(): a grade de dados do
@@ -443,10 +461,44 @@ export async function aoMudarTipoAtivo() {
     const tipo = document.getElementById('at-tipo').value;
     document.getElementById('at-origem-imovel-wrapper').classList.toggle('hidden', tipo !== 'imovel');
     if (tipo === 'imovel') {
-        const imoveis = await api.listarImoveisDoCliente(estado.clienteId);
-        document.getElementById('at-origem-imovel').innerHTML = imoveis.map(i => `<option value="${i.id}">${escapeHtml(i.endereco_rua)}, ${escapeHtml(i.endereco_num || '')}</option>`).join('') || '<option value="">Nenhum imóvel cadastrado</option>';
+        const imoveisCliente = await api.listarImoveisDoCliente(estado.clienteId);
+        // v1.96.2 (pedido explícito, achado real: "nao traz os campos...
+        // nao todos os campos de imovel que tinhamos antes") — opção
+        // "nenhum" explícita no topo, valor vazio de propósito (é o
+        // que atualizarCamposEstruturadosAtivo() usa pra decidir se
+        // mostra os campos avulsos ou não — ver comentário lá).
+        document.getElementById('at-origem-imovel').innerHTML =
+            '<option value="">— nenhum, cadastrar dados avulsos abaixo —</option>' +
+            imoveisCliente.map(i => `<option value="${i.id}">${escapeHtml(i.endereco_rua)}, ${escapeHtml(i.endereco_num || '')}</option>`).join('');
     }
-    document.getElementById('at-campos-estruturados').innerHTML = renderizarCamposEstruturados(tipo, {});
+    atualizarCamposEstruturadosAtivo();
+}
+
+// v1.96.2 (01/09/2026, pedido explícito, achado real com screenshot:
+// "no modal bottom sheet, ao escolher tipo de ativo = imovel, ele nao
+// traz os campos... nao todos os campos de imovel que tinhamos antes")
+// — separada de aoMudarTipoAtivo() de propósito: precisa rodar TAMBÉM
+// quando "Qual imóvel?" muda, não só quando o TIPO muda (por isso
+// ganhou data-action-change própria — ver ativos-markup.js/
+// cofre-app.js).
+//
+// O que estava confuso: CAMPOS_POR_TIPO_ATIVO.imovel (matrícula/
+// endereço/área/valor estimado) existe pro caso de um imóvel AVULSO no
+// Cofre — um bem que nunca foi cadastrado no App de verdade (ver
+// comentário original em cofre-validacoes.js, 25/08/2026). Antes desta
+// correção, esses 4 campos apareciam SEMPRE que tipo=Imóvel, mesmo
+// quando a pessoa já tinha escolhido um imóvel EXISTENTE em "Qual
+// imóvel?" — nesse caso eles são pura redundância (o endereço/valor já
+// existem na tabela imoveis, cadastrar nome ali de novo não faz
+// sentido) e pareciam "os campos errados" por estarem sobrando na
+// tela errada. Agora só aparecem quando NÃO há imóvel selecionado.
+export function atualizarCamposEstruturadosAtivo() {
+    const tipo = document.getElementById('at-tipo').value;
+    const selImovel = document.getElementById('at-origem-imovel');
+    const semImovelVinculado = tipo !== 'imovel' || !selImovel || !selImovel.value;
+    document.getElementById('at-campos-estruturados').innerHTML = semImovelVinculado
+        ? renderizarCamposEstruturados(tipo, {})
+        : `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Endereço, IPTU e valor de mercado já vêm de "${escapeHtml(selImovel.options[selImovel.selectedIndex]?.text || 'imóvel selecionado')}" — nada a preencher aqui.</p>`;
 }
 
 function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-') {
@@ -786,10 +838,29 @@ export async function salvarEdicaoAtivo() {
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
+// v1.96.2 (01/09/2026, pedido explícito, achado real: "ao clicar no
+// editar de um imóvel está indo para a tela inicial do app") — BUG
+// REAL corrigido: window.location.href = './?abrir=imovel&ref=...'
+// fazia um RELOAD COMPLETO da página (destrói todo o estado do app,
+// refaz login) — e index.html nunca soube tratar esse parâmetro de
+// URL (?abrir=imovel), então o boot só caía no padrão de sempre
+// (tab-geral, "Visão Geral" = a tela inicial que o Nicola viu). Isso é
+// resquício de um padrão pensado pra outro contexto (cofre.html
+// standalone tem seu próprio ?contexto=/&ref=, não isto).
+// Corrigido com a MESMA ponte já usada em cadastrar-imovel-app/ir-
+// vitrine-app: switchTab('tab-imoveis') primeiro (o formulário de
+// edição, como o de cadastro, é position:fixed só que preso dentro de
+// uma <section> que fica display:none quando não é a aba ativa — sem
+// trocar de aba antes, o formulário abriria "invisível") + chamar
+// editarImovel(id) direto, sem sair da página, sem perder estado.
 export function abrirGestaoImovel() {
     const a = estado.ativoEmFoco;
-    if (a?.entidade_origem_tipo === 'imovel' && a.entidade_origem_id) {
-        window.location.href = `./?abrir=imovel&ref=${encodeURIComponent(a.entidade_origem_id)}`;
+    if (a?.entidade_origem_tipo !== 'imovel' || !a.entidade_origem_id) return;
+    if (typeof window.switchTab === 'function' && typeof window.editarImovel === 'function') {
+        window.switchTab('tab-imoveis');
+        window.editarImovel(a.entidade_origem_id);
+    } else {
+        mostrarToast('Edição do imóvel só disponível dentro do app principal.', 'erro');
     }
 }
 
