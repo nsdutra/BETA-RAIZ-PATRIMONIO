@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.11.0 · 02/09/2026
+// Versão: 1.12.0 · 02/09/2026
+//
+// v1.12.0 — listarPessoasInternas() ganhou percentual_cotas_empresa no
+// select (pedido explícito: formulário de Novo Ativo precisa pré-popular
+// a divisão societária com o sócio de maior cota, mesmo default do
+// formulário antigo de imóvel). salvarPropriedadeImovel() mantida no
+// arquivo mas sem chamador ativo agora (chip passou a gravar só em
+// propriedade_ativo, "no chip de propriedade, só apresente o dos
+// ativos") — não removida porque a RPC por trás (substituir_propriedade_
+// imovel) continua ativa noutro lugar do App (popup "Divisão Societária"
+// da ficha antiga do imóvel) e pode ser útil se esse popup for corrigido
+// (ver achado reportado ao Nicola: hoje ele grava num campo
+// imoveis.divisao que não existe no schema — bug pré-existente, não
+// desta sessão).
 //
 // v1.11.0 — chip "Propriedade" (NOVO, pedido explícito: "todos os
 // ativos devem ter a definição da propriedade com % de sócio na tabela
@@ -468,7 +481,7 @@ export async function salvarPropriedadeImovel(imovelId, linhas) {
 export async function listarPessoasInternas(clienteId) {
     try {
         const { data, error } = await dbAuth.from('pessoas')
-            .select('id, nome')
+            .select('id, nome, percentual_cotas_empresa')
             .eq('cliente_id', clienteId)
             .order('nome');
         if (error) throw error;

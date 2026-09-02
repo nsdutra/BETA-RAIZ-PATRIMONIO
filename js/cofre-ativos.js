@@ -1,6 +1,22 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.12.0 · 02/09/2026
+// Versão: 1.13.0 · 02/09/2026
+//
+// v1.13.0 — 2 pedidos explícitos: (1) "migre os dados de propriedade da
+// tabela propriedade_imovel para propriedade_ativo... no chip de
+// propriedade, só apresente o dos ativos" — salvarPropriedadeAtivoAtual()
+// não chama mais substituir_propriedade_imovel em nenhuma hipótese,
+// sempre grava em propriedade_ativo (dado antigo já migrado via SQL,
+// ver DEPLOY/changelog do banco). (2) "durante a criação de um novo
+// ativo, seguir a mesma regra e funcionalidade de um novo imóvel
+// antigamente" — formulário "Novo ativo" ganhou seção de divisão
+// societária embutida (mesmo editor do chip, reaproveitado via
+// variável propriedadeEditorAlvo pra não colidir de id — os 2 ficam no
+// DOM ao mesmo tempo). Default: sócio de maior % de cotas em 100%,
+// mesmo comportamento do formulário antigo de imóvel. salvarAtivo()
+// valida soma=100% no cliente (banco também valida, dupla checagem) e
+// grava a divisão logo após criar o ativo, mesma RPC do chip. Testado
+// como authenticated real (criar ativo + gravar divisão em sequência).
 //
 // v1.12.0 — chip "Propriedade" (NOVO, pedido explícito: "todos os
 // ativos devem ter a definição da propriedade com % de sócio na tabela
@@ -502,10 +518,27 @@ function ativoCardHtml(a) {
 // abrirModal()/fecharModal() genéricos (mesmo par de funções usado por
 // todo popup do módulo), em vez do alternarToggle() (exclusivo de painel
 // inline, ex.: formulário de Contrato/Síndico no App).
-export function abrirFormAtivo() {
+export async function abrirFormAtivo() {
     document.getElementById('at-status').textContent = '';
     abrirModal('form-ativo-wrapper');
     aoMudarTipoAtivo();
+
+    // v1.11.0 (NOVO, 02/09/2026) — divisão societária embutida, mesmo
+    // editor do chip Propriedade (ver comentário em ativos-markup.js).
+    // Default: sócio de maior % de cotas em 100%, mesmo comportamento
+    // que o formulário antigo de imóvel já tinha (ver index.html,
+    // cancelarEdicaoImovel) — replicado aqui pra "seguir a mesma regra".
+    propriedadeEditorAlvo = { linhas: 'naf-pe-linhas', soma: 'naf-pe-soma' };
+    if (propriedadePessoasCache === null) {
+        propriedadePessoasCache = await api.listarPessoasInternas(estado.clienteId);
+    }
+    const socioMaiorCota = [...(propriedadePessoasCache || [])]
+        .filter(p => (p.percentual_cotas_empresa || 0) > 0)
+        .sort((a, b) => (b.percentual_cotas_empresa || 0) - (a.percentual_cotas_empresa || 0))[0];
+    propriedadeLinhasEmEdicao = socioMaiorCota
+        ? [{ tipo_proprietario: 'socio_interno', pessoa_id: socioMaiorCota.id, nome_externo: null, percentual: 100 }]
+        : [{ tipo_proprietario: 'socio_interno', pessoa_id: null, nome_externo: null, percentual: 100 }];
+    renderPropriedadeEditor();
 }
 
 export function fecharFormAtivo() {
@@ -584,6 +617,20 @@ export async function salvarAtivo() {
     const erros = validarCamposAtivo(tipo, nome, dadosEspecificos);
     if (erros.length) { statusEl.textContent = '⚠️ ' + erros[0]; statusEl.style.color = 'var(--danger)'; return; }
 
+    // v1.11.0 (NOVO, 02/09/2026) — mesma validação de soma=100% que o
+    // chip Propriedade usa, agora também na criação (DB também valida
+    // via trigger — dupla checagem, nunca confia só no cliente).
+    const somaPropriedade = propriedadeSomaAtual();
+    if (Math.round(somaPropriedade * 100) / 100 !== 100) {
+        statusEl.textContent = `⚠️ A soma da divisão societária precisa ser 100% (está em ${somaPropriedade}%).`;
+        statusEl.style.color = 'var(--danger)';
+        return;
+    }
+    for (const l of propriedadeLinhasEmEdicao) {
+        const temNome = l.tipo_proprietario === 'socio_interno' ? !!l.pessoa_id : !!(l.nome_externo && l.nome_externo.trim());
+        if (!temNome) { statusEl.textContent = '⚠️ Preencha o sócio/nome de todas as linhas da divisão societária.'; statusEl.style.color = 'var(--danger)'; return; }
+    }
+
     const payload = { cliente_id: estado.clienteId, tipo_ativo: tipo, nome_exibicao: nome, status: 'ativo', dados_especificos: dadosEspecificos, criado_por: estado.pessoa.id };
     if (tipo === 'imovel') {
         const imovelId = document.getElementById('at-origem-imovel').value;
@@ -593,7 +640,18 @@ export async function salvarAtivo() {
     }
 
     try {
-        await api.criarAtivo(payload);
+        const novoAtivo = await api.criarAtivo(payload);
+        // Divisão societária gravada logo em seguida, já com o id do
+        // ativo recém-criado — mesma RPC do chip Propriedade, nenhuma
+        // lógica duplicada.
+        const linhasParaApi = propriedadeLinhasEmEdicao.map(l => ({
+            tipo_proprietario: l.tipo_proprietario,
+            pessoa_id: l.pessoa_id || '',
+            nome_externo: l.nome_externo || '',
+            percentual: parseFloat(l.percentual) || 0
+        }));
+        await api.salvarPropriedadeAtivo(novoAtivo.id, linhasParaApi);
+
         mostrarToast('Ativo cadastrado ✅');
         document.getElementById('at-nome').value = '';
         fecharFormAtivo();
@@ -812,6 +870,17 @@ export function abrirSaidasDoAtivo() {
 // ============================================================================
 let propriedadeLinhasEmEdicao = [];
 let propriedadePessoasCache = null; // null = ainda não carregado
+// v1.13.0 (02/09/2026) — o MESMO editor (linhas + soma) agora é usado em
+// 2 lugares: o popup de "Editar divisão" do chip Propriedade (ids
+// pe-linhas/pe-soma, dentro do modal-generico) E embutido no formulário
+// de Novo Ativo (ids naf-pe-linhas/naf-pe-soma, pedido explícito:
+// "durante a criação de um novo ativo, seguir a mesma regra e
+// funcionalidade de um novo imóvel antigamente"). Como o formulário de
+// Novo Ativo é Tipo A (estático no DOM, sempre presente) e o
+// modal-generico também fica no DOM mesmo escondido, os 2 containers
+// #pe-linhas/#naf-pe-linhas coexistem — por isso o alvo é uma variável,
+// nunca um id fixo, pra não colidir.
+let propriedadeEditorAlvo = { linhas: 'pe-linhas', soma: 'pe-soma' };
 
 async function montarPropriedadeAtivo(a) {
     const lista = document.getElementById('fa-propriedade-lista');
@@ -858,11 +927,11 @@ function propriedadeLinhaHtml(l, idx) {
 }
 
 function renderPropriedadeEditor() {
-    const container = document.getElementById('pe-linhas');
+    const container = document.getElementById(propriedadeEditorAlvo.linhas);
     if (!container) return;
     container.innerHTML = propriedadeLinhasEmEdicao.map((l, i) => propriedadeLinhaHtml(l, i)).join('');
     const soma = propriedadeSomaAtual();
-    const somaEl = document.getElementById('pe-soma');
+    const somaEl = document.getElementById(propriedadeEditorAlvo.soma);
     if (somaEl) {
         somaEl.textContent = soma + '%';
         somaEl.style.color = soma === 100 ? 'var(--success)' : 'var(--danger)';
@@ -871,9 +940,8 @@ function renderPropriedadeEditor() {
 }
 
 // Funções ponte pro editor (chamadas via onchange/oninput inline, já que
-// o modal é reconstruído via innerHTML — mesmo padrão já usado nos
-// popups Tipo B do App). Expostas em window de propósito, só durante a
-// vida do modal.
+// o container é reconstruído via innerHTML — mesmo padrão já usado nos
+// popups Tipo B do App). Expostas em window de propósito.
 window.__peMudarTipo = (idx, valor) => {
     propriedadeLinhasEmEdicao[idx].tipo_proprietario = valor;
     if (valor === 'socio_interno') { propriedadeLinhasEmEdicao[idx].nome_externo = null; }
@@ -889,7 +957,7 @@ window.__peMudarNomeExterno = (idx, valor) => {
 window.__peMudarPercentual = (idx, valor) => {
     propriedadeLinhasEmEdicao[idx].percentual = valor;
     const soma = propriedadeSomaAtual();
-    const somaEl = document.getElementById('pe-soma');
+    const somaEl = document.getElementById(propriedadeEditorAlvo.soma);
     if (somaEl) { somaEl.textContent = soma + '%'; somaEl.style.color = soma === 100 ? 'var(--success)' : 'var(--danger)'; }
 };
 window.__peRemoverLinha = (idx) => {
@@ -904,6 +972,8 @@ window.__peAdicionarLinha = () => {
 export async function abrirEditarPropriedadeAtivo() {
     const a = estado.ativoEmFoco;
     if (!a) return;
+
+    propriedadeEditorAlvo = { linhas: 'pe-linhas', soma: 'pe-soma' };
 
     if (propriedadePessoasCache === null) {
         propriedadePessoasCache = await api.listarPessoasInternas(estado.clienteId);
@@ -953,14 +1023,12 @@ export async function salvarPropriedadeAtivoAtual() {
     }));
 
     try {
-        // "tabela correspondente": imóvel usa o mecanismo já existente
-        // (substituir_propriedade_imovel, App); todo o resto usa a
-        // tabela nova (substituir_propriedade_ativo).
-        if (a.entidade_origem_tipo === 'imovel' && a.entidade_origem_id) {
-            await api.salvarPropriedadeImovel(a.entidade_origem_id, linhasParaApi);
-        } else {
-            await api.salvarPropriedadeAtivo(a.id, linhasParaApi);
-        }
+        // Pedido explícito (02/09/2026): "no chip de propriedade, só
+        // apresente o dos ativos" — sempre grava em propriedade_ativo,
+        // mesmo quando o ativo referencia um imóvel (dado já migrado
+        // de propriedade_imovel nesta sessão, ver migration). Não
+        // chama mais substituir_propriedade_imovel a partir daqui.
+        await api.salvarPropriedadeAtivo(a.id, linhasParaApi);
         mostrarToast('Divisão de propriedade salva.', 'sucesso');
         fecharModal('modal-generico');
         await montarPropriedadeAtivo(a);

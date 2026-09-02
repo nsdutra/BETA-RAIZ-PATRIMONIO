@@ -1,6 +1,29 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.10.0 · 02/09/2026
+// Versão: 1.12.0 · 02/09/2026
+//
+// v1.12.0 — BUG REAL corrigido, achado com screenshot real: "esta
+// barra de rolagem nos chips nunca deve existir". A fileira de abas da
+// ficha do ativo (Dados/Contratos/.../Fotos) tinha voltado a ter
+// overflow-x-auto na v1.10.0 pra caber as 7 abas, escondendo a barra
+// via CSS (::-webkit-scrollbar{display:none}) — só que essa técnica já
+// tinha se mostrado insuficiente ANTES, na v1.95.0 (mesma barra cinza
+// com setas, indicador nativo de alguns Android/Samsung Internet que
+// ignora CSS de scrollbar) — reintroduzi sem perceber que era o mesmo
+// bug já resolvido. Corrigido de vez: flex-wrap em vez de overflow-x,
+// a fileira quebra em 2 linhas quando não cabe tudo numa só — sem
+// overflow não existe scrollbar possível, de nenhum tipo, garantido.
+// 3 comentários de changelog redundantes/parcialmente contraditórios
+// sobre esta mesma fileira (v1.95.0/v1.7.0/v1.10.0) consolidados num
+// só, pra não deixar histórico confuso pra próxima sessão.
+//
+// v1.11.0 — pedido explícito, 02/09/2026: "durante a criação de um novo
+// ativo, seguir a mesma regra e funcionalidade de um novo imóvel
+// antigamente". Formulário "Novo ativo" ganhou seção de divisão
+// societária embutida (ids naf-pe-linhas/naf-pe-soma, distintos do
+// popup do chip Propriedade — os 2 ficam no DOM ao mesmo tempo, Tipo A
+// é sempre estático). Ver cofre-ativos.js v1.13.0 pro comportamento
+// completo (default de sócio de maior cota, validação de soma=100%).
 //
 // v1.10.0 — pedido explícito, 02/09/2026: "a ordem dos chips nos ativos
 // deve ser: Dados, Contratos, Controles, Financeiro, Propriedade,
@@ -394,6 +417,27 @@ export const ATIVOS_MARKUP = `<style>
                         <button type="button" data-action="cadastrar-imovel-app" class="text-xs font-bold mt-1.5" style="color:var(--sprout)">+ Cadastrar novo imóvel</button>
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <!-- v1.11.0 (NOVO, 02/09/2026, pedido explícito: "durante a
+                         criação de um novo ativo, seguir a mesma regra e
+                         funcionalidade de um novo imóvel antigamente") —
+                         divisão societária embutida no formulário, mesmo
+                         editor do chip Propriedade (cofre-ativos.js v1.13.0),
+                         só que com ids próprios (naf-*) pra não colidir com
+                         o popup "Editar divisão" — os 2 ficam no DOM ao
+                         mesmo tempo (Tipo A é sempre estático). Pré-populado
+                         com o sócio de maior % de cotas em 100%, mesmo
+                         default que o formulário de imóvel antigo usava. -->
+                    <div class="sm:col-span-2">
+                        <p class="text-[11px] font-bold uppercase tracking-wide" style="color:var(--brass-deep)">Divisão societária</p>
+                        <div id="naf-pe-linhas" class="space-y-2 mt-2"></div>
+                        <button type="button" onclick="window.__peAdicionarLinha()" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1 mt-2">
+                            <i data-lucide="plus" style="width:11px;height:11px"></i> Adicionar sócio
+                        </button>
+                        <div class="flex items-center justify-between text-xs font-bold mt-2">
+                            <span>Soma</span>
+                            <span id="naf-pe-soma">100%</span>
+                        </div>
+                    </div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:14px;">
                     <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar ativo</button>
@@ -425,45 +469,29 @@ export const ATIVOS_MARKUP = `<style>
          nenhuma mudança de JS precisou pra isso. -->
     <div id="fa-cabecalho" class="mt-3"></div>
 
-    <!-- v1.95.0 (pedido explícito, 01/09/2026, achado com screenshot
-         real) — overflow-x-auto REMOVIDO daqui: as 5 abas cabem
-         tranquilamente numa tela de celular comum sem precisar rolar
-         (~300px de conteúdo numa viewport de 380px+); a barra cinza
-         estranha com setas que você viu na screenshot é muito
-         provavelmente o indicador de rolagem nativo de alguns
-         navegadores Android/Samsung Internet pra overflow-x:auto, que
-         NÃO respeita as técnicas de esconder scrollbar via CSS (elas
-         funcionam pro scrollbar "clássico" do desktop, não pro
-         indicador touch de alguns navegadores mobile). Trocado flex-none
-         por flex-1 (5 abas dividem o espaço igualmente, sem faltar
-         nem sobrar) — elimina a rolagem, e junto o problema, na raiz,
-         em vez de só tentar esconder o sintoma. Chips de tipo (Ativos,
-         mais itens, pode legitimamente precisar rolar) mantêm
-         overflow-x-auto + raiz-sem-scrollbar como estavam. -->
-    <!-- v1.7.0 (01/09/2026, pedido explícito, "adicione a um ativo um
-         novo chip de fluxo financeiro") — 6ª aba: Financeiro. Mesma
-         classe flex-1 das outras 5 (v1.95.0 já tinha eliminado a rolagem
-         horizontal nesta fileira de propósito) — "Financeiro" tem
-         comprimento parecido com "Documentos"/"Controles", cabe no
-         mesmo espírito sem reintroduzir rolagem. Vale conferir com
-         screenshot real depois do deploy (mesma prática já usada nesta
-         tela outras vezes), mas escolhi manter flex-1 em vez de trazer
-         de volta overflow-x-auto porque essa rolagem foi uma correção
-         explícita recente (v1.95.0) — reverter pra caber 1 aba a mais
-         iria contra o pedido de então. -->
-    <!-- v1.10.0 (02/09/2026, pedido explícito: "a ordem dos chips nos
-         ativos deve ser: Dados, Contratos, Controles, Financeiro,
-         Propriedade, Documentos e Fotos") — reordenado + 7ª aba nova
-         (Propriedade). Com 7 abas, flex-1 não cabe mais legível (texto
-         de "Documentos"/"Propriedade" ficaria espremido demais em
-         ~380-430px) — voltou a ter rolagem horizontal nesta fileira
-         específica, mas com a MESMA técnica já usada nos chips de tipo
-         (.raiz-sem-scrollbar, definida no topo deste arquivo): rola,
-         mas sem mostrar a barra. Diferente da decisão de v1.95.0 (que
-         tirou rolagem de 5 abas porque cabiam sem ela) — aqui não cabe
-         mesmo, então a rolagem some da lista de "problemas a evitar" e
-         vira a solução certa. -->
-    <div class="flex gap-1 mt-4 mb-3 overflow-x-auto raiz-sem-scrollbar" style="border-bottom:1px solid var(--line)">
+    <!-- Histórico desta fileira, resumido (comentários antigos redundantes
+         removidos em v1.12.0 pra não deixar versões contraditórias):
+         v1.95.0 tirou overflow-x-auto (5 abas cabiam em flex-1 sem
+         rolar) — achado então: a barra cinza com setas que aparece em
+         alguns Android/Samsung Internet é um indicador nativo de
+         rolagem que NÃO respeita ::-webkit-scrollbar{display:none}
+         (essa técnica só funciona pro scrollbar clássico de desktop).
+         v1.7.0/v1.10.0 mantiveram flex-1 ao adicionar Financeiro (6ª) e
+         Propriedade (7ª) — na 7ª, flex-1 já não cabia legível, e a
+         correção errada foi trazer overflow-x-auto de volta escondendo
+         via CSS, reintroduzindo exatamente o bug que a v1.95.0 já tinha
+         corrigido (mesma barra com setas voltou, confirmado por
+         screenshot real, 02/09/2026: "esta barra de rolagem nos chips
+         nunca deve existir"). v1.12.0 corrige de vez: flex-wrap, ZERO
+         overflow-x — sem overflow não existe scrollbar possível, de
+         nenhum tipo, em nenhum navegador. A fileira quebra em 2 linhas
+         quando não cabe tudo numa só. Chips de TIPO (Todos/Imóveis/
+         Veículos/Outros, na lista de Ativos) são um componente
+         DIFERENTE deste e continuam com overflow-x-auto +
+         raiz-sem-scrollbar — não tocados aqui; se o mesmo indicador
+         nativo aparecer lá também, é a próxima fileira a trocar pra
+         flex-wrap pelo mesmo motivo. -->
+    <div class="flex flex-wrap gap-1 mt-4 mb-3" style="border-bottom:1px solid var(--line)">
         <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
         <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>

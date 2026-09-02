@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.16.0 · 02/09/2026
+// Versão: 1.17.0 · 02/09/2026
+//
+// v1.17.0 — 'abrir-form-ativo' ganhou await (ativos.abrirFormAtivo()
+// virou async na v1.11.0 do cofre-ativos.js, pra pré-carregar sócios
+// internos e pré-popular a divisão societária antes do modal abrir).
 //
 // v1.16.0 — 2 cases novos pro chip "Propriedade" da ficha do ativo
 // (NOVO, pedido explícito, 02/09/2026): 'fa-editar-propriedade' e
@@ -345,7 +349,7 @@ document.addEventListener('click', async (ev) => {
         case 'escolher-candidato-vincular-agora': docs.escolherCandidatoVincularAgora(alvo.dataset.tipo, alvo.dataset.id, alvo.dataset.nome); break;
 
         // ---- ativos
-        case 'abrir-form-ativo': ativos.abrirFormAtivo(); break;
+        case 'abrir-form-ativo': await ativos.abrirFormAtivo(); break;
         case 'fechar-form-ativo': ativos.fecharFormAtivo(); break;
         case 'salvar-ativo': await ativos.salvarAtivo(); break;
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
