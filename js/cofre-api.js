@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.10.0 · 01/09/2026
+// Versão: 1.11.0 · 02/09/2026
+//
+// v1.11.0 — chip "Propriedade" (NOVO, pedido explícito: "todos os
+// ativos devem ter a definição da propriedade com % de sócio na tabela
+// correspondente"): buscarPropriedadeDoAtivo() (lê fn_propriedade_do_ativo,
+// que decide sozinha propriedade_imovel vs propriedade_ativo),
+// salvarPropriedadeAtivo()/salvarPropriedadeImovel() (escrita, 1 RPC
+// cada, nenhuma reescrita da lógica existente pro caso imóvel),
+// listarPessoasInternas() (sócios internos pro seletor do editor).
 //
 // v1.10.0 — buscarFluxoFinanceiroAtivo(ativoId): nova, pedido explícito
 // ("adicione a um ativo um novo chip de fluxo financeiro"). Chama a RPC
@@ -421,6 +429,53 @@ export async function buscarFluxoFinanceiroAtivo(ativoId) {
     } catch (e) {
         console.warn('[cofre-api] buscarFluxoFinanceiroAtivo falhou:', e);
         return { totalEntradas6m: 0, totalSaidas6m: 0, itens: [] };
+    }
+}
+
+// v1.11.0 (NOVO, 02/09/2026, pedido explícito: "todos os ativos devem
+// ter a definição da propriedade com % de sócio na tabela
+// correspondente") — chip "Propriedade" da ficha do ativo.
+// fn_propriedade_do_ativo já decide sozinha, no banco, se lê de
+// propriedade_imovel (ativo referencia imóvel) ou propriedade_ativo
+// (todo o resto) — aqui é só a chamada, sem lógica de qual tabela.
+export async function buscarPropriedadeDoAtivo(ativoId) {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_propriedade_do_ativo', { p_ativo_id: ativoId });
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.warn('[cofre-api] buscarPropriedadeDoAtivo falhou:', e);
+        return [];
+    }
+}
+
+// Escrita pro caso NÃO-imóvel (tabela nova, propriedade_ativo). Pro
+// caso imóvel, o App (index.html) já tem seu próprio salvarPropriedade
+// via substituir_propriedade_imovel — não duplicado aqui.
+export async function salvarPropriedadeAtivo(ativoId, linhas) {
+    const { error } = await dbAuth.rpc('substituir_propriedade_ativo', { p_ativo_id: ativoId, p_linhas: linhas });
+    if (error) throw error;
+}
+
+export async function salvarPropriedadeImovel(imovelId, linhas) {
+    const { error } = await dbAuth.rpc('substituir_propriedade_imovel', { p_imovel_id: imovelId, p_linhas: linhas });
+    if (error) throw error;
+}
+
+// Sócios internos (pessoas da própria empresa) — pro seletor "sócio
+// interno" do editor de divisão de propriedade. Mesmo padrão de query
+// já usado em outros pontos deste arquivo (dbAuth.from('pessoas')).
+export async function listarPessoasInternas(clienteId) {
+    try {
+        const { data, error } = await dbAuth.from('pessoas')
+            .select('id, nome')
+            .eq('cliente_id', clienteId)
+            .order('nome');
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.warn('[cofre-api] listarPessoasInternas falhou:', e);
+        return [];
     }
 }
 

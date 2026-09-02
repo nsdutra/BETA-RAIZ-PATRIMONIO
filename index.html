@@ -6,7 +6,38 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.98.0
+   VERSÃO: Beta v1.99.0
+   LINHAS: 30010
+   DATA: 02/09/2026
+   NOVIDADES (Beta v1.99.0) — aba Contratos reconstruída pro padrão
+   das outras abas primárias, pedido explícito com screenshot: "deve
+   ter o padrão dos demais, sem título, com breve descrição, com ícone
+   de filtro lupa padrão. não tem o resumo de contratos no topo."
+
+   Removidos: <h2>"Contratos"</h2> (nenhuma outra aba primária tem
+   título — DS §4.1) e o box de resumo "Contratos: N ativos / N
+   suspensos / N finalizados / N total" (idem, nenhuma outra tem).
+   Os 4 filtros (Empreendimento/Status/Imóvel/Locatário) + checkbox
+   "só com alerta", que ficavam SEMPRE visíveis ocupando a tela
+   (violava DS §5: "nenhuma aba tem filtro permanentemente visível"),
+   foram pro overlay de busca padrão novo (modal-busca-contratos,
+   mesmo componente de Recebimentos/Atrasados/Saídas — sem "Fechar"
+   no rodapé, só "Limpar filtros"). Mesmos ids de campo dos filtros —
+   renderContratos() não mudou nenhuma linha de lógica de filtro, só
+   perdeu as 4 linhas que atualizavam contadores que não existem mais.
+
+   Este changelog também documenta o trabalho feito nos arquivos do
+   Cofre nesta mesma sessão (chip Propriedade novo + reordenação dos
+   chips da ficha do ativo + tabela propriedade_ativo/RPCs no banco) —
+   ver cofre-ativos.js v1.12.0 e ativos-markup.js v1.10.0 pro
+   changelog completo, já que index.html não precisou de nenhuma
+   mudança pra isso (o chip vive inteiro dentro do módulo Ativos).
+
+   Validado: node --check limpo, balanceamento de div/section/button/
+   select/form/label ZERO diferença em relação à v1.98.0 recebida de
+   volta do Nicola.
+
+   VERSÃO ANTERIOR: Beta v1.98.0
    LINHAS: 29994
    DATA: 02/09/2026
    NOVIDADES (Beta v1.98.0) — 3 achados reais a partir de 3 screenshots
@@ -6658,6 +6689,54 @@
         </div>
     </div>
 
+    <!-- v1.99.0 (NOVO, 02/09/2026) — overlay de busca/filtro da aba
+         Contratos, mesmos 4 filtros + checkbox que existiam sempre
+         visíveis antes, agora dentro do componente padrão (sem "Fechar"
+         no rodapé, só "Limpar filtros" + X + clicar fora — DS §10). -->
+    <div id="modal-busca-contratos" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
+            <div class="p-3 border-b flex items-center justify-between flex-none">
+                <span class="font-bold text-slate-800">Buscar / Filtrar</span>
+                <button type="button" onclick="fecharBuscaContratos()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
+            </div>
+            <div class="p-3 space-y-3 overflow-y-auto">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
+                    <select id="contratos-filtro-emp" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Status</label>
+                    <select id="contratos-filtro-status" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
+                        <option value="todos">Todos</option>
+                        <option value="Assinando">Assinando</option>
+                        <option value="Ativo">Ativo</option>
+                        <option value="Suspenso">Suspenso</option>
+                        <option value="Finalizado">Finalizado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Imóvel</label>
+                    <input type="hidden" id="contratos-filtro-imovel-id" value="todos">
+                    <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('contratos-filtro-imovel-id').value = id || 'todos'; document.getElementById('contratos-filtro-imovel-resumo').textContent = resumo || 'Todos'; renderContratos(); }, true)" id="contratos-filtro-imovel-resumo" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 text-left truncate mt-1">Todos</button>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
+                    <select id="contratos-filtro-locatario" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="contratos-filtro-somente-alerta" onchange="renderContratos()" class="w-4 h-4">
+                    <label for="contratos-filtro-somente-alerta" class="text-[11px] font-bold text-gray-600">Mostrar só contratos com alerta</label>
+                </div>
+                <button type="button" onclick="document.getElementById('contratos-filtro-emp').value='todos'; document.getElementById('contratos-filtro-status').value='todos'; document.getElementById('contratos-filtro-imovel-id').value='todos'; document.getElementById('contratos-filtro-imovel-resumo').textContent='Todos'; document.getElementById('contratos-filtro-locatario').value='todos'; document.getElementById('contratos-filtro-somente-alerta').checked=false; renderContratos();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
+            </div>
+        </div>
+    </div>
+
+
 
     <!-- v1.52.0 — overlay de busca/filtro da aba Distribuição, mesmo
          componente. Filtros que já existiam (Sócio/Tipo/Mês/Ano) só
@@ -7967,91 +8046,27 @@
 
         <section id="tab-contratos" class="tab-content">
 
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Contratos</h2>
-
+            <!-- v1.99.0 (02/09/2026, pedido explícito: "deve ter o padrão
+                 dos demais, sem título, com breve descrição, com ícone de
+                 filtro lupa padrão. não tem o resumo de contratos no
+                 topo") — reconstruído pro mesmo padrão de aba primária já
+                 usado em Financeiro/Ativos (DS §4.1/§5): sem <h2>,
+                 descrição curta + ícones na mesma linha, ordem
+                 direita→esquerda (+ é a ação de maior prioridade, mais à
+                 direita; 🔍 imediatamente à esquerda dele). O box de
+                 resumo ("Contratos: N ativos / N suspensos...") foi
+                 removido — nenhuma outra aba primária tem isso. Os 4
+                 filtros (Empreendimento/Status/Imóvel/Locatário) + o
+                 checkbox "só com alerta" saíram do bloco sempre-visível
+                 (violava DS §5: "nenhuma aba tem filtro permanentemente
+                 visível ocupando espaço de tela") e foram pro overlay de
+                 busca padrão (modal-busca-contratos, mesmo componente de
+                 Recebimentos/Atrasados/Saídas) — mesmos ids de campo,
+                 renderContratos() não precisou mudar nada de lógica. -->
+            <div class="flex items-center gap-2 mb-4">
+                <p class="text-[11px] text-gray-500 flex-1 text-left">Contratos de locação do seu patrimônio.</p>
+                <button onclick="abrirBuscaContratos()" title="Buscar/filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
                 <button id="btn-toggle-contrato" onclick="alternarFormularioContrato()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar novo contrato"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
-            </div>
-
-            <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-center mb-4">
-
-                <p class="text-xs font-bold text-emerald-900">Contratos: <span id="contratos-ativos-contador" class="text-sm font-black text-green-700">0</span> ativos / <span id="contratos-suspensos-contador" class="text-sm font-black text-amber-700">0</span> suspensos / <span id="contratos-finalizados-contador" class="text-sm font-black text-red-700">0</span> finalizados / <span id="contratos-totais-contador" class="text-sm font-black">0</span> total</p>
-
-            </div>
-
-            <!-- v1.41.5 — moldura única de filtros, mesmo padrão visual da
-                 aba Recebimentos (título "Filtrar" + grid). -->
-            <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-200">
-
-                <span class="text-[11px] font-bold uppercase text-slate-500 block mb-2">Filtrar</span>
-
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
-
-                        <select id="contratos-filtro-emp" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50">
-
-                            <option value="todos">Todos</option>
-
-                        </select>
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-[11px] font-bold text-gray-500">Status</label>
-
-                        <select id="contratos-filtro-status" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50">
-
-                            <option value="todos">Todos</option>
-
-                            <option value="Assinando">Assinando</option>
-
-                            <option value="Ativo">Ativo</option>
-
-                            <option value="Suspenso">Suspenso</option>
-
-                            <option value="Finalizado">Finalizado</option>
-
-                        </select>
-
-                    </div>
-
-                    <div class="col-span-2">
-
-                        <label class="block text-[11px] font-bold text-gray-500">Imóvel</label>
-
-                        <input type="hidden" id="contratos-filtro-imovel-id" value="todos">
-                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('contratos-filtro-imovel-id').value = id || 'todos'; document.getElementById('contratos-filtro-imovel-resumo').textContent = resumo || 'Todos'; renderContratos(); }, true)" id="contratos-filtro-imovel-resumo" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 text-left truncate">Todos</button>
-
-                    </div>
-
-                    <div class="col-span-2">
-
-                        <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
-
-                        <select id="contratos-filtro-locatario" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50">
-
-                            <option value="todos">Todos</option>
-
-                        </select>
-
-                    </div>
-
-                    <!-- v1.44.2 — permite chegar aqui já filtrado "só com
-                         alerta" a partir da Visão Geral, sem precisar
-                         reimplementar a lógica de alerta em outro lugar. -->
-                    <div class="col-span-2 flex items-center gap-2 pt-1">
-                        <input type="checkbox" id="contratos-filtro-somente-alerta" onchange="renderContratos()" class="w-4 h-4">
-                        <label for="contratos-filtro-somente-alerta" class="text-[11px] font-bold text-gray-600">Mostrar só contratos com alerta</label>
-                    </div>
-
-                </div>
-
             </div>
 
             <!-- v1.48.0 — modalizado igual ao form-imovel-wrapper (Fase 1):
@@ -10074,7 +10089,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.98.0";
+        const APP_VERSAO = "Beta v1.99.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -21486,6 +21501,17 @@
             document.getElementById('modal-busca-saidas').classList.add('hidden');
         }
 
+        // v1.99.0 (NOVO, 02/09/2026) — overlay de busca da aba Contratos.
+        function abrirBuscaContratos() {
+            const modal = document.getElementById('modal-busca-contratos');
+            modal.classList.remove('hidden');
+            modal.onclick = (ev) => { if (ev.target === modal) fecharBuscaContratos(); };
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        function fecharBuscaContratos() {
+            document.getElementById('modal-busca-contratos').classList.add('hidden');
+        }
+
         // "Ver tudo em Saídas" a partir do chip Financeiro da ficha do
         // ativo (cofre-ativos.js v1.10.0) — mesmo espírito de
         // abrirFinanceiroFiltradoImovel, adaptado: a origem aqui é o
@@ -23606,20 +23632,10 @@
                 return true;
             };
 
-            // v7.3.3 — Os números-resumo agora refletem os filtros ativos
-            // (empreendimento/status), e não mais o total geral de contratos.
-            const contratosFiltradosParaContagem = contratos.filter(passaFiltroContrato);
-
-            const ativos = contratosFiltradosParaContagem.filter(c => c.status === 'Ativo').length;
-
-            document.getElementById('contratos-ativos-contador').innerText = ativos;
-
-            document.getElementById('contratos-suspensos-contador').innerText = contratosFiltradosParaContagem.filter(c => c.status === 'Suspenso').length;
-
-            document.getElementById('contratos-finalizados-contador').innerText = contratosFiltradosParaContagem.filter(c => c.status === 'Finalizado').length;
-
-            document.getElementById('contratos-totais-contador').innerText = contratosFiltradosParaContagem.length;
-
+            // v7.3.3 — Os números-resumo (removidos da tela em v1.99.0,
+            // "não tem o resumo de contratos no topo" — nenhuma outra aba
+            // primária tinha essa caixa) não são mais exibidos, mas o
+            // filtro em si continua igual.
             const pendentesRevisao = contratos.filter(contratoPrecisaRevisao).length;
 
             const vencidos = contratos.filter(contratoVencido).length;

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.15.0 · 01/09/2026
+// Versão: 1.16.0 · 02/09/2026
+//
+// v1.16.0 — 2 cases novos pro chip "Propriedade" da ficha do ativo
+// (NOVO, pedido explícito, 02/09/2026): 'fa-editar-propriedade' e
+// 'fa-salvar-propriedade' (este dentro do modal-generico, ver
+// cofre-ativos.js v1.12.0), delegando pra
+// ativos.abrirEditarPropriedadeAtivo()/ativos.salvarPropriedadeAtivoAtual().
 //
 // v1.15.0 — 2 cases novos pro chip "Financeiro" da ficha do ativo (NOVO,
 // pedido explícito, "adicione a um ativo um novo chip de fluxo
@@ -399,6 +405,11 @@ document.addEventListener('click', async (ev) => {
         // cofre-ativos.js v1.10.0 pro porquê de não duplicar formulário).
         case 'fa-novo-lancamento': ativos.abrirNovoLancamentoDoAtivo(); break;
         case 'fa-ver-saidas-ativo': ativos.abrirSaidasDoAtivo(); break;
+        // v1.16.0 (NOVO, 02/09/2026) — chip Propriedade da ficha do
+        // ativo. "fa-salvar-propriedade" é o botão de dentro do
+        // modal-generico (ver cofre-ativos.js v1.11.0).
+        case 'fa-editar-propriedade': await ativos.abrirEditarPropriedadeAtivo(); break;
+        case 'fa-salvar-propriedade': await ativos.salvarPropriedadeAtivoAtual(); break;
         case 'abrir-lightbox-foto-ativo': ativos.abrirLightboxFotoAtivo(parseInt(alvo.dataset.indice, 10)); break;
         case 'fechar-lightbox-fotos': ativos.fecharLightboxFotoAtivo(); break;
         case 'navegar-lightbox-fotos': ativos.navegarLightboxFotoAtivo(parseInt(alvo.dataset.dir, 10)); break;

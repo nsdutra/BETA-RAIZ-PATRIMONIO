@@ -1,6 +1,21 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.11.0 · 02/09/2026
+// Versão: 1.12.0 · 02/09/2026
+//
+// v1.12.0 — chip "Propriedade" (NOVO, pedido explícito: "todos os
+// ativos devem ter a definição da propriedade com % de sócio na tabela
+// correspondente"): montarPropriedadeAtivo() lê fn_propriedade_do_ativo
+// e mostra a divisão atual; abrirEditarPropriedadeAtivo()/
+// salvarPropriedadeAtivoAtual() abrem um editor (modalGenerico,
+// cofre-ui.js) com linhas sócio interno/externo + %, valida soma=100%
+// no cliente (mesma UX imediata do formulário de imóvel) ANTES de
+// chamar o RPC (que também valida via trigger — dupla checagem, nunca
+// confia só no cliente). Escreve em substituir_propriedade_imovel
+// (ativo referencia imóvel — RPC já existente, reaproveitada) ou
+// substituir_propriedade_ativo (resto — RPC nova). Chip novo chamado
+// dentro de abrirFichaAtivo(), junto dos outros 6.
+// Também: chips reordenados (ver ativos-markup.js v1.10.0 pro
+// changelog completo da ordem nova).
 //
 // v1.11.0 — 2 achados reais a partir de 3 screenshots (Family Office
 // Karen Corporation): 1) abrirGestaoImovel() agora seta
@@ -186,7 +201,7 @@
 // ============================================================================
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal } from './cofre-ui.js';
+import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
@@ -619,6 +634,7 @@ export async function abrirFichaAtivo(id) {
     await montarContratosAtivo(a);
     await montarFotosAtivo(a);
     await montarFinanceiroAtivo(a);
+    await montarPropriedadeAtivo(a);
 
     // v1.93.0 — toda vez que a ficha abre, começa na aba "Dados" (mesmo
     // comportamento do protótipo: "Ficha abre sempre em Resumo" já era
@@ -783,6 +799,176 @@ export function abrirSaidasDoAtivo() {
         mostrarToast('Tela de Saídas só disponível dentro do app principal.', 'erro');
     }
 }
+
+// ============================================================================
+// PROPRIEDADE (NOVO, v1.11.0, pedido explícito, 02/09/2026: "todos os
+// ativos devem ter a definição da propriedade com % de sócio na tabela
+// correspondente"). Leitura via fn_propriedade_do_ativo (decide sozinha
+// a tabela por trás); escrita por substituir_propriedade_ativo (não-
+// imóvel) ou substituir_propriedade_imovel (imóvel — RPC já existente,
+// não duplicada aqui). Editor é um modal dinâmico (modalGenerico,
+// cofre-ui.js), estado das linhas em memória só enquanto o modal está
+// aberto (mesmo espírito do sociosAdicionais do formulário de imóvel).
+// ============================================================================
+let propriedadeLinhasEmEdicao = [];
+let propriedadePessoasCache = null; // null = ainda não carregado
+
+async function montarPropriedadeAtivo(a) {
+    const lista = document.getElementById('fa-propriedade-lista');
+    if (!lista) return;
+    lista.innerHTML = `<p class="text-xs" style="color:var(--sage)">Carregando...</p>`;
+
+    const linhas = await api.buscarPropriedadeDoAtivo(a.id);
+
+    if (!linhas.length) {
+        lista.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhuma divisão de propriedade cadastrada ainda.</p>`;
+        return;
+    }
+
+    lista.innerHTML = linhas.map(l => `
+        <div class="raiz-bloco-interno flex items-center justify-between gap-2">
+            <span class="text-xs font-bold truncate">${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')}</span>
+            <span class="text-xs font-bold flex-none" style="color:var(--sprout)">${Number(l.percentual)}%</span>
+        </div>`).join('');
+    refrescarIcones();
+}
+
+function propriedadeSomaAtual() {
+    return propriedadeLinhasEmEdicao.reduce((s, l) => s + (parseFloat(l.percentual) || 0), 0);
+}
+
+function propriedadeLinhaHtml(l, idx) {
+    const ehInterno = l.tipo_proprietario === 'socio_interno';
+    const optsPessoas = (propriedadePessoasCache || []).map(p =>
+        `<option value="${p.id}" ${ehInterno && l.pessoa_id === p.id ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
+    return `
+        <div class="flex gap-2 items-start" data-propriedade-linha="${idx}">
+            <div class="flex-1 space-y-1">
+                <select onchange="window.__peMudarTipo(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;">
+                    <option value="socio_interno" ${ehInterno ? 'selected' : ''}>Sócio interno</option>
+                    <option value="terceiro_externo" ${!ehInterno ? 'selected' : ''}>Outro (nome livre)</option>
+                </select>
+                ${ehInterno
+                    ? `<select onchange="window.__peMudarPessoa(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;"><option value="">— selecionar —</option>${optsPessoas}</select>`
+                    : `<input type="text" value="${escapeHtml(l.nome_externo || '')}" oninput="window.__peMudarNomeExterno(${idx}, this.value)" placeholder="Nome" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">`}
+            </div>
+            <input type="number" step="0.01" value="${l.percentual ?? ''}" oninput="window.__peMudarPercentual(${idx}, this.value)" style="width:70px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;" placeholder="%">
+            <button onclick="window.__peRemoverLinha(${idx})" style="background:transparent;border:none;color:var(--danger);flex:none;padding:6px 0;"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+        </div>`;
+}
+
+function renderPropriedadeEditor() {
+    const container = document.getElementById('pe-linhas');
+    if (!container) return;
+    container.innerHTML = propriedadeLinhasEmEdicao.map((l, i) => propriedadeLinhaHtml(l, i)).join('');
+    const soma = propriedadeSomaAtual();
+    const somaEl = document.getElementById('pe-soma');
+    if (somaEl) {
+        somaEl.textContent = soma + '%';
+        somaEl.style.color = soma === 100 ? 'var(--success)' : 'var(--danger)';
+    }
+    refrescarIcones();
+}
+
+// Funções ponte pro editor (chamadas via onchange/oninput inline, já que
+// o modal é reconstruído via innerHTML — mesmo padrão já usado nos
+// popups Tipo B do App). Expostas em window de propósito, só durante a
+// vida do modal.
+window.__peMudarTipo = (idx, valor) => {
+    propriedadeLinhasEmEdicao[idx].tipo_proprietario = valor;
+    if (valor === 'socio_interno') { propriedadeLinhasEmEdicao[idx].nome_externo = null; }
+    else { propriedadeLinhasEmEdicao[idx].pessoa_id = null; }
+    renderPropriedadeEditor();
+};
+window.__peMudarPessoa = (idx, pessoaId) => {
+    propriedadeLinhasEmEdicao[idx].pessoa_id = pessoaId || null;
+};
+window.__peMudarNomeExterno = (idx, valor) => {
+    propriedadeLinhasEmEdicao[idx].nome_externo = valor;
+};
+window.__peMudarPercentual = (idx, valor) => {
+    propriedadeLinhasEmEdicao[idx].percentual = valor;
+    const soma = propriedadeSomaAtual();
+    const somaEl = document.getElementById('pe-soma');
+    if (somaEl) { somaEl.textContent = soma + '%'; somaEl.style.color = soma === 100 ? 'var(--success)' : 'var(--danger)'; }
+};
+window.__peRemoverLinha = (idx) => {
+    propriedadeLinhasEmEdicao.splice(idx, 1);
+    renderPropriedadeEditor();
+};
+window.__peAdicionarLinha = () => {
+    propriedadeLinhasEmEdicao.push({ tipo_proprietario: 'socio_interno', pessoa_id: null, nome_externo: null, percentual: '' });
+    renderPropriedadeEditor();
+};
+
+export async function abrirEditarPropriedadeAtivo() {
+    const a = estado.ativoEmFoco;
+    if (!a) return;
+
+    if (propriedadePessoasCache === null) {
+        propriedadePessoasCache = await api.listarPessoasInternas(estado.clienteId);
+    }
+
+    const linhasAtuais = await api.buscarPropriedadeDoAtivo(a.id);
+    propriedadeLinhasEmEdicao = linhasAtuais.length
+        ? linhasAtuais.map(l => ({ tipo_proprietario: l.tipo_proprietario, pessoa_id: l.pessoa_id, nome_externo: l.nome_externo, percentual: l.percentual }))
+        : [{ tipo_proprietario: 'socio_interno', pessoa_id: null, nome_externo: null, percentual: 100 }];
+
+    modalGenerico('Editar divisão de propriedade', `
+        <div id="pe-linhas" class="space-y-2 mb-2"></div>
+        <button onclick="window.__peAdicionarLinha()" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1 mb-3">
+            <i data-lucide="plus" style="width:11px;height:11px"></i> Adicionar sócio
+        </button>
+        <div class="flex items-center justify-between text-xs font-bold border-t border-slate-100 pt-2 mb-3">
+            <span>Soma</span>
+            <span id="pe-soma">100%</span>
+        </div>
+        <div class="flex gap-2">
+            <button data-action="fechar-modal-generico" class="flex-1" style="background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Cancelar</button>
+            <button data-action="fa-salvar-propriedade" class="flex-1" style="background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+        </div>
+    `);
+    renderPropriedadeEditor();
+}
+
+export async function salvarPropriedadeAtivoAtual() {
+    const a = estado.ativoEmFoco;
+    if (!a) return;
+
+    const soma = propriedadeSomaAtual();
+    if (Math.round(soma * 100) / 100 !== 100) {
+        mostrarToast(`A soma precisa ser exatamente 100% (está em ${soma}%).`, 'erro');
+        return;
+    }
+    for (const l of propriedadeLinhasEmEdicao) {
+        const temNome = l.tipo_proprietario === 'socio_interno' ? !!l.pessoa_id : !!(l.nome_externo && l.nome_externo.trim());
+        if (!temNome) { mostrarToast('Preencha o sócio/nome de todas as linhas.', 'erro'); return; }
+    }
+
+    const linhasParaApi = propriedadeLinhasEmEdicao.map(l => ({
+        tipo_proprietario: l.tipo_proprietario,
+        pessoa_id: l.pessoa_id || '',
+        nome_externo: l.nome_externo || '',
+        percentual: parseFloat(l.percentual) || 0
+    }));
+
+    try {
+        // "tabela correspondente": imóvel usa o mecanismo já existente
+        // (substituir_propriedade_imovel, App); todo o resto usa a
+        // tabela nova (substituir_propriedade_ativo).
+        if (a.entidade_origem_tipo === 'imovel' && a.entidade_origem_id) {
+            await api.salvarPropriedadeImovel(a.entidade_origem_id, linhasParaApi);
+        } else {
+            await api.salvarPropriedadeAtivo(a.id, linhasParaApi);
+        }
+        mostrarToast('Divisão de propriedade salva.', 'sucesso');
+        fecharModal('modal-generico');
+        await montarPropriedadeAtivo(a);
+    } catch (err) {
+        mostrarToast('Erro ao salvar: ' + (err.message || String(err)), 'erro');
+    }
+}
+
 
 // ---- Dados do ativo (box 1 — campos estruturados por tipo, incl. valor estimado)
 // v1.85 — virou async: quando o ativo referencia um imóvel do App

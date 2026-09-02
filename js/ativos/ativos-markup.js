@@ -1,6 +1,19 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.9.0 · 02/09/2026
+// Versão: 1.10.0 · 02/09/2026
+//
+// v1.10.0 — pedido explícito, 02/09/2026: "a ordem dos chips nos ativos
+// deve ser: Dados, Contratos, Controles, Financeiro, Propriedade,
+// Documentos e Fotos." Reordenado (era Dados/Documentos/Controles/
+// Contratos/Financeiro/Fotos) + 7ª aba nova: Propriedade (painel
+// #fa-painel-propriedade — mostra a divisão societária do ativo +
+// botão "Editar divisão", conteúdo montado por montarPropriedadeAtivo()/
+// abrirEditarPropriedadeAtivo(), cofre-ativos.js v1.12.0). Com 7 abas,
+// flex-1 não cabe mais legível — a fileira (.fa-subtab) voltou a rolar
+// horizontalmente, mas com a mesma técnica de sempre (.raiz-sem-scrollbar):
+// rola, sem mostrar barra. Diferente da decisão de v1.95.0 (retirou
+// rolagem de 5 abas porque cabiam sem ela) — aqui não cabe mesmo, então
+// a rolagem é a solução certa, não o problema que aquela versão evitou.
 //
 // v1.9.0 — gap de CSS achado a partir de 3 screenshots (Family Office
 // Karen Corporation, 02/09/2026): .card-ativo/.card-doc (a moldura
@@ -438,13 +451,26 @@ export const ATIVOS_MARKUP = `<style>
          de volta overflow-x-auto porque essa rolagem foi uma correção
          explícita recente (v1.95.0) — reverter pra caber 1 aba a mais
          iria contra o pedido de então. -->
-    <div class="flex gap-1 mt-4 mb-3" style="border-bottom:1px solid var(--line)">
-        <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Financeiro</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="fotos" class="fa-subtab flex-1 text-center text-xs font-bold px-1 py-2 text-slate-500" style="border-bottom:2px solid transparent">Fotos</button>
+    <!-- v1.10.0 (02/09/2026, pedido explícito: "a ordem dos chips nos
+         ativos deve ser: Dados, Contratos, Controles, Financeiro,
+         Propriedade, Documentos e Fotos") — reordenado + 7ª aba nova
+         (Propriedade). Com 7 abas, flex-1 não cabe mais legível (texto
+         de "Documentos"/"Propriedade" ficaria espremido demais em
+         ~380-430px) — voltou a ter rolagem horizontal nesta fileira
+         específica, mas com a MESMA técnica já usada nos chips de tipo
+         (.raiz-sem-scrollbar, definida no topo deste arquivo): rola,
+         mas sem mostrar a barra. Diferente da decisão de v1.95.0 (que
+         tirou rolagem de 5 abas porque cabiam sem ela) — aqui não cabe
+         mesmo, então a rolagem some da lista de "problemas a evitar" e
+         vira a solução certa. -->
+    <div class="flex gap-1 mt-4 mb-3 overflow-x-auto raiz-sem-scrollbar" style="border-bottom:1px solid var(--line)">
+        <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Financeiro</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="propriedade" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Propriedade</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="fotos" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Fotos</button>
     </div>
 
     <!-- ===== Painel: Dados ===== -->
@@ -492,45 +518,6 @@ export const ATIVOS_MARKUP = `<style>
         </div>
     </div>
 
-    <!-- ===== Painel: Documentos =====
-         v1.93.0 — antes era um MODAL (modal-documentos-ativo, aberto via
-         pill "Documentos" em Mais ações). Movido pra cá, inline, igual
-         ao protótipo — mesmos 2 botões de upload (Com IA/Upload simples,
-         mesmos data-action de sempre) + mesma lista (#fa-tab-documentos,
-         mesmo id, mesma montarDocumentosAtivo() que já preenchia —
-         nenhuma mudança de JS precisou só por causa da mudança de
-         lugar). O modal em si foi removido do HTML (ver changelog). -->
-    <div id="fa-painel-documentos" class="fa-painel hidden space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900 mb-2">Documentos</h3>
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sprout); color:var(--sprout)">
-                    <i data-lucide="sparkles" style="width:16px;height:16px"></i> Com IA
-                </button>
-                <button data-action="abrir-upload-no-ativo-simples" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sage); color:var(--sage)">
-                    <i data-lucide="upload" style="width:16px;height:16px"></i> Upload simples
-                </button>
-            </div>
-            <div id="fa-tab-documentos" class="space-y-2"></div>
-        </div>
-    </div>
-
-    <!-- ===== Painel: Controles ===== -->
-    <div id="fa-painel-controles" class="fa-painel hidden space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
-            <div id="fa-tab-controles" class="mt-1.5"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-controles" class="text-xs font-bold text-slate-500 flex items-center gap-1">
-                    Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-controles-seta" style="width:13px;height:13px"></i>
-                </button>
-            </div>
-            <div id="fa-mais-acoes-controles" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <button data-action="abrir-form-controle" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Criar item de controle</button>
-            </div>
-        </div>
-    </div>
-
     <!-- ===== Painel: Contratos (NOVO, v1.93.0, pedido explícito) =====
          Só existe conteúdo de verdade quando o ativo referencia um
          imóvel (entidade_origem_tipo='imovel') — outros tipos de ativo
@@ -547,6 +534,22 @@ export const ATIVOS_MARKUP = `<style>
             <h3 class="font-bold text-sm text-emerald-900">Contratos</h3>
             <p class="text-[11px] mt-0.5" style="color:var(--sage)">Reajuste, minuta e rescisão continuam na aba Contratos.</p>
             <div id="fa-contratos-lista" class="mt-3 space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- ===== Painel: Controles ===== -->
+    <div id="fa-painel-controles" class="fa-painel hidden space-y-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
+            <div id="fa-tab-controles" class="mt-1.5"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="alternar-mais-acoes-controles" class="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-controles-seta" style="width:13px;height:13px"></i>
+                </button>
+            </div>
+            <div id="fa-mais-acoes-controles" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
+                <button data-action="abrir-form-controle" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Criar item de controle</button>
+            </div>
         </div>
     </div>
 
@@ -574,6 +577,56 @@ export const ATIVOS_MARKUP = `<style>
             </div>
         </div>
     </div>
+
+    <!-- ===== Painel: Propriedade (NOVO, v1.10.0, pedido explícito,
+         02/09/2026: "todos os ativos devem ter a definição da
+         propriedade com % de sócio na tabela correspondente") — mostra
+         a distribuição atual (sócio/parte + %) e permite editar, mesmo
+         espírito da "Divisão Societária" que já existia pra imóvel,
+         agora estendida pra qualquer tipo de ativo. Backend: 1 RPC de
+         leitura que decide sozinha a tabela (fn_propriedade_do_ativo —
+         propriedade_imovel quando o ativo referencia um imóvel,
+         propriedade_ativo pra todo o resto), 1 RPC de escrita
+         (substituir_propriedade_ativo, só usada quando NÃO é imóvel —
+         imóvel continua escrevendo por substituir_propriedade_imovel,
+         já usada em outro lugar do App, não duplicada aqui). Montado
+         por montarPropriedadeAtivo() (cofre-ativos.js). -->
+    <div id="fa-painel-propriedade" class="fa-painel hidden space-y-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900">Propriedade</h3>
+            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Divisão societária deste ativo.</p>
+            <div id="fa-propriedade-lista" class="mt-3 space-y-2"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="fa-editar-propriedade" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1">
+                    <i data-lucide="pencil" style="width:11px;height:11px"></i> Editar divisão
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Painel: Documentos =====
+         v1.93.0 — antes era um MODAL (modal-documentos-ativo, aberto via
+         pill "Documentos" em Mais ações). Movido pra cá, inline, igual
+         ao protótipo — mesmos 2 botões de upload (Com IA/Upload simples,
+         mesmos data-action de sempre) + mesma lista (#fa-tab-documentos,
+         mesmo id, mesma montarDocumentosAtivo() que já preenchia —
+         nenhuma mudança de JS precisou só por causa da mudança de
+         lugar). O modal em si foi removido do HTML (ver changelog). -->
+    <div id="fa-painel-documentos" class="fa-painel hidden space-y-3">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm text-emerald-900 mb-2">Documentos</h3>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sprout); color:var(--sprout)">
+                    <i data-lucide="sparkles" style="width:16px;height:16px"></i> Com IA
+                </button>
+                <button data-action="abrir-upload-no-ativo-simples" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sage); color:var(--sage)">
+                    <i data-lucide="upload" style="width:16px;height:16px"></i> Upload simples
+                </button>
+            </div>
+            <div id="fa-tab-documentos" class="space-y-2"></div>
+        </div>
+    </div>
+
 
     <!-- ===== Painel: Fotos ===== -->
     <div id="fa-painel-fotos" class="fa-painel hidden space-y-3">
