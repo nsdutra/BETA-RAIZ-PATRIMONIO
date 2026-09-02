@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.10.0 · 01/09/2026
+// Versão: 1.11.0 · 02/09/2026
+//
+// v1.11.0 — 2 achados reais a partir de 3 screenshots (Family Office
+// Karen Corporation): 1) abrirGestaoImovel() agora seta
+// window.fichaOrigemAoEditarImovel = 'tab-ativos' antes de trocar de
+// aba — sem isso, fechar/salvar a edição do imóvel deixava a tela
+// antiga tab-imoveis vazando por baixo do modal fechado (o mecanismo de
+// retorno já existia pronto no index.html, só faltava esse chamador).
+// 2) renderChipsAtivos() ganhou wrap.scrollLeft = 0 depois de toda
+// renderização — fileira de chips (Todos/Imóveis/Veículos/Outros)
+// sempre descansa encostada à esquerda, nunca mostra corte residual de
+// scroll. Ver ativos-markup.js v1.9.0 pro 3º achado desta rodada
+// (.card-ativo/.card-doc sem CSS no contexto embutido).
 //
 // v1.10.0 — 6ª aba da ficha do ativo: Financeiro (NOVO, pedido explícito,
 // 01/09/2026, "adicione a um ativo um novo chip de fluxo financeiro").
@@ -348,6 +360,16 @@ function renderChipsAtivos() {
         const ativo = i === chipAtivoAtual;
         return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="flex-none text-[11px] font-bold px-3 py-1.5 rounded-full transition ${ativo ? 'text-white' : 'bg-white text-slate-600 border border-slate-300'}" ${ativo ? 'style="background:var(--pine)"' : ''}>${escapeHtml(g.rotulo)} · ${qtd}</button>`;
     }).join('');
+    // v1.9.0 (02/09/2026, pedido explícito: "os chips devem correr na
+    // horizontal mas sem deixar a mostra a rolagem") — a barra em si já
+    // estava escondida (.raiz-sem-scrollbar, ver ativos-markup.js), mas
+    // nada garantia que a fileira sempre DESCANSA encostada à esquerda:
+    // se a pessoa arrastasse pra ver "Outros" e depois trocasse de chip,
+    // o innerHTML era reconstruído no MESMO elemento, e sobrar scroll
+    // residual fazia o 1º chip ("Todos") aparecer cortado mesmo sem
+    // ninguém estar arrastando — o efeito que o Nicola reportou. Reset
+    // explícito, incondicional, depois de toda renderização.
+    wrap.scrollLeft = 0;
 }
 
 // Chamada pelo dispatch central (cofre-app.js, case 'filtrar-ativos-chip').
@@ -960,6 +982,17 @@ export function abrirGestaoImovel() {
     const a = estado.ativoEmFoco;
     if (a?.entidade_origem_tipo !== 'imovel' || !a.entidade_origem_id) return;
     if (typeof window.switchTab === 'function' && typeof window.editarImovel === 'function') {
+        // BUG FIX (02/09/2026, achado pelo Nicola com screenshot: "ao sair
+        // do modal, aparece a tela antiga de lista dos imóveis") — faltava
+        // dizer ao App de onde essa edição veio. window.fichaOrigemAoEditarImovel
+        // é uma variável já existente no index.html (mecanismo já pronto
+        // de "Voltar sempre pra origem real", DS §4.2) — só nunca tinha
+        // um chamador que setasse 'tab-ativos'. cancelarEdicaoImovel()
+        // já sabe fazer switchTab(origem) sozinha ao fechar/salvar; a
+        // troca pra tab-imoveis abaixo é só pra deixar o modal Tipo A
+        // visível (ele fica preso numa <section> display:none fora da
+        // aba ativa) — nunca deveria "grudar" ali depois de fechado.
+        window.fichaOrigemAoEditarImovel = 'tab-ativos';
         window.switchTab('tab-imoveis');
         window.editarImovel(a.entidade_origem_id);
     } else {

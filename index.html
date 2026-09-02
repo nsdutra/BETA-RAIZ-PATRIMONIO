@@ -6,7 +6,55 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.97.0
+   VERSÃO: Beta v1.98.0
+   LINHAS: 29994
+   DATA: 02/09/2026
+   NOVIDADES (Beta v1.98.0) — 3 achados reais a partir de 3 screenshots
+   (Family Office Karen Corporation, tenant de teste): 1 bug de navegação
+   + 1 gap de CSS que já existia desde a v1.7.0 do Cofre, só nunca tinha
+   sido encontrado + 1 ajuste de scroll.
+
+   1) BUG REAL — "Editar" na ficha do ativo (aba Dados) abria o modal de
+   edição do imóvel certinho, mas ao fechar/salvar não voltava pra
+   tab-ativos — ficava vazando a tela antiga e secundária tab-imoveis
+   (só imóveis, sem veículos/outros, layout diferente) por baixo do
+   modal fechado. Causa: abrirGestaoImovel() (cofre-ativos.js) trocava
+   pra tab-imoveis só pra deixar o modal Tipo A visível (ele vive preso
+   numa <section> display:none fora da aba ativa), mas nunca dizia ao
+   App de onde a edição tinha vindo. Corrigido reaproveitando um
+   mecanismo que já existia pronto no código (fichaOrigemAoEditarImovel,
+   variável órfã desde uma refatoração anterior, mantida só pra não
+   quebrar cancelarEdicaoImovel()) — ganhou o chamador que faltava, zero
+   lógica nova escrita, cobre "Fechar/X" e "Salvar" ao mesmo tempo.
+
+   2) GAP DE CSS ACHADO — mesma classe de bug já corrigida uma vez
+   (v1.96.0, .modal-overlay/.modal-box), só que numa 2ª regra que tinha
+   ficado de fora daquela varredura: .card-ativo/.card-doc (a moldura
+   branca com borda que separa cada card na lista) também só existiam
+   no <style> do <head> de cofre.html standalone — nunca chegaram ao
+   contexto embutido no App. O HTML/JS de cada card sempre esteve
+   correto (ícone, título, endereço, status, chip de alerta —
+   ativoCardHtml() já montava tudo certo); só a caixa em volta nunca
+   tinha CSS pra existir. Migrado o mesmo valor exato do cofre.html
+   (border 2px #e2e8f0, radius 14px, fundo branco) pro <style> injetado
+   em ativos-markup.js — mesmo padrão já usado pro bloco de modais.
+
+   3) CHIPS DE TIPO (Todos/Imóveis/Veículos/Outros) — a barra de rolagem
+   já estava escondida (.raiz-sem-scrollbar), mas nada garantia que a
+   fileira sempre descansasse encostada à esquerda depois de trocar de
+   filtro — scroll residual podia deixar "Todos" cortado sem ninguém
+   estar arrastando. renderChipsAtivos() (cofre-ativos.js) ganhou reset
+   explícito de scrollLeft=0 depois de toda renderização.
+
+   Validado: node --check nos 2 arquivos JS tocados + no bloco JS deste
+   HTML: sem erro de sintaxe. Balanceamento de div/section/button/select/
+   form/label/style: ZERO diferença em relação ao arquivo desta mesma
+   sessão antes da edição (a versão v1.97.0 recebida de volta do Nicola
+   bate byte a byte com o que eu tinha entregado — confirmado por diff
+   antes de tocar em qualquer linha, então este changelog edita
+   exatamente o código de produção, não uma cópia desatualizada).
+
+   VERSÃO ANTERIOR: Beta v1.97.0
    LINHAS: 29937
    DATA: 01/09/2026
    NOVIDADES (Beta v1.97.0) — pedido explícito: "vamos evoluir para o
@@ -10026,7 +10074,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.97.0";
+        const APP_VERSAO = "Beta v1.98.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -19460,11 +19508,20 @@
         // depois de salvar uma edição) não deve "esquecer" a origem original.
         let fichaImovelOrigemTab = null;
 
-        // v1.55.0 — CORRIGIDO: mantida (mesmo sem mais chamador ativo desde
-        // que "Detalhes" virou popup próprio, não passa mais por
-        // editarImovel()) porque cancelarEdicaoImovel() ainda a referencia
-        // — ficaria "fichaOrigemAoEditarImovel is not defined" se eu tivesse
-        // deixado órfã.
+        // v1.55.0 — mantida mesmo sem chamador ativo então (desde que
+        // "Detalhes" virou popup próprio) porque cancelarEdicaoImovel()
+        // ainda a referencia.
+        // REVIVIDA v1.98.0 (02/09/2026, bug real achado pelo Nicola:
+        // "editar da ficha do ativo, ao sair do modal, cai na tela
+        // antiga de imóveis") — abrirGestaoImovel() (cofre-ativos.js)
+        // agora seta esta variável pra 'tab-ativos' antes de trocar de
+        // aba (precisa passar por tab-imoveis só pra deixar o modal Tipo
+        // A visível — ele vive preso numa <section> que é display:none
+        // fora da aba ativa). A lógica de retorno em cancelarEdicaoImovel()
+        // (linhas abaixo) já existia pronta e nunca precisou mudar —
+        // só ganhou um chamador novo. Cobre "Fechar/X" E "Salvar"
+        // (saveImovel() chama cancelarEdicaoImovel() antes do seu
+        // próprio pós-salvar).
         let fichaOrigemAoEditarImovel = null;
 
         // v1.45.0 — rastreia de onde uma edição de contrato foi aberta

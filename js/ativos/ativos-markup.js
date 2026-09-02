@@ -1,6 +1,20 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.8.0 · 01/09/2026
+// Versão: 1.9.0 · 02/09/2026
+//
+// v1.9.0 — gap de CSS achado a partir de 3 screenshots (Family Office
+// Karen Corporation, 02/09/2026): .card-ativo/.card-doc (a moldura
+// branca com borda 2px que separa cada card na lista) nunca tiveram
+// CSS no contexto embutido no App — existiam só no <style> do <head>
+// de cofre.html standalone, mesma classe de gap já corrigida uma vez
+// pra .modal-overlay/.modal-box (v1.95.1) e que tinha passado batido
+// nesta regra específica. Migrado o valor exato do cofre.html (border
+// 2px #e2e8f0, radius 14px, fundo branco) pro <style> injetado aqui —
+// mesmo padrão do bloco de modais, logo abaixo dele. O HTML de cada
+// card sempre esteve certo (ícone, título, endereço, status, chip de
+// alerta) — só a caixa em volta nunca teve onde nascer visualmente.
+// Ver cofre-ativos.js v1.11.0 pros outros 2 achados desta mesma rodada
+// (bug do "Editar" não voltando pra tab-ativos + scroll dos chips).
 //
 // v1.8.0 — 6ª aba na ficha do ativo: Financeiro (NOVO, pedido explícito,
 // "adicione a um ativo um novo chip de fluxo financeiro onde é possível
@@ -165,6 +179,22 @@ export const ATIVOS_MARKUP = `<style>
     .modal-overlay { position: fixed; inset: 0; z-index: 96; align-items: flex-end; justify-content: center; background: rgba(23,33,30,.5); }
     .modal-overlay:not(.hidden) { display: flex; }
     .modal-box { background: #fff; border-radius: 16px 16px 0 0; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; }
+
+    /* v1.9.0 (02/09/2026, pedido explícito com 3 screenshots: "cada
+       ativo deve aparecer num box com moldura e fundo") — MESMO GAP do
+       bloco acima (.modal-overlay/.modal-box), só que nunca tinha sido
+       encontrado: .card-ativo/.card-doc também só existiam no <style>
+       do <head> de cofre.html standalone, nunca extraídas junto pro
+       contexto embutido no App. Efeito prático: o card da lista de
+       Ativos sempre teve TODO o conteúdo certo (ícone, título, endereço,
+       status, chip de alerta — ativoCardHtml() já montava tudo isso
+       direito), só nunca teve moldura/fundo/sombra visíveis — parecia
+       uma lista "pobre" sem caixa nenhuma, não porque faltava HTML, mas
+       porque a classe que desenha a caixa nunca chegou a existir aqui.
+       Mesmo valor exato do cofre.html (border 2px #e2e8f0, radius 14px,
+       fundo branco) — não inventei um novo, só migrei o que já existia. */
+    .card-doc, .card-ativo { border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; transition: border-color .15s; }
+    .card-doc:hover, .card-ativo:hover { border-color: var(--pine-light); }
 
 </style><div id="tela-bootstrap" class="hidden"></div>
 <div id="tela-erro-acesso" class="hidden"></div>
