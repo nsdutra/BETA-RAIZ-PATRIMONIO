@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.0.0 · 26/08/2026
+// Versão: 1.1.0 · 02/09/2026
+//
+// v1.1.0 — pedido explícito: "resolva as pendências de cores listadas".
+// 3 usos de emerald-* trocados: barra de uso (era bg-emerald-500, é
+// status semântico — DS §14 — virou var(--success), par de
+// var(--danger)/var(--warning) que os outros 2 estados já usavam
+// hardcoded fora de token também, corrigidos junto); nome do plano e
+// status viraram var(--pine).
 //
 // v1.0.0 — PRIMEIRA VERSÃO. Extraído de index.html (Beta v1.63.0 —
 // inicializarLicenca()/carregarLicencaAtual()) pra módulo compartilhado —
@@ -142,7 +149,9 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
         ? '<p class="text-xs text-gray-500 text-center py-4">Este plano não tem funcionalidades com limite configurado.</p>'
         : funcionalidades.map(f => {
             const pct = f.limite ? Math.min(100, Math.round((f.usado / f.limite) * 100)) : 0;
-            const corBarra = pct >= 100 ? 'bg-red-500' : (pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500');
+            // v1.4.0 (02/09/2026) — barra de uso é status semântico
+            // (perigo/atenção/OK), token certo por definição (DS §14).
+            const corBarraStyle = pct >= 100 ? 'background:var(--danger)' : (pct >= 80 ? 'background:var(--warning)' : 'background:var(--success)');
             return `
                 <div class="border-2 border-slate-300 rounded-xl p-2.5">
                     <div class="flex justify-between items-center mb-1">
@@ -150,7 +159,7 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
                         <span class="text-[11px] font-bold text-slate-500">${f.usado} / ${f.limite}</span>
                     </div>
                     <div class="w-full bg-gray-100 rounded-full h-1.5">
-                        <div class="${corBarra} h-1.5 rounded-full" style="width:${pct}%"></div>
+                        <div class="h-1.5 rounded-full" style="width:${pct}%;${corBarraStyle}"></div>
                     </div>
                     ${f.limiteAviso ? `<p class="text-[10px] text-gray-400 mt-1">Aviso a partir de ${f.limiteAviso}</p>` : ''}
                 </div>`;
@@ -163,11 +172,11 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
             <div class="space-y-2">
                 <div class="flex justify-between items-center pb-2 border-b border-gray-200">
                     <span class="text-sm font-bold text-slate-700">Plano:</span>
-                    <span class="text-sm font-black text-emerald-700">${nomePlano}</span>
+                    <span class="text-sm font-black" style="color:var(--pine)">${nomePlano}</span>
                 </div>
                 <div class="flex justify-between items-center pb-2 border-b border-gray-200">
                     <span class="text-sm font-bold text-slate-700">Status:</span>
-                    <span class="text-sm font-bold text-emerald-600">${status}</span>
+                    <span class="text-sm font-bold" style="color:var(--pine)">${status}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-bold text-slate-700">Vigência:</span>

@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.14.0 · 02/09/2026
+// Versão: 1.15.0 · 02/09/2026
+//
+// v1.15.0 — pedido explícito: "resolva as pendências de cores
+// listadas". 10 usos de emerald-* trocados por token (--sprout-light/
+// --pine): 3 ícones-box de card (idênticos, ativoCardHtml), título de
+// card rico (h3), box+valor de resumo financeiro (Entradas 6 meses).
 //
 // v1.14.0 — comentário da seção Propriedade corrigido (não descreve
 // mais um caminho "imóvel escreve na tabela antiga" — propriedade_ativo
@@ -484,11 +489,11 @@ function ativoCardHtml(a) {
         const titulo = [resumoImovel.empreendimento || 'Sem empreendimento', resumoImovel.tipo, finalidadeLabel[resumoImovel.finalidadeUso] || 'Long Stay'].filter(Boolean).join(' · ');
 
         return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-start">
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none overflow-hidden">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--sprout-light);color:var(--pine)">
                 ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
             </div>
             <div class="flex-1 min-w-0">
-                <h3 class="text-xs font-extrabold text-emerald-950 truncate">${escapeHtml(titulo)}</h3>
+                <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(titulo)}</h3>
                 <div class="text-xs text-slate-500 truncate">${escapeHtml(a.nome_exibicao)}</div>
                 <div class="flex items-center justify-between gap-2 mt-1">
                     <span class="text-xs text-slate-700 truncate">${escapeHtml(situacaoEsquerda)}</span>
@@ -505,7 +510,7 @@ function ativoCardHtml(a) {
     // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
     // ainda carregado) — mesmo formato de sempre.
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--sprout-light);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
@@ -682,7 +687,7 @@ export async function abrirFichaAtivo(id) {
     // título de página. Mesmo id, mesmo innerHTML, só o tamanho mudou.
     document.getElementById('fa-cabecalho').innerHTML = `
         <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--sprout-light);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
             <div class="min-w-0 flex-1">
                 <p class="text-sm font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
                 <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
@@ -802,9 +807,9 @@ async function montarFinanceiroAtivo(a) {
     const fluxo = await api.buscarFluxoFinanceiroAtivo(a.id);
 
     painelResumo.innerHTML = `
-        <div class="bg-emerald-50 rounded-lg p-2.5 border border-emerald-100">
+        <div class="rounded-lg p-2.5 border" style="background:var(--sprout-light);border-color:var(--sprout)">
             <p class="text-[10px] font-bold uppercase" style="color:var(--sage)">Entradas (6 meses)</p>
-            <p class="text-sm font-extrabold text-emerald-800 mt-0.5">${fmtMoeda(fluxo.totalEntradas6m)}</p>
+            <p class="text-sm font-extrabold mt-0.5" style="color:var(--pine)">${fmtMoeda(fluxo.totalEntradas6m)}</p>
         </div>
         <div class="bg-amber-50 rounded-lg p-2.5 border border-amber-100">
             <p class="text-[10px] font-bold uppercase" style="color:var(--sage)">Saídas (6 meses)</p>

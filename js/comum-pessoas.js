@@ -1,6 +1,15 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.2.0 · 28/08/2026
+// Versão: 1.3.0 · 02/09/2026
+//
+// v1.3.0 — pedido explícito: "resolva as pendências de cores listadas".
+// 9 usos de emerald-* trocados por token: 2 pares bg-emerald-50/text-
+// emerald-700/border-emerald-200 (botões leves) → var(--sprout-light)/
+// var(--pine)/var(--sprout); 2 bg-emerald-600 (ação principal) →
+// var(--pine); 1 text-emerald-900 (título "Pessoas") → var(--pine) —
+// mesmo hex oficial da marca, Tailwind emerald-900 (#064e3b) não bate
+// exatamente com --pine (#1e3a32), por isso vale trocar mesmo em uso
+// já "certo" visualmente.
 //
 // v1.2.0 (28/08/2026) — BUG REAL corrigido, reportado pelo Nicola: a
 // seção de comunicações deixava clicar no checkbox/escolher frequência,
@@ -263,7 +272,7 @@ function comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap) {
             <p class="text-[10px] text-gray-400 mt-0.5">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
             ${semWhatsapp ? '<p class="text-[10px] mt-1" style="color:var(--warning)">⚠️ Sem WhatsApp cadastrado — os avisos não chegam até preencher o número acima.</p>' : ''}
             <div class="mt-1">${linhas}</div>
-            <button type="button" data-acao="salvar-comunicacoes" data-id="${p.id}" class="mt-2 w-full flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] py-1.5 rounded-lg font-bold">
+            <button type="button" data-acao="salvar-comunicacoes" data-id="${p.id}" class="mt-2 w-full flex items-center justify-center gap-1.5 border text-[11px] py-1.5 rounded-lg font-bold" style="background:var(--sprout-light);color:var(--pine);border-color:var(--sprout)">
                 <svg data-lucide="check" style="width:12px;height:12px"></svg> Salvar avisos desta pessoa
             </button>
         </div>`;
@@ -285,7 +294,7 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
     const botaoAcesso = temLogin && !perfilTravado
         ? `<button type="button" data-acao="desvincular" data-id="${p.id}" class="w-full flex items-center justify-center gap-1.5 bg-red-50 text-red-600 border border-red-200 text-[11px] py-2 rounded-lg font-bold"><svg data-lucide="user-x" style="width:13px;height:13px"></svg> Remover acesso ao sistema</button>`
         : (!temLogin && p.id ? `
-            <button type="button" data-acao="criar-acesso" data-id="${p.id}" class="w-full flex items-center justify-center gap-1.5 bg-emerald-600 text-white text-[11px] py-2 rounded-lg font-bold"><svg data-lucide="user-check" style="width:13px;height:13px"></svg> Criar Acesso (envia e-mail para definir senha)</button>
+            <button type="button" data-acao="criar-acesso" data-id="${p.id}" class="w-full flex items-center justify-center gap-1.5 text-white text-[11px] py-2 rounded-lg font-bold" style="background:var(--pine)"><svg data-lucide="user-check" style="width:13px;height:13px"></svg> Criar Acesso (envia e-mail para definir senha)</button>
             <button type="button" data-acao="vincular" data-id="${p.id}" class="w-full text-gray-500 text-[10px] py-1 underline">ou vincular a um login já existente no Supabase</button>
           ` : (!temLogin && !p.id ? '<p class="text-gray-400 text-[10px]">Salve esta pessoa antes de criar o acesso.</p>' : ''));
 
@@ -298,7 +307,7 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
                     ${badgesAcessoHtml(modulosPorPerfil, p.perfil)}
                 </button>
                 <div class="flex gap-1.5 flex-none">
-                    <button type="button" data-acao="alternar-detalhe" data-alvo="${idSeguro}" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
+                    <button type="button" data-acao="alternar-detalhe" data-alvo="${idSeguro}" title="Editar" class="w-7 h-7 flex items-center justify-center rounded-full border" style="background:var(--sprout-light);color:var(--pine);border-color:var(--sprout)"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                     ${botaoRemover}
                 </div>
             </div>
@@ -356,12 +365,12 @@ export async function montarAbaPessoas(mountEl, ctx) {
 
     mountEl.innerHTML = `
         <div class="flex items-center gap-3 mb-4">
-            <h2 class="text-lg font-bold text-emerald-900 flex-1">Pessoas</h2>
+            <h2 class="text-lg font-bold flex-1" style="color:var(--pine)">Pessoas</h2>
             <button type="button" id="cp-btn-nova" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Nova pessoa"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         </div>
         <p class="text-[11px] text-gray-500 mb-4">Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.</p>
         <div id="cp-lista" class="space-y-3 mb-4"><p class="text-xs text-center text-gray-400 py-4">Carregando pessoas...</p></div>
-        <button type="button" id="cp-btn-salvar" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Pessoas</button>
+        <button type="button" id="cp-btn-salvar" class="w-full text-white p-2.5 rounded-lg font-bold text-sm shadow" style="background:var(--pine)">Salvar Pessoas</button>
     `;
 
     if (!dbAuth || !clienteId) {

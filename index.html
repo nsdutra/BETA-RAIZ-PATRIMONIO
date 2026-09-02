@@ -6,7 +6,63 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.102.0
+   VERSÃO: Beta v1.104.0
+   LINHAS: 30364
+   DATA: 02/09/2026
+   NOVIDADES (Beta v1.104.0) — pedido explícito: "pode evoluir mais nos
+   ajustes das cores". 1ª fatia de `index.html` (212 ocorrências reais,
+   número atualizado — pendência antiga registrava 71): 105 convertidas
+   nesta rodada, via classes utilitárias novas no <style> global
+   (.raiz-text-pine, .raiz-bg-pine, .raiz-btn-pine, .raiz-bg-sprout-light,
+   .raiz-border-sprout — troca só o NOME da classe Tailwind pelo
+   utilitário, preserva o resto do atributo class="" intacto, mais
+   seguro em escala do que editar style="" elemento por elemento).
+
+   Convertidas: text-emerald-900 (34, títulos), bg-emerald-600 sozinho e
+   em par com hover:bg-emerald-500 (25, botões de ação primária —
+   "Salvar X"/"Dar Baixa"/"Recibo"/etc.), text-emerald-700 (18, exceto 1
+   caso de status), bg-emerald-50 (12), border-emerald-200 (7).
+
+   ACHADO NO CAMINHO — 3 ocorrências eram na verdade badge de STATUS
+   ("Alugado"/"ATIVO"/"Pago"), não cor de marca: usavam emerald em vez
+   do bg-green-100/text-green-800 que o Design System já documenta pra
+   esse status e que o resto do app já usa — alinhadas ao padrão
+   correto (Tailwind literal, não token), não convertidas pra --pine
+   (teriam perdido o significado semântico de "sucesso").
+
+   NÃO MEXIDO nesta rodada, de propósito — 107 ocorrências restantes,
+   majoritariamente uma família visual diferente (UI de fundo escuro:
+   splash, login, menus sobre fundo escuro, telas de erro, vitrine
+   pública) que já tem histórico próprio de tratamento cuidadoso
+   registrado neste changelog (contraste WCAG sinalizado numa entrega
+   anterior, decisão consciente de escopo à parte da splash/login).
+   Continuar nesta família pede validação visual real (contraste em fundo
+   escuro é mais fácil de errar sem navegador) — fica pendência própria,
+   não decidi sozinho.
+
+   VERSÃO ANTERIOR: Beta v1.103.0
+   LINHAS: 30309
+   DATA: 02/09/2026
+   NOVIDADES (Beta v1.103.0) — BUG REAL corrigido, achado pelo Nicola
+   com 3 screenshots: "há despesas lançadas que, ao atualizar a tela
+   não aparecem por lá". Causa: renderSaidas() só era chamada de dentro
+   das próprias mutações (salvarDespesa/confirmarPagamento/etc.) — nunca
+   ao simplesmente abrir a aba depois de um boot fresco. Testado: dado
+   e RLS de lancamentos estavam corretos (confirmado via query idêntica
+   como authenticated real), só faltava o gancho de renderização que
+   toda outra aba lazy já tem (tab-relatorios/tab-partes/tab-alertas).
+   Corrigido com o mesmo padrão.
+
+   Os outros 3 achados desta rodada (largura das caixas de Ativos mais
+   estreita que o padrão, chips com barra de rolagem na lista de Ativos,
+   pendências de cores) foram resolvidos nos arquivos do Cofre — ver
+   ativos-markup.js v1.14.0, cofre-ativos.js v1.15.0, cofre-controles.js
+   v1.10.0, cofre-documentos.js v1.7.0, comum-pessoas.js v1.3.0,
+   comum-licenca.js v1.1.0, comum-minha-empresa.js v1.1.0. Nenhuma
+   mudança própria de index.html pra esses 3 (o problema vivia inteiro
+   no módulo Ativos).
+
+   VERSÃO ANTERIOR: Beta v1.102.0
    LINHAS: 30274
    DATA: 02/09/2026
    NOVIDADES (Beta v1.102.0) — 3 pedidos explícitos sobre a tela de
@@ -3829,7 +3885,7 @@
        daquele salvamento (mantém o padrão "1 histórico por salvamento",
        não cria entrada separada).
      - Botão de salvar do contrato renomeado "Firmar/Atualizar Contrato"
-       → "Salvar Contrato", cor padronizada (bg-emerald-600, igual ao de
+       → "Salvar Contrato", cor padronizada (raiz-bg-pine, igual ao de
        Imóvel).
      - Lista de contratos: ícone de alerta movido para a fileira de ações
        (junto de editar/histórico/excluir, em vez de badge solto no meio
@@ -6191,7 +6247,7 @@
        os demais cards da aba (estava com borda mais fina e sem margem)
      - Títulos de todas as abas padronizados (tamanho/cor/posição/fonte)
        seguindo o padrão de "Faturamento Mensal": text-lg font-bold
-       text-emerald-900
+       raiz-text-pine
      - Números-resumo do topo de Imóveis e Contratos agora refletem os
        filtros ativos (empreendimento/status), não mais o total geral
 
@@ -6500,6 +6556,27 @@
             word-break: keep-all;
 
         }
+
+        /* v1.104.0 (02/09/2026, pedido explícito: "pode evoluir mais nos
+           ajustes das cores") — utilitárias raiz-* pra trocar classes
+           Tailwind emerald-* (fora do sistema de tokens) por --pine/
+           --sprout, em escala, sem precisar mexer em style="" inline
+           elemento por elemento (mais seguro pra 200+ ocorrências —
+           troca só o NOME da classe, preserva o resto do atributo
+           class="" intacto). Cobre os casos "seguros" desta rodada
+           (títulos, botões de ação em cards/formulários, pills de
+           editar) — NÃO cobre splash/login nem os ícones do cabeçalho
+           global, que já têm histórico próprio de tratamento cuidadoso
+           (contraste WCAG sinalizado antes, decisão consciente de
+           escopo) e ficam de fora de propósito, não por esquecimento. */
+        .raiz-text-pine { color: var(--pine) !important; }
+        .raiz-bg-pine { background: var(--pine) !important; }
+        .raiz-bg-pine-deep { background: var(--pine-deep) !important; }
+        .raiz-border-pine { border-color: var(--pine) !important; }
+        .raiz-bg-sprout-light { background: var(--sprout-light) !important; }
+        .raiz-border-sprout { border-color: var(--sprout) !important; }
+        .raiz-btn-pine { background: var(--pine) !important; }
+        .raiz-btn-pine:hover { background: var(--pine-light) !important; }
 
     </style>
 
@@ -6875,14 +6952,14 @@
 
             <div id="contratacao-publica-form-wrapper" class="hidden">
 
-                <h2 class="text-lg font-bold text-emerald-900 mb-1">Dados para o Contrato</h2>
+                <h2 class="text-lg font-bold raiz-text-pine mb-1">Dados para o Contrato</h2>
                 <p id="contratacao-publica-imovel-resumo" class="text-[12px] text-gray-500 mb-4"></p>
 
                 <form id="form-contratacao-publica" onsubmit="enviarFormularioContratacaoPublico(event)" class="space-y-4">
 
                     <!-- Bloco 1 — Identificação -->
                     <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">1. Identificação</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5">1. Identificação</p>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">Nome completo <span style="color:var(--danger)">*</span></label>
@@ -6899,7 +6976,7 @@
 
                     <!-- Bloco 2 — Contato -->
                     <div class="pt-1 border-t border-gray-100">
-                        <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5 mt-3">2. Contato</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">2. Contato</p>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">WhatsApp <span style="color:var(--danger)">*</span></label>
@@ -6916,7 +6993,7 @@
 
                     <!-- Bloco 3 — Endereço -->
                     <div class="pt-1 border-t border-gray-100">
-                        <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5 mt-3">3. Endereço</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">3. Endereço</p>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">Endereço atual (rua/avenida) <span style="color:var(--danger)">*</span></label>
@@ -6964,7 +7041,7 @@
 
                     <!-- Bloco 4 — Informações complementares -->
                     <div class="pt-1 border-t border-gray-100">
-                        <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5 mt-3">4. Informações complementares</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">4. Informações complementares</p>
                         <div class="space-y-3">
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
@@ -6986,7 +7063,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" id="btn-enviar-contratacao-publica" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Enviar Dados</button>
+                    <button type="submit" id="btn-enviar-contratacao-publica" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Enviar Dados</button>
 
                 </form>
 
@@ -6994,9 +7071,9 @@
 
             <div id="contratacao-publica-sucesso" class="hidden text-center py-10">
                 <svg data-lucide="check-circle-2" style="width:48px;height:48px;color:var(--pine);margin:0 auto"></svg>
-                <p class="text-sm font-bold text-emerald-900 mt-3">Dados enviados!</p>
+                <p class="text-sm font-bold raiz-text-pine mt-3">Dados enviados!</p>
                 <p class="text-xs text-gray-500 mt-1">O locador foi notificado e em breve dará um retorno.</p>
-                <button onclick="fecharTelaContratacaoPublica()" class="mt-5 bg-emerald-600 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow">OK</button>
+                <button onclick="fecharTelaContratacaoPublica()" class="mt-5 raiz-bg-pine text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow">OK</button>
             </div>
 
         </div>
@@ -7054,7 +7131,7 @@
 
                 <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base" onkeydown="if(event.key==='Enter') fazerLoginSupabase();">
 
-                <button id="btn-login-supabase" onclick="fazerLoginSupabase()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2 text-base">
+                <button id="btn-login-supabase" onclick="fazerLoginSupabase()" class="w-full raiz-btn-pine text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2 text-base">
                     <span>Entrar</span>
                 </button>
 
@@ -7070,7 +7147,7 @@
 
                 <input type="password" id="confirma-nova-senha" placeholder="Confirme a nova senha" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base" onkeydown="if(event.key==='Enter') definirNovaSenha();">
 
-                <button onclick="definirNovaSenha()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95">
+                <button onclick="definirNovaSenha()" class="w-full raiz-btn-pine text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95">
                     Salvar Senha e Entrar
                 </button>
 
@@ -7642,7 +7719,7 @@
             <div class="bg-white p-4 rounded-xl shadow-sm mt-4 border border-gray-200">
                 <div class="flex justify-between items-start gap-3">
                     <div>
-                        <h3 class="font-bold text-sm text-emerald-900">Atenção necessária</h3>
+                        <h3 class="font-bold text-sm raiz-text-pine">Atenção necessária</h3>
                         <p class="text-[11px] text-slate-500 mt-0.5">O que pede alguma ação agora.</p>
                     </div>
                 </div>
@@ -7651,7 +7728,7 @@
 
             <div class="bg-white p-4 rounded-xl shadow-sm mt-4 border border-gray-200 flex items-center justify-between gap-3">
                 <div>
-                    <h3 class="font-bold text-sm text-emerald-900">Relatórios</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Relatórios</h3>
                     <p class="text-[11px] text-slate-500 mt-0.5">Análise detalhada de ocupação e receita.</p>
                 </div>
                 <button onclick="switchTab('tab-relatorios')" class="text-xs font-bold text-emerald-800 flex items-center gap-1">Abrir <svg data-lucide="chevron-right" style="width:14px;height:14px"></svg></button>
@@ -8617,7 +8694,7 @@
 
                 </div>
 
-                <button type="submit" id="btn-salvar-con" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Contrato</button>
+                <button type="submit" id="btn-salvar-con" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Contrato</button>
 
                 </form>
 
@@ -8629,7 +8706,7 @@
 
             <p id="banner-revisao-contratos" class="hidden bg-red-50 border border-red-200 text-red-700 text-[13px] font-bold p-2 rounded-lg mb-3"></p>
 
-            <h2 class="text-lg font-bold text-emerald-900 mb-4">Contratos de Locação Ativos</h2>
+            <h2 class="text-lg font-bold raiz-text-pine mb-4">Contratos de Locação Ativos</h2>
 
             <div id="lista-contratos" class="space-y-3 mb-6"></div>
 
@@ -8982,7 +9059,7 @@
                 <p class="text-xs text-slate-400 text-center py-6">Carregando resumo...</p>
             </div>
 
-            <h2 class="text-lg font-bold text-emerald-900 mb-4">Métricas</h2>
+            <h2 class="text-lg font-bold raiz-text-pine mb-4">Métricas</h2>
 
             <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-200">
 
@@ -9025,7 +9102,7 @@
 
             
 
-            <h2 class="text-sm font-bold mt-4 mb-2 text-emerald-900">Mês a Mês</h2>
+            <h2 class="text-sm font-bold mt-4 mb-2 raiz-text-pine">Mês a Mês</h2>
 
             <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[11px]"></div>
 
@@ -9062,7 +9139,7 @@
                  (origemAoAbrirAlertas), nunca um destino fixo. -->
             <button onclick="voltarDeAlertas()" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
 
-            <h2 class="text-lg font-bold text-emerald-900 mb-1">Alertas</h2>
+            <h2 class="text-lg font-bold raiz-text-pine mb-1">Alertas</h2>
             <p class="text-[11px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
 
             <!-- v1.102.0 (NOVO, pedido explícito: "deve ser possível, via
@@ -9129,7 +9206,7 @@
 
         <section id="tab-developer" class="tab-content">
 
-            <h2 class="text-lg font-bold text-emerald-900 mb-4">⚙️ Central do Desenvolvedor</h2>
+            <h2 class="text-lg font-bold raiz-text-pine mb-4">⚙️ Central do Desenvolvedor</h2>
 
             <p class="text-[11px] text-gray-500 mb-4">Aba de depuração ativada. Use as ferramentas abaixo para monitorar a gravação de contratos e a integridade do banco.</p>
 
@@ -9208,8 +9285,8 @@
 
         
             <!-- ============ NOVA SEÇÃO: E-MAIL MANUAL ============ -->
-            <div class="bg-emerald-50 border-2 border-emerald-300 p-3 rounded-xl mb-4">
-                <p class="text-xs font-black text-emerald-700 mb-2">📧 Disparar E-mail Manual (Teste)</p>
+            <div class="raiz-bg-sprout-light border-2 border-emerald-300 p-3 rounded-xl mb-4">
+                <p class="text-xs font-black raiz-text-pine mb-2">📧 Disparar E-mail Manual (Teste)</p>
                 <div class="space-y-2">
                     <select id="dev-email-tipo" class="w-full p-2 border rounded bg-white text-sm">
                         <option value="">-- Selecione o tipo de e-mail --</option>
@@ -9217,7 +9294,7 @@
                         <option value="dia01">📌 Email Lembrete (Fechamento de Mês)</option>
                     </select>
                     <input type="email" id="dev-email-destino" placeholder="E-mail de destino (teste)" class="w-full p-2 border rounded text-sm">
-                    <button onclick="dev_dispararEmailManual()" class="w-full bg-emerald-600 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">
+                    <button onclick="dev_dispararEmailManual()" class="w-full raiz-bg-pine text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">
                         🚀 Disparar E-mail de Teste
                     </button>
                 </div>
@@ -9320,7 +9397,7 @@
                  breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Síndicos / Gestoras</h2>
+                <h2 class="text-lg font-bold raiz-text-pine flex-1">Síndicos / Gestoras</h2>
 
                 <button id="btn-toggle-sindico" onclick="alternarFormularioSindico()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar síndico"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
@@ -9399,7 +9476,7 @@
 
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Síndico</button>
+                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Síndico</button>
 
                 </form>
 
@@ -9445,7 +9522,7 @@
                  breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Partes</h2>
+                <h2 class="text-lg font-bold raiz-text-pine flex-1">Partes</h2>
 
                 <button id="btn-toggle-parte" onclick="alternarFormularioParte()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar parte"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
@@ -9550,7 +9627,7 @@
 
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Parte</button>
+                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Parte</button>
 
                 </form>
 
@@ -9575,7 +9652,7 @@
                  breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Manutencistas</h2>
+                <h2 class="text-lg font-bold raiz-text-pine flex-1">Manutencistas</h2>
 
                 <button id="btn-toggle-manutencista" onclick="alternarFormularioManutencista()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar manutencista"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
@@ -9622,7 +9699,7 @@
 
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Manutencista</button>
+                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Manutencista</button>
 
                 </form>
 
@@ -9647,7 +9724,7 @@
                  breadcrumb nenhum. -->
             <div class="flex items-center gap-3 mb-4">
 
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Administradoras</h2>
+                <h2 class="text-lg font-bold raiz-text-pine flex-1">Administradoras</h2>
 
                 <button id="btn-toggle-administradora" onclick="alternarFormularioAdministradora()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar administradora"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
@@ -9702,7 +9779,7 @@
 
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Administradora</button>
+                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Administradora</button>
 
                 </form>
 
@@ -9717,7 +9794,7 @@
 
             <div class="flex items-center gap-3 mb-4">
 
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Minutas de Contrato</h2>
+                <h2 class="text-lg font-bold raiz-text-pine flex-1">Minutas de Contrato</h2>
 
                 <button id="btn-minutizar-ia" onclick="abrirWizardMinutizacao()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Gerar de um contrato real"><svg data-lucide="wand-2" style="width:20px;height:20px"></svg></button>
 
@@ -9802,22 +9879,22 @@
 
                         <div class="flex items-center justify-between">
                             <label class="block text-xs font-bold text-gray-600">Arquivo do Modelo (.docx) <span style="color:var(--danger)">*</span></label>
-                            <button type="button" onclick="abrirAjudaPlaceholdersMinuta()" class="text-[11px] font-bold text-emerald-700 underline">Ver placeholders disponíveis</button>
+                            <button type="button" onclick="abrirAjudaPlaceholdersMinuta()" class="text-[11px] font-bold raiz-text-pine underline">Ver placeholders disponíveis</button>
                         </div>
 
                         <p class="text-[11px] text-gray-400 mt-0.5 mb-1.5">Envie o contrato em Word (.docx), com os {{placeholders}} escritos nos pontos que variam por locatário/imóvel/contrato — é esse arquivo que o sistema abre e preenche na hora de gerar um contrato de verdade. <strong>PDF ainda não é aceito aqui</strong> (a função de gerar a minuta automaticamente a partir de um contrato real em PDF/Word está em desenvolvimento — quando pronta, funciona diferente disto: você sobe o contrato já assinado e o sistema propõe os {{placeholders}} sozinho, pra você conferir antes de salvar).</p>
 
                         <div id="minuta-arquivo-atual-info" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 mb-1.5 flex items-center justify-between gap-2">
-                            <a id="minuta-arquivo-atual-link" href="#" target="_blank" class="text-[12px] font-bold text-emerald-700 underline truncate flex items-center gap-1"><svg data-lucide="file-text" style="width:13px;height:13px;flex:none"></svg> <span id="minuta-arquivo-atual-nome"></span></a>
+                            <a id="minuta-arquivo-atual-link" href="#" target="_blank" class="text-[12px] font-bold raiz-text-pine underline truncate flex items-center gap-1"><svg data-lucide="file-text" style="width:13px;height:13px;flex:none"></svg> <span id="minuta-arquivo-atual-nome"></span></a>
                         </div>
 
                         <input type="file" id="minuta-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
 
-                        <p id="minuta-arquivo-novo-nome" class="text-[11px] text-emerald-700 font-bold mt-0.5"></p>
+                        <p id="minuta-arquivo-novo-nome" class="text-[11px] raiz-text-pine font-bold mt-0.5"></p>
 
                     </div>
 
-                    <button type="submit" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Minuta</button>
+                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Minuta</button>
 
                 </form>
 
@@ -9879,7 +9956,7 @@
                         <input type="file" id="minz-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
                     </div>
 
-                    <button type="button" onclick="processarArquivoMinutizacao()" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Continuar</button>
+                    <button type="button" onclick="processarArquivoMinutizacao()" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Continuar</button>
 
                 </div>
 
@@ -9925,7 +10002,7 @@
 
             <div class="flex items-center gap-3 mb-4">
 
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Tipo de Empreendimento</h2>
+                <h2 class="text-lg font-bold raiz-text-pine flex-1">Tipo de Empreendimento</h2>
 
                 <button id="btn-toggle-tipo-empreendimento" onclick="alternarFormularioTipoEmpreendimento()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar tipo de empreendimento"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
@@ -9945,7 +10022,7 @@
 
                     </div>
 
-                    <button onclick="dev_param_criarEmpreendimento()" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Empreendimento</button>
+                    <button onclick="dev_param_criarEmpreendimento()" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Empreendimento</button>
 
                 </div>
 
@@ -9961,7 +10038,7 @@
 
             <div class="flex items-center gap-3 mb-4">
 
-                <h2 class="text-lg font-bold text-emerald-900 flex-1">Tipo de Imóvel</h2>
+                <h2 class="text-lg font-bold raiz-text-pine flex-1">Tipo de Imóvel</h2>
 
                 <button id="btn-toggle-tipo-imovel" onclick="alternarFormularioTipoImovel()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar tipo de imóvel"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
@@ -9981,7 +10058,7 @@
 
                     </div>
 
-                    <button onclick="dev_param_criarTipoImovel()" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Tipo</button>
+                    <button onclick="dev_param_criarTipoImovel()" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Tipo</button>
 
                 </div>
 
@@ -10058,7 +10135,7 @@
 
                 </button>
 
-                <button onclick="dispararAcaoDoMenu('pdf')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow">
+                <button onclick="dispararAcaoDoMenu('pdf')" class="w-full raiz-btn-pine text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow">
 
                     <svg data-lucide="download" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Gerar e Baixar PDF Oficial
 
@@ -10066,7 +10143,7 @@
 
                 <div class="pt-2 border-t border-emerald-900 grid grid-cols-2 gap-2">
 
-                    <button onclick="dispararAcaoDoMenu('zap')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[13px] py-2.5 rounded-xl flex items-center justify-center gap-1 transition active:scale-95 shadow">
+                    <button onclick="dispararAcaoDoMenu('zap')" class="raiz-btn-pine text-white font-bold text-[13px] py-2.5 rounded-xl flex items-center justify-center gap-1 transition active:scale-95 shadow">
 
                         <svg data-lucide="message-circle" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> WhatsApp
 
@@ -10168,7 +10245,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.102.0";
+        const APP_VERSAO = "Beta v1.104.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -10562,7 +10639,7 @@
                         <p class="text-sm text-slate-200">🔒 Este aparelho ainda não tem acesso aprovado ao sistema.</p>
                         <p class="text-xs text-slate-400">Se você é sócio, solicite acesso abaixo. Um administrador vai aprovar e, a partir daí, este aparelho entra direto, sem precisar disso de novo.</p>
                     </div>
-                    <button id="btn-solicitar-acesso-socio-negado" onclick="solicitarAcessoSocio()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition active:scale-95">
+                    <button id="btn-solicitar-acesso-socio-negado" onclick="solicitarAcessoSocio()" class="w-full raiz-btn-pine text-white font-bold py-3 px-6 rounded-xl shadow-lg transition active:scale-95">
                         👤 Solicitar Acesso como Sócio
                     </button>
                     <button onclick="location.reload()" class="w-full bg-emerald-800 text-slate-300 border border-emerald-700 font-bold py-2.5 px-6 rounded-xl transition active:scale-95 text-sm">
@@ -12878,7 +12955,7 @@
                 html += lista.map(function(imo) {
                     const endereco = (imo.enderecoRua || '') + ', ' + (imo.enderecoNum || '') + (imo.enderecoComp ? ' - ' + imo.enderecoComp : '');
                     const resumo = '[' + (imo.empreendimento || '-') + '] ' + endereco;
-                    const statusCor = imo.status === 'Alugado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+                    const statusCor = imo.status === 'Alugado' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-700';
                     return `<button type="button" onclick="selecionarImovelDoSeletor('${imo.id}', '${resumo.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 active:scale-[0.98] transition">
                         <div class="flex items-center gap-2 mb-1 flex-wrap">
                             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${statusCor}">${imo.status || '-'}</span>
@@ -15699,7 +15776,7 @@
                 const lc = Array.isArray(limCon.data) ? limCon.data[0] : limCon.data;
 
                 const badgeStatus = lic.status === 'ativo'
-                    ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">ATIVO</span>'
+                    ? '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[10px] font-bold">ATIVO</span>'
                     : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">' + lic.status.toUpperCase() + '</span>';
 
                 const dataExpiracaoInput = lic.data_expiracao ? lic.data_expiracao.substring(0, 10) : '';
@@ -16060,6 +16137,19 @@
             // v1.96.3 (pedido explícito) — Alertas: mesmo padrão.
             if (tabId === 'tab-alertas' && typeof montarAlertasPatrimonio === 'function') {
                 montarAlertasPatrimonio();
+            }
+            // v1.103.0 (02/09/2026) — BUG REAL corrigido, achado pelo
+            // Nicola: "há despesas lançadas que, ao atualizar a tela não
+            // aparecem por lá". Causa: renderSaidas() só era chamada de
+            // dentro das próprias mutações (salvarDespesa/confirmarPagamento/
+            // etc.) — nunca ao simplesmente ABRIR a aba depois de um boot
+            // fresco. `lancamentos` já carregava certinho (confirmado: dado
+            // e RLS corretos, testado como authenticated real), só nunca
+            // tinha o gancho de renderização que toda outra aba lazy tem
+            // (mesmo padrão de tab-relatorios/tab-partes/tab-alertas logo
+            // acima — faltou só nesta).
+            if (tabId === 'tab-saidas' && typeof renderSaidas === 'function') {
+                renderSaidas();
             }
             // v1.80.0 — Ativos: import dinâmico, mesmo padrão já usado pras
             // abas de Configurações (Licença/Sobre/Pessoas/Minha Empresa)
@@ -17620,7 +17710,7 @@
                 .join('');
 
             container.innerHTML = __minzEstado.sugestoes.map(function(s) {
-                const corConfianca = s.confianca === 'alta' ? 'text-emerald-700' : (s.confianca === 'media' ? 'text-amber-700' : 'text-slate-500');
+                const corConfianca = s.confianca === 'alta' ? 'raiz-text-pine' : (s.confianca === 'media' ? 'text-amber-700' : 'text-slate-500');
                 // monta as options de novo por linha só pra marcar o
                 // "selected" certo desta sugestão especificamente.
                 const opcoes = ['<option value="">(não substituir)</option>']
@@ -17980,7 +18070,7 @@
                         <p class="text-[11px] text-gray-500">${rotuloEscopo[m.escopo] || m.escopo}${detalheEscopo ? ' · ' + detalheEscopo : ''}</p>
                         <div class="flex gap-1.5 mt-2">
                             <button onclick="window.open('${m.arquivoUrl || ''}', '_blank')" title="Ver / conferir" ${m.arquivoUrl ? '' : 'disabled'} class="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-600 rounded-full border border-slate-200 ${m.arquivoUrl ? '' : 'opacity-40 cursor-not-allowed'}"><svg data-lucide="eye" style="width:14px;height:14px"></svg></button>
-                            <button onclick="editarMinuta('${m.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
+                            <button onclick="editarMinuta('${m.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                             <button onclick="excluirMinuta('${m.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
                         </div>
                     </div>
@@ -18058,7 +18148,7 @@
 
                         <div class="flex gap-1.5 mt-2">
 
-                            <button onclick="editarAdministradora('${adm.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
+                            <button onclick="editarAdministradora('${adm.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
 
                             <button onclick="excluirAdministradora('${adm.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
 
@@ -19497,7 +19587,7 @@
 
             // --- Card 2: Cenário econômico (bloqueado, honesto) ---
             html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-1">
-                <h3 class="font-bold text-sm text-emerald-900">Cenário econômico</h3>
+                <h3 class="font-bold text-sm raiz-text-pine">Cenário econômico</h3>
                 <p class="text-[11px] text-slate-500 mt-0.5">IPCA, IGP-M e Selic — pendente. Este projeto ainda não tem <code>pg_net</code> instalado pra buscar a API do Banco Central; entra quando a Edge Function de indicadores for construída.</p>
             </div>`;
 
@@ -19677,7 +19767,7 @@
             });
 
             const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', ativo: 'boxes', outro: 'info' };
-            const COR_CATEGORIA = { item_controle: 'bg-emerald-50 text-emerald-800', contrato: 'bg-blue-50 text-blue-700', ativo: 'bg-amber-50 text-amber-700', outro: 'bg-slate-100 text-slate-600' };
+            const COR_CATEGORIA = { item_controle: 'raiz-bg-sprout-light text-emerald-800', contrato: 'bg-blue-50 text-blue-700', ativo: 'bg-amber-50 text-amber-700', outro: 'bg-slate-100 text-slate-600' };
 
             mount.innerHTML = ordenados.map(a => {
                 let rotuloTempo = '', corTempo = 'text-slate-500';
@@ -19860,7 +19950,7 @@
 
             return `
                 <div class="flex gap-3 items-start">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none overflow-hidden">
+                    <div class="w-12 h-12 rounded-xl raiz-bg-sprout-light text-emerald-800 flex items-center justify-center flex-none overflow-hidden">
                         ${foto ? `<img src="${foto}" class="w-full h-full object-cover">` : `<svg data-lucide="home" style="width:20px;height:20px"></svg>`}
                     </div>
                     <div class="flex-1 min-w-0">
@@ -20267,7 +20357,7 @@
             // assíncrona, dentro de renderFiltroDocumentosFicha().
             const htmlFinanceiro = mensalidadesDoImovel.length === 0 ? '' : `
                 <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Financeiro</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Financeiro</h3>
                     <div class="mt-1.5">
                     ${mensalidadesDoImovel.map(m => `
                         <div class="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
@@ -20302,7 +20392,7 @@
             const htmlFoto = `
                 <input type="file" id="fi-foto-input" accept="image/*" multiple class="hidden" onchange="enviarFotosImovelParaCofre('${imo.id}')">
                 <div id="fi-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Foto</h3>
                     <div id="fi-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
                     <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                         <button onclick="alternarMaisAcoesFotosImovel()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fi-fotos-seta" style="width:13px;height:13px"></svg></button>
@@ -20318,7 +20408,7 @@
             // ficha) — ver renderFiltroDocumentosFicha().
             const htmlDocumentos = `
                 <div id="ficha-imovel-box-documentos" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Documentos</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Documentos</h3>
                     <div id="ficha-imovel-doc-filtros" class="flex flex-wrap gap-1.5 mt-2"></div>
                     <div id="ficha-imovel-doc-lista" class="mt-2 space-y-1.5">
                         <p class="text-[11px] text-slate-500">Carregando...</p>
@@ -20335,7 +20425,7 @@
             const man = manutencistas.find(m => m.id === imo.manutencistaId);
             const htmlServicos = (!sind && !man) ? '' : `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Serviços</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Serviços</h3>
                     <div class="mt-2 space-y-2">
                         ${sind ? `
                         <div class="min-w-0"><div class="text-xs font-bold truncate">${sind.nome}</div><div class="text-[11px] text-slate-500">Síndico${sind.whatsapp ? ' · ' + sind.whatsapp : ''}</div></div>` : ''}
@@ -20392,7 +20482,7 @@
 
                 <div class="p-4">
                     <div class="flex justify-between items-start gap-2">
-                        <h3 class="font-bold text-sm text-emerald-900">${con.status === 'Assinando' ? 'Contrato em assinatura' : 'Contrato atual'}</h3>
+                        <h3 class="font-bold text-sm raiz-text-pine">${con.status === 'Assinando' ? 'Contrato em assinatura' : 'Contrato atual'}</h3>
                         <div class="flex items-center gap-1.5 flex-none">
                             <span class="text-[11px] font-bold px-1.5 py-0.5 rounded ${corBadgeStatusContrato(con.status)}">${con.status}</span>
                             ${temAlerta ? `<button onclick="verAlertasContrato('${con.id}')" title="Ver alerta" class="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center flex-none"><svg data-lucide="triangle-alert" style="width:13px;height:13px"></svg></button>` : ''}
@@ -20445,13 +20535,13 @@
             if (imo.finalidadeUso === 'uso_proprio') {
                 return `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <h3 class="font-bold text-sm text-emerald-900">Contrato</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Contrato</h3>
                     <p class="text-xs text-slate-500 mt-1">Imóvel de uso pessoal — não há contrato de aluguel a fazer aqui.</p>
                 </div>`;
             }
             return `
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <h3 class="font-bold text-sm text-emerald-900">Contrato</h3>
+                <h3 class="font-bold text-sm raiz-text-pine">Contrato</h3>
                 <p class="text-xs text-slate-500 mt-1">${finalizados.length > 0 ? 'Sem contrato em andamento (há ' + finalizados.length + ' encerrado(s) no histórico).' : 'Este imóvel ainda não tem contrato.'}</p>
                 <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                     <button onclick="alternarMaisAcoesSemContratoFicha()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fic-sem-contrato-seta" style="width:13px;height:13px"></svg></button>
@@ -22103,7 +22193,7 @@
 
             return `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Divisão Societária</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Divisão Societária</h3>
                     <p class="text-[11px] font-bold text-slate-500 mt-2">Imóvel</p>
                     <div class="mt-1 space-y-1">${linhasImovel}</div>
                     <p class="text-[11px] font-bold text-slate-500 mt-3">Contrato</p>
@@ -22413,7 +22503,7 @@
                      cofre_documento_vinculos entidade_tipo='contrato'),
                      mesmo padrão já usado em gerarMinutaNoCofre(). -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Documento</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Documento</h3>
                     <div id="fc-documentos" class="mt-1.5 space-y-1.5"><p class="text-xs text-slate-500">Carregando...</p></div>
                     <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                         <button onclick="alternarMaisAcoesDocContrato()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fc-doc-seta" style="width:13px;height:13px"></svg></button>
@@ -22424,11 +22514,11 @@
                 </div>` : ''}
 
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm text-emerald-900">Recebimentos</h3>
+                    <h3 class="font-bold text-sm raiz-text-pine">Recebimentos</h3>
                     <div class="mt-2 space-y-2">
                     ${ultimas.length > 0 ? ultimas.map(m => `
                         <div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
-                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-none ${m.status==='Pago'?'bg-emerald-50 text-emerald-700':'bg-red-50 text-red-700'}"><svg data-lucide="${m.status==='Pago'?'check':'clock'}" style="width:14px;height:14px"></svg></div>
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-none ${m.status==='Pago'?'bg-green-50 text-green-700':'bg-red-50 text-red-700'}"><svg data-lucide="${m.status==='Pago'?'check':'clock'}" style="width:14px;height:14px"></svg></div>
                             <div class="flex-1 min-w-0"><div class="text-xs font-bold">${m.referencia || '-'}</div><div class="text-[11px] text-slate-500">${m.status}</div></div>
                             <div class="text-xs font-bold">${formatarMoedaBR(m.valorConfirmado)}</div>
                         </div>`).join('') : `<p class="text-xs text-slate-500">Nenhum recebimento lançado ainda.</p>`}
@@ -22630,9 +22720,9 @@
 
             if (men.status === 'Pago') {
 
-                const log = men.envioLog ? `<p class="text-[11px] text-emerald-900 font-semibold"><svg data-lucide="mail" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Log: Notificado via ${men.envioLog.canal} (${men.envioLog.data})</p>` : `<p class="text-[11px] text-gray-400"><svg data-lucide="alert-triangle" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Envio pendente</p>`;
+                const log = men.envioLog ? `<p class="text-[11px] raiz-text-pine font-semibold"><svg data-lucide="mail" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Log: Notificado via ${men.envioLog.canal} (${men.envioLog.data})</p>` : `<p class="text-[11px] text-gray-400"><svg data-lucide="alert-triangle" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Envio pendente</p>`;
                 const txtObs = men.observacao ? `<p class="text-[11px] text-amber-800 italic bg-amber-50 p-1 rounded mt-1"><svg data-lucide="file-text" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Nota interna: ${men.observacao}</p>` : '';
-                const txtObsRecibo = men.observacaoRecibo ? `<p class="text-[11px] text-emerald-800 italic bg-emerald-50 p-1 rounded mt-1"><svg data-lucide="receipt" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> No recibo: ${men.observacaoRecibo}</p>` : '';
+                const txtObsRecibo = men.observacaoRecibo ? `<p class="text-[11px] text-emerald-800 italic raiz-bg-sprout-light p-1 rounded mt-1"><svg data-lucide="receipt" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> No recibo: ${men.observacaoRecibo}</p>` : '';
                 const txtEnergia = men.valorEnergia > 0 ? `<p class="text-[11px] text-yellow-700 font-semibold"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Energia (controle interno, fora do recibo): R$ ${fmtBR(men.valorEnergia)}</p>` : '';
 
                 el.innerHTML = `
@@ -22642,7 +22732,7 @@
                         ${localImovel ? `<p class="text-xs text-gray-400 mt-1"><svg data-lucide="map-pin" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> ${localImovel}</p>` : ''}
                         ${log}${txtObs}${txtObsRecibo}${txtEnergia}
                         <div class="flex gap-2 mt-3">
-                            <button onclick="abrirModalOpcoesRecibo('${men.id}', '${con.id}')" class="flex-1 bg-emerald-600 text-white text-sm py-2.5 rounded-lg font-bold shadow">📄 Recibo</button>
+                            <button onclick="abrirModalOpcoesRecibo('${men.id}', '${con.id}')" class="flex-1 raiz-bg-pine text-white text-sm py-2.5 rounded-lg font-bold shadow">📄 Recibo</button>
                             <button onclick="estornarMensalidadeERefletirDetalhe('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-sm py-2.5 rounded-lg font-bold">Estornar</button>
                         </div>
                     </div>`;
@@ -22690,7 +22780,7 @@
                             <div>
                                 <label class="block text-[11px] font-bold text-gray-500">Líquido (R$)</label>
                                 <div class="flex items-center gap-1">
-                                    <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1.5 rounded bg-gray-50 font-bold text-emerald-900">
+                                    <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1.5 rounded bg-gray-50 font-bold raiz-text-pine">
                                     <button type="button" id="btn-baixa-extra-${men.id}" onclick="alternarMenuBaixaExtra('${men.id}')" title="Energia, multa e taxa" class="raiz-btn-toggle-mini flex-none text-[10px] bg-slate-100 border border-slate-300 rounded-full w-7 h-7 flex items-center justify-center font-bold text-slate-600"><svg data-lucide="more-horizontal" style="width:13px;height:13px"></svg></button>
                                 </div>
                             </div>
@@ -22726,7 +22816,7 @@
                              par de botões usado nos itens já baixados
                              (Recibo/Estornar). -->
                         <div class="flex gap-2">
-                            <button onclick="liquidarMensalidadeERefletirDetalhe('${men.id}')" class="flex-1 bg-emerald-600 text-white text-sm py-2 rounded font-bold shadow">Dar Baixa</button>
+                            <button onclick="liquidarMensalidadeERefletirDetalhe('${men.id}')" class="flex-1 raiz-bg-pine text-white text-sm py-2 rounded font-bold shadow">Dar Baixa</button>
                             <button onclick="excluirLancamentoMensal('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-sm py-2 rounded font-bold">Excluir</button>
                         </div>
                     </div>`;
@@ -25820,7 +25910,7 @@
 
                                 <div class="flex gap-2 mt-2">
 
-                                    <button onclick="confirmarPendenciaDupla('${p.id}')" class="flex-1 bg-emerald-600 text-white text-[13px] py-1.5 rounded font-bold"><svg data-lucide="check" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Sim, são os 2 meses</button>
+                                    <button onclick="confirmarPendenciaDupla('${p.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold"><svg data-lucide="check" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Sim, são os 2 meses</button>
 
                                     <button onclick="descartarPendenciaExtrato('${p.id}')" class="flex-1 bg-slate-100 text-slate-700 text-[13px] py-1.5 rounded font-bold border">Descartar</button>
 
@@ -25860,7 +25950,7 @@
 
                             <div class="flex gap-2 mt-2">
 
-                                <button onclick="vincularPendenciaExtrato('${p.id}')" class="flex-1 bg-emerald-600 text-white text-[13px] py-1.5 rounded font-bold">Vincular</button>
+                                <button onclick="vincularPendenciaExtrato('${p.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold">Vincular</button>
 
                                 <button onclick="descartarPendenciaExtrato('${p.id}')" class="flex-1 bg-slate-100 text-slate-700 text-[13px] py-1.5 rounded font-bold border">Descartar</button>
 
@@ -26353,7 +26443,7 @@
                                         <label class="block text-[11px] font-bold text-gray-500">Líquido (R$)</label>
 
                                         <div class="flex items-center gap-1">
-                                            <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1 rounded bg-gray-50 font-bold text-emerald-900">
+                                            <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1 rounded bg-gray-50 font-bold raiz-text-pine">
                                             <button type="button" id="btn-baixa-extra-${men.id}" onclick="alternarMenuBaixaExtra('${men.id}')" title="Energia, multa e taxa" class="raiz-btn-toggle-mini flex-none text-[10px] bg-slate-100 border border-slate-300 rounded-full w-6 h-6 flex items-center justify-center font-bold text-slate-600"><svg data-lucide="more-horizontal" style="width:13px;height:13px"></svg></button>
                                         </div>
 
@@ -26401,7 +26491,7 @@
                                      cabeçalho do card; "Excluir" virou botão
                                      de texto ao lado de "Dar Baixa". -->
                                 <div class="flex gap-1.5">
-                                    <button onclick="liquidarMensalidade('${men.id}')" class="flex-1 bg-emerald-600 text-white text-[13px] py-1.5 rounded font-bold shadow">Dar Baixa</button>
+                                    <button onclick="liquidarMensalidade('${men.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold shadow">Dar Baixa</button>
                                     <button onclick="excluirLancamentoMensal('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-[13px] py-1.5 rounded font-bold">Excluir</button>
                                 </div>
 
@@ -26470,7 +26560,7 @@
                                         <label class="block text-[11px] font-bold text-gray-500">Líquido (R$)</label>
 
                                         <div class="flex items-center gap-1">
-                                            <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1 rounded bg-gray-50 font-bold text-emerald-900">
+                                            <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1 rounded bg-gray-50 font-bold raiz-text-pine">
                                             <button type="button" id="btn-baixa-extra-${men.id}" onclick="alternarMenuBaixaExtra('${men.id}')" title="Energia, multa e taxa" class="raiz-btn-toggle-mini flex-none text-[10px] bg-slate-100 border border-slate-300 rounded-full w-6 h-6 flex items-center justify-center font-bold text-slate-600"><svg data-lucide="more-horizontal" style="width:13px;height:13px"></svg></button>
                                         </div>
 
@@ -26514,7 +26604,7 @@
                                 </div>
 
                                 <div class="flex gap-1.5">
-                                    <button onclick="liquidarMensalidade('${men.id}')" class="flex-1 bg-emerald-600 text-white text-[13px] py-1.5 rounded font-bold shadow">Dar Baixa</button>
+                                    <button onclick="liquidarMensalidade('${men.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold shadow">Dar Baixa</button>
                                     <button onclick="excluirLancamentoMensal('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-[13px] py-1.5 rounded font-bold">Excluir</button>
                                 </div>
 
@@ -26526,11 +26616,11 @@
 
                         qtdRecebido++;
 
-                        const log = men.envioLog ? `<p class="text-[11px] text-emerald-900 font-semibold"><svg data-lucide="mail" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Log: Notificado via ${men.envioLog.canal} (${men.envioLog.data})</p>` : `<p class="text-[11px] text-gray-400"><svg data-lucide="alert-triangle" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Envio pendente</p>`;
+                        const log = men.envioLog ? `<p class="text-[11px] raiz-text-pine font-semibold"><svg data-lucide="mail" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Log: Notificado via ${men.envioLog.canal} (${men.envioLog.data})</p>` : `<p class="text-[11px] text-gray-400"><svg data-lucide="alert-triangle" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Envio pendente</p>`;
 
                         const txtObs = men.observacao ? `<p class="text-[11px] text-amber-800 italic bg-amber-50 p-1 rounded mt-1"><svg data-lucide="file-text" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Nota interna: ${men.observacao}</p>` : '';
 
-                        const txtObsRecibo = men.observacaoRecibo ? `<p class="text-[11px] text-emerald-800 italic bg-emerald-50 p-1 rounded mt-1"><svg data-lucide="receipt" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> No recibo: ${men.observacaoRecibo}</p>` : '';
+                        const txtObsRecibo = men.observacaoRecibo ? `<p class="text-[11px] text-emerald-800 italic raiz-bg-sprout-light p-1 rounded mt-1"><svg data-lucide="receipt" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> No recibo: ${men.observacaoRecibo}</p>` : '';
 
                         const txtEnergia = men.valorEnergia > 0 ? `<p class="text-[11px] text-yellow-700 font-semibold"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Energia (controle interno, fora do recibo): R$ ${fmtBR(men.valorEnergia)}</p>` : '';
 
@@ -26562,7 +26652,7 @@
                                      Excluir (fileira horizontal embaixo, não
                                      mais flutuando ao lado do texto). -->
                                 <div class="flex gap-1.5">
-                                    <button onclick="abrirModalOpcoesRecibo('${men.id}', '${con.id}')" class="flex-1 bg-emerald-600 text-white text-[13px] py-1.5 rounded font-bold shadow">Recibo</button>
+                                    <button onclick="abrirModalOpcoesRecibo('${men.id}', '${con.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold shadow">Recibo</button>
                                     <button onclick="estornarMensalidade('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-[13px] py-1.5 rounded font-bold">Estornar</button>
                                 </div>
 
@@ -27999,7 +28089,7 @@
 
                                 <button onclick="enviarResumoSocioZap('${socio}')" title="Enviar por WhatsApp" class="w-7 h-7 flex items-center justify-center bg-green-50 text-green-700 rounded-full border border-green-200"><svg data-lucide="message-circle" style="width:14px;height:14px"></svg></button>
 
-                                <button onclick="enviarResumoSocioEmail('${socio}')" title="Enviar por E-mail" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200"><svg data-lucide="mail" style="width:14px;height:14px"></svg></button>
+                                <button onclick="enviarResumoSocioEmail('${socio}')" title="Enviar por E-mail" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout"><svg data-lucide="mail" style="width:14px;height:14px"></svg></button>
 
                                 <button onclick="exportarRelatorioSocioPDF('${socio}')" title="Gerar PDF" class="w-7 h-7 flex items-center justify-center bg-slate-100 text-slate-700 rounded-full border border-slate-300"><svg data-lucide="file-text" style="width:14px;height:14px"></svg></button>
 
@@ -28115,7 +28205,7 @@
 
                                 ${imo.descricao ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${imo.descricao}</p>` : ''}
 
-                                <p class="text-[13px] font-black text-emerald-900 mt-1">Aluguel: R$ ${imo.valor.toLocaleString('pt-BR')}</p>
+                                <p class="text-[13px] font-black raiz-text-pine mt-1">Aluguel: R$ ${imo.valor.toLocaleString('pt-BR')}</p>
 
                             </div>
 
@@ -29101,7 +29191,7 @@
 
                                 <td class="p-1 text-right text-purple-700">${Math.round(potencialNovo).toLocaleString('pt-BR')}</td>
 
-                                <td class="p-1 text-right text-emerald-700">${Math.round(previstoNovo).toLocaleString('pt-BR')}</td>
+                                <td class="p-1 text-right raiz-text-pine">${Math.round(previstoNovo).toLocaleString('pt-BR')}</td>
 
                                 <td class="p-1 text-right text-green-700">${Math.round(d.arrecadado).toLocaleString('pt-BR')}</td>
 
@@ -29546,7 +29636,7 @@
                         <div class="p-1.5 border-b border-gray-100">
                             <span class="text-slate-400">${dataFormatada}</span>
                             — <span class="font-bold text-slate-700">${l.pessoaNome}</span>
-                            — <span class="text-emerald-700">${l.acao}</span>
+                            — <span class="raiz-text-pine">${l.acao}</span>
                             ${detalheTexto ? `<div class="text-gray-400 text-[10px] pl-2">${detalheTexto}</div>` : ''}
                         </div>
                     `;
@@ -29922,7 +30012,7 @@
                         ${sind.nomeContato ? `<p class="text-[11px] text-gray-500">Contato: ${sind.nomeContato}${sind.whatsapp ? ' · ' + sind.whatsapp : ''}</p>` : ''}
                         ${emps ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${emps}</p>` : ''}
                         <div class="flex gap-1.5 mt-2">
-                            <button onclick="editarSindico('${sind.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
+                            <button onclick="editarSindico('${sind.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                             <button onclick="excluirSindico('${sind.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
                         </div>
                     </div>
@@ -30104,7 +30194,7 @@
 
             container.innerHTML = partesCliente.map(parte => {
                 const papeis = papeisPorParte[parte.id] || [];
-                const badgesPapeis = papeis.map(p => `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">${rotuloPapel[p] || p}</span>`).join(' ');
+                const badgesPapeis = papeis.map(p => `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded raiz-bg-sprout-light raiz-text-pine border raiz-border-sprout">${rotuloPapel[p] || p}</span>`).join(' ');
                 return `
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
                         <p class="text-xs font-bold text-slate-900">${parte.nome}${parte.nome_fantasia ? ' · ' + parte.nome_fantasia : ''}</p>
@@ -30112,7 +30202,7 @@
                         ${(parte.whatsapp || parte.email) ? `<p class="text-[11px] text-gray-500">${parte.whatsapp || ''}${parte.whatsapp && parte.email ? ' · ' : ''}${parte.email || ''}</p>` : ''}
                         ${badgesPapeis ? `<div class="flex flex-wrap gap-1 mt-1.5">${badgesPapeis}</div>` : `<p class="text-[11px] text-gray-400 italic mt-1">Sem papel atribuído ainda</p>`}
                         <div class="flex gap-1.5 mt-2">
-                            <button onclick="editarParte('${parte.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
+                            <button onclick="editarParte('${parte.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                             <button onclick="excluirParte('${parte.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
                         </div>
                     </div>
@@ -30229,7 +30319,7 @@
                         <p class="text-[11px] text-gray-500">${man.whatsapp || '-'} | ${qtdImoveis} imóvel(is) vinculado(s)</p>
                         ${emps ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${emps}</p>` : ''}
                         <div class="flex gap-1.5 mt-2">
-                            <button onclick="editarManutencista('${man.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
+                            <button onclick="editarManutencista('${man.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                             <button onclick="excluirManutencista('${man.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
                         </div>
                     </div>

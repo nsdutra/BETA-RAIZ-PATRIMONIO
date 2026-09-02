@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.0.0 · 26/08/2026
+// Versão: 1.1.0 · 02/09/2026
+//
+// v1.1.0 — pedido explícito: "resolva as pendências de cores listadas".
+// bg-emerald-600 (único uso deste arquivo) trocado por var(--pine) —
+// era o botão de ação principal (Salvar), token certo por definição
+// (DS §12: "Ação principal → background:var(--pine)").
 //
 // v1.0.0 — PRIMEIRA VERSÃO. Extraído de index.html (dev_carregarDadosEmpresa()/
 // dev_salvarDadosEmpresa()/processarUploadAssinatura()/calcularLimiarOtsu()/
@@ -250,7 +255,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                 </div>
             </div>
 
-            <button id="cme-btn-salvar" class="w-full bg-emerald-600 text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Dados da Empresa</button>
+            <button id="cme-btn-salvar" class="w-full text-white p-2.5 rounded-lg font-bold text-sm shadow" style="background:var(--pine)">Salvar Dados da Empresa</button>
 
             <div class="pt-3 border-t border-gray-200">
                 <label class="block text-xs font-bold text-gray-600 mb-1">Assinatura para o Recibo</label>

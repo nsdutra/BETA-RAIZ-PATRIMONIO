@@ -199,6 +199,14 @@ export const ATIVOS_MARKUP = `<style>
     .raiz-sem-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
     .raiz-sem-scrollbar::-webkit-scrollbar { display: none; }
 
+    /* v1.14.0 (02/09/2026, pedido explícito: "resolva as pendências de
+       cores") — auxiliar pro hover de border (inline style não suporta
+       :hover). Só existe aqui, no contexto embutido — cofre.html
+       standalone tem seu próprio <style> separado, precisaria da mesma
+       regra se o hover também importar lá (não reportado quebrado, fora
+       de escopo hoje). */
+    .raiz-hover-borda-sprout:hover { border-color: var(--sprout) !important; }
+
     /* v1.95.1 (01/09/2026, pedido explícito: "os botões devem funcionar
        da mesma forma que no módulo de imóveis, abrindo modais no bottom
        sheet") — ACHADO REAL, não só ajuste: .modal-overlay/.modal-box
@@ -276,7 +284,20 @@ export const ATIVOS_MARKUP = `<style>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto px-4 py-5">
+    <!-- v1.14.0 (02/09/2026, pedido explícito, achado com 3 screenshots:
+         "a largura do box dos ativos está mais estreita que o padrão
+         do sistema... ajustar para o padrão") — BUG REAL: max-w-md
+         mx-auto px-4 py-5 aqui duplicava o que o <main id="main-content">
+         do App (index.html) JÁ aplica por fora (p-4 max-w-md mx-auto) —
+         16px de padding horizontal do App + 16px daqui = 32px de cada
+         lado, conteúdo sempre mais estreito que qualquer outra aba.
+         Mesma classe de bug já corrigida uma vez pro <header> duplicado
+         (escondido via CSS em ativos-boot.js) — desta vez é o <main>,
+         que não dá pra esconder (é o container do conteúdo de verdade),
+         só remover o padding/largura redundante. cofre.html standalone
+         tem sua PRÓPRIA cópia deste <main> (não compartilha este
+         arquivo) — não afetado por esta mudança. -->
+    <main>
 
         <!-- ===================== HOME + ALERTAS — APAGADAS (31/08/2026,
              pedido explícito: "os documentos em triagem e qq outro
@@ -370,7 +391,17 @@ export const ATIVOS_MARKUP = `<style>
                  continua existindo do jeito que estava, pra quem quiser
                  filtrar por um subtipo específico (ex.: só Terrenos) —
                  os chips são só o atalho rápido pros 3 grupos grandes. -->
-            <div id="ativos-chips-tipo" class="flex gap-2 overflow-x-auto raiz-sem-scrollbar pb-1 mb-3"></div>
+            <!-- v1.14.0 (02/09/2026, achado real, mesmo padrão já
+                 corrigido nas abas da ficha do ativo: "os chips estão
+                 tb com a barra de rolagem na aba de ativos") — a
+                 técnica de esconder via CSS (.raiz-sem-scrollbar) não é
+                 confiável em todo navegador Android (mesma lição já
+                 registrada). Trocado pra flex-wrap — só 4 chips aqui,
+                 cabem tranquilamente numa ou duas linhas sem rolagem
+                 nenhuma, então nem falta o "cabe numa linha só" que
+                 justificaria manter rolagem como no caso dos 7 chips da
+                 ficha do ativo. -->
+            <div id="ativos-chips-tipo" class="flex flex-wrap gap-2 mb-3"></div>
 
             <div id="ativos-lista" class="space-y-2"></div>
             <div id="ativos-estado-vazio" class="hidden text-center py-14">
@@ -563,7 +594,7 @@ export const ATIVOS_MARKUP = `<style>
          separadas) — pedido explícito de eliminar linguagem por módulo. -->
     <div id="fa-painel-contratos" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Contratos</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Contratos</h3>
             <p class="text-[11px] mt-0.5" style="color:var(--sage)">Reajuste, minuta e rescisão continuam na aba Contratos.</p>
             <div id="fa-contratos-lista" class="mt-3 space-y-2"></div>
         </div>
@@ -572,7 +603,7 @@ export const ATIVOS_MARKUP = `<style>
     <!-- ===== Painel: Controles ===== -->
     <div id="fa-painel-controles" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Controles</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Controles</h3>
             <div id="fa-tab-controles" class="mt-1.5"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-controles" class="text-xs font-bold text-slate-500 flex items-center gap-1">
@@ -595,7 +626,7 @@ export const ATIVOS_MARKUP = `<style>
          v1.10.0). -->
     <div id="fa-painel-financeiro" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Financeiro</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Financeiro</h3>
             <p class="text-[11px] mt-0.5" style="color:var(--sage)">Entradas e saídas ligadas a este ativo.</p>
             <div id="fa-financeiro-resumo" class="grid grid-cols-2 gap-2 mt-3"></div>
             <div id="fa-financeiro-lista" class="mt-3 space-y-2"></div>
@@ -624,7 +655,7 @@ export const ATIVOS_MARKUP = `<style>
          montarPropriedadeAtivo() (cofre-ativos.js). -->
     <div id="fa-painel-propriedade" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Propriedade</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Propriedade</h3>
             <p class="text-[11px] mt-0.5" style="color:var(--sage)">Divisão societária deste ativo.</p>
             <div id="fa-propriedade-lista" class="mt-3 space-y-2"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
@@ -645,7 +676,7 @@ export const ATIVOS_MARKUP = `<style>
          lugar). O modal em si foi removido do HTML (ver changelog). -->
     <div id="fa-painel-documentos" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900 mb-2">Documentos</h3>
+            <h3 class="font-bold text-sm mb-2" style="color:var(--pine)">Documentos</h3>
             <div class="grid grid-cols-2 gap-2 mb-3">
                 <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sprout); color:var(--sprout)">
                     <i data-lucide="sparkles" style="width:16px;height:16px"></i> Com IA
@@ -662,7 +693,7 @@ export const ATIVOS_MARKUP = `<style>
     <!-- ===== Painel: Fotos ===== -->
     <div id="fa-painel-fotos" class="fa-painel hidden space-y-3">
         <div id="fa-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Foto</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Foto</h3>
             <div id="fa-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-fotos-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fa-fotos-seta" style="width:13px;height:13px"></i></button>
@@ -937,7 +968,7 @@ export const ATIVOS_MARKUP = `<style>
              pra um painel "Mais ações" colapsável de verdade (§8), não
              mais pills sempre visíveis. -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Dados do item</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Dados do item</h3>
             <div id="fic-dados-cabecalho" class="mt-2"></div>
             <div id="fic-dados-leitura" class="text-sm space-y-1 mt-3 pt-3 border-t border-slate-100"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
@@ -957,7 +988,7 @@ export const ATIVOS_MARKUP = `<style>
              Mais ações. Box SEMPRE visível (mesma exceção §16 do box
              Contrato/Contatos vinculados — mesmo vazio, oferece a ação). -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Documento</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Documento</h3>
             <div id="fic-documentos" class="mt-1.5 space-y-1.5"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-doc-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-doc-seta" style="width:13px;height:13px"></i></button>
@@ -969,7 +1000,7 @@ export const ATIVOS_MARKUP = `<style>
 
         <!-- Box: Ocorrência -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Ocorrência</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Ocorrência</h3>
             <div id="fic-ocorrencia" class="mt-1.5"></div>
         </div>
 
@@ -980,7 +1011,7 @@ export const ATIVOS_MARKUP = `<style>
              visível mesmo sem contato (D-6, exceção documentada — DS
              §16) — só o botão interno mudou de formato. -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm text-emerald-900">Contatos vinculados</h3>
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Contatos vinculados</h3>
             <div id="fic-contatos" class="mt-1.5"></div>
             <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                 <button data-action="alternar-mais-acoes-contatos-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-contatos-seta" style="width:13px;height:13px"></i></button>

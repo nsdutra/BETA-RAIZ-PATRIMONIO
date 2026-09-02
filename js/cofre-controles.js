@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.9.0 · 02/09/2026
+// Versão: 1.10.0 · 02/09/2026
+//
+// v1.10.0 — pedido explícito: "resolva as pendências de cores
+// listadas". Ícone-box da ficha do item de controle (bg-emerald-50
+// text-emerald-800) trocado por token (--sprout-light/--pine), mesmo
+// par usado em cofre-ativos.js (ativoCardHtml) pra ficar idêntico.
 //
 // v1.9.0 — abrirItemControleComOrigemAlertas() (NOVO, pedido explícito:
 // "ao clicar num alerta, deve permitir o seu tratamento caso seja um
@@ -330,16 +335,17 @@ function renderizarFichaItemControle() {
 
     // ---- Box Dados (revisão DS 25/08/2026, pedido explícito) — cabeçalho
     // agora no MESMO formato de letra/cor do componente de Ativo (ver
-    // ativoCardHtml em cofre-ativos.js: w-12 h-12 rounded-xl bg-emerald-50
-    // text-emerald-800, título text-xs font-extrabold, subtítulo
-    // text-xs var(--sage)) — ícone representa o TIPO DO ATIVO dono do
+    // ativoCardHtml em cofre-ativos.js: w-12 h-12 rounded-xl, ícone com
+    // fundo/cor de token — var(--sprout-light)/var(--pine) desde
+    // v1.9.0, 02/09/2026, "resolva as pendências de cores" — título
+    // text-xs font-extrabold, subtítulo text-xs var(--sage)) — ícone representa o TIPO DO ATIVO dono do
     // item (iconeAtivo()), não mais um H3 solto genérico. Editar/Excluir
     // migraram de pills sempre visíveis pra um painel "Mais ações"
     // colapsável de verdade (DS §8 — antes só simulava o padrão sem o
     // toggle).
     document.getElementById('fic-dados-cabecalho').innerHTML = `
         <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center flex-none"><i data-lucide="${iconeAtivo(item.cofre_ativos?.tipo_ativo)}" style="width:20px;height:20px"></i></div>
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--sprout-light);color:var(--pine)"><i data-lucide="${iconeAtivo(item.cofre_ativos?.tipo_ativo)}" style="width:20px;height:20px"></i></div>
             <div class="min-w-0 flex-1">
                 <p class="text-xs font-extrabold truncate">${escapeHtml(item.titulo)}</p>
                 <p class="text-xs truncate" style="color:var(--sage)">${escapeHtml(item.cofre_ativos?.nome_exibicao || '')}${item.cofre_ativos?.nome_exibicao ? ' · ' : ''}${escapeHtml(rotuloTipoControle(item.tipo))}</p>
