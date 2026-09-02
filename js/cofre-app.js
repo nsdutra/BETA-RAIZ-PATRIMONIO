@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.18.0 · 02/09/2026
+// Versão: 1.19.0 · 02/09/2026
+//
+// v1.19.0 — case novo 'fi-gerar-despesa-item', delegando pra
+// controles.abrirNovoLancamentoDoItem() (box Partes do item de
+// controle, botão "Gerar despesa").
 //
 // v1.18.0 — 2 cases novos pro chip "Partes" do item de controle:
 // 'abrir-editar-partes-item' e 'fi-salvar-partes-item' (este dentro do
@@ -457,6 +461,7 @@ document.addEventListener('click', async (ev) => {
         // v1.18.0 (NOVO, 02/09/2026) — chip "Partes" do item de controle.
         case 'abrir-editar-partes-item': await controles.abrirEditarPartesItem(); break;
         case 'fi-salvar-partes-item': await controles.salvarPartesItemAtual(); break;
+        case 'fi-gerar-despesa-item': await controles.abrirNovoLancamentoDoItem(); break;
         case 'alternar-mais-acoes-contatos-item': controles.alternarMaisAcoesContatosItem(); break;
         case 'alternar-mais-acoes-dados-item': controles.alternarMaisAcoesDadosItem(); break;
         case 'alternar-mais-acoes-doc-item': controles.alternarMaisAcoesDocItem(); break;

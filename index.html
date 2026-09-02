@@ -6,7 +6,34 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.104.0
+   VERSÃO: Beta v1.105.0
+   LINHAS: 30452
+   DATA: 02/09/2026
+   NOVIDADES (Beta v1.105.0) — fecha a arquitetura de Partes iniciada na
+   v1.104.0 (3 pedidos explícitos numa sequência de mensagens):
+
+   1) Chip "Partes" no Contrato — abrirDetalhesContrato() ganhou uma
+   fileira de chips no topo (locatário/fiador/rateio-divisão entre
+   proprietários), lida de 3 fontes (contrato.locatario, partes_papeis
+   fiador, divisao_repasse_contrato) e montada em paralelo. Só EXIBIÇÃO
+   — os 3 fluxos de escrita já existentes (popups próprios de
+   locatário/fiador/divisão) continuam sendo o jeito de editar, não
+   duplicados.
+
+   2) "Vai precisar de um controle de qual a parte é pra alocar a
+   despesa já que podemos ter mais que 1 parte cadastrada" —
+   abrirNovaDespesa()/montarPopupDespesa() ganharam um 3º parâmetro
+   opcional (sugestões vindas do item de controle: descrição, categoria,
+   lista de partes). 1 parte só → pré-seleciona sozinho. 2+ partes →
+   mostra um chip por parte acima do campo Fornecedor, pra escolher qual
+   delas recebe ESTA despesa específica (não dá pra adivinhar). Botão
+   "Gerar despesa" novo na box Partes do item de controle (módulo
+   Ativos) já manda tudo pronto.
+
+   Testado: query dos chips do contrato (partes_papeis + divisao_repasse_
+   contrato) como authenticated real, nomes resolvendo certo.
+
+   VERSÃO ANTERIOR: Beta v1.104.0
    LINHAS: 30364
    DATA: 02/09/2026
    NOVIDADES (Beta v1.104.0) — pedido explícito: "pode evoluir mais nos
@@ -10245,7 +10272,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.104.0";
+        const APP_VERSAO = "Beta v1.105.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -21308,6 +21335,21 @@
                         <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Detalhes do Contrato</h3>
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
+                    <!-- v1.17.0 (NOVO, 02/09/2026, pedido explícito: "as partes
+                         devem ser vários chips e aparecer... num contrato
+                         (locatario, fiador, rateio-divisao do aluguel entre
+                         proprietários)") — só EXIBIÇÃO aqui, mesmo visual pill
+                         do chip Partes (item de controle) e Propriedade
+                         (Ativos). Não duplica os fluxos de escrita já
+                         existentes de locatário/fiador/divisão (cada um
+                         continua editável pelos próprios popups de sempre —
+                         "Dados do locatário"/"Divisão do contrato") — junta
+                         os 3 numa visão só, lida de 3 fontes diferentes
+                         (contrato.locatario texto, partes_papeis fiador,
+                         divisao_repasse_contrato). -->
+                    <div id="mdt-partes" class="flex flex-wrap gap-1.5 mb-3 pb-3" style="border-bottom:1px solid var(--line)">
+                        <span class="text-[11px]" style="color:var(--sage)">Carregando partes...</span>
+                    </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div style="display:flex;gap:8px;">
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Início vigência</label><input type="date" id="mdt-inicio" value="${con.inicio||''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
@@ -21353,6 +21395,34 @@
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            montarChipsPartesContrato(con);
+        }
+
+        // v1.17.0 (NOVO) — busca as 3 fontes em paralelo e monta os chips.
+        // Sem ação de clicar (só exibição) — os 3 fluxos de escrita
+        // continuam nos próprios popups de sempre.
+        async function montarChipsPartesContrato(con) {
+            const mount = document.getElementById('mdt-partes');
+            if (!mount) return;
+            try {
+                const [fiadoresRes, divisaoRes] = await Promise.all([
+                    dbAuth.from('partes_papeis').select('partes(nome)').eq('entidade_tipo', 'contrato').eq('entidade_id', con.id).eq('papel', 'fiador').eq('ativo', true),
+                    dbAuth.from('divisao_repasse_contrato').select('nome_externo, percentual, pessoas(nome)').eq('contrato_id', con.id)
+                ]);
+                const chips = [];
+                if (con.locatario) chips.push(`<span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtmlSaidas(con.locatario)} · Locatário</span>`);
+                (fiadoresRes.data || []).forEach(f => {
+                    if (f.partes?.nome) chips.push(`<span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtmlSaidas(f.partes.nome)} · Fiador</span>`);
+                });
+                (divisaoRes.data || []).forEach(d => {
+                    const nome = d.pessoas?.nome || d.nome_externo;
+                    if (nome) chips.push(`<span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtmlSaidas(nome)} · Recebe ${Number(d.percentual)}%</span>`);
+                });
+                mount.innerHTML = chips.length ? chips.join('') : `<span class="text-[11px]" style="color:var(--sage)">Nenhuma parte cadastrada ainda.</span>`;
+            } catch (err) {
+                mount.innerHTML = `<span class="text-[11px] text-red-500">Não consegui carregar as partes agora.</span>`;
+                logScreen('Erro ao montar chips de partes do contrato: ' + err.message, true);
+            }
         }
 
         // CORRIGIDO (v1.53.0) — BUG REAL relatado: "invalid input syntax for
@@ -21870,18 +21940,26 @@
         // ---- Popup Tipo B (Nova Despesa / Editar Despesa) ----
         let despesaEmEdicaoId = null;
 
-        async function abrirNovaDespesa(ativoIdPreSelecionado) {
+        // v1.17.0 (NOVO, 02/09/2026) — 3º parâmetro opcional `sugestoes`:
+        // { descricao, categoria, partes: [{parte_id, nome}] } — vindo da
+        // ponte abrirNovoLancamentoDoItem() (cofre-controles.js). Pedido
+        // explícito: "vai precisar de um controle de qual a parte é pra
+        // alocar a despesa já que podemos ter mais que 1 parte
+        // cadastrada" — quando o item tem 2+ partes, mostra um chip por
+        // parte pra escolher qual delas é o fornecedor DESTE lançamento
+        // específico (não dá pra adivinhar sozinho).
+        async function abrirNovaDespesa(ativoIdPreSelecionado, sugestoes) {
             despesaEmEdicaoId = null;
-            await montarPopupDespesa(null, ativoIdPreSelecionado || null);
+            await montarPopupDespesa(null, ativoIdPreSelecionado || null, sugestoes || null);
         }
 
         async function abrirEditarDespesa(id) {
             despesaEmEdicaoId = id;
             const d = lancamentos.find(x => x.id === id);
-            await montarPopupDespesa(d, null);
+            await montarPopupDespesa(d, null, null);
         }
 
-        async function montarPopupDespesa(d, ativoPreSelecionadoId) {
+        async function montarPopupDespesa(d, ativoPreSelecionadoId, sugestoes) {
             mostrarCarregamentoGlobal('Carregando...');
             const [ativosOpts, partesOpts] = await Promise.all([carregarAtivosParaSelectSupabase(), carregarPartesParaSelectSupabase()]);
             esconderCarregamentoGlobal();
@@ -21892,13 +21970,18 @@
             const jaFoiPaga = ehEdicao && d.status === 'realizado';
             const ativoSelecionado = d ? d.ativoId : ativoPreSelecionadoId;
 
+            // Se só tem 1 sugestão de parte, já pré-seleciona (não faz
+            // sentido perguntar quando não há escolha real); com 2+, o
+            // select some sem valor e os chips ficam clicáveis.
+            const parteSugeridaUnica = sugestoes?.partes?.length === 1 ? sugestoes.partes[0].parte_id : null;
+
             const optsAtivos = `<option value="">Nenhum (despesa avulsa)</option>` + ativosOpts.map(a =>
                 `<option value="${a.id}" ${a.id === ativoSelecionado ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('');
             const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
-                `<option value="${p.id}" ${p.id === d?.parteId ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
+                `<option value="${p.id}" ${(p.id === d?.parteId || p.id === parteSugeridaUnica) ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
                 `<option value="__novo__">+ Novo fornecedor</option>`;
             const optsCategorias = ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'outro']
-                .map(v => `<option value="${v}" ${v === d?.categoria ? 'selected' : ''}>${rotuloCategoriaSaida(v)}</option>`).join('');
+                .map(v => `<option value="${v}" ${v === (d?.categoria || sugestoes?.categoria) ? 'selected' : ''}>${rotuloCategoriaSaida(v)}</option>`).join('');
             const optsFormaPagamento = ['pix', 'boleto', 'transferencia', 'dinheiro', 'outro']
                 .map(v => `<option value="${v}" ${v === d?.formaPagamento ? 'selected' : ''}>${v.charAt(0).toUpperCase() + v.slice(1)}</option>`).join('');
 
@@ -21918,7 +22001,7 @@
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div>
                             <label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label>
-                            <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                            <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || sugestoes?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
@@ -21946,6 +22029,11 @@
                         </div>
                         <div>
                             <label style="font-size:11px;font-weight:bold;color:#64748b;">Fornecedor / beneficiário</label>
+                            ${sugestoes?.partes?.length > 1 ? `
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;margin-bottom:6px;">
+                                ${sugestoes.partes.map(p => `<button type="button" onclick="document.getElementById('desp-fornecedor').value='${p.parte_id}'; alternarNovoFornecedor('${p.parte_id}');" style="font-size:11px;font-weight:bold;padding:5px 10px;border-radius:9999px;background:var(--sprout-light);color:var(--pine);border:1px solid var(--sprout);">${escapeHtmlSaidas(p.nome)}</button>`).join('')}
+                            </div>
+                            <p style="font-size:10px;color:#94a3b8;margin-top:-4px;margin-bottom:4px;">Este item tem mais de uma parte — toque em quem deve receber esta despesa.</p>` : ''}
                             <select id="desp-fornecedor" onchange="alternarNovoFornecedor(this.value)" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsPartes}</select>
                             <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:6px;display:none;">
                             <p style="font-size:10px;color:#94a3b8;margin-top:2px;">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>

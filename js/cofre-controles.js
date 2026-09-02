@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.11.0 · 02/09/2026
+// Versão: 1.12.0 · 02/09/2026
+//
+// v1.12.0 — abrirNovoLancamentoDoItem() (NOVO, pedido explícito: "vai
+// precisar de um controle de qual a parte é pra alocar a despesa já
+// que podemos ter mais que 1 parte cadastrada") — botão "Gerar
+// despesa" na box Partes, ponte pro App já levando descrição (título
+// do item)/categoria (mapeada do tipo) e as partes vinculadas como
+// sugestão de fornecedor (ver index.html v1.105.0 pro lado que decide
+// pré-selecionar 1 ou mostrar chips pra escolher entre 2+).
 //
 // v1.11.0 — chip "Partes" no item de controle (NOVO, pedido explícito:
 // "as partes devem ser vários chips e aparecer... em itens de controle
@@ -390,6 +398,32 @@ export async function salvarPartesItemAtual() {
     } catch (err) {
         mostrarToast('Erro ao salvar: ' + (err.message || String(err)), 'erro');
     }
+}
+
+// v1.17.0 (NOVO, 02/09/2026, pedido explícito: "vai precisar de um
+// controle de qual a parte é pra alocar a despesa já que podemos ter
+// mais que 1 parte cadastrada") — ponte pro App (mesmo princípio de
+// abrirNovoLancamentoDoAtivo em cofre-ativos.js), mas pré-preenchendo
+// descrição/categoria a partir do item e passando as partes vinculadas
+// como sugestão de fornecedor — o popup de despesa (index.html) decide
+// sozinho se pré-seleciona (1 parte só) ou mostra os chips pra escolher
+// (2+ partes, não dá pra adivinhar qual delas).
+const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manutencao', tributo: 'tributo' };
+
+export async function abrirNovoLancamentoDoItem() {
+    const item = itemEmFoco;
+    if (!item) return;
+    if (typeof window.switchTab !== 'function' || typeof window.abrirNovaDespesa !== 'function') {
+        mostrarToast('Lançamento de despesa só disponível dentro do app principal.', 'erro');
+        return;
+    }
+    const partes = await api.buscarPartesDoItemControle(item.id);
+    window.switchTab('tab-saidas');
+    window.abrirNovaDespesa(item.ativo_id || null, {
+        descricao: item.titulo,
+        categoria: CATEGORIA_DESPESA_POR_TIPO_ITEM[item.tipo] || 'outro',
+        partes: partes.map(p => ({ parte_id: p.parte_id, nome: p.nome }))
+    });
 }
 
 

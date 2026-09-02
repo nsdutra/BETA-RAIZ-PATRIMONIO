@@ -1,6 +1,9 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.14.0 · 02/09/2026
+// Versão: 1.15.0 · 02/09/2026
+//
+// v1.15.0 — botão "Gerar despesa" novo na box Partes do item de
+// controle (ver changelog completo em cofre-controles.js v1.12.0).
 //
 // v1.14.0 — box "Partes" NOVO na ficha do item de controle (pedido
 // explícito, ver changelog completo em cofre-controles.js v1.11.0) —
@@ -1023,7 +1026,8 @@ export const ATIVOS_MARKUP = `<style>
             <h3 class="font-bold text-sm" style="color:var(--pine)">Partes</h3>
             <p class="text-[11px] mt-0.5" style="color:var(--sage)">Quem responde por este item — pode virar fornecedor de uma despesa depois.</p>
             <div id="fic-partes" class="mt-2 flex flex-wrap gap-1.5"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+            <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
+                <button data-action="fi-gerar-despesa-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="receipt" style="width:11px;height:11px"></i> Gerar despesa</button>
                 <button data-action="abrir-editar-partes-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="users" style="width:11px;height:11px"></i> Editar partes</button>
             </div>
         </div>
