@@ -6,7 +6,70 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.99.0
+   VERSÃO: Beta v1.102.0
+   LINHAS: 30274
+   DATA: 02/09/2026
+   NOVIDADES (Beta v1.102.0) — 3 pedidos explícitos sobre a tela de
+   Alertas: "ao clicar num alerta, deve permitir o seu tratamento caso
+   seja um alerta de um item de controle... deve ser possível, via
+   chip, filtrar os tipos de alertas... deve ter ordenação do mais
+   crítico pro menos crítico" (confirmado: vencido há mais tempo
+   primeiro, depois por dias restantes crescente).
+
+   Reescrita completa de montarAlertasPatrimonio(): modelo unificado
+   (itens de controle + contratos vencidos/precisando revisão/
+   aguardando assinatura + sinais tributários), ordenado por
+   criticidade, com 5 chips de filtro (Todos/Ativos/Itens de controle/
+   Contratos/Outros — mapeamento das 4 categorias de negócio pra cima
+   das fontes de dado existentes, minha interpretação, vale conferir
+   com o Nicola). Clicar num item de controle abre a ficha dele de
+   verdade agora (antes só fazia switchTab('tab-ativos') genérico, sem
+   nem abrir o item certo) — e de lá dá pra tratar (marcar concluído),
+   reaproveitando a ação "Tratar" que já existia no módulo Ativos, via
+   1ª ponte deste projeto na direção App→Cofre (ver cofre-controles.js
+   v1.9.0 pro outro lado). Contratos abrem abrirDetalhesContrato(),
+   já existente, reaproveitado sem duplicar.
+
+   De brinde: "< Voltar" que faltava em tab-alertas (toda aba
+   secundária deveria ter, DS §4.2) — corrigido, respeitando a origem
+   real (3 cards da Visão Geral + 1 item do menu ⚙️, nunca fixo).
+   CATEGORIA_SINAL_ICONE removida (ficou órfã depois da reescrita).
+
+   VERSÃO ANTERIOR: Beta v1.101.0
+   LINHAS: 30088
+   DATA: 02/09/2026
+   NOVIDADES (Beta v1.101.0) — pedido explícito: "vasculha tudo pra ver
+   quem lê a tabela de propriedades hoje pra trocar pra esta de ativo
+   também". Centralização completa de propriedade em propriedade_ativo
+   (banco + App):
+
+   Banco: fn_apurar_distribuicao (Distribuição) e fn_leitura_tributaria_
+   sinais (diagnóstico tributário) liam propriedade_imovel direto —
+   redirecionadas pra propriedade_ativo via cofre_ativos, testadas
+   contra dado real do Rumo ANTES/DEPOIS (mesmos números, zero
+   regressão) antes de considerar pronto.
+
+   App: carregarImoveisSupabase() (o boot inteiro do app) lia
+   propriedade_imovel — trocado pra propriedade_ativo com embed
+   filtrado via cofre_ativos!inner. O popup "Divisão Societária →
+   Alterações" da ficha antiga do imóvel — que tinha um BUG REAL,
+   achado nesta sessão, gravando numa coluna imoveis.divisao que não
+   existe no banco (silenciosamente quebrado) — agora resolve o
+   ativo_id do imóvel e grava via substituir_propriedade_ativo, mesma
+   RPC do chip Propriedade novo. O fluxo de salvar/criar imóvel
+   (sincronizarImovelSupabase) também tinha uma 2ª chamada direta a
+   substituir_propriedade_imovel — redirecionada igual.
+
+   Resultado: zero ponto de escrita ou leitura de propriedade_imovel
+   restante no App ou nas RPCs de negócio — só a própria tabela (ainda
+   existe, não apagada) e sua RPC/trigger originais, que continuam
+   corretas mas sem mais nenhum chamador ativo. Não verificado: bot
+   WhatsApp (raiz-edge-functions) e cockpit (raiz-gestao) — repositórios
+   não estavam disponíveis nesta sessão; se algum dos dois também ler
+   propriedade_imovel, fica pendente conferir numa sessão com esses
+   repos.
+
+   VERSÃO ANTERIOR: Beta v1.99.0
    LINHAS: 30010
    DATA: 02/09/2026
    NOVIDADES (Beta v1.99.0) — aba Contratos reconstruída pro padrão
@@ -7282,7 +7345,7 @@
                      abaixo. -->
                 <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Alertas</p>
 
-                <button onclick="fecharMenuConta(); switchTab('tab-alertas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <button onclick="fecharMenuConta(); abrirTabAlertas()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
                     <svg data-lucide="bell" style="width:18px;height:18px;color:var(--sprout)"></svg>
                     <span class="text-sm font-medium" style="color:var(--ink)">Alertas do patrimônio</span>
                 </button>
@@ -8991,8 +9054,24 @@
              pra cá em vez de Ativos/Resultados. -->
         <section id="tab-alertas" class="tab-content hidden">
 
+            <!-- v1.102.0 (02/09/2026) — "< Voltar" que faltava (toda aba
+                 secundária deveria ter, DS §4.2 — gap achado nesta
+                 sessão, corrigido de brinde). tab-alertas é alcançada de
+                 4 lugares (3 cards na Visão Geral + 1 item no menu ⚙️) —
+                 por isso a origem é sempre a tela real de onde veio
+                 (origemAoAbrirAlertas), nunca um destino fixo. -->
+            <button onclick="voltarDeAlertas()" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
+
             <h2 class="text-lg font-bold text-emerald-900 mb-1">Alertas</h2>
-            <p class="text-[11px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção) e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
+            <p class="text-[11px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
+
+            <!-- v1.102.0 (NOVO, pedido explícito: "deve ser possível, via
+                 chip, filtrar os tipos de alertas") — mesma técnica dos
+                 chips de tipo em Ativos (flex-wrap, sem overflow-x —
+                 lição aprendida nesta mesma sessão: rolagem escondida
+                 via CSS não é confiável em todo navegador, então nem
+                 tento aqui). -->
+            <div id="alertas-chips-categoria" class="flex flex-wrap gap-2 mb-4"></div>
 
             <div id="alertas-patrimonio-mount">
                 <p class="text-xs text-slate-400 text-center py-6">Carregando...</p>
@@ -10089,7 +10168,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.99.0";
+        const APP_VERSAO = "Beta v1.102.0";
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -10968,10 +11047,18 @@
 
             let propriedades = [];
             if (idsImoveis.length > 0) {
+                // v1.101.0 (02/09/2026, pedido explícito: "vasculha tudo
+                // pra ver quem lê a tabela de propriedades hoje pra
+                // trocar pra esta de ativo também") — antes lia direto
+                // de propriedade_imovel; agora lê propriedade_ativo,
+                // filtrando pelo ativo que referencia cada imóvel
+                // (cofre_ativos.entidade_origem_id). Dado já migrado
+                // nesta sessão — mesmos valores, fonte nova.
                 const { data: propRows, error: errProp } = await dbAuth
-                    .from('propriedade_imovel')
-                    .select('*, pessoas(nome)')
-                    .in('imovel_id', idsImoveis);
+                    .from('propriedade_ativo')
+                    .select('*, pessoas(nome), cofre_ativos!inner(entidade_origem_id, entidade_origem_tipo)')
+                    .eq('cofre_ativos.entidade_origem_tipo', 'imovel')
+                    .in('cofre_ativos.entidade_origem_id', idsImoveis);
                 if (errProp) throw errProp;
                 propriedades = propRows || [];
             }
@@ -10991,7 +11078,7 @@
 
                 const divisao = {};
                 propriedades
-                    .filter(function(p) { return p.imovel_id === row.id; })
+                    .filter(function(p) { return p.cofre_ativos && p.cofre_ativos.entidade_origem_id === row.id; })
                     .forEach(function(p) {
                         const nomeDono = p.tipo_proprietario === 'socio_interno'
                             ? (p.pessoas ? p.pessoas.nome : SOCIO_PADRAO)
@@ -11158,8 +11245,20 @@
                 });
             }
 
-            const { error: errProp } = await dbAuth.rpc('substituir_propriedade_imovel', {
-                p_imovel_id: imovelId,
+            // v1.101.0 (02/09/2026, pedido explícito: "vasculha tudo pra
+            // ver quem lê a tabela de propriedades hoje pra trocar pra
+            // esta de ativo também") — trocado substituir_propriedade_imovel
+            // por substituir_propriedade_ativo: resolve o ativo_id deste
+            // imóvel (fn_criar_ativo já garante que ele existe, criado/
+            // atualizado ATOMICAMENTE junto do imóvel) e grava lá — mesma
+            // RPC que o chip Propriedade (Ativos) e o popup "Divisão
+            // Societária" usam agora, fonte única.
+            const { data: ativoDoImovel, error: errAtivoDoImovel } = await dbAuth.from('cofre_ativos')
+                .select('id').eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId).single();
+            if (errAtivoDoImovel || !ativoDoImovel) throw new Error('Não achei o ativo correspondente a este imóvel (cofre_ativos) pra gravar a divisão societária.');
+
+            const { error: errProp } = await dbAuth.rpc('substituir_propriedade_ativo', {
+                p_ativo_id: ativoDoImovel.id,
                 p_linhas: linhasPropriedade
             });
             if (errProp) throw errProp;
@@ -19268,7 +19367,7 @@
                         icone: 'alarm-clock-off', corBg: 'bg-red-50', corTexto: 'text-red-700',
                         titulo: `${vencidos.length} controle${vencidos.length > 1 ? 's' : ''} do Cofre vencido${vencidos.length > 1 ? 's' : ''}`,
                         subtitulo: 'IPTU, seguro ou manutenção — ver Alertas',
-                        onclick: "switchTab('tab-alertas')"
+                        onclick: "abrirTabAlertas()"
                     }));
                 }
                 if (vencendo.length > 0) {
@@ -19276,7 +19375,7 @@
                         icone: 'alarm-clock', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
                         titulo: `${vencendo.length} controle${vencendo.length > 1 ? 's' : ''} vencendo nos próximos 14 dias`,
                         subtitulo: 'IPTU, seguro ou manutenção — ver Alertas',
-                        onclick: "switchTab('tab-alertas')"
+                        onclick: "abrirTabAlertas()"
                     }));
                 }
             } else {
@@ -19292,7 +19391,7 @@
                         icone: 'landmark', corBg: 'bg-blue-50', corTexto: 'text-blue-700',
                         titulo: `Diagnóstico tributário — ${sinais.length} ponto${sinais.length > 1 ? 's' : ''} pra conferir`,
                         subtitulo: `Reforma tributária/NFS-e · ${totalOcorrencias} ocorrência${totalOcorrencias > 1 ? 's' : ''} na carteira · ver Alertas`,
-                        onclick: "switchTab('tab-alertas')"
+                        onclick: "abrirTabAlertas()"
                     }));
                 }
             } else {
@@ -19343,12 +19442,12 @@
             carteira: 'Carteira',
             proprietario: 'Proprietário'
         };
-        const CATEGORIA_SINAL_ICONE = {
-            contrato: 'file-signature',
-            cadastro: 'clipboard-list',
-            carteira: 'boxes',
-            proprietario: 'user'
-        };
+        // CATEGORIA_SINAL_ICONE removida (02/09/2026) — ficou órfã depois
+        // da reescrita da tela de Alertas (montarAlertasPatrimonio()
+        // agora usa ICONE_CATEGORIA, mapeado pelas 4 categorias
+        // unificadas, não mais pelas 4 categorias originais do sinal
+        // tributário). CATEGORIA_SINAL_LABEL continua em uso (título de
+        // cada sinal na lista).
 
         async function montarResumoResultados() {
             const mount = document.getElementById('resultados-resumo-mount');
@@ -19406,18 +19505,35 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        // v1.96.3 (01/09/2026, pedido explícito, "criar uma tela
-        // especifica para o alertas sobre patrimonio") — tela nova
-        // (tab-alertas, menu Configurações), 2 seções:
-        //   1) Controles do Cofre vencidos/vencendo — MESMA query já
-        //      usada em carregarDadosAssincronosVisaoGeral() (Visão
-        //      Geral), mas aqui detalhada item por item (lá era só
-        //      contagem) — é o "clicar abre esta nova tela" fazendo
-        //      sentido: a Visão Geral resume, aqui está o detalhe.
-        //   2) Diagnóstico tributário — MESMO rendering que vivia em
-        //      Resultados (CATEGORIA_SINAL_LABEL/ICONE, definidos perto
-        //      de montarResumoResultados(), reaproveitados sem
-        //      duplicar), só que a busca agora só acontece aqui.
+        // v1.102.0 (02/09/2026, pedido explícito: "ao clicar num alerta,
+        // deve permitir o seu tratamento caso seja um alerta de um item
+        // de controle... deve ser possível, via chip, filtrar os tipos
+        // de alertas... deve ter ordenação do mais crítico pro menos
+        // crítico") — reescrita completa da tela.
+        //
+        // Modelo unificado: cada alerta vira { categoria, dias, titulo,
+        // subtitulo, onClick }. `dias` é o critério de criticidade
+        // (confirmado com o Nicola: "vencido há mais tempo, depois por
+        // dias restantes" — dias NEGATIVO = venceu há |dias| dias, mais
+        // negativo primeiro; dias POSITIVO = vence em `dias` dias,
+        // crescente; dias NULL = sem data própria, vai pro fim, nunca
+        // no meio dos itens com data real).
+        //
+        // 4 categorias (chip): 'item_controle' (cofre_ocorrencias_
+        // controle — os únicos com "tratamento" de verdade, ver
+        // abrirAlertaItemControle), 'contrato' (vencido/precisa revisão/
+        // aguardando assinatura, calculados aqui + os sinais tributários
+        // de categoria='contrato'), 'ativo' (sinais tributários de
+        // categoria='cadastro'/'carteira' — sobre o cadastro do ativo ou
+        // a carteira, não sobre um item específico), 'outro' (sinais de
+        // categoria='proprietario' — sobre a pessoa, não o ativo/
+        // contrato/controle). Mapeamento é minha interpretação das 4
+        // categorias pedidas — Ativos/Contratos/Itens de controle/Outros
+        // não tinham definição prévia no código, avaliar se bate com o
+        // que o Nicola tinha em mente.
+        let alertasTodos = [];
+        let alertasFiltroAtual = 'todos';
+
         async function montarAlertasPatrimonio() {
             const mount = document.getElementById('alertas-patrimonio-mount');
             if (!mount || !CLIENTE_ID_SUPABASE) return;
@@ -19426,77 +19542,201 @@
 
             const [resControles, resTributario] = await Promise.allSettled([
                 dbAuth.from('cofre_ocorrencias_controle')
-                    .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
+                    .select('*, cofre_itens_controle!inner(id, ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
                     .eq('status_execucao', 'aberto')
-                    .eq('cofre_itens_controle.ativo', true)
-                    .order('data_prevista_atual'),
+                    .eq('cofre_itens_controle.ativo', true),
                 dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE })
             ]);
 
-            let html = '';
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            const itens = [];
+            let houveErro = false;
 
-            // --- Seção 1: Controles do Cofre ---
-            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3">
-                <h3 class="font-bold text-sm text-emerald-900">Controles do patrimônio</h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">IPTU, seguro e manutenção com vencimento cadastrado — toque num ativo pra abrir a ficha dele.</p>`;
+            // ---- Itens de controle ----
             if (resControles.status === 'fulfilled' && !resControles.value.error) {
-                const ocorrencias = resControles.value.data || [];
-                const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-                if (ocorrencias.length === 0) {
-                    html += `<p class="text-xs mt-3" style="color:var(--sage)">Nenhum controle em aberto no momento.</p>`;
-                } else {
-                    html += '<div class="mt-3 space-y-2">' + ocorrencias.map(oc => {
-                        const item = oc.cofre_itens_controle;
-                        const nomeAtivo = item?.cofre_ativos?.nome_exibicao || 'Ativo';
-                        let rotuloData = '—';
-                        let corData = 'text-slate-500';
-                        if (oc.data_prevista_atual) {
-                            const dataPrevista = new Date(oc.data_prevista_atual + 'T00:00:00');
-                            const dias = Math.round((dataPrevista - hoje) / 86400000);
-                            if (dias < 0) { rotuloData = `Venceu há ${Math.abs(dias)}d`; corData = 'text-red-600'; }
-                            else if (dias === 0) { rotuloData = 'Vence hoje'; corData = 'text-amber-600'; }
-                            else { rotuloData = `Vence em ${dias}d`; corData = dias <= 14 ? 'text-amber-600' : 'text-slate-500'; }
-                        }
-                        return `<button onclick="switchTab('tab-ativos')" class="w-full flex items-center justify-between gap-2 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                            <div class="min-w-0">
-                                <div class="text-xs font-bold truncate">${(item?.titulo || 'Controle').replace(/</g, '&lt;')}</div>
-                                <div class="text-[11px] text-slate-500 truncate">${nomeAtivo.replace(/</g, '&lt;')}</div>
-                            </div>
-                            <span class="text-[11px] font-bold flex-none ${corData}">${rotuloData}</span>
-                        </button>`;
-                    }).join('') + '</div>';
-                }
+                (resControles.value.data || []).forEach(oc => {
+                    const item = oc.cofre_itens_controle;
+                    if (!item) return;
+                    let dias = null;
+                    if (oc.data_prevista_atual) {
+                        dias = Math.round((new Date(oc.data_prevista_atual + 'T00:00:00') - hoje) / 86400000);
+                    }
+                    itens.push({
+                        categoria: 'item_controle', dias,
+                        titulo: item.titulo || 'Controle',
+                        subtitulo: item.cofre_ativos?.nome_exibicao || 'Ativo',
+                        onClick: `abrirAlertaItemControle('${item.id}', '${item.ativo_id}')`
+                    });
+                });
             } else {
-                html += `<p class="text-xs text-red-500 mt-3">Não foi possível carregar os controles agora.</p>`;
+                houveErro = true;
             }
-            html += `</div>`;
 
-            // --- Seção 2: Diagnóstico tributário ---
-            html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-1">
-                <h3 class="font-bold text-sm text-emerald-900">Diagnóstico tributário</h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">Pré-check com base nos dados cadastrados — não substitui análise fiscal. Tom de notícia, nunca recomendação.</p>`;
+            // ---- Contratos (vencido / precisa revisão / aguardando assinatura) ----
+            // Mesmas 3 checagens já usadas em verAlertasContrato() — não
+            // reescrevi a regra de negócio, só reaproveitei pra alimentar
+            // esta lista unificada.
+            (contratos || []).forEach(con => {
+                if (contratoVencido(con)) {
+                    const fim = new Date(con.fim + 'T00:00:00');
+                    itens.push({
+                        categoria: 'contrato', dias: Math.round((fim - hoje) / 86400000),
+                        titulo: 'Contrato vencido', subtitulo: con.locatario || 'Locatário não informado',
+                        onClick: `abrirDetalhesContrato('${con.id}')`
+                    });
+                }
+                if (contratoPrecisaRevisao(con)) {
+                    const ultimaVigencia = new Date(obterUltimaVigenciaValor(con) + 'T00:00:00');
+                    const prazoRevisao = new Date(ultimaVigencia); prazoRevisao.setMonth(prazoRevisao.getMonth() + 12);
+                    itens.push({
+                        categoria: 'contrato', dias: Math.round((prazoRevisao - hoje) / 86400000),
+                        titulo: 'Pendente de revisão/reajuste', subtitulo: con.locatario || 'Locatário não informado',
+                        onClick: `abrirDetalhesContrato('${con.id}')`
+                    });
+                }
+                if (contratoAguardandoAssinatura(con)) {
+                    itens.push({
+                        categoria: 'contrato', dias: null,
+                        titulo: 'Aguardando assinatura', subtitulo: con.locatario || 'Locatário não informado',
+                        onClick: `abrirDetalhesContrato('${con.id}')`
+                    });
+                }
+            });
+
+            // ---- Sinais tributários (agregados — sem data própria, sem
+            // "tratamento" pontual possível, tom de notícia) ----
             if (resTributario.status === 'fulfilled' && !resTributario.value.error) {
-                const sinais = resTributario.value.data || [];
-                if (sinais.length === 0) {
-                    html += `<p class="text-xs mt-3" style="color:var(--sage)">Nenhum sinal encontrado na carteira no momento.</p>`;
-                } else {
-                    html += '<div class="mt-3 space-y-2">' + sinais.map(s => `
-                        <div class="flex items-start gap-3 p-2.5 rounded-xl border border-slate-200">
-                            <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center flex-none"><svg data-lucide="${CATEGORIA_SINAL_ICONE[s.categoria] || 'info'}" style="width:16px;height:16px"></svg></div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">${CATEGORIA_SINAL_LABEL[s.categoria] || s.categoria}</span><span class="text-[10.5px] font-bold text-slate-600">${s.contagem} ocorrência${s.contagem > 1 ? 's' : ''}</span></div>
-                                <div class="text-[12px] text-slate-700 mt-1 leading-snug">${s.detalhe}</div>
-                            </div>
-                        </div>`).join('') + '</div>';
-                }
+                (resTributario.value.data || []).forEach(s => {
+                    const categoria = s.categoria === 'contrato' ? 'contrato' : (s.categoria === 'proprietario' ? 'outro' : 'ativo');
+                    itens.push({
+                        categoria, dias: null,
+                        titulo: `${CATEGORIA_SINAL_LABEL[s.categoria] || s.categoria} · ${s.contagem} ocorrência${s.contagem > 1 ? 's' : ''}`,
+                        subtitulo: s.detalhe,
+                        onClick: null
+                    });
+                });
             } else {
-                html += `<p class="text-xs text-red-500 mt-3">Não foi possível carregar o diagnóstico agora.</p>`;
+                houveErro = true;
             }
-            html += `</div>`;
 
-            mount.innerHTML = html;
+            alertasTodos = itens;
+            if (houveErro && itens.length === 0) {
+                mount.innerHTML = `<p class="text-xs text-red-500 text-center py-6">Não foi possível carregar os alertas agora.</p>`;
+                document.getElementById('alertas-chips-categoria').innerHTML = '';
+                return;
+            }
+
+            renderChipsAlertas();
+            renderListaAlertas();
+        }
+
+        function renderChipsAlertas() {
+            const wrap = document.getElementById('alertas-chips-categoria');
+            if (!wrap) return;
+            const grupos = [
+                { chave: 'todos', rotulo: 'Todos' },
+                { chave: 'ativo', rotulo: 'Ativos' },
+                { chave: 'item_controle', rotulo: 'Itens de controle' },
+                { chave: 'contrato', rotulo: 'Contratos' },
+                { chave: 'outro', rotulo: 'Outros' }
+            ];
+            wrap.innerHTML = grupos.map(g => {
+                const qtd = g.chave === 'todos' ? alertasTodos.length : alertasTodos.filter(a => a.categoria === g.chave).length;
+                const ativo = alertasFiltroAtual === g.chave;
+                return `<button type="button" onclick="filtrarAlertas('${g.chave}')" class="flex-none text-[11px] font-bold px-3 py-1.5 rounded-full transition ${ativo ? 'text-white' : 'bg-white text-slate-600 border border-slate-300'}" ${ativo ? 'style="background:var(--pine)"' : ''}>${g.rotulo} · ${qtd}</button>`;
+            }).join('');
+        }
+
+        function filtrarAlertas(categoria) {
+            alertasFiltroAtual = categoria;
+            renderChipsAlertas();
+            renderListaAlertas();
+        }
+
+        function renderListaAlertas() {
+            const mount = document.getElementById('alertas-patrimonio-mount');
+            if (!mount) return;
+
+            const filtrados = alertasFiltroAtual === 'todos' ? alertasTodos : alertasTodos.filter(a => a.categoria === alertasFiltroAtual);
+
+            if (filtrados.length === 0) {
+                mount.innerHTML = `<p class="text-xs text-center py-8" style="color:var(--sage)">Nenhum alerta ${alertasFiltroAtual === 'todos' ? '' : 'nesta categoria '}no momento.</p>`;
+                return;
+            }
+
+            // Critério de criticidade confirmado (02/09/2026): vencido há
+            // mais tempo primeiro (dias mais negativo primeiro), depois
+            // por dias restantes crescente. Sem data (null) sempre por
+            // último, nunca misturado no meio dos itens com data real.
+            const ordenados = [...filtrados].sort((a, b) => {
+                if (a.dias === null && b.dias === null) return 0;
+                if (a.dias === null) return 1;
+                if (b.dias === null) return -1;
+                return a.dias - b.dias;
+            });
+
+            const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', ativo: 'boxes', outro: 'info' };
+            const COR_CATEGORIA = { item_controle: 'bg-emerald-50 text-emerald-800', contrato: 'bg-blue-50 text-blue-700', ativo: 'bg-amber-50 text-amber-700', outro: 'bg-slate-100 text-slate-600' };
+
+            mount.innerHTML = ordenados.map(a => {
+                let rotuloTempo = '', corTempo = 'text-slate-500';
+                if (a.dias !== null) {
+                    if (a.dias < 0) { rotuloTempo = `Venceu há ${Math.abs(a.dias)}d`; corTempo = 'text-red-600'; }
+                    else if (a.dias === 0) { rotuloTempo = 'Vence hoje'; corTempo = 'text-amber-600'; }
+                    else { rotuloTempo = `Vence em ${a.dias}d`; corTempo = a.dias <= 14 ? 'text-amber-600' : 'text-slate-500'; }
+                }
+                const clicavel = !!a.onClick;
+                const tagAbre = clicavel ? `<button onclick="${a.onClick}" class="w-full text-left` : `<div class="`;
+                const tagFecha = clicavel ? 'button' : 'div';
+                return `${tagAbre} flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white ${clicavel ? 'active:bg-gray-50' : ''}">
+                    <div class="w-9 h-9 rounded-lg ${COR_CATEGORIA[a.categoria]} flex items-center justify-center flex-none"><svg data-lucide="${ICONE_CATEGORIA[a.categoria]}" style="width:16px;height:16px"></svg></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-900">${escapeHtmlSaidas(a.titulo)}</span>
+                            ${rotuloTempo ? `<span class="text-[11px] font-bold flex-none ${corTempo}">${rotuloTempo}</span>` : ''}
+                        </div>
+                        <div class="text-[11.5px] text-slate-500 mt-0.5 leading-snug">${escapeHtmlSaidas(a.subtitulo)}</div>
+                    </div>
+                </${tagFecha}>`;
+            }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // Ponte pro módulo Ativos (Cofre) — primeira nesta direção neste
+        // projeto (todas as outras pontes iam Cofre→App). Espera o Cofre
+        // estar pronto (mesmo sinal que ativos-boot.js usa,
+        // 'cofre:dados-carregados') antes de tentar abrir a ficha —
+        // trava de segurança de 8s pra nunca travar pra sempre se algo
+        // der errado no import.
+        async function abrirAlertaItemControle(itemId, ativoId) {
+            switchTab('tab-ativos');
+            try {
+                const [{ estado }, controles] = await Promise.all([
+                    import('./js/cofre-estado.js'),
+                    import('./js/cofre-controles.js')
+                ]);
+                if (!estado.clienteId) {
+                    await new Promise(resolve => {
+                        window.addEventListener('cofre:dados-carregados', resolve, { once: true });
+                        setTimeout(resolve, 8000);
+                    });
+                }
+                await controles.abrirItemControleComOrigemAlertas(itemId, ativoId);
+            } catch (err) {
+                mostrarToast('Não consegui abrir o item de controle: ' + (err.message || String(err)), 'danger');
+            }
+        }
+
+        let origemAoAbrirAlertas = null;
+        function abrirTabAlertas() {
+            origemAoAbrirAlertas = document.querySelector('.tab-content:not(.hidden)')?.id || 'tab-geral';
+            switchTab('tab-alertas');
+        }
+        function voltarDeAlertas() {
+            const origem = origemAoAbrirAlertas || 'tab-geral';
+            origemAoAbrirAlertas = null;
+            switchTab(origem);
         }
         // Resumo/Contrato/Financeiro são só LEITURA, montados a partir dos
         // arrays já carregados. Nenhuma função de renderização das abas
@@ -21972,6 +22212,15 @@
             if (p) { p.textContent = `Total: ${total.toFixed(1)}%`; p.style.color = Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'; }
         }
 
+        // v1.101.0 (02/09/2026, pedido explícito: "já vamos arrumar pra
+        // gravar em ativo_propriedade") — BUG REAL corrigido: esta função
+        // gravava em `imoveis.divisao`, coluna que NÃO existe no banco —
+        // o botão "Salvar divisão do imóvel" estava quebrado (silenciosamente,
+        // o erro só aparecia num alert()). Corrigido pra gravar no mesmo
+        // lugar centralizado que o chip Propriedade (Ativos) usa:
+        // resolve o ativo_id deste imóvel e chama substituir_propriedade_ativo,
+        // mesma resolução pessoa/nome-livre que salvarDivisaoContratoPopup
+        // já usava (não inventei uma 2ª regra de negócio).
         async function salvarDivisaoImovelPopup(imovelId) {
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
@@ -21980,13 +22229,28 @@
             if (validas.length > 0 && Math.abs(total - 100) > 0.5) {
                 if (!confirm(`A soma dos percentuais é ${total.toFixed(1)}%, não 100%. Salvar mesmo assim?`)) return;
             }
-            const novoObj = {};
-            validas.forEach(s => { novoObj[s.nome.trim()] = parseFloat(s.pct) || 0; });
 
             mostrarCarregamentoGlobal('Salvando divisão...');
             try {
-                const { error } = await dbAuth.from('imoveis').update({ divisao: novoObj }).eq('id', imovelId);
+                const { data: ativoRow, error: errAtivo } = await dbAuth.from('cofre_ativos')
+                    .select('id').eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId).single();
+                if (errAtivo || !ativoRow) throw new Error('Não achei o ativo correspondente a este imóvel (cofre_ativos).');
+
+                // Mesma resolução pessoa_id/nome_externo que
+                // sincronizarContratoSupabase/salvarDivisaoContratoPopup já
+                // fazem — não inventei uma segunda regra de negócio.
+                const linhas = validas.map(s => {
+                    const pessoaEncontrada = (pessoas || []).find(p => p.nome === s.nome || p.nome.split(' ')[0] === s.nome);
+                    return pessoaEncontrada
+                        ? { tipo_proprietario: 'socio_interno', pessoa_id: pessoaEncontrada.id, nome_externo: '', percentual: parseFloat(s.pct) || 0 }
+                        : { tipo_proprietario: 'terceiro_externo', pessoa_id: '', nome_externo: s.nome.trim(), percentual: parseFloat(s.pct) || 0 };
+                });
+
+                const { error } = await dbAuth.rpc('substituir_propriedade_ativo', { p_ativo_id: ativoRow.id, p_linhas: linhas });
                 if (error) throw error;
+
+                const novoObj = {};
+                validas.forEach(s => { novoObj[s.nome.trim()] = parseFloat(s.pct) || 0; });
                 imo.divisao = novoObj;
                 esconderCarregamentoGlobal();
                 mostrarToast('Divisão do imóvel salva!', 'success');

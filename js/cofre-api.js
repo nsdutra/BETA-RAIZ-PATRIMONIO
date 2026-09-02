@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.12.0 · 02/09/2026
+// Versão: 1.13.0 · 02/09/2026
+//
+// v1.13.0 — salvarPropriedadeImovel() removida (função morta desde a
+// v1.12.0 — nada mais chamava). Comentários da função de leitura
+// corrigidos (não decide mais entre 2 tabelas, só lê propriedade_ativo).
 //
 // v1.12.0 — listarPessoasInternas() ganhou percentual_cotas_empresa no
 // select (pedido explícito: formulário de Novo Ativo precisa pré-popular
@@ -445,12 +449,11 @@ export async function buscarFluxoFinanceiroAtivo(ativoId) {
     }
 }
 
-// v1.11.0 (NOVO, 02/09/2026, pedido explícito: "todos os ativos devem
-// ter a definição da propriedade com % de sócio na tabela
-// correspondente") — chip "Propriedade" da ficha do ativo.
-// fn_propriedade_do_ativo já decide sozinha, no banco, se lê de
-// propriedade_imovel (ativo referencia imóvel) ou propriedade_ativo
-// (todo o resto) — aqui é só a chamada, sem lógica de qual tabela.
+// v1.12.0 (02/09/2026) — "no chip de propriedade, só apresente o dos
+// ativos": fn_propriedade_do_ativo agora só lê propriedade_ativo,
+// sempre (não tem mais ramo pra propriedade_imovel — dado já migrado,
+// ver migration da sessão). Comentário antigo (v1.11.0) que dizia
+// "decide sozinha entre as 2 tabelas" ficou desatualizado, corrigido.
 export async function buscarPropriedadeDoAtivo(ativoId) {
     try {
         const { data, error } = await dbAuth.rpc('fn_propriedade_do_ativo', { p_ativo_id: ativoId });
@@ -462,16 +465,8 @@ export async function buscarPropriedadeDoAtivo(ativoId) {
     }
 }
 
-// Escrita pro caso NÃO-imóvel (tabela nova, propriedade_ativo). Pro
-// caso imóvel, o App (index.html) já tem seu próprio salvarPropriedade
-// via substituir_propriedade_imovel — não duplicado aqui.
 export async function salvarPropriedadeAtivo(ativoId, linhas) {
     const { error } = await dbAuth.rpc('substituir_propriedade_ativo', { p_ativo_id: ativoId, p_linhas: linhas });
-    if (error) throw error;
-}
-
-export async function salvarPropriedadeImovel(imovelId, linhas) {
-    const { error } = await dbAuth.rpc('substituir_propriedade_imovel', { p_imovel_id: imovelId, p_linhas: linhas });
     if (error) throw error;
 }
 

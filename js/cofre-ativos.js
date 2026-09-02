@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.13.0 · 02/09/2026
+// Versão: 1.14.0 · 02/09/2026
+//
+// v1.14.0 — comentário da seção Propriedade corrigido (não descreve
+// mais um caminho "imóvel escreve na tabela antiga" — propriedade_ativo
+// é a única fonte, sempre, em qualquer lugar do sistema que grava
+// divisão societária — ver index.html v1.101.0 pro resto da
+// centralização (RPCs de negócio + popup legado do imóvel).
 //
 // v1.13.0 — 2 pedidos explícitos: (1) "migre os dados de propriedade da
 // tabela propriedade_imovel para propriedade_ativo... no chip de
@@ -859,14 +865,14 @@ export function abrirSaidasDoAtivo() {
 }
 
 // ============================================================================
-// PROPRIEDADE (NOVO, v1.11.0, pedido explícito, 02/09/2026: "todos os
-// ativos devem ter a definição da propriedade com % de sócio na tabela
-// correspondente"). Leitura via fn_propriedade_do_ativo (decide sozinha
-// a tabela por trás); escrita por substituir_propriedade_ativo (não-
-// imóvel) ou substituir_propriedade_imovel (imóvel — RPC já existente,
-// não duplicada aqui). Editor é um modal dinâmico (modalGenerico,
-// cofre-ui.js), estado das linhas em memória só enquanto o modal está
-// aberto (mesmo espírito do sociosAdicionais do formulário de imóvel).
+// PROPRIEDADE ("todos os ativos devem ter a definição da propriedade
+// com % de sócio na tabela correspondente"). propriedade_ativo é a
+// ÚNICA fonte (leitura via fn_propriedade_do_ativo, escrita via
+// substituir_propriedade_ativo) — desde v1.13.0, dado de
+// propriedade_imovel já migrado e centralizado, chip nunca mais toca
+// na tabela antiga. Editor é um modal dinâmico (modalGenerico,
+// cofre-ui.js), estado das linhas em memória só enquanto está aberto
+// (mesmo espírito do sociosAdicionais do formulário de imóvel).
 // ============================================================================
 let propriedadeLinhasEmEdicao = [];
 let propriedadePessoasCache = null; // null = ainda não carregado

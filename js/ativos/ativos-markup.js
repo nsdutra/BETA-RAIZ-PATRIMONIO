@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.12.0 · 02/09/2026
+// Versão: 1.13.0 · 02/09/2026
+//
+// v1.13.0 — comentário do painel Propriedade corrigido (não descreve
+// mais 2 tabelas possíveis — propriedade_ativo é a única fonte desde
+// cofre-ativos.js v1.13.0/cofre-api.js v1.13.0).
 //
 // v1.12.0 — BUG REAL corrigido, achado com screenshot real: "esta
 // barra de rolagem nos chips nunca deve existir". A fileira de abas da
@@ -606,19 +610,18 @@ export const ATIVOS_MARKUP = `<style>
         </div>
     </div>
 
-    <!-- ===== Painel: Propriedade (NOVO, v1.10.0, pedido explícito,
+    <!-- ===== Painel: Propriedade (v1.10.0, pedido explícito,
          02/09/2026: "todos os ativos devem ter a definição da
          propriedade com % de sócio na tabela correspondente") — mostra
          a distribuição atual (sócio/parte + %) e permite editar, mesmo
          espírito da "Divisão Societária" que já existia pra imóvel,
-         agora estendida pra qualquer tipo de ativo. Backend: 1 RPC de
-         leitura que decide sozinha a tabela (fn_propriedade_do_ativo —
-         propriedade_imovel quando o ativo referencia um imóvel,
-         propriedade_ativo pra todo o resto), 1 RPC de escrita
-         (substituir_propriedade_ativo, só usada quando NÃO é imóvel —
-         imóvel continua escrevendo por substituir_propriedade_imovel,
-         já usada em outro lugar do App, não duplicada aqui). Montado
-         por montarPropriedadeAtivo() (cofre-ativos.js). -->
+         agora estendida pra qualquer tipo de ativo. Backend (v1.13.0):
+         propriedade_ativo é a ÚNICA fonte, sempre — dado de
+         propriedade_imovel já migrado (100 linhas) e os 2 RPCs de
+         negócio que liam de lá (fn_apurar_distribuicao,
+         fn_leitura_tributaria_sinais) redirecionados também, testados
+         sem regressão contra dado real. Montado por
+         montarPropriedadeAtivo() (cofre-ativos.js). -->
     <div id="fa-painel-propriedade" class="fa-painel hidden space-y-3">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm text-emerald-900">Propriedade</h3>

@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.8.0 · 29/08/2026
+// Versão: 1.9.0 · 02/09/2026
+//
+// v1.9.0 — abrirItemControleComOrigemAlertas() (NOVO, pedido explícito:
+// "ao clicar num alerta, deve permitir o seu tratamento caso seja um
+// alerta de um item de controle") — ponte pro App: até aqui todas as
+// pontes deste projeto iam Cofre→App (abrirNovaDespesa etc.); esta é a
+// primeira na direção contrária (App→Cofre), pra tab-alertas
+// (index.html) conseguir abrir a ficha de um item de controle
+// específico com o "Tratar" já alcançável, reaproveitando
+// abrirFichaItemControle() (mesma função da lista de Controles) sem
+// duplicar nada — só ajusta a origem pra 'alertas' explicitamente
+// (auto-detecção de origem não faz sentido vindo de fora do módulo) e
+// garante estado.ativoEmFoco correto antes de chamar.
 //
 // v1.8.0 — 2 pedidos explícitos do Nicola, mesma sessão:
 //   1) BUG FIX (achado pelo usuário, print mostrando "Em dia" no resumo
@@ -257,6 +269,25 @@ export async function abrirFichaItemControle(itemId) {
     renderizarFichaItemControle();
 }
 
+// NOVO (02/09/2026, pedido explícito: "ao clicar num alerta, deve
+// permitir o seu tratamento caso seja um alerta de um item de
+// controle") — ponte App→Cofre (1ª nesta direção; todas as outras
+// pontes deste projeto iam Cofre→App). Chamada por
+// abrirAlertaItemControle() em index.html (tab-alertas). Reaproveita
+// abrirFichaItemControle() por inteiro — só garante estado.ativoEmFoco
+// certo antes (pro log de acesso e pra "Voltar" cair no lugar certo se
+// a origem virar 'ficha-ativo' por algum motivo) e sobrescreve a
+// origem detectada automaticamente, que não faz sentido vindo de fora
+// do módulo.
+export async function abrirItemControleComOrigemAlertas(itemId, ativoId) {
+    if (ativoId && (!estado.ativoEmFoco || estado.ativoEmFoco.id !== ativoId)) {
+        try { estado.ativoEmFoco = await api.buscarAtivoPorId(ativoId); }
+        catch (e) { console.warn('[cofre-controles] não achei o ativo do alerta:', e); }
+    }
+    await abrirFichaItemControle(itemId);
+    itemControleOrigemTela = 'alertas-app';
+}
+
 export async function recarregarFichaItemControle() {
     if (!itemEmFoco) return;
     try {
@@ -271,6 +302,17 @@ export function voltarFichaItemControle() {
     const ativo = estado.ativoEmFoco;
     itemEmFoco = null;
     itemControleOrigemTela = null;
+    // NOVO (02/09/2026) — 'alertas-app' é uma origem DIFERENTE de
+    // 'alertas' (a tela de alertas INTERNA do Cofre, alcançável pela
+    // Home) — significa que veio de fora do módulo inteiro, da aba
+    // tab-alertas do index.html (ponte nova, ver
+    // abrirItemControleComOrigemAlertas() logo abaixo). Volta via
+    // switchTab, nenhuma tela interna do Cofre faz sentido aqui.
+    if (origem === 'alertas-app' && typeof window.switchTab === 'function') {
+        window.switchTab('tab-alertas');
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+        return;
+    }
     // BUG FIX (25/08/2026) — antes ia sempre pra 'ficha-ativo', fixo.
     // Agora respeita a tela de origem real — pode ter sido aberta a
     // partir de um alerta na Home ou na tela cheia de Alertas.
