@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.13.0 · 02/09/2026
+// Versão: 1.14.0 · 02/09/2026
+//
+// v1.14.0 — funções novas pro chip "Partes" do item de controle:
+// listarPartesCliente (todas as partes do cliente, não só sócios
+// internos), buscarPartesDoItemControle/salvarPartesItemControle (RPCs
+// fn_partes_do_item_controle/substituir_partes_item_controle),
+// criarParteRapida (nome só, mesmo espírito do fornecedor "+ Novo" do
+// popup de despesa em index.html).
 //
 // v1.13.0 — salvarPropriedadeImovel() removida (função morta desde a
 // v1.12.0 — nada mais chamava). Comentários da função de leitura
@@ -486,6 +493,50 @@ export async function listarPessoasInternas(clienteId) {
         return [];
     }
 }
+
+// v1.16.0 (NOVO, 02/09/2026, pedido explícito: "as partes devem ser
+// vários chips e aparecer... em itens de controle (prestadores)") —
+// diferente de listarPessoasInternas (só sócios/funcionários da própria
+// empresa), esta traz TODAS as partes do cliente — inclui prestadores
+// externos (corretor, seguradora, síndico terceirizado etc.), pro
+// seletor do editor de partes do item de controle.
+export async function listarPartesCliente(clienteId) {
+    try {
+        const { data, error } = await dbAuth.from('partes')
+            .select('id, nome')
+            .eq('cliente_id', clienteId)
+            .order('nome');
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.warn('[cofre-api] listarPartesCliente falhou:', e);
+        return [];
+    }
+}
+
+export async function buscarPartesDoItemControle(itemControleId) {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_partes_do_item_controle', { p_item_controle_id: itemControleId });
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.warn('[cofre-api] buscarPartesDoItemControle falhou:', e);
+        return [];
+    }
+}
+
+export async function salvarPartesItemControle(itemControleId, linhas) {
+    const { error } = await dbAuth.rpc('substituir_partes_item_controle', { p_item_controle_id: itemControleId, p_linhas: linhas });
+    if (error) throw error;
+}
+
+// Criação rápida de parte (nome só, mesmo espírito do fornecedor "+
+// Novo" do popup de despesa em index.html) — usada pelo editor de
+// Partes do item de controle quando a parte ainda não existe.
+export async function criarParteRapida(clienteId, nome) {
+    return await dbAuth.from('partes').insert({ cliente_id: clienteId, nome }).select('id, nome').single();
+}
+
 
 // NOVO (31/08/2026, pedido explícito) — "perdeu a formatação da lista
 // com ícones, tamanho e cores... como referência a tela a lista de

@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.13.0 · 02/09/2026
+// Versão: 1.14.0 · 02/09/2026
+//
+// v1.14.0 — box "Partes" NOVO na ficha do item de controle (pedido
+// explícito, ver changelog completo em cofre-controles.js v1.11.0) —
+// entre Ocorrência e Contatos vinculados.
 //
 // v1.13.0 — comentário do painel Propriedade corrigido (não descreve
 // mais 2 tabelas possíveis — propriedade_ativo é a única fonte desde
@@ -1002,6 +1006,26 @@ export const ATIVOS_MARKUP = `<style>
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
             <h3 class="font-bold text-sm" style="color:var(--pine)">Ocorrência</h3>
             <div id="fic-ocorrencia" class="mt-1.5"></div>
+        </div>
+
+        <!-- Box: Partes (NOVO, 02/09/2026, pedido explícito: "as partes
+             devem ser vários chips e aparecer... em itens de controle
+             (prestadores)... podendo ter mais de uma parte no item").
+             Chips (não linhas de lista, de propósito — visual pedido),
+             cada um "Nome · Papel". Editor abre modal-generico (mesmo
+             mecanismo do chip Propriedade em Ativos), sem % (não é
+             rateio, é lista de responsáveis). Diferente do box
+             "Contatos vinculados" logo abaixo: Partes é o cadastro
+             formal (pode virar fornecedor de despesa depois); Contatos
+             é só "quem eu chamo no WhatsApp", mais leve, continua
+             existindo em paralelo, não substituído. -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+            <h3 class="font-bold text-sm" style="color:var(--pine)">Partes</h3>
+            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Quem responde por este item — pode virar fornecedor de uma despesa depois.</p>
+            <div id="fic-partes" class="mt-2 flex flex-wrap gap-1.5"></div>
+            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
+                <button data-action="abrir-editar-partes-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="users" style="width:11px;height:11px"></i> Editar partes</button>
+            </div>
         </div>
 
         <!-- Box: Contatos vinculados — revisão DS: botão "+ Adicionar"

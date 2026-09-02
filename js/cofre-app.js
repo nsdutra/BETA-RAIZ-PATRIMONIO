@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.17.0 · 02/09/2026
+// Versão: 1.18.0 · 02/09/2026
+//
+// v1.18.0 — 2 cases novos pro chip "Partes" do item de controle:
+// 'abrir-editar-partes-item' e 'fi-salvar-partes-item' (este dentro do
+// modal-generico), delegando pra controles.abrirEditarPartesItem()/
+// controles.salvarPartesItemAtual().
 //
 // v1.17.0 — 'abrir-form-ativo' ganhou await (ativos.abrirFormAtivo()
 // virou async na v1.11.0 do cofre-ativos.js, pra pré-carregar sócios
@@ -449,6 +454,9 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-editar-item': controles.fecharEditarItem(); break;
         case 'salvar-edicao-item': await controles.salvarEdicaoItem(); break;
         case 'excluir-item-controle-atual': await controles.excluirItemControleAtual(); break;
+        // v1.18.0 (NOVO, 02/09/2026) — chip "Partes" do item de controle.
+        case 'abrir-editar-partes-item': await controles.abrirEditarPartesItem(); break;
+        case 'fi-salvar-partes-item': await controles.salvarPartesItemAtual(); break;
         case 'alternar-mais-acoes-contatos-item': controles.alternarMaisAcoesContatosItem(); break;
         case 'alternar-mais-acoes-dados-item': controles.alternarMaisAcoesDadosItem(); break;
         case 'alternar-mais-acoes-doc-item': controles.alternarMaisAcoesDocItem(); break;

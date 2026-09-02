@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.15.0 · 02/09/2026
+// Versão: 1.16.0 · 02/09/2026
+//
+// v1.16.0 — pedido explícito: "este padrão pode ser o do chip do
+// sistema das demais telas" — display do chip Propriedade virou pill
+// (mesmo visual do chip Partes novo em cofre-controles.js v1.11.0),
+// não mais bloco de linha. Só o DISPLAY mudou, o editor continua com %
+// (rateio de propriedade é diferente de item de controle, que não tem
+// percentual).
 //
 // v1.15.0 — pedido explícito: "resolva as pendências de cores
 // listadas". 10 usos de emerald-* trocados por token (--sprout-light/
@@ -905,11 +912,14 @@ async function montarPropriedadeAtivo(a) {
         return;
     }
 
-    lista.innerHTML = linhas.map(l => `
-        <div class="raiz-bloco-interno flex items-center justify-between gap-2">
-            <span class="text-xs font-bold truncate">${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')}</span>
-            <span class="text-xs font-bold flex-none" style="color:var(--sprout)">${Number(l.percentual)}%</span>
-        </div>`).join('');
+    // v1.16.0 (02/09/2026, pedido explícito: "as partes devem ser
+    // vários chips... este padrão pode ser o do chip do sistema das
+    // demais telas") — visual de pill/chip igual ao Partes do item de
+    // controle (cofre-controles.js), não mais bloco de linha. Só o
+    // DISPLAY mudou — o editor continua com % (aqui é rateio de
+    // propriedade, diferente de item de controle que não tem %).
+    lista.innerHTML = `<div class="flex flex-wrap gap-1.5">` + linhas.map(l => `
+        <span class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')} · ${Number(l.percentual)}%</span>`).join('') + `</div>`;
     refrescarIcones();
 }
 

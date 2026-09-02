@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.10.0 · 02/09/2026
+// Versão: 1.11.0 · 02/09/2026
+//
+// v1.11.0 — chip "Partes" no item de controle (NOVO, pedido explícito:
+// "as partes devem ser vários chips e aparecer... em itens de controle
+// (prestadores)... podendo ter mais de uma parte no item, por exemplo
+// pra cobrir a empresa e tb um contato na empresa ou o corretor").
+// montarPartesItemControle() mostra os chips; abrirEditarPartesItem()/
+// salvarPartesItemAtual() abrem o editor (modalGenerico) — várias
+// linhas parte+papel, sem %, permite criar parte nova na hora. Backend:
+// fn_partes_do_item_controle/substituir_partes_item_controle (RPCs
+// novas, testadas como authenticated real antes desta entrega). Box
+// novo entra entre Ocorrência e Contatos vinculados — Partes é o
+// cadastro formal (pode virar fornecedor de despesa depois), Contatos
+// continua sendo só "quem eu chamo no WhatsApp", os dois convivem.
 //
 // v1.10.0 — pedido explícito: "resolva as pendências de cores
 // listadas". Ícone-box da ficha do item de controle (bg-emerald-50
@@ -142,7 +155,7 @@
 // ============================================================================
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, refrescarIcones, abrirModal, fecharModal } from './cofre-ui.js';
+import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import { abrirUploadContextual } from './cofre-documentos.js';
 import {
@@ -255,6 +268,131 @@ export function alternarMaisAcoesControles() {
 // ============================================================================
 // TELA — FICHA DO ITEM DE CONTROLE
 // ============================================================================
+// ============================================================================
+// PARTES DO ITEM DE CONTROLE (NOVO, 02/09/2026, pedido explícito: "as
+// partes devem ser vários chips e aparecer... em itens de controle
+// (prestadores)... podendo ter mais de uma parte no item"). Backend:
+// fn_partes_do_item_controle (leitura) / substituir_partes_item_controle
+// (escrita, testadas como authenticated real). Editor sem % (não é
+// rateio como Propriedade em Ativos — é lista de responsáveis, cada um
+// com seu papel).
+// ============================================================================
+const PAPEIS_PARTE_ITEM = [
+    { v: 'sindico', l: 'Síndico' },
+    { v: 'administradora', l: 'Administradora' },
+    { v: 'manutencista', l: 'Manutencista' },
+    { v: 'corretor', l: 'Corretor' },
+    { v: 'contato_seguradora', l: 'Contato na seguradora' },
+    { v: 'prestador', l: 'Outro prestador' },
+];
+function rotuloPapelParteItem(v) {
+    return (PAPEIS_PARTE_ITEM.find(p => p.v === v) || {}).l || v;
+}
+
+let partesItemLinhasEmEdicao = [];
+let partesClienteCache = null; // null = ainda não carregado
+
+async function montarPartesItemControle(item) {
+    const mount = document.getElementById('fic-partes');
+    if (!mount) return;
+    mount.innerHTML = `<p class="text-xs" style="color:var(--sage)">Carregando...</p>`;
+
+    const linhas = await api.buscarPartesDoItemControle(item.id);
+
+    if (!linhas.length) {
+        mount.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhuma parte vinculada ainda.</p>`;
+        return;
+    }
+    mount.innerHTML = linhas.map(l => `
+        <span class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtml(l.nome)} · ${escapeHtml(rotuloPapelParteItem(l.papel))}</span>
+    `).join('');
+}
+
+function partesItemLinhaHtml(l, idx) {
+    const optsPartes = (partesClienteCache || []).map(p =>
+        `<option value="${p.id}" ${l.parte_id === p.id ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
+    const optsPapeis = PAPEIS_PARTE_ITEM.map(p =>
+        `<option value="${p.v}" ${l.papel === p.v ? 'selected' : ''}>${escapeHtml(p.l)}</option>`).join('');
+    return `
+        <div class="flex gap-2 items-start" data-partes-item-linha="${idx}">
+            <div class="flex-1 space-y-1">
+                <select onchange="window.__piMudarParte(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;"><option value="">— selecionar parte —</option>${optsPartes}<option value="__nova__" ${l.parte_id === '__nova__' ? 'selected' : ''}>+ Nova parte</option></select>
+                ${l.parte_id === '__nova__' ? `<input type="text" value="${escapeHtml(l.nomeNovo || '')}" oninput="window.__piMudarNomeNovo(${idx}, this.value)" placeholder="Nome da nova parte" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">` : ''}
+                <select onchange="window.__piMudarPapel(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;">${optsPapeis}</select>
+            </div>
+            <button onclick="window.__piRemoverLinha(${idx})" style="background:transparent;border:none;color:var(--danger);flex:none;padding:6px 0;"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+        </div>`;
+}
+
+function renderPartesItemEditor() {
+    const container = document.getElementById('pi-linhas');
+    if (!container) return;
+    container.innerHTML = partesItemLinhasEmEdicao.map((l, i) => partesItemLinhaHtml(l, i)).join('');
+    refrescarIcones();
+}
+
+window.__piMudarParte = (idx, valor) => { partesItemLinhasEmEdicao[idx].parte_id = valor; renderPartesItemEditor(); };
+window.__piMudarNomeNovo = (idx, valor) => { partesItemLinhasEmEdicao[idx].nomeNovo = valor; };
+window.__piMudarPapel = (idx, valor) => { partesItemLinhasEmEdicao[idx].papel = valor; };
+window.__piRemoverLinha = (idx) => { partesItemLinhasEmEdicao.splice(idx, 1); renderPartesItemEditor(); };
+window.__piAdicionarLinha = () => { partesItemLinhasEmEdicao.push({ parte_id: '', papel: 'prestador', nomeNovo: '' }); renderPartesItemEditor(); };
+
+export async function abrirEditarPartesItem() {
+    const item = itemEmFoco;
+    if (!item) return;
+
+    if (partesClienteCache === null) {
+        partesClienteCache = await api.listarPartesCliente(estado.clienteId);
+    }
+    const atuais = await api.buscarPartesDoItemControle(item.id);
+    partesItemLinhasEmEdicao = atuais.map(l => ({ parte_id: l.parte_id, papel: l.papel, nomeNovo: '' }));
+
+    modalGenerico('Editar partes do item', `
+        <div id="pi-linhas" class="space-y-2 mb-2"></div>
+        <button onclick="window.__piAdicionarLinha()" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1 mb-3">
+            <i data-lucide="plus" style="width:11px;height:11px"></i> Adicionar parte
+        </button>
+        <div class="flex gap-2">
+            <button data-action="fechar-modal-generico" class="flex-1" style="background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Cancelar</button>
+            <button data-action="fi-salvar-partes-item" class="flex-1" style="background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+        </div>
+    `);
+    renderPartesItemEditor();
+}
+
+export async function salvarPartesItemAtual() {
+    const item = itemEmFoco;
+    if (!item) return;
+
+    for (const l of partesItemLinhasEmEdicao) {
+        if (!l.parte_id || (l.parte_id === '__nova__' && !l.nomeNovo.trim())) {
+            mostrarToast('Preencha a parte de todas as linhas (ou remova as vazias).', 'erro');
+            return;
+        }
+    }
+
+    try {
+        const linhasParaApi = [];
+        for (const l of partesItemLinhasEmEdicao) {
+            let parteId = l.parte_id;
+            if (parteId === '__nova__') {
+                const { data: novaParte, error } = await api.criarParteRapida(estado.clienteId, l.nomeNovo.trim());
+                if (error) throw error;
+                parteId = novaParte.id;
+                partesClienteCache = null; // invalida cache, próxima abertura já traz
+            }
+            linhasParaApi.push({ parte_id: parteId, papel: l.papel });
+        }
+        await api.salvarPartesItemControle(item.id, linhasParaApi);
+        mostrarToast('Partes do item salvas.');
+        fecharModal('modal-generico');
+        await montarPartesItemControle(item);
+    } catch (err) {
+        mostrarToast('Erro ao salvar: ' + (err.message || String(err)), 'erro');
+    }
+}
+
+
 export async function abrirFichaItemControle(itemId) {
     ocorrenciaEmAcao = null;
     document.getElementById('fic-contatos-acoes')?.classList.add('hidden');
@@ -392,6 +530,8 @@ function renderizarFichaItemControle() {
             </div>`;
         }).join('');
     }
+
+    montarPartesItemControle(item);
 
     // ---- Box Alertas vinculados: REMOVIDO (v6) — a própria ocorrência
     // (acima) já É o alerta; não existe mais cadastro de alerta avulso.
