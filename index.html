@@ -6,9 +6,79 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.107.0
-   LINHAS: 30869
+   VERSÃO: Beta v1.110.0
+   LINHAS: 31047
    DATA: 03/09/2026
+   NOVIDADES (Beta v1.110.0) — FATIA 4 da gramática única: CONTRATOS.
+     LISTA (renderContratos): cards soltos → .rz-row agrupadas por
+       empreendimento em .rz-card.rz-list; status "ponto + rótulo" via
+       renderStatus (Vencido bad · Reajustar warn · Assinando run ·
+       Vigente ok · Encerrado neu) — o ícone de alerta e os 4 badges
+       Tailwind saíram; chips de filtro em 1 linha (Todos · Vigentes ·
+       Com alerta · Assinando · Encerrados) que só escrevem no <select> e
+       no checkbox já existentes (renderChipsContratos /
+       filtrarContratosPorChip); vazio único.
+     FICHA (abrirFichaContrato): cabeçalho de entidade (.rz-entity) com
+       status; 4 chips Resumo · Cobranças (n em atraso) · Partes (n) ·
+       Arquivos (n); card "Precisa de atenção" (borda danger/wine) com o
+       ÚNICO botão preenchido da tela ("Ver alertas"); Condições em
+       .rz-kv com rodapé "Editar contrato" + Mais ações em SHEET
+       (Histórico · Abrir no Cofre · Gerar minuta se pronta · Abrir o
+       imóvel · Excluir); Cobranças com 6 últimas em .rz-row (Pago / Em
+       atraso / A receber) e total em atraso no cabeçalho, "Ver no
+       Financeiro"; Partes com locatário + fiadores em .rz-row, vazio
+       "Nenhum fiador" e "Adicionar fiador"; Arquivos com documentos em
+       .rz-row (montarDocumentosContrato) e "Carregar documento".
+       Saíram: #fc-mais-acoes e #fc-doc-acoes inline, "Editar" solto de
+       Fiadores, "Ver financeiro completo →", 👤 no título.
+       Funções de negócio intactas; alternarMaisAcoesFichaContrato/
+       alternarMaisAcoesDocContrato ficam como fallback sem sheet.
+     Não mexido nesta fatia: cabeçalho da aba (busca + "+" toggle) e o
+     formulário Tipo A de contrato — fatias 7 e 9.
+
+   NOVIDADES (Beta v1.109.0) — FATIA 3b-ii: formulário do imóvel na
+   gramática, SEM reescrever saveImovel/editarImovel (ids intactos):
+     - Cabeçalho no padrão do sheet (título Bricolage, X .rz-x); títulos
+       "Cadastrar imóvel"/"Editar imóvel" (sai o emoji 📝).
+     - Rótulos de seção "LOCALIZAÇÃO/VALORES/EXTRAS E SÓCIOS" (caixa alta
+       em --brass-deep) viram .rz-group (sentence case, sage) — 3 caixa_alta
+       e 3 brass_decorativo a menos na trava. "Extras e Sócios" → "Extras".
+     - Síndico, manutencista, sócios e fotos entram num contêiner
+       #imo-blocos-ficha: a ficha do ativo o esconde ao abrir o formulário
+       (cofre-ativos.js v1.18.1), porque esses blocos já vivem lá (Partes
+       do item, Propriedade, Arquivos). No cadastro novo continuam
+       visíveis (sócios são obrigatórios pra criar). cancelarEdicaoImovel
+       reexibe ao fechar.
+     - Rodapé .rz-sh-f: Cancelar (nível 2) à esquerda, "Salvar imóvel"
+       (nível 1) à direita — antes era Salvar sprout | Fechar cinza.
+   O 2º formulário "Detalhes do Imóvel" (abrirDetalhesImovel) segue no
+   código mas está inalcançável desde a v1.108.0 — remoção física fica
+   pra limpeza (fatia 8).
+
+   NOVIDADES (Beta v1.108.0) — 3 achados do Nicola nos prints das 13h:
+     1) TELAS ANTIGAS DE IMÓVEIS DESLIGADAS. Ao fechar o modal "Editar
+        Imóvel" o usuário caía na lista/ficha antiga (#tab-imoveis) e
+        podia navegar por ela. Causa: o modal (#form-imovel-wrapper) vivia
+        dentro da section, então abrirGestaoImovel precisava trocar de aba
+        antes de abrir. Agora: (a) o modal é movido pro <body> no boot
+        (rzMoverFormImovelParaBody) e abre de qualquer aba; (b) guarda no
+        switchTab: tab-imoveis → tab-ativos, sempre; (c) todas as entradas
+        redirecionadas — atalhos da Visão Geral (assinando/alerta →
+        Contratos; vagos → Ativos com filtro Vago), "< Imóveis" da vitrine,
+        "voltar ao app" do menu, alerta de contrato, "ver imóvel" no
+        detalhe do contrato (→ ficha do ativo via rzAbrirAtivoDoImovel);
+        (d) ao fechar/salvar, cofre-ativos recarrega a ficha do ativo
+        (hook __rzAposFecharImovel). A section fica no DOM (o modal e
+        renderImoveis dependem dos elementos) mas nunca é exibida; a
+        remoção física entra no item "imoveis table elimination" já
+        adiado. O 2º formulário ("Detalhes do Imóvel", abrirDetalhesImovel)
+        só era alcançável pela ficha antiga — morre junto.
+     2) Editar campos do ATIVO abria formulário inline dentro do card;
+        agora abre bottom sheet (abrirSheetForm) como o resto
+        (cofre-ativos.js v1.18.0).
+     3) Status "ponto + rótulo" em toda a tela Alertas (lista e chips em
+        1 linha), igual ficha/contrato — ver montarAlertasPatrimonio.
+
    NOVIDADES (Beta v1.107.0) — PALETA EXECUTIVA (decisão do Nicola em
    03/09, "opção B" do comparativo; DS v2.3 §1):
      - O app tinha ficado "verde claro de forma geral": cabeçalho --sprout
@@ -8111,9 +8181,11 @@
 
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
 
-                    <h3 style="font-size:14px;font-weight:bold;color:#1e293b;" id="form-imovel-titulo">Cadastrar Imóvel</h3>
+                    <!-- v1.109.0 (fatia 3b-ii) — cabeçalho no padrão do sheet
+                         (.rz-sh-h): título Bricolage 17px, X redondo .rz-x -->
+                    <h3 style="font-family:var(--font-title);font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin:0" id="form-imovel-titulo">Cadastrar imóvel</h3>
 
-                    <button type="button" onclick="fecharCadastroImovelModal()" title="Fechar" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+                    <button type="button" onclick="fecharCadastroImovelModal()" title="Fechar" class="rz-x" aria-label="Fechar"><svg data-lucide="x"></svg></button>
 
                 </div>
 
@@ -8123,7 +8195,7 @@
 
                     <div id="imo-step-1" class="imo-step space-y-3">
 
-                    <p class="text-[11px] font-bold uppercase tracking-wide" style="color:var(--brass-deep)">Localização</p>
+                    <p class="rz-group" style="margin-top:0">Localização</p>
 
                     <div class="grid grid-cols-2 gap-2">
 
@@ -8220,7 +8292,7 @@
 
                     <div id="imo-step-2" class="imo-step space-y-3 pt-2 mt-2 border-t border-slate-100">
 
-                    <p class="text-[11px] font-bold uppercase tracking-wide" style="color:var(--brass-deep)">Valores</p>
+                    <p class="rz-group" style="margin-top:0">Valores</p>
 
                     <div>
 
@@ -8277,7 +8349,7 @@
 
                     <div id="imo-step-3" class="imo-step space-y-3 pt-2 mt-2 border-t border-slate-100">
 
-                    <p class="text-[11px] font-bold uppercase tracking-wide" style="color:var(--brass-deep)">Extras e Sócios</p>
+                    <p class="rz-group" style="margin-top:0">Extras</p>
 
                     <div class="grid grid-cols-2 gap-2">
 
@@ -8318,6 +8390,14 @@
 
                     </div>
 
+                    <!-- v1.109.0 (fatia 3b-ii) — síndico, manutencista, sócios e
+                         fotos ficam num contêiner que a FICHA DO ATIVO esconde ao
+                         abrir este formulário (abrirGestaoImovel): na ficha eles já
+                         têm lugar próprio (Partes do item, Propriedade, Arquivos) —
+                         mostrar de novo aqui era a duplicação apontada pelo Nicola.
+                         No cadastro NOVO (menu ⚙️ / "+") continuam visíveis, porque
+                         a divisão de sócios é obrigatória pra criar o imóvel. -->
+                    <div id="imo-blocos-ficha" class="space-y-3">
                     <div id="imo-sindico-secao" class="hidden bg-slate-50 p-3 rounded-xl border-2 border-slate-300">
 
                         <span class="text-xs font-black text-slate-700 uppercase block mb-2">Síndico</span>
@@ -8377,11 +8457,14 @@
                     </div>
 
                     </div>
+                    </div><!-- fim imo-blocos-ficha -->
                     <!-- fim imo-step-3 -->
 
-                    <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button type="submit" id="btn-salvar-imo" style="flex:1;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar Imóvel</button>
-                        <button type="button" onclick="fecharCadastroImovelModal()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
+                    <!-- v1.109.0 — rodapé no padrão do sheet (REGRAS §3): Cancelar
+                         (nível 2) à esquerda, Salvar (nível 1) à direita. -->
+                    <div class="rz-sh-f" style="padding-left:0;padding-right:0;margin-top:8px">
+                        <button type="button" onclick="fecharCadastroImovelModal()" class="rz-btn rz-btn-2">Cancelar</button>
+                        <button type="submit" id="btn-salvar-imo" class="rz-btn rz-btn-1">Salvar imóvel</button>
                     </div>
 
                 </form>
@@ -9001,7 +9084,8 @@
 
             <h2 class="text-lg font-bold raiz-text-pine mb-4">Contratos de Locação Ativos</h2>
 
-            <div id="lista-contratos" class="space-y-3 mb-6"></div>
+            <div id="contratos-chips" class="rz-chips"></div>
+            <div id="lista-contratos" class="mb-6"></div>
 
         </section>
 
@@ -9015,7 +9099,7 @@
 
         <section id="tab-contrato-ficha" class="tab-content">
 
-            <button onclick="voltarDaFichaContrato()" class="text-xs font-bold text-slate-600 flex items-center gap-1"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Contratos</button>
+            <button onclick="voltarDaFichaContrato()" class="rz-back"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Contratos</button>
 
             <div id="ficha-contrato-conteudo" class="mt-3 space-y-3"></div>
 
@@ -9304,7 +9388,7 @@
                  no lugar, mesmo padrão usado nas fichas. Filtros (Status/
                  Empreendimento) migraram pro overlay de busca próprio
                  (#modal-busca-vitrine) — o card fixo foi removido daqui. -->
-            <button onclick="switchTab('tab-imoveis')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Imóveis</button>
+            <button onclick="switchTab('tab-ativos')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Imóveis</button>
 
             <div class="flex items-center gap-2 mb-4">
 
@@ -9441,7 +9525,7 @@
                  lição aprendida nesta mesma sessão: rolagem escondida
                  via CSS não é confiável em todo navegador, então nem
                  tento aqui). -->
-            <div id="alertas-chips-categoria" class="flex flex-wrap gap-2 mb-4"></div>
+            <div id="alertas-chips-categoria" class="rz-chips"></div>
 
             <div id="alertas-patrimonio-mount">
                 <p class="text-xs text-slate-400 text-center py-6">Carregando...</p>
@@ -10538,7 +10622,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.107.0";
+        const APP_VERSAO = "Beta v1.110.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -16514,6 +16598,18 @@
 
         function switchTab(tabId) {
 
+            // v1.108.0 — TELAS ANTIGAS DE IMÓVEIS DESLIGADAS (pedido do Nicola,
+            // 03/09: "não vejo sentido existir estas telas antigas mais"). A
+            // lista e a Ficha do Imóvel (#tab-imoveis) foram substituídas por
+            // Ativos (v1.90+); o que ainda caía aqui era efeito colateral
+            // (fechar o modal de edição, atalhos da Visão Geral, "voltar ao
+            // app" do menu). Guarda única no roteador: qualquer switchTab
+            // pra tab-imoveis vira tab-ativos. A section continua no DOM
+            // porque o modal de imóvel (#form-imovel-wrapper) e funções como
+            // renderImoveis() ainda dependem dos elementos — ela só nunca
+            // mais é exibida. Escape só pra depuração: window.__permitirTabImoveis.
+            if (tabId === 'tab-imoveis' && !window.__permitirTabImoveis) tabId = 'tab-ativos';
+
             // ETAPA 3 — imóveis, contratos, mensal e sócios (Prestação de Contas)
             // já são Supabase, não dependem mais do Apps Script para funcionar.
             // "tab-socios" usa imóveis/repasses/mensalidades (já migrados) — o
@@ -17474,7 +17570,10 @@
             // diretamente), então isso cobre 100% dos casos de edição real;
             // cadastro NOVO (id vazio) continua voltando pra lista, como
             // sempre foi.
-            if (id && fichaImovelAtualId === id) {
+            // v1.108.0 — só reabre a Ficha do Imóvel (legada) se ela era a
+            // tela ativa; editando pela ficha do ATIVO, quem recarrega é o
+            // hook __rzAposFecharImovel (cancelarEdicaoImovel acima).
+            if (id && fichaImovelAtualId === id && document.getElementById('tab-imoveis')?.classList.contains('active')) {
                 abrirFichaImovel(id);
             }
 
@@ -17562,7 +17661,7 @@
 
             renderSocioInputs(pctRuyterEdicao);
 
-            document.getElementById('form-imovel-titulo').innerText = "Editar Imóvel 📝";
+            document.getElementById('form-imovel-titulo').innerText = "Editar imóvel";
 
             resetStepsImovel();
 
@@ -17580,7 +17679,7 @@
 
             document.getElementById('imo-id').value = '';
 
-            document.getElementById('form-imovel-titulo').innerText = "Cadastrar Imóvel";
+            document.getElementById('form-imovel-titulo').innerText = "Cadastrar imóvel";
 
             resetStepsImovel();
 
@@ -17651,6 +17750,17 @@
                 } else {
                     switchTab(origem);
                 }
+            }
+            // v1.108.0 — quando a edição foi aberta pela FICHA DO ATIVO
+            // (abrirGestaoImovel em cofre-ativos.js), o módulo deixa aqui o
+            // que fazer ao fechar (recarregar a ficha). O modal agora vive
+            // no <body> (ver rzMoverFormImovelParaBody), então a ficha
+            // nunca saiu da tela — só precisa ser atualizada.
+            document.getElementById('imo-blocos-ficha')?.classList.remove('hidden');
+            if (typeof window.__rzAposFecharImovel === 'function') {
+                const f = window.__rzAposFecharImovel;
+                window.__rzAposFecharImovel = null;
+                try { f(); } catch (e) { console.error('[rz] aposFecharImovel', e); }
             }
 
         }
@@ -19412,9 +19522,10 @@
         let imoveisFiltroAlertaContrato = null;
 
         function filtrarImoveisPorAlertaContrato(tipo) {
+            // v1.108.0 — lista de imóveis desligada: alerta de contrato leva
+            // pra aba Contratos (onde o alerta é tratado).
             imoveisFiltroAlertaContrato = tipo;
-            switchTab('tab-imoveis');
-            renderImoveis();
+            switchTab('tab-contratos');
         }
 
         function limparFiltroAlertaContratoImoveis() {
@@ -19758,7 +19869,7 @@
                     icone: 'file-signature', corBg: 'bg-blue-50', corTexto: 'text-blue-700',
                     titulo: `${contratosAssinando.length} contrato${contratosAssinando.length > 1 ? 's' : ''} aguardando assinatura`,
                     subtitulo: `Gerado${contratosAssinando.length > 1 ? 's' : ''} pela Vitrine, revisar e assinar`,
-                    onclick: "document.getElementById('imoveis-filtro-status').value='Assinando'; switchTab('tab-imoveis'); renderImoveis();"
+                    onclick: "switchTab('tab-contratos');"
                 }));
             }
 
@@ -19772,7 +19883,7 @@
                     icone: 'calendar-clock', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
                     titulo: `${contratosComAlerta.length} contrato${contratosComAlerta.length > 1 ? 's' : ''} com alerta`,
                     subtitulo: 'Reajuste pendente ou vigência vencida',
-                    onclick: "document.getElementById('imoveis-filtro-alerta').value='qualquer'; switchTab('tab-imoveis'); renderImoveis();"
+                    onclick: "switchTab('tab-contratos');"
                 }));
             }
 
@@ -19781,7 +19892,7 @@
                     icone: 'house-plus', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
                     titulo: `${vagos} imóve${vagos > 1 ? 'is' : 'l'} vago${vagos > 1 ? 's' : ''}`,
                     subtitulo: 'Potencial de receita não realizado',
-                    onclick: "document.getElementById('imoveis-filtro-status').value='Vago'; switchTab('tab-imoveis'); renderImoveis();"
+                    onclick: "if (window.rzAbrirAtivosComFiltro) window.rzAbrirAtivosComFiltro('prop:Vago'); else switchTab('tab-ativos');"
                 }));
             }
 
@@ -20175,10 +20286,13 @@
                 { chave: 'contrato', rotulo: 'Contratos' },
                 { chave: 'outro', rotulo: 'Outros' }
             ];
+            // v1.108.0 — chips no catálogo (.rz-chip, 1 linha com rolagem,
+            // contador dentro; REGRAS §8) — antes eram pills Tailwind em
+            // flex-wrap, quebrando em 2 linhas.
             wrap.innerHTML = grupos.map(g => {
                 const qtd = g.chave === 'todos' ? alertasTodos.length : alertasTodos.filter(a => a.categoria === g.chave).length;
                 const ativo = alertasFiltroAtual === g.chave;
-                return `<button type="button" onclick="filtrarAlertas('${g.chave}')" class="flex-none text-[11px] font-bold px-3 py-1.5 rounded-full transition ${ativo ? 'text-white' : 'bg-white text-slate-600 border border-slate-300'}" ${ativo ? 'style="background:var(--pine)"' : ''}>${g.rotulo} · ${qtd}</button>`;
+                return `<button type="button" onclick="filtrarAlertas('${g.chave}')" class="rz-chip ${ativo ? 'rz-on' : ''}">${g.rotulo} <span class="rz-n">${qtd}</span></button>`;
             }).join('');
         }
 
@@ -20210,30 +20324,29 @@
                 return a.dias - b.dias;
             });
 
+            // v1.108.0 (pedido do Nicola: status igual ao da ficha/contrato) —
+            // cada alerta é um .rz-row dentro de um .rz-card.rz-list; o tempo
+            // vira status "ponto + rótulo" nas 5 semânticas via renderStatus
+            // (vencido = bad, ≤14 d = warn, demais = run), e a placa de ícone
+            // segue a mesma semântica. Saem as 4 cores Tailwind por categoria.
             const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', ativo: 'boxes', outro: 'info' };
-            const COR_CATEGORIA = { item_controle: 'raiz-bg-sprout-light text-emerald-800', contrato: 'bg-blue-50 text-blue-700', ativo: 'bg-amber-50 text-amber-700', outro: 'bg-slate-100 text-slate-600' };
-
-            mount.innerHTML = ordenados.map(a => {
-                let rotuloTempo = '', corTempo = 'text-slate-500';
+            const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+            mount.innerHTML = `<div class="rz-card rz-list">` + ordenados.map(a => {
+                let sem = 'neu', rotulo = '', classeIc = '', icone = ICONE_CATEGORIA[a.categoria] || 'info';
                 if (a.dias !== null) {
-                    if (a.dias < 0) { rotuloTempo = `Venceu há ${Math.abs(a.dias)}d`; corTempo = 'text-red-600'; }
-                    else if (a.dias === 0) { rotuloTempo = 'Vence hoje'; corTempo = 'text-amber-600'; }
-                    else { rotuloTempo = `Vence em ${a.dias}d`; corTempo = a.dias <= 14 ? 'text-amber-600' : 'text-slate-500'; }
+                    if (a.dias < 0) { sem = 'bad'; rotulo = `Venceu há ${Math.abs(a.dias)}d`; classeIc = ' rz-bad'; icone = 'alarm-clock'; }
+                    else if (a.dias === 0) { sem = 'warn'; rotulo = 'Vence hoje'; classeIc = ' rz-warn'; icone = 'clock'; }
+                    else if (a.dias <= 14) { sem = 'warn'; rotulo = `${a.dias} dia${a.dias === 1 ? '' : 's'}`; classeIc = ' rz-warn'; icone = 'clock'; }
+                    else { sem = 'run'; rotulo = `${a.dias} dias`; }
                 }
                 const clicavel = !!a.onClick;
-                const tagAbre = clicavel ? `<button onclick="${a.onClick}" class="w-full text-left` : `<div class="`;
-                const tagFecha = clicavel ? 'button' : 'div';
-                return `${tagAbre} flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white ${clicavel ? 'active:bg-gray-50' : ''}">
-                    <div class="w-9 h-9 rounded-lg ${COR_CATEGORIA[a.categoria]} flex items-center justify-center flex-none"><svg data-lucide="${ICONE_CATEGORIA[a.categoria]}" style="width:16px;height:16px"></svg></div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-start justify-between gap-2">
-                            <span class="text-xs font-bold text-slate-900">${escapeHtmlSaidas(a.titulo)}</span>
-                            ${rotuloTempo ? `<span class="text-[11px] font-bold flex-none ${corTempo}">${rotuloTempo}</span>` : ''}
-                        </div>
-                        <div class="text-[11.5px] text-slate-500 mt-0.5 leading-snug">${escapeHtmlSaidas(a.subtitulo)}</div>
-                    </div>
-                </${tagFecha}>`;
-            }).join('');
+                return `<div class="rz-row ${clicavel ? 'rz-link' : ''}" ${clicavel ? `onclick="${a.onClick}"` : ''}>
+                    <div class="rz-ic${classeIc}"><svg data-lucide="${icone}"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(a.titulo)}</b><span>${escapeHtmlSaidas(a.subtitulo)}</span></div>
+                    <div class="rz-rt">${rotulo ? st(sem, rotulo) : ''}</div>
+                    ${clicavel ? '<svg data-lucide="chevron-right" class="rz-chev"></svg>' : ''}
+                </div>`;
+            }).join('') + `</div>`;
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -22939,104 +23052,139 @@
             // várias vezes na mesma renderização).
             const prontidaoFicha = avaliarProntidaoContratoParaMinuta(con, imo);
 
+            // v1.110.0 (fatia 4 da gramática única, REGRAS §6/§9/§10/§11) —
+            // ficha do contrato no mesmo padrão da ficha do ativo: cabeçalho
+            // de entidade (.rz-entity), 4 chips (Resumo · Cobranças · Partes ·
+            // Arquivos) e cards com rodapé único. "Mais ações" abre sheet
+            // (abrirSheetAcoes); os painéis inline #fc-mais-acoes e
+            // #fc-doc-acoes saíram. Nenhuma função de negócio mudou — só
+            // quem as chama (verHistoricoContrato, gerarMinutaContrato,
+            // excluirContrato, abrirCofreDocumentos, abrirEdicaoFiadoresPopup…).
+            const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+            const vencidoFicha = contratoVencido(con), revisarFicha = contratoPrecisaRevisao(con);
+            const statusFicha = vencidoFicha ? rs('bad', 'Vencido')
+                : (con.status === 'Assinando' || contratoAguardandoAssinatura(con)) ? rs('run', 'Assinando')
+                : revisarFicha ? rs('warn', 'Reajustar')
+                : con.status === 'Ativo' ? rs('ok', 'Vigente')
+                : con.status === 'Suspenso' ? rs('warn', 'Suspenso')
+                : rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
+            const enderecoCurto = imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '—';
+            const atrasadas = mensalidadesDoContrato.filter(m => m.status === 'Inadimplente');
+            const totalAtrasado = atrasadas.reduce((t, m) => t + (Number(m.valorConfirmado) || 0), 0);
+            const ultimasSeis = mensalidadesDoContrato.slice(0, 6);
+            const statusMensal = (m) => m.status === 'Pago' ? rs('ok', 'Pago') : m.status === 'Inadimplente' ? rs('bad', 'Em atraso') : rs('run', 'A receber');
+            const iconeMensal = (m) => m.status === 'Pago' ? 'arrow-down-left' : m.status === 'Inadimplente' ? 'alarm-clock' : 'clock';
+            const classeMensal = (m) => m.status === 'Inadimplente' ? ' rz-bad' : '';
+            const abreArquivos = (con.status === 'Ativo' || con.status === 'Assinando');
+            const irFinanceiro = `document.getElementById('men-filtro-imovel').value='${con.imovelId}'; document.getElementById('men-filtro-imovel-resumo').textContent='${(imo ? imo.empreendimento : '-').replace(/'/g, "")}'; switchTab('tab-mensal'); renderMensalidades();`;
+            const kv = (r, v) => `<div><small>${r}</small><b>${v}</b></div>`;
             document.getElementById('ficha-contrato-conteudo').innerHTML = `
-                <div class="bg-white p-4 rounded-xl shadow-sm border ${temAlertaFicha ? 'border-red-400' : 'border-gray-200'}">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="min-w-0">
-                            <h2 class="text-base font-extrabold text-emerald-950 truncate">👤 ${con.locatario || '-'}</h2>
-                            <button onclick="abrirFichaImovel('${con.imovelId}')" class="text-xs text-slate-500 truncate hover:underline text-left">${enderecoImo}</button>
-                        </div>
-                        <span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none ${corBadge}">${con.status}</span>
-                    </div>
-                    <div class="text-lg font-black mt-2">${formatarMoedaBR(con.valor)}<span class="text-xs font-bold text-slate-400">/mês</span></div>
-                    ${con.status === 'Assinando' ? `
-                        <p class="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2">Gerado pelo formulário público da Vitrine, aguardando revisão e assinatura.</p>
-                    ` : `
-                    <div class="grid grid-cols-2 gap-3 mt-3 text-xs">
-                        <div><span class="text-slate-500">Início</span><div class="font-bold">${formatarDataBR(con.inicio)}</div></div>
-                        <div><span class="text-slate-500">Fim</span><div class="font-bold">${formatarDataBR(con.fim)}</div></div>
-                        <div><span class="text-slate-500">Vencimento</span><div class="font-bold">Dia ${con.vencimentoDia || 15}</div></div>
-                        <div><span class="text-slate-500">Reajuste</span><div class="font-bold">${con.reajuste || '-'}</div></div>
-                    </div>`}
-                    ${con.status === 'Assinando' && !prontidaoFicha.pronto ? `
-                    <p class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">Minuta ainda indisponível — faltam ${prontidaoFicha.faltantes.length + prontidaoFicha.invalidos.length} informação(ões) obrigatória(s).</p>
-                    ` : ''}
+                <div class="rz-entity">
+                    <div class="rz-ic"><svg data-lucide="${con.status === 'Assinando' ? 'file-signature' : 'file-text'}"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${escapeHtmlSaidas(enderecoCurto)} · ${formatarMoedaBR(con.valor)}/mês</span></div>
+                    ${statusFicha}
+                </div>
+                <div class="rz-chips" id="fc-chips">
+                    <button type="button" class="rz-chip rz-on" data-fc-chip="resumo" onclick="fcTrocarChip('resumo')">Resumo</button>
+                    <button type="button" class="rz-chip ${atrasadas.length ? 'rz-warn' : ''}" data-fc-chip="cobrancas" onclick="fcTrocarChip('cobrancas')">Cobranças <span class="rz-n">${atrasadas.length}</span></button>
+                    <button type="button" class="rz-chip" data-fc-chip="partes" onclick="fcTrocarChip('partes')">Partes <span class="rz-n">${1 + fiadoresDaFicha.length}</span></button>
+                    <button type="button" class="rz-chip" data-fc-chip="arquivos" onclick="fcTrocarChip('arquivos')">Arquivos <span class="rz-n" id="fc-chip-n-arquivos">0</span></button>
+                </div>
 
-                    <!-- NOVO (30/08/2026) — Fiadores, exibição no detalhe
-                         do contrato (pedido explícito). Edição fica no
-                         popup "Dados Contrato" (abrirDadosNovoContratoPopup). -->
-                    <div class="mt-3 pt-3 border-t border-slate-100">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <p class="text-[11px] font-bold text-slate-500">Fiadores (${fiadoresDaFicha.length})</p>
-                            <button onclick="abrirEdicaoFiadoresPopup('${con.id}')" class="text-[11px] font-bold" style="color:var(--pine)">Editar</button>
+                <div class="fc-painel" id="fc-painel-resumo">
+                    ${temAlertaFicha ? `
+                    <div class="rz-card ${vencidoFicha ? 'rz-critico' : 'rz-atencao'}">
+                        <div class="rz-card-h"><h3>Precisa de atenção</h3>${vencidoFicha ? rs('bad', 'Vencido') : rs('warn', con.status === 'Assinando' ? 'Assinatura' : 'Reajuste')}</div>
+                        <p class="rz-desc">${vencidoFicha ? 'A vigência terminou e o contrato continua ativo.' : (con.status === 'Assinando' ? 'Gerado pela Vitrine — aguardando revisão e assinatura.' : 'Reajuste ou revisão pendente pela regra do contrato.')}${con.status === 'Assinando' && !prontidaoFicha.pronto ? ` Minuta ainda indisponível — faltam ${prontidaoFicha.faltantes.length + prontidaoFicha.invalidos.length} dado(s).` : ''}</p>
+                        <div class="rz-card-f"><button type="button" onclick="verAlertasContrato('${con.id}')" class="rz-btn rz-btn-1 rz-sm"><svg data-lucide="bell"></svg> Ver alertas</button></div>
+                    </div>` : ''}
+                    <div class="rz-card">
+                        <div class="rz-card-h"><h3>Condições</h3></div>
+                        <div class="rz-kv">
+                            ${kv('Início', formatarDataBR(con.inicio))}
+                            ${kv('Fim', formatarDataBR(con.fim))}
+                            ${kv('Vencimento', `Dia ${con.vencimentoDia || 15}`)}
+                            ${kv('Reajuste', escapeHtmlSaidas(con.reajuste || '—'))}
+                            ${kv('Aluguel', `${formatarMoedaBR(con.valor)}/mês`)}
+                            ${kv('Imóvel', escapeHtmlSaidas(imo ? `${imo.empreendimento || ''} · ${enderecoCurto}` : '—'))}
                         </div>
-                        ${fiadoresDaFicha.length === 0
-                            ? `<p class="text-[11px] text-slate-400">Nenhum cadastrado. Toque em "Editar" pra adicionar, se a minuta exigir.</p>`
-                            : fiadoresDaFicha.map(f => `
-                                <div class="text-[11px] bg-slate-50 border border-slate-200 rounded-lg p-2 mb-1.5">
-                                    <span class="font-bold text-slate-700">${(f.nome || '').replace(/</g, '&lt;')}</span>
-                                    <span class="text-slate-400"> · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}</span>
-                                    ${f.estado_civil ? `<span class="text-slate-400"> · ${f.estado_civil}</span>` : ''}
-                                    ${f.possui_imovel_proprio ? `<span class="text-emerald-600"> · imóvel em garantia</span>` : ''}
-                                </div>
-                            `).join('')
-                        }
-                    </div>
-
-                    <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                        <button onclick="abrirEdicaoContratoContextual('${con.id}', 'fichaContrato', '${con.id}')" class="text-xs font-bold flex items-center gap-1" style="color:var(--pine)"><svg data-lucide="pencil" style="width:13px;height:13px"></svg> Editar contrato</button>
-                        <button onclick="alternarMaisAcoesFichaContrato()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fc-mais-acoes-seta" style="width:13px;height:13px"></svg></button>
-                    </div>
-                    <div id="fc-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                        <button onclick="verHistoricoContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="history" style="width:11px;height:11px"></svg> Histórico (${(con.historico || []).length})</button>
-                        <button onclick="abrirCofreDocumentos('contrato', '${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="upload" style="width:11px;height:11px"></svg> Adicionar documento</button>
-                        ${con.status === 'Assinando' && prontidaoFicha.pronto ? `<button onclick="gerarMinutaContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Gerar Minuta</button>` : ''}
-                        ${temAlertaFicha ? `<button onclick="verAlertasContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="triangle-alert" style="width:11px;height:11px"></svg> Ver alertas</button>` : ''}
-                        <button onclick="excluirContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trash-2" style="width:11px;height:11px"></svg> Excluir</button>
+                        <div class="rz-card-f">
+                            <button type="button" onclick="abrirEdicaoContratoContextual('${con.id}', 'fichaContrato', '${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="pencil"></svg> Editar contrato</button>
+                            <button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more">Mais ações <svg data-lucide="chevron-down"></svg></button>
+                        </div>
                     </div>
                 </div>
 
-                ${(con.status === 'Ativo' || con.status === 'Assinando') ? `
-                <!-- Box: Documento — NOVO (26/08/2026, pedido explícito):
-                     "para um contrato ativo ou assinando, deve ter a opção
-                     de documentos similar à do módulo de ativos anexo".
-                     Mesma referência do box de Documento do item de
-                     controle no Cofre: linha clicável abre (signed URL),
-                     "x" remove só o vínculo (documento continua guardado,
-                     vira "Em triagem" no Cofre), "Carregar novo" no Mais
-                     ações — upload direto pro Cofre (cofre_documentos +
-                     cofre_documento_vinculos entidade_tipo='contrato'),
-                     mesmo padrão já usado em gerarMinutaNoCofre(). -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm raiz-text-pine">Documento</h3>
-                    <div id="fc-documentos" class="mt-1.5 space-y-1.5"><p class="text-xs text-slate-500">Carregando...</p></div>
-                    <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                        <button onclick="alternarMaisAcoesDocContrato()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fc-doc-seta" style="width:13px;height:13px"></svg></button>
+                <div class="fc-painel hidden" id="fc-painel-cobrancas">
+                    <div class="rz-card ${atrasadas.length ? 'rz-critico' : ''}">
+                        <div class="rz-card-h"><h3>Cobranças</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}</div>
+                        ${ultimasSeis.length ? ultimasSeis.map(m => `
+                        <div class="rz-row">
+                            <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (m.status === 'Inadimplente' ? 'Vencido' : 'A vencer')}</span></div>
+                            <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
+                        </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
+                        <div class="rz-card-f">
+                            <button type="button" onclick="${irFinanceiro.replace(/"/g, '&quot;')}" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="wallet"></svg> Ver no Financeiro</button>
+                        </div>
                     </div>
-                    <div id="fc-doc-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                        <button onclick="abrirCofreDocumentos('contrato', '${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="upload" style="width:11px;height:11px"></svg> Carregar novo</button>
-                    </div>
-                </div>` : ''}
+                </div>
 
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                    <h3 class="font-bold text-sm raiz-text-pine">Recebimentos</h3>
-                    <div class="mt-2 space-y-2">
-                    ${ultimas.length > 0 ? ultimas.map(m => `
-                        <div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
-                            <div class="w-7 h-7 rounded-lg flex items-center justify-center flex-none ${m.status==='Pago'?'bg-green-50 text-green-700':'bg-red-50 text-red-700'}"><svg data-lucide="${m.status==='Pago'?'check':'clock'}" style="width:14px;height:14px"></svg></div>
-                            <div class="flex-1 min-w-0"><div class="text-xs font-bold">${m.referencia || '-'}</div><div class="text-[11px] text-slate-500">${m.status}</div></div>
-                            <div class="text-xs font-bold">${formatarMoedaBR(m.valorConfirmado)}</div>
-                        </div>`).join('') : `<p class="text-xs text-slate-500">Nenhum recebimento lançado ainda.</p>`}
+                <div class="fc-painel hidden" id="fc-painel-partes">
+                    <div class="rz-card">
+                        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Locatário e garantias</span></div>
+                        <div class="rz-row">
+                            <div class="rz-ic"><svg data-lucide="user"></svg></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>Locatário${con.cpf ? ' · ' + escapeHtmlSaidas((con.docTipo || 'CPF') + ' ' + con.cpf) : ''}</span></div>
+                        </div>
+                        ${fiadoresDaFicha.length ? fiadoresDaFicha.map(f => `
+                        <div class="rz-row">
+                            <div class="rz-ic"><svg data-lucide="shield-check"></svg></div>
+                            <div class="rz-tx"><b>${(f.nome || '').replace(/</g, '&lt;')}</b><span>Fiador · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}${f.estado_civil ? ' · ' + f.estado_civil : ''}${f.possui_imovel_proprio ? ' · imóvel em garantia' : ''}</span></div>
+                        </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Adicione se a minuta exigir.</p></div>`}
+                        <div class="rz-card-f">
+                            <button type="button" onclick="abrirEdicaoFiadoresPopup('${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="user-plus"></svg> ${fiadoresDaFicha.length ? 'Editar fiadores' : 'Adicionar fiador'}</button>
+                        </div>
                     </div>
-                    <button onclick="document.getElementById('men-filtro-imovel').value='${con.imovelId}'; document.getElementById('men-filtro-imovel-resumo').textContent='${(imo ? imo.empreendimento : '-').replace(/'/g, "")}'; switchTab('tab-mensal'); renderMensalidades();" class="w-full text-xs font-bold text-slate-500 py-2 mt-1">Ver financeiro completo →</button>
+                </div>
+
+                <div class="fc-painel hidden" id="fc-painel-arquivos">
+                    <div class="rz-card">
+                        <div class="rz-card-h"><h3>Documentos</h3></div>
+                        ${abreArquivos
+                            ? `<div id="fc-documentos"><p class="rz-desc">Carregando...</p></div>
+                               <div class="rz-card-f"><button type="button" onclick="abrirCofreDocumentos('contrato', '${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="upload"></svg> Carregar documento</button></div>`
+                            : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Contrato encerrado: os documentos ficam guardados no Cofre.</p></div>`}
+                    </div>
                 </div>`;
-
             switchTab('tab-contrato-ficha');
             if (typeof lucide !== 'undefined') lucide.createIcons();
-            if (con.status === 'Ativo' || con.status === 'Assinando') montarDocumentosContrato(con.id);
-
+            if (abreArquivos) montarDocumentosContrato(con.id);
         }
-
+        // v1.110.0 — chips da ficha do contrato (4 painéis no mesmo innerHTML)
+        function fcTrocarChip(nome) {
+            document.querySelectorAll('#fc-chips .rz-chip').forEach(b => b.classList.toggle('rz-on', b.dataset.fcChip === nome));
+            document.querySelectorAll('.fc-painel').forEach(p => p.classList.toggle('hidden', p.id !== 'fc-painel-' + nome));
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        // v1.110.0 — "Mais ações" da ficha do contrato em SHEET (REGRAS §6).
+        // Histórico · Documentos no Cofre · Gerar minuta (se pronta) ·
+        // Excluir (vermelha, por último). Ver alertas mora no card de atenção.
+        function abrirAcoesFichaContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) return;
+            if (typeof abrirSheetAcoes !== 'function') { alternarMaisAcoesFichaContrato(); return; }
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            const pront = avaliarProntidaoContratoParaMinuta(con, imo);
+            const acoes = [
+                { icone: 'history', titulo: 'Histórico', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
+                { icone: 'folder-open', titulo: 'Abrir no Cofre', sub: 'Todos os documentos deste contrato', aoTocar: () => abrirCofreDocumentos('contrato', con.id) },
+            ];
+            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
+            if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
+            abrirSheetAcoes({ titulo: con.locatario || 'Contrato', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', acoes });
+        }
         function alternarMaisAcoesFichaContrato() {
             const el = document.getElementById('fc-mais-acoes');
             const seta = document.getElementById('fc-mais-acoes-seta');
@@ -23081,17 +23229,15 @@
                     .order('criado_em', { ascending: false });
                 if (error) throw error;
                 __docsContratoAtual = (data || []).filter(v => v.cofre_documentos && v.cofre_documentos.status === 'ativo');
+                // v1.110.0 (fatia 4) — .rz-row + vazio único; contador do chip Arquivos
+                const nArq = document.getElementById('fc-chip-n-arquivos');
+                if (nArq) nArq.textContent = String(__docsContratoAtual.length);
                 el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v, i) => `
-                    <div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
-                        <button onclick="abrirDocumentoContratoAtual(${i})" class="flex items-center gap-2 flex-1 min-w-0 text-left">
-                            <svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex-shrink:0"></svg>
-                            <span class="min-w-0">
-                                <span class="text-xs font-bold truncate block">${v.cofre_documentos.nome_exibicao || 'Documento'}</span>
-                                <span class="text-[10px] text-slate-400">${v.criado_em ? new Date(v.criado_em).toLocaleString('pt-BR') : ''}</span>
-                            </span>
-                        </button>
-                        <button onclick="removerDocumentoContratoAtual(${i})" title="Excluir documento" class="flex-none p-1"><svg data-lucide="trash-2" style="width:14px;height:14px;color:#94a3b8"></svg></button>
-                    </div>`).join('') : `<p class="text-xs text-slate-500">Nenhum documento vinculado ainda.</p>`;
+                    <div class="rz-row">
+                        <div class="rz-ic"><svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}"></svg></div>
+                        <div class="rz-tx rz-link" onclick="abrirDocumentoContratoAtual(${i})"><b>${v.cofre_documentos.nome_exibicao || 'Documento'}</b><span>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : ''}</span></div>
+                        <button type="button" onclick="removerDocumentoContratoAtual(${i})" title="Remover deste contrato" class="rz-ico-btn" style="width:36px;height:36px"><svg data-lucide="x" style="width:16px;height:16px;color:var(--muted)"></svg></button>
+                    </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-plus-2"></svg></div><p>Nenhum documento neste contrato. A minuta assinada guardada aqui fica a um toque.</p></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } catch (err) {
                 el.innerHTML = `<p class="text-xs text-red-500">Não consegui carregar os documentos.</p>`;
@@ -24457,6 +24603,32 @@
 
         }
 
+        // v1.110.0 (fatia 4) — chips de filtro da lista de Contratos, em 1
+        // linha (.rz-chips), com contador. Só escrevem no <select> e no
+        // checkbox que já existiam no overlay de busca — renderContratos()
+        // continua sendo a única função que filtra.
+        let contratosChipAtual = 'todos';
+        function renderChipsContratos() {
+            const wrap = document.getElementById('contratos-chips');
+            if (!wrap) return;
+            const comAlerta = contratos.filter(c => contratoPrecisaRevisao(c) || contratoVencido(c) || contratoAguardandoAssinatura(c)).length;
+            const grupos = [
+                { chave: 'todos', rotulo: 'Todos', qtd: contratos.length },
+                { chave: 'Ativo', rotulo: 'Vigentes', qtd: contratos.filter(c => c.status === 'Ativo').length },
+                { chave: 'alerta', rotulo: 'Com alerta', qtd: comAlerta, warn: comAlerta > 0 },
+                { chave: 'Assinando', rotulo: 'Assinando', qtd: contratos.filter(c => c.status === 'Assinando').length },
+                { chave: 'Finalizado', rotulo: 'Encerrados', qtd: contratos.filter(c => c.status === 'Finalizado').length },
+            ];
+            wrap.innerHTML = grupos.map(g => `<button type="button" onclick="filtrarContratosPorChip('${g.chave}')" class="rz-chip ${contratosChipAtual === g.chave ? 'rz-on' : ''} ${g.warn ? 'rz-warn' : ''}">${g.rotulo} <span class="rz-n">${g.qtd}</span></button>`).join('');
+        }
+        function filtrarContratosPorChip(chave) {
+            contratosChipAtual = chave;
+            const sel = document.getElementById('contratos-filtro-status');
+            const chk = document.getElementById('contratos-filtro-somente-alerta');
+            if (sel) sel.value = (chave === 'todos' || chave === 'alerta') ? 'todos' : chave;
+            if (chk) chk.checked = chave === 'alerta';
+            renderContratos();
+        }
         function renderContratos() {
 
             const container = document.getElementById('lista-contratos');
@@ -24509,74 +24681,66 @@
 
             }
 
-            contratos
-
-                .filter(passaFiltroContrato)
-
-                .sort((a, b) => {
-
-                    const imoA = imoveis.find(i => i.id === a.imovelId);
-
-                    const imoB = imoveis.find(i => i.id === b.imovelId);
-
-                    const empA = imoA ? imoA.empreendimento : '';
-
-                    const empB = imoB ? imoB.empreendimento : '';
-
-                    return empA.localeCompare(empB) || (a.locatario || '').localeCompare(b.locatario || '');
-
-                })
-
-                .forEach(con => {
-
-                const imo = imoveis.find(i => i.id === con.imovelId);
-
-                const temAlerta = contratoPrecisaRevisao(con) || contratoVencido(con) || contratoAguardandoAssinatura(con);
-
-                // v1.41.0 (Fase 1) — o alerta antes era um badge discreto no
-                // meio do texto (fácil de passar despercebido). Agora: borda
-                // do card fica vermelha quando há alerta, e o ícone vai para a
-                // fileira de ações, ao lado de editar/histórico/excluir.
-                const alertaIcone = temAlerta ? `<button type="button" onclick="verAlertasContrato('${con.id}')" title="Ver alertas deste contrato" class="w-7 h-7 flex items-center justify-center bg-red-100 text-red-700 rounded-full border border-red-300 animate-pulse"><svg data-lucide="alert-triangle" style="width:14px;height:14px"></svg></button>` : '';
-
-                const badgeEnergia = (imo && imo.energiaRumo === 'Sim' && con.descontoEnergia > 0) ? `<span title="Energia com desconto" class="text-[11px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>` : '';
-
-                const badgeAnexos = (con.anexos && con.anexos.length > 0) ? `<span title="Contrato tem anexos" class="text-[11px]"><svg data-lucide="paperclip" style="width:11px;height:11px"></svg></span>` : '';
-
-                const badgeStatus = `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded ${con.status==='Ativo'?'bg-green-100 text-green-800':(con.status==='Assinando'?'bg-blue-100 text-blue-800':(con.status==='Suspenso'?'bg-amber-100 text-amber-800':'bg-red-100 text-red-800'))}">${con.status}</span>`;
-
-                const linha2 = imo ? `${imo.empreendimento} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}` : '-';
-
-                container.innerHTML += `
-
-                    <!-- v1.45.0 (Correção de Direção UX) — clicar no card
-                         inteiro abre a FICHA do contrato, nunca edição
-                         direta. Histórico/Excluir/Gerar Minuta migraram
-                         para dentro da ficha (capacidades preservadas, só
-                         mudaram de lugar) — só status e alerta ficam aqui,
-                         conforme ADENDO_DESIGN_SYSTEM_UX_CONTEXTUAL v1.43.1. -->
-                    <!-- CORRIGIDO (v1.46.0) — role="button"+tabindex+teclado,
-                         mesmo motivo do card de Imóveis acima. -->
-                    <div onclick="abrirFichaContrato('${con.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); abrirFichaContrato('${con.id}');}" role="button" tabindex="0" class="bg-white p-3 rounded-xl shadow-sm border ${temAlerta ? 'border-red-400' : 'border-gray-200'} cursor-pointer active:bg-gray-50 transition">
-
-                        <div class="flex justify-between items-start gap-2">
-
-                            <p class="text-xs font-bold text-slate-900 truncate min-w-0">${badgeStatus} ${badgeEnergia} 👤 ${con.locatario} ${badgeAnexos}</p>
-
-                            <span class="text-sm font-black flex-none text-slate-900">${formatarMoedaBR(con.valor)}</span>
-
-                        </div>
-
-                        <p class="text-[13px] text-gray-500 truncate mt-1">${linha2}</p>
-
-                        ${alertaIcone ? `<div class="mt-2" onclick="event.stopPropagation()">${alertaIcone}</div>` : ''}
-
-                    </div>
-
-                `;
-
+            // v1.110.0 (fatia 4 da gramática única, REGRAS §8/§9/§10) — lista
+            // em .rz-row agrupada por empreendimento (.rz-group) dentro de
+            // .rz-card.rz-list, status "ponto + rótulo" via renderStatus
+            // (alerta do contrato vira o status: Vencido = bad, Reajustar =
+            // warn, Assinando = run, Vigente = ok, demais = neu) e chips de
+            // filtro em 1 linha (renderChipsContratos). Toque na linha abre a
+            // ficha; o ícone do alerta virou a semântica da placa.
+            renderChipsContratos();
+            const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+            const statusContratoHtml = (con) => {
+                if (contratoVencido(con)) return rs('bad', 'Vencido');
+                if (contratoAguardandoAssinatura(con) || con.status === 'Assinando') return rs('run', 'Assinando');
+                if (contratoPrecisaRevisao(con)) return rs('warn', 'Reajustar');
+                if (con.status === 'Ativo') return rs('ok', 'Vigente');
+                if (con.status === 'Suspenso') return rs('warn', 'Suspenso');
+                return rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
+            };
+            const ordenados = contratos.filter(passaFiltroContrato).sort((a, b) => {
+                const imoA = imoveis.find(i => i.id === a.imovelId);
+                const imoB = imoveis.find(i => i.id === b.imovelId);
+                const empA = imoA ? imoA.empreendimento : '';
+                const empB = imoB ? imoB.empreendimento : '';
+                return empA.localeCompare(empB) || (a.locatario || '').localeCompare(b.locatario || '');
             });
-
+            if (!ordenados.length) {
+                container.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><p>Nenhum contrato ${fStatusCon !== 'todos' || fEmpCon !== 'todos' || fLocatarioCon !== 'todos' ? 'neste filtro' : 'ainda'}. Um contrato vigente é o que transforma um imóvel em receita.</p></div></div>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+            const empDe = (c) => { const im = imoveis.find(i => i.id === c.imovelId); return im ? (im.empreendimento || 'Sem empreendimento') : 'Sem imóvel'; };
+            let html = '', grupoAtual = null;
+            ordenados.forEach(con => {
+                const imo = imoveis.find(i => i.id === con.imovelId);
+                const emp = empDe(con);
+                if (emp !== grupoAtual) {
+                    if (grupoAtual !== null) html += '</div>';
+                    const qtd = ordenados.filter(c => empDe(c) === emp).length;
+                    html += `<div class="rz-group">${escapeHtmlSaidas(emp)} · ${qtd}</div><div class="rz-card rz-list">`;
+                    grupoAtual = emp;
+                }
+                const vencido = contratoVencido(con);
+                const revisar = contratoPrecisaRevisao(con);
+                const assinando = con.status === 'Assinando' || contratoAguardandoAssinatura(con);
+                const encerrado = !(con.status === 'Ativo' || con.status === 'Assinando' || con.status === 'Suspenso');
+                const classeIc = vencido ? ' rz-bad' : (revisar ? ' rz-warn' : (encerrado ? ' rz-neu' : ''));
+                const icone = vencido ? 'alarm-clock' : (assinando ? 'file-signature' : (encerrado ? 'archive' : 'file-text'));
+                const endereco = imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' · ' + imo.enderecoComp : ''}` : '—';
+                const extras = [];
+                if (imo && imo.energiaRumo === 'Sim' && con.descontoEnergia > 0) extras.push('energia c/ desconto');
+                if (con.anexos && con.anexos.length > 0) extras.push(`${con.anexos.length} anexo${con.anexos.length > 1 ? 's' : ''}`);
+                if (con.fim) extras.push(`até ${formatarDataBR(con.fim)}`);
+                html += `
+                    <div class="rz-row rz-link" role="button" tabindex="0" onclick="abrirFichaContrato('${con.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); abrirFichaContrato('${con.id}');}">
+                        <div class="rz-ic${classeIc}"><svg data-lucide="${icone}"></svg></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${escapeHtmlSaidas(endereco)}${extras.length ? ' · ' + extras.join(' · ') : ''}</span></div>
+                        <div class="rz-rt"><b>${formatarMoedaBR(con.valor)}</b>${statusContratoHtml(con)}</div>
+                    </div>`;
+            });
+            if (grupoAtual !== null) html += '</div>';
+            container.innerHTML = html;
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
         }
@@ -30848,6 +31012,20 @@
 
         // Já implementado nos listeners de abas
 
+
+        // v1.108.0 — O modal de cadastro/edição de imóvel (#form-imovel-
+        // wrapper, position:fixed) nasceu DENTRO de <section id="tab-imoveis">,
+        // que fica display:none quando não é a aba ativa — por isso
+        // abrirGestaoImovel precisava trocar pra tab-imoveis antes de abrir
+        // (e o usuário caía na lista antiga ao fechar). Movido pro <body>
+        // uma vez, no boot: abre de qualquer aba, ids intactos, zero
+        // mudança em saveImovel/editarImovel.
+        function rzMoverFormImovelParaBody() {
+            const w = document.getElementById('form-imovel-wrapper');
+            if (w && w.parentElement !== document.body) document.body.appendChild(w);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rzMoverFormImovelParaBody);
+        else rzMoverFormImovelParaBody();
     </script>    <div id="lightbox-geral" class="hidden fixed inset-0 bg-black/95 z-[300] flex items-center justify-center p-4">
 
         <button onclick="fecharLightboxGeral()" class="absolute top-4 right-4 text-white text-2xl font-bold"><svg data-lucide="x" style="width:16px;height:16px"></svg></button>

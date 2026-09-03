@@ -1,6 +1,20 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.17.2 · 03/09/2026
+// Versão: 1.18.1 · 03/09/2026
+//
+// v1.18.1 — fatia 3b-ii: ao abrir o formulário do imóvel pela ficha do
+// ativo, esconde o bloco #imo-blocos-ficha (síndico, manutencista, sócios,
+// fotos), que já tem lugar próprio na ficha.
+//
+// v1.18.0 — achados do Nicola (prints 13h, 03/09):
+//   - abrirGestaoImovel(): não troca mais pra tab-imoveis (modal vive no
+//     <body> desde index v1.108.0); deixa o hook __rzAposFecharImovel pro
+//     App recarregar a ficha do ativo ao fechar/salvar. Fim da queda na
+//     lista antiga de imóveis.
+//   - alternarEditarAtivo(): editor de campos do ativo em bottom sheet
+//     (abrirSheetForm), mesmos ids; salvarEdicaoAtivo devolve true/false.
+//   - Pontes novas window.rzAbrirAtivosComFiltro / rzAbrirAtivoDoImovel
+//     (atalhos da Visão Geral e "ver imóvel" do contrato).
 //
 // v1.17.2 — BUG: contador/subtítulo do chip Contratos comparava status
 // capitalizado ('Ativo') com o valor minúsculo do banco ('ativo') —
@@ -1343,9 +1357,23 @@ export async function marcarAtivoVendidoAtual() {
 
 // ---- Editar (secundário, dentro do Resumo — Adendo §7.2/§9.2)
 export function alternarEditarAtivo() {
+    const a = estado.ativoEmFoco;
+    // v1.18.0 (fatia 3b-iii, pedido do Nicola 03/09: "está abrindo
+    // formulário dentro da tela e não bottom sheet como os demais") —
+    // abre em abrirSheetForm com os MESMOS ids de campo (fa-editar-nome,
+    // fa-editar-campo-*), então salvarEdicaoAtivo não mudou. O wrapper
+    // inline continua no markup só como fallback sem o App.
+    if (typeof window.abrirSheetForm === 'function') {
+        const campos =
+            `<div class="rz-f"><label>Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
+            `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
+            `<div class="rz-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-')}</div>`;
+        window.abrirSheetForm({ titulo: 'Editar campos do ativo', sub: a.nome_exibicao, corpo: campos, rotuloSalvar: 'Salvar',
+            aoSalvar: async () => { const ok = await salvarEdicaoAtivo(); return ok !== false; } });
+        return;
+    }
     const aberto = !document.getElementById('fa-editar-wrapper').classList.contains('hidden');
     if (aberto) { document.getElementById('fa-editar-wrapper').classList.add('hidden'); return; }
-    const a = estado.ativoEmFoco;
     // Tipo exibido como somente-leitura (pedido explícito, 25/08/2026) —
     // não é um <select> editável de propósito: mudar o tipo_ativo depois
     // de criado trocaria todo o conjunto de campos estruturados
@@ -1363,16 +1391,36 @@ export function alternarEditarAtivo() {
 export async function salvarEdicaoAtivo() {
     const a = estado.ativoEmFoco;
     const nome = document.getElementById('fa-editar-nome').value.trim();
-    if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return; }
+    if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-');
     try {
         await api.atualizarAtivo(a.id, { nome_exibicao: nome, dados_especificos: dados });
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, acao: 'editar_ativo' });
-        mostrarToast('Ativo atualizado ✅');
+        mostrarToast('Ativo atualizado');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
         await abrirFichaAtivo(a.id); // "Salvar edição → voltar para a ficha atualizada" (§9.2)
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+        return true;
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); return false; }
 }
+
+// v1.18.0 — pontes App → Ativos que substituem as entradas nas telas
+// antigas de Imóveis (index.html v1.108.0):
+//   rzAbrirAtivosComFiltro('prop:Vago')  → lista de ativos já filtrada
+//   rzAbrirAtivoDoImovel(imovelId)       → ficha do ativo dono do imóvel
+window.rzAbrirAtivosComFiltro = function (status = '', alerta = '') {
+    const selS = document.getElementById('filtro-ativo-status');
+    const selA = document.getElementById('filtro-ativo-alerta');
+    if (selS) selS.value = status;
+    if (selA) selA.value = alerta;
+    if (typeof window.switchTab === 'function') window.switchTab('tab-ativos');
+    mudarTela('ativos');
+    renderAtivosLista('', document.getElementById('filtro-ativo-busca')?.value || '');
+};
+window.rzAbrirAtivoDoImovel = function (imovelId) {
+    const a = (estado.ativos || []).find(x => x.entidade_origem_tipo === 'imovel' && x.entidade_origem_id === imovelId);
+    if (typeof window.switchTab === 'function') window.switchTab('tab-ativos');
+    if (a) abrirFichaAtivo(a.id); else { mudarTela('ativos'); mostrarToast('Ativo deste imóvel não encontrado.', 'erro'); }
+};
 
 // v1.96.2 (01/09/2026, pedido explícito, achado real: "ao clicar no
 // editar de um imóvel está indo para a tela inicial do app") — BUG
@@ -1392,23 +1440,23 @@ export async function salvarEdicaoAtivo() {
 export function abrirGestaoImovel() {
     const a = estado.ativoEmFoco;
     if (a?.entidade_origem_tipo !== 'imovel' || !a.entidade_origem_id) return;
-    if (typeof window.switchTab === 'function' && typeof window.editarImovel === 'function') {
-        // BUG FIX (02/09/2026, achado pelo Nicola com screenshot: "ao sair
-        // do modal, aparece a tela antiga de lista dos imóveis") — faltava
-        // dizer ao App de onde essa edição veio. window.fichaOrigemAoEditarImovel
-        // é uma variável já existente no index.html (mecanismo já pronto
-        // de "Voltar sempre pra origem real", DS §4.2) — só nunca tinha
-        // um chamador que setasse 'tab-ativos'. cancelarEdicaoImovel()
-        // já sabe fazer switchTab(origem) sozinha ao fechar/salvar; a
-        // troca pra tab-imoveis abaixo é só pra deixar o modal Tipo A
-        // visível (ele fica preso numa <section> display:none fora da
-        // aba ativa) — nunca deveria "grudar" ali depois de fechado.
-        window.fichaOrigemAoEditarImovel = 'tab-ativos';
-        window.switchTab('tab-imoveis');
-        window.editarImovel(a.entidade_origem_id);
-    } else {
-        mostrarToast('Edição do imóvel só disponível dentro do app principal.', 'erro');
-    }
+    if (typeof window.editarImovel !== 'function') { mostrarToast('Edição do imóvel só disponível dentro do app principal.', 'erro'); return; }
+    // v1.18.0 — SEM switchTab('tab-imoveis'): o modal (#form-imovel-wrapper)
+    // agora vive no <body> (index.html v1.108.0, rzMoverFormImovelParaBody)
+    // e abre de qualquer aba. A ficha do ativo fica atrás do modal; ao
+    // fechar/salvar, o App chama este hook e a ficha recarrega com os
+    // dados novos. Nunca mais cai na lista antiga de imóveis.
+    window.fichaOrigemAoEditarImovel = null;
+    const ativoId = a.id;
+    window.__rzAposFecharImovel = () => {
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+        if (estado.ativoEmFoco?.id === ativoId) abrirFichaAtivo(ativoId);
+    };
+    window.editarImovel(a.entidade_origem_id);
+    // v1.18.1 (fatia 3b-ii) — síndico/manutencista/sócios/fotos já vivem na
+    // ficha (Partes, Propriedade, Arquivos): escondidos no formulário
+    // quando aberto daqui. cancelarEdicaoImovel() reexibe ao fechar.
+    document.getElementById('imo-blocos-ficha')?.classList.add('hidden');
 }
 
 // ---- Documentos

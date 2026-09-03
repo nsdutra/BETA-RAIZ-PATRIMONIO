@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.20.0 · 03/09/2026
+// Versão: 1.21.0 · 03/09/2026
+//
+// v1.21.0 — 'voltar-app' vai pra tab-ativos e 'cadastrar-imovel-app' abre
+// o modal sem trocar de aba (telas antigas de Imóveis desligadas no
+// index v1.108.0).
 //
 // v1.20.0 — FATIA 3 da gramática única: cases novos no dispatcher —
 // 'abrir-acoes-ativo' / 'abrir-acoes-controles' (os antigos 'alternar-
@@ -276,7 +280,8 @@ document.addEventListener('click', async (ev) => {
         // sempre: switchTab() em vez de reload.
         case 'voltar-app':
             fecharModal('modal-menu-conta');
-            if (typeof window.switchTab === 'function') window.switchTab('tab-imoveis');
+            // v1.21.0 — telas antigas de Imóveis desligadas: volta pra Ativos
+            if (typeof window.switchTab === 'function') window.switchTab('tab-ativos');
             else window.location.href = './';
             break;
         case 'menu-conta-em-breve': fecharModal('modal-menu-conta'); mostrarToast(`${alvo.dataset.rotulo}: em breve.`); break;
@@ -395,8 +400,10 @@ document.addEventListener('click', async (ev) => {
         // então abrindo o modal por cima — não moveu o modal de lugar
         // no HTML (risco maior, fora de escopo desta correção).
         case 'cadastrar-imovel-app':
-            if (typeof window.switchTab === 'function' && typeof window.abrirCadastroImovelModal === 'function') {
-                window.switchTab('tab-imoveis');
+            if (typeof window.abrirCadastroImovelModal === 'function') {
+                // v1.21.0 — o modal vive no <body> (index v1.108.0): abre em
+                // cima da lista de Ativos; ao fechar, recarrega a lista.
+                window.__rzAposFecharImovel = () => window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
                 window.abrirCadastroImovelModal();
             } else {
                 mostrarToast('Cadastro de imóvel só disponível dentro do app principal.', 'erro');
