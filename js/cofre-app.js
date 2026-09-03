@@ -1,16 +1,6 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.20.0 · 02/09/2026
-//
-// v1.20.0 — dispatcher da ficha do ativo na gramática única (fatia 3,
-// REGRAS_EXPERIENCIA_RAIZ_v3_1.md): 'alternar-mais-acoes-ativo' →
-// 'fa-mais-acoes-ativo' (abre sheet, ativos.abrirAcoesAtivo);
-// 'alternar-mais-acoes-fotos-ativo' e 'alternar-mais-acoes-controles'
-// SAÍRAM (painéis inline não existem mais); NOVOS 'fa-editar-dados'
-// (botão único do card Resumo), 'fa-arquivos-seg' (segmento Documentos ·
-// Fotos) e 'fa-mais-acoes-documentos' (sheet com "Upload simples").
-//
-// (mesclado sobre a v1.19.0 da sessão de Partes, changelog abaixo)
+// Versão: 1.19.0 · 02/09/2026
 //
 // v1.19.0 — case novo 'fi-gerar-despesa-item', delegando pra
 // controles.abrirNovoLancamentoDoItem() (box Partes do item de
@@ -373,16 +363,7 @@ document.addEventListener('click', async (ev) => {
         case 'salvar-ativo': await ativos.salvarAtivo(); break;
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
         case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;
-        case 'fa-mais-acoes-ativo': ativos.abrirAcoesAtivo(); break;
-        case 'fa-editar-dados': ativos.abrirEdicaoDadosAtivo(); break;
-        case 'fa-arquivos-seg': ativos.faArquivosSegmento(alvo.dataset.seg); break;
-        case 'fa-mais-acoes-documentos':
-            if (typeof window.abrirSheetAcoes === 'function') {
-                window.abrirSheetAcoes({ titulo: 'Documentos', sub: estado.ativoEmFoco?.nome_exibicao, acoes: [
-                    { icone: 'upload', titulo: 'Upload simples', sub: 'Sem leitura da IA', aoTocar: () => docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco) }
-                ] });
-            } else { docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco); }
-            break;
+        case 'alternar-mais-acoes-ativo': ativos.alternarMaisAcoesAtivo(); break;
         // v1.11.0 (31/08/2026, pedido explícito, "seguir com a
         // unificação") — ponte pra abrirCadastroImovelModal(), função
         // NATIVA do index.html (não é código do Cofre) — só existe
@@ -446,9 +427,11 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-lightbox-fotos': ativos.fecharLightboxFotoAtivo(); break;
         case 'navegar-lightbox-fotos': ativos.navegarLightboxFotoAtivo(parseInt(alvo.dataset.dir, 10)); break;
         case 'remover-foto-ativo': await ativos.removerFotoAtivo(alvo.dataset.fotoId); break;
+        case 'alternar-mais-acoes-fotos-ativo': ativos.alternarMaisAcoesFotosAtivo(); break;
         case 'abrir-upload-no-ativo-ia': docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco); break;
         case 'abrir-upload-no-ativo-simples': docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco); break;
         case 'abrir-form-controle': await controles.abrirFormControle(); break;
+        case 'alternar-mais-acoes-controles': controles.alternarMaisAcoesControles(); break;
         case 'fechar-form-controle': controles.fecharFormControle(); break;
         case 'salvar-item-controle': await controles.salvarItemControle(); break;
         case 'alternar-acao-ocorrencia': controles.alternarAcaoOcorrencia(alvo.dataset.id, alvo.dataset.modo); break;
