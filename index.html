@@ -6,9 +6,42 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.111.0
-   LINHAS: 31118
+   VERSÃO: Beta v1.112.0
+   LINHAS: 31165
    DATA: 03/09/2026
+   NOVIDADES (Beta v1.112.0) — anotações do Nicola (16h) + migração de fotos:
+     - ⋮ NO CABEÇALHO DO CARD substitui "Mais ações" em todos os cards
+       (.rz-more icon-only; rodapé só com a ação nomeada → cards mais
+       baixos). Ficha do contrato, ficha do ativo, item de controle.
+     - "Arquivos" → "ANEXOS" com chips Todos · Fotos · <categorias>;
+       IA + Upload sempre no rodapé (cofre-ativos.js v1.20.0,
+       ativos-markup.js v1.18.0).
+     - FOTOS MIGRADAS: migration migrar_fotos_legadas_imoveis_para_cofre_
+       ativo_fotos_v1 (11 URLs: 8 do bucket imoveis-fotos + 3 do Drive);
+       as 7 em base64 migram ao abrir a ficha (upload pro Cofre). Thumbnail
+       das migradas: gerarSignedUrl resolve 'externo' e bucket público
+       (cofre-api.js v1.15.0). "Fotos enviadas ✅" virou toast.
+     - Toque no contrato abre a FICHA (abrirFichaContrato) — a ponte usava
+       abrirDetalhesContrato, que é o modal de edição.
+     - "Iniciar contratação" reabre o menu completo (iniciarProcessoContratacao:
+       link de coleta, WhatsApp, minuta padrão, gerar minuta); Mais ações
+       do chip Contratos tem as 3 vias. O menu em si ainda é Tipo B (fatia 9).
+     - Cancelar o formulário de contrato aberto pela ficha do ativo volta
+       pra ficha (chip Contratos), não pra lista.
+     - Lista de Ativos: tag derivada do contrato (Alugado / Assinando /
+       Em uso / Vago) — "Alugado sem contrato" e "Em uso" redundante
+       resolvidos; finalidade sai do título.
+     - Partes do contrato: locatário editável (lápis → formulário).
+   O que pode ser eliminado após a migração de fotos (avaliação pedida):
+     - imoveis.fotos deixa de ser LIDO pela ficha do ativo. Ainda é lido
+       por: card da lista de Ativos (resumo.foto), vitrine in-app
+       (3 pontos) e escrito por saveImovel/form (bloco escondido na ficha).
+       Migrar esses 5 leitores pra cofre_ativo_fotos = fatia 9, junto com
+       a remoção do bloco "Fotos do Imóvel (até 10)" do formulário.
+     - A coluna imoveis.fotos e o bucket imoveis-fotos ficam (regra
+       aditiva; objetos migrados apontam pro bucket). Drop só quando a
+       tabela imoveis for eliminada (item já adiado).
+
    NOVIDADES (Beta v1.111.0) — 10 achados do Nicola nos prints das 13h40
    (fatia 4b + correções de fluxo):
      1) "Carregar documento" no contrato abria o cofre.html (tela do módulo
@@ -6852,8 +6885,13 @@
         .rz-card-h h3{font-family:var(--font-title);font-size:15px;flex:1;letter-spacing:-.02em;margin:0}
         .rz-card-h .rz-sub{font-size:12px;color:var(--muted)}
         .rz-card-f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
-        .rz-more{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--muted);height:36px;padding:0 4px;background:none;border:0;margin-left:auto}
-        .rz-more svg{width:15px;height:15px}
+        /* v1.112.0 — "Mais ações" vira ⋮ no cabeçalho do card (Nicola 03/09:
+           "padronizar o menu 3 bolinhas no lugar de todos os mais ações";
+           cards mais baixos). Ícone 36×36, sem texto. */
+        .rz-more{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;margin:-6px -8px -6px auto;border-radius:50%;color:var(--muted);background:none;border:0;flex:none}
+        .rz-more:active{background:var(--tile)}
+        .rz-more svg{width:20px;height:20px}
+        .rz-card-f .rz-more{margin:0 -8px 0 auto}
         .rz-desc{font-size:13px;color:var(--muted);line-height:1.4;margin:0}
         .rz-kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:6px}
         .rz-kv > div{min-width:0}
@@ -10666,7 +10704,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.111.0";
+        const APP_VERSAO = "Beta v1.112.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -23143,7 +23181,7 @@
                         <div class="rz-card-f"><button type="button" onclick="verAlertasContrato('${con.id}')" class="rz-btn rz-btn-1 rz-sm"><svg data-lucide="bell"></svg> Ver alertas</button></div>
                     </div>` : ''}
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3>Condições</h3></div>
+                        <div class="rz-card-h"><h3>Condições</h3><button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div class="rz-kv">
                             ${kv('Início', formatarDataBR(con.inicio))}
                             ${kv('Fim', formatarDataBR(con.fim))}
@@ -23154,7 +23192,6 @@
                         </div>
                         <div class="rz-card-f">
                             <button type="button" onclick="abrirEdicaoContratoContextual('${con.id}', 'fichaContrato', '${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="pencil"></svg> Editar contrato</button>
-                            <button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more">Mais ações <svg data-lucide="chevron-down"></svg></button>
                         </div>
                     </div>
                 </div>
@@ -23177,9 +23214,10 @@
                 <div class="fc-painel hidden" id="fc-painel-partes">
                     <div class="rz-card">
                         <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Locatário e garantias</span></div>
-                        <div class="rz-row">
+                        <div class="rz-row rz-link" onclick="abrirEdicaoContratoContextual('${con.id}', 'fichaContrato', '${con.id}')">
                             <div class="rz-ic"><svg data-lucide="user"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>Locatário${con.cpf ? ' · ' + escapeHtmlSaidas((con.docTipo || 'CPF') + ' ' + con.cpf) : ''}</span></div>
+                            <svg data-lucide="pencil" class="rz-chev"></svg>
                         </div>
                         ${fiadoresDaFicha.length ? fiadoresDaFicha.map(f => `
                         <div class="rz-row">
@@ -24571,6 +24609,15 @@
             sincronizarBotaoToggleContrato();
 
             renderImoveis();
+            // v1.112.0 — Nicola: "ao cancelar, cai na lista" — se o formulário
+            // foi aberto pela ficha do ATIVO (cofre-ativos deixa
+            // window.fichaContratoOrigem), volta pra ela no chip Contratos.
+            const origemCon = window.fichaContratoOrigem;
+            if (origemCon && origemCon.tipo === 'ativo' && origemCon.id && typeof window.abrirFichaAtivoNoChip === 'function') {
+                window.fichaContratoOrigem = null;
+                switchTab('tab-ativos');
+                window.abrirFichaAtivoNoChip(origemCon.id, 'contratos');
+            }
 
         }
 

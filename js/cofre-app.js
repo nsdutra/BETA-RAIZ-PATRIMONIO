@@ -1,6 +1,8 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.22.0 · 03/09/2026
+// Versão: 1.23.0 · 03/09/2026
+//
+// v1.23.0 — case 'fa-iniciar-contratacao' (menu completo de contratação).
 //
 // v1.22.0 — cases fa-novo-contrato-imovel / fa-acoes-contratos; ponte
 // window.rzAbrirUploadContextual pro App (upload do contrato no mesmo
@@ -440,6 +442,7 @@ document.addEventListener('click', async (ev) => {
         case 'fa-seg-arquivos': ativos.faTrocarSegArquivos(alvo.dataset.faSeg); break;
         case 'fa-abrir-contrato-app': ativos.abrirContratoNoApp(alvo.dataset.contratoId); break;
         case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
+        case 'fa-iniciar-contratacao': ativos.iniciarContratacaoDoAtivo(); break;
         case 'fa-acoes-contratos': ativos.abrirAcoesContratosAtivo(); break;
         // v1.15.0 (NOVO) — chip Financeiro da ficha do ativo: "Novo
         // lançamento" e "Ver tudo em Saídas" são pontes pro App (ver

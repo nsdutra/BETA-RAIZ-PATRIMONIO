@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.14.0 · 02/09/2026
+// Versão: 1.15.0 · 03/09/2026
+//
+// v1.15.0 — gerarSignedUrl resolve bucket 'externo' (URL como está) e
+// 'imoveis-fotos' (público, getPublicUrl) — fotos migradas do cadastro antigo.
 //
 // v1.14.0 — funções novas pro chip "Partes" do item de controle:
 // listarPartesCliente (todas as partes do cliente, não só sócios
@@ -278,6 +281,12 @@ export async function removerVinculo(vinculoId) {
 }
 
 export async function gerarSignedUrl(bucket, path, segundos = 120) {
+    // v1.15.0 — fotos migradas do cadastro antigo (03/09): bucket 'externo'
+    // guarda a URL inteira em storage_path (Google Drive); 'imoveis-fotos' é
+    // bucket PÚBLICO — URL pública direta, sem assinatura (RLS de storage
+    // não cobre createSignedUrl nele e a thumbnail vinha quebrada).
+    if (bucket === 'externo') return path;
+    if (bucket === 'imoveis-fotos') return dbAuth.storage.from(bucket).getPublicUrl(path).data.publicUrl;
     const { data, error } = await dbAuth.storage.from(bucket).createSignedUrl(path, segundos);
     if (error) throw error;
     return data.signedUrl;

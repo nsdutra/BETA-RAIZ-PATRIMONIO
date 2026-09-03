@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.19.0 · 03/09/2026
+// Versão: 1.20.0 · 03/09/2026
+//
+// v1.20.0 — anotações do Nicola (16h):
+//   - Anexos: chips Todos · Fotos · <categorias> (montarAnexosChips /
+//     aplicarFiltroAnexos); IA + Upload sempre no rodapé.
+//   - Fotos: migração base64 → Cofre ao abrir a ficha (migrarFotosBase64);
+//     toast no lugar do "Fotos enviadas ✅".
+//   - Card da lista: tag derivada do contrato (Alugado/Assinando/Em uso/
+//     Vago) via renderStatus; finalidade sai do título.
+//   - abrirContratoNoApp abre a FICHA (abrirFichaContrato), não o modal.
+//   - Chip Contratos: "Iniciar contratação" → iniciarProcessoContratacao
+//     (link, WhatsApp, minuta); Mais ações com as 3 vias.
+//   - "Mais ações" do rodapé saiu (⋮ vive no cabeçalho, markup v1.18.0).
 //
 // v1.19.0 — achados do Nicola (prints 13h40):
 //   - Documentos do ativo: toque abre o documento (abrir-documento) + chevron.
@@ -557,11 +569,18 @@ function ativoCardHtml(a) {
             situacaoEsquerda = (principal.locatario || '-') + (principal.status !== 'Ativo' ? ` · ${principal.status}` : '');
             situacaoDireita = 'R$ ' + Number(principal.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-        const badgeClasse = resumoImovel.status === 'Vago' ? 'bg-amber-100 text-amber-800'
-            : resumoImovel.status === 'Assinando' ? 'bg-blue-100 text-blue-800'
-            : resumoImovel.status === 'Alugado' ? 'bg-green-100 text-green-800'
-            : 'bg-slate-100 text-slate-700';
-        const titulo = [resumoImovel.empreendimento || 'Sem empreendimento', resumoImovel.tipo, finalidadeLabel[resumoImovel.finalidadeUso] || 'Long Stay'].filter(Boolean).join(' · ');
+        // v1.20.0 (Nicola 03/09): "sem contrato mostrando Alugado" — o status
+        // do imóvel legado (imoveis.status) fica desatualizado; a TAG passa a
+        // ser derivada do contrato principal: vigente → Alugado, assinando →
+        // Assinando, uso próprio → Em uso, senão Vago. E "Uso Pessoal / Long
+        // Stay" sai do título (redundante com a tag).
+        const usoProprio = resumoImovel.finalidadeUso === 'uso_proprio';
+        const situacao = (principal && principal.status === 'Ativo') ? 'Alugado'
+            : (principal && principal.status === 'Assinando') ? 'Assinando'
+            : usoProprio ? 'Em uso' : 'Vago';
+        const rsSem = { Alugado: 'ok', Assinando: 'run', 'Em uso': 'neu', Vago: 'warn' }[situacao];
+        const badgeHtml = (typeof window.renderStatus === 'function') ? window.renderStatus(rsSem, situacao) : `<span class="rz-st rz-${rsSem}">${situacao}</span>`;
+        const titulo = [resumoImovel.empreendimento || 'Sem empreendimento', resumoImovel.tipo].filter(Boolean).join(' · ');
 
         return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-start">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
@@ -576,7 +595,7 @@ function ativoCardHtml(a) {
                 </div>
             </div>
             <div class="flex flex-col items-end gap-1 flex-none">
-                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded ${badgeClasse}">${escapeHtml(resumoImovel.status)}</span>
+                ${badgeHtml}
                 ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
             </div>
         </button>`;
@@ -820,10 +839,11 @@ export function faTrocarAba(nomeAba) {
 
 // v1.17.0 — segmento Documentos · Fotos dentro do chip Arquivos (REGRAS §8).
 export function faTrocarSegArquivos(nome) {
-    document.querySelectorAll('#fa-seg-arquivos button').forEach(b => b.classList.toggle('rz-on', b.dataset.faSeg === nome));
-    document.getElementById('fa-arq-documentos')?.classList.toggle('hidden', nome !== 'documentos');
-    document.getElementById('fa-arq-fotos')?.classList.toggle('hidden', nome !== 'fotos');
-    refrescarIcones();
+    // v1.20.0 — chips de Anexos ('todos' | 'fotos' | <categoria_id>);
+    // 'documentos' (nome antigo) cai em 'todos'.
+    filtroAnexoAtual = (nome === 'documentos' || !nome) ? 'todos' : nome;
+    document.querySelectorAll('#fa-anexos-chips .rz-chip').forEach(b => b.classList.toggle('rz-on', b.dataset.faSeg === filtroAnexoAtual));
+    aplicarFiltroAnexos();
 }
 
 // v1.17.0 — contador dos chips da ficha (.rz-n). warn=true pinta o
@@ -913,7 +933,7 @@ async function montarContratosAtivo(a) {
             // (exceção documentada, REGRAS §6): a contratação nasce na aba
             // Contratos do App, não daqui.
             painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda. Um contrato vigente é o que o transforma em receita.</p></div>
-                <div class="rz-card-f"><button type="button" data-action="fa-novo-contrato-imovel" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button></div>`;
+                <div class="rz-card-f"><button type="button" data-action="fa-iniciar-contratacao" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button></div>`;
             refrescarIcones();
             return;
         }
@@ -939,8 +959,7 @@ async function montarContratosAtivo(a) {
         // botão e mais ações") — rodapé único: abre o vigente + sheet.
         const vigente = vigentes[0];
         painel.innerHTML += `<div class="rz-card-f">
-            ${vigente ? `<button type="button" data-action="fa-abrir-contrato-app" data-contrato-id="${vigente.id}" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="arrow-right"></i> Abrir contrato</button>` : `<button type="button" data-action="fa-novo-contrato-imovel" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button>`}
-            <button type="button" data-action="fa-acoes-contratos" class="rz-more">Mais ações <i data-lucide="chevron-down"></i></button>
+            ${vigente ? `<button type="button" data-action="fa-abrir-contrato-app" data-contrato-id="${vigente.id}" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="file-text"></i> Abrir contrato</button>` : `<button type="button" data-action="fa-iniciar-contratacao" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button>`}
         </div>`;
         refrescarIcones();
     } catch (err) {
@@ -1018,12 +1037,14 @@ async function montarFinanceiroAtivo(a) {
 // princípio de abrirGestaoImovel: nada de contrato duplicado aqui).
 export function abrirContratoNoApp(contratoId) {
     if (!contratoId) return;
-    if (typeof window.switchTab === 'function' && typeof window.abrirDetalhesContrato === 'function') {
+    // v1.20.0 — BUG (Nicola): abrirDetalhesContrato é o MODAL de edição; a
+    // ficha é abrirFichaContrato (toque = entrar, nunca editar).
+    if (typeof window.switchTab === 'function' && typeof window.abrirFichaContrato === 'function') {
         // v1.19.0 — o App usa isto pra "Voltar" cair na ficha do ativo, não
         // na lista de contratos (Nicola 03/09).
         window.fichaContratoOrigem = { tipo: 'ativo', id: estado.ativoEmFoco?.id || null };
         window.switchTab('tab-contratos');
-        window.abrirDetalhesContrato(contratoId);
+        window.abrirFichaContrato(contratoId);
     } else {
         mostrarToast('Contrato só abre dentro do app principal.', 'erro');
     }
@@ -1040,10 +1061,23 @@ export function abrirNovoContratoDoAtivo() {
         window.criarContratoParaImovel(a.entidade_origem_id);
     } else mostrarToast('Contratação só abre dentro do app principal.', 'erro');
 }
+// v1.20.0 (Nicola: "faltaram gerar minuta, compartilhar link e as outras
+// opções que tinham pra iniciar um novo contrato") — iniciarProcessoContratacao
+// do App cria o processo e abre o menu completo (dados do locatário por
+// link, WhatsApp, minuta padrão, gerar minuta). O menu em si ainda é o
+// Tipo B antigo — vira sheet na fatia 9.
+export function iniciarContratacaoDoAtivo() {
+    const a = estado.ativoEmFoco;
+    if (a?.entidade_origem_tipo !== 'imovel') { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    if (typeof window.iniciarProcessoContratacao !== 'function') { abrirNovoContratoDoAtivo(); return; }
+    window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
+    window.iniciarProcessoContratacao(a.entidade_origem_id);
+}
 export function abrirAcoesContratosAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Contratos', sub: a.nome_exibicao, acoes: [
-        { icone: 'plus', titulo: 'Novo contrato', sub: 'Já com este imóvel selecionado', aoTocar: () => abrirNovoContratoDoAtivo() },
+        { icone: 'link', titulo: 'Contratação: link, WhatsApp e minuta', sub: 'Coleta de dados do locatário e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
+        { icone: 'plus', titulo: 'Cadastrar contrato manualmente', sub: 'Já com este imóvel selecionado', aoTocar: () => abrirNovoContratoDoAtivo() },
         { icone: 'list', titulo: 'Ver todos na aba Contratos', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
     ] });
 }
@@ -1526,10 +1560,54 @@ function montarDocumentosAtivo(a) {
             <div class="rz-tx"><b>${escapeHtml(d.nome_exibicao)}</b><span>${escapeHtml((estado.categorias || []).find(c => c.id === d.categoria_id)?.nome || 'Documento')}${d.origem === 'bot_whatsapp' ? ' · pelo Robô' : ''}${d.criado_em ? ' · ' + formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
             <i data-lucide="chevron-right" class="rz-chev"></i>
         </div>`).join('');
-    document.getElementById('fa-documentos-vazio')?.classList.toggle('hidden', docs.length > 0);
-    document.getElementById('fa-documentos-rodape')?.classList.toggle('hidden', docs.length === 0);
+    docsAtivoCache = docs;
     docsAtivoCount = docs.length;
     atualizarContadorArquivos();
+    montarAnexosChips();
+    aplicarFiltroAnexos();
+}
+
+// v1.20.0 — ANEXOS (Nicola 03/09): chips Todos · Fotos · <categorias>;
+// documentos filtrados pela categoria escolhida; card de fotos no chip
+// Fotos. IA + Upload sempre no rodapé (REGRAS §11 v3.10).
+let docsAtivoCache = [];
+let filtroAnexoAtual = 'todos';
+function montarAnexosChips() {
+    const wrap = document.getElementById('fa-anexos-chips');
+    if (!wrap) return;
+    const cats = new Map();
+    docsAtivoCache.forEach(d => { const k = d.categoria_id || 'sem'; cats.set(k, (cats.get(k) || 0) + 1); });
+    const nomeCat = id => id === 'sem' ? 'Sem categoria' : ((estado.categorias || []).find(c => c.id === id)?.nome || 'Documento');
+    const chips = [
+        { chave: 'todos', rotulo: 'Todos', n: docsAtivoCache.length + (fotosAtivoCache?.length || 0) },
+        { chave: 'fotos', rotulo: 'Fotos', n: fotosAtivoCache?.length || 0 },
+        ...[...cats.entries()].sort((x, y) => nomeCat(x[0]).localeCompare(nomeCat(y[0]))).map(([id, n]) => ({ chave: id, rotulo: nomeCat(id), n })),
+    ];
+    if (!chips.some(c => c.chave === filtroAnexoAtual)) filtroAnexoAtual = 'todos';
+    wrap.innerHTML = chips.map(c => `<button type="button" data-action="fa-seg-arquivos" data-fa-seg="${c.chave}" class="rz-chip ${filtroAnexoAtual === c.chave ? 'rz-on' : ''}">${escapeHtml(c.rotulo)} <span class="rz-n">${c.n}</span></button>`).join('');
+}
+function aplicarFiltroAnexos() {
+    const lista = document.getElementById('fa-tab-documentos');
+    const vazio = document.getElementById('fa-documentos-vazio');
+    const vazioTx = document.getElementById('fa-documentos-vazio-texto');
+    const titulo = document.getElementById('fa-anexos-titulo');
+    const sub = document.getElementById('fa-anexos-sub');
+    const cardDocs = document.getElementById('fa-arq-documentos');
+    const cardFotos = document.getElementById('fa-arq-fotos');
+    const mostrarFotos = filtroAnexoAtual === 'fotos';
+    cardFotos?.classList.toggle('hidden', !mostrarFotos);
+    cardDocs?.classList.toggle('hidden', mostrarFotos);
+    if (mostrarFotos) { refrescarIcones(); return; }
+    const filtrados = filtroAnexoAtual === 'todos' ? docsAtivoCache : docsAtivoCache.filter(d => (d.categoria_id || 'sem') === filtroAnexoAtual);
+    if (titulo) titulo.textContent = filtroAnexoAtual === 'todos' ? 'Anexos' : ((estado.categorias || []).find(c => c.id === filtroAnexoAtual)?.nome || 'Anexos');
+    if (sub) sub.textContent = filtrados.length ? `${filtrados.length} documento${filtrados.length === 1 ? '' : 's'}` : '';
+    lista.querySelectorAll('.rz-row').forEach(r => { r.classList.toggle('hidden', !filtrados.some(d => d.id === r.dataset.id)); });
+    if (vazio) {
+        vazio.classList.toggle('hidden', filtrados.length > 0);
+        if (vazioTx) vazioTx.textContent = filtroAnexoAtual === 'todos'
+            ? 'Nenhum anexo neste ativo. A IA lê matrícula, IPTU e apólices e preenche os controles sozinha.'
+            : 'Nenhum documento nesta categoria.';
+    }
     refrescarIcones();
 }
 
@@ -1592,23 +1670,23 @@ async function montarFotosAtivo(a) {
     const sub = document.getElementById('fa-fotos-sub');
     if (sub) sub.textContent = fotos.length ? `${fotos.length} foto${fotos.length === 1 ? '' : 's'}` : '';
     atualizarContadorArquivos();
+    montarAnexosChips();
     if (!fotos.length) {
         // v1.19.0 — BUG (Nicola 03/09: "imóvel com fotos anexadas não
         // apresenta as fotos"): as fotos do cadastro antigo vivem em
         // imoveis.fotos (URLs), não em cofre_ativo_fotos. Enquanto não há
         // migração, mostra-as aqui em modo leitura (sem remover/vitrine).
+        // v1.20.0 — MIGRAÇÃO das fotos base64 do cadastro antigo (as URLs já
+        // foram migradas por SQL em 03/09): ao abrir a ficha, sobe pro Cofre
+        // uma vez e recarrega. Depois disso imoveis.fotos não é mais lido aqui.
         const legado = fotosLegadasDoImovel(a);
-        if (legado.length) {
-            if (vazio) vazio.classList.add('hidden');
-            rodape?.classList.remove('hidden');
-            box.classList.remove('hidden');
-            if (sub) sub.textContent = `${legado.length} foto${legado.length === 1 ? '' : 's'} do cadastro`;
-            fotosAtivoCache = []; fotosAtivoUrlsCache = legado;
-            document.getElementById('fa-fotos-grid').innerHTML = legado.map((url, i) => `
-                <div class="relative flex-none"><img src="${url}" data-action="abrir-lightbox-foto-ativo" data-indice="${i}" class="w-16 h-16 object-cover rounded-lg border" style="border-color:var(--line)" loading="lazy"></div>`).join('')
-                + `<p class="rz-desc" style="flex-basis:100%;margin-top:6px">Fotos do cadastro do imóvel. Novas fotos adicionadas aqui passam a valer pra vitrine.</p>`;
-            refrescarIcones();
-            return;
+        if (legado.length && !a.__migrandoFotos) {
+            a.__migrandoFotos = true;
+            try {
+                await migrarFotosBase64(a, legado);
+                mostrarToast(`${legado.length} foto${legado.length === 1 ? '' : 's'} do cadastro migrada${legado.length === 1 ? '' : 's'} pro Cofre`);
+                return montarFotosAtivo(a);
+            } catch (e) { console.error('[fotos] migração base64 falhou', e); }
         }
         box.classList.add('hidden');
         if (vazio) vazio.classList.remove('hidden');
@@ -1627,7 +1705,20 @@ async function montarFotosAtivo(a) {
 function fotosLegadasDoImovel(a) {
     if (a?.entidade_origem_tipo !== 'imovel' || !Array.isArray(window.imoveis)) return [];
     const imo = window.imoveis.find(i => i.id === a.entidade_origem_id);
-    return (imo?.fotos || []).filter(u => typeof u === 'string' && /^https?:/.test(u));
+    return (imo?.fotos || []).filter(u => typeof u === 'string' && u.startsWith('data:image/'));
+}
+async function migrarFotosBase64(a, dataUris) {
+    let ordem = 0;
+    for (const uri of dataUris) {
+        const resp = await fetch(uri); const blob = await resp.blob();
+        const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        const fotoId = crypto.randomUUID();
+        const path = `${estado.clienteId}/ativos/${a.id}/fotos/${fotoId}_migrada.${ext}`;
+        await api.uploadArquivoDocumento(path, new File([blob], `migrada.${ext}`, { type: blob.type }));
+        await api.inserirFotoAtivo({ id: fotoId, cliente_id: estado.clienteId, ativo_id: a.id, bucket: 'cofre-documentos', storage_path: path, nome_arquivo: `migrada.${ext}`, ordem: ordem++, capa: ordem === 1, publicar_vitrine: false, legenda: 'Migrada do cadastro do imóvel', status: 'ativo', criado_por: estado.pessoa?.id || null });
+    }
+    const imo = window.imoveis.find(i => i.id === a.entidade_origem_id);
+    if (imo) imo.fotos = [];
 }
 
 function renderizarGridFotos() {
@@ -1656,7 +1747,8 @@ async function enviarFotosAtivo(ativoId) {
             statusEl.textContent = '❌ ' + err.message; statusEl.style.color = 'var(--danger)';
         }
     }
-    statusEl.textContent = 'Fotos enviadas ✅'; statusEl.style.color = 'var(--success)';
+    statusEl.textContent = '';
+    mostrarToast(arquivos.length === 1 ? 'Foto adicionada' : `${arquivos.length} fotos adicionadas`);
     document.getElementById('fa-box-fotos').classList.remove('hidden');
     await montarFotosAtivo(estado.ativoEmFoco);
 }
