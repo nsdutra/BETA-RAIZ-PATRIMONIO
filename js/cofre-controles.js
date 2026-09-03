@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.14.0 · 03/09/2026
+// Versão: 1.15.0 · 03/09/2026
+//
+// v1.15.0 — sem rodapés: ⋮ em Documentos/Contatos do item (abrirAcoesDocsItem /
+// abrirAcoesContatosItem); linha de parte com ⋮ (sem lápis) → sheet.
 //
 // v1.14.0 — voltar do item cai no chip Controles do ativo; linhas que abrem
 // SHEET (ocorrência, parte) usam ⋮ / lápis em vez de chevron (chevron = navega).
@@ -375,10 +378,10 @@ async function montarPartesItemControle(item) {
         return;
     }
     mount.innerHTML = linhas.map(l => `
-        <div class="rz-row rz-link" data-action="abrir-editar-partes-item">
+        <div class="rz-row rz-link" data-action="abrir-acoes-partes-linha">
             <div class="rz-ic"><i data-lucide="briefcase"></i></div>
             <div class="rz-tx"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}</span></div>
-            <i data-lucide="pencil" class="rz-chev"></i>
+            <i data-lucide="ellipsis-vertical" class="rz-chev"></i>
         </div>`).join('');
     refrescarIcones();
 }
@@ -679,6 +682,16 @@ export function abrirAcoesPartesItem() {
     sheetAcoes({ titulo: 'Partes do item', sub: item.titulo, acoes: [
         { icone: 'users', titulo: 'Editar partes', sub: 'Quem responde por este item', aoTocar: () => abrirEditarPartesItem() },
         { icone: 'receipt', titulo: 'Gerar despesa', sub: 'Lançamento com a parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
+    ] });
+}
+export function abrirAcoesDocsItem() {
+    sheetAcoes({ titulo: 'Documentos do item', sub: itemEmFoco?.titulo || '', acoes: [
+        { icone: 'upload', titulo: 'Carregar documento', sub: 'Apólice, guia, laudo — com leitura por IA', tipo: 'ia', aoTocar: () => carregarNovoDocumentoItem() },
+    ] });
+}
+export function abrirAcoesContatosItem() {
+    sheetAcoes({ titulo: 'Contatos do item', sub: itemEmFoco?.titulo || '', acoes: [
+        { icone: 'user-plus', titulo: 'Adicionar contato', sub: 'Com WhatsApp vira atalho no alerta', aoTocar: () => abrirNovoContatoItem() },
     ] });
 }
 export const alternarMaisAcoesContatosItem = () => abrirNovoContatoItem();

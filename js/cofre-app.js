@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.23.0 · 03/09/2026
+// Versão: 1.24.0 · 03/09/2026
+//
+// v1.24.0 — cases dos ⋮ novos (propriedade, financeiro, anexos, docs e
+// contatos do item, categorizar documento) e pontes window.__rz* pros sheets.
 //
 // v1.23.0 — case 'fa-iniciar-contratacao' (menu completo de contratação).
 //
@@ -443,6 +446,14 @@ document.addEventListener('click', async (ev) => {
         case 'fa-abrir-contrato-app': ativos.abrirContratoNoApp(alvo.dataset.contratoId); break;
         case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
         case 'fa-iniciar-contratacao': ativos.iniciarContratacaoDoAtivo(); break;
+        // v1.24.0 — ⋮ dos cards da ficha (sem rodapé)
+        case 'fa-acoes-propriedade': ativos.abrirAcoesPropriedade(); break;
+        case 'fa-acoes-financeiro': ativos.abrirAcoesFinanceiroAtivo(); break;
+        case 'fa-acoes-anexos': ativos.abrirAcoesAnexos(); break;
+        case 'abrir-acoes-docs-item': controles.abrirAcoesDocsItem(); break;
+        case 'abrir-acoes-contatos-item': controles.abrirAcoesContatosItem(); break;
+        case 'abrir-acoes-partes-linha': controles.abrirAcoesPartesItem(); break;
+        case 'categorizar-documento-atual': await docs.categorizarDocumentoAtual(); break;
         case 'fa-acoes-contratos': ativos.abrirAcoesContratosAtivo(); break;
         // v1.15.0 (NOVO) — chip Financeiro da ficha do ativo: "Novo
         // lançamento" e "Ver tudo em Saídas" são pontes pro App (ver
@@ -463,7 +474,7 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-upload-no-ativo-simples': docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco); break;
         case 'abrir-form-controle': await controles.abrirFormControle(); break;
         case 'alternar-mais-acoes-controles':
-        case 'abrir-acoes-controles': controles.abrirAcoesControles(); break;
+        case 'abrir-acoes-controles': ativos.abrirAcoesControlesAtivo(); break;
         case 'fechar-form-controle': controles.fecharFormControle(); break;
         case 'salvar-item-controle': await controles.salvarItemControle(); break;
         // v1.20.0 (fatia 3b-i) — ficha do item de controle na gramática:
@@ -650,7 +661,14 @@ async function confirmarCriacaoAssistida() {
 // modal de upload do ativo (abrirUploadContextual), em vez de sair pro
 // cofre.html (Nicola 03/09: "abre o cofre… esta tela deve sumir").
 window.rzAbrirUploadContextual = (tipo, id, nome) => docs.abrirUploadContextual(tipo, id, nome);
+// v1.24.0 — pontes pros sheets de ⋮ (os botões de rodapé que chamavam estas
+// funções via data-action saíram do markup)
+window.__rzAbrirFormControle = () => controles.abrirFormControle();
+window.__rzAbrirModelosControle = () => controles.abrirModelosControle();
+window.__rzAbrirSubtiposControle = () => controles.abrirSubtiposControle();
+window.__rzUploadAtivo = (ia) => ia ? docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco) : docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco);
 window.addEventListener('cofre:dados-carregados', () => {
+    window.__cofreCategorias = estado.categorias; // v1.24.0 — chips de categoria dos anexos do contrato (App)
     ativos.popularSelectTipoAtivo();
     // v1.12.0 (pedido explícito, "perdeu a formatação... como referência
     // a lista de imóveis antiga") — busca em paralelo, não bloqueia o

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.20.0 · 03/09/2026
+// Versão: 1.21.0 · 03/09/2026
+//
+// v1.21.0 — Nicola (19h): rodapés de card saem — toda ação no ⋮ ou no
+// toque (abrirAcoesPropriedade / abrirAcoesControlesAtivo /
+// abrirAcoesFinanceiroAtivo / abrirAcoesAnexos; abrirAcoesAtivo ganha
+// "Editar dados do imóvel"). BUG do status "Vago com contrato": status do
+// resumo vem minúsculo. Alerta do card na mesma linguagem do status.
 //
 // v1.20.0 — anotações do Nicola (16h):
 //   - Anexos: chips Todos · Fotos · <categorias> (montarAnexosChips /
@@ -543,7 +549,13 @@ export async function carregarResumoImoveisParaCards() {
 function ativoCardHtml(a) {
     const ocorrenciasDoAtivo = estado.ocorrenciasAbertas.filter(oc => oc.cofre_itens_controle?.ativo_id === a.id);
     const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
-    const chip = chipVencimento(proximo);
+    // v1.21.0 — alerta de vencimento na MESMA linguagem do status (Nicola:
+    // "tags diferentes ficou ruim"): ponto + rótulo via renderStatus.
+    const rsA = (sem, t) => (typeof window.renderStatus === 'function') ? window.renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+    const chip = proximo === undefined || proximo === null ? null
+        : proximo < 0 ? { html: rsA('bad', `Vencido há ${Math.abs(proximo)}d`) }
+        : proximo <= 30 ? { html: rsA('warn', proximo === 0 ? 'Vence hoje' : `${proximo} dia${proximo === 1 ? '' : 's'}`) }
+        : { html: rsA('ok', 'Em dia') };
 
     // v1.7.0 — ativo do tipo imóvel COM resumo carregado: mesma "cara"
     // exata da lista antiga de Imóveis (montarCabecalhoImovelHtml, no
@@ -575,8 +587,11 @@ function ativoCardHtml(a) {
         // Assinando, uso próprio → Em uso, senão Vago. E "Uso Pessoal / Long
         // Stay" sai do título (redundante com a tag).
         const usoProprio = resumoImovel.finalidadeUso === 'uso_proprio';
-        const situacao = (principal && principal.status === 'Ativo') ? 'Alugado'
-            : (principal && principal.status === 'Assinando') ? 'Assinando'
+        // v1.21.0 — BUG: o status do contrato no resumo vem MINÚSCULO do banco
+        // ('ativo'); a comparação com 'Ativo' deixava tudo "Vago".
+        const stPrincipal = String(principal?.status || '').toLowerCase();
+        const situacao = (stPrincipal === 'ativo') ? 'Alugado'
+            : (stPrincipal === 'assinando') ? 'Assinando'
             : usoProprio ? 'Em uso' : 'Vago';
         const rsSem = { Alugado: 'ok', Assinando: 'run', 'Em uso': 'neu', Vago: 'warn' }[situacao];
         const badgeHtml = (typeof window.renderStatus === 'function') ? window.renderStatus(rsSem, situacao) : `<span class="rz-st rz-${rsSem}">${situacao}</span>`;
@@ -596,7 +611,7 @@ function ativoCardHtml(a) {
             </div>
             <div class="flex flex-col items-end gap-1 flex-none">
                 ${badgeHtml}
-                ${chip ? `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>` : ''}
+                ${chip ? chip.html : ''}
             </div>
         </button>`;
     }
@@ -609,7 +624,7 @@ function ativoCardHtml(a) {
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
         </div>
-        ${chip ? `<span class="${chip.classe} flex-shrink-0">${escapeHtml(chip.texto)}</span>` : ''}
+        ${chip ? chip.html : ''}
     </button>`;
 }
 
@@ -888,9 +903,10 @@ export function abrirAcoesAtivo() {
     if (!a) return;
     const ehImovel = a.entidade_origem_tipo === 'imovel';
     const acoes = [];
-    // quando o rodapé leva pro formulário do imóvel, o editor dos campos
-    // estruturados do ativo (dados_especificos) continua alcançável daqui
-    if (ehImovel) acoes.push({ icone: 'list', titulo: 'Editar campos do ativo', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
+    // v1.21.0 — sem rodapé: "Editar" vive aqui (imóvel → formulário do
+    // imóvel; campos específicos do ativo em seguida)
+    if (ehImovel) acoes.push({ icone: 'pencil', titulo: 'Editar dados do imóvel', sub: 'Endereço, valores, uso', aoTocar: () => abrirGestaoImovel() });
+    acoes.push({ icone: 'list', titulo: ehImovel ? 'Editar campos do ativo' : 'Editar dados', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
     acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
@@ -932,8 +948,7 @@ async function montarContratosAtivo(a) {
             // v1.17.0 — único card vazio que RENDERIZA sem ação própria
             // (exceção documentada, REGRAS §6): a contratação nasce na aba
             // Contratos do App, não daqui.
-            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda. Um contrato vigente é o que o transforma em receita.</p></div>
-                <div class="rz-card-f"><button type="button" data-action="fa-iniciar-contratacao" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button></div>`;
+            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda. Inicie a contratação pelo menu ⋮.</p></div>`;
             refrescarIcones();
             return;
         }
@@ -955,12 +970,8 @@ async function montarContratosAtivo(a) {
                 </div>
                 <i data-lucide="chevron-right" class="rz-chev"></i>
             </div>`).join('');
-        // v1.19.0 (Nicola 03/09: "no chip contrato não tem as opções de
-        // botão e mais ações") — rodapé único: abre o vigente + sheet.
-        const vigente = vigentes[0];
-        painel.innerHTML += `<div class="rz-card-f">
-            ${vigente ? `<button type="button" data-action="fa-abrir-contrato-app" data-contrato-id="${vigente.id}" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="file-text"></i> Abrir contrato</button>` : `<button type="button" data-action="fa-iniciar-contratacao" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button>`}
-        </div>`;
+        // v1.21.0 — sem rodapé (Nicola: "o toque já resolve"): a linha abre
+        // o contrato; contratação/novo vivem no ⋮ do cabeçalho.
         refrescarIcones();
     } catch (err) {
         painel.innerHTML = `<p class="rz-desc" style="color:var(--danger)">Não foi possível carregar os contratos agora.</p>`;
@@ -1072,6 +1083,35 @@ export function iniciarContratacaoDoAtivo() {
     if (typeof window.iniciarProcessoContratacao !== 'function') { abrirNovoContratoDoAtivo(); return; }
     window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
     window.iniciarProcessoContratacao(a.entidade_origem_id);
+}
+export function abrirAcoesPropriedade() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    sheetOuAviso({ titulo: 'Propriedade', sub: a.nome_exibicao, acoes: [
+        { icone: 'pencil', titulo: 'Editar divisão', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
+    ] });
+}
+export function abrirAcoesControlesAtivo() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    sheetOuAviso({ titulo: 'Itens de controle', sub: a.nome_exibicao, acoes: [
+        { icone: 'plus', titulo: 'Novo item de controle', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
+        { icone: 'layers', titulo: 'Modelos de item', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => window.__rzAbrirModelosControle?.() },
+        { icone: 'tags', titulo: 'Tipos de controle', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => window.__rzAbrirSubtiposControle?.() },
+    ] });
+}
+export function abrirAcoesFinanceiroAtivo() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    sheetOuAviso({ titulo: 'Financeiro', sub: a.nome_exibicao, acoes: [
+        { icone: 'plus', titulo: 'Novo lançamento', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
+        { icone: 'wallet', titulo: 'Ver no Financeiro', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
+    ] });
+}
+export function abrirAcoesAnexos() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    sheetOuAviso({ titulo: 'Anexos', sub: a.nome_exibicao, acoes: [
+        { icone: 'sparkles', titulo: 'Adicionar documento com IA', sub: 'Lê matrícula, IPTU, apólice e preenche os controles', tipo: 'ia', aoTocar: () => window.__rzUploadAtivo?.(true) },
+        { icone: 'upload', titulo: 'Upload simples', sub: 'Só guarda o arquivo', aoTocar: () => window.__rzUploadAtivo?.(false) },
+        { icone: 'camera', titulo: 'Adicionar fotos', aoTocar: () => { faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } },
+    ] });
 }
 export function abrirAcoesContratosAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;

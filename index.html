@@ -6,9 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.112.0
-   LINHAS: 31165
+   VERSÃO: Beta v1.113.0
+   LINHAS: 31230
    DATA: 03/09/2026
+   NOVIDADES (Beta v1.113.0) — anotações do Nicola (19h): "o toque
+   intuitivo já resolve":
+     - RODAPÉS DE CARD SAEM. Regra nova (REGRAS §6 v3.11): toda ação
+       secundária vive no ⋮ do cabeçalho; entrar num item é o toque na
+       linha (›); linha que tem ações próprias mostra ⋮ e abre sheet. Sem
+       botão "Abrir contrato"/"Editar dados"/"Iniciar contratação"/
+       "Carregar documento" duplicando o que ⋮ ou o toque já fazem. Cards
+       ficaram mais baixos. Lápis (pencil) deixou de existir como sinal.
+     - Ficha do contrato: ⋮ em Condições (Editar contrato, Histórico,
+       Gerar minuta, Abrir o imóvel, Excluir), Cobranças (Ver no
+       Financeiro), Partes (Editar locatário, Adicionar/Editar fiadores)
+       e Anexos (Adicionar documento com IA — brass); linha do locatário
+       abre sheet.
+     - "Arquivos" → "Anexos" também no CONTRATO, com chips por categoria
+       (fcMontarChipsAnexos / fcFiltrarAnexos) — faltou na 1.112.
+     - Categorizar documento: botão na ficha do documento abre sheet com
+       as categorias (cofre-documentos.js v1.7.0).
+     - BUG "Vago com contrato" na lista de Ativos: o status do resumo vem
+       minúsculo do banco — mesma causa do chip Contratos (v1.17.2).
+       Normalizado (cofre-ativos.js v1.21.0).
+     - Tag de alerta da lista de Ativos na mesma linguagem do status
+       (ponto + rótulo via renderStatus) — acabou o par "badge + pill
+       amarela" no mesmo card.
+
    NOVIDADES (Beta v1.112.0) — anotações do Nicola (16h) + migração de fotos:
      - ⋮ NO CABEÇALHO DO CARD substitui "Mais ações" em todos os cards
        (.rz-more icon-only; rodapé só com a ação nomeada → cards mais
@@ -10704,7 +10728,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.112.0";
+        const APP_VERSAO = "Beta v1.113.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -23118,6 +23142,7 @@
                     .select('*').eq('contrato_id', con.id).order('ordem');
                 if (errFiadoresFicha) throw errFiadoresFicha;
                 fiadoresDaFicha = fiadoresFichaData || [];
+                window.__fiadoresFichaAtual = fiadoresDaFicha;
             } catch (err) {
                 console.error('abrirFichaContrato: falha ao buscar fiadores:', err.message || err);
             }
@@ -23170,7 +23195,7 @@
                     <button type="button" class="rz-chip rz-on" data-fc-chip="resumo" onclick="fcTrocarChip('resumo')">Resumo</button>
                     <button type="button" class="rz-chip ${atrasadas.length ? 'rz-warn' : ''}" data-fc-chip="cobrancas" onclick="fcTrocarChip('cobrancas')">Cobranças <span class="rz-n">${atrasadas.length}</span></button>
                     <button type="button" class="rz-chip" data-fc-chip="partes" onclick="fcTrocarChip('partes')">Partes <span class="rz-n">${1 + fiadoresDaFicha.length}</span></button>
-                    <button type="button" class="rz-chip" data-fc-chip="arquivos" onclick="fcTrocarChip('arquivos')">Arquivos <span class="rz-n" id="fc-chip-n-arquivos">0</span></button>
+                    <button type="button" class="rz-chip" data-fc-chip="arquivos" onclick="fcTrocarChip('arquivos')">Anexos <span class="rz-n" id="fc-chip-n-arquivos">0</span></button>
                 </div>
 
                 <div class="fc-painel" id="fc-painel-resumo">
@@ -23190,52 +23215,45 @@
                             ${kv('Aluguel', `${formatarMoedaBR(con.valor)}/mês`)}
                             ${kv('Imóvel', escapeHtmlSaidas(imo ? `${imo.empreendimento || ''} · ${enderecoCurto}` : '—'))}
                         </div>
-                        <div class="rz-card-f">
-                            <button type="button" onclick="abrirEdicaoContratoContextual('${con.id}', 'fichaContrato', '${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="pencil"></svg> Editar contrato</button>
-                        </div>
                     </div>
                 </div>
 
                 <div class="fc-painel hidden" id="fc-painel-cobrancas">
                     <div class="rz-card ${atrasadas.length ? 'rz-critico' : ''}">
-                        <div class="rz-card-h"><h3>Cobranças</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}</div>
+                        <div class="rz-card-h"><h3>Cobranças</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}<button type="button" onclick="abrirAcoesCobrancasContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         ${ultimasSeis.length ? ultimasSeis.map(m => `
                         <div class="rz-row">
                             <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (m.status === 'Inadimplente' ? 'Vencido' : 'A vencer')}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
-                        <div class="rz-card-f">
-                            <button type="button" onclick="${irFinanceiro.replace(/"/g, '&quot;')}" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="wallet"></svg> Ver no Financeiro</button>
-                        </div>
+
                     </div>
                 </div>
 
                 <div class="fc-painel hidden" id="fc-painel-partes">
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Locatário e garantias</span></div>
-                        <div class="rz-row rz-link" onclick="abrirEdicaoContratoContextual('${con.id}', 'fichaContrato', '${con.id}')">
+                        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Locatário e garantias</span><button type="button" onclick="abrirAcoesPartesContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-row rz-link" onclick="abrirAcoesLocatarioContrato('${con.id}')">
                             <div class="rz-ic"><svg data-lucide="user"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>Locatário${con.cpf ? ' · ' + escapeHtmlSaidas((con.docTipo || 'CPF') + ' ' + con.cpf) : ''}</span></div>
-                            <svg data-lucide="pencil" class="rz-chev"></svg>
+                            <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                         </div>
                         ${fiadoresDaFicha.length ? fiadoresDaFicha.map(f => `
                         <div class="rz-row">
                             <div class="rz-ic"><svg data-lucide="shield-check"></svg></div>
                             <div class="rz-tx"><b>${(f.nome || '').replace(/</g, '&lt;')}</b><span>Fiador · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}${f.estado_civil ? ' · ' + f.estado_civil : ''}${f.possui_imovel_proprio ? ' · imóvel em garantia' : ''}</span></div>
                         </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Adicione se a minuta exigir.</p></div>`}
-                        <div class="rz-card-f">
-                            <button type="button" onclick="abrirEdicaoFiadoresPopup('${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="user-plus"></svg> ${fiadoresDaFicha.length ? 'Editar fiadores' : 'Adicionar fiador'}</button>
-                        </div>
+
                     </div>
                 </div>
 
                 <div class="fc-painel hidden" id="fc-painel-arquivos">
+                    <div class="rz-chips" id="fc-anexos-chips"></div>
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3>Documentos</h3></div>
+                        <div class="rz-card-h"><h3 id="fc-anexos-titulo">Anexos</h3><span class="rz-sub" id="fc-anexos-sub"></span>${abreArquivos ? `<button type="button" onclick="abrirAcoesAnexosContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}</div>
                         ${abreArquivos
-                            ? `<div id="fc-documentos"><p class="rz-desc">Carregando...</p></div>
-                               <div class="rz-card-f"><button type="button" onclick="rzCarregarDocumentoContrato('${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="upload"></svg> Carregar documento</button></div>`
+                            ? `<div id="fc-documentos"><p class="rz-desc">Carregando...</p></div>`
                             : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Contrato encerrado: os documentos ficam guardados no Cofre.</p></div>`}
                     </div>
                 </div>`;
@@ -23260,6 +23278,52 @@
             }
         }
         window.addEventListener('cofre:recarregar-documentos', () => { if (fichaContratoAtualId) montarDocumentosContrato(fichaContratoAtualId); });
+        // v1.113.0 — ⋮ dos cards da ficha do contrato (rodapés saíram; toda
+        // ação vive no ⋮ ou no toque). Sheets de dados, não HTML.
+        function abrirAcoesCobrancasContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            abrirSheetAcoes({ titulo: 'Cobranças', sub: con.locatario || '', acoes: [
+                { icone: 'wallet', titulo: 'Ver no Financeiro', sub: 'Todas as competências deste imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
+            ] });
+        }
+        function abrirAcoesPartesContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
+            const temFiador = (window.__fiadoresFichaAtual || []).length > 0;
+            abrirSheetAcoes({ titulo: 'Partes', sub: con.locatario || '', acoes: [
+                { icone: 'pencil', titulo: 'Editar locatário', sub: 'Dados no formulário do contrato', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+                { icone: 'user-plus', titulo: temFiador ? 'Editar fiadores' : 'Adicionar fiador', sub: 'Garantias exigidas pela minuta', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
+            ] });
+        }
+        function abrirAcoesLocatarioContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: con.locatario || 'Locatário', sub: 'Locatário', acoes: [
+                { icone: 'pencil', titulo: 'Editar locatário', sub: 'Nome, CPF/CNPJ, contato, endereço', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+            ] });
+        }
+        function abrirAcoesAnexosContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: 'Anexos', sub: con.locatario || '', acoes: [
+                { icone: 'sparkles', titulo: 'Adicionar documento com IA', sub: 'Minuta, aditivo, recibo — com leitura por IA', tipo: 'ia', aoTocar: () => rzCarregarDocumentoContrato(con.id) },
+            ] });
+        }
+        // v1.113.0 — chips de categoria dos anexos do contrato (mesmo padrão do ativo)
+        let fcFiltroAnexo = 'todos';
+        function fcMontarChipsAnexos() {
+            const wrap = document.getElementById('fc-anexos-chips'); if (!wrap) return;
+            const cats = new Map();
+            __docsContratoAtual.forEach(v => { const k = v.cofre_documentos?.categoria_id || 'sem'; cats.set(k, (cats.get(k) || 0) + 1); });
+            const nome = id => id === 'sem' ? 'Sem categoria' : ((window.__cofreCategorias || []).find(c => c.id === id)?.nome || 'Documento');
+            const chips = [{ chave: 'todos', rotulo: 'Todos', n: __docsContratoAtual.length }, ...[...cats.entries()].map(([id, n]) => ({ chave: id, rotulo: nome(id), n }))];
+            if (!chips.some(c => c.chave === fcFiltroAnexo)) fcFiltroAnexo = 'todos';
+            wrap.innerHTML = chips.map(c => `<button type="button" onclick="fcFiltrarAnexos('${c.chave}')" class="rz-chip ${fcFiltroAnexo === c.chave ? 'rz-on' : ''}">${escapeHtmlSaidas(c.rotulo)} <span class="rz-n">${c.n}</span></button>`).join('');
+        }
+        function fcFiltrarAnexos(chave) {
+            fcFiltroAnexo = chave;
+            document.querySelectorAll('#fc-anexos-chips .rz-chip').forEach(b => b.classList.toggle('rz-on', b.textContent.trim().startsWith(chave === 'todos' ? 'Todos' : '')));
+            fcMontarChipsAnexos();
+            document.querySelectorAll('#fc-documentos .rz-row').forEach((r, i) => { const v = __docsContratoAtual[i]; r.classList.toggle('hidden', !(chave === 'todos' || (v?.cofre_documentos?.categoria_id || 'sem') === chave)); });
+        }
         // v1.110.0 — chips da ficha do contrato (4 painéis no mesmo innerHTML)
         function fcTrocarChip(nome) {
             document.querySelectorAll('#fc-chips .rz-chip').forEach(b => b.classList.toggle('rz-on', b.dataset.fcChip === nome));
@@ -23330,6 +23394,7 @@
                 // v1.110.0 (fatia 4) — .rz-row + vazio único; contador do chip Arquivos
                 const nArq = document.getElementById('fc-chip-n-arquivos');
                 if (nArq) nArq.textContent = String(__docsContratoAtual.length);
+                fcMontarChipsAnexos();
                 el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v, i) => `
                     <div class="rz-row">
                         <div class="rz-ic"><svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}"></svg></div>

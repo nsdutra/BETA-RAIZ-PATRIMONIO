@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.0 · 31/08/2026
+// Versão: 1.7.0 · 03/09/2026
+//
+// v1.7.0 — categorizarDocumentoAtual(): sheet de categorias na ficha do
+// documento (pedido do Nicola: documento "Sem categoria" precisava de saída).
 //
 // v1.6.0 (31/08/2026, pedido explícito, "apague a aba antiga do cofre
 // de visão geral pra irmos reduzindo e limpando o html") — montarHome()
@@ -684,6 +687,27 @@ export async function baixarDocumentoAtual() {
 // status='arquivado' continua um valor válido no CHECK constraint de
 // cofre_documentos (documentos já arquivados antes continuam aparecendo
 // normalmente) — só não tem mais como CRIAR um novo a partir da ficha.
+
+// v1.x (03/09, Nicola: "deve ter opção de categorizar um documento sem
+// categoria") — sheet com as categorias do cliente; grava categoria_id e
+// recarrega a ficha + listas (cofre:recarregar-documentos).
+export async function categorizarDocumentoAtual() {
+    if (!docAtualId) return;
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
+    const d = estado.documentos.find(x => x.id === docAtualId);
+    window.abrirSheetAcoes({ titulo: 'Categorizar', sub: d?.nome_exibicao || '', acoes: (estado.categorias || []).map(c => ({
+        icone: c.id === d?.categoria_id ? 'check' : 'tag', titulo: c.nome, sub: c.id === d?.categoria_id ? 'Categoria atual' : '',
+        aoTocar: async () => {
+            try {
+                await api.atualizarDocumento(docAtualId, { categoria_id: c.id });
+                if (d) d.categoria_id = c.id;
+                mostrarToast(`Categoria: ${c.nome}`);
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+                await abrirFichaDocumento(docAtualId);
+            } catch (e) { mostrarToast('Erro: ' + e.message, 'erro'); }
+        }
+    })) });
+}
 
 export async function excluirDocumentoAtual() {
     if (!confirm('Excluir este documento? Esta ação fica registrada e não pode ser desfeita pela interface.')) return;

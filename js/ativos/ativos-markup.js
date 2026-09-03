@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.18.0 · 03/09/2026
+// Versão: 1.19.0 · 03/09/2026
+//
+// v1.19.0 — Nicola (19h): rodapés de card SAEM; toda ação vive no ⋮ do
+// cabeçalho ou no toque da linha (REGRAS §6 v3.11). ⋮ novo em
+// Propriedade, Movimentações, Anexos/Fotos, Documentos e Contatos do item.
+// Ficha do documento ganha "Categorizar".
 //
 // v1.18.0 — "Mais ações" vira ⋮ (.rz-more) no CABEÇALHO do card em todos
 // os cards (REGRAS §6 v3.10); rodapé fica só com a ação nomeada — cards
@@ -612,21 +617,15 @@ export const ATIVOS_MARKUP = `<style>
                 </div>
             </div>
 
-            <!-- rodapé único (REGRAS §6): 1 ação nomeada + Mais ações → sheet.
-                 O data-action do botão "Editar dados" é decidido em
-                 montarDadosAtivo(): imóvel vinculado → abrir-gestao-imovel
-                 (formulário real do imóvel); demais tipos → editor inline. -->
-            <div class="rz-card-f">
-                <button id="fa-btn-editar-dados" data-action="alternar-editar-ativo" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="pencil"></i> Editar dados</button>
-            </div>
+            <!-- v1.19.0 (Nicola 03/09): sem rodapé — "Editar dados" vive no ⋮
+                 (abrirAcoesAtivo decide imóvel × campos do ativo). Botão
+                 escondido mantido só como alvo do data-action antigo. -->
+            <button id="fa-btn-editar-dados" data-action="alternar-editar-ativo" class="hidden"></button>
         </div>
 
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Propriedade</h3><span class="rz-sub">Divisão societária</span></div>
+            <div class="rz-card-h"><h3>Propriedade</h3><span class="rz-sub">Divisão societária</span><button data-action="fa-acoes-propriedade" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-propriedade-lista"></div>
-            <div class="rz-card-f">
-                <button data-action="fa-editar-propriedade" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="pencil"></i> Editar divisão</button>
-            </div>
         </div>
     </div>
 
@@ -643,9 +642,6 @@ export const ATIVOS_MARKUP = `<style>
         <div class="rz-card">
             <div class="rz-card-h"><h3>Itens de controle</h3><span id="fa-controles-status"></span><button data-action="abrir-acoes-controles" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-tab-controles"></div>
-            <div class="rz-card-f">
-                <button data-action="abrir-form-controle" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Novo item</button>
-            </div>
         </div>
     </div>
 
@@ -653,12 +649,8 @@ export const ATIVOS_MARKUP = `<style>
     <div id="fa-painel-financeiro" class="fa-painel hidden">
         <div id="fa-financeiro-resumo" class="rz-kpis"></div>
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Movimentações</h3><span class="rz-sub">Últimos 6 meses</span></div>
+            <div class="rz-card-h"><h3>Movimentações</h3><span class="rz-sub">Últimos 6 meses</span><button data-action="fa-acoes-financeiro" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-financeiro-lista"></div>
-            <div class="rz-card-f">
-                <button data-action="fa-novo-lancamento" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Novo lançamento</button>
-                <button data-action="fa-ver-saidas-ativo" class="rz-btn rz-btn-3 rz-sm">Ver no Financeiro</button>
-            </div>
         </div>
     </div>
 
@@ -672,7 +664,7 @@ export const ATIVOS_MARKUP = `<style>
         <div class="rz-chips" id="fa-anexos-chips"></div>
 
         <div class="rz-card" id="fa-arq-documentos">
-            <div class="rz-card-h"><h3 id="fa-anexos-titulo">Anexos</h3><span class="rz-sub" id="fa-anexos-sub"></span></div>
+            <div class="rz-card-h"><h3 id="fa-anexos-titulo">Anexos</h3><span class="rz-sub" id="fa-anexos-sub"></span><button data-action="fa-acoes-anexos" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-tab-documentos"></div>
             <!-- vazio (REGRAS §9): IA é a ação primária, upload simples é
                  terciário. Alternado por montarDocumentosAtivo(). -->
@@ -680,25 +672,19 @@ export const ATIVOS_MARKUP = `<style>
                 <div class="rz-ic"><i data-lucide="file-plus-2"></i></div>
                 <p id="fa-documentos-vazio-texto">Nenhum anexo neste ativo. A IA lê matrícula, IPTU e apólices e preenche os controles sozinha.</p>
             </div>
-            <div class="rz-card-f" id="fa-documentos-rodape">
-                <button data-action="abrir-upload-no-ativo-ia" class="rz-btn rz-btn-ia rz-sm"><i data-lucide="sparkles"></i> Adicionar com IA</button>
-                <button data-action="abrir-upload-no-ativo-simples" class="rz-btn rz-btn-3 rz-sm">Upload simples</button>
-            </div>
+            <div id="fa-documentos-rodape" class="hidden"></div>
         </div>
 
         <div class="rz-card hidden" id="fa-arq-fotos">
-            <div class="rz-card-h"><h3>Fotos</h3><span class="rz-sub" id="fa-fotos-sub"></span></div>
+            <div class="rz-card-h"><h3>Fotos</h3><span class="rz-sub" id="fa-fotos-sub"></span><button data-action="fa-acoes-anexos" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
             <div id="fa-box-fotos" class="hidden">
                 <div id="fa-fotos-grid" class="flex flex-wrap gap-2"></div>
             </div>
             <div id="fa-fotos-vazio" class="rz-empty hidden">
                 <div class="rz-ic"><i data-lucide="image"></i></div>
                 <p>Nenhuma foto ainda. Fotos alimentam a vitrine e a vistoria.</p>
-                <div class="rz-acts"><label for="fa-foto-input" class="rz-btn rz-btn-1 rz-sm" style="cursor:pointer"><i data-lucide="camera"></i> Adicionar fotos</label></div>
             </div>
-            <div class="rz-card-f hidden" id="fa-fotos-rodape">
-                <label for="fa-foto-input" class="rz-btn rz-btn-2 rz-sm" style="cursor:pointer"><i data-lucide="image-plus"></i> Adicionar fotos</label>
-            </div>
+            <div id="fa-fotos-rodape" class="hidden"></div>
         </div>
     </div>
 
@@ -947,9 +933,6 @@ export const ATIVOS_MARKUP = `<style>
     <div class="rz-card">
         <div class="rz-card-h"><h3>Dados do item</h3><button data-action="abrir-acoes-dados-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
         <div id="fic-dados-leitura" class="rz-kv"></div>
-        <div class="rz-card-f">
-            <button data-action="abrir-editar-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="pencil"></i> Editar item</button>
-        </div>
     </div>
 
     <div class="rz-card">
@@ -960,25 +943,16 @@ export const ATIVOS_MARKUP = `<style>
     <div class="rz-card">
         <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Quem responde por este item</span><button data-action="abrir-acoes-partes-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
         <div id="fic-partes"></div>
-        <div class="rz-card-f">
-            <button data-action="fi-gerar-despesa-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="receipt"></i> Gerar despesa</button>
-        </div>
     </div>
 
     <div class="rz-card">
-        <div class="rz-card-h"><h3>Documentos</h3></div>
+        <div class="rz-card-h"><h3>Documentos</h3><button data-action="abrir-acoes-docs-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
         <div id="fic-documentos"></div>
-        <div class="rz-card-f">
-            <button data-action="carregar-novo-documento-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="upload"></i> Carregar documento</button>
-        </div>
     </div>
 
     <div class="rz-card">
-        <div class="rz-card-h"><h3>Contatos</h3><span class="rz-sub">Quem você chama no WhatsApp</span></div>
+        <div class="rz-card-h"><h3>Contatos</h3><span class="rz-sub">Quem você chama no WhatsApp</span><button data-action="abrir-acoes-contatos-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
         <div id="fic-contatos"></div>
-        <div class="rz-card-f">
-            <button data-action="abrir-novo-contato-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="user-plus"></i> Adicionar contato</button>
-        </div>
     </div>
 </section>
 
@@ -1148,6 +1122,7 @@ export const ATIVOS_MARKUP = `<style>
         </div>
         <div class="grid grid-cols-2 gap-2">
             <button id="fd-btn-vincular" data-action="abrir-vincular-agora" class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="link" style="width:14px;height:14px"></i> Vincular</button>
+            <button data-action="categorizar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center justify-center gap-1"><i data-lucide="tag" style="width:14px;height:14px"></i> Categorizar</button>
             <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
             <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center justify-center gap-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
         </div>
