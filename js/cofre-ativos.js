@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.17.0 · 03/09/2026
+// Versão: 1.17.1 · 03/09/2026
+//
+// v1.17.1 — BUG (print 03/09): 6 mensalidades inadimplentes apareciam
+// como "A receber". Raiz no banco (fn_fluxo_financeiro_ativo devolvia
+// vencimento NULL e status 'previsto' pra tudo que não era pago —
+// migration fix_v1). Aqui, montarFinanceiroAtivo passa a honrar os
+// status 'atrasado' e 'isento' vindos da RPC além do cálculo por
+// vencimento.
 //
 // v1.17.0 — FATIA 3 da gramática única (REGRAS_EXPERIENCIA_RAIZ_v3_2;
 // catálogo rz-* + helpers do index.html v1.106.0). Ficha do ativo:
@@ -932,10 +939,15 @@ async function montarFinanceiroAtivo(a) {
         const hoje = new Date().toISOString().slice(0, 10);
         painelLista.innerHTML = fluxo.itens.map(it => {
             const ehEntrada = it.direcao === 'entrada';
+            // v1.17.1 — a RPC (fix_v1, 03/09) agora devolve 'atrasado' e
+            // 'isento' pra mensalidade, e vencimento de verdade; o cálculo
+            // por data fica como segunda rede (lançamentos só têm
+            // previsto/realizado).
             const pago = it.status === 'realizado';
-            const atrasado = !pago && it.vencimento && it.vencimento < hoje;
-            const status = pago ? r('ok', 'Pago') : (atrasado ? r('bad', 'Em atraso') : r('run', ehEntrada ? 'A receber' : 'A pagar'));
-            const icone = pago ? (ehEntrada ? 'arrow-down-left' : 'arrow-up-right') : (atrasado ? 'alarm-clock' : 'clock');
+            const isento = it.status === 'isento';
+            const atrasado = !pago && !isento && (it.status === 'atrasado' || (it.vencimento && it.vencimento < hoje));
+            const status = pago ? r('ok', 'Pago') : isento ? r('neu', 'Isento') : (atrasado ? r('bad', 'Em atraso') : r('run', ehEntrada ? 'A receber' : 'A pagar'));
+            const icone = pago ? (ehEntrada ? 'arrow-down-left' : 'arrow-up-right') : isento ? 'minus-circle' : (atrasado ? 'alarm-clock' : 'clock');
             return `
                 <div class="rz-row">
                     <div class="rz-ic${atrasado ? ' rz-bad' : ''}"><i data-lucide="${icone}"></i></div>

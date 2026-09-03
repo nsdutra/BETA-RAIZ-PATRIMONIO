@@ -6,9 +6,30 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.106.0
-   LINHAS: 30807
+   VERSÃO: Beta v1.106.1
+   LINHAS: 30836
    DATA: 03/09/2026
+   NOVIDADES (Beta v1.106.1) — correções da fatia 3 a partir dos prints
+   reais do Nicola (03/09, 06:49–06:52):
+     1) BUG (Arquivos › Documentos e Fotos): estado vazio E rodapé com os
+        mesmos botões apareciam juntos. Causa: .rz-card-f{display:flex} tem
+        a mesma especificidade do .hidden do Tailwind e vem depois no CSS
+        — o toggle de classe funcionava, o CSS é que não escondia. Regra
+        nova [class*="rz-"].hidden{display:none} (0,2,0) fecha isso pra
+        todo componente rz-* de uma vez, sem !important.
+     2) BUG (Financeiro do ativo): 6 mensalidades inadimplentes apareciam
+        como "A receber". Causa raiz no banco: fn_fluxo_financeiro_ativo
+        devolvia vencimento NULL e achatava status 'atrasado' em
+        'previsto'. Migration fix_v1_fn_fluxo_financeiro_ativo_vencimento_
+        status (CREATE OR REPLACE, assinatura igual, 1 overload conferido):
+        vencimento = competência + contratos.vencimento_dia (clampado no
+        fim do mês), data_pagamento só quando pago, status realizado/
+        atrasado/isento/previsto. Front (cofre-ativos.js v1.17.1) passa a
+        honrar 'atrasado' e 'isento' além do cálculo por vencimento.
+     3) O restante dos prints não é bug: ficha do item de controle,
+        "Editar Imóvel 📝" e "Detalhes do Imóvel" ainda estão no padrão
+        antigo — são a fatia 3b (ver REGRAS v3.4 §19).
+
    NOVIDADES (Beta v1.106.0) — MERGE de duas linhas que divergiram da
    v1.104.0 em sessões diferentes, ambas rotuladas "v1.105.0":
      (a) Partes (esta base): chips no contrato, alocação de despesa por
@@ -6807,6 +6828,14 @@
         .rz-sug button{flex:none;border:1px solid var(--brass-light);background:var(--brass-bg);color:var(--brass-deep);font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:var(--r-pill)}
         .rz-bubble{background:var(--paper);border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.45;margin-bottom:8px}
         .rz-bubble.rz-me{background:var(--sprout-light);margin-left:40px}
+        /* v1.106.1 — BUG (print 03/09: vazio + rodapé de Documentos/Fotos
+           visíveis ao mesmo tempo): .rz-card-f/.rz-kpis/.rz-row etc. definem
+           display e têm a MESMA especificidade do .hidden do Tailwind — quem
+           vem depois no CSS vence, e o catálogo vem depois. Mesmo anti-padrão
+           do "display:flex inline + .hidden" (PENDÊNCIAS), agora em classe.
+           Seletor atributo+classe (0,2,0) garante que .hidden sempre esconde
+           componente rz-*, sem !important. */
+        [class*="rz-"].hidden{display:none}
         @media (prefers-reduced-motion:reduce){.rz-veil,.rz-sheet,.rz-btn,.rz-ico-btn{transition:none}}
 
     </style>
@@ -10476,7 +10505,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.106.0";
+        const APP_VERSAO = "Beta v1.106.1";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
