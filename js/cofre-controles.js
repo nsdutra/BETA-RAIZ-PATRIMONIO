@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.13.0 · 03/09/2026
+// Versão: 1.14.0 · 03/09/2026
+//
+// v1.14.0 — voltar do item cai no chip Controles do ativo; linhas que abrem
+// SHEET (ocorrência, parte) usam ⋮ / lápis em vez de chevron (chevron = navega).
 //
 // v1.13.0 (parte b — fatia 3b-i) — FICHA DO ITEM DE CONTROLE na gramática
 // única: cabeçalho de entidade com status da próxima ocorrência; Dados em
@@ -375,7 +378,7 @@ async function montarPartesItemControle(item) {
         <div class="rz-row rz-link" data-action="abrir-editar-partes-item">
             <div class="rz-ic"><i data-lucide="briefcase"></i></div>
             <div class="rz-tx"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}</span></div>
-            <i data-lucide="chevron-right" class="rz-chev"></i>
+            <i data-lucide="pencil" class="rz-chev"></i>
         </div>`).join('');
     refrescarIcones();
 }
@@ -558,7 +561,9 @@ export function voltarFichaItemControle() {
     // partir de um alerta na Home ou na tela cheia de Alertas.
     const destino = (origem === 'home' || origem === 'alertas') ? origem : 'ficha-ativo';
     mudarTela(destino);
-    if (destino === 'ficha-ativo' && ativo) montarControlesAtivo(ativo);
+    // v1.14.0 — Nicola 03/09: "ao voltar, posiciona no chip inicial do
+    // ativo, e não no chip de item de controle". Reabre no chip Controles.
+    if (destino === 'ficha-ativo' && ativo) { montarControlesAtivo(ativo); if (typeof window.faTrocarAbaFicha === 'function') window.faTrocarAbaFicha('controles'); }
     // Garante dado fresco na tela de destino (ex.: item tratado/editado/
     // excluído durante a visita) — mesmo mecanismo que já mantém a
     // Visão Geral sincronizada em qualquer outro ponto do Cofre.
@@ -621,7 +626,7 @@ function renderizarFichaItemControle() {
                 <div class="rz-ic${cls}"><i data-lucide="${ic}"></i></div>
                 <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
                 <div class="rz-rt">${statusHtml(sem, rot)}</div>
-                <i data-lucide="chevron-right" class="rz-chev"></i>
+                <i data-lucide="ellipsis-vertical" class="rz-chev"></i>
             </div>`;
         }).join('');
     }

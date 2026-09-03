@@ -6,9 +6,44 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.110.0
-   LINHAS: 31047
+   VERSÃO: Beta v1.111.0
+   LINHAS: 31118
    DATA: 03/09/2026
+   NOVIDADES (Beta v1.111.0) — 10 achados do Nicola nos prints das 13h40
+   (fatia 4b + correções de fluxo):
+     1) "Carregar documento" no contrato abria o cofre.html (tela do módulo
+        Cofre, com troca de módulo). Agora usa o MESMO modal de upload do
+        ativo (rzCarregarDocumentoContrato → ponte rzAbrirUploadContextual,
+        cofre-app.js v1.22.0) e a lista recarrega no evento
+        cofre:recarregar-documentos. "Abrir no Cofre" saiu do Mais ações.
+        A tela do Cofre fica sem porta de entrada pelo contrato (a última
+        que restava fora do menu ⚙️ — remoção das demais na fatia 7).
+     2) Documentos do ativo não abriam ao tocar: linha ganhou
+        abrir-documento + chevron (cofre-ativos.js v1.19.0).
+     3) REGRA NOVA (REGRAS v3.9 §9): chevron › = "entra numa tela";
+        linha que abre SHEET usa ⋮ (ocorrências) ou lápis (partes do item);
+        linha sem toque não tem ícone. Aplicado em contratos do ativo,
+        lista de Contratos, documentos, ocorrências e partes.
+     4) Fotos do cadastro antigo (imoveis.fotos, URLs do Drive) não
+        apareciam no chip Arquivos › Fotos: fallback em modo leitura
+        quando cofre_ativo_fotos está vazia (Alameda Oscar Niemeyer, 288).
+     5) Chip Contratos do ativo ganhou rodapé "Abrir contrato" /
+        "Iniciar contratação" (criarContratoParaImovel, com o imóvel já
+        selecionado) + Mais ações em sheet.
+     6) "Partes" — o print acabou sem a frase; tratado como o item 3 (linha
+        de parte com lápis = abre editor).
+     7) Formulário de contrato (form-contrato-wrapper) no padrão do sheet:
+        sobe de baixo, painel branco, título Bricolage sem emoji, X .rz-x,
+        3 rótulos de seção em caixa alta → .rz-group, rodapé Cancelar |
+        Salvar contrato. saveContrato/editarContrato intactos.
+     8) = item 1.
+     9) Voltar da ficha do contrato aberta pela ficha do ativo agora volta
+        pro ATIVO, no chip Contratos (window.fichaContratoOrigem, rótulo
+        do Voltar vira "‹ Ativo").
+    10) Voltar do item de controle reabre a ficha do ativo no chip
+        Controles (cofre-controles.js v1.14.0; abrirFichaAtivo ganhou
+        parâmetro chipInicial).
+
    NOVIDADES (Beta v1.110.0) — FATIA 4 da gramática única: CONTRATOS.
      LISTA (renderContratos): cards soltos → .rz-row agrupadas por
        empreendimento em .rz-card.rz-list; status "ponto + rótulo" via
@@ -8592,23 +8627,29 @@
                  no X — pedido explícito. abrirFormularioContrato()/
                  cancelarEdicaoContrato()/editarContrato() não mudaram (só
                  alternam a classe "hidden" deste wrapper, como sempre). -->
-            <div id="form-contrato-wrapper" class="hidden fixed inset-0 z-[65] bg-black/50 overflow-y-auto">
+            <!-- v1.111.0 (fatia 4b) — formulário de contrato no padrão do sheet
+                 (REGRAS §3), sem reescrever saveContrato/editarContrato: sobe
+                 de baixo, painel branco com cantos em cima, título Bricolage
+                 e X .rz-x dentro do painel (era título branco "suspenso" sobre
+                 o fundo escuro), rodapé Cancelar | Salvar contrato. -->
+            <div id="form-contrato-wrapper" class="hidden fixed inset-0 z-[65] overflow-y-auto" style="background:rgba(23,33,30,.5)">
 
-                <div class="min-h-full flex items-start sm:items-center justify-center p-4">
+                <div class="min-h-full flex items-end justify-center">
 
-                <div class="w-full max-w-lg sm:my-6">
+                <div class="w-full max-w-lg" style="background:#fff;border-radius:20px 20px 0 0;padding:16px;max-height:88vh;overflow-y:auto">
 
-                <div class="flex justify-between items-center mb-3">
+                <div class="rz-grab"></div>
+                <div class="flex justify-between items-center mb-3 mt-2">
 
-                    <h2 class="text-lg font-bold text-white" id="form-contrato-titulo">Novo Contrato de Locação</h2>
+                    <h2 style="font-family:var(--font-title);font-size:17px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin:0" id="form-contrato-titulo">Novo contrato de locação</h2>
 
-                    <button type="button" onclick="cancelarEdicaoContrato()" title="Fechar" class="w-9 h-9 flex-none rounded-full bg-white/20 text-white flex items-center justify-center active:scale-90 transition"><svg data-lucide="x" style="width:18px;height:18px"></svg></button>
+                    <button type="button" onclick="cancelarEdicaoContrato()" title="Fechar" class="rz-x" aria-label="Fechar"><svg data-lucide="x"></svg></button>
 
                 </div>
 
                 
 
-            <form id="form-contrato" onsubmit="saveContrato(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
+            <form id="form-contrato" onsubmit="saveContrato(event)" class="space-y-3">
 
                 <input type="hidden" id="con-id">
 
@@ -8831,7 +8872,7 @@
                      "Salvar Contrato" no fim do formulário. -->
                 <div id="secao-avancada-contrato" class="hidden bg-slate-50 p-3 rounded-xl border-2 border-slate-300 space-y-3">
 
-                    <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Registrar Reajuste / Alteração</p>
+                    <p class="rz-group" style="margin-top:0">Registrar reajuste ou alteração</p>
 
                     <div class="grid grid-cols-2 gap-2">
 
@@ -8863,7 +8904,7 @@
 
                 </div>
 
-                <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wide -mb-1">Locatário paga:</p>
+                <p class="rz-group" style="margin-top:0">Locatário paga</p>
 
                 <div class="grid grid-cols-2 gap-2">
 
@@ -8962,7 +9003,7 @@
 
                 <div id="con-divisao-imovel-info" class="hidden p-2.5 bg-slate-50 border-2 border-slate-300 rounded-xl text-[11px] space-y-1.5">
                     <div class="flex items-center justify-between">
-                        <p class="font-bold text-slate-500 uppercase text-[10px] tracking-wide">Rateio deste contrato</p>
+                        <p class="rz-group" style="margin-top:0">Rateio deste contrato</p>
                         <button type="button" onclick="adicionarSocioContrato()" title="Adicionar sócio" class="w-6 h-6 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
                     </div>
                     <p class="text-[10px] text-slate-400">Vem preenchido com a divisão cadastrada no imóvel — pode ajustar só para este contrato, se for o caso.</p>
@@ -9070,7 +9111,10 @@
 
                 </div>
 
-                <button type="submit" id="btn-salvar-con" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Contrato</button>
+                <div class="rz-sh-f" style="padding-left:0;padding-right:0;margin-top:8px">
+                    <button type="button" onclick="cancelarEdicaoContrato()" class="rz-btn rz-btn-2">Cancelar</button>
+                    <button type="submit" id="btn-salvar-con" class="rz-btn rz-btn-1">Salvar contrato</button>
+                </div>
 
                 </form>
 
@@ -9099,7 +9143,7 @@
 
         <section id="tab-contrato-ficha" class="tab-content">
 
-            <button onclick="voltarDaFichaContrato()" class="rz-back"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Contratos</button>
+            <button onclick="voltarDaFichaContrato()" class="rz-back" id="fc-voltar"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Contratos</button>
 
             <div id="ficha-contrato-conteudo" class="mt-3 space-y-3"></div>
 
@@ -10622,7 +10666,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.110.0";
+        const APP_VERSAO = "Beta v1.111.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -23153,14 +23197,31 @@
                         <div class="rz-card-h"><h3>Documentos</h3></div>
                         ${abreArquivos
                             ? `<div id="fc-documentos"><p class="rz-desc">Carregando...</p></div>
-                               <div class="rz-card-f"><button type="button" onclick="abrirCofreDocumentos('contrato', '${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="upload"></svg> Carregar documento</button></div>`
+                               <div class="rz-card-f"><button type="button" onclick="rzCarregarDocumentoContrato('${con.id}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="upload"></svg> Carregar documento</button></div>`
                             : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Contrato encerrado: os documentos ficam guardados no Cofre.</p></div>`}
                     </div>
                 </div>`;
+            const btnVoltar = document.getElementById('fc-voltar');
+            if (btnVoltar) btnVoltar.innerHTML = `<svg data-lucide="chevron-left"></svg> ${window.fichaContratoOrigem?.tipo === 'ativo' ? 'Ativo' : 'Contratos'}`;
             switchTab('tab-contrato-ficha');
             if (typeof lucide !== 'undefined') lucide.createIcons();
             if (abreArquivos) montarDocumentosContrato(con.id);
         }
+        // v1.111.0 — "Carregar documento" do contrato no MESMO modal do ativo
+        // (cofre-documentos.abrirUploadContextual via ponte
+        // window.rzAbrirUploadContextual, cofre-app.js v1.22.0). Antes ia pro
+        // cofre.html (tela do módulo Cofre, que o Nicola pediu pra sumir).
+        // Depois de salvar, o Cofre dispara 'cofre:recarregar-documentos' —
+        // a lista do contrato é recarregada abaixo.
+        function rzCarregarDocumentoContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (typeof window.rzAbrirUploadContextual === 'function') {
+                window.rzAbrirUploadContextual('contrato', contratoId, con?.locatario || 'Contrato');
+            } else {
+                abrirCofreDocumentos('contrato', contratoId);
+            }
+        }
+        window.addEventListener('cofre:recarregar-documentos', () => { if (fichaContratoAtualId) montarDocumentosContrato(fichaContratoAtualId); });
         // v1.110.0 — chips da ficha do contrato (4 painéis no mesmo innerHTML)
         function fcTrocarChip(nome) {
             document.querySelectorAll('#fc-chips .rz-chip').forEach(b => b.classList.toggle('rz-on', b.dataset.fcChip === nome));
@@ -23178,7 +23239,6 @@
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
             const acoes = [
                 { icone: 'history', titulo: 'Histórico', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
-                { icone: 'folder-open', titulo: 'Abrir no Cofre', sub: 'Todos os documentos deste contrato', aoTocar: () => abrirCofreDocumentos('contrato', con.id) },
             ];
             if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
             if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });
@@ -23235,7 +23295,7 @@
                 el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v, i) => `
                     <div class="rz-row">
                         <div class="rz-ic"><svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}"></svg></div>
-                        <div class="rz-tx rz-link" onclick="abrirDocumentoContratoAtual(${i})"><b>${v.cofre_documentos.nome_exibicao || 'Documento'}</b><span>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : ''}</span></div>
+                        <div class="rz-tx rz-link" onclick="abrirDocumentoContratoAtual(${i})"><b>${v.cofre_documentos.nome_exibicao || 'Documento'}</b><span>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : ''} · toque pra abrir</span></div>
                         <button type="button" onclick="removerDocumentoContratoAtual(${i})" title="Remover deste contrato" class="rz-ico-btn" style="width:36px;height:36px"><svg data-lucide="x" style="width:16px;height:16px;color:var(--muted)"></svg></button>
                     </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-plus-2"></svg></div><p>Nenhum documento neste contrato. A minuta assinada guardada aqui fica a um toque.</p></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -23336,6 +23396,16 @@
 
         function voltarDaFichaContrato() {
             fichaContratoAtualId = null;
+            // v1.111.0 — Nicola 03/09: "ao chegar num contrato a partir de um
+            // ativo, ao voltar aparece a lista de contratos". cofre-ativos.js
+            // deixa window.fichaContratoOrigem = {tipo:'ativo', id}; aqui o
+            // Voltar respeita a origem real (REGRAS §3: "‹ Pai real").
+            const origem = window.fichaContratoOrigem; window.fichaContratoOrigem = null;
+            if (origem && origem.tipo === 'ativo' && origem.id && typeof window.abrirFichaAtivoNoChip === 'function') {
+                switchTab('tab-ativos');
+                window.abrirFichaAtivoNoChip(origem.id, 'contratos');
+                return;
+            }
             switchTab('tab-contratos');
         }
 
@@ -24397,7 +24467,7 @@
 
             renderHistoricoContratoInline(con);
 
-            document.getElementById('form-contrato-titulo').innerText = "Renovar / Editar Contrato 📝";
+            document.getElementById('form-contrato-titulo').innerText = "Editar contrato";
 
             document.getElementById('form-contrato-wrapper').classList.remove('hidden');
 
@@ -24473,7 +24543,7 @@
             if (boxDivisaoReset) boxDivisaoReset.classList.add('hidden');
             divisaoContratoAtual = [];
 
-            document.getElementById('form-contrato-titulo').innerText = "Novo Contrato de Locação";
+            document.getElementById('form-contrato-titulo').innerText = "Novo contrato de locação";
 
             documentosCarregadosContrato = [];
 
@@ -24737,6 +24807,7 @@
                         <div class="rz-ic${classeIc}"><svg data-lucide="${icone}"></svg></div>
                         <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>${escapeHtmlSaidas(endereco)}${extras.length ? ' · ' + extras.join(' · ') : ''}</span></div>
                         <div class="rz-rt"><b>${formatarMoedaBR(con.valor)}</b>${statusContratoHtml(con)}</div>
+                        <svg data-lucide="chevron-right" class="rz-chev"></svg>
                     </div>`;
             });
             if (grupoAtual !== null) html += '</div>';

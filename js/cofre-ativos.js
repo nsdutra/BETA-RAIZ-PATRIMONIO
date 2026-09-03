@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.18.1 · 03/09/2026
+// Versão: 1.19.0 · 03/09/2026
+//
+// v1.19.0 — achados do Nicola (prints 13h40):
+//   - Documentos do ativo: toque abre o documento (abrir-documento) + chevron.
+//   - Fotos: fallback pras fotos do cadastro antigo (imoveis.fotos, URLs)
+//     quando cofre_ativo_fotos está vazia — Alameda Oscar Niemeyer, 288.
+//   - Chip Contratos: chevron nas linhas, rodapé "Abrir contrato" /
+//     "Iniciar contratação" + Mais ações (abrirAcoesContratosAtivo,
+//     abrirNovoContratoDoAtivo → abrirNovoContratoParaImovel do App).
+//   - abrirContratoNoApp deixa window.fichaContratoOrigem pra o Voltar do
+//     contrato cair na ficha do ativo.
+//   - abrirFichaAtivo(id, chipInicial) + window.faTrocarAbaFicha /
+//     abrirFichaAtivoNoChip: voltar do item de controle cai em Controles.
 //
 // v1.18.1 — fatia 3b-ii: ao abrir o formulário do imóvel pela ficha do
 // ativo, esconde o bloco #imo-blocos-ficha (síndico, manutencista, sócios,
@@ -736,7 +748,7 @@ export async function salvarAtivo() {
 // ============================================================================
 // FICHA DO ATIVO — abre SEMPRE em Resumo (Adendo §7.1)
 // ============================================================================
-export async function abrirFichaAtivo(id) {
+export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     const a = estado.ativos.find(x => x.id === id) || await api.buscarAtivoPorId(id);
     if (!a) { mostrarToast('Ativo não encontrado.', 'erro'); return; }
     ativoAtualId = id;
@@ -776,7 +788,7 @@ export async function abrirFichaAtivo(id) {
     // comportamento do protótipo: "Ficha abre sempre em Resumo" já era
     // regra deste projeto desde antes das abas existirem — só reaplicado
     // aqui em cima do mecanismo novo).
-    faTrocarAba('resumo');
+    faTrocarAba(chipInicial);
     faTrocarSegArquivos('documentos');
 
     mudarTela('ficha-ativo');
@@ -828,6 +840,8 @@ export function faAtualizarContador(chip, n, warn = false) {
 // v1.17.0 — status do ativo nas 5 semânticas (REGRAS §10), via
 // renderStatus() global; fallback simples se a ficha rodar fora do App.
 window.faAtualizarContadorFicha = faAtualizarContador;
+window.faTrocarAbaFicha = faTrocarAba;
+window.abrirFichaAtivoNoChip = (id, chip) => abrirFichaAtivo(id, chip);
 
 function statusAtivoHtml(a) {
     const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
@@ -898,7 +912,8 @@ async function montarContratosAtivo(a) {
             // v1.17.0 — único card vazio que RENDERIZA sem ação própria
             // (exceção documentada, REGRAS §6): a contratação nasce na aba
             // Contratos do App, não daqui.
-            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda. Inicie a contratação na aba Contratos.</p></div>`;
+            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda. Um contrato vigente é o que o transforma em receita.</p></div>
+                <div class="rz-card-f"><button type="button" data-action="fa-novo-contrato-imovel" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button></div>`;
             refrescarIcones();
             return;
         }
@@ -918,7 +933,15 @@ async function montarContratosAtivo(a) {
                     <b>R$ ${Number(c.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
                     ${statusDe[c.st] || r(c.st || 'neu')}
                 </div>
+                <i data-lucide="chevron-right" class="rz-chev"></i>
             </div>`).join('');
+        // v1.19.0 (Nicola 03/09: "no chip contrato não tem as opções de
+        // botão e mais ações") — rodapé único: abre o vigente + sheet.
+        const vigente = vigentes[0];
+        painel.innerHTML += `<div class="rz-card-f">
+            ${vigente ? `<button type="button" data-action="fa-abrir-contrato-app" data-contrato-id="${vigente.id}" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="arrow-right"></i> Abrir contrato</button>` : `<button type="button" data-action="fa-novo-contrato-imovel" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Iniciar contratação</button>`}
+            <button type="button" data-action="fa-acoes-contratos" class="rz-more">Mais ações <i data-lucide="chevron-down"></i></button>
+        </div>`;
         refrescarIcones();
     } catch (err) {
         painel.innerHTML = `<p class="rz-desc" style="color:var(--danger)">Não foi possível carregar os contratos agora.</p>`;
@@ -996,11 +1019,33 @@ async function montarFinanceiroAtivo(a) {
 export function abrirContratoNoApp(contratoId) {
     if (!contratoId) return;
     if (typeof window.switchTab === 'function' && typeof window.abrirDetalhesContrato === 'function') {
+        // v1.19.0 — o App usa isto pra "Voltar" cair na ficha do ativo, não
+        // na lista de contratos (Nicola 03/09).
+        window.fichaContratoOrigem = { tipo: 'ativo', id: estado.ativoEmFoco?.id || null };
         window.switchTab('tab-contratos');
         window.abrirDetalhesContrato(contratoId);
     } else {
         mostrarToast('Contrato só abre dentro do app principal.', 'erro');
     }
+}
+
+// v1.19.0 — contratação e sheet de ações do chip Contratos (ponte pro App:
+// abrirNovoContratoParaImovel já pré-seleciona o imóvel e abre o formulário).
+export function abrirNovoContratoDoAtivo() {
+    const a = estado.ativoEmFoco;
+    if (a?.entidade_origem_tipo !== 'imovel') { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    if (typeof window.switchTab === 'function' && typeof window.criarContratoParaImovel === 'function') {
+        window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
+        window.switchTab('tab-contratos');
+        window.criarContratoParaImovel(a.entidade_origem_id);
+    } else mostrarToast('Contratação só abre dentro do app principal.', 'erro');
+}
+export function abrirAcoesContratosAtivo() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    sheetOuAviso({ titulo: 'Contratos', sub: a.nome_exibicao, acoes: [
+        { icone: 'plus', titulo: 'Novo contrato', sub: 'Já com este imóvel selecionado', aoTocar: () => abrirNovoContratoDoAtivo() },
+        { icone: 'list', titulo: 'Ver todos na aba Contratos', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
+    ] });
 }
 
 export function abrirNovoLancamentoDoAtivo() {
@@ -1473,10 +1518,13 @@ function montarDocumentosAtivo(a) {
     // (#fa-documentos-vazio, IA primária) e rodapé com as 2 ações só
     // quando há lista. Contador do chip Arquivos = documentos + fotos
     // (atualizarContadorArquivos).
+    // v1.19.0 — BUG (Nicola 03/09): linha sem toque. Agora abre o documento
+    // (abrir-documento → abrirFichaDocumento), com chevron (= navega, §9).
     document.getElementById('fa-tab-documentos').innerHTML = docs.map(d => `
-        <div class="rz-row">
+        <div class="rz-row rz-link" data-action="abrir-documento" data-id="${d.id}">
             <div class="rz-ic${d.origem === 'bot_whatsapp' ? ' rz-ia' : ''}"><i data-lucide="${d.origem === 'bot_whatsapp' ? 'bot' : 'file-text'}"></i></div>
             <div class="rz-tx"><b>${escapeHtml(d.nome_exibicao)}</b><span>${escapeHtml((estado.categorias || []).find(c => c.id === d.categoria_id)?.nome || 'Documento')}${d.origem === 'bot_whatsapp' ? ' · pelo Robô' : ''}${d.criado_em ? ' · ' + formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
+            <i data-lucide="chevron-right" class="rz-chev"></i>
         </div>`).join('');
     document.getElementById('fa-documentos-vazio')?.classList.toggle('hidden', docs.length > 0);
     document.getElementById('fa-documentos-rodape')?.classList.toggle('hidden', docs.length === 0);
@@ -1545,6 +1593,23 @@ async function montarFotosAtivo(a) {
     if (sub) sub.textContent = fotos.length ? `${fotos.length} foto${fotos.length === 1 ? '' : 's'}` : '';
     atualizarContadorArquivos();
     if (!fotos.length) {
+        // v1.19.0 — BUG (Nicola 03/09: "imóvel com fotos anexadas não
+        // apresenta as fotos"): as fotos do cadastro antigo vivem em
+        // imoveis.fotos (URLs), não em cofre_ativo_fotos. Enquanto não há
+        // migração, mostra-as aqui em modo leitura (sem remover/vitrine).
+        const legado = fotosLegadasDoImovel(a);
+        if (legado.length) {
+            if (vazio) vazio.classList.add('hidden');
+            rodape?.classList.remove('hidden');
+            box.classList.remove('hidden');
+            if (sub) sub.textContent = `${legado.length} foto${legado.length === 1 ? '' : 's'} do cadastro`;
+            fotosAtivoCache = []; fotosAtivoUrlsCache = legado;
+            document.getElementById('fa-fotos-grid').innerHTML = legado.map((url, i) => `
+                <div class="relative flex-none"><img src="${url}" data-action="abrir-lightbox-foto-ativo" data-indice="${i}" class="w-16 h-16 object-cover rounded-lg border" style="border-color:var(--line)" loading="lazy"></div>`).join('')
+                + `<p class="rz-desc" style="flex-basis:100%;margin-top:6px">Fotos do cadastro do imóvel. Novas fotos adicionadas aqui passam a valer pra vitrine.</p>`;
+            refrescarIcones();
+            return;
+        }
         box.classList.add('hidden');
         if (vazio) vazio.classList.remove('hidden');
         rodape?.classList.add('hidden');
@@ -1557,6 +1622,12 @@ async function montarFotosAtivo(a) {
     box.classList.remove('hidden');
     fotosAtivoUrlsCache = await Promise.all(fotos.map(f => api.gerarSignedUrl(f.bucket, f.storage_path, 600).catch(() => null)));
     renderizarGridFotos();
+}
+
+function fotosLegadasDoImovel(a) {
+    if (a?.entidade_origem_tipo !== 'imovel' || !Array.isArray(window.imoveis)) return [];
+    const imo = window.imoveis.find(i => i.id === a.entidade_origem_id);
+    return (imo?.fotos || []).filter(u => typeof u === 'string' && /^https?:/.test(u));
 }
 
 function renderizarGridFotos() {

@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.21.0 · 03/09/2026
+// Versão: 1.22.0 · 03/09/2026
+//
+// v1.22.0 — cases fa-novo-contrato-imovel / fa-acoes-contratos; ponte
+// window.rzAbrirUploadContextual pro App (upload do contrato no mesmo
+// modal do ativo).
 //
 // v1.21.0 — 'voltar-app' vai pra tab-ativos e 'cadastrar-imovel-app' abre
 // o modal sem trocar de aba (telas antigas de Imóveis desligadas no
@@ -435,6 +439,8 @@ document.addEventListener('click', async (ev) => {
         // toque na linha de contrato (abre na aba Contratos do App)
         case 'fa-seg-arquivos': ativos.faTrocarSegArquivos(alvo.dataset.faSeg); break;
         case 'fa-abrir-contrato-app': ativos.abrirContratoNoApp(alvo.dataset.contratoId); break;
+        case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
+        case 'fa-acoes-contratos': ativos.abrirAcoesContratosAtivo(); break;
         // v1.15.0 (NOVO) — chip Financeiro da ficha do ativo: "Novo
         // lançamento" e "Ver tudo em Saídas" são pontes pro App (ver
         // cofre-ativos.js v1.10.0 pro porquê de não duplicar formulário).
@@ -637,6 +643,10 @@ async function confirmarCriacaoAssistida() {
 // ============================================================================
 // EVENTOS CUSTOMIZADOS — comunicação entre módulos sem import circular
 // ============================================================================
+// v1.22.0 — ponte pro App: "Carregar documento" no contrato usa o MESMO
+// modal de upload do ativo (abrirUploadContextual), em vez de sair pro
+// cofre.html (Nicola 03/09: "abre o cofre… esta tela deve sumir").
+window.rzAbrirUploadContextual = (tipo, id, nome) => docs.abrirUploadContextual(tipo, id, nome);
 window.addEventListener('cofre:dados-carregados', () => {
     ativos.popularSelectTipoAtivo();
     // v1.12.0 (pedido explícito, "perdeu a formatação... como referência
