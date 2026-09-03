@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.17.1 · 03/09/2026
+// Versão: 1.17.2 · 03/09/2026
+//
+// v1.17.2 — BUG: contador/subtítulo do chip Contratos comparava status
+// capitalizado ('Ativo') com o valor minúsculo do banco ('ativo') —
+// contrato vigente contava como encerrado. Normalizado em
+// montarContratosAtivo (c.st).
 //
 // v1.17.1 — BUG (print 03/09): 6 mensalidades inadimplentes apareciam
 // como "A receber". Raiz no banco (fn_fluxo_financeiro_ativo devolvia
@@ -533,7 +538,7 @@ function ativoCardHtml(a) {
         const titulo = [resumoImovel.empreendimento || 'Sem empreendimento', resumoImovel.tipo, finalidadeLabel[resumoImovel.finalidadeUso] || 'Long Stay'].filter(Boolean).join(' · ');
 
         return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-start">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--sprout-light);color:var(--pine)">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
                 ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
             </div>
             <div class="flex-1 min-w-0">
@@ -554,7 +559,7 @@ function ativoCardHtml(a) {
     // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
     // ainda carregado) — mesmo formato de sempre.
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--sprout-light);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--tile);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
@@ -867,8 +872,12 @@ async function montarContratosAtivo(a) {
     }
 
     try {
-        const lista = await api.buscarContratosDoImovel(a.entidade_origem_id);
-        const vigentes = lista.filter(c => c.status === 'Ativo' || c.status === 'Assinando');
+        // v1.17.2 — BUG (print 03/09 12:32): "0 vigentes · 1 encerrado" com
+        // a linha "Ativo". contratos.status é MINÚSCULO no banco ('ativo',
+        // 'assinando', 'finalizado'); a comparação com 'Ativo' (capitalizado,
+        // herdada do texto do v1.5.0) nunca batia. Normalizado uma vez aqui.
+        const lista = (await api.buscarContratosDoImovel(a.entidade_origem_id)).map(c => ({ ...c, st: String(c.status || '').toLowerCase() }));
+        const vigentes = lista.filter(c => c.st === 'ativo' || c.st === 'assinando');
         faAtualizarContador('contratos', vigentes.length);
         if (sub) sub.textContent = lista.length ? `${vigentes.length} vigente${vigentes.length === 1 ? '' : 's'} · ${lista.length - vigentes.length} encerrado${lista.length - vigentes.length === 1 ? '' : 's'}` : '';
         if (!lista.length) {
@@ -883,17 +892,17 @@ async function montarContratosAtivo(a) {
         // 5 semânticas; toque abre o contrato na aba Contratos do App
         // (abrirContratoNoApp), lógica de contrato continua só lá.
         const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
-        const statusDe = { Ativo: r('ok', 'Vigente'), Assinando: r('run', 'Assinando'), Suspenso: r('neu', 'Suspenso'), Finalizado: r('neu', 'Encerrado'), Cancelado: r('neu', 'Cancelado') };
+        const statusDe = { ativo: r('ok', 'Vigente'), assinando: r('run', 'Assinando'), suspenso: r('neu', 'Suspenso'), finalizado: r('neu', 'Encerrado'), cancelado: r('neu', 'Cancelado') };
         painel.innerHTML = lista.map(c => `
             <div class="rz-row rz-link" data-action="fa-abrir-contrato-app" data-contrato-id="${c.id}">
-                <div class="rz-ic${(c.status === 'Ativo' || c.status === 'Assinando') ? '' : ' rz-neu'}"><i data-lucide="${c.status === 'Assinando' ? 'file-signature' : (c.status === 'Ativo' ? 'file-text' : 'archive')}"></i></div>
+                <div class="rz-ic${(c.st === 'ativo' || c.st === 'assinando') ? '' : ' rz-neu'}"><i data-lucide="${c.st === 'assinando' ? 'file-signature' : (c.st === 'ativo' ? 'file-text' : 'archive')}"></i></div>
                 <div class="rz-tx">
                     <b>${escapeHtml(c.locatario || 'Locatário não informado')}</b>
                     <span>${c.inicio ? formatarDataBR(c.inicio) : ''}${c.fim ? ' → ' + formatarDataBR(c.fim) : ''}</span>
                 </div>
                 <div class="rz-rt">
                     <b>R$ ${Number(c.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-                    ${statusDe[c.status] || r(c.status || 'neu')}
+                    ${statusDe[c.st] || r(c.st || 'neu')}
                 </div>
             </div>`).join('');
         refrescarIcones();

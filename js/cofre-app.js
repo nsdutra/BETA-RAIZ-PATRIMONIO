@@ -450,6 +450,13 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-acoes-controles': controles.abrirAcoesControles(); break;
         case 'fechar-form-controle': controles.fecharFormControle(); break;
         case 'salvar-item-controle': await controles.salvarItemControle(); break;
+        // v1.20.0 (fatia 3b-i) — ficha do item de controle na gramática:
+        // toque na ocorrência abre sheet de ações; Mais ações de Dados e
+        // Partes abrem sheet. 'alternar-acao-ocorrencia' continua valendo
+        // (abre o sheet de formulário do modo pedido).
+        case 'abrir-acoes-ocorrencia': controles.abrirAcoesOcorrencia(alvo.dataset.id); break;
+        case 'abrir-acoes-dados-item': controles.abrirAcoesDadosItem(); break;
+        case 'abrir-acoes-partes-item': controles.abrirAcoesPartesItem(); break;
         case 'alternar-acao-ocorrencia': controles.alternarAcaoOcorrencia(alvo.dataset.id, alvo.dataset.modo); break;
         case 'fechar-acao-ocorrencia': controles.fecharAcaoOcorrencia(); break;
         case 'confirmar-tratar-ocorrencia': await controles.confirmarTratarOcorrencia(alvo.dataset.id); break;

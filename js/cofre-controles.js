@@ -2,7 +2,17 @@
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
 // Versão: 1.13.0 · 03/09/2026
 //
-// v1.13.0 — FATIA 3 da gramática única (REGRAS_EXPERIENCIA_RAIZ_v3_2 §6,
+// v1.13.0 (parte b — fatia 3b-i) — FICHA DO ITEM DE CONTROLE na gramática
+// única: cabeçalho de entidade com status da próxima ocorrência; Dados em
+// .rz-kv; ocorrências em .rz-row com UM toque → sheet de ações (Dar
+// baixa · Reagendar · Estornar) → sheet de formulário com os mesmos ids
+// de campo de antes (confirmar* intactos). Partes/Documentos/Contatos em
+// .rz-row com vazio único e rodapé único. Saíram: 3 painéis inline de
+// Mais ações, par Tratar|Reagendar por linha, 3 forms inline, pills de
+// Partes. Novas: abrirAcoesOcorrencia, abrirAcoesDadosItem,
+// abrirAcoesPartesItem. alternarMaisAcoes*Item viram alias.
+//
+// v1.13.0 (parte a) — FATIA 3 da gramática única (REGRAS_EXPERIENCIA_RAIZ_v3_2 §6,
 // §9, §10): na ficha do ativo, a lista de itens de controle virou .rz-row
 // (ícone colorido pela semântica, status "ponto + rótulo" via
 // renderStatus, sem chipVencimento/Tailwind amber-green); vazio no
@@ -354,13 +364,20 @@ async function montarPartesItemControle(item) {
 
     const linhas = await api.buscarPartesDoItemControle(item.id);
 
+    // v1.13.0 (fatia 3b-i) — de pills pra .rz-row (REGRAS §8: pill é só
+    // filtro/sub-navegação). Toque abre o editor de partes.
     if (!linhas.length) {
-        mount.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhuma parte vinculada ainda.</p>`;
+        mount.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Nenhuma parte ainda. A parte responsável vira o fornecedor quando você gera a despesa.</p></div>`;
+        refrescarIcones();
         return;
     }
     mount.innerHTML = linhas.map(l => `
-        <span class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtml(l.nome)} · ${escapeHtml(rotuloPapelParteItem(l.papel))}</span>
-    `).join('');
+        <div class="rz-row rz-link" data-action="abrir-editar-partes-item">
+            <div class="rz-ic"><i data-lucide="briefcase"></i></div>
+            <div class="rz-tx"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}</span></div>
+            <i data-lucide="chevron-right" class="rz-chev"></i>
+        </div>`).join('');
+    refrescarIcones();
 }
 
 function partesItemLinhaHtml(l, idx) {
@@ -476,7 +493,6 @@ export async function abrirNovoLancamentoDoItem() {
 
 export async function abrirFichaItemControle(itemId) {
     ocorrenciaEmAcao = null;
-    document.getElementById('fic-contatos-acoes')?.classList.add('hidden');
     // BUG FIX (25/08/2026) — só atualiza a origem se a navegação vem de
     // FORA da própria ficha (reabrir via recarregarFichaItemControle
     // depois de Tratar não deve perder a origem original).
@@ -562,52 +578,50 @@ function renderizarFichaItemControle() {
     // migraram de pills sempre visíveis pra um painel "Mais ações"
     // colapsável de verdade (DS §8 — antes só simulava o padrão sem o
     // toggle).
+    // v1.13.0 (fatia 3b-i) — cabeçalho de entidade (.rz-entity) com o
+    // status da PRÓXIMA ocorrência aberta; dados em .rz-kv; ocorrências
+    // em .rz-row com UM toque (abre sheet Tratar/Reagendar/Estornar).
+    const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
+    const proxima = ocorrencias.find(o => o.status_execucao === 'aberto');
+    const diasProx = item.alerta_ativo === false ? null : (proxima ? diasAte(proxima.data_prevista_atual) : null);
+    const statusItem = item.alerta_ativo === false ? statusHtml('neu', 'Alertas desligados')
+        : diasProx === null ? statusHtml('ok', 'Sem pendência')
+        : diasProx < 0 ? statusHtml('bad', `Vencido há ${Math.abs(diasProx)}d`)
+        : diasProx <= 30 ? statusHtml('warn', diasProx === 0 ? 'Vence hoje' : `${diasProx} dia${diasProx === 1 ? '' : 's'}`)
+        : statusHtml('ok', 'Em dia');
     document.getElementById('fic-dados-cabecalho').innerHTML = `
-        <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--sprout-light);color:var(--pine)"><i data-lucide="${iconeAtivo(item.cofre_ativos?.tipo_ativo)}" style="width:20px;height:20px"></i></div>
-            <div class="min-w-0 flex-1">
-                <p class="text-xs font-extrabold truncate">${escapeHtml(item.titulo)}</p>
-                <p class="text-xs truncate" style="color:var(--sage)">${escapeHtml(item.cofre_ativos?.nome_exibicao || '')}${item.cofre_ativos?.nome_exibicao ? ' · ' : ''}${escapeHtml(rotuloTipoControle(item.tipo))}</p>
-            </div>
-        </div>
-    `;
-    document.getElementById('fic-dados-leitura').innerHTML = `
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Tipo</span><b>${escapeHtml(rotuloTipoControle(item.tipo))}</b></div>
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Subtipo</span><b>${escapeHtml(item.cofre_controle_subtipos?.nome || '—')}</b></div>
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data início</span><b>${formatarDataBR(item.data_base)}</b></div>
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Data fim</span><b>${item.data_fim ? formatarDataBR(item.data_fim) : 'Sem fim de vigência'}</b></div>
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Frequência</span><b>${escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))}</b></div>
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Alertas gerados a partir de</span><b>${item.direcao_alerta === 'fim' ? 'Fim (retroativo)' : 'Início'}</b></div>
-        <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">Antecedência do alerta</span><b>${item.antecedencia_alerta_dias} dias</b></div>
-    `;
+        <div class="rz-ic"><i data-lucide="${{ seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check'}"></i></div>
+        <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(item.cofre_ativos?.nome_exibicao || '')}${item.cofre_ativos?.nome_exibicao ? ' · ' : ''}${escapeHtml(item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))}</span></div>
+        ${statusItem}`;
+    const kv = (r, v) => `<div><small>${escapeHtml(r)}</small><b>${v}</b></div>`;
+    document.getElementById('fic-dados-leitura').innerHTML =
+        kv('Tipo', escapeHtml(rotuloTipoControle(item.tipo))) +
+        kv('Subtipo', escapeHtml(item.cofre_controle_subtipos?.nome || '—')) +
+        kv('Início', formatarDataBR(item.data_base)) +
+        kv('Fim', item.data_fim ? formatarDataBR(item.data_fim) : 'Sem fim de vigência') +
+        kv('Frequência', escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))) +
+        kv('Alerta', `${item.antecedencia_alerta_dias} dias antes · ${item.direcao_alerta === 'fim' ? 'a partir do fim' : 'a partir do início'}`);
     renderizarDocumentosItemControle();
 
-    // ---- Box Ocorrências (TODAS — pode haver várias, geradas para os
-    // próximos 120 dias conforme a frequência do item; v6, pedido explícito)
-    // Revisão DS (25/08/2026) — linhas no mesmo padrão de "itens a
-    // receber" da Ficha do Imóvel (index.html htmlFinanceiro): sem
-    // raiz-bloco-interno (borda 2px + fundo #f8fafc), divisor fino
-    // border-b/last item sem divisor, ícone de urgência à esquerda.
-    const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
     const elOc = document.getElementById('fic-ocorrencia');
+    const elOcSt = document.getElementById('fic-ocorrencia-status');
+    const abertas = ocorrencias.filter(o => o.status_execucao === 'aberto').length;
+    if (elOcSt) elOcSt.innerHTML = ocorrencias.length ? `<span class="rz-sub">${abertas} em aberto · ${ocorrencias.length - abertas} concluída${ocorrencias.length - abertas === 1 ? '' : 's'}</span>` : '';
     if (!ocorrencias.length) {
-        elOc.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhuma ocorrência gerada.</p>`;
+        elOc.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="calendar-check"></i></div><p>Nenhuma ocorrência gerada ainda. Elas nascem da frequência e do início do item.</p></div>`;
     } else {
-        elOc.innerHTML = ocorrencias.map((oc, idx) => {
-            const dias = oc.status_execucao === 'aberto' ? diasAte(oc.data_prevista_atual) : null;
-            const chip = dias !== null ? chipVencimento(dias) : null;
-            const icone = dias === null ? 'check-circle-2' : (dias < 0 ? 'alert-circle' : (dias <= 30 ? 'clock' : 'check-circle-2'));
-            const corIcone = dias === null ? 'var(--success)' : (dias < 0 ? 'var(--danger)' : (dias <= 30 ? 'var(--warning)' : 'var(--success)'));
-            const divisor = idx < ocorrencias.length - 1 ? 'border-b border-slate-50' : '';
-            return `<div class="py-2 ${divisor}">
-                <div class="flex items-center gap-2 text-xs">
-                    <svg data-lucide="${icone}" style="width:14px;height:14px;flex:none;color:${corIcone}"></svg>
-                    <span class="flex-1 font-bold">${escapeHtml(rotuloStatusOcorrencia(oc.status_execucao))} <span class="font-normal text-slate-400">· vence ${formatarDataBR(oc.data_prevista_atual)}</span></span>
-                    ${chip ? `<span class="${chip.classe} flex-none">${escapeHtml(chip.texto)}</span>` : ''}
-                </div>
-                ${oc.tratamento_descricao ? `<p class="text-xs mt-1 ml-6" style="color:var(--sage)">Tratamento: ${escapeHtml(oc.tratamento_descricao)}</p>` : ''}
-                <div class="mt-2 ml-6">${renderizarAcoesOcorrencia(oc)}</div>
-                ${renderizarFormAcaoOcorrencia(oc)}
+        elOc.innerHTML = ocorrencias.map(oc => {
+            const aberta = oc.status_execucao === 'aberto';
+            const dias = aberta ? diasAte(oc.data_prevista_atual) : null;
+            let sem = 'ok', rot = 'Em dia', ic = 'calendar-check', cls = '';
+            if (!aberta) { sem = oc.status_execucao === 'concluido' ? 'ok' : 'neu'; rot = rotuloStatusOcorrencia(oc.status_execucao); ic = oc.status_execucao === 'concluido' ? 'check-circle-2' : 'x-circle'; cls = oc.status_execucao === 'concluido' ? '' : ' rz-neu'; }
+            else if (dias < 0) { sem = 'bad'; rot = `Vencido há ${Math.abs(dias)}d`; ic = 'alarm-clock'; cls = ' rz-bad'; }
+            else if (dias <= 30) { sem = 'warn'; rot = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; ic = 'clock'; cls = ' rz-warn'; }
+            return `<div class="rz-row rz-link" data-action="abrir-acoes-ocorrencia" data-id="${oc.id}">
+                <div class="rz-ic${cls}"><i data-lucide="${ic}"></i></div>
+                <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
+                <div class="rz-rt">${statusHtml(sem, rot)}</div>
+                <i data-lucide="chevron-right" class="rz-chev"></i>
             </div>`;
         }).join('');
     }
@@ -626,48 +640,45 @@ function renderizarFichaItemControle() {
     // usada no atalho "Acionar" da Visão Geral (acionarContatoAlerta em
     // cofre-documentos.js), pedindo cotação de renovação.
     const elContatos = document.getElementById('fic-contatos');
+    // v1.13.0 (fatia 3b-i) — .rz-row; toque na linha edita, ícone do
+    // WhatsApp à direita chama direto (mantido: é ação de 1 toque, não menu).
     const listaContatos = contatosDoItemAtual.length
-        ? contatosDoItemAtual.map((c, idx) => `<div class="flex items-center gap-2 py-1.5 ${idx < contatosDoItemAtual.length - 1 ? 'border-b border-slate-50' : ''}">
-            <button data-action="abrir-editar-contato-item" data-id="${c.id}" class="flex-1 min-w-0 text-left">
-                <p class="text-xs font-bold truncate">${escapeHtml(c.nome)}</p>
-                <p class="text-[11px]" style="color:var(--sage)">${escapeHtml(rotuloPapelContato(c.papel))}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</p>
-            </button>
-            ${c.whatsapp ? `<button data-action="acionar-contato-item-direto" data-id="${c.id}" title="Chamar no WhatsApp" class="flex-none p-1.5"><i data-lucide="message-circle" style="width:15px;height:15px;color:#25D366"></i></button>` : ''}
+        ? contatosDoItemAtual.map(c => `<div class="rz-row">
+            <div class="rz-ic"><i data-lucide="user"></i></div>
+            <div class="rz-tx rz-link" data-action="abrir-editar-contato-item" data-id="${c.id}"><b>${escapeHtml(c.nome)}</b><span>${escapeHtml(rotuloPapelContato(c.papel))}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</span></div>
+            ${c.whatsapp ? `<button type="button" data-action="acionar-contato-item-direto" data-id="${c.id}" title="Chamar no WhatsApp" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="message-circle" style="width:18px;height:18px;color:var(--success)"></i></button>` : ''}
         </div>`).join('')
-        : `<p class="text-xs" style="color:var(--sage)">Nenhum contato vinculado a este item.</p>`;
+        : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Nenhum contato ainda. Contatos com WhatsApp viram atalho de 1 toque nos alertas.</p></div>`;
     elContatos.innerHTML = listaContatos;
 
     refrescarIcones();
 }
 
-export function alternarMaisAcoesContatosItem() {
-    const el = document.getElementById('fic-contatos-acoes');
-    const seta = document.getElementById('fic-contatos-seta');
-    if (!el) return;
-    el.classList.toggle('hidden');
-    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-    refrescarIcones();
+// v1.13.0 (fatia 3b-i, REGRAS §6) — os 3 painéis inline de "Mais ações"
+// da ficha do item saíram. Dados → sheet (Excluir); Partes → sheet
+// (Editar partes); Documentos/Contatos passaram a ter a ação nomeada
+// direto no rodapé (sem "Mais ações"). Nomes antigos mantidos como alias.
+function sheetAcoes(config) {
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
+    window.abrirSheetAcoes(config);
 }
-
-// Novos toggles (25/08/2026, pedido explícito) — mesmo corpo canônico
-// (DS §8.2), só trocam os 2 IDs.
-export function alternarMaisAcoesDadosItem() {
-    const el = document.getElementById('fic-dados-acoes');
-    const seta = document.getElementById('fic-dados-seta');
-    if (!el) return;
-    el.classList.toggle('hidden');
-    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-    refrescarIcones();
+export function abrirAcoesDadosItem() {
+    const item = itemEmFoco; if (!item) return;
+    sheetAcoes({ titulo: item.titulo, sub: rotuloTipoControle(item.tipo), acoes: [
+        { icone: 'pencil', titulo: 'Editar item', aoTocar: () => abrirEditarItem() },
+        { icone: 'trash-2', titulo: 'Excluir item de controle', sub: 'Apaga ocorrências e alertas dele', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
+    ] });
 }
-
-export function alternarMaisAcoesDocItem() {
-    const el = document.getElementById('fic-doc-acoes');
-    const seta = document.getElementById('fic-doc-seta');
-    if (!el) return;
-    el.classList.toggle('hidden');
-    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-    refrescarIcones();
+export function abrirAcoesPartesItem() {
+    const item = itemEmFoco; if (!item) return;
+    sheetAcoes({ titulo: 'Partes do item', sub: item.titulo, acoes: [
+        { icone: 'users', titulo: 'Editar partes', sub: 'Quem responde por este item', aoTocar: () => abrirEditarPartesItem() },
+        { icone: 'receipt', titulo: 'Gerar despesa', sub: 'Lançamento com a parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
+    ] });
 }
+export const alternarMaisAcoesContatosItem = () => abrirNovoContatoItem();
+export const alternarMaisAcoesDadosItem = () => abrirAcoesDadosItem();
+export const alternarMaisAcoesDocItem = () => carregarNovoDocumentoItem();
 
 // Box Documento (25/08/2026, pedido explícito) — mesma referência de box
 // de documento que existe nos Imóveis: consulta direta em
@@ -689,14 +700,12 @@ export function renderizarDocumentosItemControle() {
     if (!el) return;
     el.innerHTML = docsItem.length ? docsItem.map(d => {
         const vinculo = (d.cofre_documento_vinculos || []).find(v => v.entidade_tipo === 'item_controle' && v.entidade_id === item.id);
-        return `<div class="flex items-center gap-2 border border-slate-100 rounded-lg p-2">
-            <button data-action="abrir-documento" data-id="${d.id}" class="flex items-center gap-2 flex-1 min-w-0 text-left">
-                <i data-lucide="${(d.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex-shrink:0"></i>
-                <span class="text-xs font-bold truncate">${escapeHtml(d.nome_exibicao || 'Documento')}</span>
-            </button>
-            <button data-action="excluir-documento-do-item" data-vinculo-id="${vinculo?.id || ''}" title="Remover deste item" class="flex-none p-1"><i data-lucide="x" style="width:14px;height:14px;color:#94a3b8"></i></button>
+        return `<div class="rz-row">
+            <div class="rz-ic${d.origem === 'bot_whatsapp' ? ' rz-ia' : ''}"><i data-lucide="${d.origem === 'bot_whatsapp' ? 'bot' : ((d.mime_type || '').startsWith('image/') ? 'image' : 'file-text')}"></i></div>
+            <div class="rz-tx rz-link" data-action="abrir-documento" data-id="${d.id}"><b>${escapeHtml(d.nome_exibicao || 'Documento')}</b><span>${d.origem === 'bot_whatsapp' ? 'Pelo Robô' : 'Documento'}${d.criado_em ? ' · ' + formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
+            <button type="button" data-action="excluir-documento-do-item" data-vinculo-id="${vinculo?.id || ''}" title="Remover deste item" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="x" style="width:16px;height:16px;color:var(--muted)"></i></button>
         </div>`;
-    }).join('') : `<p class="text-xs" style="color:var(--sage)">Nenhum documento vinculado ainda.</p>`;
+    }).join('') : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-plus-2"></i></div><p>Nenhum documento vinculado. Apólice ou guia anexada aqui fica a um toque do alerta.</p></div>`;
     refrescarIcones();
 }
 
@@ -725,61 +734,54 @@ export async function excluirDocumentoDoItem(vinculoId) {
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
-function renderizarAcoesOcorrencia(oc) {
-    if (oc.status_execucao === 'aberto') {
-        return `<div class="flex gap-2">
-            <button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="tratar" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:8px;">Tratar</button>
-            <button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="reagendar" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:8px;">Reagendar</button>
-        </div>`;
-    }
-    if (oc.status_execucao === 'concluido') {
-        return `<button data-action="alternar-acao-ocorrencia" data-id="${oc.id}" data-modo="estornar" style="width:100%;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:8px;">Estornar</button>`;
-    }
-    return '';
+// v1.13.0 (fatia 3b-i, REGRAS §3/§15) — o par "Tratar | Reagendar" por
+// linha e os 3 formulários inline saíram. Toque na ocorrência abre um
+// SHEET DE AÇÕES (Dar baixa · Reagendar · Estornar conforme o status);
+// cada ação abre um SHEET DE FORMULÁRIO (abrirSheetForm) com os MESMOS
+// ids de campo de antes (#oc-tratar-descricao, #oc-reagendar-data), então
+// confirmarTratar/Reagendar/EstornarOcorrencia continuam iguais.
+function ocorrenciaPorId(id) {
+    return (itemEmFoco?.cofre_ocorrencias_controle || []).find(o => o.id === id);
 }
-
-function renderizarFormAcaoOcorrencia(oc) {
-    if (!ocorrenciaEmAcao || ocorrenciaEmAcao.ocorrenciaId !== oc.id) return '';
-    const { modo } = ocorrenciaEmAcao;
-    if (modo === 'tratar') {
-        return `<div class="raiz-form-borda p-2 mt-2">
-            <textarea id="oc-tratar-descricao" rows="2" placeholder="Descrição da baixa (opcional)" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs mb-2"></textarea>
-            <div class="flex justify-end gap-2">
-                <button data-action="fechar-acao-ocorrencia" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
-                <button data-action="confirmar-tratar-ocorrencia" data-id="${oc.id}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Confirmar baixa</button>
-            </div>
-        </div>`;
+export function abrirAcoesOcorrencia(ocorrenciaId) {
+    const oc = ocorrenciaPorId(ocorrenciaId);
+    if (!oc) return;
+    const acoes = [];
+    if (oc.status_execucao === 'aberto') {
+        acoes.push({ icone: 'check', titulo: 'Dar baixa', sub: 'Marca como tratada, com descrição opcional', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'tratar') });
+        acoes.push({ icone: 'calendar', titulo: 'Reagendar', sub: 'Muda a data prevista desta ocorrência', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reagendar') });
+    } else if (oc.status_execucao === 'concluido') {
+        acoes.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "Em aberto", fica no histórico', tipo: 'bad', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'estornar') });
     }
-    if (modo === 'reagendar') {
-        return `<div class="raiz-form-borda p-2 mt-2">
-            <input type="date" id="oc-reagendar-data" value="${oc.data_prevista_atual}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs mb-2">
-            <div class="flex justify-end gap-2">
-                <button data-action="fechar-acao-ocorrencia" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
-                <button data-action="confirmar-reagendar-ocorrencia" data-id="${oc.id}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--pine)">Confirmar novo prazo</button>
-            </div>
-        </div>`;
-    }
-    if (modo === 'estornar') {
-        return `<div class="raiz-form-borda p-2 mt-2">
-            <p class="text-xs mb-2" style="color:var(--sage)">A ocorrência volta para "Em aberto". Isso fica registrado no histórico.</p>
-            <div class="flex justify-end gap-2">
-                <button data-action="fechar-acao-ocorrencia" class="px-3 py-1.5 rounded-lg text-xs border-2 border-slate-300">Cancelar</button>
-                <button data-action="confirmar-estornar-ocorrencia" data-id="${oc.id}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white" style="background:var(--danger)">Confirmar estorno</button>
-            </div>
-        </div>`;
-    }
-    return '';
+    if (!acoes.length) { mostrarToast('Ocorrência cancelada — sem ações.'); return; }
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
+    window.abrirSheetAcoes({ titulo: `Ocorrência · ${formatarDataBR(oc.data_prevista_atual)}`, sub: itemEmFoco?.titulo || '', acoes });
 }
 
 export function alternarAcaoOcorrencia(ocorrenciaId, modo) {
-    ocorrenciaEmAcao = (ocorrenciaEmAcao && ocorrenciaEmAcao.ocorrenciaId === ocorrenciaId && ocorrenciaEmAcao.modo === modo)
-        ? null : { ocorrenciaId, modo };
-    renderizarFichaItemControle();
+    const oc = ocorrenciaPorId(ocorrenciaId);
+    if (!oc) return;
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
+    ocorrenciaEmAcao = { ocorrenciaId, modo };
+    const sub = `${itemEmFoco?.titulo || ''} · vence ${formatarDataBR(oc.data_prevista_atual)}`;
+    if (modo === 'tratar') {
+        window.abrirSheetForm({ titulo: 'Dar baixa', sub, rotuloSalvar: 'Confirmar baixa',
+            corpo: `<div class="rz-f"><label>Descrição da baixa</label><textarea id="oc-tratar-descricao" rows="3" placeholder="Opcional — o que foi feito, com quem, valor"></textarea></div>`,
+            aoSalvar: async () => { await confirmarTratarOcorrencia(ocorrenciaId); } });
+    } else if (modo === 'reagendar') {
+        window.abrirSheetForm({ titulo: 'Reagendar', sub, rotuloSalvar: 'Confirmar novo prazo',
+            corpo: `<div class="rz-f"><label>Nova data prevista <i>*</i></label><input type="date" id="oc-reagendar-data" value="${oc.data_prevista_atual}"></div>`,
+            aoSalvar: async () => { await confirmarReagendarOcorrencia(ocorrenciaId); } });
+    } else if (modo === 'estornar') {
+        window.abrirSheetForm({ titulo: 'Estornar ocorrência', sub, rotuloSalvar: 'Confirmar estorno',
+            corpo: `<p class="rz-desc">A ocorrência volta para "Em aberto". Isso fica registrado no histórico.</p>`,
+            aoSalvar: async () => { await confirmarEstornarOcorrencia(ocorrenciaId); } });
+    }
 }
 
 export function fecharAcaoOcorrencia() {
     ocorrenciaEmAcao = null;
-    renderizarFichaItemControle();
+    if (typeof window.fecharSheet === 'function') window.fecharSheet();
 }
 
 async function registrarHistoricoOcorrenciaLocal(ocorrenciaId, acao, antes, depois, motivo) {

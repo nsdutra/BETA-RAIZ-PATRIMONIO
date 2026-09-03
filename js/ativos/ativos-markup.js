@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.16.0 · 02/09/2026
+// Versão: 1.17.0 · 03/09/2026
+//
+// v1.17.0 — FATIA 3b-i: section ficha-item-controle refeita na gramática
+// única (ver comentário na própria section). IDs de montagem mantidos
+// (fic-dados-cabecalho, fic-dados-leitura, fic-ocorrencia, fic-partes,
+// fic-documentos, fic-contatos); novo fic-ocorrencia-status.
 //
 // v1.16.0 — FATIA 3 da gramática única (REGRAS_EXPERIENCIA_RAIZ_v3_2 §6,
 // §9, §11; catálogo rz-* do index.html v1.106.0). Ficha do ativo:
@@ -926,100 +931,54 @@ export const ATIVOS_MARKUP = `<style>
 
 <!-- ===================== TELA — FICHA DO ITEM DE CONTROLE ===================== -->
 <section data-screen="ficha-item-controle" class="hidden">
+    <!-- v1.17.0 (fatia 3b-i da gramática única, REGRAS §6/§9/§11/§15) —
+         ficha do item de controle no mesmo padrão da ficha do ativo:
+         .rz-back · cabeçalho de entidade (.rz-entity, montado em
+         renderizarFichaItemControle com o status da próxima ocorrência)
+         · 5 cards .rz-card com rodapé único. Saíram: os 3 painéis inline
+         de "Mais ações" (fic-dados-acoes / fic-doc-acoes / fic-contatos-
+         acoes), o par "Tratar | Reagendar" por ocorrência (virou UM toque
+         na linha → sheet, REGRAS §15) e as pills cinza de Partes. -->
+    <button data-action="voltar-item-controle" class="rz-back"><i data-lucide="chevron-left"></i> Voltar ao ativo</button>
+    <div id="fic-dados-cabecalho" class="rz-entity"></div>
 
-    <!-- Revisão DS (25/08/2026) — removido o título solto (nome do item +
-         tipo/subtipo/frequência) que ficava aqui fora dos boxes; pedido
-         explícito: "esta aba não deve ter título, apenas os boxes têm
-         título". Vira "< Voltar" + descrição breve da FUNÇÃO da tela,
-         mesmo padrão das demais telas secundárias do Cofre (ex.: tela
-         Alertas, ver data-screen="alertas" acima). O nome/tipo/subtipo do
-         item em si já aparece dentro do box "Dados do item" logo abaixo —
-         nada foi perdido, só parou de aparecer 2x. -->
-    <button data-action="voltar-item-controle" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Voltar ao ativo</button>
-    <p class="text-xs mb-3" style="color:var(--sage)">Dados do item, ocorrências de vencimento e contatos vinculados.</p>
-
-    <div class="space-y-3">
-
-        <!-- Box: Dados do item — revisão DS 25/08/2026 (pedido explícito):
-             cabeçalho no mesmo formato de letra/cor do componente de Ativo
-             (fic-dados-cabecalho, montado via JS); Editar/Excluir migraram
-             pra um painel "Mais ações" colapsável de verdade (§8), não
-             mais pills sempre visíveis. -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Dados do item</h3>
-            <div id="fic-dados-cabecalho" class="mt-2"></div>
-            <div id="fic-dados-leitura" class="text-sm space-y-1 mt-3 pt-3 border-t border-slate-100"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-dados-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-dados-seta" style="width:13px;height:13px"></i></button>
-            </div>
-            <div id="fic-dados-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <button data-action="abrir-editar-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="pencil" style="width:11px;height:11px"></i> Editar</button>
-                <button data-action="excluir-item-controle-atual" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="trash-2" style="width:11px;height:11px"></i> Excluir</button>
-            </div>
+    <div class="rz-card">
+        <div class="rz-card-h"><h3>Dados do item</h3></div>
+        <div id="fic-dados-leitura" class="rz-kv"></div>
+        <div class="rz-card-f">
+            <button data-action="abrir-editar-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="pencil"></i> Editar item</button>
+            <button data-action="abrir-acoes-dados-item" class="rz-more">Mais ações <i data-lucide="chevron-down"></i></button>
         </div>
+    </div>
 
-        <!-- Box: Documento — NOVO (25/08/2026, pedido explícito). Mesma
-             referência de box de documento que existe nos Imóveis: linha
-             clicável abre o documento (abrirFichaDocumento, caminho já
-             existente), "x" remove só o vínculo (documento continua
-             guardado, vira "Em triagem" na Home), "Carregar novo" mora no
-             Mais ações. Box SEMPRE visível (mesma exceção §16 do box
-             Contrato/Contatos vinculados — mesmo vazio, oferece a ação). -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Documento</h3>
-            <div id="fic-documentos" class="mt-1.5 space-y-1.5"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-doc-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-doc-seta" style="width:13px;height:13px"></i></button>
-            </div>
-            <div id="fic-doc-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <button data-action="carregar-novo-documento-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="upload" style="width:11px;height:11px"></i> Carregar novo</button>
-            </div>
+    <div class="rz-card">
+        <div class="rz-card-h"><h3>Ocorrências</h3><span id="fic-ocorrencia-status"></span></div>
+        <div id="fic-ocorrencia"></div>
+    </div>
+
+    <div class="rz-card">
+        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Quem responde por este item</span></div>
+        <div id="fic-partes"></div>
+        <div class="rz-card-f">
+            <button data-action="fi-gerar-despesa-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="receipt"></i> Gerar despesa</button>
+            <button data-action="abrir-acoes-partes-item" class="rz-more">Mais ações <i data-lucide="chevron-down"></i></button>
         </div>
+    </div>
 
-        <!-- Box: Ocorrência -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Ocorrência</h3>
-            <div id="fic-ocorrencia" class="mt-1.5"></div>
+    <div class="rz-card">
+        <div class="rz-card-h"><h3>Documentos</h3></div>
+        <div id="fic-documentos"></div>
+        <div class="rz-card-f">
+            <button data-action="carregar-novo-documento-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="upload"></i> Carregar documento</button>
         </div>
+    </div>
 
-        <!-- Box: Partes (NOVO, 02/09/2026, pedido explícito: "as partes
-             devem ser vários chips e aparecer... em itens de controle
-             (prestadores)... podendo ter mais de uma parte no item").
-             Chips (não linhas de lista, de propósito — visual pedido),
-             cada um "Nome · Papel". Editor abre modal-generico (mesmo
-             mecanismo do chip Propriedade em Ativos), sem % (não é
-             rateio, é lista de responsáveis). Diferente do box
-             "Contatos vinculados" logo abaixo: Partes é o cadastro
-             formal (pode virar fornecedor de despesa depois); Contatos
-             é só "quem eu chamo no WhatsApp", mais leve, continua
-             existindo em paralelo, não substituído. -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Partes</h3>
-            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Quem responde por este item — pode virar fornecedor de uma despesa depois.</p>
-            <div id="fic-partes" class="mt-2 flex flex-wrap gap-1.5"></div>
-            <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-100">
-                <button data-action="fi-gerar-despesa-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="receipt" style="width:11px;height:11px"></i> Gerar despesa</button>
-                <button data-action="abrir-editar-partes-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="users" style="width:11px;height:11px"></i> Editar partes</button>
-            </div>
+    <div class="rz-card">
+        <div class="rz-card-h"><h3>Contatos</h3><span class="rz-sub">Quem você chama no WhatsApp</span></div>
+        <div id="fic-contatos"></div>
+        <div class="rz-card-f">
+            <button data-action="abrir-novo-contato-item" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="user-plus"></i> Adicionar contato</button>
         </div>
-
-        <!-- Box: Contatos vinculados — revisão DS: botão "+ Adicionar"
-             virou pill de Mais ações (mesmo padrão do box Contrato vazio
-             na Ficha do Imóvel, montarBoxSemContratoFicha), não mais um
-             CTA tracejado centralizado. O box em si CONTINUA sempre
-             visível mesmo sem contato (D-6, exceção documentada — DS
-             §16) — só o botão interno mudou de formato. -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Contatos vinculados</h3>
-            <div id="fic-contatos" class="mt-1.5"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-contatos-item" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fic-contatos-seta" style="width:13px;height:13px"></i></button>
-            </div>
-            <div id="fic-contatos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <button data-action="abrir-novo-contato-item" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="user-plus" style="width:11px;height:11px"></i> Adicionar contato</button>
-            </div>
-        </div>
-
     </div>
 </section>
 

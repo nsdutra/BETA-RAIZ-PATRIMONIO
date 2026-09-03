@@ -6,9 +6,31 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.106.1
-   LINHAS: 30836
+   VERSÃO: Beta v1.107.0
+   LINHAS: 30869
    DATA: 03/09/2026
+   NOVIDADES (Beta v1.107.0) — PALETA EXECUTIVA (decisão do Nicola em
+   03/09, "opção B" do comparativo; DS v2.3 §1):
+     - O app tinha ficado "verde claro de forma geral": cabeçalho --sprout
+       (já era assim desde antes), fundo Pérola #f1f4ec (fatia 1) e placas
+       de ícone --sprout-light (fatia 3) somados. O cabeçalho médio ainda
+       destoava da família escura (splash, botões, chip ativo, sheet).
+     - Agora: cabeçalho do App em --pine (mesma família da splash);
+       --paper volta a neutro quente #f4f3ee; token novo --tile #e9ece5
+       pras placas de ícone (.rz-entity/.rz-row/.rz-act .rz-ic).
+       --sprout deixa de ser superfície e vira SÓ acento de estado (aba
+       ativa da bottom nav, barra de progresso, positivo). --sprout-light
+       segue existindo (bolha "eu" do chat IA, badges antigos).
+     - Botões do cabeçalho: Robô em --brass (REGRAS §16) e avatar em
+       --pine-light com borda fina, via .rz-hdr-ia/.rz-hdr-avatar — saem
+       2 bg-emerald-800. Fatia 7 troca a estrutura inteira pra .rz-hdr.
+     - Zero componente tocado: é o que a gramática (tokens + catálogo)
+       foi feita pra permitir.
+   + FATIA 3b-i nos módulos (ficha do item de controle): ativos-markup.js
+     v1.17.0, cofre-controles.js v1.13.0 (parte b), cofre-app.js v1.20.0
+     (3 cases novos). Neste arquivo nada além dos tokens acima.
+   + cofre-ativos.js v1.17.2: bug do chip Contratos ('Ativo' ≠ 'ativo').
+
    NOVIDADES (Beta v1.106.1) — correções da fatia 3 a partir dos prints
    reais do Nicola (03/09, 06:49–06:52):
      1) BUG (Arquivos › Documentos e Fotos): estado vazio E rodapé com os
@@ -6523,8 +6545,13 @@
                separando "atenção" (vinho) de "IA" (dourado), que antes eram o mesmo hex. */
             --wine:#7d4b54; --wine-light:#c98f97;
             --sage:#6b857a; --ink:#17211e; --line:#e6e3da;
-            /* v1.105.0 — --paper "Pérola" (DS v2.1): era #faf9f5. */
-            --paper:#f1f4ec; --card:#ffffff; --muted:#6f7a76;
+            /* v1.107.0 — paleta "executiva" (decisão do Nicola 03/09, DS v2.3):
+               --paper volta a ser neutro quente (#f4f3ee; Pérola #f1f4ec ficou
+               esverdeado demais somado às placas e ao cabeçalho) e nasce
+               --tile, o fundo neutro das placas de ícone (row, entidade,
+               sheet de ações) — --sprout-light deixa de ser superfície e
+               sprout vira SÓ acento de estado (aba ativa, positivo). */
+            --paper:#f4f3ee; --tile:#e9ece5; --card:#ffffff; --muted:#6f7a76;
             --success:#2f8b57; --success-bg:#e8f5ed;
             --warning:#7d4b54; --warning-bg:#f3e7e9;
             --danger:#c1463a; --danger-bg:#fbebe9;
@@ -6671,13 +6698,19 @@
            Fatia 1 da migração (§19): aditiva, nenhuma tela usa ainda.
            ==================================================================== */
         /* 4. cabeçalho global e de aba */
-        .rz-hdr{background:var(--sprout);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px}
+        .rz-hdr{background:var(--pine);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px}
         .rz-hdr .rz-brand{flex:1;min-width:0}
         .rz-hdr .rz-brand h1{font-family:var(--font-title);font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
         .rz-hdr .rz-brand small{display:block;font-size:11px;opacity:.85;margin-top:1px}
         .rz-hdr .rz-ia{width:40px;height:40px;border-radius:50%;background:var(--brass);color:#fff;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 3px rgba(198,138,59,.28);flex:none}
         .rz-hdr .rz-ia .rz-dot{position:absolute;top:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--brass)}
-        .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+        /* v1.107.0 — botões do cabeçalho atual sobre pine: Robô em brass
+           (REGRAS §16: brass é IA/Robô), avatar em pine-light com borda.
+           Fatia 7 troca o cabeçalho inteiro pra .rz-hdr; até lá estas 2
+           classes dão o contraste. */
+        #main-header .rz-hdr-ia{background:var(--brass);color:#fff;box-shadow:0 0 0 3px rgba(198,138,59,.28)}
+        #main-header .rz-hdr-avatar{background:var(--pine-light);color:#fff;border:1px solid rgba(255,255,255,.25)}
+        .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine-light);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
         .rz-tabhead p{flex:1;font-size:12px;color:var(--muted);line-height:1.35;margin:0}
         .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
@@ -6689,7 +6722,7 @@
         .rz-back svg{width:16px;height:16px}
         /* 11. cabeçalho de entidade (ficha) */
         .rz-entity{display:flex;gap:12px;align-items:center;margin-bottom:12px}
-        .rz-entity .rz-ic{width:52px;height:52px;border-radius:14px;background:var(--sprout-light);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-entity .rz-ic{width:52px;height:52px;border-radius:14px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
         .rz-entity .rz-ic svg{width:24px;height:24px}
         .rz-entity .rz-tx{flex:1;min-width:0}
         .rz-entity .rz-tx b{display:block;font-family:var(--font-title);font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
@@ -6746,7 +6779,7 @@
         /* 9. lista — item padrão, agrupador, vazio */
         .rz-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
         .rz-row:first-of-type{border-top:0}
-        .rz-row .rz-ic{width:42px;height:42px;border-radius:12px;background:var(--sprout-light);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-row .rz-ic{width:42px;height:42px;border-radius:12px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
         .rz-row .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
         .rz-row .rz-ic.rz-warn{background:var(--warning-bg);color:var(--warning)}
         .rz-row .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
@@ -6804,7 +6837,7 @@
         .rz-sh-f .rz-btn{flex:1}
         .rz-act{display:flex;align-items:center;gap:12px;width:100%;padding:12px 6px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
         .rz-act:first-child{border-top:0}
-        .rz-act .rz-ic{width:36px;height:36px;border-radius:10px;background:var(--sprout-light);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-act .rz-ic{width:36px;height:36px;border-radius:10px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
         .rz-act .rz-ic svg{width:18px;height:18px}
         .rz-act .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
         .rz-act .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
@@ -7463,7 +7496,7 @@
              changelog completo desta versão pra outros pontos com o
              mesmo problema (Tailwind emerald-* hardcoded, fora do
              sistema de tokens) que ainda ficaram de fora. -->
-        <div class="p-3 flex justify-between items-center" style="background:var(--sprout)">
+        <div class="p-3 flex justify-between items-center" style="background:var(--pine)">
 
             <div class="cursor-pointer active:scale-95 transition-transform select-none min-w-0" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
 
@@ -7485,7 +7518,7 @@
                  pós-login, ao lado do ícone de Conta. -->
             <div class="flex items-center gap-2">
 
-                <button id="btn-falar-bot-header" onclick="abrirBotWhatsapp()" title="Falar com o R.AI.Z no WhatsApp" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition text-white">
+                <button id="btn-falar-bot-header" onclick="abrirBotWhatsapp()" title="Falar com o R.AI.Z no WhatsApp" class="rz-hdr-ia w-9 h-9 flex-none flex items-center justify-center rounded-full active:scale-90 transition text-white">
                     <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 2v3"/>
                         <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none"/>
@@ -7507,7 +7540,7 @@
                      algum motivo socioLogado vier vazio) e as iniciais
                      assumem por cima assim que há nome — ver
                      atualizarMenuContaHeader(). -->
-                <button id="btn-conta-avatar" onclick="abrirMenuConta()" title="Configurações" class="w-9 h-9 flex-none flex items-center justify-center bg-emerald-800 rounded-full active:scale-90 transition">
+                <button id="btn-conta-avatar" onclick="abrirMenuConta()" title="Configurações" class="rz-hdr-avatar w-9 h-9 flex-none flex items-center justify-center rounded-full active:scale-90 transition">
                     <svg data-lucide="user" id="icone-conta-avatar-fallback" style="width:18px;height:18px"></svg>
                     <span id="iniciais-conta-avatar" class="hidden text-[12px] font-extrabold text-white tracking-wide"></span>
                 </button>
@@ -10505,7 +10538,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.106.1";
+        const APP_VERSAO = "Beta v1.107.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
