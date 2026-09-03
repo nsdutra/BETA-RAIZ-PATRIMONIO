@@ -6,10 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.105.0
-   LINHAS: 30452
-   DATA: 02/09/2026
-   NOVIDADES (Beta v1.105.0) — fecha a arquitetura de Partes iniciada na
+   VERSÃO: Beta v1.106.0
+   LINHAS: 30807
+   DATA: 03/09/2026
+   NOVIDADES (Beta v1.106.0) — MERGE de duas linhas que divergiram da
+   v1.104.0 em sessões diferentes, ambas rotuladas "v1.105.0":
+     (a) Partes (esta base): chips no contrato, alocação de despesa por
+         parte, "Gerar despesa" no item de controle — texto abaixo, intacto;
+     (b) Gramática única, fatias 1 e 2 (reaplicadas aqui, byte a byte):
+         tokens (--paper Pérola #f1f4ec, --warning vinho, --wine,
+         --brass-bg, --muted, --card, raios, sombra, fontes), catálogo de
+         classes rz-* no <style> global e helpers abrirSheet/fecharSheet/
+         abrirSheetAcoes/abrirSheetForm/renderStatus/rzSemantica/rzIcones/
+         rzEsc logo após APP_VERSAO (expostos em window.*).
+   Regiões disjuntas (a: a partir da linha ~21.3k; b: :root, fim do
+   style, pós-APP_VERSAO) — merge por reaplicação, diff conferido: só as
+   linhas de :root, header e APP_VERSAO diferem da base (a).
+   + FATIA 3 (ficha do ativo) entregue nos módulos: ativos-markup.js
+     v1.16.0, cofre-ativos.js v1.17.0, cofre-controles.js v1.13.0,
+     cofre-app.js v1.20.0 — 7 abas → 5 chips, cards com rodapé único,
+     Mais ações em sheet, vazios únicos, status nas 5 semânticas.
+     Neste arquivo, só 3 regras de CSS a mais no catálogo (tamanho do
+     svg dentro de .rz-row/.rz-empty e flex:none nos ícones de botão).
+   Trava: verificar_gramatica.py v1.1 rodado — nenhum padrão subiu;
+   caíram pill_mais_acoes, mais_acoes_inline, caixa_alta, seta_em_texto,
+   status_tailwind (ver saída no changelog das REGRAS v3.3).
+
+   NOVIDADES (Beta v1.105.0 — linha Partes) — fecha a arquitetura de Partes iniciada na
    v1.104.0 (3 pedidos explícitos numa sequência de mensagens):
 
    1) Chip "Partes" no Contrato — abrirDetalhesContrato() ganhou uma
@@ -6472,11 +6495,23 @@
             --pine:#1e3a32; --pine-deep:#152a24; --pine-light:#2d5347;
             --sprout:#3f8163; --sprout-light:#dcebe0;
             --brass:#c68a3b; --brass-deep:#a86f27; --brass-light:#f0c88a;
-            --sage:#6b857a; --ink:#17211e; --paper:#faf9f5; --line:#e6e3da;
+            /* v1.105.0 — brass é cor EXCLUSIVA de IA/Robô (REGRAS_EXPERIENCIA §16).
+               --brass-bg é o fundo do selo/zona IA. */
+            --brass-bg:#fbf1e2;
+            /* v1.105.0 — vinho entra como 2º acento e como --warning (DS v2.1 §1),
+               separando "atenção" (vinho) de "IA" (dourado), que antes eram o mesmo hex. */
+            --wine:#7d4b54; --wine-light:#c98f97;
+            --sage:#6b857a; --ink:#17211e; --line:#e6e3da;
+            /* v1.105.0 — --paper "Pérola" (DS v2.1): era #faf9f5. */
+            --paper:#f1f4ec; --card:#ffffff; --muted:#6f7a76;
             --success:#2f8b57; --success-bg:#e8f5ed;
-            --warning:#c68a3b; --warning-bg:#fbf1e2;
+            --warning:#7d4b54; --warning-bg:#f3e7e9;
             --danger:#c1463a; --danger-bg:#fbebe9;
             --info:#3d6b8c; --info-bg:#e8f0f5;
+            /* v1.105.0 — geometria e sombra únicas da gramática (REGRAS §17) */
+            --r-card:16px; --r-ctl:10px; --r-pill:999px;
+            --sh-card:0 1px 2px rgba(23,33,30,.06),0 4px 14px rgba(23,33,30,.05);
+            --font-title:"Bricolage Grotesque",sans-serif; --font-body:"Inter",system-ui,sans-serif;
         }
 
         h1,h2,h3,h4{font-family:"Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
@@ -6604,6 +6639,175 @@
         .raiz-border-sprout { border-color: var(--sprout) !important; }
         .raiz-btn-pine { background: var(--pine) !important; }
         .raiz-btn-pine:hover { background: var(--pine-light) !important; }
+
+        /* ====================================================================
+           v1.105.0 — CATÁLOGO DE CLASSES DA GRAMÁTICA ÚNICA (prefixo rz-)
+           Fonte: REGRAS_EXPERIENCIA_RAIZ_v3_0.md §18 + PROTOTIPO_UX_RAIZ_v3_0.html.
+           Esta é a lista INTEIRA de classes de UI permitidas em código novo.
+           Código novo não usa style="" de layout nem cor Tailwind
+           (emerald-*/slate-*) — só estas classes + tokens. Prefixo rz- porque
+           .card/.btn/.chip/.nav já existiam no arquivo com outro significado.
+           Fatia 1 da migração (§19): aditiva, nenhuma tela usa ainda.
+           ==================================================================== */
+        /* 4. cabeçalho global e de aba */
+        .rz-hdr{background:var(--sprout);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px}
+        .rz-hdr .rz-brand{flex:1;min-width:0}
+        .rz-hdr .rz-brand h1{font-family:var(--font-title);font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
+        .rz-hdr .rz-brand small{display:block;font-size:11px;opacity:.85;margin-top:1px}
+        .rz-hdr .rz-ia{width:40px;height:40px;border-radius:50%;background:var(--brass);color:#fff;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 3px rgba(198,138,59,.28);flex:none}
+        .rz-hdr .rz-ia .rz-dot{position:absolute;top:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--brass)}
+        .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+        .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+        .rz-tabhead p{flex:1;font-size:12px;color:var(--muted);line-height:1.35;margin:0}
+        .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
+        .rz-ico-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none}
+        .rz-ico-btn:active{transform:scale(.92)}
+        .rz-ico-btn.rz-primary{background:var(--pine);color:#fff;border-color:var(--pine)}
+        .rz-ico-btn svg{width:20px;height:20px}
+        .rz-back{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--pine);margin-bottom:12px}
+        .rz-back svg{width:16px;height:16px}
+        /* 11. cabeçalho de entidade (ficha) */
+        .rz-entity{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+        .rz-entity .rz-ic{width:52px;height:52px;border-radius:14px;background:var(--sprout-light);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-entity .rz-ic svg{width:24px;height:24px}
+        .rz-entity .rz-tx{flex:1;min-width:0}
+        .rz-entity .rz-tx b{display:block;font-family:var(--font-title);font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+        .rz-entity .rz-tx span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+        /* 8. chips (1 linha, rolagem horizontal) e segmento */
+        .rz-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:2px 16px}
+        .rz-chips::-webkit-scrollbar{display:none}
+        .rz-chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--pine);white-space:nowrap}
+        .rz-chip .rz-n{font-size:11px;font-weight:600;color:var(--muted);background:var(--paper);padding:1px 6px;border-radius:var(--r-pill)}
+        .rz-chip.rz-on{background:var(--pine);border-color:var(--pine);color:#fff}
+        .rz-chip.rz-on .rz-n{background:rgba(255,255,255,.18);color:#fff}
+        .rz-chip.rz-warn .rz-n{background:var(--warning-bg);color:var(--warning)}
+        .rz-seg{display:flex;background:#e2e6df;border-radius:12px;padding:3px;margin-bottom:12px}
+        .rz-seg button{flex:1;height:34px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:0}
+        .rz-seg button.rz-on{background:#fff;color:var(--pine);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+        /* 6. card — anatomia única */
+        .rz-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--sh-card);padding:14px 16px;margin-bottom:12px}
+        .rz-card.rz-list{padding:4px 16px}
+        .rz-card.rz-critico{border-color:var(--danger)}
+        .rz-card.rz-atencao{border-color:var(--wine-light)}
+        .rz-card-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .rz-card-h h3{font-family:var(--font-title);font-size:15px;flex:1;letter-spacing:-.02em;margin:0}
+        .rz-card-h .rz-sub{font-size:12px;color:var(--muted)}
+        .rz-card-f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+        .rz-more{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--muted);height:36px;padding:0 4px;background:none;border:0;margin-left:auto}
+        .rz-more svg{width:15px;height:15px}
+        .rz-desc{font-size:13px;color:var(--muted);line-height:1.4;margin:0}
+        .rz-kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:6px}
+        .rz-kv > div{min-width:0}
+        .rz-kv small{display:block;font-size:11.5px;color:var(--muted);margin-bottom:2px}
+        .rz-kv b{font-size:14px;font-weight:600;word-break:break-word}
+        .rz-kv .rz-full{grid-column:1/-1}
+        /* 7. botões — 3 níveis + IA */
+        .rz-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:40px;padding:0 16px;border-radius:var(--r-ctl);font-size:14px;font-weight:600;border:0;background:none;transition:transform .08s;cursor:pointer}
+        .rz-btn:active{transform:scale(.97)}
+        .rz-btn svg{width:17px;height:17px}
+        .rz-btn-1{background:var(--pine);color:#fff}
+        .rz-btn-2{background:#fff;color:var(--pine);border:1.5px solid var(--pine)}
+        .rz-btn-3{color:var(--pine);padding:0 6px;text-decoration:underline;text-decoration-color:var(--sprout-light);text-underline-offset:3px}
+        .rz-btn-ia{background:var(--brass);color:#fff}
+        .rz-btn.rz-sm{height:34px;font-size:13px;padding:0 12px}
+        .rz-btn.rz-wide{width:100%}
+        .rz-btn:disabled{opacity:.55;pointer-events:none}
+        /* 10. status — ponto + rótulo, 5 semânticas */
+        .rz-st{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px 3px 7px;border-radius:var(--r-pill);white-space:nowrap;flex:none}
+        .rz-st::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+        .rz-st.rz-ok{color:var(--success);background:var(--success-bg)}
+        .rz-st.rz-warn{color:var(--warning);background:var(--warning-bg)}
+        .rz-st.rz-bad{color:var(--danger);background:var(--danger-bg)}
+        .rz-st.rz-run{color:var(--info);background:var(--info-bg)}
+        .rz-st.rz-neu{color:var(--sage);background:#eef1ec}
+        .rz-ia-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--brass-deep);background:var(--brass-bg);padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap}
+        .rz-ia-tag svg{width:12px;height:12px}
+        /* 9. lista — item padrão, agrupador, vazio */
+        .rz-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+        .rz-row:first-of-type{border-top:0}
+        .rz-row .rz-ic{width:42px;height:42px;border-radius:12px;background:var(--sprout-light);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-row .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
+        .rz-row .rz-ic.rz-warn{background:var(--warning-bg);color:var(--warning)}
+        .rz-row .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-row .rz-ic.rz-neu{background:#eef1ec;color:var(--sage)}
+        .rz-row .rz-ic svg{width:20px;height:20px}
+        .rz-empty .rz-ic svg{width:24px;height:24px}
+        .rz-more svg,.rz-back svg,.rz-btn svg{flex:none}
+        .rz-row .rz-tx{flex:1;min-width:0}
+        .rz-row .rz-tx b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-row .rz-tx span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+        .rz-row .rz-rt{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+        .rz-row .rz-rt b{font-size:14px;font-weight:600}
+        .rz-row .rz-rt b.rz-in{color:var(--success)}
+        .rz-row .rz-rt b.rz-out{color:var(--ink)}
+        .rz-row.rz-link{cursor:pointer}
+        .rz-row .rz-chev{color:var(--muted);width:18px;height:18px;flex:none}
+        .rz-group{font-size:12px;font-weight:600;color:var(--sage);margin:14px 2px 6px}
+        .rz-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+        .rz-kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+        .rz-kpi small{display:block;font-size:11.5px;color:var(--muted)}
+        .rz-kpi b{display:block;font-family:var(--font-title);font-size:20px;margin-top:2px;letter-spacing:-.02em}
+        .rz-kpi.rz-in b{color:var(--success)} .rz-kpi.rz-bad b{color:var(--danger)}
+        .rz-kpi.rz-hero{grid-column:1/-1;background:var(--pine);border-color:var(--pine);color:#fff}
+        .rz-kpi.rz-hero small{color:rgba(255,255,255,.75)} .rz-kpi.rz-hero b{font-size:26px}
+        .rz-prog{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
+        .rz-prog i{display:block;height:100%;background:var(--sprout)}
+        .rz-empty{text-align:center;padding:18px 8px 8px}
+        .rz-empty .rz-ic{width:52px;height:52px;border-radius:16px;background:var(--paper);color:var(--sage);display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px}
+        .rz-empty p{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.4}
+        .rz-empty .rz-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+        .rz-alert-sev{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:11.5px;color:var(--muted)}
+        .rz-card.rz-sev-bad{border-left:4px solid var(--danger)} .rz-card.rz-sev-warn{border-left:4px solid var(--warning)}
+        .rz-card.rz-sev-ia{border-left:4px solid var(--brass)} .rz-card.rz-sev-run{border-left:4px solid var(--info)}
+        /* 5. bottom nav (usada a partir da fatia 7) */
+        .rz-nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding:6px 4px calc(10px + env(safe-area-inset-bottom));z-index:40}
+        .rz-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--muted);position:relative;padding-top:8px;background:none;border:0}
+        .rz-nav button.rz-on{color:var(--sprout)}
+        .rz-nav button.rz-on::before{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:2px;background:var(--sprout)}
+        .rz-nav button .rz-b{position:absolute;top:4px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;line-height:16px}
+        .rz-nav button .rz-b.rz-warn{background:var(--warning)}
+        /* 3. sheet — única superfície modal (formulário, ações, menu, IA) */
+        .rz-veil{position:fixed;inset:0;background:rgba(23,33,30,.5);display:flex;align-items:flex-end;justify-content:center;z-index:90;opacity:0;pointer-events:none;transition:opacity .15s}
+        .rz-veil.rz-on{opacity:1;pointer-events:auto}
+        .rz-sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;max-height:86vh;display:flex;flex-direction:column;transform:translateY(24px);transition:transform .18s}
+        .rz-veil.rz-on .rz-sheet{transform:none}
+        .rz-sheet.rz-menu{background:var(--paper)}
+        .rz-grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:10px auto 0;flex:none}
+        .rz-sh-h{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex:none}
+        .rz-sh-h h3{font-family:var(--font-title);font-size:17px;flex:1;letter-spacing:-.02em;margin:0}
+        .rz-sh-h .rz-sub{font-size:12px;color:var(--muted);display:block;margin-top:1px}
+        .rz-x{width:30px;height:30px;border-radius:50%;background:var(--paper);display:flex;align-items:center;justify-content:center;color:var(--muted);border:0;flex:none}
+        .rz-x svg{width:16px;height:16px}
+        .rz-sh-b{padding:4px 16px 16px;overflow-y:auto}
+        .rz-sh-f{display:flex;gap:8px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);flex:none}
+        .rz-sh-f .rz-btn{flex:1}
+        .rz-act{display:flex;align-items:center;gap:12px;width:100%;padding:12px 6px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+        .rz-act:first-child{border-top:0}
+        .rz-act .rz-ic{width:36px;height:36px;border-radius:10px;background:var(--sprout-light);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-act .rz-ic svg{width:18px;height:18px}
+        .rz-act .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-act .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
+        .rz-act small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
+        .rz-act.rz-bad{color:var(--danger)}
+        .rz-f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+        .rz-f label{font-size:12px;font-weight:600;color:var(--muted)}
+        .rz-f label i{color:var(--danger);font-style:normal}
+        .rz-f input,.rz-f select,.rz-f textarea{width:100%;height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+        .rz-f textarea{height:auto;padding:10px 12px}
+        .rz-f input:focus,.rz-f select:focus,.rz-f textarea:focus{border-color:var(--sprout);outline:0}
+        .rz-f .rz-hint{font-size:11.5px;color:var(--muted)}
+        .rz-f .rz-ok{font-size:11.5px;color:var(--success);font-weight:600}
+        .rz-f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        /* 16. IA — assistente e sugestões */
+        .rz-ia-hero{background:linear-gradient(135deg,var(--pine) 0%,var(--pine-light) 100%);color:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
+        .rz-ia-hero h4{font-family:var(--font-title);font-size:15px;display:flex;align-items:center;gap:8px;margin:0 0 6px}
+        .rz-ia-hero h4 svg{color:var(--brass-light);width:18px;height:18px}
+        .rz-ia-hero p{font-size:13px;line-height:1.45;opacity:.92;margin:0}
+        .rz-sug{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:0 16px}
+        .rz-sug button{flex:none;border:1px solid var(--brass-light);background:var(--brass-bg);color:var(--brass-deep);font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:var(--r-pill)}
+        .rz-bubble{background:var(--paper);border-radius:14px;padding:10px 12px;font-size:13px;line-height:1.45;margin-bottom:8px}
+        .rz-bubble.rz-me{background:var(--sprout-light);margin-left:40px}
+        @media (prefers-reduced-motion:reduce){.rz-veil,.rz-sheet,.rz-btn,.rz-ico-btn{transition:none}}
 
     </style>
 
@@ -10272,7 +10476,158 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.105.0";
+        const APP_VERSAO = "Beta v1.106.0";
+
+        // ====================================================================
+        // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
+        // Fonte: REGRAS_EXPERIENCIA_RAIZ_v3_0.md §3 (6 superfícies) e §18
+        // (uma função por superfície). Fatia 2 da migração (§19): aditiva —
+        // convivem com os popups antigos (Tipos A/B/C) até cada tela migrar.
+        //
+        //   abrirSheet(html, opcoes)          sheet genérico (menu, IA)
+        //   abrirSheetAcoes({titulo,sub,acoes}) sheet de ações (dados, não HTML)
+        //   abrirSheetForm({titulo,sub,corpo,aoSalvar,...}) sheet de formulário
+        //   fecharSheet()
+        //   renderStatus(codigo, rotulo)       badge "ponto + rótulo", 5 semânticas
+        //   rzIcones()                         lucide.createIcons() guardado
+        //   mostrarToast(msg)                  (já existia) — rótulo = verbo no passado
+        //
+        // Regras que estas funções GARANTEM sozinhas (não dependem de quem chama):
+        //   - um único contêiner #rz-veil no body; abrir de novo substitui;
+        //   - fecha por X, toque fora e Escape;
+        //   - ação destrutiva (tipo:'bad') sempre por último no sheet de ações;
+        //   - ação de IA (tipo:'ia') sempre no topo;
+        //   - status desconhecido cai em "neutro" — nunca inventa cor.
+        // Expostas em window.* pra os módulos ES (js/ativos, js/cofre-*) usarem.
+        // ====================================================================
+        function rzIcones() { if (window.lucide) lucide.createIcons(); }
+
+        function rzEsc(v) {
+            return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        function rzGarantirVeil() {
+            let veil = document.getElementById('rz-veil');
+            if (veil) return veil;
+            veil = document.createElement('div');
+            veil.id = 'rz-veil';
+            veil.className = 'rz-veil';
+            veil.innerHTML = '<div class="rz-sheet" id="rz-sheet" role="dialog" aria-modal="true"></div>';
+            veil.addEventListener('click', ev => { if (ev.target === veil) fecharSheet(); });
+            document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && veil.classList.contains('rz-on')) fecharSheet(); });
+            document.body.appendChild(veil);
+            return veil;
+        }
+
+        function rzSheetCabecalho(titulo, sub) {
+            return `<div class="rz-sh-h"><div style="flex:1;min-width:0"><h3>${rzEsc(titulo)}</h3>${sub ? `<span class="rz-sub">${rzEsc(sub)}</span>` : ''}</div>` +
+                   `<button type="button" class="rz-x" onclick="fecharSheet()" aria-label="Fechar"><svg data-lucide="x"></svg></button></div>`;
+        }
+
+        // opcoes: { classe: 'rz-menu' | '', aoFechar: fn }
+        function abrirSheet(html, opcoes = {}) {
+            const veil = rzGarantirVeil();
+            const sheet = document.getElementById('rz-sheet');
+            sheet.className = 'rz-sheet' + (opcoes.classe ? ' ' + opcoes.classe : '');
+            sheet.innerHTML = '<div class="rz-grab"></div>' + html;
+            sheet._aoFechar = opcoes.aoFechar || null;
+            veil.classList.add('rz-on');
+            rzIcones();
+            return sheet;
+        }
+
+        function fecharSheet() {
+            const veil = document.getElementById('rz-veil');
+            if (!veil || !veil.classList.contains('rz-on')) return;
+            veil.classList.remove('rz-on');
+            const sheet = document.getElementById('rz-sheet');
+            const cb = sheet && sheet._aoFechar;
+            if (sheet) sheet._aoFechar = null;
+            if (typeof cb === 'function') cb();
+        }
+
+        // acoes: [{ icone, titulo, sub, tipo: 'ia' | 'bad' | '', aoTocar: fn, manterAberto: bool }]
+        function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
+            const ordenar = lista => [
+                ...lista.filter(a => a.tipo === 'ia'),
+                ...lista.filter(a => a.tipo !== 'ia' && a.tipo !== 'bad'),
+                ...lista.filter(a => a.tipo === 'bad')
+            ];
+            const item = (a, i) =>
+                `<button type="button" class="rz-act ${a.tipo === 'bad' ? 'rz-bad' : ''}" data-rz-i="${i}">` +
+                `<div class="rz-ic ${a.tipo ? 'rz-' + a.tipo : ''}"><svg data-lucide="${rzEsc(a.icone || 'chevron-right')}"></svg></div>` +
+                `<div>${rzEsc(a.titulo)}${a.sub ? `<small>${rzEsc(a.sub)}</small>` : ''}</div></button>`;
+            let corpo = '', planas = [];
+            if (grupos) {
+                grupos.forEach(g => {
+                    const lista = ordenar(g.acoes || []);
+                    corpo += `<div class="rz-group">${rzEsc(g.titulo)}</div><div class="rz-card rz-list">`;
+                    lista.forEach(a => { corpo += item(a, planas.length); planas.push(a); });
+                    corpo += '</div>';
+                });
+            } else {
+                planas = ordenar(acoes);
+                corpo = planas.map(item).join('');
+            }
+            const sheet = abrirSheet(rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`, { classe: grupos ? 'rz-menu' : '' });
+            sheet.querySelectorAll('[data-rz-i]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const a = planas[Number(btn.dataset.rzI)];
+                    if (!a.manterAberto) fecharSheet();
+                    if (typeof a.aoTocar === 'function') a.aoTocar();
+                });
+            });
+            return sheet;
+        }
+
+        // corpo: string HTML ou função(el) que preenche; aoSalvar(corpoEl) pode
+        // devolver Promise; se devolver false (ou rejeitar), o sheet fica aberto.
+        function abrirSheetForm({ titulo, sub, corpo = '', rotuloSalvar = 'Salvar', rotuloCancelar = 'Cancelar', aoSalvar, semRodape = false, aoFechar }) {
+            const rodape = semRodape ? '' :
+                `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" onclick="fecharSheet()">${rzEsc(rotuloCancelar)}</button>` +
+                `<button type="button" class="rz-btn rz-btn-1" id="rz-sheet-salvar">${rzEsc(rotuloSalvar)}</button></div>`;
+            const sheet = abrirSheet(rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b" id="rz-sheet-corpo">${typeof corpo === 'string' ? corpo : ''}</div>` + rodape, { aoFechar });
+            const corpoEl = sheet.querySelector('#rz-sheet-corpo');
+            if (typeof corpo === 'function') { corpo(corpoEl); rzIcones(); }
+            const btn = sheet.querySelector('#rz-sheet-salvar');
+            if (btn) btn.addEventListener('click', async () => {
+                btn.disabled = true;
+                try {
+                    const r = typeof aoSalvar === 'function' ? await aoSalvar(corpoEl) : true;
+                    if (r !== false) fecharSheet();
+                } catch (e) {
+                    console.error('[rz] aoSalvar falhou:', e);
+                    mostrarToast(e?.message || 'Não foi possível salvar', 'danger');
+                } finally { btn.disabled = false; }
+            });
+            const primeiro = corpoEl.querySelector('input,select,textarea');
+            if (primeiro) setTimeout(() => primeiro.focus(), 60);
+            return sheet;
+        }
+
+        // 10. Status — códigos do app → 5 semânticas (REGRAS §10). Chave em
+        // minúsculas, sem acento. Desconhecido → 'neu'. Nenhuma tela decide cor.
+        const RZ_STATUS = {
+            ok: 'ok', warn: 'warn', bad: 'bad', run: 'run', neu: 'neu',
+            pago: 'ok', paga: 'ok', alugado: 'ok', ativo: 'ok', ativa: 'ok', renovado: 'ok', concluido: 'ok', 'em dia': 'ok', vigente: 'ok',
+            vencendo: 'warn', renovar: 'warn', 'a renovar': 'warn', pendente: 'warn', 'pendente de confirmacao': 'warn', atencao: 'warn',
+            inadimplente: 'bad', atrasado: 'bad', atrasada: 'bad', 'em atraso': 'bad', vencido: 'bad', vencida: 'bad', critico: 'bad', 'sem seguro': 'bad',
+            assinando: 'run', 'a vencer': 'run', 'a receber': 'run', 'a pagar': 'run', automatico: 'run', 'em andamento': 'run', 'em processamento': 'run', aguardando: 'run',
+            vago: 'neu', encerrado: 'neu', cancelado: 'neu', suspenso: 'neu', rascunho: 'neu', finalizado: 'neu'
+        };
+        function rzSemantica(codigo) {
+            const k = String(codigo ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+            return RZ_STATUS[k] || 'neu';
+        }
+        // renderStatus('inadimplente')            -> "Inadimplente"
+        // renderStatus('bad', '4 em atraso')      -> rótulo customizado (número é o rótulo)
+        function renderStatus(codigo, rotulo) {
+            const sem = rzSemantica(codigo);
+            const texto = rotulo ?? (String(codigo).charAt(0).toUpperCase() + String(codigo).slice(1));
+            return `<span class="rz-st rz-${sem}">${rzEsc(texto)}</span>`;
+        }
+
+        Object.assign(window, { rzIcones, rzEsc, abrirSheet, fecharSheet, abrirSheetAcoes, abrirSheetForm, renderStatus, rzSemantica, RZ_STATUS });
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 

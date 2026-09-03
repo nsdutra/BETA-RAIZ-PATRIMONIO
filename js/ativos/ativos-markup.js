@@ -1,6 +1,32 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.15.0 · 02/09/2026
+// Versão: 1.16.0 · 02/09/2026
+//
+// v1.16.0 — FATIA 3 da gramática única (REGRAS_EXPERIENCIA_RAIZ_v3_2 §6,
+// §9, §11; catálogo rz-* do index.html v1.106.0). Ficha do ativo:
+//   - 7 abas (flex-wrap, 2 linhas) → 5 chips em 1 linha com rolagem
+//     (.rz-chips): Resumo · Contratos · Controles · Financeiro · Arquivos.
+//     Resumo = Dados + Propriedade; Arquivos = Documentos + Fotos com
+//     segmento .rz-seg. Contadores .rz-n nos chips, preenchidos pelos
+//     montar*() (cofre-ativos.js v1.17.0 / cofre-controles.js v1.13.0).
+//   - Todo card virou .rz-card com rodapé único: 1 ação nomeada (.rz-btn-2)
+//     à esquerda + "Mais ações" (.rz-more) à direita, que agora abre um
+//     SHEET (abrirSheetAcoes) — os 3 painéis inline #fa-mais-acoes,
+//     #fa-mais-acoes-controles e #fa-fotos-acoes SAÍRAM do markup.
+//   - Vazios de Documentos e Fotos no formato único .rz-empty; em
+//     Documentos a IA é o botão primário (.rz-btn-ia) e "Upload simples"
+//     é terciário — as 2 caixas tracejadas saíram.
+//   - Cabeçalho da ficha usa .rz-entity (ícone 52 · título 18 · contexto ·
+//     status à direita); "Voltar" usa .rz-back.
+//   - "Editar →" (link em texto) saiu: o botão "Editar dados" do rodapé
+//     do card Dados leva pro formulário do imóvel quando o ativo é imóvel
+//     vinculado (data-action decidido em montarDadosAtivo()).
+//   IDs mantidos (fa-dados-imovel-grid, fa-resumo-dados, fa-editar-*,
+//   fa-contratos-lista, fa-tab-controles, fa-financeiro-*, fa-propriedade-
+//   lista, fa-tab-documentos, fa-box-fotos, fa-fotos-grid, fa-fotos-vazio,
+//   fa-foto-input) pra que o JS que já preenchia continue preenchendo.
+//   Painel 'dados' virou 'resumo' e 'propriedade'/'documentos'/'fotos'
+//   deixaram de ser painéis (vivem dentro de resumo/arquivos).
 //
 // v1.15.0 — botão "Gerar despesa" novo na box Partes do item de
 // controle (ver changelog completo em cofre-controles.js v1.12.0).
@@ -493,7 +519,7 @@ export const ATIVOS_MARKUP = `<style>
 <!-- ===================== TELA — FICHA DO ATIVO (boxes, padrão do App/Imóveis) ===================== -->
 <section data-screen="ficha-ativo" class="hidden">
 
-    <button data-action="voltar-ficha-ativo" class="text-xs font-bold text-slate-600 flex items-center gap-1"><i data-lucide="chevron-left" style="width:16px;height:16px"></i> Ativos</button>
+    <button data-action="voltar-ficha-ativo" class="rz-back"><i data-lucide="chevron-left"></i> Ativos</button>
 
     <!-- v1.93.0 (pedido explícito, 31/08/2026, "evoluir a exemplo do
          protótipo") — ficha reestruturada de boxes empilhados pra abas
@@ -509,7 +535,7 @@ export const ATIVOS_MARKUP = `<style>
          ativo", agora é o cabeçalho da ficha inteira, acima das abas) —
          mesmo id, mesma função abrirFichaAtivo() que já preenchia,
          nenhuma mudança de JS precisou pra isso. -->
-    <div id="fa-cabecalho" class="mt-3"></div>
+    <div id="fa-cabecalho" class="rz-entity mt-3"></div>
 
     <!-- Histórico desta fileira, resumido (comentários antigos redundantes
          removidos em v1.12.0 pra não deixar versões contraditórias):
@@ -533,194 +559,139 @@ export const ATIVOS_MARKUP = `<style>
          raiz-sem-scrollbar — não tocados aqui; se o mesmo indicador
          nativo aparecer lá também, é a próxima fileira a trocar pra
          flex-wrap pelo mesmo motivo. -->
-    <div class="flex flex-wrap gap-1 mt-4 mb-3" style="border-bottom:1px solid var(--line)">
-        <button data-action="fa-trocar-aba" data-fa-aba="dados" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2" style="color:var(--sprout);border-bottom:2px solid var(--sprout)">Dados</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Contratos</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Controles</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Financeiro</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="propriedade" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Propriedade</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="documentos" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Documentos</button>
-        <button data-action="fa-trocar-aba" data-fa-aba="fotos" class="fa-subtab flex-none whitespace-nowrap text-center text-xs font-bold px-3 py-2 text-slate-500" style="border-bottom:2px solid transparent">Fotos</button>
+    <!-- v1.16.0 (fatia 3 da gramática única, REGRAS_EXPERIENCIA §11) —
+         7 abas em 2 linhas viraram 5 CHIPS em 1 linha com rolagem
+         horizontal (.rz-chips, catálogo do index.html v1.106.0):
+           Resumo   = Dados + Propriedade (2 cards empilhados)
+           Contratos, Controles, Financeiro = mesmos painéis de antes
+           Arquivos = Documentos + Fotos (segmento .rz-seg dentro)
+         Contador (.rz-n) em Contratos/Controles/Arquivos, preenchido
+         pelos montar*() — chip Controles fica .rz-warn quando há item
+         vencendo/vencido. Mesmos data-action/data-fa-aba/.fa-subtab de
+         sempre — faTrocarAba() só trocou o destaque pra classe .rz-on.
+         Sobre a barra de rolagem nativa (v1.12.0 tinha ido pra flex-wrap
+         por causa dela): .rz-chips usa scrollbar-width:none + ::-webkit-
+         scrollbar{display:none}; se o indicador de Samsung Internet
+         reaparecer, o ajuste é em .rz-chips no index.html (1 lugar),
+         não aqui. -->
+    <div class="rz-chips mt-4" id="fa-chips">
+        <button data-action="fa-trocar-aba" data-fa-aba="resumo" class="fa-subtab rz-chip rz-on">Resumo</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab rz-chip">Contratos <span class="rz-n" id="fa-chip-n-contratos">0</span></button>
+        <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab rz-chip">Controles <span class="rz-n" id="fa-chip-n-controles">0</span></button>
+        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Financeiro</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="arquivos" class="fa-subtab rz-chip">Arquivos <span class="rz-n" id="fa-chip-n-arquivos">0</span></button>
     </div>
 
-    <!-- ===== Painel: Dados ===== -->
-    <div id="fa-painel-dados" class="fa-painel space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <!-- v1.95.0 (pedido explícito, 01/09/2026, achado com screenshot
-                 real) — BUG REAL corrigido: #fa-resumo-origem-imovel era
-                 flex+justify-between com 2 filhos (frase + botão); o JS
-                 (montarDadosAtivo) entrava um 3º filho ali dentro (a
-                 grade de dados) — 3 itens flex numa linha só quebravam o
-                 layout inteiro (a grade "flutuava" ao lado da frase em
-                 vez de ficar embaixo). Corrigido: grade agora tem
-                 container PRÓPRIO (#fa-dados-imovel-grid), fora do flex.
-                 Também "não temos mais dois módulos... elimine qq menção
-                 que seja por módulo": a frase "Este ativo referencia um
-                 imóvel já cadastrado" (que expunha a arquitetura por
-                 trás em vez de mostrar o dado) SAIU — o link de editar
-                 virou parte do cabeçalho da própria grade, sem chamar
-                 atenção pra existir "um imóvel" separado do "ativo". -->
-            <div id="fa-dados-imovel-grid" class="hidden mb-3"></div>
-            <div id="fa-resumo-dados" class="text-sm space-y-1"></div>
+    <!-- ===== Painel: Resumo (Dados + Propriedade) ===== -->
+    <div id="fa-painel-resumo" class="fa-painel">
+        <div class="rz-card">
+            <div class="rz-card-h"><h3 id="fa-dados-titulo">Dados do ativo</h3><span id="fa-dados-status"></span></div>
+            <div id="fa-dados-imovel-grid" class="hidden"></div>
+            <div id="fa-resumo-dados"></div>
 
+            <!-- editor inline dos campos estruturados (cofre_ativos.dados_
+                 especificos) — comportamento intacto, só o visual dos
+                 botões migrou pra .rz-btn. Migrar pra abrirSheetForm é a
+                 fatia 3b (ver PENDÊNCIAS). -->
             <div id="fa-editar-wrapper" class="hidden raiz-form-borda p-3 mt-2">
                 <div id="fa-editar-campos" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                 <div class="flex justify-end gap-2 mt-3">
-                    <button data-action="alternar-editar-ativo" class="px-3 py-2 rounded-xl text-xs border-2 border-slate-300">Cancelar</button>
-                    <button data-action="salvar-edicao-ativo" class="px-3 py-2 rounded-xl text-xs font-semibold text-white" style="background:var(--sprout)">Salvar</button>
+                    <button data-action="alternar-editar-ativo" class="rz-btn rz-btn-2 rz-sm">Cancelar</button>
+                    <button data-action="salvar-edicao-ativo" class="rz-btn rz-btn-1 rz-sm">Salvar</button>
                 </div>
             </div>
 
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">
-                    Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-seta" style="width:13px;height:13px"></i>
-                </button>
+            <!-- rodapé único (REGRAS §6): 1 ação nomeada + Mais ações → sheet.
+                 O data-action do botão "Editar dados" é decidido em
+                 montarDadosAtivo(): imóvel vinculado → abrir-gestao-imovel
+                 (formulário real do imóvel); demais tipos → editor inline. -->
+            <div class="rz-card-f">
+                <button id="fa-btn-editar-dados" data-action="alternar-editar-ativo" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="pencil"></i> Editar dados</button>
+                <button data-action="abrir-acoes-ativo" class="rz-more">Mais ações <i data-lucide="chevron-down"></i></button>
             </div>
-            <!-- v1.93.0 — pill "Documentos" SAIU daqui: virou aba própria,
-                 não precisa mais de atalho dentro de Mais ações. Fotos/
-                 Marcar como vendido/Excluir continuam (não são abas). -->
-            <div id="fa-mais-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <button data-action="alternar-editar-ativo" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Editar dados</button>
-                <label for="fa-foto-input" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300" style="cursor:pointer">Fotos</label>
-                <button data-action="marcar-ativo-vendido" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Marcar como vendido</button>
-                <button data-action="excluir-ativo-atual" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Excluir</button>
+        </div>
+
+        <div class="rz-card">
+            <div class="rz-card-h"><h3>Propriedade</h3><span class="rz-sub">Divisão societária</span></div>
+            <div id="fa-propriedade-lista"></div>
+            <div class="rz-card-f">
+                <button data-action="fa-editar-propriedade" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="pencil"></i> Editar divisão</button>
             </div>
         </div>
     </div>
 
-    <!-- ===== Painel: Contratos (NOVO, v1.93.0, pedido explícito) =====
-         Só existe conteúdo de verdade quando o ativo referencia um
-         imóvel (entidade_origem_tipo='imovel') — outros tipos de ativo
-         não têm contrato de locação neste sistema. Leitura direta da
-         tabela contratos via cofre-api.js (mesma conexão redundante já
-         aceita, ver ativos-boot.js), sem duplicar nenhuma lógica de
-         negócio de contrato (reajuste, minuta, rescisão continuam só na
-         aba Contratos do App).
-         v1.95.0 — subtítulo reescrito: "aqui é só o vínculo com este
-         ativo" expunha a mesma dualidade ("vínculo" pressupõe 2 coisas
-         separadas) — pedido explícito de eliminar linguagem por módulo. -->
-    <div id="fa-painel-contratos" class="fa-painel hidden space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Contratos</h3>
-            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Reajuste, minuta e rescisão continuam na aba Contratos.</p>
-            <div id="fa-contratos-lista" class="mt-3 space-y-2"></div>
+    <!-- ===== Painel: Contratos ===== -->
+    <div id="fa-painel-contratos" class="fa-painel hidden">
+        <div class="rz-card">
+            <div class="rz-card-h"><h3>Contratos</h3><span class="rz-sub" id="fa-contratos-sub"></span></div>
+            <div id="fa-contratos-lista"></div>
         </div>
     </div>
 
     <!-- ===== Painel: Controles ===== -->
-    <div id="fa-painel-controles" class="fa-painel hidden space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Controles</h3>
-            <div id="fa-tab-controles" class="mt-1.5"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-controles" class="text-xs font-bold text-slate-500 flex items-center gap-1">
-                    Mais ações <i data-lucide="chevron-down" id="fa-mais-acoes-controles-seta" style="width:13px;height:13px"></i>
-                </button>
-            </div>
-            <div id="fa-mais-acoes-controles" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <button data-action="abrir-form-controle" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 border border-slate-300">Criar item de controle</button>
+    <div id="fa-painel-controles" class="fa-painel hidden">
+        <div class="rz-card">
+            <div class="rz-card-h"><h3>Itens de controle</h3><span id="fa-controles-status"></span></div>
+            <div id="fa-tab-controles"></div>
+            <div class="rz-card-f">
+                <button data-action="abrir-form-controle" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Novo item</button>
+                <button data-action="abrir-acoes-controles" class="rz-more">Mais ações <i data-lucide="chevron-down"></i></button>
             </div>
         </div>
     </div>
 
-    <!-- ===== Painel: Financeiro (NOVO, v1.7.0, pedido explícito,
-         01/09/2026) — entradas e saídas deste ativo. Só leitura +
-         2 pontes pro App (Nova despesa / Ver tudo em Saídas); nenhum
-         formulário de despesa vive aqui dentro, pra não duplicar a
-         lógica que já existe na aba Saídas do Financeiro (mesmo
-         princípio já usado no botão "Abrir gestão do imóvel" da aba
-         Dados). Preenchido por montarFinanceiroAtivo() (cofre-ativos.js
-         v1.10.0). -->
-    <div id="fa-painel-financeiro" class="fa-painel hidden space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Financeiro</h3>
-            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Entradas e saídas ligadas a este ativo.</p>
-            <div id="fa-financeiro-resumo" class="grid grid-cols-2 gap-2 mt-3"></div>
-            <div id="fa-financeiro-lista" class="mt-3 space-y-2"></div>
-            <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-                <button data-action="fa-novo-lancamento" class="flex-1 text-xs font-bold px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 border border-slate-300 flex items-center justify-center gap-1">
-                    <i data-lucide="plus" style="width:12px;height:12px"></i> Novo lançamento
-                </button>
-                <button data-action="fa-ver-saidas-ativo" class="flex-1 text-xs font-bold px-2.5 py-2 rounded-lg bg-slate-100 text-slate-600 border border-slate-300 flex items-center justify-center gap-1">
-                    <i data-lucide="wallet" style="width:12px;height:12px"></i> Ver tudo em Saídas
-                </button>
+    <!-- ===== Painel: Financeiro ===== -->
+    <div id="fa-painel-financeiro" class="fa-painel hidden">
+        <div id="fa-financeiro-resumo" class="rz-kpis"></div>
+        <div class="rz-card">
+            <div class="rz-card-h"><h3>Movimentações</h3><span class="rz-sub">Últimos 6 meses</span></div>
+            <div id="fa-financeiro-lista"></div>
+            <div class="rz-card-f">
+                <button data-action="fa-novo-lancamento" class="rz-btn rz-btn-2 rz-sm"><i data-lucide="plus"></i> Novo lançamento</button>
+                <button data-action="fa-ver-saidas-ativo" class="rz-btn rz-btn-3 rz-sm">Ver no Financeiro</button>
             </div>
         </div>
     </div>
 
-    <!-- ===== Painel: Propriedade (v1.10.0, pedido explícito,
-         02/09/2026: "todos os ativos devem ter a definição da
-         propriedade com % de sócio na tabela correspondente") — mostra
-         a distribuição atual (sócio/parte + %) e permite editar, mesmo
-         espírito da "Divisão Societária" que já existia pra imóvel,
-         agora estendida pra qualquer tipo de ativo. Backend (v1.13.0):
-         propriedade_ativo é a ÚNICA fonte, sempre — dado de
-         propriedade_imovel já migrado (100 linhas) e os 2 RPCs de
-         negócio que liam de lá (fn_apurar_distribuicao,
-         fn_leitura_tributaria_sinais) redirecionados também, testados
-         sem regressão contra dado real. Montado por
-         montarPropriedadeAtivo() (cofre-ativos.js). -->
-    <div id="fa-painel-propriedade" class="fa-painel hidden space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Propriedade</h3>
-            <p class="text-[11px] mt-0.5" style="color:var(--sage)">Divisão societária deste ativo.</p>
-            <div id="fa-propriedade-lista" class="mt-3 space-y-2"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="fa-editar-propriedade" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1">
-                    <i data-lucide="pencil" style="width:11px;height:11px"></i> Editar divisão
-                </button>
+    <!-- ===== Painel: Arquivos (Documentos · Fotos) ===== -->
+    <div id="fa-painel-arquivos" class="fa-painel hidden">
+        <div class="rz-seg" id="fa-seg-arquivos">
+            <button data-action="fa-seg-arquivos" data-fa-seg="documentos" class="rz-on">Documentos</button>
+            <button data-action="fa-seg-arquivos" data-fa-seg="fotos">Fotos</button>
+        </div>
+
+        <div class="rz-card" id="fa-arq-documentos">
+            <div class="rz-card-h"><h3>Documentos</h3></div>
+            <div id="fa-tab-documentos"></div>
+            <!-- vazio (REGRAS §9): IA é a ação primária, upload simples é
+                 terciário. Alternado por montarDocumentosAtivo(). -->
+            <div id="fa-documentos-vazio" class="rz-empty hidden">
+                <div class="rz-ic"><i data-lucide="file-plus-2"></i></div>
+                <p>Nenhum documento neste ativo. A IA lê matrícula, IPTU e apólices e preenche os controles sozinha.</p>
+                <div class="rz-acts">
+                    <button data-action="abrir-upload-no-ativo-ia" class="rz-btn rz-btn-ia rz-sm"><i data-lucide="sparkles"></i> Adicionar com IA</button>
+                    <button data-action="abrir-upload-no-ativo-simples" class="rz-btn rz-btn-3 rz-sm">Upload simples</button>
+                </div>
+            </div>
+            <div class="rz-card-f hidden" id="fa-documentos-rodape">
+                <button data-action="abrir-upload-no-ativo-ia" class="rz-btn rz-btn-ia rz-sm"><i data-lucide="sparkles"></i> Adicionar com IA</button>
+                <button data-action="abrir-upload-no-ativo-simples" class="rz-btn rz-btn-3 rz-sm">Upload simples</button>
             </div>
         </div>
-    </div>
 
-    <!-- ===== Painel: Documentos =====
-         v1.93.0 — antes era um MODAL (modal-documentos-ativo, aberto via
-         pill "Documentos" em Mais ações). Movido pra cá, inline, igual
-         ao protótipo — mesmos 2 botões de upload (Com IA/Upload simples,
-         mesmos data-action de sempre) + mesma lista (#fa-tab-documentos,
-         mesmo id, mesma montarDocumentosAtivo() que já preenchia —
-         nenhuma mudança de JS precisou só por causa da mudança de
-         lugar). O modal em si foi removido do HTML (ver changelog). -->
-    <div id="fa-painel-documentos" class="fa-painel hidden space-y-3">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm mb-2" style="color:var(--pine)">Documentos</h3>
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <button data-action="abrir-upload-no-ativo-ia" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sprout); color:var(--sprout)">
-                    <i data-lucide="sparkles" style="width:16px;height:16px"></i> Com IA
-                </button>
-                <button data-action="abrir-upload-no-ativo-simples" class="border-2 border-dashed rounded-xl p-3 text-xs font-bold text-center flex flex-col items-center gap-1" style="border-color:var(--sage); color:var(--sage)">
-                    <i data-lucide="upload" style="width:16px;height:16px"></i> Upload simples
-                </button>
+        <div class="rz-card hidden" id="fa-arq-fotos">
+            <div class="rz-card-h"><h3>Fotos</h3><span class="rz-sub" id="fa-fotos-sub"></span></div>
+            <div id="fa-box-fotos" class="hidden">
+                <div id="fa-fotos-grid" class="flex flex-wrap gap-2"></div>
             </div>
-            <div id="fa-tab-documentos" class="space-y-2"></div>
-        </div>
-    </div>
-
-
-    <!-- ===== Painel: Fotos ===== -->
-    <div id="fa-painel-fotos" class="fa-painel hidden space-y-3">
-        <div id="fa-box-fotos" class="hidden bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-            <h3 class="font-bold text-sm" style="color:var(--pine)">Foto</h3>
-            <div id="fa-fotos-grid" class="flex flex-wrap gap-2 mt-2"></div>
-            <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
-                <button data-action="alternar-mais-acoes-fotos-ativo" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <i data-lucide="chevron-down" id="fa-fotos-seta" style="width:13px;height:13px"></i></button>
+            <div id="fa-fotos-vazio" class="rz-empty hidden">
+                <div class="rz-ic"><i data-lucide="image"></i></div>
+                <p>Nenhuma foto ainda. Fotos alimentam a vitrine e a vistoria.</p>
+                <div class="rz-acts"><label for="fa-foto-input" class="rz-btn rz-btn-1 rz-sm" style="cursor:pointer"><i data-lucide="camera"></i> Adicionar fotos</label></div>
             </div>
-            <div id="fa-fotos-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex flex-wrap gap-1.5 justify-end">
-                <label for="fa-foto-input" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1" style="cursor:pointer">
-                    <i data-lucide="image-plus" style="width:11px;height:11px"></i> Adicionar fotos
-                </label>
+            <div class="rz-card-f hidden" id="fa-fotos-rodape">
+                <label for="fa-foto-input" class="rz-btn rz-btn-2 rz-sm" style="cursor:pointer"><i data-lucide="image-plus"></i> Adicionar fotos</label>
             </div>
-        </div>
-        <!-- v1.93.0 — estado vazio novo: antes, sem foto, a aba inteira
-             ficaria em branco (fa-box-fotos escondido por
-             montarFotosAtivo() quando não há foto) — dentro de uma aba
-             própria isso ficaria estranho (parece tela quebrada, não
-             "sem dado"). Alternado por montarFotosAtivo() junto com o
-             box, sempre o oposto um do outro. -->
-        <div id="fa-fotos-vazio" class="hidden text-center py-10">
-            <i data-lucide="image" style="width:32px;height:32px;color:var(--sage)" class="mx-auto mb-2"></i>
-            <p class="text-xs" style="color:var(--sage)">Nenhuma foto cadastrada ainda.</p>
-            <label for="fa-foto-input" class="inline-block mt-3 text-xs font-bold px-3 py-2 rounded-lg" style="background:var(--sprout);color:#fff;cursor:pointer">+ Adicionar fotos</label>
         </div>
     </div>
 

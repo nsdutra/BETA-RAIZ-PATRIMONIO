@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.12.0 · 02/09/2026
+// Versão: 1.13.0 · 03/09/2026
+//
+// v1.13.0 — FATIA 3 da gramática única (REGRAS_EXPERIENCIA_RAIZ_v3_2 §6,
+// §9, §10): na ficha do ativo, a lista de itens de controle virou .rz-row
+// (ícone colorido pela semântica, status "ponto + rótulo" via
+// renderStatus, sem chipVencimento/Tailwind amber-green); vazio no
+// formato único; contador do chip Controles (vinho quando há vencido ou
+// vencendo em ≤30d) e status no cabeçalho do card
+// (atualizarEstadoChipControles); "Mais ações" abre sheet (Modelos/
+// Tipos) e "Criar item de controle" virou a ação nomeada "Novo item" do
+// rodapé. A FICHA DO ITEM (renderizarFichaItemControle) NÃO mudou nesta
+// fatia — entra na 3b com o sheet "Tratar" (REGRAS §15).
 //
 // v1.12.0 — abrirNovoLancamentoDoItem() (NOVO, pedido explícito: "vai
 // precisar de um controle de qual a parte é pra alocar a despesa já
@@ -130,7 +141,7 @@
 // "${chip.classe}" (classe já vem completa de chipVencimento(), sem
 // prefixo). Sem mudança de comportamento.
 //
-// v1.2.1 — DS C-8: alternarMaisAcoesControles() só fazia
+// v1.2.1 — DS C-8: abrirAcoesControles() só fazia
 // classList.toggle, sem girar a seta (DS §8.2 exige rotação 180°/0° +
 // refrescarIcones()). Corpo canônico aplicado; depende do novo id
 // fa-mais-acoes-controles-seta no HTML (cofre.html v1.7.0).
@@ -146,7 +157,7 @@
 // própria ocorrência já é o alerta). Formulário de criar item de controle
 // migrou de inline pra modal bottom-sheet (abrirFormControle/
 // fecharFormControle agora usam abrirModal/fecharModal), acionado por
-// "Mais ações" do box Controles (nova alternarMaisAcoesControles()).
+// "Mais ações" do box Controles (nova abrirAcoesControles()).
 //
 // v1.1.0 — MUDANÇA ESTRUTURAL (pedido explícito): clicar num item de
 // controle abre uma TELA PRÓPRIA (data-screen="ficha-item-controle"), não
@@ -192,7 +203,6 @@ let contatoEmEdicaoId = null; // id do contato sendo editado, ou null (modo "cri
 // BOX "CONTROLES" na ficha do ativo — lista-resumo clicável
 // ============================================================================
 export async function montarControlesAtivo(a) {
-    document.getElementById('fa-mais-acoes-controles')?.classList.add('hidden');
     try {
         itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
     } catch (err) {
@@ -202,11 +212,41 @@ export async function montarControlesAtivo(a) {
     renderizarListaControles();
 }
 
+// v1.13.0 (fatia 3) — estado do chip/card Controles: contador no chip
+// (.rz-n, vinho quando há vencido/vencendo) e status no cabeçalho do card.
+function diasProximaOcorrencia(item) {
+    if (item.alerta_ativo === false) return null;
+    const abertas = (item.cofre_ocorrencias_controle || [])
+        .filter(o => o.status_execucao === 'aberto')
+        .slice()
+        .sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
+    return abertas[0] ? diasAte(abertas[0].data_prevista_atual) : null;
+}
+function statusHtml(sem, texto) {
+    return typeof window.renderStatus === 'function' ? window.renderStatus(sem, texto) : `<span class="rz-st rz-${sem}">${escapeHtml(texto)}</span>`;
+}
+function atualizarEstadoChipControles() {
+    const dias = itensDoAtivoAtual.map(diasProximaOcorrencia).filter(d => d !== null);
+    const vencidos = dias.filter(d => d < 0).length;
+    const vencendo = dias.filter(d => d >= 0 && d <= 30).length;
+    if (typeof window.faAtualizarContadorFicha === 'function') window.faAtualizarContadorFicha('controles', itensDoAtivoAtual.length, vencidos + vencendo > 0);
+    const cab = document.getElementById('fa-controles-status');
+    if (!cab) return;
+    if (vencidos) cab.innerHTML = statusHtml('bad', `${vencidos} vencido${vencidos === 1 ? '' : 's'}`);
+    else if (vencendo) cab.innerHTML = statusHtml('warn', `${vencendo} vencendo`);
+    else if (itensDoAtivoAtual.length) cab.innerHTML = statusHtml('ok', 'Em dia');
+    else cab.innerHTML = '';
+}
+
 function renderizarListaControles() {
     const alvo = document.getElementById('fa-tab-controles');
     if (!alvo) return;
+    atualizarEstadoChipControles();
     if (!itensDoAtivoAtual.length) {
-        alvo.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhum item de controle cadastrado para este ativo ainda.</p>`;
+        // v1.13.0 — vazio no formato único (REGRAS §9): a ação fica no
+        // rodapé do card ("Novo item"), por isso o vazio não repete botão.
+        alvo.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="shield"></i></div><p>Nenhum item de controle ainda. Seguros, tributos e vistorias cadastrados aqui viram alertas automáticos.</p></div>`;
+        refrescarIcones();
         return;
     }
     alvo.innerHTML = itensDoAtivoAtual.map(itemResumoHtml).join('');
@@ -238,39 +278,46 @@ function itemResumoHtml(item) {
     // urgência — mostra "Alertas desligados" neutro, consistente com o
     // fato de que a varredura proativa também não vai gerar aviso nenhum
     // pra ele (mesmo campo usado nos dois lugares).
+    // v1.13.0 (fatia 3, REGRAS §9/§10) — item de lista único (.rz-row):
+    // ícone 42 colorido pela semântica · título + subtipo · status
+    // "ponto + rótulo" (o número é o rótulo: "9 dias", "Vencido há 3d").
+    // chipVencimento() (bg-amber/green Tailwind) deixou de ser usado aqui.
+    const subtitulo = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
+    const iconeTipo = { seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check';
     if (item.alerta_ativo === false) {
-        return `<button data-action="abrir-item-controle" data-id="${item.id}" class="w-full flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0 text-left">
-            <svg data-lucide="bell-off" style="width:14px;height:14px;flex:none;color:var(--sage)"></svg>
-            <div class="flex-1 min-w-0 text-xs font-bold truncate">${escapeHtml(item.titulo)} <span class="font-normal text-slate-400">· ${escapeHtml(item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))}</span></div>
-            <span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:#f1f5f9; color:#475569">Alertas desligados</span>
-            <i data-lucide="chevron-right" style="width:14px;height:14px;flex:none;color:var(--sage)"></i>
-        </button>`;
+        return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
+            <div class="rz-ic rz-neu"><i data-lucide="bell-off"></i></div>
+            <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
+            <div class="rz-rt">${statusHtml('neu', 'Alertas desligados')}</div>
+            <i data-lucide="chevron-right" class="rz-chev"></i>
+        </div>`;
     }
-    const abertas = (item.cofre_ocorrencias_controle || [])
-        .filter(o => o.status_execucao === 'aberto')
-        .slice()
-        .sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
-    const oc = abertas[0];
-    const dias = oc ? diasAte(oc.data_prevista_atual) : null;
-    const chip = dias !== null ? chipVencimento(dias) : null;
-    const icone = dias === null ? 'check-circle-2' : (dias < 0 ? 'alert-circle' : (dias <= 30 ? 'clock' : 'check-circle-2'));
-    const corIcone = dias === null ? 'var(--success)' : (dias < 0 ? 'var(--danger)' : (dias <= 30 ? 'var(--warning)' : 'var(--success)'));
-    const subtituloSubtipo = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
-    return `<button data-action="abrir-item-controle" data-id="${item.id}" class="w-full flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0 text-left">
-        <svg data-lucide="${icone}" style="width:14px;height:14px;flex:none;color:${corIcone}"></svg>
-        <div class="flex-1 min-w-0 text-xs font-bold truncate">${escapeHtml(item.titulo)} <span class="font-normal text-slate-400">· ${escapeHtml(subtituloSubtipo)}</span></div>
-        ${chip ? `<span class="${chip.classe} flex-none">${escapeHtml(chip.texto)}</span>` : ''}
-        <i data-lucide="chevron-right" style="width:14px;height:14px;flex:none;color:var(--sage)"></i>
-    </button>`;
+    const dias = diasProximaOcorrencia(item);
+    let sem = 'ok', rotulo = 'Em dia', classeIc = '';
+    if (dias !== null && dias < 0) { sem = 'bad'; rotulo = `Vencido há ${Math.abs(dias)}d`; classeIc = ' rz-bad'; }
+    else if (dias !== null && dias <= 30) { sem = 'warn'; rotulo = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; classeIc = ' rz-warn'; }
+    return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
+        <div class="rz-ic${classeIc}"><i data-lucide="${sem === 'bad' ? 'alarm-clock' : (sem === 'warn' ? 'clock' : iconeTipo)}"></i></div>
+        <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
+        <div class="rz-rt">${statusHtml(sem, rotulo)}</div>
+        <i data-lucide="chevron-right" class="rz-chev"></i>
+    </div>`;
 }
 
-export function alternarMaisAcoesControles() {
-    const el = document.getElementById('fa-mais-acoes-controles');
-    const seta = document.getElementById('fa-mais-acoes-controles-seta');
-    if (!el) return;
-    el.classList.toggle('hidden');
-    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-    refrescarIcones();
+// v1.13.0 (fatia 3, REGRAS §6) — "Mais ações" do card Controles abre
+// SHEET (dados, não HTML). "Criar item" saiu daqui: virou a ação nomeada
+// do rodapé ("Novo item"). Ficam as configurações que antes só eram
+// alcançáveis pelo menu da conta.
+export function abrirAcoesControles() { // v1.13.0 — era alternarMaisAcoesControles
+    if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
+    window.abrirSheetAcoes({
+        titulo: 'Itens de controle',
+        sub: estado.ativoEmFoco?.nome_exibicao || '',
+        acoes: [
+            { icone: 'layers', titulo: 'Modelos de item', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => abrirModelosControle() },
+            { icone: 'tags', titulo: 'Tipos de controle', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => abrirSubtiposControle() },
+        ],
+    });
 }
 
 // ============================================================================

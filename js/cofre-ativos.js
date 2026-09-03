@@ -1,6 +1,36 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.16.0 · 02/09/2026
+// Versão: 1.17.0 · 03/09/2026
+//
+// v1.17.0 — FATIA 3 da gramática única (REGRAS_EXPERIENCIA_RAIZ_v3_2;
+// catálogo rz-* + helpers do index.html v1.106.0). Ficha do ativo:
+//   - abrirFichaAtivo(): cabeçalho .rz-entity com status (statusAtivoHtml
+//     → renderStatus) e abre sempre em 'resumo' + segmento 'documentos';
+//     fotosAtivoCache zerado antes de montar (contador de Arquivos).
+//   - faTrocarAba(): destaque por classe .rz-on; aceita os nomes antigos
+//     (dados/propriedade/documentos/fotos) e redireciona. NOVAS:
+//     faTrocarSegArquivos(), faAtualizarContador() (também em
+//     window.faAtualizarContadorFicha pro cofre-controles.js),
+//     abrirContratoNoApp() (ponte pra abrirDetalhesContrato do App).
+//   - abrirAcoesAtivo() (era alternarMaisAcoesAtivo): abre SHEET com Editar
+//     campos do ativo (só imóvel vinculado) · Adicionar fotos · Marcar
+//     como vendido · Excluir (vermelha, por último). Painel inline saiu.
+//   - montarContratosAtivo/Financeiro/Propriedade/Documentos: listas em
+//     .rz-row, KPIs em .rz-kpi, vazios em .rz-empty, status nas 5
+//     semânticas (Pago/Em atraso/A receber/A pagar; Vigente/Assinando/
+//     Encerrado). "Em atraso" no financeiro do ativo passou a ser
+//     calculado (aberto + vencimento < hoje) — antes era "A receber" cinza.
+//   - montarDadosAtivo(): grade .rz-kv; "DADOS DO IMÓVEL" (caixa alta) e
+//     "Editar →" saíram — título vai pro cabeçalho do card e o botão
+//     "Editar dados" do rodapé aponta pro formulário do imóvel
+//     (abrir-gestao-imovel) quando é imóvel vinculado. Badge de status
+//     saiu daqui (está no cabeçalho de entidade).
+//   - montarDocumentosAtivo(): documento vindo do Robô (origem
+//     'bot_whatsapp') ganha ícone bot em brass (REGRAS §16).
+//   - abrirSeletorFotosAtivo() (era alternarMaisAcoesFotosAtivo): só abre
+//     o seletor (painel inline saiu).
+//   Não mexido: editor inline de dados_especificos, editor de
+//   propriedade (modalGenerico), lightbox, upload — fatia 3b.
 //
 // v1.16.0 — pedido explícito: "este padrão pode ser o do chip do
 // sistema das demais telas" — display do chip Propriedade virou pill
@@ -188,7 +218,7 @@
 // corrigido (era "vermelho discreto", virou cinza uniforme — ver
 // excluirAtivoAtual() abaixo).
 //
-// v1.1.6 — DS C-8: alternarMaisAcoesAtivo() só fazia classList.toggle,
+// v1.1.6 — DS C-8: abrirAcoesAtivo() só fazia classList.toggle,
 // sem girar a seta (DS §8.2 exige rotação 180°/0° + refrescarIcones()).
 // Corpo canônico aplicado; depende do novo id fa-mais-acoes-seta no HTML
 // (cofre.html v1.7.0).
@@ -692,18 +722,22 @@ export async function abrirFichaAtivo(id) {
     // .ficha-head do protótipo) — por isso o texto cresceu um pouco
     // (text-xs -> text-sm no nome) pra não ficar pequeno demais como
     // título de página. Mesmo id, mesmo innerHTML, só o tamanho mudou.
+    // v1.17.0 (fatia 3, REGRAS §11) — cabeçalho de entidade único
+    // (.rz-entity): ícone 52 · título · contexto · status à direita. O
+    // status do ativo (Ativo/Vendido/Arquivado) vem pra cá, via
+    // renderStatus() (index.html v1.106.0) — antes ficava dentro do box
+    // Dados, longe do nome.
     document.getElementById('fa-cabecalho').innerHTML = `
-        <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--sprout-light);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
-            <div class="min-w-0 flex-1">
-                <p class="text-sm font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
-                <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
-            </div>
+        <div class="rz-ic"><i data-lucide="${iconeAtivo(a.tipo_ativo)}"></i></div>
+        <div class="rz-tx">
+            <b>${escapeHtml(a.nome_exibicao)}</b>
+            <span>${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</span>
         </div>
+        ${statusAtivoHtml(a)}
     `;
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
-    document.getElementById('fa-mais-acoes').classList.add('hidden');
 
+    fotosAtivoCache = [];
     await montarDadosAtivo(a);
     montarDocumentosAtivo(a);
     await montarControlesAtivo(a);
@@ -716,7 +750,8 @@ export async function abrirFichaAtivo(id) {
     // comportamento do protótipo: "Ficha abre sempre em Resumo" já era
     // regra deste projeto desde antes das abas existirem — só reaplicado
     // aqui em cima do mecanismo novo).
-    faTrocarAba('dados');
+    faTrocarAba('resumo');
+    faTrocarSegArquivos('documentos');
 
     mudarTela('ficha-ativo');
 }
@@ -728,16 +763,59 @@ export async function abrirFichaAtivo(id) {
 // acontece ao trocar de aba) — esta função só troca visibilidade +
 // destaque visual, mesmo espírito leve do trocarSub() do protótipo.
 export function faTrocarAba(nomeAba) {
+    // v1.17.0 — chips .rz-chip: destaque é só a classe .rz-on (sem style
+    // inline). Compatibilidade: 'dados' → 'resumo', 'propriedade' → 'resumo',
+    // 'documentos'/'fotos' → 'arquivos' (quem chamava com os nomes antigos
+    // continua caindo no lugar certo).
+    const mapa = { dados: 'resumo', propriedade: 'resumo', documentos: 'arquivos', fotos: 'arquivos' };
+    const alvo = mapa[nomeAba] || nomeAba;
     document.querySelectorAll('.fa-subtab').forEach(btn => {
-        const ativo = btn.dataset.faAba === nomeAba;
-        btn.style.color = ativo ? 'var(--sprout)' : '';
-        btn.style.borderBottomColor = ativo ? 'var(--sprout)' : 'transparent';
-        btn.classList.toggle('text-slate-500', !ativo);
+        btn.classList.toggle('rz-on', btn.dataset.faAba === alvo);
     });
     document.querySelectorAll('.fa-painel').forEach(painel => {
-        painel.classList.toggle('hidden', painel.id !== 'fa-painel-' + nomeAba);
+        painel.classList.toggle('hidden', painel.id !== 'fa-painel-' + alvo);
     });
+    if (nomeAba === 'fotos') faTrocarSegArquivos('fotos');
+    if (nomeAba === 'documentos') faTrocarSegArquivos('documentos');
     refrescarIcones();
+}
+
+// v1.17.0 — segmento Documentos · Fotos dentro do chip Arquivos (REGRAS §8).
+export function faTrocarSegArquivos(nome) {
+    document.querySelectorAll('#fa-seg-arquivos button').forEach(b => b.classList.toggle('rz-on', b.dataset.faSeg === nome));
+    document.getElementById('fa-arq-documentos')?.classList.toggle('hidden', nome !== 'documentos');
+    document.getElementById('fa-arq-fotos')?.classList.toggle('hidden', nome !== 'fotos');
+    refrescarIcones();
+}
+
+// v1.17.0 — contador dos chips da ficha (.rz-n). warn=true pinta o
+// contador de vinho (há algo pra olhar naquele chip).
+export function faAtualizarContador(chip, n, warn = false) {
+    // exposto em window pra cofre-controles.js (evita import circular)
+
+    const el = document.getElementById('fa-chip-n-' + chip);
+    if (!el) return;
+    el.textContent = String(n);
+    el.closest('.rz-chip')?.classList.toggle('rz-warn', !!warn);
+}
+
+// v1.17.0 — status do ativo nas 5 semânticas (REGRAS §10), via
+// renderStatus() global; fallback simples se a ficha rodar fora do App.
+window.faAtualizarContadorFicha = faAtualizarContador;
+
+function statusAtivoHtml(a) {
+    const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
+    if (a.status === 'arquivado') return r('bad', 'Arquivado');
+    if (a.status === 'vendido') return r('neu', 'Vendido');
+    return r('ok', 'Ativo');
+}
+
+// v1.17.0 — "Mais ações" abre SHEET (REGRAS §6): dados, não HTML; a
+// destrutiva vai por último em vermelho sozinha (abrirSheetAcoes ordena).
+function sheetOuAviso(config) {
+    if (typeof window.abrirSheetAcoes === 'function') { window.abrirSheetAcoes(config); return true; }
+    mostrarToast('Ações disponíveis só dentro do app principal.', 'erro');
+    return false;
 }
 
 export function fecharFichaAtivo() {
@@ -745,13 +823,18 @@ export function fecharFichaAtivo() {
     window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
 }
 
-export function alternarMaisAcoesAtivo() {
-    const el = document.getElementById('fa-mais-acoes');
-    const seta = document.getElementById('fa-mais-acoes-seta');
-    if (!el) return;
-    el.classList.toggle('hidden');
-    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-    refrescarIcones();
+export function abrirAcoesAtivo() {
+    const a = estado.ativoEmFoco;
+    if (!a) return;
+    const ehImovel = a.entidade_origem_tipo === 'imovel';
+    const acoes = [];
+    // quando o rodapé leva pro formulário do imóvel, o editor dos campos
+    // estruturados do ativo (dados_especificos) continua alcançável daqui
+    if (ehImovel) acoes.push({ icone: 'list', titulo: 'Editar campos do ativo', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
+    acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
+    if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
+    acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
+    sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), acoes });
 }
 
 // v1.93.0 (NOVO, pedido explícito, "evoluir a exemplo do protótipo") —
@@ -766,28 +849,49 @@ async function montarContratosAtivo(a) {
     const painel = document.getElementById('fa-contratos-lista');
     if (!painel) return;
 
+    const sub = document.getElementById('fa-contratos-sub');
+    faAtualizarContador('contratos', 0);
+    if (sub) sub.textContent = '';
+
     if (a.entidade_origem_tipo !== 'imovel') {
-        painel.innerHTML = `<p class="text-xs" style="color:var(--sage)">Contratos só existem pra ativos do tipo imóvel.</p>`;
+        painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Contratos de locação só existem pra ativos do tipo imóvel.</p></div>`;
+        refrescarIcones();
         return;
     }
 
     try {
         const lista = await api.buscarContratosDoImovel(a.entidade_origem_id);
+        const vigentes = lista.filter(c => c.status === 'Ativo' || c.status === 'Assinando');
+        faAtualizarContador('contratos', vigentes.length);
+        if (sub) sub.textContent = lista.length ? `${vigentes.length} vigente${vigentes.length === 1 ? '' : 's'} · ${lista.length - vigentes.length} encerrado${lista.length - vigentes.length === 1 ? '' : 's'}` : '';
         if (!lista.length) {
-            painel.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhum contrato vinculado a este imóvel ainda.</p>`;
+            // v1.17.0 — único card vazio que RENDERIZA sem ação própria
+            // (exceção documentada, REGRAS §6): a contratação nasce na aba
+            // Contratos do App, não daqui.
+            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda. Inicie a contratação na aba Contratos.</p></div>`;
+            refrescarIcones();
             return;
         }
-        const rotuloStatus = { Ativo: 'Vigente', Assinando: 'Aguardando assinatura', Suspenso: 'Suspenso', Finalizado: 'Finalizado' };
+        // v1.17.0 — item de lista único (.rz-row, REGRAS §9) + status nas
+        // 5 semânticas; toque abre o contrato na aba Contratos do App
+        // (abrirContratoNoApp), lógica de contrato continua só lá.
+        const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
+        const statusDe = { Ativo: r('ok', 'Vigente'), Assinando: r('run', 'Assinando'), Suspenso: r('neu', 'Suspenso'), Finalizado: r('neu', 'Encerrado'), Cancelado: r('neu', 'Cancelado') };
         painel.innerHTML = lista.map(c => `
-            <div class="raiz-bloco-interno">
-                <div class="flex justify-between items-start gap-2">
-                    <span class="text-sm font-bold">${escapeHtml(c.locatario || 'Locatário não informado')}</span>
-                    <span class="text-sm font-bold flex-none" style="color:var(--sprout)">R$ ${Number(c.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <div class="rz-row rz-link" data-action="fa-abrir-contrato-app" data-contrato-id="${c.id}">
+                <div class="rz-ic${(c.status === 'Ativo' || c.status === 'Assinando') ? '' : ' rz-neu'}"><i data-lucide="${c.status === 'Assinando' ? 'file-signature' : (c.status === 'Ativo' ? 'file-text' : 'archive')}"></i></div>
+                <div class="rz-tx">
+                    <b>${escapeHtml(c.locatario || 'Locatário não informado')}</b>
+                    <span>${c.inicio ? formatarDataBR(c.inicio) : ''}${c.fim ? ' → ' + formatarDataBR(c.fim) : ''}</span>
                 </div>
-                <p class="text-xs mt-0.5" style="color:var(--sage)">${rotuloStatus[c.status] || escapeHtml(c.status || '')}${c.fim ? ' · até ' + formatarDataBR(c.fim) : ''}</p>
+                <div class="rz-rt">
+                    <b>R$ ${Number(c.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+                    ${statusDe[c.status] || r(c.status || 'neu')}
+                </div>
             </div>`).join('');
+        refrescarIcones();
     } catch (err) {
-        painel.innerHTML = `<p class="text-xs text-red-500">Não foi possível carregar os contratos agora.</p>`;
+        painel.innerHTML = `<p class="rz-desc" style="color:var(--danger)">Não foi possível carregar os contratos agora.</p>`;
         console.warn('[cofre-ativos] montarContratosAtivo falhou:', err.message);
     }
 }
@@ -805,7 +909,7 @@ async function montarFinanceiroAtivo(a) {
     const painelLista = document.getElementById('fa-financeiro-lista');
     if (!painelResumo || !painelLista) return;
 
-    painelResumo.innerHTML = `<p class="text-xs col-span-2" style="color:var(--sage)">Carregando...</p>`;
+    painelResumo.innerHTML = `<p class="rz-desc" style="grid-column:1/-1">Carregando...</p>`;
     painelLista.innerHTML = '';
 
     const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -813,37 +917,35 @@ async function montarFinanceiroAtivo(a) {
 
     const fluxo = await api.buscarFluxoFinanceiroAtivo(a.id);
 
+    // v1.17.0 (fatia 3) — KPIs no formato único (.rz-kpi, REGRAS §9) e
+    // lista em .rz-row com status nas 5 semânticas via renderStatus().
+    // "Em atraso" agora é calculado (entrada aberta com vencimento
+    // passado), antes tudo aberto era "A receber" cinza.
     painelResumo.innerHTML = `
-        <div class="rounded-lg p-2.5 border" style="background:var(--sprout-light);border-color:var(--sprout)">
-            <p class="text-[10px] font-bold uppercase" style="color:var(--sage)">Entradas (6 meses)</p>
-            <p class="text-sm font-extrabold mt-0.5" style="color:var(--pine)">${fmtMoeda(fluxo.totalEntradas6m)}</p>
-        </div>
-        <div class="bg-amber-50 rounded-lg p-2.5 border border-amber-100">
-            <p class="text-[10px] font-bold uppercase" style="color:var(--sage)">Saídas (6 meses)</p>
-            <p class="text-sm font-extrabold text-amber-800 mt-0.5">${fmtMoeda(fluxo.totalSaidas6m)}</p>
-        </div>`;
+        <div class="rz-kpi rz-in"><small>Entradas · 6 meses</small><b>${fmtMoeda(fluxo.totalEntradas6m)}</b></div>
+        <div class="rz-kpi"><small>Saídas · 6 meses</small><b>${fmtMoeda(fluxo.totalSaidas6m)}</b></div>`;
 
     if (!fluxo.itens.length) {
-        painelLista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Nenhum lançamento ainda pra este ativo.</p>`;
+        painelLista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="wallet"></i></div><p>Nenhum lançamento pra este ativo nos últimos 6 meses.</p></div>`;
     } else {
+        const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
+        const hoje = new Date().toISOString().slice(0, 10);
         painelLista.innerHTML = fluxo.itens.map(it => {
             const ehEntrada = it.direcao === 'entrada';
-            const corValor = ehEntrada ? 'color:var(--success)' : 'color:var(--ink)';
-            const sinal = ehEntrada ? '+ ' : '– ';
-            const badge = it.status === 'realizado'
-                ? `<span class="bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded font-black">Pago</span>`
-                : `<span class="bg-slate-100 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-black">${ehEntrada ? 'A receber' : 'A pagar'}</span>`;
+            const pago = it.status === 'realizado';
+            const atrasado = !pago && it.vencimento && it.vencimento < hoje;
+            const status = pago ? r('ok', 'Pago') : (atrasado ? r('bad', 'Em atraso') : r('run', ehEntrada ? 'A receber' : 'A pagar'));
+            const icone = pago ? (ehEntrada ? 'arrow-down-left' : 'arrow-up-right') : (atrasado ? 'alarm-clock' : 'clock');
             return `
-                <div class="raiz-bloco-interno">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="min-w-0">
-                            <p class="text-xs font-bold truncate">${escapeHtml(it.descricao || '')}</p>
-                            <p class="text-[11px]" style="color:var(--sage)">${it.fornecedor ? escapeHtml(it.fornecedor) + ' · ' : ''}${fmtData(it.data_pagamento || it.vencimento)}</p>
-                        </div>
-                        <div class="flex-none text-right">
-                            <p class="text-xs font-bold" style="${corValor}">${sinal}${fmtMoeda(it.valor)}</p>
-                            ${badge}
-                        </div>
+                <div class="rz-row">
+                    <div class="rz-ic${atrasado ? ' rz-bad' : ''}"><i data-lucide="${icone}"></i></div>
+                    <div class="rz-tx">
+                        <b>${escapeHtml(it.descricao || '')}</b>
+                        <span>${it.fornecedor ? escapeHtml(it.fornecedor) + ' · ' : ''}${fmtData(it.data_pagamento || it.vencimento)}</span>
+                    </div>
+                    <div class="rz-rt">
+                        <b class="${ehEntrada ? 'rz-in' : 'rz-out'}">${ehEntrada ? '+ ' : '− '}${fmtMoeda(it.valor)}</b>
+                        ${status}
                     </div>
                 </div>`;
         }).join('');
@@ -854,6 +956,18 @@ async function montarFinanceiroAtivo(a) {
 // Ponte pro App — mesmo princípio de abrirGestaoImovel() logo abaixo:
 // nenhuma lógica de formulário duplicada aqui, só troca de aba + chamada
 // da função que já existe no index.html, com o ativo já pré-selecionado.
+// v1.17.0 — ponte pro App: abre o contrato na aba Contratos (mesmo
+// princípio de abrirGestaoImovel: nada de contrato duplicado aqui).
+export function abrirContratoNoApp(contratoId) {
+    if (!contratoId) return;
+    if (typeof window.switchTab === 'function' && typeof window.abrirDetalhesContrato === 'function') {
+        window.switchTab('tab-contratos');
+        window.abrirDetalhesContrato(contratoId);
+    } else {
+        mostrarToast('Contrato só abre dentro do app principal.', 'erro');
+    }
+}
+
 export function abrirNovoLancamentoDoAtivo() {
     const a = estado.ativoEmFoco;
     if (!a) return;
@@ -903,12 +1017,13 @@ let propriedadeEditorAlvo = { linhas: 'pe-linhas', soma: 'pe-soma' };
 async function montarPropriedadeAtivo(a) {
     const lista = document.getElementById('fa-propriedade-lista');
     if (!lista) return;
-    lista.innerHTML = `<p class="text-xs" style="color:var(--sage)">Carregando...</p>`;
+    lista.innerHTML = `<p class="rz-desc">Carregando...</p>`;
 
     const linhas = await api.buscarPropriedadeDoAtivo(a.id);
 
     if (!linhas.length) {
-        lista.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhuma divisão de propriedade cadastrada ainda.</p>`;
+        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Sem divisão de propriedade ainda. Sem ela, a distribuição de resultados não sabe pra quem repassar.</p></div>`;
+        refrescarIcones();
         return;
     }
 
@@ -918,8 +1033,15 @@ async function montarPropriedadeAtivo(a) {
     // controle (cofre-controles.js), não mais bloco de linha. Só o
     // DISPLAY mudou — o editor continua com % (aqui é rateio de
     // propriedade, diferente de item de controle que não tem %).
-    lista.innerHTML = `<div class="flex flex-wrap gap-1.5">` + linhas.map(l => `
-        <span class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')} · ${Number(l.percentual)}%</span>`).join('') + `</div>`;
+    // v1.17.0 (fatia 3, REGRAS §9/§11) — de pills pra .rz-row (sócio à
+    // esquerda, % em destaque à direita), mesmo item de lista do resto da
+    // ficha. Pills ficam só pra filtro/sub-navegação (REGRAS §8).
+    lista.innerHTML = linhas.map(l => `
+        <div class="rz-row">
+            <div class="rz-ic"><i data-lucide="${l.nome_pessoa ? 'user' : 'user-round'}"></i></div>
+            <div class="rz-tx"><b>${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')}</b><span>${l.nome_pessoa ? 'Sócio' : 'Parte externa'}</span></div>
+            <div class="rz-rt"><b style="color:var(--sprout)">${Number(l.percentual)}%</b></div>
+        </div>`).join('');
     refrescarIcones();
 }
 
@@ -1099,7 +1221,7 @@ async function montarDadosAtivo(a) {
         const usoLabel = { residencial: 'Residencial', comercial: 'Comercial', industrial: 'Industrial', terreno: 'Terreno', rural: 'Rural' };
         const locacaoLabel = { longa_duracao: 'Longa duração', temporada: 'Temporada', comercial: 'Comercial' };
         const campo = (rotulo, valor) => valor
-            ? `<div><dt class="text-[10px]" style="color:var(--sage)">${escapeHtml(rotulo)}</dt><dd class="text-[13px] font-bold mt-0.5">${valor}</dd></div>`
+            ? `<div><small>${escapeHtml(rotulo)}</small><b>${valor}</b></div>`
             : '';
         const enderecoPartes = [resumoImovel?.endereco_rua, resumoImovel?.endereco_num].filter(Boolean).join(', ');
         const enderecoCompleto = [enderecoPartes, resumoImovel?.endereco_bairro, [resumoImovel?.endereco_cidade, resumoImovel?.uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
@@ -1113,18 +1235,21 @@ async function montarDadosAtivo(a) {
             campo('IPTU (anual)', resumoImovel?.iptu ? 'R$ ' + Number(resumoImovel.iptu).toLocaleString('pt-BR') : ''),
         ].filter(Boolean);
         const campoEndereco = enderecoCompleto
-            ? `<div class="col-span-2"><dt class="text-[10px]" style="color:var(--sage)">Endereço completo</dt><dd class="text-[13px] font-bold mt-0.5">${escapeHtml(enderecoCompleto)}</dd></div>`
+            ? `<div class="rz-full"><small>Endereço completo</small><b>${escapeHtml(enderecoCompleto)}</b></div>`
             : '';
 
-        const cabecalho = `<div class="flex items-center justify-between mb-2">
-            <h4 class="text-[10px] font-bold uppercase tracking-wide" style="color:var(--sage)">Dados do imóvel</h4>
-            <button data-action="abrir-gestao-imovel" class="text-xs font-bold flex-none" style="color:var(--sprout)">Editar →</button>
-        </div>`;
-
+        // v1.17.0 (fatia 3, REGRAS §6/§17) — grade .rz-kv; título em
+        // sentence case no cabeçalho do card (era "DADOS DO IMÓVEL" em
+        // caixa alta) e o link "Editar →" saiu: o botão "Editar dados" do
+        // rodapé passa a apontar pro formulário do imóvel (abaixo).
         gridWrapper.innerHTML = (campos.length || campoEndereco)
-            ? cabecalho + `<dl class="grid grid-cols-2 gap-x-3 gap-y-2">${campos.join('')}${campoEndereco}</dl>`
-            : cabecalho + `<p class="text-xs" style="color:var(--sage)">Sem endereço/IPTU/valor de mercado/uso cadastrado ainda.</p>`;
+            ? `<div class="rz-kv">${campos.join('')}${campoEndereco}</div>`
+            : `<p class="rz-desc">Sem endereço, IPTU, valor de mercado ou uso cadastrado ainda.</p>`;
     }
+    const titulo = document.getElementById('fa-dados-titulo');
+    if (titulo) titulo.textContent = ehImovelVinculado ? 'Dados do imóvel' : 'Dados do ativo';
+    const btnEditar = document.getElementById('fa-btn-editar-dados');
+    if (btnEditar) btnEditar.dataset.action = ehImovelVinculado ? 'abrir-gestao-imovel' : 'alternar-editar-ativo';
 
     // v1.95.0 — pra ativo vinculado a imóvel, a grade acima JÁ é o dado
     // de verdade — mostrar "Sem dados estruturados cadastrados ainda."
@@ -1144,23 +1269,13 @@ async function montarDadosAtivo(a) {
     // pra "Suspenso"/"Finalizado" no resto do sistema (DS §14, "demais
     // estados" → slate) — não é sucesso (verde) nem erro (vermelho), é
     // só um encerramento normal do ciclo de vida do ativo.
-    const badgeStatus = a.status === 'arquivado'
-        ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:var(--danger-bg); color:var(--danger)">Arquivado</span>`
-        : a.status === 'vendido'
-        ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:#f1f5f9; color:#475569">Vendido</span>`
-        : `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded flex-none" style="background:var(--success-bg); color:var(--success)">Ativo</span>`;
-
+    // v1.17.0 — status saiu daqui: vive no cabeçalho de entidade
+    // (statusAtivoHtml, abrirFichaAtivo). Aqui fica só o dado.
+    const resumo = document.getElementById('fa-resumo-dados');
     if (ehImovelVinculado && valoresPreenchidos.length === 0) {
-        document.getElementById('fa-resumo-dados').innerHTML = `<div class="flex items-center justify-end">${badgeStatus}</div>`;
+        resumo.innerHTML = '';
     } else {
-        const descricaoCorrida = valoresPreenchidos.length
-            ? valoresPreenchidos.join(' · ')
-            : 'Sem dados estruturados cadastrados ainda.';
-        document.getElementById('fa-resumo-dados').innerHTML = `
-            <div class="flex items-start justify-between gap-2">
-                <p class="text-xs flex-1" style="color:var(--sage)">${descricaoCorrida}</p>
-                ${badgeStatus}
-            </div>`;
+        resumo.innerHTML = `<p class="rz-desc${ehImovelVinculado ? ' mt-2' : ''}">${valoresPreenchidos.length ? valoresPreenchidos.join(' · ') : 'Sem campos específicos preenchidos ainda.'}</p>`;
     }
 
     refrescarIcones();
@@ -1285,9 +1400,25 @@ function montarDocumentosAtivo(a) {
     // listagem informativa (sem data-action) até esta tela ganhar o
     // mesmo tratamento completo que o box "Documento" do item de
     // controle já tem (abrir/remover/carregar novo).
-    document.getElementById('fa-tab-documentos').innerHTML = docs.length
-        ? docs.map(d => `<div class="w-full raiz-bloco-interno flex items-center gap-2"><i data-lucide="file-text" style="width:14px;height:14px;color:var(--sage);flex-shrink:0"></i><span class="text-sm truncate">${escapeHtml(d.nome_exibicao)}</span></div>`).join('')
-        : `<p class="text-xs" style="color:var(--sage)">Nenhum documento vinculado a este ativo ainda.</p>`;
+    // v1.17.0 (fatia 3) — lista em .rz-row; vazio no formato único
+    // (#fa-documentos-vazio, IA primária) e rodapé com as 2 ações só
+    // quando há lista. Contador do chip Arquivos = documentos + fotos
+    // (atualizarContadorArquivos).
+    document.getElementById('fa-tab-documentos').innerHTML = docs.map(d => `
+        <div class="rz-row">
+            <div class="rz-ic${d.origem === 'bot_whatsapp' ? ' rz-ia' : ''}"><i data-lucide="${d.origem === 'bot_whatsapp' ? 'bot' : 'file-text'}"></i></div>
+            <div class="rz-tx"><b>${escapeHtml(d.nome_exibicao)}</b><span>${escapeHtml((estado.categorias || []).find(c => c.id === d.categoria_id)?.nome || 'Documento')}${d.origem === 'bot_whatsapp' ? ' · pelo Robô' : ''}${d.criado_em ? ' · ' + formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
+        </div>`).join('');
+    document.getElementById('fa-documentos-vazio')?.classList.toggle('hidden', docs.length > 0);
+    document.getElementById('fa-documentos-rodape')?.classList.toggle('hidden', docs.length === 0);
+    docsAtivoCount = docs.length;
+    atualizarContadorArquivos();
+    refrescarIcones();
+}
+
+let docsAtivoCount = 0;
+function atualizarContadorArquivos() {
+    faAtualizarContador('arquivos', docsAtivoCount + (fotosAtivoCache?.length || 0));
 }
 
 // ---- Documentos: upload agora é via modal-documentos-ativo (2 ações: IA/
@@ -1340,13 +1471,20 @@ async function montarFotosAtivo(a) {
     const inputFoto = document.getElementById('fa-foto-input');
     inputFoto.value = '';
     inputFoto.onchange = () => enviarFotosAtivo(a.id);
+    const rodape = document.getElementById('fa-fotos-rodape');
+    const sub = document.getElementById('fa-fotos-sub');
+    if (sub) sub.textContent = fotos.length ? `${fotos.length} foto${fotos.length === 1 ? '' : 's'}` : '';
+    atualizarContadorArquivos();
     if (!fotos.length) {
         box.classList.add('hidden');
         if (vazio) vazio.classList.remove('hidden');
+        rodape?.classList.add('hidden');
         fotosAtivoUrlsCache = [];
+        refrescarIcones();
         return;
     }
     if (vazio) vazio.classList.add('hidden');
+    rodape?.classList.remove('hidden');
     box.classList.remove('hidden');
     fotosAtivoUrlsCache = await Promise.all(fotos.map(f => api.gerarSignedUrl(f.bucket, f.storage_path, 600).catch(() => null)));
     renderizarGridFotos();
@@ -1383,13 +1521,11 @@ async function enviarFotosAtivo(ativoId) {
     await montarFotosAtivo(estado.ativoEmFoco);
 }
 
-export function alternarMaisAcoesFotosAtivo() {
-    const el = document.getElementById('fa-fotos-acoes');
-    const seta = document.getElementById('fa-fotos-seta');
-    if (!el) return;
-    el.classList.toggle('hidden');
-    if (seta) seta.style.transform = el.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
-    refrescarIcones();
+// v1.17.0 — o painel inline #fa-fotos-acoes saiu (REGRAS §6); "Adicionar
+// fotos" é a ação nomeada do rodapé. Mantida por compatibilidade com o
+// dispatcher: agora só abre o seletor.
+export function abrirSeletorFotosAtivo() {
+    document.getElementById('fa-foto-input')?.click();
 }
 
 export async function removerFotoAtivo(fotoId) {

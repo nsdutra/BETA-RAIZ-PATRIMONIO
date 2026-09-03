@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.19.0 · 02/09/2026
+// Versão: 1.20.0 · 03/09/2026
+//
+// v1.20.0 — FATIA 3 da gramática única: cases novos no dispatcher —
+// 'abrir-acoes-ativo' / 'abrir-acoes-controles' (os antigos 'alternar-
+// mais-acoes-*' ficam como alias, mesmo handler), mais:
+// 'fa-seg-arquivos' (segmento Documentos·Fotos dentro do chip Arquivos)
+// e 'fa-abrir-contrato-app' (linha de contrato da ficha abre o contrato
+// na aba Contratos). Os cases 'alternar-mais-acoes-ativo' /
+// 'alternar-mais-acoes-controles' / 'alternar-mais-acoes-fotos-ativo'
+// continuam com o mesmo nome, mas agora abrem sheet (ver cofre-ativos.js
+// v1.17.0 / cofre-controles.js v1.13.0).
 //
 // v1.19.0 — case novo 'fi-gerar-despesa-item', delegando pra
 // controles.abrirNovoLancamentoDoItem() (box Partes do item de
@@ -363,7 +373,8 @@ document.addEventListener('click', async (ev) => {
         case 'salvar-ativo': await ativos.salvarAtivo(); break;
         case 'abrir-ativo': await ativos.abrirFichaAtivo(id); break;
         case 'voltar-ficha-ativo': ativos.fecharFichaAtivo(); break;
-        case 'alternar-mais-acoes-ativo': ativos.alternarMaisAcoesAtivo(); break;
+        case 'alternar-mais-acoes-ativo':
+        case 'abrir-acoes-ativo': ativos.abrirAcoesAtivo(); break;
         // v1.11.0 (31/08/2026, pedido explícito, "seguir com a
         // unificação") — ponte pra abrirCadastroImovelModal(), função
         // NATIVA do index.html (não é código do Cofre) — só existe
@@ -413,6 +424,10 @@ document.addEventListener('click', async (ev) => {
         // 'fa-trocar-aba' cobre a troca entre as 5 abas da ficha
         // (Dados/Documentos/Controles/Contratos/Fotos).
         case 'fa-trocar-aba': ativos.faTrocarAba(alvo.dataset.faAba); break;
+        // v1.20.0 (fatia 3) — segmento Documentos·Fotos do chip Arquivos e
+        // toque na linha de contrato (abre na aba Contratos do App)
+        case 'fa-seg-arquivos': ativos.faTrocarSegArquivos(alvo.dataset.faSeg); break;
+        case 'fa-abrir-contrato-app': ativos.abrirContratoNoApp(alvo.dataset.contratoId); break;
         // v1.15.0 (NOVO) — chip Financeiro da ficha do ativo: "Novo
         // lançamento" e "Ver tudo em Saídas" são pontes pro App (ver
         // cofre-ativos.js v1.10.0 pro porquê de não duplicar formulário).
@@ -427,11 +442,12 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-lightbox-fotos': ativos.fecharLightboxFotoAtivo(); break;
         case 'navegar-lightbox-fotos': ativos.navegarLightboxFotoAtivo(parseInt(alvo.dataset.dir, 10)); break;
         case 'remover-foto-ativo': await ativos.removerFotoAtivo(alvo.dataset.fotoId); break;
-        case 'alternar-mais-acoes-fotos-ativo': ativos.alternarMaisAcoesFotosAtivo(); break;
+        case 'alternar-mais-acoes-fotos-ativo': ativos.abrirSeletorFotosAtivo(); break;
         case 'abrir-upload-no-ativo-ia': docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco); break;
         case 'abrir-upload-no-ativo-simples': docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco); break;
         case 'abrir-form-controle': await controles.abrirFormControle(); break;
-        case 'alternar-mais-acoes-controles': controles.alternarMaisAcoesControles(); break;
+        case 'alternar-mais-acoes-controles':
+        case 'abrir-acoes-controles': controles.abrirAcoesControles(); break;
         case 'fechar-form-controle': controles.fecharFormControle(); break;
         case 'salvar-item-controle': await controles.salvarItemControle(); break;
         case 'alternar-acao-ocorrencia': controles.alternarAcaoOcorrencia(alvo.dataset.id, alvo.dataset.modo); break;
