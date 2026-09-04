@@ -6,9 +6,98 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.116.0
-   LINHAS: 30916
-   DATA: 04/09/2026
+   VERSÃO: Beta v1.118.0
+   LINHAS: 31181
+   DATA: 05/09/2026
+   NOVIDADES (Beta v1.118.0) — 2 pendências do roteiro fechadas (pedido:
+   "Vamos evoluir próximos passos!").
+   1) fn_resumo_resultados SOMA SAÍDAS (aberta desde a v1.114). Migration
+      fn_resumo_resultados_v2_soma_saidas (05/09, aplicada e testada via
+      conector): 4 colunas novas — saidas_12m, saidas_mes_atual (só
+      status='realizado'; previsto não é caixa), resultado_liquido_12m e
+      resultado_liquido_mes (recebido − saídas do período). Assinatura
+      mudou ⇒ DROP explícito antes do CREATE (CREATE OR REPLACE não
+      troca tipo de retorno — regra registrada) + REVOKE/GRANT refeitos.
+      FRONT (Resultados): hero deixa de chamar receita bruta de
+      "resultado" — título vira "Resultado (últimos 12 meses)" com o
+      líquido; Recebido (12m) e Saídas (12m) viram os 2 primeiros
+      quadrinhos; rodapé explica "saídas consideram só o realizado".
+      Visão Geral não muda (patrimônio/recebido/ocupação continuam os
+      mesmos campos; a RPC v2 é retrocompatível nos campos antigos).
+   2) EMPREENDIMENTOS DO PRESTADOR EDITÁVEIS NA FICHA DA PARTE (limitação
+      registrada na v1.117: a ficha mostrava, não editava). ⋮ da parte
+      ganha "Empreendimentos atendidos" quando tipo_prestador é síndico
+      ou manutencista → sheet de checkboxes (busca empreendimentos +
+      vínculos vigentes direto do banco, sem depender de array em
+      memória). Salvar reaplica as MESMAS regras da tela antiga: marcar
+      = insert em prestador_vinculo com data_inicio_vigencia (síndico
+      fecha o vínculo do síndico anterior naquele empreendimento);
+      desmarcar = data_fim_vigencia hoje. Nada é deletado — vigência é
+      histórico.
+   Arquivos da entrega: SÓ index.html. Migration aplicada via conector
+   (nada a rodar na mão). Trava: nada subiu; baseline regravada.
+   node --check OK; balanceamento de tags idêntico (svg 1, pré-existente).
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.117.0) — FATIA 7b-i: PARTES UNIFICADA (decisão do
+   Nicola, 04/09: "fazer uma tela nova de partes e seus vínculos/papéis
+   ... fundir tudo em partes. A depender do papel os campos são
+   ajustados em tela. Importante mostrar os vínculos já existentes pra
+   aquela parte, pra todos os papéis e por papel"). Embute a FRENTE F
+   (atribuir papel avulso na UI).
+   ARQUITETURA (verificada no banco antes de escrever):
+     - `partes` = identidade; `partes_papeis` = onde atua (locatario/
+       fiador→contrato · proprietario→ativo/imovel · prestador→
+       prestadores.id · manutencista→item_controle).
+     - `prestadores` NÃO some: é alvo de FK operacional
+       (contratos.administradora_id, prestador_vinculo com
+       empreendimentos, cofre_itens_controle.prestador_escopo_id). A
+       fusão é de TELA e IDENTIDADE; salvar parte-prestadora grava nas
+       duas e liga via partes_papeis (mesmo espelho da migração de
+       01/09), por sincronizarPrestadorDaParte() — idempotente.
+     - RPC nova fn_vinculos_da_parte (migration 04/09): todos os
+       vínculos de uma parte com o NOME da entidade resolvido (contrato
+       → locatário + imóvel + status; ativo → nome_exibicao; imóvel →
+       endereço; prestador → tipo + empreendimentos vigentes; item →
+       título), numa ida só. SECURITY INVOKER de propósito: a RLS de
+       cada tabela continua decidindo o que a pessoa vê.
+   TELA (tab-partes reconstruída na gramática, ~104 linhas de markup
+   antigo removidas):
+     - .rz-tabhead com descrição ("num cadastro único; os papéis dizem
+       onde cada uma atua") + Buscar + "+".
+     - Chips por papel com contador (Todas · Locatários · Fiadores ·
+       Proprietários · Prestadores · Interessados · Corretores · Sem
+       papel) — só aparecem os que existem na carteira; "Prestadores"
+       agrega sindico/manutencista/administradora/prestador.
+     - Lista .rz-row: ícone por papel/tipo, nome + doc + resumo de
+       papéis; toque abre a FICHA; ⋮ com Abrir ficha · Editar dados ·
+       Adicionar papel · Excluir.
+     - FICHA (sheet): card Dados (kv, lápis no ⋮) + card Vínculos
+       AGRUPADOS POR PAPEL (pedido explícito), cada linha com nome/
+       detalhe resolvidos; vínculo de contrato/ativo é navegável (abre a
+       ficha correspondente). "+" no card = Adicionar papel.
+     - FORMULÁRIO via abrirSheetForm com campos POR PAPEL: base sempre
+       (nome, doc com máscara/validação, WhatsApp, e-mail, fantasia,
+       profissão, estado civil, endereço); "Atua como prestador?"
+       (não / administradora / síndico / manutencista) liga contato e —
+       só administradora — taxa de administração.
+     - FRENTE F: "Adicionar papel" → escolhe papel → escolhe a entidade
+       (contrato ou ativo, listas do próprio app) → grava em
+       partes_papeis com dedup; Interessado/Corretor entram sem
+       entidade; Prestador cai no formulário (campo tipo).
+     - Excluir bloqueado se houver papéis ativos (abre a ficha pra
+       remover vínculos antes) — integridade antes de conveniência.
+   ROTEADOR/MENU:
+     - tab-sindicos/tab-administradoras/tab-manutencistas DESLIGADAS no
+       switchTab → caem em Partes com chip Prestadores (mesmo padrão do
+       desligamento de tab-imoveis na fatia 3b; HTML e funções antigas
+       ficam até a fatia 9). abrirVincularSindico/Manutencista idem.
+     - Menu ⚙️: "Prestadores" vai direto pra Partes filtrada (sub-sheet
+       abrirMenuPrestadores() removida); "Partes" reseta o filtro.
+   Arquivos da entrega: SÓ index.html (nenhum módulo js mudou).
+   Migration fn_vinculos_da_parte_v1 aplicada e testada via conector.
+   Trava: btn_toggle 23→22; nada subiu; baseline regravada. node --check
+   OK; balanceamento de tags idêntico (svg 1, pré-existente).
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.116.0) — correções da validação da v1.115 (prints
    do Nicola, 04/09) + 6 pedidos da mesma rodada.
    1) CABEÇALHO DESFORMATADO (print: círculos do Raiz IA/avatar certos,
@@ -9904,133 +9993,29 @@
              imóvel/contrato) é maior — precisaria de uma tela de
              vínculo por tipo de papel, ficou de fora desta entrega. -->
         <section id="tab-partes" class="tab-content hidden">
-
-            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
-                 de partes, aparece esta tela de parametros que deve ser
-                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
-                 tab-parametrizacoes, uma tela morta desde que este
-                 cadastro ganhou porta de entrada direta no menu
-                 Configurações (a própria tab-parametrizacoes já diz
-                 "estes cadastros agora têm telas próprias" — nunca foi
-                 atualizada quando isso mudou). Mesmo padrão já correto
-                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
-                 alcançadas pelo menu não têm "pai" de tab, não levam
-                 breadcrumb nenhum. -->
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold raiz-text-pine flex-1">Partes</h2>
-
-                <button id="btn-toggle-parte" onclick="alternarFormularioParte()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar parte"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
+            <!-- v1.117.0 (fatia 7b-i, pedido explícito: "fazer uma tela
+                 nova de partes e seus vínculos/papéis... fundir tudo em
+                 partes") — tela reconstruída na gramática (REGRAS §4/§8/
+                 §9): descrição + Buscar + "+" (.rz-tabhead), chips por
+                 papel com contador, lista .rz-row com ⋮; formulário
+                 antigo (toggle inline, Tipo A) REMOVIDO — cadastro/edição
+                 agora é abrirSheetForm com campos ajustados por papel
+                 (prestador ganha tipo/contato/taxa/empreendimentos).
+                 Ficha da parte (sheet) mostra dados + TODOS os vínculos,
+                 agrupados por papel, resolvidos por nome via RPC
+                 fn_vinculos_da_parte (1 ida ao banco). "Adicionar papel"
+                 (Frente F) vive na ficha. As telas antigas de Síndicos/
+                 Administradoras/Manutencistas foram desligadas no
+                 roteador (switchTab redireciona pra cá, chip Prestadores)
+                 — remoção física do HTML fica pra fatia 9, mesmo padrão
+                 usado com tab-imoveis na fatia 3b. -->
+            <div class="rz-tabhead">
+                <p>Pessoas e empresas do seu patrimônio — locatários, fiadores, proprietários e prestadores — num cadastro único. Os papéis dizem onde cada uma atua.</p>
+                <button type="button" onclick="abrirBuscaPartes()" title="Buscar" aria-label="Buscar" class="rz-ico-btn"><svg data-lucide="search"></svg></button>
+                <button type="button" onclick="abrirFormParteSheet()" title="Nova parte" aria-label="Nova parte" class="rz-ico-btn rz-primary"><svg data-lucide="plus"></svg></button>
             </div>
-
-            <p class="text-[11px] text-gray-500 mb-4">Cadastro único de pessoas e empresas que já aparecem como locatário, fiador, interessado ou proprietário — evita recadastrar o mesmo CPF/CNPJ em contextos diferentes. Os papéis são atribuídos automaticamente pelos fluxos de contrato/imóvel; aqui é só o cadastro da parte em si.</p>
-
-            <div id="form-parte-wrapper" class="hidden">
-
-                <div class="flex justify-between items-center mb-4">
-
-                    <h2 class="text-lg font-bold text-slate-900" id="form-parte-titulo">Cadastrar Parte</h2>
-
-                </div>
-
-                <form id="form-parte" onsubmit="salvarParte(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <input type="hidden" id="parte-id">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="parte-nome" required class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Documento (CPF ou CNPJ)</label>
-
-                        <input type="text" id="parte-documento" oninput="formatarMascaraDocumentoGenerico(this, 'parte-doc-indicador')" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm">
-
-                        <p id="parte-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome Fantasia</label>
-
-                        <input type="text" id="parte-nome-fantasia" placeholder="Se for pessoa jurídica" class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-
-                        <div>
-
-                            <label class="block text-xs font-bold text-gray-600">WhatsApp</label>
-
-                            <input type="tel" id="parte-whatsapp" oninput="aplicarMascaraTelefone(this); validarTelefoneComIndicador(this, 'parte-whatsapp-indicador');" placeholder="(11) 91234-5678" class="w-full p-2 border rounded mt-1 text-sm">
-
-                            <p id="parte-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                        </div>
-
-                        <div>
-
-                            <label class="block text-xs font-bold text-gray-600">E-mail</label>
-
-                            <input type="email" id="parte-email" oninput="validarEmailComIndicador(this, 'parte-email-indicador')" class="w-full p-2 border rounded mt-1 text-sm">
-
-                            <p id="parte-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                        </div>
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Endereço</label>
-
-                        <input type="text" id="parte-endereco" class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-
-                        <div>
-
-                            <label class="block text-xs font-bold text-gray-600">Profissão</label>
-
-                            <input type="text" id="parte-profissao" class="w-full p-2 border rounded mt-1 text-sm">
-
-                        </div>
-
-                        <div>
-
-                            <label class="block text-xs font-bold text-gray-600">Estado civil</label>
-
-                            <select id="parte-estado-civil" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                                <option value="">Não informado</option>
-                                <option value="Solteiro(a)">Solteiro(a)</option>
-                                <option value="Casado(a)">Casado(a)</option>
-                                <option value="Divorciado(a)">Divorciado(a)</option>
-                                <option value="Viúvo(a)">Viúvo(a)</option>
-                                <option value="União estável">União estável</option>
-                            </select>
-
-                        </div>
-
-                    </div>
-
-                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Parte</button>
-
-                </form>
-
-            </div>
-
-            <div id="lista-partes" class="space-y-3 mb-6"></div>
-
+            <div class="rz-chips" id="partes-chips"></div>
+            <div class="rz-card rz-list" id="lista-partes"></div>
         </section>
 
         <section id="tab-manutencistas" class="tab-content hidden">
@@ -10641,7 +10626,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.116.0";
+        const APP_VERSAO = "Beta v1.118.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -16630,6 +16615,16 @@
 
         function switchTab(tabId) {
 
+            // v1.117.0 (fatia 7b-i) — Síndicos/Administradoras/Manutencistas
+            // fundidos em Partes (decisão do Nicola, 04/09): as 3 telas
+            // saem do roteador e caem em Partes com o chip Prestadores
+            // pré-selecionado. Mesmo padrão do desligamento de tab-imoveis
+            // (fatia 3b): HTML e funções antigas ficam até a fatia 9.
+            if (tabId === 'tab-sindicos' || tabId === 'tab-administradoras' || tabId === 'tab-manutencistas') {
+                if (typeof partesFiltroPapel !== 'undefined') partesFiltroPapel = 'prestadores';
+                tabId = 'tab-partes';
+            }
+
             // v1.108.0 — TELAS ANTIGAS DE IMÓVEIS DESLIGADAS (pedido do Nicola,
             // 03/09: "não vejo sentido existir estas telas antigas mais"). A
             // lista e a Ficha do Imóvel (#tab-imoveis) foram substituídas por
@@ -16682,9 +16677,6 @@
             // v7.3.2 — Carrega dados sob demanda ao abrir as abas DEV e Serviços
             if (tabId === 'tab-developer' && typeof dev_inicializar === 'function') {
                 dev_inicializar();
-            }
-            if ((tabId === 'tab-sindicos' || tabId === 'tab-manutencistas' || tabId === 'tab-administradoras') && typeof inicializarServicos === 'function') {
-                inicializarServicos();
             }
             if (tabId === 'tab-minutas' && typeof renderMinutas === 'function') {
                 popularSelectsEscopoMinuta();
@@ -16836,8 +16828,8 @@
                 sub: perfilLogado ? (empresa + ' · ' + perfilLogado) : empresa,
                 grupos: [
                     { titulo: 'Cadastros', acoes: [
-                        { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários', aoTocar: ir('tab-partes') },
-                        { icone: 'wrench', titulo: 'Prestadores', sub: 'Síndicos, administradoras, manutencistas', aoTocar: abrirMenuPrestadores },
+                        { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários, prestadores', aoTocar: () => { partesFiltroPapel = 'todos'; switchTab('tab-partes'); } },
+                        { icone: 'wrench', titulo: 'Prestadores', sub: 'Síndicos, administradoras, manutencistas', aoTocar: () => { partesFiltroPapel = 'prestadores'; switchTab('tab-partes'); } },
                         { icone: 'file-signature', titulo: 'Minutas de contrato', aoTocar: ir('tab-minutas') },
                         { icone: 'list-tree', titulo: 'Tipos e modelos', sub: 'Imóvel, empreendimento, documento, controle', aoTocar: abrirMenuTiposModelos }
                     ]},
@@ -16859,14 +16851,8 @@
                 ]
             });
         }
-        function abrirMenuPrestadores() {
-            const ir = (tab) => () => switchTab(tab);
-            abrirSheetAcoes({ titulo: 'Prestadores', sub: 'Quem cuida do patrimônio com você', acoes: [
-                { icone: 'building-2', titulo: 'Síndicos e gestoras', aoTocar: ir('tab-sindicos') },
-                { icone: 'briefcase', titulo: 'Administradoras', aoTocar: ir('tab-administradoras') },
-                { icone: 'wrench', titulo: 'Manutencistas', aoTocar: ir('tab-manutencistas') }
-            ]});
-        }
+        // v1.117.0 — abrirMenuPrestadores() removida: o item do menu vai
+        // direto pra Partes com o chip Prestadores (fusão da fatia 7b-i).
         function abrirMenuTiposModelos() {
             const ir = (tab) => () => switchTab(tab);
             abrirSheetAcoes({ titulo: 'Tipos e modelos', sub: 'Listas que alimentam os cadastros', acoes: [
@@ -20234,16 +20220,23 @@
 
             // --- Card 1: KPIs consolidados (fn_resumo_resultados) ---
             if (resumo) {
+                // v1.118.0 — fn_resumo_resultados v2 (migration 05/09) soma as
+                // saídas: o hero deixa de chamar receita bruta de "resultado".
+                // Título vira "Resultado (últimos 12 meses)" = recebido −
+                // saídas realizadas; recebido e saídas viram os 2 primeiros
+                // quadrinhos. Saída prevista não entra (não é caixa).
                 html += `<div class="rounded-2xl p-4 text-white shadow mb-3" style="background:var(--sprout)">
-                    <div class="text-xs opacity-80 font-semibold">Recebido (últimos 12 meses)</div>
-                    <div class="text-2xl font-extrabold mt-1">${formatarMoedaBR(resumo.recebido_12m)}</div>
+                    <div class="text-xs opacity-80 font-semibold">Resultado (últimos 12 meses)</div>
+                    <div class="text-2xl font-extrabold mt-1">${formatarMoedaBR(resumo.resultado_liquido_12m != null ? resumo.resultado_liquido_12m : resumo.recebido_12m)}</div>
                     <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Recebido (12m)</div><div class="text-lg font-extrabold mt-1">${formatarMoedaBR(resumo.recebido_12m)}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Saídas (12m)</div><div class="text-lg font-extrabold mt-1">${formatarMoedaBR(resumo.saidas_12m || 0)}</div></div>
                         <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Ocupação</div><div class="text-lg font-extrabold mt-1">${resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—'}</div></div>
                         <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Inadimplência (acumulada)</div><div class="text-lg font-extrabold text-red-100 mt-1">${formatarMoedaBR(resumo.inadimplencia_valor)}</div></div>
                         <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Yield bruto (a.a.)</div><div class="text-lg font-extrabold mt-1">${resumo.yield_bruto_anual_pct != null ? resumo.yield_bruto_anual_pct + '%' : '—'}</div></div>
                         <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Cobertura valor mercado</div><div class="text-lg font-extrabold mt-1">${resumo.cobertura_valor_mercado_pct != null ? resumo.cobertura_valor_mercado_pct + '%' : '—'}</div></div>
                     </div>
-                    <div class="text-[10.5px] opacity-70 mt-3">${resumo.imoveis_com_valor_mercado}/${resumo.total_imoveis} imóveis com valor de mercado cadastrado · yield e cobertura melhoram conforme o cadastro completa.</div>
+                    <div class="text-[10.5px] opacity-70 mt-3">${resumo.imoveis_com_valor_mercado}/${resumo.total_imoveis} imóveis com valor de mercado cadastrado · saídas consideram só o realizado.</div>
                 </div>`;
             } else {
                 html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-3"><p class="text-xs text-red-500">Não foi possível carregar o resumo agora${erroResumo ? ' (' + erroResumo + ')' : ''}.</p></div>`;
@@ -22896,11 +22889,16 @@
         // funções separadas, direto pra tela de gestão certa (síndico/
         // manutencista já são geridos por empreendimento nas telas globais
         // de Configurações — não recriei essa lógica aqui).
+        // v1.117.0 (fatia 7b-i) — os dois caem na tela unificada de
+        // Partes, chip Prestadores (o switchTab já redireciona, mas setar
+        // o filtro aqui evita depender da ordem).
         function abrirVincularSindico() {
-            switchTab('tab-sindicos');
+            if (typeof partesFiltroPapel !== 'undefined') partesFiltroPapel = 'prestadores';
+            switchTab('tab-partes');
         }
         function abrirVincularManutencista() {
-            switchTab('tab-manutencistas');
+            if (typeof partesFiltroPapel !== 'undefined') partesFiltroPapel = 'prestadores';
+            switchTab('tab-partes');
         }
 
         // v1.49.0 — NOVA: box Divisão Societária (imóvel + contrato),
@@ -30561,192 +30559,459 @@
         }
 
         // ---- PARTES (v1.96.0, pedido explícito, 01/09/2026) ----
-        // "use os padrões já existente em cadastro de síndico" — mesma
-        // forma (abrir/alternar/cancelar/editar/salvar/excluir/render),
-        // mas CRUD direto no Supabase (dbAuth.from('partes')), não pelo
-        // array local + saveAll() em lote que síndico/manutencista/
-        // administradora usam — partes é tabela nova (unificação de
-        // contrapartes, trens anteriores), nunca fez parte desse
-        // sistema de lote, e não faria sentido começar a fazer agora só
-        // por consistência com um padrão mais antigo.
-        // papeisPorParte é um Map<parte_id, string[]> carregado 1x
-        // junto com a lista (1 query só pra todos os papéis, não 1 por
-        // parte) — mostrado como badge informativo no card, nunca
-        // editável aqui (ver comentário no HTML, tab-partes, pro
-        // porquê).
+        // ===================================================================
+        // v1.117.0 (fatia 7b-i) — PARTES UNIFICADA. Pedido explícito:
+        // "fazer uma tela nova de partes e seus vínculos/papéis... fundir
+        // tudo em partes. A depender do papel os campos são ajustados em
+        // tela. Importante mostrar os vínculos já existentes pra aquela
+        // parte, pra todos os papéis e por papel."
+        // Arquitetura (verificada no banco antes de escrever):
+        //  - `partes` é a identidade; `partes_papeis` diz onde cada uma
+        //    atua (locatario/fiador → contrato; proprietario → ativo/
+        //    imovel; prestador → prestadores.id; manutencista →
+        //    item_controle).
+        //  - `prestadores` NÃO pode sumir: é alvo de FK operacional
+        //    (contratos.administradora_id, prestador_vinculo com
+        //    empreendimentos, cofre_itens_controle.prestador_escopo_id).
+        //    Salvar uma parte com papel de prestador grava nas DUAS
+        //    (prestadores = operacional, partes = identidade) e liga via
+        //    partes_papeis — mesmo espelho que a migração de 01/09 criou.
+        //  - Vínculos resolvidos por nome numa ida só: RPC
+        //    fn_vinculos_da_parte (SECURITY INVOKER — RLS de cada tabela
+        //    continua mandando; migration de 04/09).
+        // ===================================================================
         let partesCliente = [];
         let papeisPorParte = {};
+        let partesFiltroPapel = 'todos';
+        let partesFiltroTexto = '';
+
+        const PARTES_ROTULO_PAPEL = { locatario: 'Locatário', fiador: 'Fiador', conjuge_anuente: 'Cônjuge anuente', interessado: 'Interessado', contato_seguradora: 'Seguradora', corretor: 'Corretor', prestador: 'Prestador', proprietario: 'Proprietário', sindico: 'Síndico', manutencista: 'Manutencista', administradora: 'Administradora' };
+        const PARTES_ICONE_PAPEL = { locatario: 'user', fiador: 'shield-check', proprietario: 'key-round', prestador: 'wrench', sindico: 'building-2', manutencista: 'wrench', administradora: 'briefcase', interessado: 'user-search', corretor: 'handshake', conjuge_anuente: 'users', contato_seguradora: 'umbrella' };
+
+        function parteEhPrestador(parte, papeis) {
+            return !!parte.tipo_prestador || (papeis || []).some(pp => ['prestador', 'sindico', 'manutencista', 'administradora'].includes(pp));
+        }
 
         async function carregarPartes() {
             const container = document.getElementById('lista-partes');
-            if (container) container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Carregando...</p>';
+            if (container) container.innerHTML = '<div class="rz-empty"><p>Carregando…</p></div>';
             try {
-                const { data: dataPartes, error: erroPartes } = await dbAuth.from('partes')
-                    .select('*')
-                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                    .order('nome');
+                const [{ data: dataPartes, error: erroPartes }, { data: dataPapeis, error: erroPapeis }] = await Promise.all([
+                    dbAuth.from('partes').select('*').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome'),
+                    dbAuth.from('partes_papeis').select('parte_id, papel').eq('ativo', true)
+                ]);
                 if (erroPartes) throw erroPartes;
-                partesCliente = dataPartes || [];
-
-                const { data: dataPapeis, error: erroPapeis } = await dbAuth.from('partes_papeis')
-                    .select('parte_id, papel')
-                    .eq('ativo', true);
                 if (erroPapeis) throw erroPapeis;
-
+                partesCliente = dataPartes || [];
                 papeisPorParte = {};
-                (dataPapeis || []).forEach(p => {
-                    (papeisPorParte[p.parte_id] = papeisPorParte[p.parte_id] || []).push(p.papel);
-                });
+                (dataPapeis || []).forEach(pp => { (papeisPorParte[pp.parte_id] = papeisPorParte[pp.parte_id] || []).push(pp.papel); });
             } catch (err) {
                 console.warn('[partes] Falha ao carregar:', err.message);
-                if (container) container.innerHTML = '<p class="text-xs text-center text-red-500 py-4">Não foi possível carregar agora.</p>';
+                if (container) container.innerHTML = '<div class="rz-empty"><p>Não foi possível carregar agora. Toque pra tentar de novo.</p></div>';
+                if (container) container.onclick = () => { container.onclick = null; carregarPartes(); };
                 return;
             }
+            renderChipsPartes();
             renderPartes();
         }
 
-        function abrirFormParte() {
-            cancelarEdicaoParte();
-            document.getElementById('form-parte-wrapper').classList.remove('hidden');
-            sincronizarBotaoToggleServico('parte');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Chips por papel (REGRAS §8) — só papéis que EXISTEM na carteira,
+        // + "Prestadores" agregando sindico/manutencista/administradora/
+        // prestador (é assim que o menu ⚙️ chega aqui) + "Sem papel".
+        function renderChipsPartes() {
+            const wrap = document.getElementById('partes-chips');
+            if (!wrap) return;
+            const contag = { todos: partesCliente.length, prestadores: 0, sem: 0 };
+            partesCliente.forEach(pt => {
+                const papeis = papeisPorParte[pt.id] || [];
+                if (parteEhPrestador(pt, papeis)) contag.prestadores++;
+                if (!papeis.length) contag.sem++;
+                papeis.forEach(pp => { if (!['prestador', 'sindico', 'manutencista', 'administradora'].includes(pp)) contag[pp] = (contag[pp] || 0) + 1; });
+            });
+            const ordem = ['todos', 'locatario', 'fiador', 'proprietario', 'prestadores', 'interessado', 'corretor', 'sem'];
+            const rotulo = { todos: 'Todas', prestadores: 'Prestadores', sem: 'Sem papel', locatario: 'Locatários', fiador: 'Fiadores', proprietario: 'Proprietários', interessado: 'Interessados', corretor: 'Corretores' };
+            const chips = ordem.filter(k => contag[k]).map(k => ({ chave: k, rotulo: rotulo[k] || PARTES_ROTULO_PAPEL[k] || k, n: contag[k] }));
+            if (!chips.some(c => c.chave === partesFiltroPapel)) partesFiltroPapel = 'todos';
+            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarPartesPorChip('${c.chave}')" class="rz-chip ${partesFiltroPapel === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('');
         }
-
-        function alternarFormularioParte() {
-            const wrapper = document.getElementById('form-parte-wrapper');
-            if (wrapper && !wrapper.classList.contains('hidden')) {
-                cancelarEdicaoParte();
-            } else {
-                abrirFormParte();
-            }
+        function filtrarPartesPorChip(chave) {
+            partesFiltroPapel = chave;
+            renderChipsPartes();
+            renderPartes();
         }
-
-        function cancelarEdicaoParte() {
-            document.getElementById('parte-id').value = '';
-            document.getElementById('form-parte').reset();
-            document.getElementById('form-parte-titulo').innerText = 'Cadastrar Parte';
-            document.getElementById('form-parte-wrapper').classList.add('hidden');
-            sincronizarBotaoToggleServico('parte');
-        }
-
-        function editarParte(id) {
-            const parte = partesCliente.find(p => p.id === id);
-            if (!parte) return;
-
-            document.getElementById('parte-id').value = parte.id;
-            document.getElementById('parte-nome').value = parte.nome || '';
-            document.getElementById('parte-documento').value = parte.documento || '';
-            document.getElementById('parte-nome-fantasia').value = parte.nome_fantasia || '';
-            document.getElementById('parte-whatsapp').value = parte.whatsapp || '';
-            document.getElementById('parte-email').value = parte.email || '';
-            document.getElementById('parte-endereco').value = parte.endereco || '';
-            document.getElementById('parte-profissao').value = parte.profissao || '';
-            document.getElementById('parte-estado-civil').value = parte.estado_civil || '';
-
-            document.getElementById('form-parte-titulo').innerText = 'Editar Parte';
-            document.getElementById('form-parte-wrapper').classList.remove('hidden');
-            sincronizarBotaoToggleServico('parte');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        async function salvarParte(e) {
-            e.preventDefault();
-
-            const id = document.getElementById('parte-id').value;
-            const documento = document.getElementById('parte-documento').value.trim();
-            const digitos = documento.replace(/\D/g, '');
-
-            if (digitos.length > 0) {
-                const tipo = digitos.length > 11 ? 'CNPJ' : 'CPF';
-                if (tipo === 'CPF' && !validarCPF(documento)) {
-                    alert("⚠️ O documento informado não é um CPF válido.");
-                    return;
-                }
-                if (tipo === 'CNPJ' && !validarCNPJ(documento)) {
-                    alert("⚠️ O documento informado não é um CNPJ válido.");
-                    return;
-                }
-            }
-
-            const linha = {
-                cliente_id: CLIENTE_ID_SUPABASE,
-                nome: document.getElementById('parte-nome').value.trim(),
-                doc_tipo: digitos.length > 11 ? 'CNPJ' : (digitos.length > 0 ? 'CPF' : null),
-                documento: documento || null,
-                nome_fantasia: document.getElementById('parte-nome-fantasia').value.trim() || null,
-                whatsapp: document.getElementById('parte-whatsapp').value.trim() || null,
-                email: document.getElementById('parte-email').value.trim() || null,
-                endereco: document.getElementById('parte-endereco').value.trim() || null,
-                profissao: document.getElementById('parte-profissao').value.trim() || null,
-                estado_civil: document.getElementById('parte-estado-civil').value || null,
-            };
-
-            try {
-                if (id) {
-                    const { error } = await dbAuth.from('partes').update(linha).eq('id', id);
-                    if (error) throw error;
-                } else {
-                    const { error } = await dbAuth.from('partes').insert(linha);
-                    if (error) throw error;
-                }
-                mostrarToast('Parte salva com sucesso!');
-                cancelarEdicaoParte();
-                await carregarPartes();
-            } catch (err) {
-                alert('⚠️ Não foi possível salvar: ' + err.message);
-            }
-        }
-
-        async function excluirParte(id) {
-            if ((papeisPorParte[id] || []).length > 0) {
-                alert("⚠️ Não é possível excluir: esta parte tem papel(éis) ativo(s) (locatário, fiador, interessado ou proprietário). Desvincule pelo contrato/imóvel antes de excluir o cadastro.");
-                return;
-            }
-            if (!confirm("Confirma a exclusão desta parte?")) return;
-            try {
-                const { error } = await dbAuth.from('partes').delete().eq('id', id);
-                if (error) throw error;
-                mostrarToast('Parte excluída.');
-                await carregarPartes();
-            } catch (err) {
-                alert('⚠️ Não foi possível excluir: ' + err.message);
-            }
+        function abrirBuscaPartes() {
+            if (typeof abrirSheetForm !== 'function') return;
+            abrirSheetForm({
+                titulo: 'Buscar parte', rotuloSalvar: 'Buscar',
+                corpo: `<label class="block text-xs font-bold text-gray-600">Nome, documento ou contato</label>
+                        <input type="text" id="partes-busca-input" value="${rzEsc(partesFiltroTexto)}" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Ex.: Maria, 123.456…">`,
+                aoSalvar: (el) => { partesFiltroTexto = (el.querySelector('#partes-busca-input')?.value || '').trim().toLowerCase(); renderPartes(); }
+            });
+            setTimeout(() => document.getElementById('partes-busca-input')?.focus(), 120);
         }
 
         function renderPartes() {
             const container = document.getElementById('lista-partes');
             if (!container) return;
-
-            if (partesCliente.length === 0) {
-                container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhuma parte cadastrada.</p>';
+            let lista = partesCliente;
+            if (partesFiltroPapel === 'prestadores') lista = lista.filter(pt => parteEhPrestador(pt, papeisPorParte[pt.id]));
+            else if (partesFiltroPapel === 'sem') lista = lista.filter(pt => !(papeisPorParte[pt.id] || []).length);
+            else if (partesFiltroPapel !== 'todos') lista = lista.filter(pt => (papeisPorParte[pt.id] || []).includes(partesFiltroPapel));
+            if (partesFiltroTexto) lista = lista.filter(pt => [pt.nome, pt.nome_fantasia, pt.documento, pt.whatsapp, pt.email].some(v => (v || '').toLowerCase().includes(partesFiltroTexto)));
+            if (!lista.length) {
+                container.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="contact"></svg></div><p>${partesCliente.length ? 'Nenhuma parte neste filtro.' : 'Nenhuma parte ainda. Locatários e proprietários entram sozinhos pelos contratos e ativos; prestadores e outros você cadastra no "+".'}</p></div>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
-
-            // v1.96.1 (pedido explícito, "migrar os manutencistas,
-            // fiadores e demais partes pra tabela de partes") —
-            // 'prestador' entrou nos rótulos: síndico/administradora/
-            // manutencista compartilham esse papel genérico (o tipo
-            // específico continua em prestadores.tipo, não duplicado
-            // aqui).
-            const rotuloPapel = { locatario: 'Locatário', fiador: 'Fiador', interessado: 'Interessado', proprietario: 'Proprietário', prestador: 'Prestador' };
-
-            container.innerHTML = partesCliente.map(parte => {
-                const papeis = papeisPorParte[parte.id] || [];
-                const badgesPapeis = papeis.map(p => `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded raiz-bg-sprout-light raiz-text-pine border raiz-border-sprout">${rotuloPapel[p] || p}</span>`).join(' ');
+            container.innerHTML = lista.map(pt => {
+                const papeis = papeisPorParte[pt.id] || [];
+                const icone = pt.tipo_prestador ? (pt.tipo_prestador === 'sindico' ? 'building-2' : pt.tipo_prestador === 'manutencista' ? 'wrench' : 'briefcase') : (PARTES_ICONE_PAPEL[papeis[0]] || (pt.doc_tipo === 'CNPJ' ? 'building' : 'user'));
+                const resumoPapeis = papeis.length ? [...new Set(papeis.map(pp => PARTES_ROTULO_PAPEL[pp] || pp))].join(' · ') : 'Sem papel atribuído';
+                const doc = pt.documento ? `${pt.doc_tipo || 'Doc'} ${pt.documento}` : '';
                 return `
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                        <p class="text-xs font-bold text-slate-900">${parte.nome}${parte.nome_fantasia ? ' · ' + parte.nome_fantasia : ''}</p>
-                        <p class="text-[11px] text-gray-500">${parte.doc_tipo || 'Documento'}: ${parte.documento || '-'}</p>
-                        ${(parte.whatsapp || parte.email) ? `<p class="text-[11px] text-gray-500">${parte.whatsapp || ''}${parte.whatsapp && parte.email ? ' · ' : ''}${parte.email || ''}</p>` : ''}
-                        ${badgesPapeis ? `<div class="flex flex-wrap gap-1 mt-1.5">${badgesPapeis}</div>` : `<p class="text-[11px] text-gray-400 italic mt-1">Sem papel atribuído ainda</p>`}
-                        <div class="flex gap-1.5 mt-2">
-                            <button onclick="editarParte('${parte.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
-                            <button onclick="excluirParte('${parte.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
-                        </div>
-                    </div>
-                `;
+                <div class="rz-row rz-link" onclick="abrirFichaParte('${pt.id}')">
+                    <div class="rz-ic"><svg data-lucide="${icone}"></svg></div>
+                    <div class="rz-tx"><b>${rzEsc(pt.nome)}${pt.nome_fantasia ? ' · ' + rzEsc(pt.nome_fantasia) : ''}</b><span>${rzEsc([doc, resumoPapeis].filter(Boolean).join(' · '))}</span></div>
+                    <button type="button" onclick="event.stopPropagation(); abrirAcoesParte('${pt.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                </div>`;
             }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function abrirAcoesParte(parteId) {
+            const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetAcoes !== 'function') return;
+            const acoes = [
+                { icone: 'id-card', titulo: 'Abrir ficha', sub: 'Dados e todos os vínculos', aoTocar: () => abrirFichaParte(pt.id) },
+                { icone: 'pencil', titulo: 'Editar dados', aoTocar: () => abrirFormParteSheet(pt.id) },
+                { icone: 'plus', titulo: 'Adicionar papel', sub: 'Ligar a um contrato, ativo ou empreendimento', aoTocar: () => abrirAdicionarPapelParte(pt.id) },
+            ];
+            // v1.118.0 — a ficha MOSTRAVA os empreendimentos do síndico/
+            // manutencista (RPC) mas não EDITAVA (limitação registrada na
+            // v1.117; a edição morava nos checks da tela antiga). Agora
+            // edita por aqui, com as MESMAS regras de vigência da tela
+            // antiga (data_fim_vigencia; síndico exclusivo por
+            // empreendimento).
+            if (pt.tipo_prestador === 'sindico' || pt.tipo_prestador === 'manutencista') {
+                acoes.push({ icone: 'landmark', titulo: 'Empreendimentos atendidos', sub: 'Onde este prestador atua', aoTocar: () => abrirEmpreendimentosDaParte(pt.id) });
+            }
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir parte', tipo: 'bad', aoTocar: () => excluirParte(pt.id) });
+            abrirSheetAcoes({ titulo: pt.nome, sub: pt.documento ? `${pt.doc_tipo || ''} ${pt.documento}` : '', acoes });
+        }
+
+        // FICHA — dados + vínculos por papel, resolvidos por nome numa
+        // chamada (fn_vinculos_da_parte). Toque num vínculo navega pra
+        // entidade (contrato/ativo) quando há tela pra isso.
+        async function abrirFichaParte(parteId) {
+            const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheet !== 'function') return;
+            const kv = (r, v) => v ? `<div><small>${rzEsc(r)}</small><b>${rzEsc(v)}</b></div>` : '';
+            const sheet = abrirSheet(rzSheetCabecalho(pt.nome, pt.documento ? `${pt.doc_tipo || ''} ${pt.documento}` : (pt.tipo_prestador || '')) + `
+                <div class="rz-sh-b">
+                    <div class="rz-card">
+                        <div class="rz-card-h"><h3>Dados</h3><button type="button" onclick="abrirFormParteSheet('${pt.id}')" class="rz-more" aria-label="Editar"><svg data-lucide="pencil"></svg></button></div>
+                        <div class="rz-kv">
+                            ${kv('Nome fantasia', pt.nome_fantasia)}
+                            ${kv('WhatsApp', pt.whatsapp)}
+                            ${kv('E-mail', pt.email)}
+                            ${kv('Contato', pt.contato_nome)}
+                            ${kv('Endereço', pt.endereco)}
+                            ${kv('Profissão', pt.profissao)}
+                            ${kv('Estado civil', pt.estado_civil)}
+                            ${pt.taxa_adm != null ? kv('Taxa de administração', String(pt.taxa_adm).replace('.', ',') + '%') : ''}
+                        </div>
+                    </div>
+                    <div class="rz-card rz-list">
+                        <div class="rz-card-h"><h3>Vínculos</h3><span class="rz-sub" id="pf-vinculos-sub"></span><button type="button" onclick="abrirAdicionarPapelParte('${pt.id}')" class="rz-more" aria-label="Adicionar papel"><svg data-lucide="plus"></svg></button></div>
+                        <div id="pf-vinculos-lista"><div class="rz-empty"><p>Carregando vínculos…</p></div></div>
+                    </div>
+                </div>`);
+            rzIcones();
+            try {
+                const { data, error } = await dbAuth.rpc('fn_vinculos_da_parte', { p_parte_id: pt.id });
+                if (error) throw error;
+                const listaEl = sheet.querySelector('#pf-vinculos-lista');
+                const subEl = sheet.querySelector('#pf-vinculos-sub');
+                if (!listaEl) return;
+                const vincs = data || [];
+                if (subEl) subEl.textContent = vincs.length ? `${vincs.length} vínculo${vincs.length === 1 ? '' : 's'}` : '';
+                if (!vincs.length) {
+                    listaEl.innerHTML = '<div class="rz-empty"><p>Nenhum vínculo ainda. "Adicionar papel" liga esta parte a um contrato, ativo ou empreendimento.</p></div>';
+                    return;
+                }
+                // agrupado por papel (pedido: "pra todos os papéis e por papel")
+                const grupos = {};
+                vincs.forEach(v => { (grupos[v.papel] = grupos[v.papel] || []).push(v); });
+                listaEl.innerHTML = Object.keys(grupos).map(pp => `
+                    <div class="rz-group">${rzEsc(PARTES_ROTULO_PAPEL[pp] || pp)} · ${grupos[pp].length}</div>
+                    ${grupos[pp].map(v => {
+                        const navegavel = (v.entidade_tipo === 'contrato') || (v.entidade_tipo === 'ativo' && typeof window.rzAbrirAtivoDoImovel === 'function');
+                        const abrir = v.entidade_tipo === 'contrato' ? `fecharSheet(); abrirFichaContrato('${v.entidade_id}')`
+                            : v.entidade_tipo === 'ativo' ? `fecharSheet(); switchTab('tab-ativos'); window.dispatchEvent(new CustomEvent('cofre:abrir-ativo',{detail:{id:'${v.entidade_id}'}}))`
+                            : '';
+                        return `
+                    <div class="rz-row ${navegavel ? 'rz-link' : ''}" ${abrir ? `onclick="${abrir}"` : ''}>
+                        <div class="rz-ic"><svg data-lucide="${PARTES_ICONE_PAPEL[pp] || 'link'}"></svg></div>
+                        <div class="rz-tx"><b>${rzEsc(v.rotulo || '')}</b><span>${rzEsc(v.detalhe || '')}</span></div>
+                        ${navegavel ? '<svg data-lucide="chevron-right" class="rz-chev"></svg>' : ''}
+                    </div>`;
+                    }).join('')}`).join('');
+                rzIcones();
+            } catch (err) {
+                const listaEl = sheet.querySelector('#pf-vinculos-lista');
+                if (listaEl) listaEl.innerHTML = '<div class="rz-empty"><p>Não consegui carregar os vínculos agora.</p></div>';
+                console.warn('[partes] fn_vinculos_da_parte falhou:', err.message);
+            }
+        }
+
+        // FORMULÁRIO — abrirSheetForm; campos base sempre, campos de
+        // prestador aparecem quando o papel escolhido pede (pedido: "a
+        // depender do papel os campos são ajustados em tela").
+        function abrirFormParteSheet(parteId) {
+            if (typeof abrirSheetForm !== 'function') return;
+            const pt = parteId ? partesCliente.find(x => x.id === parteId) : null;
+            const v = (campo) => rzEsc((pt && pt[campo]) || '');
+            const tipoPrest = pt?.tipo_prestador || '';
+            const campo = (rot, id, val, tipo = 'text', extra = '') =>
+                `<div><label class="block text-xs font-bold text-gray-600">${rot}</label><input type="${tipo}" id="${id}" value="${val}" ${extra} class="w-full p-2 border rounded mt-1 text-sm"></div>`;
+            abrirSheetForm({
+                titulo: pt ? 'Editar parte' : 'Nova parte',
+                sub: pt ? pt.nome : 'Locatário, fiador, proprietário, prestador…',
+                rotuloSalvar: pt ? 'Salvar' : 'Cadastrar',
+                corpo: `
+                    ${campo('Nome *', 'parte-nome', v('nome'), 'text', 'required')}
+                    <div><label class="block text-xs font-bold text-gray-600">Documento (CPF ou CNPJ)</label>
+                        <input type="text" id="parte-documento" value="${v('documento')}" oninput="formatarMascaraDocumentoGenerico(this, 'parte-doc-indicador')" placeholder="Só os números" class="w-full p-2 border rounded mt-1 text-sm">
+                        <p id="parte-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p></div>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${campo('WhatsApp', 'parte-whatsapp', v('whatsapp'))}
+                        ${campo('E-mail', 'parte-email', v('email'), 'email')}
+                    </div>
+                    ${campo('Nome fantasia', 'parte-nome-fantasia', v('nome_fantasia'))}
+                    <div><label class="block text-xs font-bold text-gray-600">Atua como prestador?</label>
+                        <select id="parte-tipo-prestador" onchange="ajustarCamposPrestadorParte()" class="w-full p-2 border rounded mt-1 text-sm">
+                            <option value="">Não / não se aplica</option>
+                            <option value="imobiliaria" ${tipoPrest === 'imobiliaria' ? 'selected' : ''}>Administradora / imobiliária</option>
+                            <option value="sindico" ${tipoPrest === 'sindico' ? 'selected' : ''}>Síndico / gestora</option>
+                            <option value="manutencista" ${tipoPrest === 'manutencista' ? 'selected' : ''}>Manutencista</option>
+                        </select></div>
+                    <div id="parte-campos-prestador" class="${tipoPrest ? '' : 'hidden'} space-y-3" style="${tipoPrest ? '' : 'display:none'}">
+                        ${campo('Nome do contato', 'parte-contato-nome', v('contato_nome'))}
+                        <div id="parte-wrap-taxa" class="${tipoPrest === 'imobiliaria' ? '' : 'hidden'}">${campo('Taxa de administração (%)', 'parte-taxa-adm', pt?.taxa_adm != null ? String(pt.taxa_adm) : '', 'number', 'step="0.01" min="0"')}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2" id="parte-campos-pf">
+                        ${campo('Profissão', 'parte-profissao', v('profissao'))}
+                        <div><label class="block text-xs font-bold text-gray-600">Estado civil</label>
+                            <select id="parte-estado-civil" class="w-full p-2 border rounded mt-1 text-sm">
+                                <option value="">—</option>
+                                ${['Solteiro(a)','Casado(a)','Divorciado(a)','Viúvo(a)','União estável'].map(o => `<option ${pt?.estado_civil === o ? 'selected' : ''}>${o}</option>`).join('')}
+                            </select></div>
+                    </div>
+                    ${campo('Endereço', 'parte-endereco', v('endereco'))}`,
+                aoSalvar: (el) => salvarParteSheet(el, parteId || null)
+            });
+            rzIcones();
+        }
+        function ajustarCamposPrestadorParte() {
+            const tipo = document.getElementById('parte-tipo-prestador')?.value || '';
+            const wrap = document.getElementById('parte-campos-prestador');
+            if (wrap) { wrap.classList.toggle('hidden', !tipo); wrap.style.display = tipo ? '' : 'none'; }
+            document.getElementById('parte-wrap-taxa')?.classList.toggle('hidden', tipo !== 'imobiliaria');
+        }
+        async function salvarParteSheet(el, parteId) {
+            const g = id => (el.querySelector('#' + id)?.value || '').trim();
+            const nome = g('parte-nome');
+            if (!nome) { mostrarToast('Informe o nome.', 'danger'); return false; }
+            const documento = g('parte-documento');
+            const digitos = documento.replace(/\D/g, '');
+            if (digitos.length > 0) {
+                const tipoDoc = digitos.length > 11 ? 'CNPJ' : 'CPF';
+                if (tipoDoc === 'CPF' && !validarCPF(documento)) { mostrarToast('CPF inválido.', 'danger'); return false; }
+                if (tipoDoc === 'CNPJ' && !validarCNPJ(documento)) { mostrarToast('CNPJ inválido.', 'danger'); return false; }
+            }
+            const tipoPrestador = g('parte-tipo-prestador') || null;
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                nome,
+                doc_tipo: digitos.length > 11 ? 'CNPJ' : (digitos.length > 0 ? 'CPF' : null),
+                documento: documento || null,
+                nome_fantasia: g('parte-nome-fantasia') || null,
+                whatsapp: g('parte-whatsapp') || null,
+                email: g('parte-email') || null,
+                endereco: g('parte-endereco') || null,
+                profissao: g('parte-profissao') || null,
+                estado_civil: g('parte-estado-civil') || null,
+                contato_nome: g('parte-contato-nome') || null,
+                tipo_prestador: tipoPrestador,
+                taxa_adm: tipoPrestador === 'imobiliaria' && g('parte-taxa-adm') !== '' ? Number(g('parte-taxa-adm')) : null,
+            };
+            try {
+                let idFinal = parteId;
+                if (parteId) {
+                    const { error } = await dbAuth.from('partes').update(linha).eq('id', parteId);
+                    if (error) throw error;
+                } else {
+                    const { data, error } = await dbAuth.from('partes').insert(linha).select('id').single();
+                    if (error) throw error;
+                    idFinal = data.id;
+                }
+                // Papel de prestador: mantém a tabela OPERACIONAL
+                // (prestadores) e o papel em dia — contratos.administradora_id
+                // e prestador_vinculo apontam pra ela, não pra partes.
+                if (tipoPrestador) await sincronizarPrestadorDaParte(idFinal, linha, tipoPrestador);
+                mostrarToast(parteId ? 'Parte atualizada.' : 'Parte cadastrada.', 'success');
+                await carregarPartes();
+            } catch (err) {
+                mostrarToast('Não consegui salvar: ' + (err.message || String(err)), 'danger');
+                return false;
+            }
+        }
+        // Espelho parte → prestadores (+ papel 'prestador' em partes_papeis).
+        // Idempotente: acha o prestador já ligado pelo papel; senão por
+        // documento; senão cria. Vínculos de empreendimento continuam sendo
+        // administrados por prestador_vinculo (Frente F cobre a UI disso).
+        async function sincronizarPrestadorDaParte(parteId, linha, tipoPrestador) {
+            const tipoOperacional = tipoPrestador; // enum de prestadores: imobiliaria|sindico|manutencista
+            let prestadorId = null;
+            const { data: papelExist } = await dbAuth.from('partes_papeis').select('id, entidade_id').eq('parte_id', parteId).eq('papel', 'prestador').eq('ativo', true).limit(1);
+            if (papelExist && papelExist.length) prestadorId = papelExist[0].entidade_id;
+            const linhaPrest = {
+                cliente_id: CLIENTE_ID_SUPABASE, tipo: tipoOperacional,
+                pessoa_fisica_juridica: linha.doc_tipo === 'CNPJ' ? 'juridica' : 'fisica',
+                nome: linha.nome, doc_tipo: linha.doc_tipo, documento: linha.documento,
+                contato_nome: linha.contato_nome, whatsapp: linha.whatsapp, email: linha.email,
+                taxa_adm: linha.taxa_adm,
+            };
+            if (prestadorId) {
+                const { error } = await dbAuth.from('prestadores').update(linhaPrest).eq('id', prestadorId);
+                if (error) throw error;
+            } else {
+                const { data, error } = await dbAuth.from('prestadores').insert(linhaPrest).select('id').single();
+                if (error) throw error;
+                prestadorId = data.id;
+                const { error: errPapel } = await dbAuth.from('partes_papeis').insert({ parte_id: parteId, papel: 'prestador', entidade_tipo: 'prestador', entidade_id: prestadorId, ativo: true });
+                if (errPapel) throw errPapel;
+            }
+            return prestadorId;
+        }
+
+        // v1.118.0 — EMPREENDIMENTOS DO PRESTADOR pela ficha da parte.
+        // Busca tudo do banco na hora (não depende de array em memória):
+        // empreendimentos do cliente + vínculos vigentes do prestador.
+        // Salvar reaplica a regra da tela antiga: marcar = insert com
+        // data_inicio_vigencia hoje (síndico fecha o vínculo do síndico
+        // anterior naquele empreendimento); desmarcar = data_fim_vigencia
+        // hoje. Nada é deletado — vigência é histórico.
+        async function abrirEmpreendimentosDaParte(parteId) {
+            const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetForm !== 'function') return;
+            const { data: papelPrest } = await dbAuth.from('partes_papeis').select('entidade_id').eq('parte_id', parteId).eq('papel', 'prestador').eq('ativo', true).limit(1);
+            const prestadorId = papelPrest && papelPrest.length ? papelPrest[0].entidade_id : null;
+            if (!prestadorId) { mostrarToast('Salve a parte como prestador primeiro (Editar dados).', 'danger'); return; }
+            const [{ data: emps, error: e1 }, { data: vincs, error: e2 }] = await Promise.all([
+                dbAuth.from('empreendimentos').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome'),
+                dbAuth.from('prestador_vinculo').select('id, empreendimento_id').eq('prestador_id', prestadorId).is('data_fim_vigencia', null)
+            ]);
+            if (e1 || e2) { mostrarToast('Não consegui carregar os empreendimentos.', 'danger'); return; }
+            if (!emps || !emps.length) { mostrarToast('Nenhum empreendimento cadastrado ainda (menu › Tipos e modelos).', 'danger'); return; }
+            const vigentes = new Set((vincs || []).map(v => v.empreendimento_id));
+            abrirSheetForm({
+                titulo: 'Empreendimentos atendidos', sub: pt.nome, rotuloSalvar: 'Salvar',
+                corpo: emps.map(e => `
+                    <label class="rz-row" style="cursor:pointer">
+                        <input type="checkbox" class="pe-check" value="${e.id}" ${vigentes.has(e.id) ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--pine)">
+                        <div class="rz-tx"><b>${rzEsc(e.nome)}</b></div>
+                    </label>`).join(''),
+                aoSalvar: (el) => salvarEmpreendimentosDaParte(el, parteId, prestadorId, pt.tipo_prestador, vigentes)
+            });
+        }
+        async function salvarEmpreendimentosDaParte(el, parteId, prestadorId, tipoPrestador, vigentesAntes) {
+            const marcados = new Set(Array.from(el.querySelectorAll('.pe-check:checked')).map(c => c.value));
+            const hoje = new Date().toISOString().split('T')[0];
+            try {
+                for (const empId of marcados) {
+                    if (vigentesAntes.has(empId)) continue;
+                    if (tipoPrestador === 'sindico') {
+                        await dbAuth.from('prestador_vinculo').update({ data_fim_vigencia: hoje })
+                            .eq('empreendimento_id', empId).eq('tipo_prestador', 'sindico').is('data_fim_vigencia', null);
+                    }
+                    const { error } = await dbAuth.from('prestador_vinculo').insert({ prestador_id: prestadorId, tipo_prestador: tipoPrestador, empreendimento_id: empId, data_inicio_vigencia: hoje });
+                    if (error) throw error;
+                }
+                for (const empId of vigentesAntes) {
+                    if (marcados.has(empId)) continue;
+                    const { error } = await dbAuth.from('prestador_vinculo').update({ data_fim_vigencia: hoje })
+                        .eq('prestador_id', prestadorId).eq('empreendimento_id', empId).is('data_fim_vigencia', null);
+                    if (error) throw error;
+                }
+                registrarLog('partes.empreendimentos', { parteId, prestadorId, qtd: marcados.size });
+                mostrarToast('Empreendimentos atualizados.', 'success');
+                abrirFichaParte(parteId);
+            } catch (err) {
+                mostrarToast('Não consegui salvar: ' + (err.message || String(err)), 'danger');
+                return false;
+            }
+        }
+
+        // FRENTE F — adicionar papel avulso: escolhe o papel, depois a
+        // entidade (contrato/ativo) quando o papel pede uma. Grava direto
+        // em partes_papeis.
+        function abrirAdicionarPapelParte(parteId) {
+            const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetAcoes !== 'function') return;
+            const ir = (papel, entTipo) => () => abrirEscolhaEntidadePapel(parteId, papel, entTipo);
+            abrirSheetAcoes({ titulo: 'Adicionar papel', sub: pt.nome, acoes: [
+                { icone: 'user', titulo: 'Locatário', sub: 'Num contrato existente', aoTocar: ir('locatario', 'contrato') },
+                { icone: 'shield-check', titulo: 'Fiador', sub: 'Num contrato existente', aoTocar: ir('fiador', 'contrato') },
+                { icone: 'key-round', titulo: 'Proprietário', sub: 'De um ativo', aoTocar: ir('proprietario', 'ativo') },
+                { icone: 'user-search', titulo: 'Interessado', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'interessado', null, null) },
+                { icone: 'handshake', titulo: 'Corretor', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'corretor', null, null) },
+                { icone: 'wrench', titulo: 'Prestador', sub: 'Síndico, administradora ou manutencista', aoTocar: () => abrirFormParteSheet(parteId) },
+            ] });
+        }
+        function abrirEscolhaEntidadePapel(parteId, papel, entTipo) {
+            if (typeof abrirSheetAcoes !== 'function') return;
+            let opcoes = [];
+            if (entTipo === 'contrato') {
+                opcoes = contratos.map(c => {
+                    const imo = imoveis.find(i => i.id === c.imovelId);
+                    return { icone: 'file-text', titulo: c.locatario || 'Contrato', sub: `${imo ? (imo.enderecoRua || '') + ', ' + (imo.enderecoNum || '') : ''} · ${c.status || ''}`, aoTocar: () => gravarPapelParte(parteId, papel, 'contrato', c.id) };
+                });
+            } else if (entTipo === 'ativo') {
+                opcoes = (window.__cofreAtivos || []).filter(a => (a.status || '').toLowerCase() !== 'arquivado').map(a => (
+                    { icone: 'boxes', titulo: a.nome_exibicao || 'Ativo', sub: a.tipo_ativo || '', aoTocar: () => gravarPapelParte(parteId, papel, 'ativo', a.id) }
+                ));
+                if (!opcoes.length) { mostrarToast('Abra a aba Ativos uma vez pra carregar a lista, e tente de novo.', 'danger'); return; }
+            }
+            if (!opcoes.length) { mostrarToast('Nada disponível pra vincular.', 'danger'); return; }
+            abrirSheetAcoes({ titulo: `${PARTES_ROTULO_PAPEL[papel] || papel} de…`, sub: 'Escolha o vínculo', acoes: opcoes.slice(0, 40) });
+        }
+        async function gravarPapelParte(parteId, papel, entTipo, entId) {
+            try {
+                const q = dbAuth.from('partes_papeis').select('id').eq('parte_id', parteId).eq('papel', papel).eq('ativo', true);
+                const { data: jaTem } = entId ? await q.eq('entidade_id', entId) : await q.is('entidade_id', null);
+                if (jaTem && jaTem.length) { mostrarToast('Este papel já existe pra esta parte.', 'danger'); return; }
+                const { error } = await dbAuth.from('partes_papeis').insert({ parte_id: parteId, papel, entidade_tipo: entTipo, entidade_id: entId, ativo: true });
+                if (error) throw error;
+                registrarLog('partes.papel_adicionado', { parteId, papel, entTipo, entId });
+                mostrarToast('Papel adicionado.', 'success');
+                await carregarPartes();
+                abrirFichaParte(parteId);
+            } catch (err) {
+                mostrarToast('Não consegui adicionar: ' + (err.message || String(err)), 'danger');
+            }
+        }
+
+        async function excluirParte(id) {
+            const pt = partesCliente.find(x => x.id === id); if (!pt) return;
+            const papeis = papeisPorParte[id] || [];
+            if (papeis.length) { mostrarToast(`Esta parte tem ${papeis.length} papel(is) ativo(s) — remova os vínculos antes de excluir.`, 'danger'); abrirFichaParte(id); return; }
+            if (!confirm(`Excluir "${pt.nome}"? Esta ação não pode ser desfeita.`)) return;
+            try {
+                const { error } = await dbAuth.from('partes').delete().eq('id', id);
+                if (error) throw error;
+                registrarLog('partes.excluir', { parteId: id, nome: pt.nome });
+                mostrarToast('Parte excluída.', 'success');
+                await carregarPartes();
+            } catch (err) {
+                mostrarToast('Não consegui excluir: ' + (err.message || String(err)), 'danger');
+            }
         }
 
         // ---- MANUTENCISTAS ----
