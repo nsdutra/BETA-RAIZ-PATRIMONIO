@@ -669,6 +669,7 @@ window.__rzAbrirSubtiposControle = () => controles.abrirSubtiposControle();
 window.__rzUploadAtivo = (ia) => ia ? docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco) : docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco);
 window.addEventListener('cofre:dados-carregados', () => {
     window.__cofreCategorias = estado.categorias; // v1.24.0 — chips de categoria dos anexos do contrato (App)
+    window.__cofreAtivos = estado.ativos; // v1.24.0 — alerta 'contrato vigente em ativo vendido' (App)
     ativos.popularSelectTipoAtivo();
     // v1.12.0 (pedido explícito, "perdeu a formatação... como referência
     // a lista de imóveis antiga") — busca em paralelo, não bloqueia o

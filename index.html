@@ -6,9 +6,47 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.113.0
-   LINHAS: 31230
+   VERSÃO: Beta v1.114.0
+   LINHAS: 30935
    DATA: 03/09/2026
+   NOVIDADES (Beta v1.114.0) — FATIAS 5 e 6 da gramática única (pedido:
+   "bora fazer o 5 e 6 de uma vez; conciliação das despesas pro final").
+   FATIA 5 — FINANCEIRO:
+     - Segmento Recebimentos · Atrasados · Saídas no catálogo (.rz-seg), 3
+       cópias. Cabeçalhos com ≤2 ícones: Buscar + "+" (Recebimentos: sheet
+       com Importar extrato [IA] · Gerar mês · Reprocessar conciliação ·
+       Painel de conciliação — os painéis inline continuam existindo;
+       conciliação de extrato NÃO foi tocada, por decisão).
+     - Recebimentos (renderMensalidades): KPIs do período (Recebido / Em
+       atraso / A vencer); cada competência = .rz-group recolhível +
+       .rz-card.rz-list; cada mensalidade = .rz-row com status (Pago ok ·
+       Em atraso bad · A vencer run). Toque → sheet de ações
+       (rzAcoesMensalidade): Dar baixa · Excluir; pago: Recibo · Estornar.
+       "Dar baixa" = sheet de formulário (rzAbrirBaixaMensalidade) com os
+       MESMOS ids banco-/data-/valor-/obs-/energia-/multa-/taxa-admin-
+       → liquidarMensalidade() intacta. Saíram os formulários inline por
+       card, 4 botões por card e o cabeçalho verde-escuro do grupo.
+       "Apagar inadimplentes do mês" → ⋮ do grupo.
+     - Atrasados (renderInadimplencia): .rz-row + .rz-card.rz-critico por
+       grupo; "Cobrar pelo WhatsApp" (dispararCobrancaWhatsAppDirect, o
+       link wa.me de sempre) → ⋮ do grupo (só agrupando por locatário).
+       Linhas em branco da função normalizadas (−340 linhas no arquivo).
+     - Saídas (renderSaidas): .rz-row com status (Pago / Em atraso / A
+       pagar), grupo por competência recolhível; toque abre a despesa.
+   FATIA 6 — VISÃO GERAL + ALERTAS:
+     - Hero em .rz-kpi.rz-hero (Patrimônio sob gestão) + 3 KPIs
+       (Recebido / Em atraso / Ocupação), mesmos ids. Card "Precisa de
+       atenção" no catálogo: rows com semântica na placa, status no
+       cabeçalho (n em atraso / n pontos / Em dia), borda danger quando há
+       crítico. Relatórios vira row.
+     - Alertas de contrato abrem a FICHA (abrirFichaContrato), não o modal
+       de edição (5 ocorrências).
+     - Alerta NOVO "Contrato vigente em ativo vendido/arquivado"
+       (pendência de 02/09) — lê window.__cofreAtivos (cofre-app v1.24.0).
+   Fora desta entrega, de propósito: conciliação de extrato (painel e
+   pendências, layout antigo), fn_resumo_resultados somando saídas (RPC,
+   próxima rodada), card do Robô na Visão Geral (fatia 8).
+
    NOVIDADES (Beta v1.113.0) — anotações do Nicola (19h): "o toque
    intuitivo já resolve":
      - RODAPÉS DE CARD SAEM. Regra nova (REGRAS §6 v3.11): toda ação
@@ -8156,14 +8194,14 @@
                  que pareça preciso mas não seja. Mantive contagem
                  ("Em atraso"), que já era o dado real mostrado aqui
                  antes desta versão. -->
-            <div class="rounded-2xl p-4 text-white shadow" style="background:var(--sprout)">
-                <div class="text-xs opacity-80 font-semibold">Patrimônio sob gestão</div>
-                <div id="geral-patrimonio-total" class="text-2xl font-extrabold mt-1">—</div>
-                <div class="grid grid-cols-3 gap-2 mt-3">
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Recebido (mês)</div><div id="geral-recebido-mes" class="text-lg font-extrabold mt-1">—</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Ocupação</div><div id="geral-ocupacao-pct" class="text-lg font-extrabold mt-1">—</div></div>
-                    <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Em atraso</div><div id="geral-inadimplentes" class="text-lg font-extrabold text-red-100 mt-1">0</div></div>
-                </div>
+            <!-- v1.114.0 (fatia 6, REGRAS §13): KPI herói em --pine (único da
+                 tela) + 3 KPIs no catálogo; ids mantidos (renderVisaoGeral
+                 continua escrevendo neles). -->
+            <div class="rz-kpis">
+                <div class="rz-kpi rz-hero"><small>Patrimônio sob gestão</small><b id="geral-patrimonio-total">—</b></div>
+                <div class="rz-kpi rz-in"><small>Recebido no mês</small><b id="geral-recebido-mes">—</b></div>
+                <div class="rz-kpi rz-bad"><small>Em atraso</small><b id="geral-inadimplentes">0</b></div>
+                <div class="rz-kpi" style="grid-column:1/-1"><small>Ocupação</small><b id="geral-ocupacao-pct">—</b></div>
             </div>
 
             <!-- Contadores antigos (Imóveis/Alugados/Vagos) preservados,
@@ -8176,22 +8214,20 @@
                 <span id="geral-vagos">0</span>
             </div>
 
-            <div class="bg-white p-4 rounded-xl shadow-sm mt-4 border border-gray-200">
-                <div class="flex justify-between items-start gap-3">
-                    <div>
-                        <h3 class="font-bold text-sm raiz-text-pine">Atenção necessária</h3>
-                        <p class="text-[11px] text-slate-500 mt-0.5">O que pede alguma ação agora.</p>
-                    </div>
-                </div>
-                <div id="geral-atencao-lista" class="mt-3 space-y-2"></div>
+            <!-- v1.114.0 (fatia 6): card "Precisa de atenção" no catálogo —
+                 borda vinho (danger quando há crítico, via renderVisaoGeral),
+                 rows com status; some quando não há nada (REGRAS §13). -->
+            <div class="rz-card rz-atencao" id="geral-atencao-card">
+                <div class="rz-card-h"><h3>Precisa de atenção</h3><span id="geral-atencao-status"></span></div>
+                <div id="geral-atencao-lista"></div>
             </div>
 
-            <div class="bg-white p-4 rounded-xl shadow-sm mt-4 border border-gray-200 flex items-center justify-between gap-3">
-                <div>
-                    <h3 class="font-bold text-sm raiz-text-pine">Relatórios</h3>
-                    <p class="text-[11px] text-slate-500 mt-0.5">Análise detalhada de ocupação e receita.</p>
+            <div class="rz-card rz-list">
+                <div class="rz-row rz-link" onclick="switchTab('tab-relatorios')">
+                    <div class="rz-ic"><svg data-lucide="bar-chart-3"></svg></div>
+                    <div class="rz-tx"><b>Relatórios</b><span>Ocupação e receita em detalhe</span></div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
                 </div>
-                <button onclick="switchTab('tab-relatorios')" class="text-xs font-bold text-emerald-800 flex items-center gap-1">Abrir <svg data-lucide="chevron-right" style="width:14px;height:14px"></svg></button>
             </div>
 
         </section>
@@ -9220,10 +9256,12 @@
                  do "Lista/Atrasos" que já existiu aqui antes (removido em
                  v1.52.0), agora reaproveitada como o vínculo entre as duas
                  abas em vez de filtro interno. -->
-            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
-                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Atrasados</button>
-                <button onclick="switchTab('tab-saidas')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Saídas</button>
+            <!-- v1.114.0 (fatia 5) — segmento do catálogo (.rz-seg, REGRAS §8):
+                 Recebimentos · Atrasados · Saídas. Mesmas 3 abas de sempre. -->
+            <div class="rz-seg">
+                <button onclick="switchTab('tab-mensal')" class="rz-on">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="">Atrasados</button>
+                <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
             </div>
 
             <!-- v1.51.0 — "< Voltar" condicional: só aparece quando esta
@@ -9244,12 +9282,13 @@
 
                 <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos, dê baixa e concilie extratos bancários.</p>
 
-                <button id="btn-toggle-conciliar" onclick="alternarPainelConciliacao()" data-icone-fechado="&lt;path d=&quot;m17 2 4 4-4 4&quot;/&gt;&lt;path d=&quot;M3 11v-1a4 4 0 0 1 4-4h14&quot;/&gt;&lt;path d=&quot;m7 22-4-4 4-4&quot;/&gt;&lt;path d=&quot;M21 13v1a4 4 0 0 1-4 4H3&quot;/&gt;" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Conciliar extrato bancário"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></button>
-
-                <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
-
-                <button id="btn-toggle-gerar-mes" onclick="alternarPainelGerarMes()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Gerar recebimento do mês"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
+                <!-- v1.114.0 (fatia 5, REGRAS §4): ≤2 ícones — Buscar e "+". O "+"
+                     abre sheet com Gerar mês · Importar extrato (IA) · Reprocessar
+                     conciliação; os painéis inline de conciliação/gerar mês
+                     continuam existindo (conciliação de extrato fica como está,
+                     por decisão do Nicola — fora desta fatia). -->
+                <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button id="btn-toggle-gerar-mes" onclick="rzAcoesRecebimentos()" title="Ações" class="rz-ico-btn rz-primary" aria-label="Novo"><svg data-lucide="plus"></svg></button>
             </div>
 
             <!-- v1.41.0 (Fase 2) — "Gerar Mês" agora abre logo abaixo do
@@ -9381,10 +9420,12 @@
 
         <section id="tab-inadimplencia" class="tab-content">
 
-            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
-                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Atrasados</button>
-                <button onclick="switchTab('tab-saidas')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Saídas</button>
+            <!-- v1.114.0 (fatia 5) — segmento do catálogo (.rz-seg, REGRAS §8):
+                 Recebimentos · Atrasados · Saídas. Mesmas 3 abas de sempre. -->
+            <div class="rz-seg">
+                <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="rz-on">Atrasados</button>
+                <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos e
@@ -9397,7 +9438,7 @@
 
                 <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos em atraso, agrupados por mês, locatário ou imóvel.</p>
 
-                <button id="btn-inad-busca" onclick="abrirBuscaInadimplencia()" title="Buscar/filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
+                <button id="btn-inad-busca" onclick="abrirBuscaInadimplencia()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
 
             </div>
 
@@ -9453,10 +9494,12 @@
 
         <section id="tab-saidas" class="tab-content">
 
-            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
-                <button onclick="switchTab('tab-mensal')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Atrasados</button>
-                <button onclick="switchTab('tab-saidas')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Saídas</button>
+            <!-- v1.114.0 (fatia 5) — segmento do catálogo (.rz-seg, REGRAS §8):
+                 Recebimentos · Atrasados · Saídas. Mesmas 3 abas de sempre. -->
+            <div class="rz-seg">
+                <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
+                <button onclick="switchTab('tab-inadimplencia')" class="">Atrasados</button>
+                <button onclick="switchTab('tab-saidas')" class="rz-on">Saídas</button>
             </div>
 
             <!-- "< Voltar" condicional, mesmo padrão de btn-voltar-financeiro
@@ -9466,8 +9509,8 @@
 
             <div class="flex items-center gap-2 mb-4">
                 <p class="text-[11px] text-gray-500 flex-1 text-left">Despesas e saídas do patrimônio — pagas e a pagar.</p>
-                <button id="btn-saidas-busca" onclick="abrirBuscaSaidas()" title="Buscar/filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
-                <button id="btn-nova-despesa" onclick="abrirNovaDespesa()" title="Nova despesa" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button id="btn-saidas-busca" onclick="abrirBuscaSaidas()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
+                <button id="btn-nova-despesa" onclick="abrirNovaDespesa()" title="Nova despesa" class="rz-ico-btn rz-primary" aria-label="Nova despesa"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
             </div>
 
             <div class="rounded-2xl p-4 text-white shadow mb-4" style="background:var(--sprout)">
@@ -10728,7 +10771,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.113.0";
+        const APP_VERSAO = "Beta v1.114.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -19922,12 +19965,16 @@
         // async ficavam sem gap entre si. Corrigido aqui (função única,
         // impossível divergir por acidente) e no HTML (ver linha do
         // #geral-atencao-fundidos, ganhou space-y-2 também).
-        function pontoAtencaoHtml({ icone, corBg, corTexto, titulo, subtitulo, onclick }) {
-            return `<button onclick="${onclick}" class="w-full flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 text-left active:bg-gray-50">
-                <div class="w-9 h-9 rounded-lg ${corBg} ${corTexto} flex items-center justify-center flex-none"><svg data-lucide="${icone}" style="width:16px;height:16px"></svg></div>
-                <div class="flex-1 min-w-0"><div class="text-xs font-bold">${titulo}</div><div class="text-[11px] text-slate-500">${subtitulo}</div></div>
-                <svg data-lucide="chevron-right" style="width:16px;height:16px;color:#94a3b8"></svg>
-            </button>`;
+        // v1.114.0 (fatia 6) — item de atenção em .rz-row; corBg/corTexto
+        // (Tailwind por chamador) viraram a semântica da placa: quem passa
+        // 'bg-red-*' é crítico (rz-bad), 'bg-amber-*' é atenção (rz-warn).
+        function pontoAtencaoHtml({ icone, corBg, corTexto, titulo, subtitulo, onclick, sem }) {
+            const semantica = sem || (/red/.test(corBg || '') ? 'bad' : /amber|yellow/.test(corBg || '') ? 'warn' : '');
+            return `<div class="rz-row rz-link" onclick="${onclick}">
+                <div class="rz-ic${semantica ? ' rz-' + semantica : ''}"><svg data-lucide="${icone}"></svg></div>
+                <div class="rz-tx"><b>${titulo}</b><span>${subtitulo}</span></div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg>
+            </div>`;
         }
 
         function renderVisaoGeral() {
@@ -20013,8 +20060,16 @@
             if (listaEl) {
                 const baseHtml = itens.length > 0
                     ? itens.join('')
-                    : `<p class="text-xs text-slate-500" id="geral-atencao-vazio">Nada pedindo atenção agora. 🎉</p>`;
-                listaEl.innerHTML = baseHtml + '<div id="geral-atencao-fundidos" class="space-y-2"></div>';
+                    : `<div class="rz-empty" id="geral-atencao-vazio"><p>Nada pedindo atenção agora.</p></div>`;
+                listaEl.innerHTML = baseHtml + '<div id="geral-atencao-fundidos"></div>';
+                // v1.114.0 (fatia 6) — status do card: nº de itens críticos
+                // (inadimplência / contrato com alerta) em vermelho; borda
+                // danger quando há crítico, vinho quando só atenção.
+                const card = document.getElementById('geral-atencao-card');
+                const st = document.getElementById('geral-atencao-status');
+                const criticos = inadimplentes > 0 ? 1 : 0;
+                if (card) { card.classList.toggle('rz-critico', criticos > 0); card.classList.toggle('rz-atencao', criticos === 0); }
+                if (st) st.innerHTML = (typeof renderStatus === 'function') ? (inadimplentes > 0 ? renderStatus('bad', `${inadimplentes} em atraso`) : (itens.length ? renderStatus('warn', `${itens.length} pontos`) : renderStatus('ok', 'Em dia'))) : '';
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -20334,7 +20389,7 @@
                     itens.push({
                         categoria: 'contrato', dias: Math.round((fim - hoje) / 86400000),
                         titulo: 'Contrato vencido', subtitulo: con.locatario || 'Locatário não informado',
-                        onClick: `abrirDetalhesContrato('${con.id}')`
+                        onClick: `abrirFichaContrato('${con.id}')`
                     });
                 }
                 if (contratoPrecisaRevisao(con)) {
@@ -20343,14 +20398,25 @@
                     itens.push({
                         categoria: 'contrato', dias: Math.round((prazoRevisao - hoje) / 86400000),
                         titulo: 'Pendente de revisão/reajuste', subtitulo: con.locatario || 'Locatário não informado',
-                        onClick: `abrirDetalhesContrato('${con.id}')`
+                        onClick: `abrirFichaContrato('${con.id}')`
                     });
                 }
                 if (contratoAguardandoAssinatura(con)) {
                     itens.push({
                         categoria: 'contrato', dias: null,
                         titulo: 'Aguardando assinatura', subtitulo: con.locatario || 'Locatário não informado',
-                        onClick: `abrirDetalhesContrato('${con.id}')`
+                        onClick: `abrirFichaContrato('${con.id}')`
+                    });
+                }
+                // v1.114.0 (fatia 6; pendência "vendido/arquivado × contrato ativo",
+                // 02/09): contrato vigente num ativo marcado como vendido/
+                // arquivado vira alerta crítico — hoje nada impede o estado.
+                if (con.status === 'Ativo' && Array.isArray(window.__cofreAtivos)) {
+                    const at = window.__cofreAtivos.find(a => a.entidade_origem_tipo === 'imovel' && a.entidade_origem_id === con.imovelId);
+                    if (at && (at.status === 'vendido' || at.status === 'arquivado')) itens.push({
+                        categoria: 'contrato', dias: -1,
+                        titulo: `Contrato vigente em ativo ${at.status}`, subtitulo: `${con.locatario || 'Locatário'} · encerre o contrato ou reative o ativo`,
+                        onClick: `abrirFichaContrato('${con.id}')`
                     });
                 }
             });
@@ -22478,40 +22544,28 @@
                 const totalGrupo = itens.reduce((s, d) => s + d.valor, 0);
                 const aberto = gruposSaidasAbertos.has(comp);
 
+                // v1.114.0 (fatia 5) — .rz-row com status nas 5 semânticas; o
+                // toque abre a despesa (formulário existente, abrirEditarDespesa).
+                const rsS = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
                 const cards = itens.map(d => {
                     const atrasada = estaAtrasadaDespesa(d);
-                    let corBorda = 'border-slate-300', badge = `<span class="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded font-black">A vencer</span>`;
-                    if (d.status === 'realizado') { corBorda = 'border-emerald-500'; badge = `<span class="bg-green-100 text-green-800 text-[11px] px-2 py-0.5 rounded font-black">Pago</span>`; }
-                    else if (atrasada) { corBorda = 'border-amber-500'; badge = `<span class="bg-amber-100 text-amber-800 text-[11px] px-2 py-0.5 rounded font-black">Atrasado</span>`; }
-
+                    const pago = d.status === 'realizado';
+                    const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
+                    const ic = pago ? 'arrow-up-right' : atrasada ? 'alarm-clock' : 'clock';
                     return `
-                        <div onclick="abrirEditarDespesa('${d.id}')" class="bg-white p-3 rounded-xl shadow-sm border-l-4 ${corBorda} space-y-1.5 cursor-pointer active:scale-[0.99] transition">
-                            <div class="flex justify-between items-start gap-2">
-                                <div class="min-w-0">
-                                    <p class="text-xs font-bold text-slate-900 truncate">${escapeHtmlSaidas(d.descricao)}</p>
-                                    <p class="text-[11px] text-gray-500">${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}</p>
-                                </div>
-                                <div class="flex-none">${badge}</div>
-                            </div>
-                            ${d.ativoNome ? `<p class="text-[11px] text-gray-400"><svg data-lucide="map-pin" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> ${escapeHtmlSaidas(d.ativoNome)}</p>` : ''}
-                            <div class="flex justify-between items-center pt-1">
-                                <span class="text-[11px] text-gray-500">${d.vencimento ? 'Vence ' + formatarDataBR(d.vencimento) : 'Sem vencimento'}${d.reembolsavel ? ' · <span class="text-blue-600 font-bold">reembolsável</span>' : ''}</span>
-                                <span class="text-sm font-bold" style="color:var(--ink)">${formatarMoedaBR(d.valor)}</span>
-                            </div>
+                        <div class="rz-row rz-link" onclick="abrirEditarDespesa('${d.id}')">
+                            <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(d.descricao)}</b><span>${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ''}${d.vencimento ? ' · ' + (pago ? 'pago' : 'vence') + ' ' + formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${d.reembolsavel ? ' · reembolsável' : ''}</span></div>
+                            <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
+                            <svg data-lucide="chevron-right" class="rz-chev"></svg>
                         </div>`;
                 }).join('');
-
                 return `
-                    <div>
-                        <button onclick="alternarGrupoSaidas('${comp}')" class="w-full flex items-center justify-between px-1 py-2">
-                            <span class="text-xs font-bold uppercase tracking-wide" style="color:var(--sage)">${comp}</span>
-                            <span class="flex items-center gap-2">
-                                <span class="text-xs font-bold text-slate-600">${formatarMoedaBR(totalGrupo)}</span>
-                                <svg data-lucide="chevron-down" style="width:14px;height:14px;transform:rotate(${aberto ? '180' : '0'}deg);transition:transform .15s"></svg>
-                            </span>
-                        </button>
-                        <div class="space-y-2 ${aberto ? '' : 'hidden'}">${cards}</div>
-                    </div>`;
+                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoSaidas('${comp}')">
+                        <span style="flex:1">${comp} · ${formatarMoedaBR(totalGrupo)}</span>
+                        <svg data-lucide="chevron-down" style="width:16px;height:16px;transform:rotate(${aberto ? '180' : '0'}deg)"></svg>
+                    </div>
+                    <div class="rz-card rz-list ${aberto ? '' : 'hidden'}">${cards}</div>`;
             }).join('');
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -26979,14 +27033,11 @@
         function alternarPainelConciliacao() {
 
             const painel = document.getElementById('painel-conciliacao-wrapper');
-            const btn = document.getElementById('btn-toggle-conciliar');
-            if (!painel || !btn) return;
-
+            const btn = document.getElementById('btn-toggle-conciliar'); // v1.114.0 — pode não existir
+            if (!painel) return;
             painel.classList.toggle('hidden');
-
             const aberto = !painel.classList.contains('hidden');
-            btn.classList.toggle('ativo', aberto);
-            atualizarIconeToggle(btn, aberto);
+            if (btn) { btn.classList.toggle('ativo', aberto); atualizarIconeToggle(btn, aberto); }
 
             // Ao abrir, garante que a lista de pendências (se houver) já
             // apareça renderizada, sem esperar o próximo evento.
@@ -27101,6 +27152,65 @@
 
         }
 
+        // v1.114.0 (fatia 5) — sheets do lançamento de recebimento
+        function rzAcoesRecebimentos() {
+            if (typeof abrirSheetAcoes !== 'function') { alternarPainelGerarMes(); return; }
+            abrirSheetAcoes({ titulo: 'Recebimentos', acoes: [
+                { icone: 'sparkles', titulo: 'Importar extrato bancário', sub: 'Concilia os pagamentos automaticamente', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+                { icone: 'calendar-plus', titulo: 'Gerar mês', sub: 'Lançamentos de todos os contratos vigentes', aoTocar: () => { const p = document.getElementById('painel-gerar-mes'); if (p && p.classList.contains('hidden')) alternarPainelGerarMes(); p?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+                { icone: 'refresh-cw', titulo: 'Reprocessar conciliação', sub: 'Refaz a comparação extrato × recebimentos', aoTocar: () => reprocessarConciliacaoPendente() },
+                { icone: 'clipboard-list', titulo: 'Painel de conciliação', sub: 'Pendências do último extrato', aoTocar: () => { const w = document.getElementById('painel-conciliacao-wrapper'); if (w && w.classList.contains('hidden')) alternarPainelConciliacao(); w?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+            ] });
+        }
+        function rzAcoesMensalidade(menId) {
+            const men = mensalidades.find(m => m.id === menId); if (!men || typeof abrirSheetAcoes !== 'function') return;
+            const con = contratos.find(c => c.id === men.contratoId) || {};
+            const sub = `${con.locatario || ''} · ${men.referencia}`;
+            if (men.status === 'Pago') {
+                abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: [
+                    { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
+                    { icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "a receber"', tipo: 'bad', aoTocar: () => estornarMensalidade(men.id) },
+                ] });
+                return;
+            }
+            abrirSheetAcoes({ titulo: mensalidadeEmAtraso(men) ? 'Em atraso' : 'A receber', sub, acoes: [
+                { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
+                { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', aoTocar: () => excluirLancamentoMensal(men.id) },
+            ] });
+        }
+        function rzAbrirBaixaMensalidade(menId) {
+            const men = mensalidades.find(m => m.id === menId); if (!men || typeof abrirSheetForm !== 'function') return;
+            const con = contratos.find(c => c.id === men.contratoId) || {};
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            const partesRef = men.referencia.split('/');
+            const diaVenc = con.vencimentoDia || 15;
+            const dataPadrao = `${partesRef[1]}-${partesRef[0]}-${diaVenc < 10 ? '0' + diaVenc : diaVenc}`;
+            const temEnergia = imo?.energiaRumo === 'Sim';
+            // mesmos ids que liquidarMensalidade() lê — o sheet vive no <body>
+            const corpo = `
+                <div class="rz-f2">
+                    <div class="rz-f"><label>Forma de recebimento</label><select id="banco-${men.id}"><option value="PIX">PIX</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="Transferência">Transferência</option><option value="Cheque">Cheque</option></select></div>
+                    <div class="rz-f"><label>Data do recebimento <i>*</i></label><input type="date" id="data-${men.id}" value="${dataPadrao}"></div>
+                </div>
+                <div class="rz-f2">
+                    <div class="rz-f"><label>Líquido (R$) <i>*</i></label><input type="number" step="0.01" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
+                    <div class="rz-f"><label>Observação interna</label><input type="text" id="obs-${men.id}" placeholder="Ex.: desconto"></div>
+                </div>
+                <div class="rz-group" style="margin-top:4px">Extras</div>
+                <div class="rz-f2">
+                    ${temEnergia ? `<div class="rz-f"><label>Energia (R$)</label><input type="number" step="0.01" id="energia-${men.id}" value="0"></div>` : ''}
+                    <div class="rz-f"><label>Multa / juros (R$)</label><input type="number" step="0.01" id="multa-${men.id}" value="0" data-multa-anterior="0" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
+                    <div class="rz-f"><label>Taxa da administradora (R$)</label><input type="number" step="0.01" id="taxa-admin-${men.id}" value="${men.taxaAdmSugerida || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
+                </div>`;
+            abrirSheetForm({ titulo: 'Dar baixa', sub: `${con.locatario || ''} · ${men.referencia} · ${formatarMoedaBR(men.valorConfirmado)}`, corpo, rotuloSalvar: 'Confirmar recebimento',
+                aoSalvar: async () => { await liquidarMensalidade(men.id); } });
+        }
+        function rzAcoesGrupoMensal(ref) {
+            if (typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: `Competência ${ref}`, acoes: [
+                { icone: 'trash-2', titulo: 'Apagar lançamentos em atraso deste mês', sub: 'Só os que ainda não foram pagos e já venceram', tipo: 'bad', aoTocar: () => apagarInadimplentesDoGrupo(ref) },
+            ] });
+        }
         function renderMensalidades() {
 
             const container = document.getElementById('lista-mensalidades');
@@ -27186,8 +27296,20 @@
 
             const hoje = new Date();
 
-            container.innerHTML = competenciasOrdenadas.map((ref) => {
-
+            // v1.114.0 (FATIA 5 da gramática única, REGRAS §9/§10/§11) — cada
+            // competência vira .rz-group + .rz-card.rz-list; cada mensalidade é
+            // uma .rz-row com status nas 5 semânticas (Pago ok · Em atraso bad ·
+            // A vencer run). O TOQUE na linha abre o sheet de ações do
+            // lançamento (rzAcoesMensalidade): Dar baixa (sheet de formulário
+            // com os MESMOS ids banco-/data-/valor-/obs-/energia-/multa-/taxa-
+            // admin-${id}, então liquidarMensalidade() não mudou) · Excluir;
+            // pago → Recibo · Estornar. Os formulários inline por card, os 4
+            // botões por card e o cabeçalho verde-escuro do grupo saíram.
+            // KPIs do período no topo (rzKpisMensal). Grupos continuam
+            // recolhíveis (alternarGrupoMensal) — toque no rótulo do mês.
+            let kTotRecebido = 0, kTotAtraso = 0, kTotAVencer = 0;
+            const rsM = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+            const htmlGrupos = competenciasOrdenadas.map((ref) => {
                 const itensGrupo = grupos[ref].slice().sort((a, b) => {
 
                     const conA = contratos.find(c => c.id === a.contratoId);
@@ -27207,377 +27329,60 @@
                 });
 
                 let recebidoGrupo = 0, inadimplenteGrupo = 0, avencerGrupo = 0;
-
                 let qtdRecebido = 0, qtdInadimplente = 0, qtdAVencer = 0;
-
-                let htmlItens = '';
-
-                itensGrupo.forEach(men => {
-
-                    const con = contratos.find(c => c.id === men.contratoId);
-
-                    if(!con) return;
-
+                const linhas = itensGrupo.map(men => {
+                    const con = contratos.find(c => c.id === men.contratoId) || {};
                     const imo = imoveis.find(i => i.id === con.imovelId);
-
-                    const localImovel = imo ? `${imo.empreendimento} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}` : '';
-
-                    
-
-                    const partesRef = men.referencia.split('/');
-
-                    const diaVenc = con.vencimentoDia || 15;
-
-                    const dataPadraoVenc = `${partesRef[1]}-${partesRef[0]}-${diaVenc < 10 ? '0'+diaVenc : diaVenc}`;
-
-                    // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): um
-                    // lançamento não pago só é "Atrasado" (badge âmbar) se o
-                    // vencimento já chegou (mensalidadeEmAtraso). Lançamento
-                    // futuro (gerado com antecedência) cai no ramo "A vencer"
-                    // logo abaixo — mesmo card/mesmos botões (Dar Baixa
-                    // continua disponível, inclusive pra recebimento
-                    // antecipado), só badge/borda diferentes, pra não
-                    // comunicar atraso que não existe.
-                    if(mensalidadeEmAtraso(men)) {
-
-                        inadimplenteGrupo += men.valorConfirmado;
-
-                        qtdInadimplente++;
-
-                        htmlItens += `
-
-                            <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-amber-500 space-y-2">
-
-                                <div class="flex justify-between items-start">
-
-                                    <div>
-
-                                        <p class="text-xs font-bold text-slate-900">${con.locatario}</p>
-
-                                        <p class="text-[11px] text-gray-500">Ref: ${men.referencia}</p>
-
-                                        ${localImovel ? `<p class="text-[11px] text-gray-400">📍 ${localImovel}</p>` : ''}
-
-                                    </div>
-
-                                    <div class="flex items-center gap-1">
-
-                                        <span class="bg-amber-100 text-amber-800 text-[11px] px-2 py-0.5 rounded font-black">Atrasado</span>
-
-                                    </div>
-
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-1 text-[13px]">
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Forma de Recebimento</label>
-
-                                        <select id="banco-${men.id}" class="w-full border p-1 rounded bg-gray-50"><option value="PIX">PIX</option><option value="Boleto">Boleto</option><option value="Depósito">Depósito</option></select>
-
-                                    </div>
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Dia Recebimento</label>
-
-                                        <input type="date" id="data-${men.id}" value="${dataPadraoVenc}" class="w-full border p-0.5 rounded bg-gray-50 text-center">
-
-                                    </div>
-
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-1 text-[13px]">
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Líquido (R$)</label>
-
-                                        <div class="flex items-center gap-1">
-                                            <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1 rounded bg-gray-50 font-bold raiz-text-pine">
-                                            <button type="button" id="btn-baixa-extra-${men.id}" onclick="alternarMenuBaixaExtra('${men.id}')" title="Energia, multa e taxa" class="raiz-btn-toggle-mini flex-none text-[10px] bg-slate-100 border border-slate-300 rounded-full w-6 h-6 flex items-center justify-center font-bold text-slate-600"><svg data-lucide="more-horizontal" style="width:13px;height:13px"></svg></button>
-                                        </div>
-
-                                    </div>
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Observações Internas</label>
-
-                                        <input type="text" id="obs-${men.id}" placeholder="Ex: Desconto" class="w-full border p-1 rounded bg-gray-50">
-
-                                    </div>
-
-                                </div>
-
-                                <div id="menu-baixa-extra-${men.id}" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 space-y-1.5">
-
-                                    ${imoveis.find(i => i.id === con.imovelId)?.energiaRumo === 'Sim' ? `
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-yellow-700"><svg data-lucide="zap" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Energia (controle interno)</label>
-                                        <input type="number" id="energia-${men.id}" value="0" class="w-full border border-yellow-300 p-1 rounded bg-yellow-50 font-bold text-yellow-800 text-[13px]">
-                                    </div>` : ''}
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-red-700"><svg data-lucide="alert-triangle" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Multa (soma ao líquido)</label>
-                                        <input type="number" id="multa-${men.id}" value="0" data-multa-anterior="0" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border border-red-300 p-1 rounded bg-red-50 font-bold text-red-800 text-[13px]">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700">🏢 Taxa da Administradora</label>
-                                        <input type="number" id="taxa-admin-${men.id}" value="${men.taxaAdmSugerida || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border border-slate-300 p-1 rounded bg-white font-bold text-slate-700 text-[13px]">
-                                    </div>
-
-                                    <div class="pt-1.5 border-t border-slate-300 text-[12px] text-slate-600">
-                                        <div class="flex justify-between"><span>Multa</span><span id="resumo-multa-${men.id}">R$ 0,00</span></div>
-                                        <div class="flex justify-between"><span>Taxa Adm.</span><span id="resumo-taxa-${men.id}">R$ 0,00</span></div>
-                                        <div class="flex justify-between"><span>Líquido</span><span id="resumo-liquido-${men.id}">R$ 0,00</span></div>
-                                        <div class="flex justify-between font-black text-slate-800 pt-1 border-t border-slate-200 mt-1"><span>Total</span><span id="resumo-total-${men.id}">R$ 0,00</span></div>
-                                    </div>
-
-                                </div>
-
-                                <!-- CORRIGIDO (v1.52.0 — pedido explícito):
-                                     ícone de lixeira isolado removido do
-                                     cabeçalho do card; "Excluir" virou botão
-                                     de texto ao lado de "Dar Baixa". -->
-                                <div class="flex gap-1.5">
-                                    <button onclick="liquidarMensalidade('${men.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold shadow">Dar Baixa</button>
-                                    <button onclick="excluirLancamentoMensal('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-[13px] py-1.5 rounded font-bold">Excluir</button>
-                                </div>
-
-                            </div>`;
-
-                    } else if (men.status === 'Inadimplente') {
-
-                        // NOVO (v1.63.0 — pedido explícito, 25/08/2026): não
-                        // pago, mas vencimento ainda não chegou. Mesmo card/
-                        // mesmos botões do ramo "Atrasado" acima (Dar Baixa
-                        // continua disponível pra recebimento antecipado) —
-                        // só badge/borda neutros, pra não parecer débito.
-
-                        avencerGrupo += men.valorConfirmado;
-
-                        qtdAVencer++;
-
-                        htmlItens += `
-
-                            <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-slate-300 space-y-2">
-
-                                <div class="flex justify-between items-start">
-
-                                    <div>
-
-                                        <p class="text-xs font-bold text-slate-900">${con.locatario}</p>
-
-                                        <p class="text-[11px] text-gray-500">Ref: ${men.referencia}</p>
-
-                                        ${localImovel ? `<p class="text-[11px] text-gray-400">📍 ${localImovel}</p>` : ''}
-
-                                    </div>
-
-                                    <div class="flex items-center gap-1">
-
-                                        <span class="bg-slate-100 text-slate-600 text-[11px] px-2 py-0.5 rounded font-black">A vencer</span>
-
-                                    </div>
-
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-1 text-[13px]">
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Forma de Recebimento</label>
-
-                                        <select id="banco-${men.id}" class="w-full border p-1 rounded bg-gray-50"><option value="PIX">PIX</option><option value="Boleto">Boleto</option><option value="Depósito">Depósito</option></select>
-
-                                    </div>
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Dia Recebimento</label>
-
-                                        <input type="date" id="data-${men.id}" value="${dataPadraoVenc}" class="w-full border p-0.5 rounded bg-gray-50 text-center">
-
-                                    </div>
-
-                                </div>
-
-                                <div class="grid grid-cols-2 gap-1 text-[13px]">
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Líquido (R$)</label>
-
-                                        <div class="flex items-center gap-1">
-                                            <input type="number" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border p-1 rounded bg-gray-50 font-bold raiz-text-pine">
-                                            <button type="button" id="btn-baixa-extra-${men.id}" onclick="alternarMenuBaixaExtra('${men.id}')" title="Energia, multa e taxa" class="raiz-btn-toggle-mini flex-none text-[10px] bg-slate-100 border border-slate-300 rounded-full w-6 h-6 flex items-center justify-center font-bold text-slate-600"><svg data-lucide="more-horizontal" style="width:13px;height:13px"></svg></button>
-                                        </div>
-
-                                    </div>
-
-                                    <div>
-
-                                        <label class="block text-[11px] font-bold text-gray-500">Observações Internas</label>
-
-                                        <input type="text" id="obs-${men.id}" placeholder="Ex: Desconto" class="w-full border p-1 rounded bg-gray-50">
-
-                                    </div>
-
-                                </div>
-
-                                <div id="menu-baixa-extra-${men.id}" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 space-y-1.5">
-
-                                    ${imoveis.find(i => i.id === con.imovelId)?.energiaRumo === 'Sim' ? `
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-yellow-700"><svg data-lucide="zap" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Energia (controle interno)</label>
-                                        <input type="number" id="energia-${men.id}" value="0" class="w-full border border-yellow-300 p-1 rounded bg-yellow-50 font-bold text-yellow-800 text-[13px]">
-                                    </div>` : ''}
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-red-700"><svg data-lucide="alert-triangle" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Multa (soma ao líquido)</label>
-                                        <input type="number" id="multa-${men.id}" value="0" data-multa-anterior="0" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border border-red-300 p-1 rounded bg-red-50 font-bold text-red-800 text-[13px]">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-[11px] font-bold text-slate-700">🏢 Taxa da Administradora</label>
-                                        <input type="number" id="taxa-admin-${men.id}" value="${men.taxaAdmSugerida || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border border-slate-300 p-1 rounded bg-white font-bold text-slate-700 text-[13px]">
-                                    </div>
-
-                                    <div class="pt-1.5 border-t border-slate-300 text-[12px] text-slate-600">
-                                        <div class="flex justify-between"><span>Multa</span><span id="resumo-multa-${men.id}">R$ 0,00</span></div>
-                                        <div class="flex justify-between"><span>Taxa Adm.</span><span id="resumo-taxa-${men.id}">R$ 0,00</span></div>
-                                        <div class="flex justify-between"><span>Líquido</span><span id="resumo-liquido-${men.id}">R$ 0,00</span></div>
-                                        <div class="flex justify-between font-black text-slate-800 pt-1 border-t border-slate-200 mt-1"><span>Total</span><span id="resumo-total-${men.id}">R$ 0,00</span></div>
-                                    </div>
-
-                                </div>
-
-                                <div class="flex gap-1.5">
-                                    <button onclick="liquidarMensalidade('${men.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold shadow">Dar Baixa</button>
-                                    <button onclick="excluirLancamentoMensal('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-[13px] py-1.5 rounded font-bold">Excluir</button>
-                                </div>
-
-                            </div>`;
-
-                    } else {
-
-                        recebidoGrupo += men.valorConfirmado;
-
-                        qtdRecebido++;
-
-                        const log = men.envioLog ? `<p class="text-[11px] raiz-text-pine font-semibold"><svg data-lucide="mail" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Log: Notificado via ${men.envioLog.canal} (${men.envioLog.data})</p>` : `<p class="text-[11px] text-gray-400"><svg data-lucide="alert-triangle" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Envio pendente</p>`;
-
-                        const txtObs = men.observacao ? `<p class="text-[11px] text-amber-800 italic bg-amber-50 p-1 rounded mt-1"><svg data-lucide="file-text" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Nota interna: ${men.observacao}</p>` : '';
-
-                        const txtObsRecibo = men.observacaoRecibo ? `<p class="text-[11px] text-emerald-800 italic raiz-bg-sprout-light p-1 rounded mt-1"><svg data-lucide="receipt" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> No recibo: ${men.observacaoRecibo}</p>` : '';
-
-                        const txtEnergia = men.valorEnergia > 0 ? `<p class="text-[11px] text-yellow-700 font-semibold"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> Energia (controle interno, fora do recibo): R$ ${fmtBR(men.valorEnergia)}</p>` : '';
-
-                        htmlItens += `
-
-                            <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-green-500 space-y-2">
-
-                                <div>
-
-                                    <p class="text-xs font-bold text-gray-900">${con.locatario}</p>
-
-                                    <p class="text-[11px] text-gray-500">Ref: ${men.referencia} | R$ ${fmtBR(men.valorConfirmado)} (${men.banco} - ${formatarDataBR(men.dataPgto)})</p>
-
-                                    ${localImovel ? `<p class="text-[11px] text-gray-400"><svg data-lucide="map-pin" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> ${localImovel}</p>` : ''}
-
-                                    ${log}
-
-                                    ${txtObs}
-
-                                    ${txtObsRecibo}
-
-                                    ${txtEnergia}
-
-                                </div>
-
-                                <!-- CORRIGIDO (v1.54.0 — pedido explícito):
-                                     Recibo/Estornar reposicionados pro final
-                                     do card, mesmo padrão de Dar Baixa/
-                                     Excluir (fileira horizontal embaixo, não
-                                     mais flutuando ao lado do texto). -->
-                                <div class="flex gap-1.5">
-                                    <button onclick="abrirModalOpcoesRecibo('${men.id}', '${con.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold shadow">Recibo</button>
-                                    <button onclick="estornarMensalidade('${men.id}')" class="flex-1 bg-red-50 text-red-600 border border-red-200 text-[13px] py-1.5 rounded font-bold">Estornar</button>
-                                </div>
-
-                            </div>`;
-
+                    const localImovel = imo ? `${imo.empreendimento || ''} · ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '';
+                    if (men.status === 'Pago') {
+                        recebidoGrupo += men.valorConfirmado; qtdRecebido++;
+                        return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
+                            <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${escapeHtmlSaidas(localImovel)}${men.dataPgto ? ' · pago em ' + formatarDataBR(men.dataPgto) : ''}${men.banco ? ' · ' + escapeHtmlSaidas(men.banco) : ''}</span></div>
+                            <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${rsM('ok', 'Pago')}</div>
+                            <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+                        </div>`;
                     }
-
-                });
-
+                    const atrasada = mensalidadeEmAtraso(men);
+                    if (atrasada) { inadimplenteGrupo += men.valorConfirmado; qtdInadimplente++; } else { avencerGrupo += men.valorConfirmado; qtdAVencer++; }
+                    return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
+                        <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="${atrasada ? 'alarm-clock' : 'clock'}"></svg></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${escapeHtmlSaidas(localImovel)} · vence dia ${con.vencimentoDia || 15}</span></div>
+                        <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
+                        <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+                    </div>`;
+                }).join('');
+                kTotRecebido += recebidoGrupo; kTotAtraso += inadimplenteGrupo; kTotAVencer += avencerGrupo;
                 const grupoId = 'grupo-mensal-' + ref.replace('/', '-');
-
                 const abertoPorPadrao = gruposMensalAbertos.has(ref);
-
+                const resumo = [qtdRecebido ? `${qtdRecebido} pago${qtdRecebido > 1 ? 's' : ''}` : '', qtdInadimplente ? `${qtdInadimplente} em atraso` : '', qtdAVencer ? `${qtdAVencer} a vencer` : ''].filter(Boolean).join(' · ');
                 return `
-
-                    <div class="mb-3">
-
-                        <button type="button" onclick="alternarGrupoMensal('${ref}')" class="w-full bg-emerald-900 text-white p-3 rounded-xl flex justify-between items-center flex-nowrap gap-2 shadow overflow-hidden">
-
-                            <span class="font-bold text-sm flex-shrink-0 whitespace-nowrap">📅 ${ref} <span id="${grupoId}-seta">${abertoPorPadrao ? '▲' : '▼'}</span></span>
-
-                            <span class="text-[10px] flex flex-col items-end gap-1 flex-shrink-0">
-
-                                <span class="bg-green-700 px-1.5 py-0.5 rounded whitespace-nowrap">Recebido R$ ${fmtBR(recebidoGrupo)} (${qtdRecebido})</span>
-
-                                ${qtdInadimplente > 0 ? `<span class="bg-red-600 px-1.5 py-0.5 rounded whitespace-nowrap">Atraso R$ ${fmtBR(inadimplenteGrupo)} (${qtdInadimplente})</span>` : ''}
-
-                                ${qtdAVencer > 0 ? `<span class="bg-slate-500 px-1.5 py-0.5 rounded whitespace-nowrap">A vencer R$ ${fmtBR(avencerGrupo)} (${qtdAVencer})</span>` : ''}
-
-                            </span>
-
-                        </button>
-
-                        <div id="${grupoId}" class="${abertoPorPadrao ? '' : 'hidden'} space-y-2 mt-2">
-
-                            <!-- v1.63.0 — qtdInadimplente agora só conta atraso real
-                                 (mensalidadeEmAtraso); apagarInadimplentesDoGrupo()
-                                 foi ajustada pra apagar exatamente esse recorte,
-                                 nunca os lançamentos "A vencer" do mesmo mês. -->
-                            ${qtdInadimplente > 0 ? `<button onclick="apagarInadimplentesDoGrupo('${ref}')" class="w-full bg-red-50 text-red-600 border border-red-200 text-[11px] font-bold py-1.5 rounded"><svg data-lucide="trash-2" style="width:12px;height:12px;display:inline;vertical-align:-2px"></svg> Apagar todos os atrasados deste mês (${qtdInadimplente})</button>` : ''}
-
-                            ${htmlItens}
-
-                        </div>
-
+                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoMensal('${ref}')">
+                        <span style="flex:1">${ref} · ${resumo}</span>
+                        ${qtdInadimplente > 0 ? `<button type="button" onclick="event.stopPropagation(); rzAcoesGrupoMensal('${ref}')" class="rz-more" aria-label="Mais ações" style="margin:0"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}
+                        <svg data-lucide="chevron-down" id="${grupoId}-seta" style="width:16px;height:16px;transform:rotate(${abertoPorPadrao ? '180' : '0'}deg)"></svg>
                     </div>
-
-                `;
-
+                    <div id="${grupoId}" class="rz-card rz-list ${abertoPorPadrao ? '' : 'hidden'}">${linhas}</div>`;
             }).join('');
+            container.innerHTML = `<div class="rz-kpis">
+                <div class="rz-kpi rz-in"><small>Recebido no período</small><b>${formatarMoedaBR(kTotRecebido)}</b></div>
+                <div class="rz-kpi rz-bad"><small>Em atraso</small><b>${formatarMoedaBR(kTotAtraso)}</b></div>
+                <div class="rz-kpi" style="grid-column:1/-1"><small>A vencer</small><b>${formatarMoedaBR(kTotAVencer)}</b></div>
+            </div>` + htmlGrupos;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
         }
 
         function alternarGrupoMensal(ref) {
-
             const grupoId = 'grupo-mensal-' + ref.replace('/', '-');
-
-            const div = document.getElementById(grupoId);
-
-            const seta = document.getElementById(`${grupoId}-seta`);
-
-            if (!div) return;
-
-            div.classList.toggle('hidden');
-
-            const aberto = !div.classList.contains('hidden');
-
-            if (seta) seta.innerText = aberto ? '▲' : '▼';
-
+            const el = document.getElementById(grupoId);
+            const seta = document.getElementById(grupoId + '-seta');
+            if (!el) return;
+            el.classList.toggle('hidden');
+            const aberto = !el.classList.contains('hidden');
+            if (seta) seta.style.transform = `rotate(${aberto ? 180 : 0}deg)`;
             if (aberto) gruposMensalAbertos.add(ref); else gruposMensalAbertos.delete(ref);
-
         }
 
         function apagarInadimplentesDoGrupo(ref) {
@@ -28249,33 +28054,20 @@
         }
 
         function renderInadimplencia() {
-
             const container = document.getElementById('lista-inadimplencia');
-
             if(!container) return;
-
             container.innerHTML = '';
-
             
-
             const tipoAgrupamento = document.getElementById('inad-tipo-agrupamento').value;
-
             const fMes = document.getElementById('inad-filtro-mes').value || 'todos';
-
             const fAlvo = document.getElementById('inad-filtro-alvo').value || 'todos';
-
             // v1.55.0 — NOVO: busca por texto livre, mesmo padrão de
             // Imóveis/Financeiro.
             const termoBuscaInad = (document.getElementById('inad-busca-texto')?.value || '').trim().toLowerCase();
-
             let totalInad = 0;
-
             let totalLancadoGeral = 0;
-
             let totalEnergiaRecebida = 0;
-
             let itensPendentes = [];
-
             // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): esta aba é
             // de COBRANÇA de verdade (o botão "Cobrar Grupo" abaixo dispara
             // WhatsApp de notificação de débito pro locatário) — um
@@ -28285,63 +28077,37 @@
             // contados (avisoAVencerQtd/Valor), pra um aviso informativo,
             // nunca listados/cobrados nesta tela.
             let avencerQtd = 0, avencerValor = 0;
-
             mensalidades.forEach(men => {
-
                 const con = contratos.find(c => c.id === men.contratoId);
-
                 if(!con) return;
-
                 
-
                 totalLancadoGeral += men.valorConfirmado;
-
                 
-
                 if(fMes !== 'todos' && men.referencia !== fMes) return;
-
                 if(fAlvo !== 'todos' && con.id !== fAlvo) return;
-
                 const imoDaBusca = imoveis.find(i => i.id === con.imovelId);
-
                 if (termoBuscaInad) {
                     const campos = [con.locatario, imoDaBusca?.enderecoRua, imoDaBusca?.enderecoNum, imoDaBusca?.enderecoBairro, imoDaBusca?.enderecoCidade, imoDaBusca?.empreendimento];
                     if (!campos.some(c => (c || '').toString().toLowerCase().includes(termoBuscaInad))) return;
                 }
-
                 if(mensalidadeEmAtraso(men)) {
-
                     totalInad += men.valorConfirmado;
-
                     const imo = imoveis.find(i => i.id === con.imovelId);
-
                     itensPendentes.push({ men, con, imo });
-
                 } else if (men.status === 'Inadimplente') {
-
                     // Não pago, mas ainda não venceu — "a vencer", nunca
                     // cobrança. Fica de fora da lista e do total desta aba.
                     avencerQtd++;
                     avencerValor += men.valorConfirmado;
-
                 } else if (men.valorEnergia > 0) {
-
                     // Energia é controle interno, à parte do aluguel — nunca soma nos
-
                     // indicadores de inadimplência/ocupação, apenas informativo aqui.
-
                     totalEnergiaRecebida += men.valorEnergia;
-
                 }
-
             });
-
             document.getElementById('inad-total-geral').innerText = "R$ " + totalInad.toLocaleString('pt-BR', {minimumFractionDigits:2});
-
             const taxa = totalLancadoGeral > 0 ? ((totalInad / totalLancadoGeral) * 100).toFixed(1) : 0;
-
             document.getElementById('inad-taxa').innerText = taxa + "%";
-
             // v1.63.0 — NOVO aviso informativo: lançamentos futuros existem
             // (contam pro caixa esperado) mas não aparecem nesta aba porque
             // ainda não venceram — evita a leitura de "sumiu"/"a taxa está
@@ -28357,124 +28123,67 @@
                     avisoAVencer.classList.add('hidden');
                 }
             }
-
             const energiaBox = document.getElementById('inad-energia-recebida');
-
             if (energiaBox) {
-
                 if (totalEnergiaRecebida > 0) {
-
                     energiaBox.classList.remove('hidden');
-
                     energiaBox.innerText = `⚡ Energia recebida no período (controle interno, à parte do aluguel): R$ ${totalEnergiaRecebida.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
-
                 } else {
-
                     energiaBox.classList.add('hidden');
-
                 }
-
             }
-
             if(itensPendentes.length === 0) {
-
                 container.innerHTML = `<p class="text-xs text-center text-gray-400 py-4">Nenhum débito em aberto localizado.</p>`;
-
                 return;
-
             }
-
             // Ordena por empreendimento e locatário — dentro de cada locatário,
-
             // mantém a competência mais recente primeiro.
-
             itensPendentes.sort((a, b) => {
-
                 const empA = a.imo ? a.imo.empreendimento : '';
-
                 const empB = b.imo ? b.imo.empreendimento : '';
-
                 const porEmpreendimento = empA.localeCompare(empB);
-
                 if (porEmpreendimento !== 0) return porEmpreendimento;
-
                 const porLocatario = (a.con.locatario || '').localeCompare(b.con.locatario || '');
-
                 if (porLocatario !== 0) return porLocatario;
-
                 const [ma, aa] = a.men.referencia.split('/');
-
                 const [mb, ab] = b.men.referencia.split('/');
-
                 return (ab + mb).localeCompare(aa + ma);
-
             });
-
             let groups = {};
-
             itensPendentes.forEach(item => {
-
                 let chaveGrupo = '';
-
                 if(tipoAgrupamento === 'competencia') chaveGrupo = `Competência: ${item.men.referencia}`;
-
                 else if(tipoAgrupamento === 'locatario') chaveGrupo = `Locatário: ${item.con.locatario}`;
-
                 else if(tipoAgrupamento === 'imovel') chaveGrupo = `Imóvel: ${item.imo ? item.imo.empreendimento : 'Não Vinculado'}`;
-
                 if(!groups[chaveGrupo]) groups[chaveGrupo] = [];
-
                 groups[chaveGrupo].push(item);
-
             });
-
             for(let nomeGrupo in groups) {
-
                 let subItensHtml = '';
-
                 let totalGrupo = 0;
-
                 let listaCobrancaAgrupada = [];
-
                 let locatarioCelular = "";
-
                 groups[nomeGrupo].forEach(item => {
-
                     totalGrupo += item.men.valorConfirmado;
-
                     listaCobrancaAgrupada.push(`- Competência ${item.men.referencia}: R$ ${item.men.valorConfirmado.toLocaleString('pt-BR')}`);
-
                     locatarioCelular = item.con.whatsapp;
-
                     // CORRIGIDO — mesmo padrão de endereço (com pin, número e
                     // complemento) já usado na aba Mensal, em vez de só a rua com
                     // o rótulo "Endereço:".
                     const localImovelInad = item.imo
                         ? `${item.imo.empreendimento || ''} - ${item.imo.enderecoRua || ''}, ${item.imo.enderecoNum || ''}${item.imo.enderecoComp ? ' - ' + item.imo.enderecoComp : ''}`
                         : '-';
-
+                    // v1.114.0 (fatia 5) — .rz-row; toque abre o sheet do lançamento
+                    // (Dar baixa · Excluir), igual à aba Recebimentos.
                     subItensHtml += `
-
-                        <div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-[13px] space-y-1">
-
-                            <div class="flex justify-between items-center gap-2 font-bold">
-
-                                <span class="text-slate-700 truncate min-w-0">${item.con.locatario} (${item.men.referencia})</span>
-
-                                <span class="text-red-700 flex-shrink-0 whitespace-nowrap">R$ ${item.men.valorConfirmado.toLocaleString('pt-BR')}</span>
-
-                            </div>
-
-                            <p class="text-gray-500 text-[11px]">📍 ${localImovelInad}</p>
-
-                        </div>
-
-                    `;
-
+                        <div class="rz-row rz-link" onclick="rzAcoesMensalidade('${item.men.id}')">
+                            <div class="rz-ic rz-bad"><svg data-lucide="alarm-clock"></svg></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(item.con.locatario || 'Locatário')} · ${item.men.referencia}</b><span>${escapeHtmlSaidas(localImovelInad)}</span></div>
+                            <div class="rz-rt"><b>${formatarMoedaBR(item.men.valorConfirmado)}</b>${(typeof renderStatus === 'function') ? renderStatus('bad', 'Em atraso') : ''}</div>
+                            <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+                        </div>`;
                 });
-
                 const descConsolidada = listaCobrancaAgrupada.join('\\n');
-
                 // v1.41.0 (Fase 2) — "Cobrar Grupo" só faz sentido quando o
                 // agrupamento é por Locatário (é o único caso em que o grupo
                 // representa, de fato, tudo que uma mesma pessoa/empresa deve).
@@ -28482,32 +28191,28 @@
                 // o cabeçalho do grupo fica só com o título, sem o botão —
                 // formatação idêntica em qualquer agrupamento (sem variar
                 // conforme o locatário).
-                const btnCobrarGrupo = tipoAgrupamento === 'locatario'
-                    ? `<button onclick="dispararCobrancaWhatsAppDirect('${locatarioCelular}', '${nomeGrupo}', '${descConsolidada}', ${totalGrupo})" class="text-[11px] bg-red-600 text-white px-2 py-1 rounded font-black shadow transition active:scale-90"><svg data-lucide="clipboard-list" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Cobrar Grupo</button>`
-                    : '';
-
+                // v1.114.0 — "Cobrar pelo WhatsApp" (só no agrupamento por
+                // locatário, como antes) vira o ⋮ do grupo → sheet. É a cobrança
+                // via WhatsApp que já existia (dispararCobrancaWhatsAppDirect,
+                // link wa.me), não o Robô.
+                const rzIdGrupo = 'rz-inad-' + Math.random().toString(36).slice(2, 8);
+                window.__rzCobrancaGrupo = window.__rzCobrancaGrupo || {};
+                window.__rzCobrancaGrupo[rzIdGrupo] = { celular: locatarioCelular, titulo: nomeGrupo, itens: descConsolidada, total: totalGrupo };
                 container.innerHTML += `
-
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-red-200">
-
-                        <div class="flex justify-between items-center bg-red-50 p-1.5 rounded mb-2">
-
-                            <h3 class="text-xs font-black text-red-900 uppercase tracking-wider">${nomeGrupo}</h3>
-
-                            ${btnCobrarGrupo}
-
-                        </div>
-
-                        <div class="space-y-1.5">${subItensHtml}</div>
-
-                    </div>`;
-
+                    <div class="rz-group" style="display:flex;align-items:center;gap:8px">
+                        <span style="flex:1">${escapeHtmlSaidas(nomeGrupo)} · ${formatarMoedaBR(totalGrupo)}</span>
+                        ${tipoAgrupamento === 'locatario' ? `<button type="button" onclick="rzAcoesGrupoInadimplencia('${rzIdGrupo}')" class="rz-more" aria-label="Mais ações" style="margin:0"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}
+                    </div>
+                    <div class="rz-card rz-list rz-critico">${subItensHtml}</div>`;
             }
-
             if (typeof lucide !== 'undefined') lucide.createIcons();
-
         }
-
+        function rzAcoesGrupoInadimplencia(id) {
+            const g = (window.__rzCobrancaGrupo || {})[id]; if (!g || typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: g.titulo, sub: `${formatarMoedaBR(g.total)} em aberto`, acoes: [
+                { icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Abre a conversa com a lista de competências', aoTocar: () => dispararCobrancaWhatsAppDirect(g.celular, g.titulo, g.itens, g.total) },
+            ] });
+        }
         function dispararCobrancaWhatsAppDirect(celular, grupoTitle, itensText, valorTotal) {
 
             if(!celular || celular.length < 5) {
