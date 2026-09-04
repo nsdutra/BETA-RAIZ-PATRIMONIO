@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.15.0 · 03/09/2026
+// Versão: 1.16.0 · 04/09/2026
+//
+// v1.16.0 — reaproveita window.__raizDbAuth quando roda dentro do App
+// (GoTrueClient duplicado, fatia 7). Standalone inalterado.
 //
 // v1.15.0 — gerarSignedUrl resolve bucket 'externo' (URL como está) e
 // 'imoveis-fotos' (público, getPublicUrl) — fotos migradas do cadastro antigo.
@@ -149,7 +152,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // (https://unpkg.com/@supabase/supabase-js@2) — mesma convenção do app
 // principal, sem bundler.
 const { createClient } = window.supabase;
-export const dbAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// v1.16.0 (fatia 7) — GoTrueClient duplicado: dentro do App (index.html)
+// já existe um cliente autenticado, exposto em window.__raizDbAuth; criar
+// um segundo com a mesma chave gerava o aviso "Multiple GoTrueClient
+// instances" e duas sessões disputando o mesmo storage. No cofre.html
+// standalone a global não existe e o módulo cria o dele, como sempre.
+export const dbAuth = window.__raizDbAuth || createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================================
 // SESSÃO / BOOTSTRAP

@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.19.0 · 03/09/2026
+// Versão: 1.20.0 · 04/09/2026
+//
+// v1.20.0 (fatia 7) — cabeçalho da lista de Ativos com 2 ícones no
+// catálogo (.rz-ico-btn): Buscar + "+" que abre sheet. Vitrine e Upload
+// saíram da barra e foram pro sheet.
 //
 // v1.19.0 — Nicola (19h): rodapés de card SAEM; toda ação vive no ⋮ do
 // cabeçalho ou no toque da linha (REGRAS §6 v3.11). ⋮ novo em
@@ -405,8 +409,16 @@ export const ATIVOS_MARKUP = `<style>
                      Cadastrar novo imóvel" dentro do próprio formulário
                      "Novo ativo" > "Qual imóvel?" (ver aoMudarTipoAtivo,
                      cofre-ativos.js), onde faz mais sentido estar. -->
-                <button data-action="abrir-busca-ativos" title="Localizar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
-                    <i data-lucide="search" style="width:20px;height:20px"></i>
+                <!-- v1.20.0 (fatia 7, REGRAS §4) — ≤2 ícones: Buscar + "+"
+                     preenchido. Vitrine e Carregar documento não sumiram:
+                     viraram itens do sheet do "+" (cofre-app.js
+                     'abrir-acoes-ativos'); "Gerar vitrine" de UM imóvel
+                     também vive no ⋮ da ficha (cofre-ativos.js v1.22.0). -->
+                <button data-action="abrir-busca-ativos" title="Buscar" aria-label="Buscar" class="rz-ico-btn">
+                    <i data-lucide="search"></i>
+                </button>
+                <button data-action="abrir-acoes-ativos" id="btn-toggle-ativo" class="rz-ico-btn rz-primary" title="Adicionar" aria-label="Adicionar">
+                    <i data-lucide="plus"></i>
                 </button>
                 <!-- "Vitrine" — ponte pra tab-vitrine (fluxo de sempre,
                      seleção múltipla de imóveis + link único). Ao
@@ -414,21 +426,14 @@ export const ATIVOS_MARKUP = `<style>
                      aba de nível normal (não um modal preso dentro de
                      outra aba escondida) — switchTab() já lida com isso
                      nativamente, sem o mesmo bug de display:none. -->
-                <button data-action="ir-vitrine-app" title="Vitrine" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
-                    <i data-lucide="image" style="width:20px;height:20px"></i>
-                </button>
-                <button data-action="abrir-form-ativo" id="btn-toggle-ativo" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Adicionar">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
+
                 <!-- "Carregar documento" — mesmo fluxo de sempre
                      (abrir-upload-home, já existia no dispatcher, usado
                      antes só pelo card "Comece pelo documento" da Home
                      interna do Cofre) — upload rápido sem precisar abrir
                      um ativo específico primeiro, decide o vínculo (ou
                      deixa em triagem) depois. -->
-                <button data-action="abrir-upload-home" title="Carregar documento" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
-                    <i data-lucide="upload" style="width:20px;height:20px"></i>
-                </button>
+
             </div>
 
             <!-- v1.5.0 (31/08/2026, pedido explícito, "Fase A" da fusão

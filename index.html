@@ -6,9 +6,90 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.114.0
-   LINHAS: 30935
-   DATA: 03/09/2026
+   VERSÃO: Beta v1.115.0
+   LINHAS: 30770
+   DATA: 04/09/2026
+   NOVIDADES (Beta v1.115.0) — FATIA 7 da gramática única (REGRAS v3.12
+   §4/§5/§16; roteiro #3 das PENDÊNCIAS de 03/09; pedido: "Pode seguir").
+   Por quê: cabeçalho, menu e barras de aba eram o último pedaço de casca
+   antiga em volta de telas já migradas — Ativos tinha 4 ícones, o menu
+   ⚙️ era um HTML de 7 grupos com itens "Em breve" desabilitados, e o
+   cabeçalho ainda mostrava o Robô como ícone principal.
+   CABEÇALHO GLOBAL (.rz-hdr, §4):
+     - <header> agora é o próprio .rz-hdr: nome do cliente em 1 linha
+       truncada (#logo-header, mesmo id que aplicarBrandingCliente() já
+       preenchia com texto ou <img>), linha de contexto "Plano X · N
+       ativos" (atualizarContextoHeader(): plano de LICENCA_ATUAL, N de
+       window.__cofreAtivos, ou imoveis antes do módulo carregar), botão
+       Raiz IA (brass, sparkles, anel 28 %, ponto branco p/ sugestão) e
+       avatar com iniciais. Toque = recarregar; duplo-toque = DEV, como
+       antes. O botão do Robô saiu do cabeçalho (vive no menu › Empresa e
+       no sheet do Raiz IA — §16.7). Tag OFFLINE virou .rz-off (sem
+       Tailwind, keyframe própria rz-pulse).
+     - Raiz IA (abrirSheetRaizIA): faixa .rz-ia-hero + o que a IA já faz
+       HOJE — Importar extrato (vai pro Financeiro e abre o seletor), Ler
+       um documento (abre o upload livre do módulo Ativos via evento
+       'cofre:abrir-upload-home', cofre-app v1.25.0) e Robô WhatsApp.
+       A conversa (sugestões, bolhas, campo) é a fatia 8 — o botão só
+       ganhou lugar e contrato visual definitivos; nada promete o que
+       não existe.
+   MENU ⚙️ (§5) — 3 grupos fixos, gerado por abrirSheetAcoes({grupos}):
+     - Cadastros: Partes · Prestadores › (Síndicos e gestoras,
+       Administradoras, Manutencistas) · Minutas de contrato · Tipos e
+       modelos › (Tipo de imóvel, Tipo de empreendimento, Categoria de
+       documento, Sub-tipos de item de controle, Modelos de controle).
+     - Empresa: Minha empresa · Pessoas e acessos · Robô WhatsApp ·
+       Licença e uso (plano no subtítulo — substitui o selo) · Trocar de
+       empresa.
+     - Conta: Alertas do patrimônio · Preferências de comunicação ·
+       Suporte pelo WhatsApp · Termos e privacidade · Sobre · Sair (não
+       existia no menu; só no DEV).
+     - #modal-menu-conta (HTML estático, ~250 linhas) REMOVIDO junto com
+       os 4 itens "Em breve" (Meu perfil, Sócios & cotas, Certificado/
+       NFS-e, Banco) — item desabilitado não é ação; os 4 seguem nas
+       PENDÊNCIAS. atualizarBadgePlanoMenu() removida; fecharMenuConta()
+       = fecharSheet() (mantida pelos chamadores).
+     - Categoria/Sub-tipos/Modelos abrem DENTRO do App: abrirConfiguracaoCofre()
+       deixou de mandar pro cofre.html — vai pra tab-ativos e dispara
+       'cofre:abrir-configuracao' (listener existia desde cofre-app
+       v1.8.0); se o módulo ainda não carregou, espera
+       'cofre:dados-carregados' uma vez. Era a última porta do menu pro
+       cofre.html.
+   CABEÇALHOS DE ABA (≤2 ícones, "+" preenchido, §4):
+     - Ativos (ativos-markup v1.20.0): 4 ícones → Buscar + "+". O "+"
+       abre sheet (cofre-app 'abrir-acoes-ativos'): Carregar documento
+       [IA, no topo — §16.5] · Novo ativo · Montar vitrine (vários).
+     - Contratos: .rz-ico-btn; "+" abre o formulário direto (uma ação só —
+       sheet quando "A partir de um PDF" existir); raiz-btn-toggle saiu
+       do botão (o sheet tem o próprio X; sincronizarBotaoToggleContrato
+       segue inofensiva sem o svg).
+     - Visão Geral: ganhou a linha de aba (descrição + sino → Alertas)
+       com ponto --danger quando há atraso / --warning quando só há
+       pontos de atenção (renderVisaoGeral escreve em #geral-sino-dot).
+     - Vitrine: "‹ Ativos" (era "Imóveis", tela desligada) + Buscar +
+       Gerar link (share, preenchido).
+   VITRINE POR IMÓVEL: gerarLinkVitrine() virou casca de
+     gerarLinkVitrineParaIds(ids); gerarVitrineDoImovel(id) novo, usado
+     pelo ⋮ do ativo-imóvel ("Gerar vitrine", cofre-ativos v1.22.0).
+     Resultado deixou de ser confirm()/alert() e virou sheet "Vitrine
+     pronta": Copiar · Enviar pelo WhatsApp · Abrir (link já copiado ao
+     abrir; erros em toast).
+   GOTRUECLIENT DUPLICADO: index.html expõe window.__raizDbAuth; cofre-api
+     v1.16.0 reaproveita (standalone cofre.html continua criando o dele).
+     Some o aviso "Multiple GoTrueClient instances" e a sessão paralela.
+   ÓRFÃ: verificarAcessoCofreEAtualizarMenu() (v1.46.0) removida — só
+     alternava #menu-grupo-modulos, que não existe desde a v1.87.0.
+   TRAVA: verificar_gramatica.py v1.3 — o check obrigatório de --paper
+     (#f1f4ec) estava defasado da paleta executiva e acusava FALHA falsa;
+     agora exige --paper:#f4f3ee, --tile e .rz-hdr. Baseline regravada.
+     Contagens: emerald 117→114 · caixa_alta 30→18 · hex_solto 430→429;
+     nada subiu.
+   FICOU DE FORA (de propósito): nav.bottom-nav interna do Cofre e o
+     <header> do módulo já são display:none via ativos-boot; a remoção
+     física do markup é fatia 9 junto com o resto da limpeza.
+   Validação: node --check no bloco principal e nos 4 módulos;
+   balanceamento de tags idêntico à v1.114 (svg 1, pré-existente).
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.114.0) — FATIAS 5 e 6 da gramática única (pedido:
    "bora fazer o 5 e 6 de uma vez; conciliação das despesas pro final").
    FATIA 5 — FINANCEIRO:
@@ -6904,18 +6985,25 @@
         .rz-hdr .rz-brand small{display:block;font-size:11px;opacity:.85;margin-top:1px}
         .rz-hdr .rz-ia{width:40px;height:40px;border-radius:50%;background:var(--brass);color:#fff;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 3px rgba(198,138,59,.28);flex:none}
         .rz-hdr .rz-ia .rz-dot{position:absolute;top:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--brass)}
-        /* v1.107.0 — botões do cabeçalho atual sobre pine: Robô em brass
-           (REGRAS §16: brass é IA/Robô), avatar em pine-light com borda.
-           Fatia 7 troca o cabeçalho inteiro pra .rz-hdr; até lá estas 2
-           classes dão o contraste. */
-        #main-header .rz-hdr-ia{background:var(--brass);color:#fff;box-shadow:0 0 0 3px rgba(198,138,59,.28)}
-        #main-header .rz-hdr-avatar{background:var(--pine-light);color:#fff;border:1px solid rgba(255,255,255,.25)}
+        /* v1.115.0 (fatia 7) — .rz-hdr é o cabeçalho de verdade; os
+           remendos #main-header .rz-hdr-ia/.rz-hdr-avatar da v1.107 saíram.
+           Botões do cabeçalho não têm borda/outline própria além da regra. */
+        .rz-hdr button{border:0;padding:0;cursor:pointer;transition:transform .08s}
+        .rz-hdr button:active{transform:scale(.92)}
+        .rz-hdr .rz-ia svg{width:20px;height:20px}
+        .rz-hdr .rz-brand h1 img{max-height:1.5em;display:inline-block;vertical-align:middle}
+        .rz-hdr .rz-off{display:inline-block;font-size:10px;font-weight:700;background:var(--danger);color:#fff;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;animation:rz-pulse 1.4s infinite}
+        @keyframes rz-pulse{0%,100%{opacity:1}50%{opacity:.45}}
         .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine-light);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
         .rz-tabhead p{flex:1;font-size:12px;color:var(--muted);line-height:1.35;margin:0}
         .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
-        .rz-ico-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none}
+        .rz-ico-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none;position:relative}
         .rz-ico-btn:active{transform:scale(.92)}
+        /* v1.115.0 (fatia 7) — ponto de badge no ícone de aba (sino da Visão
+           Geral, REGRAS §5: badge só em Visão Geral e Financeiro). */
+        .rz-ico-btn .rz-dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid #fff}
+        .rz-ico-btn .rz-dot.rz-warn{background:var(--warning)}
         .rz-ico-btn.rz-primary{background:var(--pine);color:#fff;border-color:var(--pine)}
         .rz-ico-btn svg{width:20px;height:20px}
         .rz-back{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--pine);margin-bottom:12px}
@@ -7687,71 +7775,33 @@
 
     <header id="main-header" class="hidden text-white sticky top-0 z-50 shadow-md">
 
-        <!-- v1.93.0 (31/08/2026, pedido explícito) — 2 correções juntas:
-             1) Label "Imóveis" removido — não fazia mais sentido desde
-             que a barra de baixo deixou de ter uma aba "Imóveis" própria
-             (v1.90.0, unificada com Ativos).
-             2) BUG achado ao mexer aqui: esta div tinha a classe Tailwind
-             fixa `bg-emerald-950` cobrindo o `background:var(--sprout)`
-             que a v1.92.0 (mudança de paleta) tinha aplicado no
-             <header> pai — o header nunca mudou de cor de verdade,
-             porque o fundo visível de sempre era este div interno, não
-             o header. Corrigido: `bg-emerald-950` saiu, `var(--sprout)`
-             entrou aqui (que é o elemento que realmente aparece). Ver
-             changelog completo desta versão pra outros pontos com o
-             mesmo problema (Tailwind emerald-* hardcoded, fora do
-             sistema de tokens) que ainda ficaram de fora. -->
-        <div class="p-3 flex justify-between items-center" style="background:var(--pine)">
-
-            <div class="cursor-pointer active:scale-95 transition-transform select-none min-w-0" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
-
-                <span id="logo-header" class="text-lg font-black tracking-wider text-white/80 block leading-tight">RAIZ</span>
-
-                <span id="header-offline-tag" class="hidden text-[11px] bg-red-600 text-white font-bold px-1.5 py-0.5 rounded animate-pulse ml-1">OFFLINE</span>
-
+        <!-- v1.115.0 (fatia 7, REGRAS §4) — cabeçalho global no catálogo
+             .rz-hdr: esquerda, nome do cliente em 1 linha truncada (é o
+             mesmo #logo-header que aplicarBrandingCliente() sempre
+             preencheu — texto ou <img> da logo) + linha de contexto 11 px
+             ("Plano Patrimônio · 49 ativos", atualizarContextoHeader());
+             direita, nesta ordem, Raiz IA (círculo brass, sparkles, anel
+             28 %, ponto branco quando há sugestão) e avatar (iniciais).
+             Nada mais entra aqui — sino, busca e "+" moram nas abas.
+             O toque/duplo-toque na marca continuam (recarregar / DEV).
+             O botão do Robô (btn-falar-bot-header, v1.40.1) SAIU do
+             cabeçalho: o Robô WhatsApp vive no menu ⚙️ › Empresa e dentro
+             do sheet do Raiz IA (REGRAS §16.7). O que era o div interno
+             com classes Tailwind + style de fundo virou o próprio .rz-hdr
+             (menos 1 hex/style, menos 6 utilitárias soltas). -->
+        <div class="rz-hdr">
+            <div class="rz-brand cursor-pointer select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
+                <h1 id="logo-header">RAIZ</h1>
+                <small><span id="header-contexto">Raiz Patrimônio</span><span id="header-offline-tag" class="rz-off hidden">Offline</span></small>
             </div>
-
-            <!-- Ícone de pessoa (v1.39.8) — substitui o ícone de balão
-                 (v1.39.4). Continua levando pra Sobre (item de dentro do
-                 painel), só que agora junto de Suporte/Serviços/Licença/
-                 Plano/Pessoas num painel só. NÃO mexe em nada de plano/
-                 licença real — os itens marcados "Em breve" são só
-                 estrutura visual, sem gate nenhum por trás; isso está
-                 sendo evoluído em outra frente.
-                 Mascote R.AI.Z (v1.40.1) — mesmo ícone/animação/onclick
-                 da splash (abrirBotWhatsapp), agora também disponível
-                 pós-login, ao lado do ícone de Conta. -->
-            <div class="flex items-center gap-2">
-
-                <button id="btn-falar-bot-header" onclick="abrirBotWhatsapp()" title="Falar com o R.AI.Z no WhatsApp" class="rz-hdr-ia w-9 h-9 flex-none flex items-center justify-center rounded-full active:scale-90 transition text-white">
-                    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M12 2v3"/>
-                        <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none"/>
-                        <rect x="4" y="7" width="16" height="12" rx="4"/>
-                        <circle class="raiz-bot-eye" cx="9" cy="13" r="1.8" fill="currentColor" stroke="none"/>
-                        <circle class="raiz-bot-eye" cx="15" cy="13" r="1.8" fill="currentColor" stroke="none"/>
-                        <path d="M9 16.5c.8.6 1.9.9 3 .9s2.2-.3 3-.9" stroke-width="1.6"/>
-                        <path d="M2 11v3"/>
-                        <path d="M22 11v3"/>
-                    </svg>
-                </button>
-
-                <!-- v1.89.0 — avatar com iniciais no lugar do ícone genérico
-                     de pessoa (pedido explícito, seguindo o protótipo do
-                     módulo único: gatilho mostra as iniciais de quem está
-                     logado, não um ícone anônimo). Os dois elementos
-                     coexistem: o SVG genérico fica como estado inicial
-                     (antes de atualizarMenuContaHeader() rodar, ou se por
-                     algum motivo socioLogado vier vazio) e as iniciais
-                     assumem por cima assim que há nome — ver
-                     atualizarMenuContaHeader(). -->
-                <button id="btn-conta-avatar" onclick="abrirMenuConta()" title="Configurações" class="rz-hdr-avatar w-9 h-9 flex-none flex items-center justify-center rounded-full active:scale-90 transition">
-                    <svg data-lucide="user" id="icone-conta-avatar-fallback" style="width:18px;height:18px"></svg>
-                    <span id="iniciais-conta-avatar" class="hidden text-[12px] font-extrabold text-white tracking-wide"></span>
-                </button>
-
-            </div>
-
+            <button type="button" id="btn-raiz-ia-header" class="rz-ia" onclick="abrirSheetRaizIA()" title="Raiz IA" aria-label="Raiz IA">
+                <svg data-lucide="sparkles"></svg>
+                <span id="raiz-ia-dot" class="rz-dot hidden"></span>
+            </button>
+            <button type="button" id="btn-conta-avatar" class="rz-avatar" onclick="abrirMenuConta()" title="Menu" aria-label="Menu">
+                <svg data-lucide="user" id="icone-conta-avatar-fallback" style="width:18px;height:18px"></svg>
+                <span id="iniciais-conta-avatar" class="hidden"></span>
+            </button>
         </div>
 
         <!-- Nav antiga — reduzida (v1.39.8) só aos gatilhos internos DEV/
@@ -7889,273 +7939,12 @@
               ver nota do CNAME real em DEPLOY_RAIZ_PATRIMONIO.md §2); a
               própria página já linka política de privacidade e termo de
               beta no rodapé, não precisei duplicar os 3 links aqui. -->
-    <div id="modal-menu-conta" class="hidden fixed inset-0 z-[90] flex items-end justify-center" style="background:rgba(23,33,30,.5)" onclick="if(event.target===this) fecharMenuConta()">
-
-        <div class="w-full max-w-md rounded-t-2xl shadow-2xl overflow-hidden" style="background:var(--paper)">
-
-            <div class="px-5 pt-5 pb-3 flex items-center justify-between border-b" style="border-color:var(--line)">
-                <h3 class="font-bold" style="font-family:'Bricolage Grotesque',sans-serif;color:var(--ink)">Configurações</h3>
-                <button onclick="fecharMenuConta()" class="text-slate-400 hover:text-white font-bold text-sm bg-emerald-900 w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>
-
-            <!-- v1.89.0 — cabeçalho de identidade (novo), preenchido por
-                 atualizarMenuContaHeader() sempre que a empresa é
-                 carregada/trocada (mesmo hook do avatar do header). -->
-            <div class="flex items-center gap-3 px-5 pt-4 pb-4 border-b" style="border-color:var(--line)">
-                <div id="sheet-avatar-iniciais" class="w-11 h-11 rounded-full flex items-center justify-center text-white font-extrabold text-sm flex-none" style="background:var(--sprout)">–</div>
-                <div class="min-w-0">
-                    <p id="sheet-nome-usuario" class="text-sm font-bold truncate" style="color:var(--ink)">-</p>
-                    <p id="sheet-empresa-perfil" class="text-[11px] truncate" style="color:var(--sage)">-</p>
-                </div>
-            </div>
-
-            <div class="p-4 space-y-1 overflow-y-auto" style="max-height:70vh; padding-bottom:calc(24px + env(safe-area-inset-bottom))">
-
-                <!-- ===== Grupo: Alertas (novo, v1.96.3, pedido explícito:
-                     "criar uma tela especifica para o alertas sobre
-                     patrimonio... acessivel pelo menu bonequinho") —
-                     fica no topo do menu de propósito: é o item mais
-                     operacional (o que pede atenção agora), maior
-                     visibilidade que os grupos de cadastro/configuração
-                     abaixo. -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-1 pb-0.5" style="color:var(--sage)">Alertas</p>
-
-                <button onclick="fecharMenuConta(); abrirTabAlertas()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="bell" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Alertas do patrimônio</span>
-                </button>
-
-                <!-- ===== Grupo: Conta (novo, v1.89.0) ===== -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
-
-                <!-- "Meu perfil" — Em breve: não existe tela de perfil
-                     pessoal ainda (edição do próprio nome/e-mail/senha). -->
-                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="user-circle" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Meu perfil</span>
-                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
-                </button>
-
-                <!-- "Trocar de empresa" — REAL (v1.89.0): reaproveita a
-                     trocarEmpresa() que já existia só na aba DEV. -->
-                <button onclick="fecharMenuConta(); trocarEmpresa()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="arrow-left-right" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Trocar de empresa</span>
-                </button>
-
-                <!-- v1.71.0 — trocado o toggle único por "Preferências de comunicação",
-                     que abre uma lista com 1 toggle por mensagem (fn_minhas_comunicacoes_
-                     opt_out/fn_definir_opt_out_comunicacao) — pedido explícito do Nicola:
-                     "colocar este liga e desliga pra todas as mensagens". Mensagens
-                     obrigatórias (Termos, Política, Beta) nem aparecem na lista —
-                     permite_opt_out=false pra essas.
-                     v1.89.0 — só mudou de grupo (era "Conta" no fim do menu,
-                     agora é "Conta" no topo) — mesma função, mesmo botão. -->
-                <button onclick="fecharMenuConta(); abrirPreferenciasComunicacao()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="message-circle" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Preferências de comunicação</span>
-                </button>
-
-                <a href="https://wa.me/5511947461828" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
-                    <svg data-lucide="life-buoy" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Suporte (WhatsApp)</span>
-                </a>
-
-                <!-- ===== Grupo: Cadastros e prestadores (v1.87.0/v1.88.0,
-                     intocado nesta entrega além de 2 linhas "Em breve"
-                     novas no fim) ===== -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Cadastros e prestadores</p>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-minutas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="file-signature" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Minutas de Contrato</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-sindicos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="building-2" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Síndicos / Gestoras</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-administradoras')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="briefcase" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Administradoras</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-manutencistas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="wrench" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Manutencistas</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-tipo-imovel')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="home" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Imóvel</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-tipo-empreendimento')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="landmark" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Tipo de Empreendimento</span>
-                </button>
-
-                <!-- "Sócios & cotas" — Em breve: hoje a divisão societária só
-                     vive dentro do formulário de cada imóvel (parteRumo/
-                     sócios por linha), não existe tela própria consolidada. -->
-                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="handshake" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Sócios &amp; cotas</span>
-                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
-                </button>
-
-                <!-- v1.93.0 (pedido explícito, 31/08/2026) — "Categoria de
-                     Documento" e "Sub-tipos de item de controle": REAIS,
-                     achadas comparando o menu ⚙️ antigo do Cofre com o
-                     menu ⚙️ deste App — as duas só tinham porta de
-                     entrada lá dentro, nunca aqui. Abrem via
-                     abrirConfiguracaoCofre() (cofre.html?abrir=...). -->
-                <button onclick="fecharMenuConta(); abrirConfiguracaoCofre('categorias')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="tags" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Categoria de Documento</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); abrirConfiguracaoCofre('subtipos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="list-tree" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Sub-tipos de item de controle</span>
-                </button>
-
-                <!-- v1.93.0 — "Modelos de controle" deixa de ser "Em breve":
-                     achado comparando com o menu ⚙️ do Cofre que a tela já
-                     existe e funciona (cofre_modelos_item_controle tem
-                     administração própria desde antes — eu tinha marcado
-                     errado como pendente na v1.89.0, sem checar o Cofre
-                     primeiro). Corrigido. -->
-                <button onclick="fecharMenuConta(); abrirConfiguracaoCofre('modelos')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Modelos de controle</span>
-                </button>
-
-                <!-- v1.41.5 — item "Dev" retirado do menu por hora (acesso
-                     interno continua disponível via duplo-clique na logo). -->
-
-                <!-- ===== Grupo: Empresa ===== -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Empresa</p>
-
-                <!-- v1.89.0 — rótulo alinhado ao protótipo ("Pessoas &
-                     acessos"); mesmo botão, mesma tab-pessoas de sempre. -->
-                <button onclick="fecharMenuConta(); switchTab('tab-pessoas')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="users" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Pessoas &amp; acessos</span>
-                </button>
-
-                <button onclick="fecharMenuConta(); switchTab('tab-minha-empresa')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="building" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Minha Empresa</span>
-                </button>
-
-                <!-- v1.96.0 (pedido explícito, 01/09/2026: "vamos
-                     escrever uma nova tela para cadastro de partes...
-                     inclua isto no menu bonequinho") — REAL, mesmo
-                     padrão visual de Pessoas & acessos/Minha Empresa
-                     logo acima. -->
-                <button onclick="fecharMenuConta(); switchTab('tab-partes')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="contact" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Partes</span>
-                </button>
-
-                <!-- v1.46.0 — navegação entre módulos. O Cofre (trilha
-                     paralela "Conversa B") agora tem app real
-                     (cofre.html); antes disso não fazia sentido linkar.
-                     Some/aparece de verdade conforme permissão real
-                     (perfil_funcionalidade 'cofre.ver'), mesma tabela e
-                     mesmo código de funcionalidade que o próprio Cofre já
-                     usa no bootstrap dele (cofre-api.js
-                     pessoaTemFuncionalidade) — não inventei uma segunda
-                     regra de permissão.
-                     v1.61.2 — menu "Módulos" e "Serviços" removidos como
-                     grupos próprios (pedido explícito); Cofre de
-                     Documentos passou a viver dentro de "Conta", junto de
-                     Pessoas/Minha Empresa.
-                     v1.87.0 — REMOVIDO (pedido explícito, 31/08/2026):
-                     a aba Ativos (v1.80.0) já embute o Cofre inteiro —
-                     este atalho genérico virou uma segunda porta pro
-                     mesmo lugar. A função abrirCofreDocumentos() NÃO foi
-                     tocada — continua usada em vários pontos do app pra
-                     abrir o Cofre COM contexto (ex.: botão "Documentos"
-                     num card de imóvel, linha ~17617) — só este item de
-                     menu sem contexto nenhum saiu. -->
-
-                <!-- ===== Grupo: Plano ===== -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Plano</p>
-
-                <!-- v1.89.0 — rótulo alinhado ao protótipo ("Licença & uso");
-                     ganhou selo do plano atual (#badge-plano-menu-conta),
-                     preenchido por atualizarBadgePlanoMenu() a partir de
-                     LICENCA_ATUAL.plano_codigo (já carregado por
-                     carregarLicencaAtual() — nenhuma consulta nova ao
-                     banco). A tela em si (mount-licenca/comum-licenca.js)
-                     já mostra as barras de uso por funcionalidade — não
-                     precisei duplicar aqui, só sinalizar o plano de cara. -->
-                <button onclick="fecharMenuConta(); switchTab('tab-licenca')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="badge-check" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Licença &amp; uso</span>
-                    <span id="badge-plano-menu-conta" class="hidden text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:var(--brass-light,#f0c88a);color:var(--brass-deep,#a86f27)"></span>
-                </button>
-
-                <!-- ===== Grupo: Integrações (novo, v1.89.0) ===== -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Integrações</p>
-
-                <!-- "WhatsApp (R.AI.Z)" — REAL: mesma função do ícone do
-                     mascote no header (abrirBotWhatsapp()), não é uma
-                     segunda integração, é a mesma com 2ª porta de entrada. -->
-                <button onclick="fecharMenuConta(); abrirBotWhatsapp()" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="bot" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">WhatsApp (R.AI.Z)</span>
-                </button>
-
-                <!-- "Certificado / NFS-e" — Em breve: NFS-e hoje é só
-                     pré-nota (fn_gerar_ficha_prenota); custódia de
-                     certificado A1 pra emissão direta ainda não tem tela
-                     nem decisão de guarda fechada. -->
-                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="file-check-2" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Certificado / NFS-e</span>
-                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
-                </button>
-
-                <!-- "Banco (extrato)" — Em breve: a conciliação de extrato já
-                     existe embutida dentro de Financeiro (tab-mensal), mas
-                     uma tela própria de conexão/gestão de conta bancária
-                     ainda não existe. -->
-                <button type="button" disabled title="Em breve" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg text-left opacity-40 cursor-not-allowed">
-                    <svg data-lucide="banknote" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium flex-1" style="color:var(--ink)">Banco (extrato)</span>
-                    <span class="text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Em breve</span>
-                </button>
-
-                <!-- ===== Grupo: Legal (novo, v1.89.0) ===== -->
-                <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Legal</p>
-
-                <!-- "Termos & privacidade" — REAL: linka pro raiz-site
-                     (domínio SEM www, é o CNAME real — ver
-                     DEPLOY_RAIZ_PATRIMONIO.md §2); a página já linka
-                     Política de Privacidade e Termo de Beta no rodapé. -->
-                <a href="https://raizpatrimonio.com.br/termos-de-uso" target="_blank" class="flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition">
-                    <svg data-lucide="scroll-text" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Termos &amp; privacidade</span>
-                </a>
-
-                <!-- v1.89.0 — "Sobre" só mudou de grupo (era "Conta" no fim
-                     do menu antigo, agora é "Legal" no fim do novo, mesma
-                     posição relativa que o protótipo usa) — mesma tela. -->
-                <button onclick="fecharMenuConta(); switchTab('tab-sobre')" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
-                    <svg data-lucide="info" style="width:18px;height:18px;color:var(--sprout)"></svg>
-                    <span class="text-sm font-medium" style="color:var(--ink)">Sobre</span>
-                </button>
-
-            </div>
-
-        </div>
-
-    </div>
-
+    <!-- v1.115.0 (fatia 7, REGRAS §5) — o menu ⚙️ deixou de ser HTML
+         estático (#modal-menu-conta, ~250 linhas, 7 grupos, 4 itens "Em
+         breve"). Agora é um sheet gerado em abrirMenuConta() com
+         abrirSheetAcoes({grupos}) — 3 grupos fixos Cadastros · Empresa ·
+         Conta. Nenhuma tela foi perdida: Prestadores e "Tipos e modelos"
+         viraram sub-sheets (›). Ver abrirMenuConta(). -->
     <main id="main-content" class="hidden p-4 max-w-md mx-auto" style="padding-bottom:calc(76px + env(safe-area-inset-bottom))">
 
         
@@ -8197,6 +7986,13 @@
             <!-- v1.114.0 (fatia 6, REGRAS §13): KPI herói em --pine (único da
                  tela) + 3 KPIs no catálogo; ids mantidos (renderVisaoGeral
                  continua escrevendo neles). -->
+            <!-- v1.115.0 (fatia 7, REGRAS §4/§5) — cabeçalho da aba: descrição
+                 + sino (único ícone; badge em --danger quando há atraso,
+                 --warning quando só há pontos de atenção — renderVisaoGeral). -->
+            <div class="rz-tabhead">
+                <p>Seu patrimônio hoje: o que entrou, o que atrasou e o que pede atenção.</p>
+                <button type="button" onclick="abrirTabAlertas()" class="rz-ico-btn" title="Alertas" aria-label="Alertas"><svg data-lucide="bell"></svg><span id="geral-sino-dot" class="rz-dot hidden"></span></button>
+            </div>
             <div class="rz-kpis">
                 <div class="rz-kpi rz-hero"><small>Patrimônio sob gestão</small><b id="geral-patrimonio-total">—</b></div>
                 <div class="rz-kpi rz-in"><small>Recebido no mês</small><b id="geral-recebido-mes">—</b></div>
@@ -8714,8 +8510,13 @@
                  renderContratos() não precisou mudar nada de lógica. -->
             <div class="flex items-center gap-2 mb-4">
                 <p class="text-[11px] text-gray-500 flex-1 text-left">Contratos de locação do seu patrimônio.</p>
-                <button onclick="abrirBuscaContratos()" title="Buscar/filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
-                <button id="btn-toggle-contrato" onclick="alternarFormularioContrato()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar novo contrato"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <!-- v1.115.0 (fatia 7, REGRAS §4) — os 2 ícones no catálogo
+                     (.rz-ico-btn; "+" preenchido em pine); o "+" abre o
+                     formulário direto (uma ação só — sheet de ações entra
+                     quando "A partir de um PDF" existir). raiz-btn-toggle
+                     aposentado aqui: o botão não vira X, o sheet tem o seu. -->
+                <button onclick="abrirBuscaContratos()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button id="btn-toggle-contrato" onclick="abrirFormularioContrato()" class="rz-ico-btn rz-primary" title="Novo contrato" aria-label="Novo contrato"><svg data-lucide="plus"></svg></button>
             </div>
 
             <!-- v1.48.0 — modalizado igual ao form-imovel-wrapper (Fase 1):
@@ -9537,20 +9338,14 @@
                  no lugar, mesmo padrão usado nas fichas. Filtros (Status/
                  Empreendimento) migraram pro overlay de busca próprio
                  (#modal-busca-vitrine) — o card fixo foi removido daqui. -->
-            <button onclick="switchTab('tab-ativos')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Imóveis</button>
-
-            <div class="flex items-center gap-2 mb-4">
-
-                <!-- v1.49.0 — texto explicativo entrou na mesma linha dos
-                     ícones (alinhado à esquerda, centralizado em altura com
-                     eles) e os 2 ícones migraram pra direita, mesmo padrão
-                     da aba Imóveis. -->
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Escolha os imóveis e monte uma vitrine (link) para compartilhar com interessados.</p>
-
-                <button id="btn-vitrine-busca" onclick="abrirBuscaVitrine()" title="Buscar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
-
-                <button onclick="gerarLinkVitrine()" title="Exportar vitrine / gerar link" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
-
+            <!-- v1.115.0 (fatia 7) — "‹ Ativos" (era "Imóveis", tela que o
+                 roteador já não alcança) e os 2 ícones no catálogo:
+                 Buscar + Gerar link (share, preenchido — é a ação da tela). -->
+            <button onclick="switchTab('tab-ativos')" class="rz-back"><svg data-lucide="chevron-left"></svg> Ativos</button>
+            <div class="rz-tabhead">
+                <p>Escolha os imóveis e gere um link pra compartilhar com interessados.</p>
+                <button id="btn-vitrine-busca" onclick="abrirBuscaVitrine()" title="Buscar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button onclick="gerarLinkVitrine()" title="Gerar link da vitrine" class="rz-ico-btn rz-primary" aria-label="Gerar link"><svg data-lucide="share"></svg></button>
             </div>
 
             <div id="lista-vitrine" class="space-y-3"></div>
@@ -10771,7 +10566,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.114.0";
+        const APP_VERSAO = "Beta v1.115.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10991,6 +10786,13 @@
 
         const { createClient } = supabase;
         const dbAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // v1.115.0 (fatia 7) — GoTrueClient duplicado: js/cofre-api.js
+        // criava um segundo createClient() com a mesma chave (aviso
+        // "Multiple GoTrueClient instances" e duas sessões concorrendo pelo
+        // mesmo storage). O módulo agora reaproveita este cliente quando
+        // roda dentro do App; no cofre.html standalone continua criando o
+        // dele. Ver cofre-api.js v1.16.0.
+        window.__raizDbAuth = dbAuth;
 
         // Detecta quando a pessoa chega no app através do link de "definir senha"
         // (e-mail de convite ou "esqueci senha") — o Supabase dispara este evento
@@ -15183,9 +14985,6 @@
 
             registrarLog('login', { nome: socioLogado, perfil: perfilLogado, empresa: CONFIG_CLIENTE.nomeEmpresa });
 
-            // v1.46.0 — não bloqueia entrada no sistema; roda em paralelo.
-            verificarAcessoCofreEAtualizarMenu();
-
             // v1.95.0 (pedido explícito: "a lista de ativos está demorando
             // pra carregar... o que podemos ajustar?") — pré-carrega o
             // módulo do Cofre em segundo plano, ocioso, logo após o login
@@ -16936,43 +16735,106 @@
                 }
             }
 
-            // --- avatar grande + nome + empresa/perfil, dentro do sheet ---
-            const avatarSheet = document.getElementById('sheet-avatar-iniciais');
-            if (avatarSheet) avatarSheet.textContent = iniciais || '?';
-
-            const nomeEl = document.getElementById('sheet-nome-usuario');
-            if (nomeEl) nomeEl.textContent = socioLogado || '-';
-
-            const empresaPerfilEl = document.getElementById('sheet-empresa-perfil');
-            if (empresaPerfilEl) {
-                const empresa = (CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '-';
-                empresaPerfilEl.textContent = perfilLogado ? (empresa + ' · ' + perfilLogado) : empresa;
-            }
-
-            atualizarBadgePlanoMenu();
-        }
-
-        // Selo do plano atual ("Trial"/"Standard"/"Plus"...) ao lado de
-        // "Licença & uso" no grupo Plano. Lê LICENCA_ATUAL.plano_codigo
-        // (já carregado por carregarLicencaAtual(), sem fetch novo). Some
-        // (fica hidden) se por algum motivo a empresa não tiver licença
-        // carregada ainda — nunca mostra um selo vazio ou "undefined".
-        function atualizarBadgePlanoMenu() {
-            const badge = document.getElementById('badge-plano-menu-conta');
-            if (!badge) return;
-            const codigo = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo;
-            if (!codigo) {
-                badge.classList.add('hidden');
-                return;
-            }
-            badge.textContent = codigo.charAt(0).toUpperCase() + codigo.slice(1);
-            badge.classList.remove('hidden');
+            // v1.115.0 (fatia 7) — o cabeçalho de identidade e o selo do
+            // plano do sheet estático saíram: o menu é gerado na hora por
+            // abrirMenuConta() (título = nome, sub = empresa · perfil, plano
+            // no sub de "Licença e uso"). atualizarBadgePlanoMenu() foi
+            // removida junto. Aqui só resta o cabeçalho global.
+            atualizarContextoHeader();
         }
 
         function abrirMenuConta() {
-            document.getElementById('modal-menu-conta')?.classList.remove('hidden');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            const ir = (tab) => () => switchTab(tab);
+            const plano = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo ? ('Plano ' + LICENCA_ATUAL.plano_codigo.charAt(0).toUpperCase() + LICENCA_ATUAL.plano_codigo.slice(1)) : 'Plano e consumo';
+            const empresa = (CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '';
+            abrirSheetAcoes({
+                titulo: socioLogado || 'Conta',
+                sub: perfilLogado ? (empresa + ' · ' + perfilLogado) : empresa,
+                grupos: [
+                    { titulo: 'Cadastros', acoes: [
+                        { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários', aoTocar: ir('tab-partes') },
+                        { icone: 'wrench', titulo: 'Prestadores', sub: 'Síndicos, administradoras, manutencistas', aoTocar: abrirMenuPrestadores },
+                        { icone: 'file-signature', titulo: 'Minutas de contrato', aoTocar: ir('tab-minutas') },
+                        { icone: 'list-tree', titulo: 'Tipos e modelos', sub: 'Imóvel, empreendimento, documento, controle', aoTocar: abrirMenuTiposModelos }
+                    ]},
+                    { titulo: 'Empresa', acoes: [
+                        { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
+                        { icone: 'users', titulo: 'Pessoas e acessos', aoTocar: ir('tab-pessoas') },
+                        { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
+                        { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
+                        { icone: 'arrow-left-right', titulo: 'Trocar de empresa', aoTocar: trocarEmpresa }
+                    ]},
+                    { titulo: 'Conta', acoes: [
+                        { icone: 'bell', titulo: 'Alertas do patrimônio', aoTocar: abrirTabAlertas },
+                        { icone: 'message-circle', titulo: 'Preferências de comunicação', aoTocar: abrirPreferenciasComunicacao },
+                        { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => window.open('https://wa.me/5511947461828', '_blank') },
+                        { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
+                        { icone: 'info', titulo: 'Sobre', aoTocar: ir('tab-sobre') },
+                        { icone: 'log-out', titulo: 'Sair', aoTocar: fazerLogoutSupabase }
+                    ]}
+                ]
+            });
         }
+        function abrirMenuPrestadores() {
+            const ir = (tab) => () => switchTab(tab);
+            abrirSheetAcoes({ titulo: 'Prestadores', sub: 'Quem cuida do patrimônio com você', acoes: [
+                { icone: 'building-2', titulo: 'Síndicos e gestoras', aoTocar: ir('tab-sindicos') },
+                { icone: 'briefcase', titulo: 'Administradoras', aoTocar: ir('tab-administradoras') },
+                { icone: 'wrench', titulo: 'Manutencistas', aoTocar: ir('tab-manutencistas') }
+            ]});
+        }
+        function abrirMenuTiposModelos() {
+            const ir = (tab) => () => switchTab(tab);
+            abrirSheetAcoes({ titulo: 'Tipos e modelos', sub: 'Listas que alimentam os cadastros', acoes: [
+                { icone: 'home', titulo: 'Tipo de imóvel', aoTocar: ir('tab-tipo-imovel') },
+                { icone: 'landmark', titulo: 'Tipo de empreendimento', aoTocar: ir('tab-tipo-empreendimento') },
+                { icone: 'tags', titulo: 'Categoria de documento', aoTocar: () => abrirConfiguracaoCofre('categorias') },
+                { icone: 'list-tree', titulo: 'Sub-tipos de item de controle', aoTocar: () => abrirConfiguracaoCofre('subtipos') },
+                { icone: 'clipboard-list', titulo: 'Modelos de controle', aoTocar: () => abrirConfiguracaoCofre('modelos') }
+            ]});
+        }
+
+        // v1.115.0 (fatia 7, REGRAS §4/§16.6) — botão Raiz IA do cabeçalho.
+        // O assistente de conversa (faixa .rz-ia-hero → sugestões → bolhas →
+        // campo) é a fatia 8 (Edge Function + RPC de contexto). Até lá o
+        // botão já tem o lugar e o contrato visual definitivos e abre o que
+        // a IA faz HOJE no produto — nada aqui promete o que não existe.
+        function abrirSheetRaizIA() {
+            const hero = '<div class="rz-ia-hero"><h4><svg data-lucide="sparkles"></svg>Raiz IA</h4>' +
+                '<p>Lê extratos e documentos e sugere lançamentos, vínculos e categorias. Você sempre confirma antes de gravar.</p></div>';
+            const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'O que a IA faz por você hoje', acoes: [
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato bancário', sub: 'Concilia os recebimentos automaticamente', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Ler um documento', sub: 'Classifica e sugere o ativo', aoTocar: () => abrirUploadDocumentoNoApp() },
+                { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Consultas e avisos pelo R.AI.Z', aoTocar: abrirBotWhatsapp }
+            ]});
+            const corpo = sheet.querySelector('.rz-sh-b');
+            if (corpo) { corpo.insertAdjacentHTML('afterbegin', hero); rzIcones(); }
+            document.getElementById('raiz-ia-dot')?.classList.add('hidden');
+        }
+        // Abre o upload livre do módulo Ativos de qualquer aba (mesmo fluxo do
+        // item "Carregar documento" do "+" da aba Ativos).
+        function abrirUploadDocumentoNoApp() {
+            switchTab('tab-ativos');
+            const disparar = () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home'));
+            if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
+            window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
+        }
+
+        // v1.115.0 (fatia 7, REGRAS §4) — linha de contexto do cabeçalho:
+        // "Plano X · N ativos". Plano vem de LICENCA_ATUAL (já carregada no
+        // login); a contagem usa os ativos do módulo quando já carregou
+        // (window.__cofreAtivos) e, antes disso, os imóveis em memória.
+        function atualizarContextoHeader() {
+            const el = document.getElementById('header-contexto');
+            if (!el) return;
+            const partes = [];
+            const codigo = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo;
+            if (codigo) partes.push('Plano ' + codigo.charAt(0).toUpperCase() + codigo.slice(1));
+            const lista = Array.isArray(window.__cofreAtivos) ? window.__cofreAtivos.filter(a => (a.status || '').toLowerCase() !== 'arquivado') : (Array.isArray(imoveis) ? imoveis : []);
+            if (lista.length) partes.push(lista.length + (lista.length === 1 ? ' ativo' : ' ativos'));
+            el.textContent = partes.length ? partes.join(' · ') : 'Raiz Patrimônio';
+        }
+        window.addEventListener('cofre:dados-carregados', atualizarContextoHeader);
 
         // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
         // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -17038,35 +16900,12 @@
             }
         }
 
-        function fecharMenuConta() {
-            document.getElementById('modal-menu-conta')?.classList.add('hidden');
-        }
+        function fecharMenuConta() { fecharSheet(); }
 
-        // ===================================================================
-        // v1.46.0 — NAVEGAÇÃO ENTRE MÓDULOS (Imóveis ↔ Cofre)
-        // Reaproveita EXATAMENTE a mesma tabela/código de funcionalidade que
-        // o próprio Cofre usa no bootstrap dele (perfil_funcionalidade,
-        // código 'cofre.ver' — ver cofre-api.js:pessoaTemFuncionalidade) —
-        // não criei uma segunda regra de permissão nem uma tabela nova.
-        // Não bloqueia login se a checagem falhar (mesmo espírito de
-        // verificarLimiteAntesDeAbrir): pior caso, o link do Cofre só não
-        // aparece nesta sessão.
-        // ===================================================================
-        async function verificarAcessoCofreEAtualizarMenu() {
-            if (!perfilLogado) return;
-            try {
-                const { data, error } = await dbAuth
-                    .from('perfil_funcionalidade')
-                    .select('funcionalidade_codigo')
-                    .eq('perfil_codigo', perfilLogado)
-                    .eq('funcionalidade_codigo', 'cofre.ver');
-                if (error) throw error;
-                const grupo = document.getElementById('menu-grupo-modulos');
-                if (grupo) grupo.classList.toggle('hidden', !(data && data.length > 0));
-            } catch (err) {
-                console.warn('Falha ao checar acesso ao Cofre (não bloqueando):', err.message);
-            }
-        }
+        // v1.115.0 (fatia 7) — verificarAcessoCofreEAtualizarMenu() (v1.46.0)
+        // REMOVIDA: só alternava #menu-grupo-modulos, um grupo que deixou de
+        // existir na v1.87.0. Era uma consulta a perfil_funcionalidade por
+        // login sem nenhum efeito. Nenhum outro ponto chamava.
 
         // Link contextual: de dentro da ficha do imóvel, abre o Cofre já no
         // contexto daquele imóvel (contrato de URL já definido desde a Fase
@@ -17090,8 +16929,17 @@
         // aqui. Mesmo padrão de URL de sempre (cliente_id sempre junto,
         // parâmetro de URL nunca é autorização) — só troca contexto/ref
         // por abrir. Ver cofre-navegacao.js v1.6.0/cofre-app.js v1.9.0.
+        // v1.115.0 (fatia 7) — deixou de sair do App pro cofre.html: a aba
+        // Ativos já embute o módulo inteiro, e cofre-app.js escuta o evento
+        // 'cofre:abrir-configuracao' (existia desde a v1.8.0 pro ?abrir=).
+        // Se o módulo ainda não carregou, espera o 'cofre:dados-carregados'
+        // uma vez e dispara em seguida. Era a última porta do menu pro
+        // cofre.html (roteiro §3 das PENDÊNCIAS).
         function abrirConfiguracaoCofre(tela) {
-            window.location.href = 'cofre.html?cliente_id=' + encodeURIComponent(CLIENTE_ID_SUPABASE || '') + '&abrir=' + encodeURIComponent(tela);
+            switchTab('tab-ativos');
+            const disparar = () => window.dispatchEvent(new CustomEvent('cofre:abrir-configuracao', { detail: { tela } }));
+            if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
+            window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
         }
 
         function atualizarDropdownFiltrosDinamicos() {
@@ -20070,6 +19918,9 @@
                 const criticos = inadimplentes > 0 ? 1 : 0;
                 if (card) { card.classList.toggle('rz-critico', criticos > 0); card.classList.toggle('rz-atencao', criticos === 0); }
                 if (st) st.innerHTML = (typeof renderStatus === 'function') ? (inadimplentes > 0 ? renderStatus('bad', `${inadimplentes} em atraso`) : (itens.length ? renderStatus('warn', `${itens.length} pontos`) : renderStatus('ok', 'Em dia'))) : '';
+                // v1.115.0 (fatia 7) — badge do sino acompanha o card
+                const dot = document.getElementById('geral-sino-dot');
+                if (dot) { dot.classList.toggle('hidden', itens.length === 0); dot.classList.toggle('rz-warn', inadimplentes === 0); }
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -29201,28 +29052,30 @@
 
         }
 
+        // v1.115.0 (fatia 7) — a geração do link saiu de dentro do handler
+        // da tela pra gerarLinkVitrineParaIds(ids), pra ser reaproveitada
+        // pelo ⋮ do ativo ("Gerar vitrine", cofre-ativos.js v1.22.0). O
+        // resultado deixou de ser confirm()/alert() (3 popups) e virou sheet
+        // com Copiar · WhatsApp · Abrir (REGRAS §3) + toast nos erros.
         function gerarLinkVitrine() {
-
             const checkboxes = document.querySelectorAll('.vitrine-checkbox:checked');
-
             if (checkboxes.length === 0) {
-
-                alert("⚠️ Escolha ao menos um imóvel.");
-
+                mostrarToast('Escolha ao menos um imóvel.', 'danger');
                 return;
-
             }
-
-            let idsSelecionados = [];
-
+            const idsSelecionados = [];
             checkboxes.forEach(cb => idsSelecionados.push(cb.getAttribute('data-id')));
-
+            gerarLinkVitrineParaIds(idsSelecionados);
+        }
+        function gerarVitrineDoImovel(imovelId) {
+            if (!imovelId) { mostrarToast('Este ativo não está ligado a um imóvel.', 'danger'); return; }
+            gerarLinkVitrineParaIds([String(imovelId)]);
+        }
+        function gerarLinkVitrineParaIds(idsSelecionados) {
             // Gera um token curto e aleatório (6 caracteres) e registra a associação
             // token -> ids no Supabase, para não expor os IDs internos na URL pública.
             const token = Math.random().toString(36).substr(2, 6).toUpperCase();
-
             criarLinkVitrineSupabase(token, idsSelecionados).then(() => {
-
                 links.push({
                     token: token,
                     ids: idsSelecionados.join(','),
@@ -29231,39 +29084,21 @@
                     qtdImoveis: idsSelecionados.length
                 });
                 dev_carregarLinks();
-
                 registrarLog('vitrine.gerar', { token: token, qtdImoveis: idsSelecionados.length });
-
                 const localUrl = window.location.href.split('?')[0];
-
                 const linkFinal = `${localUrl}?v=${token}`;
-
-                navigator.clipboard.writeText(linkFinal).then(() => {
-
-                    const querAbrirWhatsapp = confirm(`🔗 Link copiado com sucesso!\n👉 ${linkFinal}\n\nDeseja abrir o WhatsApp agora para compartilhar?\n\n(OK = abrir WhatsApp / Cancelar = só fechar, o link já está copiado)`);
-
-                    if (querAbrirWhatsapp) {
-
-                        const textoWhats = encodeURIComponent(`Confira estes imóveis: ${linkFinal}`);
-
-                        window.open(`https://wa.me/?text=${textoWhats}`, '_blank');
-
-                    }
-
-                }).catch(() => {
-
-                    alert(`🔗 Link gerado (não foi possível copiar automaticamente):\n👉 ${linkFinal}`);
-
-                });
-
+                const textoWhats = encodeURIComponent(`Confira ${idsSelecionados.length > 1 ? 'estes imóveis' : 'este imóvel'}: ${linkFinal}`);
+                const copiar = () => navigator.clipboard.writeText(linkFinal).then(() => mostrarToast('Link copiado.', 'success')).catch(() => mostrarToast('Não consegui copiar; use "Abrir a vitrine".', 'danger'));
+                copiar();
+                abrirSheetAcoes({ titulo: 'Vitrine pronta', sub: linkFinal, acoes: [
+                    { icone: 'copy', titulo: 'Copiar link', sub: 'Já foi copiado; toque pra copiar de novo', aoTocar: copiar },
+                    { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', aoTocar: () => window.open(`https://wa.me/?text=${textoWhats}`, '_blank') },
+                    { icone: 'external-link', titulo: 'Abrir a vitrine', aoTocar: () => window.open(linkFinal, '_blank') }
+                ]});
             }).catch((err) => {
-
-                alert("⚠️ Falha de conexão ao gerar o link. Verifique sua internet e tente novamente.");
-
+                mostrarToast('Falha de conexão ao gerar o link. Verifique sua internet e tente de novo.', 'danger');
                 console.error("Erro ao gerar link de vitrine:", err);
-
             });
-
         }
 
         async function verificarFiltroVitrineExterna() {

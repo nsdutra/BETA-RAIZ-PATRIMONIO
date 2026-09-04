@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.24.0 · 03/09/2026
+// Versão: 1.25.0 · 04/09/2026
+//
+// v1.25.0 (fatia 7) — case 'abrir-acoes-ativos' ("+" da aba abre sheet) e
+// evento 'cofre:abrir-upload-home' (upload livre a partir do Raiz IA).
 //
 // v1.24.0 — cases dos ⋮ novos (propriedade, financeiro, anexos, docs e
 // contatos do item, categorizar documento) e pontes window.__rz* pros sheets.
@@ -320,6 +323,17 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-menu-conta': abrirModal('modal-menu-conta'); break;
         case 'fechar-menu-conta': fecharModal('modal-menu-conta'); break;
         case 'abrir-busca-ativos': abrirModal('modal-busca-ativos'); break;
+        // v1.25.0 (fatia 7, REGRAS §4) — "+" da aba Ativos abre sheet de
+        // ações (Novo ativo · Carregar documento · Montar vitrine) em vez
+        // de 3 ícones soltos. IA no topo (§16.5): o upload é lido pela IA.
+        case 'abrir-acoes-ativos':
+            if (typeof window.abrirSheetAcoes !== 'function') { await ativos.abrirFormAtivo(); break; }
+            window.abrirSheetAcoes({ titulo: 'Ativos', sub: 'O que você quer fazer?', acoes: [
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => docs.abrirUploadHome() },
+                { icone: 'plus', titulo: 'Novo ativo', sub: 'Imóvel, veículo, obra de arte…', aoTocar: () => ativos.abrirFormAtivo() },
+                { icone: 'image', titulo: 'Montar vitrine', sub: 'Vários imóveis num link só', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
+            ]});
+            break;
         case 'fechar-busca-ativos': fecharModal('modal-busca-ativos'); break;
         case 'limpar-filtro-ativos':
             document.getElementById('filtro-ativo-tipo').value = '';
@@ -700,6 +714,9 @@ window.addEventListener('cofre:abrir-ativo', (ev) => ativos.abrirFichaAtivo(ev.d
 // concluir o passo final: abre o form de cadastro de ativo, mesmo botão
 // "+" que a tela já usa.
 window.addEventListener('cofre:abrir-form-ativo', () => ativos.abrirFormAtivo());
+// v1.25.0 (fatia 7) — upload livre acionado de fora da aba (sheet do Raiz
+// IA no cabeçalho global, index.html abrirUploadDocumentoNoApp()).
+window.addEventListener('cofre:abrir-upload-home', () => docs.abrirUploadHome());
 window.addEventListener('cofre:abrir-documento', (ev) => docs.abrirFichaDocumento(ev.detail.id));
 
 window.addEventListener('cofre:upload-contextual', (ev) => {

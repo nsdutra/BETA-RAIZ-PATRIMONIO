@@ -1,6 +1,8 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.21.0 · 03/09/2026
+// Versão: 1.22.0 · 04/09/2026
+//
+// v1.22.0 (fatia 7) — "Gerar vitrine" no ⋮ do ativo-imóvel.
 //
 // v1.21.0 — Nicola (19h): rodapés de card saem — toda ação no ⋮ ou no
 // toque (abrirAcoesPropriedade / abrirAcoesControlesAtivo /
@@ -908,6 +910,9 @@ export function abrirAcoesAtivo() {
     if (ehImovel) acoes.push({ icone: 'pencil', titulo: 'Editar dados do imóvel', sub: 'Endereço, valores, uso', aoTocar: () => abrirGestaoImovel() });
     acoes.push({ icone: 'list', titulo: ehImovel ? 'Editar campos do ativo' : 'Editar dados', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
+    // v1.22.0 (fatia 7) — "Gerar vitrine" deste imóvel (link único) —
+    // reaproveita gerarVitrineDoImovel() do App (index.html v1.115.0).
+    if (ehImovel && a.status !== 'vendido' && typeof window.gerarVitrineDoImovel === 'function') acoes.push({ icone: 'image', titulo: 'Gerar vitrine', sub: 'Link deste imóvel pra compartilhar', aoTocar: () => window.gerarVitrineDoImovel(a.entidade_origem_id) });
     if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
     acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), acoes });
