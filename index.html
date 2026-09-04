@@ -6,9 +6,85 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.120.0
-   LINHAS: 30838
+   VERSÃO: Beta v1.123.0
+   LINHAS: 30751
    DATA: 05/09/2026
+   NOVIDADES (Beta v1.123.0) — FATIA RESULTADOS: aba Resultados migrada
+   pra gramática (pedido Nicola 05/09: "tela na formatação antiga").
+   1) SEGMENTO Resumo/Distribuição: flex+bg-slate-100 → .rz-seg + .rz-on
+      (em tab-relatorios e tab-socios). Sprout inline eliminado.
+   2) "FILTRAR" em caixa alta REMOVIDO: o card de filtros era o único
+      lugar da app com label uppercase no corpo (não no header). Virou
+      .rz-card simples com labels "Imóvel" e "Período" em sentence case.
+   3) <h2>Métricas</h2> REMOVIDO: a tab toda é métricas — o h2 era
+      redundante e criava hierarquia falsa (REGRAS §6 — sem section
+      labels desnecessários).
+   4) <h2>Mês a Mês</h2>: substituído por <p> leve em pine, sem h2 que
+      criava peso visual excessivo pra um sub-cabeçalho.
+   5) BOTÃO EXPORTAR: bg-emerald-900 + emoji 📊 → .rz-btn .rz-btn-2
+      .rz-wide (pine outline, sentence case, ícone lucide bar-chart-2).
+   JS INTOCADO: renderRelatorios, montarResumoResultados,
+   baixarRelatorioPdfLocal, filtro-imovel, filtro-periodo,
+   tabela-mensal-resultados — TODOS os ids/funções preservados.
+   Sem migration. node --check OK; baseline regravada.
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.122.0) — FATIA 7b-ii (parte 2): tela de MINUTAS na
+   gramática. Fronteira mantida de propósito: só a TELA muda; o MOTOR
+   (salvarMinuta com upload .docx, gerarMinutaNoCofre,
+   encontrarMinutaParaImovel, gerarMinutaContrato) não teve UMA linha
+   alterada — ids de todos os campos preservados foram o truque.
+   1) CABEÇALHO: h2 + raiz-btn-toggle viraram .rz-tabhead com descrição
+      ("modelos .docx com placeholders; o escopo diz quando cada um
+      vale") + 2 ícones: varinha (wizard IA, classe rz-ia — brass é
+      permitido aqui, ação de IA por REGRAS §13) e "+" (cadastrar).
+   2) FORMULÁRIO DE UPLOAD → SHEET (abrirFormMinutaSheet): mesmos campos,
+      MESMOS ids (minuta-nome/escopo/empreendimento-id/tipo-imovel-id/
+      imovel-id/arquivo-input/arquivo-atual-info...) — salvarMinuta lê
+      por getElementById e continua funcionando intocada; aoSalvar chama
+      ela com um preventDefault falso e devolve false (quem fecha o
+      sheet é cancelarEdicaoMinuta no sucesso, agora null-safe +
+      fecharSheet). Editar = mesmo sheet pré-preenchido (editarMinuta e
+      abrirFormularioMinuta/alternarFormularioMinuta viraram aliases —
+      há chamadores antigos espalhados). Seletor de imóvel
+      (abrirSeletorImovel) e ajuda de placeholders reaproveitados.
+   3) LISTA → .rz-row com ⋮ (abrirAcoesMinuta): Ver arquivo do modelo ·
+      Editar · Excluir. Regras de escopo/nome idênticas às antigas.
+   4) WIZARD DE MINUTIZAÇÃO POR IA (form-minutizar-wrapper) FICA COMO
+      ESTÁ nesta entrega — fluxo guiado multi-passo amarrado ao motor de
+      contratação; converte junto da fatia 10 (contratos.js). Registrado.
+   switchTab: hook de tab-minutas só renderiza (selects do form vivem no
+   sheet). Trava: btn_toggle 17→16; nada subiu; baseline regravada.
+   Arquivos da entrega: SÓ index.html. Sem migration. node --check OK;
+   balanceamento idêntico (svg 1).
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.121.0) — 2 achados da validação em campo (prints
+   do Nicola, 05/09) + 1 registro de plano.
+   1) ⋮ NAS MOVIMENTAÇÕES DO CHIP FINANCEIRO DO ATIVO (pedido: "está sem
+      o menu de 3 pontinhos pra tratar cada item"). cofre-ativos v1.23.0:
+      cada linha ganhou ⋮ — entrada abre rzAcoesMensalidade (o MESMO
+      sheet Dar baixa/Recibo/Estornar/Excluir do Financeiro e da ficha
+      do contrato, v1.116); saída vai pro App e abre abrirEditarDespesa
+      (mesmo destino do toque em Financeiro › Saídas). A RPC
+      fn_fluxo_financeiro_ativo já devolvia o id de cada item
+      (verificado no banco antes de escrever) — zero mudança de SQL.
+   2) RECIBO DE ALUGUEL EM SHEET (pedido: "quando solicito um recibo,
+      formato antigo"). O modal Tipo B (fundo emerald, caixa alta, botões
+      próprios) foi REMOVIDO do HTML; abrirModalOpcoesRecibo() — nome
+      mantido pelos 2 chamadores — agora monta sheet da gramática:
+      observações no topo (MESMO id do campo; salvarObservacaoRecibo
+      intocada, continua salvando no blur) + Visualizar na tela · Gerar
+      e baixar PDF · WhatsApp · E-mail. Toda a montagem do template
+      oculto pdf-* continua idêntica; fecharModalOpcoes() = fecharSheet().
+      Trava: popup_tipo_b 24→23 · z_popup_antigo 17→16.
+   3) REGISTRO — ABA RESULTADOS NA FORMATAÇÃO ANTIGA (print do Nicola:
+      "Métricas", FILTRAR em caixa alta, tabela Mês a Mês, botão de
+      exportar fora do catálogo): entra nas PENDÊNCIAS como fatia
+      própria ("fatia Resultados") — é migração de tela inteira com
+      tabela + filtros + PDF analítico, não cabe de carona.
+   Arquivos da entrega: index.html + js/cofre-ativos.js (v1.23.0). Sem
+   migration. node --check OK (2 arquivos); balanceamento idêntico
+   (svg 1); baseline regravada.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.120.0) — FATIA 7b-ii (parte 1) + estreia da regra
    E0 do PLANO_FRAGMENTACAO_INDEX_v1_0.md ("nada novo nasce no index").
    NOVO MÓDULO js/cadastros.js v1.0.0 — primeiro módulo nascido fora do
@@ -9573,83 +9649,52 @@
 
         <!-- ================= ABA: RELATÓRIOS/MÉTRICAS ================= -->
 
+        <!-- v1.123.0 (fatia Resultados, prints do Nicola 05/09) — tela
+             migrada pra gramática: .rz-seg, .rz-card, botão exportar no
+             catálogo. JS intocado (renderRelatorios, montarResumoResultados,
+             baixarRelatorioPdfLocal, filtro-imovel, filtro-periodo,
+             tabela-mensal-resultados — todos os ids preservados). -->
         <section id="tab-relatorios" class="tab-content">
 
-            <!-- v1.88.0 — segmento pra Distribuição (tab-socios), que
-                 deixou de ter ícone próprio na barra e passou a viver
-                 dentro de Resultados, junto de Métricas. -->
-            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
-                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Resumo</button>
-                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Distribuição</button>
+            <div class="rz-seg">
+                <button class="rz-on" onclick="switchTab('tab-relatorios')">Resumo</button>
+                <button onclick="switchTab('tab-socios')">Distribuição</button>
             </div>
 
-            <!-- v1.91.0 (pedido explícito, 31/08/2026) — "Resumo" de
-                 verdade, batendo com o protótipo: KPIs consolidados
-                 (fn_resumo_resultados) + Diagnóstico tributário completo
-                 (fn_leitura_tributaria_sinais) — as 2 RPCs já existiam no
-                 backend desde v1.85.0, nunca tinham ganhado tela até
-                 agora (ver montarResumoResultados()). "Métricas" logo
-                 abaixo é o relatório detalhado que já existia (filtro por
-                 imóvel/período) — intocado, só ganhou este resumo em
-                 cima. Cenário econômico (IPCA/Selic) continua fora,
-                 sinalizado honestamente dentro do mount: projeto não tem
-                 pg_net/http instalado (conferido em v1.85.0), precisa de
-                 Edge Function — não é código faltando, é infraestrutura. -->
+            <!-- Hero: KPIs consolidados + Diagnóstico tributário (v1.91.0).
+                 Cenário econômico (IPCA/Selic) bloqueado por infraestrutura
+                 (pg_net não instalado; requer Edge Function de indicadores). -->
             <div id="resultados-resumo-mount" class="mb-4">
                 <p class="text-xs text-slate-400 text-center py-6">Carregando resumo...</p>
             </div>
 
-            <h2 class="text-lg font-bold raiz-text-pine mb-4">Métricas</h2>
-
-            <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-200">
-
-                <span class="text-[11px] font-bold uppercase text-slate-500 block mb-2">Filtrar</span>
-
+            <!-- Filtros — sem rótulo "FILTRAR" em caixa alta (REGRAS §6) -->
+            <div class="rz-card mb-4">
                 <div class="grid grid-cols-2 gap-2">
-
                     <div>
-
-                        <label class="block text-[11px] font-bold text-gray-500">Imóvel</label>
-
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Imóvel</label>
                         <input type="hidden" id="filtro-imovel" value="todos">
                         <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('filtro-imovel').value = id || 'todos'; document.getElementById('filtro-imovel-resumo').textContent = resumo; renderRelatorios(); }, true)" id="filtro-imovel-resumo" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded mt-0.5 text-[13px] bg-gray-50 text-left truncate">Todos os Imóveis</button>
-
                     </div>
-
                     <div>
-
-                        <label class="block text-[11px] font-bold text-gray-500">Período</label>
-
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Período</label>
                         <select id="filtro-periodo" onchange="renderRelatorios()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded mt-0.5 text-[13px] bg-gray-50">
-
                             <option value="todos">Todo o Período Histórico</option>
-
                             <option value="ano-atual">Desde o início de 2026</option>
-
                             <option value="1-mes">Último Mês</option>
-
                             <option value="3-meses">Últimos 3 Meses</option>
-
                             <option value="12-meses">Últimos 12 Meses</option>
-
                         </select>
-
                     </div>
-
                 </div>
-
             </div>
 
-            
+            <p style="font-size:13px;font-weight:700;color:var(--pine);margin:0 0 8px">Mês a Mês</p>
+            <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[11px] mb-4"></div>
 
-            <h2 class="text-sm font-bold mt-4 mb-2 raiz-text-pine">Mês a Mês</h2>
-
-            <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[11px]"></div>
-
-            <button onclick="baixarRelatorioPdfLocal()" class="w-full mt-4 bg-emerald-900 hover:bg-emerald-800 text-white font-bold text-[13px] py-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow">
-
-                📊 Exportar Relatório Analítico PDF
-
+            <!-- Exportar: .rz-btn catálogo, ícone lucide, sentence case -->
+            <button onclick="baixarRelatorioPdfLocal()" class="rz-btn rz-btn-2 rz-wide">
+                <i data-lucide="bar-chart-2"></i> Exportar relatório analítico PDF
             </button>
 
         </section>
@@ -9700,9 +9745,9 @@
 
         <section id="tab-socios" class="tab-content">
 
-            <div class="flex gap-1 mb-3 p-1 rounded-xl bg-slate-100">
-                <button onclick="switchTab('tab-relatorios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition text-slate-500">Resumo</button>
-                <button onclick="switchTab('tab-socios')" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg transition bg-white shadow-sm" style="color:var(--sprout)">Distribuição</button>
+            <div class="rz-seg">
+                <button onclick="switchTab('tab-relatorios')">Resumo</button>
+                <button class="rz-on" onclick="switchTab('tab-socios')">Distribuição</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): título "Distribuições"
@@ -9982,114 +10027,22 @@
 
         <!-- ================= ABA: MINUTAS DE CONTRATO (v1.42.0) ================= -->
         <section id="tab-minutas" class="tab-content hidden">
-
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold raiz-text-pine flex-1">Minutas de Contrato</h2>
-
-                <button id="btn-minutizar-ia" onclick="abrirWizardMinutizacao()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Gerar de um contrato real"><svg data-lucide="wand-2" style="width:20px;height:20px"></svg></button>
-
-                <button id="btn-toggle-minuta" onclick="alternarFormularioMinuta()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar minuta"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
+            <!-- v1.122.0 (fatia 7b-ii parte 2) — cabeçalho e lista na
+                 gramática; formulário de upload virou sheet
+                 (abrirFormMinutaSheet, ids preservados — salvarMinuta
+                 intocada). O wizard de minutização por IA
+                 (form-minutizar-wrapper, abaixo) fica como está nesta
+                 entrega: é um fluxo guiado de vários passos amarrado ao
+                 motor de contratação; converte junto da fatia 10
+                 (contratos.js). -->
+            <div class="rz-tabhead">
+                <p>Modelos de contrato (.docx com placeholders) usados na geração de minuta. O escopo diz quando cada um vale: um imóvel, um tipo, um empreendimento ou geral.</p>
+                <button type="button" id="btn-minutizar-ia" onclick="abrirWizardMinutizacao()" title="Gerar de um contrato real" aria-label="Gerar de um contrato real" class="rz-ico-btn rz-ia"><svg data-lucide="wand-2"></svg></button>
+                <button type="button" onclick="abrirFormMinutaSheet()" title="Cadastrar minuta" aria-label="Cadastrar minuta" class="rz-ico-btn rz-primary"><svg data-lucide="plus"></svg></button>
             </div>
 
             <p class="text-[11px] text-gray-500 mb-4">Modelos de contrato usados para gerar automaticamente a minuta quando um interessado inicia a contratação de um imóvel pela Vitrine. A minuta mais específica sempre tem prioridade: Imóvel → Tipo de Imóvel → Empreendimento → Geral (empresa toda).</p>
 
-            <div id="form-minuta-wrapper" class="hidden">
-
-                <div class="flex justify-between items-center mb-4">
-
-                    <h2 class="text-lg font-bold text-slate-900" id="form-minuta-titulo">Cadastrar Minuta</h2>
-
-                </div>
-
-                <form id="form-minuta" onsubmit="salvarMinuta(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <input type="hidden" id="minuta-id">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome da Minuta <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="minuta-nome" required placeholder="Ex: Locação Comercial Padrão" class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Escopo <span style="color:var(--danger)">*</span></label>
-
-                        <select id="minuta-escopo" required onchange="atualizarCampoEscopoMinuta()" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
-                            <option value="geral">Geral (toda a empresa)</option>
-
-                            <option value="empreendimento">Só um Empreendimento</option>
-
-                            <option value="tipo_imovel">Só um Tipo de Imóvel</option>
-
-                            <option value="imovel">Só um Imóvel específico</option>
-
-                        </select>
-
-                    </div>
-
-                    <div id="minuta-campo-empreendimento" class="hidden">
-
-                        <label class="block text-xs font-bold text-gray-600">Empreendimento <span style="color:var(--danger)">*</span></label>
-
-                        <select id="minuta-empreendimento-id" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
-                            <option value="">-- Selecione --</option>
-
-                        </select>
-
-                    </div>
-
-                    <div id="minuta-campo-tipo" class="hidden">
-
-                        <label class="block text-xs font-bold text-gray-600">Tipo de Imóvel <span style="color:var(--danger)">*</span></label>
-
-                        <select id="minuta-tipo-imovel-id" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
-                            <option value="">-- Selecione --</option>
-
-                        </select>
-
-                    </div>
-
-                    <div id="minuta-campo-imovel" class="hidden">
-
-                        <label class="block text-xs font-bold text-gray-600">Imóvel <span style="color:var(--danger)">*</span></label>
-
-                        <input type="hidden" id="minuta-imovel-id" value="">
-                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minuta-imovel-id').value = id || ''; document.getElementById('minuta-imovel-resumo').textContent = resumo || '-- Escolha o Imóvel --'; })" id="minuta-imovel-resumo" class="raiz-campo-altura-contrato w-full p-2 border rounded mt-1 text-sm bg-gray-50 text-left truncate">-- Escolha o Imóvel --</button>
-
-                    </div>
-
-                    <div>
-
-                        <div class="flex items-center justify-between">
-                            <label class="block text-xs font-bold text-gray-600">Arquivo do Modelo (.docx) <span style="color:var(--danger)">*</span></label>
-                            <button type="button" onclick="abrirAjudaPlaceholdersMinuta()" class="text-[11px] font-bold raiz-text-pine underline">Ver placeholders disponíveis</button>
-                        </div>
-
-                        <p class="text-[11px] text-gray-400 mt-0.5 mb-1.5">Envie o contrato em Word (.docx), com os {{placeholders}} escritos nos pontos que variam por locatário/imóvel/contrato — é esse arquivo que o sistema abre e preenche na hora de gerar um contrato de verdade. <strong>PDF ainda não é aceito aqui</strong> (a função de gerar a minuta automaticamente a partir de um contrato real em PDF/Word está em desenvolvimento — quando pronta, funciona diferente disto: você sobe o contrato já assinado e o sistema propõe os {{placeholders}} sozinho, pra você conferir antes de salvar).</p>
-
-                        <div id="minuta-arquivo-atual-info" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 mb-1.5 flex items-center justify-between gap-2">
-                            <a id="minuta-arquivo-atual-link" href="#" target="_blank" class="text-[12px] font-bold raiz-text-pine underline truncate flex items-center gap-1"><svg data-lucide="file-text" style="width:13px;height:13px;flex:none"></svg> <span id="minuta-arquivo-atual-nome"></span></a>
-                        </div>
-
-                        <input type="file" id="minuta-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
-                        <p id="minuta-arquivo-novo-nome" class="text-[11px] raiz-text-pine font-bold mt-0.5"></p>
-
-                    </div>
-
-                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Minuta</button>
-
-                </form>
-
-            </div>
 
             <!-- v1.69.0 — Wizard "Gerar de um contrato real" (Parte 3 da
                  especificação de Minutas). Mesmo padrão Tipo A (bottom-sheet
@@ -10166,7 +10119,7 @@
 
             </div>
 
-            <div id="lista-minutas" class="space-y-3 mb-6"></div>
+            <div class="rz-card rz-list" id="lista-minutas"></div>
 
 
         </section>
@@ -10233,68 +10186,10 @@
          não foi alterado (é uma pré-visualização de PDF com estilo
          próprio, arriscado redesenhar sem testar a geração real do
          documento). -->
-    <div id="modal-opcoes-recibo" class="hidden fixed inset-0 bg-emerald-900/80 z-99 flex items-end sm:items-center justify-center p-4">
-
-        <div class="bg-emerald-950 border border-emerald-800 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
-
-            <div class="flex justify-between items-center pb-2 border-b border-emerald-800">
-
-                <div>
-
-                    <h3 class="text-sm font-black text-emerald-400 uppercase tracking-wide">Recibo de Aluguel</h3>
-
-                    <p class="text-[11px] text-slate-400 mt-0.5" id="modal-subtitulo-info">-</p>
-
-                </div>
-
-                <button onclick="fecharModalOpcoes()" class="text-slate-400 hover:text-white font-bold text-sm bg-emerald-900 w-7 h-7 rounded-full flex items-center justify-center transition active:scale-90"><svg data-lucide="x" style="width:14px;height:14px"></svg></button>
-
-            </div>
-
-            <div>
-                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Observações do Recibo (opcional)</label>
-                <p class="text-[10px] text-slate-500 -mt-0.5 mb-1">O texto digitado completa a frase: <em>"Vale ressaltar que <u>...</u>."</em></p>
-                <textarea id="modal-recibo-observacoes" rows="2" onblur="salvarObservacaoRecibo()" placeholder="Ex: não foi cobrada a taxa de limpeza este mês" class="w-full mt-1 p-2 rounded-lg bg-emerald-900 border border-emerald-800 text-slate-100 text-[12px] placeholder-slate-500"></textarea>
-                <p class="text-[10px] text-slate-500 mt-0.5">Salva automaticamente ao sair do campo.</p>
-            </div>
-
-            
-
-            <div class="space-y-2.5">
-
-                <button onclick="dispararAcaoDoMenu('visualizar')" class="w-full bg-emerald-900 hover:bg-emerald-800 border border-emerald-800 text-slate-200 font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow">
-
-                    <svg data-lucide="eye" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Visualizar Recibo na Tela
-
-                </button>
-
-                <button onclick="dispararAcaoDoMenu('pdf')" class="w-full raiz-btn-pine text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow">
-
-                    <svg data-lucide="download" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Gerar e Baixar PDF Oficial
-
-                </button>
-
-                <div class="pt-2 border-t border-emerald-900 grid grid-cols-2 gap-2">
-
-                    <button onclick="dispararAcaoDoMenu('zap')" class="raiz-btn-pine text-white font-bold text-[13px] py-2.5 rounded-xl flex items-center justify-center gap-1 transition active:scale-95 shadow">
-
-                        <svg data-lucide="message-circle" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> WhatsApp
-
-                    </button>
-
-                    <button onclick="dispararAcaoDoMenu('email')" class="bg-emerald-800 hover:bg-emerald-700 text-slate-300 font-bold text-[13px] py-2.5 rounded-xl border border-emerald-700 flex items-center justify-center gap-1 transition active:scale-95 shadow">
-
-                        <svg data-lucide="mail" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> E-mail
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
+    <!-- v1.121.0 — modal Tipo B do recibo (fundo emerald, caixa alta)
+         REMOVIDO (print do Nicola, 05/09: "quando solicito um recibo,
+         formato antigo"). Virou sheet da gramática, montado em
+         abrirModalOpcoesRecibo() — nome mantido pelos 2 chamadores. -->
 
     <!-- ================= CONTÊINER DE VISUALIZAÇÃO DO RECIBO ================= -->
 
@@ -10378,7 +10273,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.120.0";
+        const APP_VERSAO = "Beta v1.123.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -16328,8 +16223,7 @@
                 dev_inicializar();
             }
             if (tabId === 'tab-minutas' && typeof renderMinutas === 'function') {
-                popularSelectsEscopoMinuta();
-                renderMinutas();
+                renderMinutas(); // v1.122.0 — selects do form vivem no sheet agora
             }
             if (tabId === 'tab-licenca' && typeof inicializarLicenca === 'function') {
                 inicializarLicenca();
@@ -18095,34 +17989,75 @@
             }
         }
 
-        function abrirFormularioMinuta() {
-            cancelarEdicaoMinuta();
-            document.getElementById('form-minuta-wrapper').classList.remove('hidden');
-            sincronizarBotaoToggleServico('minuta');
+        // v1.122.0 (fatia 7b-ii parte 2) — o formulário de minuta virou
+        // sheet da gramática. TODOS os ids dos campos foram preservados:
+        // salvarMinuta() (upload .docx pro storage + gravação) continua
+        // lendo por getElementById sem UMA linha alterada. editar = mesmo
+        // sheet pré-preenchido. abrirFormularioMinuta/alternarFormulario
+        // Minuta viraram aliases (chamadores antigos espalhados).
+        function abrirFormMinutaSheet(minutaId) {
+            if (typeof abrirSheetForm !== 'function') return;
+            const m = minutaId ? minutasContrato.find(x => x.id === minutaId) : null;
+            abrirSheetForm({
+                titulo: m ? 'Editar minuta' : 'Cadastrar minuta',
+                sub: m ? m.nome : 'Modelo .docx com placeholders',
+                rotuloSalvar: 'Salvar',
+                corpo: `
+                    <input type="hidden" id="minuta-id">
+                    <div><label class="block text-xs font-bold text-gray-600">Nome da minuta <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="minuta-nome" placeholder="Ex.: Locação comercial padrão" class="w-full p-2 border rounded mt-1 text-sm"></div>
+                    <div><label class="block text-xs font-bold text-gray-600">Escopo <span style="color:var(--danger)">*</span></label>
+                        <select id="minuta-escopo" onchange="atualizarCampoEscopoMinuta()" class="w-full p-2 border rounded mt-1 text-sm">
+                            <option value="geral">Geral (vale pra todos os imóveis)</option>
+                            <option value="empreendimento">Por empreendimento</option>
+                            <option value="tipo_imovel">Por tipo de imóvel</option>
+                            <option value="imovel">Por imóvel específico</option>
+                        </select></div>
+                    <div id="minuta-campo-empreendimento" class="hidden"><label class="block text-xs font-bold text-gray-600">Empreendimento <span style="color:var(--danger)">*</span></label>
+                        <select id="minuta-empreendimento-id" class="w-full p-2 border rounded mt-1 text-sm"></select></div>
+                    <div id="minuta-campo-tipo" class="hidden"><label class="block text-xs font-bold text-gray-600">Tipo de imóvel <span style="color:var(--danger)">*</span></label>
+                        <select id="minuta-tipo-imovel-id" class="w-full p-2 border rounded mt-1 text-sm"></select></div>
+                    <div id="minuta-campo-imovel" class="hidden"><label class="block text-xs font-bold text-gray-600">Imóvel <span style="color:var(--danger)">*</span></label>
+                        <input type="hidden" id="minuta-imovel-id" value="">
+                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minuta-imovel-id').value = id; document.getElementById('minuta-imovel-resumo').textContent = resumo; })" class="w-full p-2 border rounded mt-1 text-sm text-left bg-white"><span id="minuta-imovel-resumo">-- Escolha o imóvel --</span></button></div>
+                    <div>
+                        <div class="flex items-center justify-between mt-1"><label class="block text-xs font-bold text-gray-600">Arquivo do modelo (.docx) <span style="color:var(--danger)">*</span></label>
+                        <button type="button" onclick="abrirAjudaPlaceholdersMinuta()" class="text-[11px] font-bold raiz-text-pine underline">Ver placeholders</button></div>
+                        <div id="minuta-arquivo-atual-info" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 mt-1.5 mb-1 flex items-center justify-between gap-2">
+                            <span class="text-[11px] text-slate-600 truncate" id="minuta-arquivo-atual-nome"></span>
+                            <span class="text-[10px] text-slate-400 flex-none">enviar outro substitui</span>
+                        </div>
+                        <p id="minuta-arquivo-novo-nome" class="text-[11px] raiz-text-pine font-bold"></p>
+                        <input type="file" id="minuta-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                    </div>`,
+                aoSalvar: async () => { await salvarMinuta({ preventDefault: () => {} }); return false; },
+            });
             popularSelectsEscopoMinuta();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function alternarFormularioMinuta() {
-            const wrapper = document.getElementById('form-minuta-wrapper');
-            if (wrapper && !wrapper.classList.contains('hidden')) {
-                cancelarEdicaoMinuta();
-            } else {
-                abrirFormularioMinuta();
+            if (m) {
+                document.getElementById('minuta-id').value = m.id;
+                document.getElementById('minuta-nome').value = m.nome;
+                document.getElementById('minuta-escopo').value = m.escopo || 'geral';
+                document.getElementById('minuta-empreendimento-id').value = m.empreendimentoId || '';
+                document.getElementById('minuta-tipo-imovel-id').value = m.tipoImovelId || '';
+                document.getElementById('minuta-imovel-id').value = m.imovelId || '';
+                const imo = m.imovelId ? imoveis.find(i => i.id === m.imovelId) : null;
+                if (imo) document.getElementById('minuta-imovel-resumo').textContent = `${imo.empreendimento} - ${imo.enderecoRua}, ${imo.enderecoNum}`;
+                if (m.arquivoUrl) {
+                    document.getElementById('minuta-arquivo-atual-nome').innerText = m.arquivoNome || 'arquivo-modelo.docx';
+                    document.getElementById('minuta-arquivo-atual-info').classList.remove('hidden');
+                }
             }
-        }
-
-        function cancelarEdicaoMinuta() {
-            document.getElementById('minuta-id').value = '';
-            document.getElementById('form-minuta').reset();
-            document.getElementById('minuta-imovel-id').value = '';
-            document.getElementById('minuta-imovel-resumo').textContent = '-- Escolha o Imóvel --';
-            document.getElementById('minuta-arquivo-atual-info').classList.add('hidden');
-            document.getElementById('minuta-arquivo-novo-nome').innerText = '';
-            document.getElementById('form-minuta-titulo').innerText = 'Cadastrar Minuta';
-            document.getElementById('form-minuta-wrapper').classList.add('hidden');
             atualizarCampoEscopoMinuta();
-            sincronizarBotaoToggleServico('minuta');
+            rzIcones();
+        }
+        function abrirFormularioMinuta() { abrirFormMinutaSheet(); }
+        function alternarFormularioMinuta() { abrirFormMinutaSheet(); }
+        // v1.122.0 — chamada no fim de salvarMinuta(); os campos agora
+        // vivem no sheet (morrem com ele), então: null-safe + fecharSheet.
+        function cancelarEdicaoMinuta() {
+            const idEl = document.getElementById('minuta-id');
+            if (idEl) idEl.value = '';
+            if (typeof fecharSheet === 'function') fecharSheet();
         }
 
         function popularSelectsEscopoMinuta() {
@@ -18149,42 +18084,7 @@
             document.getElementById('minuta-campo-imovel').classList.toggle('hidden', escopo !== 'imovel');
         }
 
-        function editarMinuta(id) {
-            const m = minutasContrato.find(x => x.id === id);
-            if (!m) return;
-
-            popularSelectsEscopoMinuta();
-
-            document.getElementById('minuta-id').value = m.id;
-            document.getElementById('minuta-nome').value = m.nome;
-            document.getElementById('minuta-escopo').value = m.escopo || 'geral';
-            document.getElementById('minuta-empreendimento-id').value = m.empreendimentoId || '';
-            document.getElementById('minuta-tipo-imovel-id').value = m.tipoImovelId || '';
-            document.getElementById('minuta-imovel-id').value = m.imovelId || '';
-            const imo = m.imovelId ? imoveis.find(i => i.id === m.imovelId) : null;
-            document.getElementById('minuta-imovel-resumo').textContent = imo
-                ? `${imo.empreendimento} - ${imo.enderecoRua}, ${imo.enderecoNum}`
-                : '-- Escolha o Imóvel --';
-
-            // v1.42.1 — mostra o arquivo já cadastrado (link pra baixar/conferir);
-            // o campo de upload fica opcional ao editar (só sobrescreve se
-            // escolher um arquivo novo).
-            if (m.arquivoUrl) {
-                document.getElementById('minuta-arquivo-atual-nome').innerText = m.arquivoNome || 'arquivo-modelo.docx';
-                document.getElementById('minuta-arquivo-atual-link').href = m.arquivoUrl;
-                document.getElementById('minuta-arquivo-atual-info').classList.remove('hidden');
-            } else {
-                document.getElementById('minuta-arquivo-atual-info').classList.add('hidden');
-            }
-            document.getElementById('minuta-arquivo-input').removeAttribute('required');
-
-            atualizarCampoEscopoMinuta();
-
-            document.getElementById('form-minuta-titulo').innerText = 'Editar Minuta';
-            document.getElementById('form-minuta-wrapper').classList.remove('hidden');
-            sincronizarBotaoToggleServico('minuta');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function editarMinuta(id) { abrirFormMinutaSheet(id); }
 
         async function salvarMinuta(e) {
             e.preventDefault();
@@ -18334,18 +18234,18 @@
             saveAll(true, "Minuta excluída.", ['minutasContrato']);
         }
 
+        // v1.122.0 — lista na gramática: .rz-row com ⋮ (Ver arquivo /
+        // Editar / Excluir). Regras de escopo/nomes idênticas às antigas.
         function renderMinutas() {
             const container = document.getElementById('lista-minutas');
             if (!container) return;
-
-            if (minutasContrato.length === 0) {
-                container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhuma minuta cadastrada.</p>';
+            if (!minutasContrato.length) {
+                container.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-signature"></svg></div><p>Nenhuma minuta ainda. Cadastre um modelo .docx no "+" ou gere de um contrato real com a varinha.</p></div>';
+                rzIcones();
                 return;
             }
-
-            const rotuloEscopo = { geral: 'Geral (empresa toda)', empreendimento: 'Empreendimento', tipo_imovel: 'Tipo de Imóvel', imovel: 'Imóvel específico' };
-
-            container.innerHTML = minutasContrato.map(function(m) {
+            const rotuloEscopo = { geral: 'Geral', empreendimento: 'Empreendimento', tipo_imovel: 'Tipo de imóvel', imovel: 'Imóvel' };
+            container.innerHTML = minutasContrato.map(m => {
                 let detalheEscopo = '';
                 if (m.escopo === 'empreendimento') {
                     const e = empreendimentosCadastrados.find(x => x.id === m.empreendimentoId);
@@ -18355,22 +18255,25 @@
                     detalheEscopo = t ? t.nome : '-';
                 } else if (m.escopo === 'imovel') {
                     const imo = imoveis.find(x => x.id === m.imovelId);
-                    detalheEscopo = imo ? `${imo.empreendimento} - ${imo.enderecoRua}, ${imo.enderecoNum}` : '-';
+                    detalheEscopo = imo ? `${imo.enderecoRua}, ${imo.enderecoNum}` : '-';
                 }
                 return `
-                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                        <p class="text-xs font-bold text-slate-900">${m.nome}</p>
-                        <p class="text-[11px] text-gray-500">${rotuloEscopo[m.escopo] || m.escopo}${detalheEscopo ? ' · ' + detalheEscopo : ''}</p>
-                        <div class="flex gap-1.5 mt-2">
-                            <button onclick="window.open('${m.arquivoUrl || ''}', '_blank')" title="Ver / conferir" ${m.arquivoUrl ? '' : 'disabled'} class="w-7 h-7 flex items-center justify-center bg-slate-50 text-slate-600 rounded-full border border-slate-200 ${m.arquivoUrl ? '' : 'opacity-40 cursor-not-allowed'}"><svg data-lucide="eye" style="width:14px;height:14px"></svg></button>
-                            <button onclick="editarMinuta('${m.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
-                            <button onclick="excluirMinuta('${m.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
-                        </div>
-                    </div>
-                `;
+                <div class="rz-row">
+                    <div class="rz-ic"><svg data-lucide="file-signature"></svg></div>
+                    <div class="rz-tx"><b>${rzEsc(m.nome)}</b><span>${rotuloEscopo[m.escopo] || m.escopo}${detalheEscopo ? ' · ' + rzEsc(detalheEscopo) : ''}</span></div>
+                    <button type="button" onclick="abrirAcoesMinuta('${m.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                </div>`;
             }).join('');
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            rzIcones();
+        }
+        function abrirAcoesMinuta(id) {
+            const m = minutasContrato.find(x => x.id === id);
+            if (!m || typeof abrirSheetAcoes !== 'function') return;
+            const acoes = [];
+            if (m.arquivoUrl) acoes.push({ icone: 'eye', titulo: 'Ver arquivo do modelo', sub: m.arquivoNome || '', aoTocar: () => window.open(m.arquivoUrl, '_blank') });
+            acoes.push({ icone: 'pencil', titulo: 'Editar', aoTocar: () => abrirFormMinutaSheet(m.id) });
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir', tipo: 'bad', aoTocar: () => excluirMinuta(m.id) });
+            abrirSheetAcoes({ titulo: m.nome, sub: 'Minuta de contrato', acoes });
         }
 
         // v1.42.0 — janela de ajuda com a lista de placeholders disponíveis
@@ -27114,9 +27017,23 @@
 
             const empName = imo ? imo.empreendimento : 'Patrimônio';
 
-            document.getElementById('modal-subtitulo-info').innerText = `${con.locatario} - Competência ${men.referencia} (${empName})`;
-
-            document.getElementById('modal-opcoes-recibo').classList.remove('hidden');
+            // v1.121.0 — UI virou sheet da gramática (REGRAS §3/§16): faixa
+            // de observações (mesmo id do campo, salvarObservacaoRecibo
+            // intocada) + 4 ações. Toda a montagem do PDF abaixo continua
+            // idêntica — o template oculto pdf-* não mudou.
+            const sheetRecibo = abrirSheetAcoes({ titulo: 'Recibo de aluguel', sub: `${con.locatario} · ${men.referencia} (${empName})`, acoes: [
+                { icone: 'eye', titulo: 'Visualizar na tela', aoTocar: () => dispararAcaoDoMenu('visualizar') },
+                { icone: 'download', titulo: 'Gerar e baixar PDF', sub: 'Documento oficial com numeração', aoTocar: () => dispararAcaoDoMenu('pdf') },
+                { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', aoTocar: () => dispararAcaoDoMenu('zap') },
+                { icone: 'mail', titulo: 'Enviar por e-mail', aoTocar: () => dispararAcaoDoMenu('email') },
+            ] });
+            const corpoRecibo = sheetRecibo.querySelector('.rz-sh-b');
+            if (corpoRecibo) corpoRecibo.insertAdjacentHTML('afterbegin', `
+                <div style="margin-bottom:10px">
+                    <label class="block text-xs font-bold text-gray-600">Observações do recibo (opcional)</label>
+                    <p class="text-[10.5px] text-slate-500 mb-1">Completa a frase: <em>"Vale ressaltar que …"</em> · salva ao sair do campo.</p>
+                    <textarea id="modal-recibo-observacoes" rows="2" onblur="salvarObservacaoRecibo()" placeholder="Ex: não foi cobrada a taxa de limpeza este mês" class="w-full p-2 border rounded text-sm"></textarea>
+                </div>`);
 
             document.getElementById('pdf-locatario').innerText = con.locatario;
 
@@ -27173,11 +27090,7 @@
             saveAll(true, "Observação do recibo salva.", ['mensalidades']);
         }
 
-        function fecharModalOpcoes() {
-
-            document.getElementById('modal-opcoes-recibo').classList.add('hidden');
-
-        }
+        function fecharModalOpcoes() { fecharSheet(); } // v1.121.0 — o modal virou sheet
 
         function dispararAcaoDoMenu(opcao) {
 
