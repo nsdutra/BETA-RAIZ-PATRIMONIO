@@ -6,9 +6,71 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.115.0
-   LINHAS: 30770
+   VERSÃO: Beta v1.116.0
+   LINHAS: 30916
    DATA: 04/09/2026
+   NOVIDADES (Beta v1.116.0) — correções da validação da v1.115 (prints
+   do Nicola, 04/09) + 6 pedidos da mesma rodada.
+   1) CABEÇALHO DESFORMATADO (print: círculos do Raiz IA/avatar certos,
+      mas sem a barra pine e texto solto sobre o conteúdo — regras filhas
+      aplicaram, container não; consistente com CSS em cache divergindo
+      do HTML). Duas defesas: regra `#main-header .rz-hdr` duplicada no
+      catálogo (maior especificidade, sempre a última a ganhar) e
+      forcarLayoutHeaderGlobal() — força o layout via style inline no
+      login, que vence qualquer folha de estilo, seja qual for a causa.
+   2) PARTES — "edição à frente de cada parte": linha do locatário deixou
+      de ser toque-na-linha com ellipsis fingindo de seta (violava §9);
+      cada linha (locatário e CADA fiador) tem seu próprio ⋮. Fiador:
+      Editar fiadores (popup completo já existente) e Remover fiador —
+      direto pelo MESMO RPC do popup (substituir_fiadores_contrato), com
+      seletor quando há mais de um. BANCO: migration
+      fn_sincronizar_locatario_partes_v2 — o trigger de 02/09 só criava a
+      parte quando havia documento e nunca teve backfill (63 dos 64
+      contratos sem papel de locatário). Agora: lógica em
+      fn_sincronizar_locatario_contrato(uuid); sem documento casa por
+      nome; documento comparado por dígitos; UPDATE também dispara em
+      WhatsApp/e-mail; backfill rodado — verificação pós: 64/64 contratos
+      com papel 'locatario' ativo em partes_papeis.
+   3) COBRANÇAS DA FICHA DO CONTRATO — cada linha ganhou ⋮ chamando
+      rzAcoesMensalidade() (o MESMO sheet de Financeiro › Recebimentos:
+      Dar baixa · Recibo · Estornar · Excluir). Zero lógica nova.
+   4) CONTRATAÇÃO E STATUS NO ⋮ (pedido: "as opções do print no menu 3
+      bolinhas; ativo ganha suspender/encerrar; assinando ganha ativar e
+      excluir; as regras estão no antigo alterar status"):
+      - abrirModalOpcoesContratacao (popup Tipo B com estilo inline, o do
+        print) virou abrirSheetAcoes: Dados novo contrato · Gerar link ·
+        WhatsApp · Conferir minuta · Gerar minuta; sem minuta padrão,
+        sheet em grupos com "Cadastrar minuta padrão". Mesmos
+        registrarLog/token/checagem (encontrarMinutaParaImovel).
+      - ⋮ da ficha do contrato, por estado: Assinando → Ativar contrato;
+        Ativo → Suspender · Encerrar; Suspenso → Reativar · Encerrar;
+        Excluir continua pra todos (já existia). Cada item chama
+        abrirAcaoStatusContrato(): abre o formulário JÁ EXISTENTE de
+        alterar status com a ação pré-selecionada — 100% das regras
+        (transições válidas, mensalidades pendentes, sincronização do
+        status do imóvel) continuam em salvarAlterarStatusContrato, nada
+        duplicado.
+   5) ATIVOS LENTO — prefetchModuloAtivos() deixou de ser só
+      modulepreload: agora monta a aba de verdade em segundo plano
+      (idle) logo após o login — #ativos-mount-point é display:none mas
+      está no DOM; montarAtivosTab() já é idempotente. Tocar na aba só
+      troca a classe .active. Junto, cofre-navegacao v1.6.2 paraleliza a
+      checagem cofre.categorias com carregarTudo() (1 ida a menos no
+      caminho crítico).
+   6) ANEXOS DO CONTRATO ≠ ATIVOS — ganhou "Upload simples" (par
+      IA/simples via window.rzAbrirUploadContextualComFlag —
+      cofre-documentos v1.8.0 + cofre-app v1.25.1) e "Gerar minuta"
+      quando o contrato está pronto (mesma avaliarProntidaoContratoParaMinuta
+      do ⋮ da ficha).
+   Arquivos da entrega: index.html · js/cofre-navegacao.js (1.6.2) ·
+   js/cofre-documentos.js (1.8.0) · js/cofre-app.js (1.25.1). Os demais
+   módulos NÃO mudaram desde a v1.115 (regra DEPLOY §5.5.1 — não
+   redelivar sem mudança real). Migration aplicada via conector (não há
+   .sql pra rodar na mão). Trava: z_popup_antigo 18→17 · hex_solto
+   429→417; nada subiu; baseline regravada. node --check OK (bloco
+   principal + 3 módulos); balanceamento de tags idêntico (svg 1,
+   pré-existente).
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.115.0) — FATIA 7 da gramática única (REGRAS v3.12
    §4/§5/§16; roteiro #3 das PENDÊNCIAS de 03/09; pedido: "Pode seguir").
    Por quê: cabeçalho, menu e barras de aba eram o último pedaço de casca
@@ -6993,6 +7055,19 @@
         .rz-hdr .rz-ia svg{width:20px;height:20px}
         .rz-hdr .rz-brand h1 img{max-height:1.5em;display:inline-block;vertical-align:middle}
         .rz-hdr .rz-off{display:inline-block;font-size:10px;font-weight:700;background:var(--danger);color:#fff;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;animation:rz-pulse 1.4s infinite}
+        /* v1.116.0 — cabeçalho chegou desformatado em campo (print do
+           Nicola): as regras filhas (.rz-hdr .rz-ia/.rz-avatar) bateram
+           certo (círculos aparecem estilizados no print), mas o
+           CONTAINER (padding/flex/cor de fundo do próprio .rz-hdr) não —
+           consistente com CSS em cache (service worker/navegador)
+           divergindo do HTML já atualizado. Regra do container repetida
+           aqui, com o id junto (#main-header .rz-hdr), puramente
+           defensivo; ver também forcarLayoutHeaderGlobal() no JS, que
+           força o mesmo layout via style inline (sempre vence, seja qual
+           for a causa real do CSS não ter aplicado). */
+        #main-header .rz-hdr{background:var(--pine);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px}
+        #main-header .rz-hdr .rz-brand{flex:1;min-width:0}
+        #main-header .rz-hdr .rz-avatar,#main-header .rz-hdr .rz-ia{flex:none}
         @keyframes rz-pulse{0%,100%{opacity:1}50%{opacity:.45}}
         .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine-light);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
@@ -10566,7 +10641,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.115.0";
+        const APP_VERSAO = "Beta v1.116.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -15027,15 +15102,23 @@
         // já injetado corretamente. Isso é literalmente pra que
         // modulepreload existe (diferente de <link rel="preload"
         // as="script">, que não entende módulos ES/import).
+        // v1.116.0 (pedido explícito: "ao clicar na tela Ativos, está
+        // demorando pra aparecer") — antes isto só fazia `modulepreload`
+        // (baixa os .js adiantado, mas o boot em si — 4 idas sequenciais
+        // ao banco dentro de nav.bootstrap() do Cofre, ver comentário lá
+        // — só começava no toque da aba). Virou boot de verdade em
+        // segundo plano: `#ativos-mount-point` é um `<section
+        // class="tab-content">` comum (`display:none` até ganhar
+        // `.active`, mas continua no DOM) — montar ele ocioso, logo após
+        // o login, não aparece pra ninguém e deixa a lista pronta antes
+        // do toque. `montarAtivosTab()` já se protege contra dupla
+        // chamada (ativosJaInicializado); tocar na aba depois só troca
+        // a classe .active, sem re-montar nada.
         function prefetchModuloAtivos() {
             const disparar = () => {
-                ['./js/ativos/ativos-markup.js', './js/cofre-app.js'].forEach(caminho => {
-                    if (document.querySelector(`link[rel="modulepreload"][href="${caminho}"]`)) return;
-                    const link = document.createElement('link');
-                    link.rel = 'modulepreload';
-                    link.href = caminho;
-                    document.head.appendChild(link);
-                });
+                import('./js/ativos/ativos-boot.js').then(({ montarAtivosTab }) => {
+                    montarAtivosTab(CLIENTE_ID_SUPABASE);
+                }).catch(err => console.warn('[prefetch-ativos] falhou, tentará de novo no toque da aba:', err.message));
             };
             if ('requestIdleCallback' in window) {
                 requestIdleCallback(disparar, { timeout: 4000 });
@@ -15374,6 +15457,7 @@
                     document.getElementById('splash-screen').classList.add('hidden');
 
                     document.getElementById('main-header').classList.remove('hidden');
+                    forcarLayoutHeaderGlobal();
 
                     document.getElementById('main-content').classList.remove('hidden');
 
@@ -16835,6 +16919,28 @@
             el.textContent = partes.length ? partes.join(' · ') : 'Raiz Patrimônio';
         }
         window.addEventListener('cofre:dados-carregados', atualizarContextoHeader);
+
+        // v1.116.0 — cabeçalho chegou desformatado num aparelho (print do
+        // Nicola: círculos do Raiz IA/avatar certos, mas sem a barra pine
+        // por trás e o texto solto por cima do conteúdo). A causa mais
+        // provável é `sw.js` (service worker) servindo uma versão em cache
+        // do próprio `index.html` — HTML novo com CSS antigo dentro do
+        // mesmo arquivo não é possível (CSS é inline), mas um cache
+        // parcial/corrompido do navegador pode aplicar a folha de estilo
+        // errada nessa sessão. Reforço estrutural (regra `#main-header
+        // .rz-hdr` duplicada no fim do catálogo) cobre o caso de CSS
+        // conflitante; isto aqui é a rede de segurança final — força o
+        // layout via `style=` inline direto no elemento, que sempre vence
+        // qualquer folha de estilo, seja qual for a causa. Roda 1x no
+        // login; chamada é barata (poucas linhas), sem custo perceptível.
+        function forcarLayoutHeaderGlobal() {
+            const hdr = document.querySelector('#main-header .rz-hdr');
+            if (!hdr) return;
+            hdr.style.cssText = 'background:var(--pine);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px';
+            const brand = hdr.querySelector('.rz-brand');
+            if (brand) brand.style.cssText = 'flex:1;min-width:0';
+            hdr.querySelectorAll('.rz-ia,.rz-avatar').forEach(el => { el.style.flex = 'none'; });
+        }
 
         // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
         // mensagem que permite opt-out (permite_opt_out=true) — substitui o
@@ -23126,11 +23232,18 @@
                 <div class="fc-painel hidden" id="fc-painel-cobrancas">
                     <div class="rz-card ${atrasadas.length ? 'rz-critico' : ''}">
                         <div class="rz-card-h"><h3>Cobranças</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}<button type="button" onclick="abrirAcoesCobrancasContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <!-- v1.116.0 (pedido explícito: "colocar no ⋮ a
+                             opção de tratar aquele recebimento") — cada
+                             linha ganhou ⋮ chamando rzAcoesMensalidade(),
+                             a mesma sheet (Dar baixa/Recibo/Estornar/
+                             Excluir) já usada em Financeiro › Recebimentos
+                             (fatia 5); nenhuma lógica nova. -->
                         ${ultimasSeis.length ? ultimasSeis.map(m => `
                         <div class="rz-row">
                             <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (m.status === 'Inadimplente' ? 'Vencido' : 'A vencer')}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
+                            <button type="button" onclick="rzAcoesMensalidade('${m.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
 
                     </div>
@@ -23139,15 +23252,22 @@
                 <div class="fc-painel hidden" id="fc-painel-partes">
                     <div class="rz-card">
                         <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Locatário e garantias</span><button type="button" onclick="abrirAcoesPartesContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
-                        <div class="rz-row rz-link" onclick="abrirAcoesLocatarioContrato('${con.id}')">
+                        <!-- v1.116.0 (pedido explícito: "a edição deve estar
+                             à frente de cada parte") — linha deixou de ser
+                             clicável inteira (o ícone ali era um
+                             ellipsis-vertical fingindo de seta, fora de
+                             REGRAS §9); cada linha (locatário e cada
+                             fiador) ganhou seu próprio ⋮. -->
+                        <div class="rz-row">
                             <div class="rz-ic"><svg data-lucide="user"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>Locatário${con.cpf ? ' · ' + escapeHtmlSaidas((con.docTipo || 'CPF') + ' ' + con.cpf) : ''}</span></div>
-                            <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+                            <button type="button" onclick="abrirAcoesLocatarioContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>
                         ${fiadoresDaFicha.length ? fiadoresDaFicha.map(f => `
                         <div class="rz-row">
                             <div class="rz-ic"><svg data-lucide="shield-check"></svg></div>
                             <div class="rz-tx"><b>${(f.nome || '').replace(/</g, '&lt;')}</b><span>Fiador · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}${f.estado_civil ? ' · ' + f.estado_civil : ''}${f.possui_imovel_proprio ? ' · imóvel em garantia' : ''}</span></div>
+                            <button type="button" onclick="abrirAcoesFiadorContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Adicione se a minuta exigir.</p></div>`}
 
                     </div>
@@ -23206,11 +23326,56 @@
                 { icone: 'pencil', titulo: 'Editar locatário', sub: 'Nome, CPF/CNPJ, contato, endereço', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
             ] });
         }
+        // v1.116.0 (pedido explícito, "edição à frente de cada parte") —
+        // ⋮ de cada linha de fiador. Não existe editor de 1 fiador só
+        // (a UI já existente, abrirEdicaoFiadoresPopup, edita a lista
+        // inteira de uma vez — reaproveitado aqui pra "Editar"). Remover
+        // é direto: chama o mesmo RPC (substituir_fiadores_contrato) que
+        // "Salvar" do popup usa, só que já filtrado, sem abrir tela.
+        async function abrirAcoesFiadorContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
+            await carregarFiadoresContrato(contratoId);
+            abrirSheetAcoes({ titulo: 'Fiador', sub: con.locatario || '', acoes: [
+                { icone: 'pencil', titulo: 'Editar fiadores', sub: 'Abre a lista completa de garantias', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
+                { icone: 'trash-2', titulo: 'Remover fiador', tipo: 'bad', aoTocar: () => abrirSeletorRemoverFiador(con.id) },
+            ] });
+        }
+        async function abrirSeletorRemoverFiador(contratoId) {
+            if (!fiadoresContratoAtual.length) { mostrarToast('Nenhum fiador pra remover.', 'danger'); return; }
+            if (fiadoresContratoAtual.length === 1) { removerFiadorDireto(contratoId, 0); return; }
+            abrirSheetAcoes({ titulo: 'Remover qual fiador?', acoes: fiadoresContratoAtual.map((f, i) => ({ icone: 'shield-check', titulo: f.nome || `Fiador ${i + 1}`, tipo: 'bad', aoTocar: () => removerFiadorDireto(contratoId, i) })) });
+        }
+        async function removerFiadorDireto(contratoId, index) {
+            const linhas = fiadoresContratoAtual.filter((_, i) => i !== index).filter(f => f.nome && f.cpf).map((f, i) => Object.assign({}, f, { ordem: i + 1 }));
+            mostrarCarregamentoGlobal('Removendo...');
+            try {
+                const { error } = await dbAuth.rpc('substituir_fiadores_contrato', { p_contrato_id: contratoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_linhas: linhas });
+                if (error) throw error;
+                esconderCarregamentoGlobal();
+                mostrarToast('Fiador removido.', 'success');
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                mostrarToast('Não consegui remover: ' + (err.message || String(err)), 'danger');
+            }
+        }
+        // v1.116.0 (pedido explícito: "o chip de anexos de contrato ainda
+        // está diferente do de ativos, não traz as 3 opções") — ganhou
+        // "Upload simples" (mesmo par IA/simples de Ativos, via
+        // window.rzAbrirUploadContextualComFlag, cofre-documentos v1.8.0)
+        // e "Gerar minuta", quando o contrato está pronto pra isso —
+        // mesma regra (avaliarProntidaoContratoParaMinuta) já usada no ⋮
+        // da ficha inteira, não duplicada.
         function abrirAcoesAnexosContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
-            abrirSheetAcoes({ titulo: 'Anexos', sub: con.locatario || '', acoes: [
-                { icone: 'sparkles', titulo: 'Adicionar documento com IA', sub: 'Minuta, aditivo, recibo — com leitura por IA', tipo: 'ia', aoTocar: () => rzCarregarDocumentoContrato(con.id) },
-            ] });
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            const pront = avaliarProntidaoContratoParaMinuta(con, imo);
+            const acoes = [
+                { icone: 'sparkles', titulo: 'Adicionar documento com IA', sub: 'Minuta, aditivo, recibo — com leitura por IA', tipo: 'ia', aoTocar: () => window.rzAbrirUploadContextualComFlag ? window.rzAbrirUploadContextualComFlag('contrato', con.id, con.locatario || 'Contrato', true) : rzCarregarDocumentoContrato(con.id) },
+                { icone: 'upload', titulo: 'Upload simples', sub: 'Só guarda o arquivo', aoTocar: () => window.rzAbrirUploadContextualComFlag?.('contrato', con.id, con.locatario || 'Contrato', false) },
+            ];
+            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
+            abrirSheetAcoes({ titulo: 'Anexos', sub: con.locatario || '', acoes });
         }
         // v1.113.0 — chips de categoria dos anexos do contrato (mesmo padrão do ativo)
         let fcFiltroAnexo = 'todos';
@@ -23249,8 +23414,34 @@
             ];
             if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
             if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });
+            // v1.116.0 — ações de status por estado do contrato (pedido
+            // explícito). "As regras" continuam 100% em
+            // abrirAlterarStatusContrato/salvarAlterarStatusContrato (data
+            // de vigência, observação, o que fazer com mensalidades em
+            // aberto) — cada item aqui só pré-seleciona a ação nesse mesmo
+            // formulário (abrirAcaoStatusContrato), não duplica a lógica.
+            if (con.status === 'Assinando') {
+                acoes.push({ icone: 'check-circle-2', titulo: 'Ativar contrato', sub: 'Assinatura concluída — vira Ativo', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
+            }
+            if (con.status === 'Ativo') {
+                acoes.push({ icone: 'pause-circle', titulo: 'Suspender contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Suspenso') });
+                acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
+            }
+            if (con.status === 'Suspenso') {
+                acoes.push({ icone: 'play-circle', titulo: 'Reativar contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
+                acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
+            }
             acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
             abrirSheetAcoes({ titulo: con.locatario || 'Contrato', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', acoes });
+        }
+        // v1.116.0 — abre o formulário já existente (abrirAlterarStatusContrato)
+        // com a ação desejada pré-selecionada no <select>. Reaproveita 100%
+        // das regras dele (opções válidas por transição, pendentes de
+        // mensalidade, sincronização do status do imóvel).
+        function abrirAcaoStatusContrato(contratoId, valorAcao) {
+            abrirAlterarStatusContrato(contratoId);
+            const sel = document.getElementById('asc-acao');
+            if (sel && [...sel.options].some(o => o.value === valorAcao)) sel.value = valorAcao;
         }
         function alternarMaisAcoesFichaContrato() {
             const el = document.getElementById('fc-mais-acoes');
@@ -28688,84 +28879,39 @@
 
         }
 
+        // v1.116.0 (pedido explícito: "para um novo contrato ou em
+        // assinatura, deixar as opções do print no menu 3 bolinhas") —
+        // popup HTML solto (bottom-sheet com estilo inline, fora da
+        // gramática) virou abrirSheetAcoes. Nenhuma regra de negócio
+        // mudou: mesmo token, mesmo registrarLog, mesma checagem de
+        // minuta padrão (encontrarMinutaParaImovel) pra decidir se
+        // mostra as 4 opções ou o aviso "cadastre uma minuta".
         function abrirModalOpcoesContratacao(imo, token, processoId) {
-
-            const antigo = document.getElementById('modal-opcoes-contratacao');
-            if (antigo) antigo.remove();
-
+            if (typeof abrirSheetAcoes !== 'function') return;
             const link = `https://app.raizpatrimonio.com.br/?contratar=${token}`;
             const endereco = `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}`;
             const mensagemZap = `Olá! Para darmos andamento à locação do imóvel em ${endereco}, preciso de alguns dados seus para gerar o contrato:\n\n- Nome completo\n- CPF ou CNPJ\n- WhatsApp\n- E-mail\n- Endereço atual\n- Profissão\n- Estado civil\n\nVocê pode preencher direto por este link: ${link}`;
-
-            // v1.48.0 — pedido explícito: 1ª opção agora é "Cadastrar novo
-            // contrato" (fecha este menu e abre o modal de contrato, que só
-            // fecha ao salvar). As opções de link/whatsapp/minuta (2/3/4)
-            // só aparecem se houver minuta padrão pra este imóvel —
-            // reaproveita encontrarMinutaParaImovel() já existente, não
-            // criei um segundo conceito de "minuta padrão".
             const minuta = encontrarMinutaParaImovel(imo.id);
-
-            const modal = document.createElement('div');
-            modal.id = 'modal-opcoes-contratacao';
-            // v1.52.0 — CORRIGIDO (pedido explícito): padrão visual
-            // unificado com os demais popups suspensos (mesmo estilo de
-            // "Dados locatário" — sobe de baixo pra cima, não mais
-            // centralizado).
-            modal.style = 'position:fixed;inset:0;z-index:95;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:380px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Locação</h3>
-                        <button onclick="document.getElementById('modal-opcoes-contratacao').remove()" style="background:#17211e;border:none;border-radius:9999px;width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                    </div>
-                    <p style="font-size:11px;color:#64748b;margin-bottom:12px;">${endereco}</p>
-
-                    <button onclick="document.getElementById('modal-opcoes-contratacao').remove(); abrirDadosNovoContratoPopup('${imo.id}');" style="width:100%;background:#fff;border:2px solid var(--pine);color:var(--pine);font-weight:bold;font-size:13px;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                        <svg data-lucide="file-plus" style="width:15px;height:15px"></svg>
-                        Dados Novo Contrato
-                    </button>
-
-                    ${minuta ? `
-                    <button onclick="registrarLog('contratacao.link_gerado', { imovelId: '${imo.id}', processoId: '${processoId}' }); dbAuth.from('processos_contratacao').update({origem:'link'}).eq('id','${processoId}'); navigator.clipboard.writeText('${link}'); mostrarToast('Link copiado!', 'success');" style="width:100%;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                        Gerar link para coleta de dados para minuta
-                    </button>
-
-                    <button onclick="registrarLog('contratacao.whatsapp_aberto', { imovelId: '${imo.id}', processoId: '${processoId}' }); dbAuth.from('processos_contratacao').update({origem:'whatsapp_manual'}).eq('id','${processoId}'); window.open('https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemZap)}', '_blank'); document.getElementById('modal-opcoes-contratacao').remove();" style="width:100%;background:#fff;border:1px solid #cbd5e1;color:#334155;font-weight:bold;font-size:13px;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                        <svg data-lucide="message-circle" style="width:15px;height:15px"></svg>
-                        Abrir WhatsApp com os dados pedidos
-                    </button>
-
-                    <button onclick="baixarMinutaPadraoImovel('${imo.id}')" style="width:100%;background:#fff;border:1px solid #cbd5e1;color:#334155;font-weight:bold;font-size:13px;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                        <svg data-lucide="download" style="width:15px;height:15px"></svg>
-                        Conferir minuta padrão
-                    </button>
-
-                    <!-- v1.55.0 — NOVA opção: "Gerar minuta" (pedido
-                         explícito). Só faz sentido se já existir um
-                         contrato Assinando pra este imóvel (é dos dados
-                         DELE que a minuta é preenchida) — reaproveita a
-                         MESMA regra de prontidão (avaliarProntidaoContratoParaMinuta)
-                         que "Gerar Minuta" da ficha do contrato já usa, não
-                         inventei uma segunda regra. -->
-                    <button onclick="gerarMinutaNoCofre('${imo.id}');" style="width:100%;background:#fff;border:1px solid #cbd5e1;color:#334155;font-weight:bold;font-size:13px;padding:10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;">
-                        <svg data-lucide="file-signature" style="width:15px;height:15px"></svg>
-                        Gerar minuta
-                    </button>
-
-                    <p style="font-size:10px;color:#94a3b8;margin-top:10px;">O link vale por 15 dias. Assim que o interessado preencher os dados (ou você mesmo encaminhar pelo WhatsApp), um contrato é gerado com status "Assinando".</p>
-                    ` : `
-                    <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px;font-size:12px;color:#92400e;">
-                        Nenhuma minuta padrão está cadastrada pra este imóvel ainda — as opções de link/WhatsApp/conferir minuta ficam disponíveis assim que houver uma.
-                        <button onclick="document.getElementById('modal-opcoes-contratacao').remove(); switchTab('tab-minutas');" style="display:block;width:100%;margin-top:8px;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Cadastrar minuta padrão</button>
-                    </div>
-                    `}
-                </div>
-            `;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-
+            const acoes = [
+                { icone: 'file-plus', titulo: 'Dados novo contrato', sub: 'Preencher você mesmo, direto no formulário', aoTocar: () => abrirDadosNovoContratoPopup(imo.id) },
+            ];
+            if (minuta) {
+                acoes.push(
+                    { icone: 'copy', titulo: 'Gerar link para coleta de dados', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
+                    { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
+                    { icone: 'download', titulo: 'Conferir minuta padrão', aoTocar: () => baixarMinutaPadraoImovel(imo.id) },
+                    { icone: 'file-signature', titulo: 'Gerar minuta', sub: 'A partir de um contrato Assinando já com os dados', aoTocar: () => gerarMinutaNoCofre(imo.id) }
+                );
+            }
+            abrirSheetAcoes({
+                titulo: 'Locação', sub: endereco, acoes,
+                grupos: minuta ? null : [
+                    { titulo: 'Dados', acoes: [acoes[0]] },
+                    { titulo: 'Sem minuta padrão cadastrada', acoes: [
+                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', sub: 'Necessária pra link, WhatsApp e geração de minuta', aoTocar: () => switchTab('tab-minutas') }
+                    ] }
+                ]
+            });
         }
 
         // "Conferir minuta padrão" — pedido explícito: baixa o ARQUIVO da

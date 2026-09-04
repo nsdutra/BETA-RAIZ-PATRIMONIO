@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.7.0 · 03/09/2026
+// Versão: 1.8.0 · 04/09/2026
+//
+// v1.8.0 — abrirUploadContextualComFlag(tipo, id, nome, comIA): versão
+// genérica do par ComIA/SemIA de Ativos, pro sheet de Anexos do contrato
+// (index.html) oferecer os dois modos sem duplicar o flag
+// pularAnaliseIAProximoUpload.
 //
 // v1.7.0 — categorizarDocumentoAtual(): sheet de categorias na ficha do
 // documento (pedido do Nicola: documento "Sem categoria" precisava de saída).
@@ -263,6 +268,17 @@ export async function abrirUploadNoAtivoSemIA(ativo) {
     if (!ativo) return;
     pularAnaliseIAProximoUpload = true;
     await abrirUploadContextual('ativo', ativo.id, ativo.nome_exibicao);
+}
+
+// v1.8.0 (04/09/2026, "chip de anexos de contrato ainda está diferente do
+// de ativos, não traz as 3 opções") — versão genérica das duas funções
+// acima, com o flag de IA como parâmetro em vez de fixo no nome, pra
+// qualquer chamador fora de Ativos (hoje: ficha do contrato, index.html)
+// poder abrir os dois modos sem duplicar a lógica de
+// pularAnaliseIAProximoUpload.
+export async function abrirUploadContextualComFlag(entidadeTipo, entidadeId, nomeExibido, comIA) {
+    pularAnaliseIAProximoUpload = !comIA;
+    await abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido);
 }
 
 export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido) {

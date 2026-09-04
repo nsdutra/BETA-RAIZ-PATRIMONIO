@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.1 · 01/09/2026
+// Versão: 1.6.2 · 04/09/2026
+//
+// v1.6.2 — "Ativos está demorando pra aparecer": a checagem de
+// cofre.categorias (que só esconde um ícone) deixou de bloquear
+// carregarTudo() — as duas disparam em paralelo, 1 ida ao banco a menos
+// no caminho crítico. Junto: o boot inteiro agora roda em segundo plano
+// logo após o login (ver prefetchModuloAtivos, index.html v1.116.0).
 //
 // v1.6.1 — BUG REAL corrigido, achado pelo Nicola via console do
 // navegador ("Falha no bootstrap do Cofre: TypeError: Cannot read
@@ -159,13 +165,20 @@ export async function bootstrap() {
     // Categorias não é mais aba de navegação (Adendo §3) — vive atrás do
     // ícone de engrenagem no header. Esconder o ícone inteiro pra quem não
     // tem cofre.categorias evita abrir um modal vazio sem explicação.
-    const podeCategorias = await api.pessoaTemFuncionalidade(estado.pessoa.perfil, 'cofre.categorias').catch(() => false);
+    // v1.6.2 (04/09/2026, "Ativos está demorando pra aparecer") — esta
+    // checagem só decide se um ícone fica escondido; não precisa bloquear
+    // carregarTudo() (5 consultas em paralelo, o grosso do carregamento).
+    // Dispara as duas ao mesmo tempo em vez de esperar uma pra começar a
+    // outra — economiza 1 ida ao banco no caminho crítico.
+    const promessaCategorias = api.pessoaTemFuncionalidade(estado.pessoa.perfil, 'cofre.categorias').catch(() => false);
+    const promessaTudo = carregarTudo();
+    const podeCategorias = await promessaCategorias;
     if (!podeCategorias) {
         document.querySelector('[data-action="abrir-configuracoes"]')?.classList.add('hidden');
     }
     refrescarIcones();
 
-    await carregarTudo();
+    await promessaTudo;
 
     // v1.5.0 (30/08/2026) — REVERTIDO pra chamar 'raiz:comunicacoes:processar'
     // direto de novo (era assim até v1.3.0). O wrapper 'raiz:termos:verificar'
