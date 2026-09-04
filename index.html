@@ -6,9 +6,64 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.118.0
-   LINHAS: 31181
+   VERSÃO: Beta v1.120.0
+   LINHAS: 30838
    DATA: 05/09/2026
+   NOVIDADES (Beta v1.120.0) — FATIA 7b-ii (parte 1) + estreia da regra
+   E0 do PLANO_FRAGMENTACAO_INDEX_v1_0.md ("nada novo nasce no index").
+   NOVO MÓDULO js/cadastros.js v1.0.0 — primeiro módulo nascido fora do
+   index. Telas Tipo de Imóvel e Tipo de Empreendimento reconstruídas
+   na gramática: .rz-tabhead (descrição + "+"), lista .rz-row com ⋮
+   (Renomear · Excluir — renomear é NOVO, a tela antiga só criava/
+   excluía), criação/renome via abrirSheetForm com validação de nome
+   duplicado. As 2 sections viraram mount-points; switchTab importa o
+   módulo sob demanda.
+   PONTES (padrão satélite): dbAuth via window.__raizDbAuth; clienteId
+   por parâmetro; window.__raizCadastrosPonte no index com as MESMAS
+   regras de "em uso" da tela antiga (arrays em memória) e aoAlterar
+   recarregando tiposImovelCadastrados/empreendimentosCadastrados +
+   popularSelectsEmpreendimentoTipo — o formulário de imóvel continua
+   enxergando os cadastros novos na hora.
+   REMOVIDO do index (~140 linhas): markup das 2 sections antigas (h2 +
+   raiz-btn-toggle + form inline) e o bloco dev_param_criar/excluir/
+   render + alternarFormularioTipo* (120 linhas). FICAM:
+   carregarTiposImovelSupabase/carregarEmpreendimentosSupabase e
+   popularSelectsEmpreendimentoTipo (alimentam o form de imóvel e a
+   ponte); dev_param_inicializar virou só dev_carregarDadosEmpresa.
+   DEPLOY: cadastros.js entra no manifesto do Deploy_Raiz.ps1 (nome
+   único, sem prefixo — regra do módulo patrimônio); DEPLOY.md v2.9.
+   Minutas fica pra parte 2 da fatia — amarrada ao motor de contratação
+   (gerarMinutaNoCofre/encontrarMinutaParaImovel), migra separada de
+   propósito pra não arriscar a geração de minuta.
+   Trava: btn_toggle 19→17; nada subiu; baseline regravada. node --check
+   OK (index + cadastros.js); balanceamento idêntico (svg 1).
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.119.0) — validação da Partes unificada (retorno do
+   Nicola, 05/09) + primeira remoção antecipada da fatia 9.
+   1) CHIPS DE PARTES CONTANDO PAPÉIS, NÃO PARTES (bug apontado: "os
+      totais não batem com as partes, e sim com os papéis"). Causa:
+      papeisPorParte guarda UMA entrada por LINHA de papel — parte
+      locatária em 3 contratos vira ['locatario','locatario','locatario']
+      e o chip somava 3. Dedup por parte ([...new Set(papeis)]): cada
+      parte conta 1x por papel, e o número do chip passa a bater com as
+      linhas que o filtro dele mostra. "Prestadores" e "Sem papel" já
+      contavam por parte (não mudaram).
+   2) HTML DAS 3 TELAS DE PRESTADORES REMOVIDO (autorização explícita:
+      "o form de prestadores já está igual ao de partes; pode eliminar").
+      tab-sindicos (103 linhas), tab-manutencistas (71) e
+      tab-administradoras (79) — formulários Tipo A e listas — fora do
+      arquivo. Estavam desligadas no roteador desde a v1.117 (redirect
+      pra Partes › chip Prestadores), então nenhum caminho vivo as
+      alcançava. As funções JS dessas telas ficam como órfãs
+      auto-protegidas (render* tem `if (!container) return`;
+      sincronizarBotaoToggleServico é null-guarded e É COMPARTILHADA com
+      Minutas — não sai) e entram na varredura da fatia 9 junto com os
+      call sites; verificado que nenhum caminho vivo chama as órfãs que
+      tocariam elementos removidos. Trava: btn_toggle 22→19.
+   Arquivos da entrega: SÓ index.html. Sem migration. node --check OK;
+   balanceamento de tags idêntico (svg 1, pré-existente); baseline
+   regravada.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.118.0) — 2 pendências do roteiro fechadas (pedido:
    "Vamos evoluir próximos passos!").
    1) fn_resumo_resultados SOMA SAÍDAS (aberta desde a v1.114). Migration
@@ -9867,109 +9922,6 @@
         </section>
 
 
-        <section id="tab-sindicos" class="tab-content hidden">
-
-            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
-                 de partes, aparece esta tela de parametros que deve ser
-                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
-                 tab-parametrizacoes, uma tela morta desde que este
-                 cadastro ganhou porta de entrada direta no menu
-                 Configurações (a própria tab-parametrizacoes já diz
-                 "estes cadastros agora têm telas próprias" — nunca foi
-                 atualizada quando isso mudou). Mesmo padrão já correto
-                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
-                 alcançadas pelo menu não têm "pai" de tab, não levam
-                 breadcrumb nenhum. -->
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold raiz-text-pine flex-1">Síndicos / Gestoras</h2>
-
-                <button id="btn-toggle-sindico" onclick="alternarFormularioSindico()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar síndico"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
-            </div>
-
-            <p class="text-[11px] text-gray-500 mb-4">Cadastre os síndicos ou gestoras responsáveis por cada empreendimento — o vínculo com os imóveis é feito marcando os empreendimentos atendidos.</p>
-
-
-            <div id="form-sindico-wrapper" class="hidden">
-
-                <div class="flex justify-between items-center mb-4">
-
-                    <h2 class="text-lg font-bold text-slate-900" id="form-sindico-titulo">Cadastrar Síndico</h2>
-
-                </div>
-
-                <form id="form-sindico" onsubmit="salvarSindico(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <input type="hidden" id="sind-id">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="sind-nome" required class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Documento (CPF ou CNPJ)</label>
-
-                        <input type="text" id="sind-documento" oninput="formatarMascaraDocumentoGenerico(this, 'sind-doc-indicador')" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm">
-
-                        <p id="sind-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome do Contato</label>
-
-                        <input type="text" id="sind-contato" class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-
-                        <div>
-
-                            <label class="block text-xs font-bold text-gray-600">WhatsApp</label>
-
-                            <input type="tel" id="sind-whatsapp" oninput="aplicarMascaraTelefone(this); validarTelefoneComIndicador(this, 'sind-whatsapp-indicador');" placeholder="(11) 91234-5678" class="w-full p-2 border rounded mt-1 text-sm">
-
-                            <p id="sind-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                        </div>
-
-                        <div>
-
-                            <label class="block text-xs font-bold text-gray-600">E-mail</label>
-
-                            <input type="email" id="sind-email" oninput="validarEmailComIndicador(this, 'sind-email-indicador')" class="w-full p-2 border rounded mt-1 text-sm">
-
-                            <p id="sind-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                        </div>
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Empreendimentos Atendidos</label>
-
-                        <div id="sind-empreendimentos-checks" class="space-y-1 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded border border-gray-200"></div>
-
-                    </div>
-
-                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Síndico</button>
-
-                </form>
-
-            </div>
-
-            <div id="lista-sindicos" class="space-y-3 mb-6"></div>
-
-        </section>
 
         <!-- v1.96.0 (pedido explícito, 01/09/2026: "vamos escrever uma
              nova tela para cadastro de partes... use os padrões já
@@ -9992,6 +9944,14 @@
              pra atribuir um papel novo direto daqui, escolhendo o
              imóvel/contrato) é maior — precisaria de uma tela de
              vínculo por tipo de papel, ficou de fora desta entrega. -->
+        <!-- v1.119.0 — HTML de tab-sindicos/tab-manutencistas/
+             tab-administradoras REMOVIDO (autorização do Nicola, 05/09:
+             "o form de prestadores já está igual ao de partes; pode
+             eliminar"). As telas estavam desligadas no roteador desde a
+             v1.117 (redirect pra Partes › chip Prestadores). Funções JS
+             órfãs (render/salvar/editar/excluir das 3 telas) seguem no
+             arquivo, auto-protegidas por `if (!container) return`, e
+             saem na varredura da fatia 9 junto com os call sites. -->
         <section id="tab-partes" class="tab-content hidden">
             <!-- v1.117.0 (fatia 7b-i, pedido explícito: "fazer uma tela
                  nova de partes e seus vínculos/papéis... fundir tudo em
@@ -10018,157 +9978,7 @@
             <div class="rz-card rz-list" id="lista-partes"></div>
         </section>
 
-        <section id="tab-manutencistas" class="tab-content hidden">
 
-            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
-                 de partes, aparece esta tela de parametros que deve ser
-                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
-                 tab-parametrizacoes, uma tela morta desde que este
-                 cadastro ganhou porta de entrada direta no menu
-                 Configurações (a própria tab-parametrizacoes já diz
-                 "estes cadastros agora têm telas próprias" — nunca foi
-                 atualizada quando isso mudou). Mesmo padrão já correto
-                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
-                 alcançadas pelo menu não têm "pai" de tab, não levam
-                 breadcrumb nenhum. -->
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold raiz-text-pine flex-1">Manutencistas</h2>
-
-                <button id="btn-toggle-manutencista" onclick="alternarFormularioManutencista()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar manutencista"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
-            </div>
-
-            <p class="text-[11px] text-gray-500 mb-4">Cadastre os prestadores de manutenção — o vínculo com os imóveis é feito marcando os empreendimentos atendidos.</p>
-
-
-            <div id="form-manutencista-wrapper" class="hidden">
-
-                <div class="flex justify-between items-center mb-4">
-
-                    <h2 class="text-lg font-bold text-slate-900" id="form-manutencista-titulo">Cadastrar Manutencista</h2>
-
-                </div>
-
-                <form id="form-manutencista" onsubmit="salvarManutencista(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <input type="hidden" id="man-id">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="man-nome" required class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">WhatsApp</label>
-
-                        <input type="tel" id="man-whatsapp" oninput="aplicarMascaraTelefone(this); validarTelefoneComIndicador(this, 'man-whatsapp-indicador');" placeholder="(11) 91234-5678" class="w-full p-2 border rounded mt-1 text-sm">
-
-                        <p id="man-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Empreendimentos Atendidos</label>
-
-                        <div id="man-empreendimentos-checks" class="space-y-1 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded border border-gray-200"></div>
-
-                    </div>
-
-                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Manutencista</button>
-
-                </form>
-
-            </div>
-
-            <div id="lista-manutencistas" class="space-y-3 mb-6"></div>
-
-        </section>
-
-        <section id="tab-administradoras" class="tab-content hidden">
-
-            <!-- v1.96.1 (01/09/2026, pedido explícito: "ao sair da aba
-                 de partes, aparece esta tela de parametros que deve ser
-                 eliminada") — botão "Voltar" REMOVIDO: apontava pra
-                 tab-parametrizacoes, uma tela morta desde que este
-                 cadastro ganhou porta de entrada direta no menu
-                 Configurações (a própria tab-parametrizacoes já diz
-                 "estes cadastros agora têm telas próprias" — nunca foi
-                 atualizada quando isso mudou). Mesmo padrão já correto
-                 de tab-tipo-empreendimento/tab-tipo-imovel: telas
-                 alcançadas pelo menu não têm "pai" de tab, não levam
-                 breadcrumb nenhum. -->
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold raiz-text-pine flex-1">Administradoras</h2>
-
-                <button id="btn-toggle-administradora" onclick="alternarFormularioAdministradora()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar administradora"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
-            </div>
-
-            <p class="text-[11px] text-gray-500 mb-4">Cadastre as administradoras terceirizadas que cuidam da gestão de locação de alguns contratos.</p>
-
-
-            <div id="form-administradora-wrapper" class="hidden">
-
-                <div class="flex justify-between items-center mb-4">
-
-                    <h2 class="text-lg font-bold text-slate-900" id="form-administradora-titulo">Cadastrar Administradora</h2>
-
-                </div>
-
-                <form id="form-administradora" onsubmit="saveAdministradora(event)" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <input type="hidden" id="adm-id">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome da Administradora <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="adm-nome" required class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Documento (CPF ou CNPJ)</label>
-
-                        <input type="text" id="adm-documento" oninput="formatarMascaraDocumentoGenerico(this, 'adm-doc-indicador')" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm">
-
-                        <p id="adm-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Taxa de Administração (%)</label>
-
-                        <input type="number" step="0.01" id="adm-taxa" value="0" class="w-full p-2 border rounded mt-1 text-sm">
-
-                    </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Escopo da Administração</label>
-
-                        <textarea id="adm-escopo" rows="2" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Ex: gestão completa de locação, cobrança e manutenção"></textarea>
-
-                    </div>
-
-                    <button type="submit" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Administradora</button>
-
-                </form>
-
-            </div>
-
-            <div id="lista-administradoras" class="space-y-3 mb-6"></div>
-
-        </section>
 
         <!-- ================= ABA: MINUTAS DE CONTRATO (v1.42.0) ================= -->
         <section id="tab-minutas" class="tab-content hidden">
@@ -10379,76 +10189,18 @@
             <div id="mount-minha-empresa"></div>
         </section>
 
+        <!-- v1.120.0 (fatia 7b-ii parte 1, regra E0 do plano de
+             fragmentação) — Tipo de Empreendimento e Tipo de Imóvel
+             viraram mount-points do módulo js/cadastros.js (primeiro
+             módulo nascido fora do index). O markup antigo (h2 +
+             raiz-btn-toggle + form inline) morreu junto com as funções
+             dev_param_* e alternarFormularioTipo* dessas telas (todas
+             dentro do mesmo bloco removido). -->
         <section id="tab-tipo-empreendimento" class="tab-content hidden">
-
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold raiz-text-pine flex-1">Tipo de Empreendimento</h2>
-
-                <button id="btn-toggle-tipo-empreendimento" onclick="alternarFormularioTipoEmpreendimento()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar tipo de empreendimento"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
-            </div>
-
-            <p class="text-[11px] text-gray-500 mb-4">Os nomes cadastrados aqui são o que aparece como opção ao cadastrar um imóvel. Nada aqui apaga dado de imóvel já existente — só deixa de aparecer como opção nova.</p>
-
-            <div id="form-tipo-empreendimento-wrapper" class="hidden">
-
-                <div class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome do Empreendimento <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="dev-param-novo-empreendimento" required placeholder="Nome do empreendimento" class="w-full p-2 border rounded mt-1 text-sm" onkeydown="if(event.key==='Enter') { dev_param_criarEmpreendimento(); }">
-
-                    </div>
-
-                    <button onclick="dev_param_criarEmpreendimento()" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Empreendimento</button>
-
-                </div>
-
-            </div>
-
-            <div id="dev-param-lista-empreendimentos" class="space-y-3">
-                <p class="text-xs text-center text-gray-400 py-4">Carregando...</p>
-            </div>
-
+            <div id="mount-empreendimentos"></div>
         </section>
-
         <section id="tab-tipo-imovel" class="tab-content hidden">
-
-            <div class="flex items-center gap-3 mb-4">
-
-                <h2 class="text-lg font-bold raiz-text-pine flex-1">Tipo de Imóvel</h2>
-
-                <button id="btn-toggle-tipo-imovel" onclick="alternarFormularioTipoImovel()" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar tipo de imóvel"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-
-            </div>
-
-            <p class="text-[11px] text-gray-500 mb-4">Os nomes cadastrados aqui são o que aparece como opção ao cadastrar um imóvel. Nada aqui apaga dado de imóvel já existente — só deixa de aparecer como opção nova.</p>
-
-            <div id="form-tipo-imovel-wrapper" class="hidden">
-
-                <div class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome do Tipo <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="dev-param-novo-tipo" required placeholder="Nome do tipo (ex.: Apartamento)" class="w-full p-2 border rounded mt-1 text-sm" onkeydown="if(event.key==='Enter') { dev_param_criarTipoImovel(); }">
-
-                    </div>
-
-                    <button onclick="dev_param_criarTipoImovel()" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Salvar Tipo</button>
-
-                </div>
-
-            </div>
-
-            <div id="dev-param-lista-tipos" class="space-y-3">
-                <p class="text-xs text-center text-gray-400 py-4">Carregando...</p>
-            </div>
-
+            <div id="mount-tipo-imovel"></div>
         </section>
 
 
@@ -10626,7 +10378,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.118.0";
+        const APP_VERSAO = "Beta v1.120.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -13147,126 +12899,12 @@
             }
         }
 
-        async function dev_param_criarEmpreendimento() {
-            const input = document.getElementById('dev-param-novo-empreendimento');
-            const nome = input.value.trim();
-            if (!nome) return;
-            const { error } = await dbAuth.from('empreendimentos').insert({ cliente_id: CLIENTE_ID_SUPABASE, nome: nome });
-            if (error) {
-                alert("❌ Falha ao cadastrar empreendimento: " + error.message);
-                return;
-            }
-            input.value = '';
-            empreendimentosCadastrados = await carregarEmpreendimentosSupabase();
-            dev_param_renderEmpreendimentos();
-            popularSelectsEmpreendimentoTipo();
-            alternarFormularioTipoEmpreendimento();
-        }
-
-        async function dev_param_excluirEmpreendimento(id) {
-            const emUso = imoveis.some(function(i) { return i.empreendimentoId === id; });
-            if (emUso) {
-                alert("⚠️ Não é possível excluir: existe pelo menos 1 imóvel cadastrado com este empreendimento. Mude o empreendimento do(s) imóvel(is) antes de excluir.");
-                return;
-            }
-            if (!confirm("Excluir este empreendimento?")) return;
-            const { error } = await dbAuth.from('empreendimentos').delete().eq('id', id);
-            if (error) {
-                alert("❌ Falha ao excluir: " + error.message);
-                return;
-            }
-            empreendimentosCadastrados = await carregarEmpreendimentosSupabase();
-            dev_param_renderEmpreendimentos();
-            popularSelectsEmpreendimentoTipo();
-        }
-
-        function dev_param_renderEmpreendimentos() {
-            const lista = document.getElementById('dev-param-lista-empreendimentos');
-            if (!lista) return;
-            if (empreendimentosCadastrados.length === 0) {
-                lista.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhum empreendimento cadastrado ainda.</p>';
-                return;
-            }
-            lista.innerHTML = empreendimentosCadastrados.map(function(e) {
-                return `<div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
-                    <p class="text-xs font-bold text-slate-900">${e.nome}</p>
-                    <button onclick="dev_param_excluirEmpreendimento('${e.id}')" title="Excluir" class="w-7 h-7 flex-none flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
-                </div>`;
-            }).join('');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        // v1.41.5 — mesmo padrão liga/desliga do "+" de Síndicos/Manutencistas.
-        function alternarFormularioTipoEmpreendimento() {
-            const wrapper = document.getElementById('form-tipo-empreendimento-wrapper');
-            const btn = document.getElementById('btn-toggle-tipo-empreendimento');
-            if (!wrapper || !btn) return;
-            wrapper.classList.toggle('hidden');
-            const aberto = !wrapper.classList.contains('hidden');
-            btn.classList.toggle('ativo', aberto);
-            atualizarIconeToggle(btn, aberto);
-            if (aberto) document.getElementById('dev-param-novo-empreendimento')?.focus();
-        }
-
-        function alternarFormularioTipoImovel() {
-            const wrapper = document.getElementById('form-tipo-imovel-wrapper');
-            const btn = document.getElementById('btn-toggle-tipo-imovel');
-            if (!wrapper || !btn) return;
-            wrapper.classList.toggle('hidden');
-            const aberto = !wrapper.classList.contains('hidden');
-            btn.classList.toggle('ativo', aberto);
-            atualizarIconeToggle(btn, aberto);
-            if (aberto) document.getElementById('dev-param-novo-tipo')?.focus();
-        }
-
-        async function dev_param_criarTipoImovel() {
-            const input = document.getElementById('dev-param-novo-tipo');
-            const nome = input.value.trim();
-            if (!nome) return;
-            const { error } = await dbAuth.from('tipos_imovel').insert({ cliente_id: CLIENTE_ID_SUPABASE, nome: nome });
-            if (error) {
-                alert("❌ Falha ao cadastrar tipo: " + error.message);
-                return;
-            }
-            input.value = '';
-            tiposImovelCadastrados = await carregarTiposImovelSupabase();
-            dev_param_renderTiposImovel();
-            popularSelectsEmpreendimentoTipo();
-            alternarFormularioTipoImovel();
-        }
-
-        async function dev_param_excluirTipoImovel(id) {
-            const emUso = imoveis.some(function(i) { return i.tipoId === id; });
-            if (emUso) {
-                alert("⚠️ Não é possível excluir: existe pelo menos 1 imóvel cadastrado com este tipo. Mude o tipo do(s) imóvel(is) antes de excluir.");
-                return;
-            }
-            if (!confirm("Excluir este tipo de imóvel?")) return;
-            const { error } = await dbAuth.from('tipos_imovel').delete().eq('id', id);
-            if (error) {
-                alert("❌ Falha ao excluir: " + error.message);
-                return;
-            }
-            tiposImovelCadastrados = await carregarTiposImovelSupabase();
-            dev_param_renderTiposImovel();
-            popularSelectsEmpreendimentoTipo();
-        }
-
-        function dev_param_renderTiposImovel() {
-            const lista = document.getElementById('dev-param-lista-tipos');
-            if (!lista) return;
-            if (tiposImovelCadastrados.length === 0) {
-                lista.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhum tipo cadastrado ainda.</p>';
-                return;
-            }
-            lista.innerHTML = tiposImovelCadastrados.map(function(t) {
-                return `<div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between">
-                    <p class="text-xs font-bold text-slate-900">${t.nome}</p>
-                    <button onclick="dev_param_excluirTipoImovel('${t.id}')" title="Excluir" class="w-7 h-7 flex-none flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
-                </div>`;
-            }).join('');
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
+        // v1.120.0 (fatia 7b-ii) — dev_param_criar/excluir/render e
+        // alternarFormularioTipo* de empreendimentos e tipos de imóvel
+        // REMOVIDAS: o CRUD vive em js/cadastros.js.
+        // carregarEmpreendimentosSupabase/carregarTiposImovelSupabase e
+        // popularSelectsEmpreendimentoTipo FICAM aqui — alimentam o
+        // formulário de imóvel e a ponte.
 
         // v1.65.0 (pedido explícito) — TODO o bloco de "Minha Empresa" saiu
         // daqui: dev_carregarDadosEmpresa()/dev_salvarDadosEmpresa()/
@@ -13319,10 +12957,21 @@
 
 
         function dev_param_inicializar() {
-            dev_param_renderEmpreendimentos();
-            dev_param_renderTiposImovel();
             dev_carregarDadosEmpresa();
         }
+        // v1.120.0 (fatia 7b-ii) — ponte pro js/cadastros.js: as regras de
+        // "em uso" continuam as MESMAS da tela antiga (arrays em memória
+        // do index), e aoAlterar recarrega os arrays + selects do
+        // formulário de imóvel — nada duplicado no módulo.
+        window.__raizCadastrosPonte = {
+            emUsoTipoImovel: (id) => imoveis.some(i => i.tipoId === id),
+            emUsoEmpreendimento: (id) => imoveis.some(i => i.empreendimentoId === id),
+            aoAlterar: async (chave) => {
+                if (chave === 'tipo-imovel') tiposImovelCadastrados = await carregarTiposImovelSupabase();
+                else empreendimentosCadastrados = await carregarEmpreendimentosSupabase();
+                popularSelectsEmpreendimentoTipo();
+            }
+        };
 
         // ============================================================================
         // Seletor customizado de imóvel — substitui o <select> nativo em
@@ -16737,11 +16386,12 @@
             if (tabId === 'tab-minha-empresa' && typeof dev_carregarDadosEmpresa === 'function') {
                 dev_carregarDadosEmpresa();
             }
-            if (tabId === 'tab-tipo-empreendimento' && typeof dev_param_renderEmpreendimentos === 'function') {
-                dev_param_renderEmpreendimentos();
-            }
-            if (tabId === 'tab-tipo-imovel' && typeof dev_param_renderTiposImovel === 'function') {
-                dev_param_renderTiposImovel();
+            // v1.120.0 (fatia 7b-ii) — telas de tipos vivem em js/cadastros.js
+            if (tabId === 'tab-tipo-empreendimento' || tabId === 'tab-tipo-imovel') {
+                const chave = tabId === 'tab-tipo-imovel' ? 'tipo-imovel' : 'empreendimentos';
+                import('./js/cadastros.js')
+                    .then(m => m.montarCadastroTipos(CLIENTE_ID_SUPABASE, chave))
+                    .catch(err => console.warn('[cadastros] Falha ao carregar módulo:', err.message));
             }
             // v1.44.0 (Imóveis V2 — Fase 1/2)
             if (tabId === 'tab-geral' && typeof renderVisaoGeral === 'function') {
@@ -30626,7 +30276,14 @@
                 const papeis = papeisPorParte[pt.id] || [];
                 if (parteEhPrestador(pt, papeis)) contag.prestadores++;
                 if (!papeis.length) contag.sem++;
-                papeis.forEach(pp => { if (!['prestador', 'sindico', 'manutencista', 'administradora'].includes(pp)) contag[pp] = (contag[pp] || 0) + 1; });
+                // v1.119.0 (bug apontado pelo Nicola: "os totais não batem
+                // com as partes, e sim com os papéis") — papeisPorParte
+                // tem UMA entrada por LINHA de papel (parte locatária em 3
+                // contratos = ['locatario','locatario','locatario']), e o
+                // chip contava as 3. Dedup por parte: cada parte conta 1x
+                // por papel, então o chip bate com o nº de linhas que o
+                // filtro dele mostra.
+                [...new Set(papeis)].forEach(pp => { if (!['prestador', 'sindico', 'manutencista', 'administradora'].includes(pp)) contag[pp] = (contag[pp] || 0) + 1; });
             });
             const ordem = ['todos', 'locatario', 'fiador', 'proprietario', 'prestadores', 'interessado', 'corretor', 'sem'];
             const rotulo = { todos: 'Todas', prestadores: 'Prestadores', sem: 'Sem papel', locatario: 'Locatários', fiador: 'Fiadores', proprietario: 'Proprietários', interessado: 'Interessados', corretor: 'Corretores' };
