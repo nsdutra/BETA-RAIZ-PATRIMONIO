@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.24.0 · 05/09/2026
+// Versão: 1.25.0 · 05/09/2026
+//
+// v1.25.0 — 12 ações que ficaram sem `codigo` na v1.24 (achado pelo
+// Nicola testando como 'consulta'): Editar dados (ficha do ativo),
+// Editar divisão, Novo item de controle, Financeiro (Novo lançamento /
+// Ver no Financeiro), Anexos (IA / upload / fotos), Contratos (link /
+// cadastrar / ver todos). abrirAcoesAtivo, abrirAcoesPropriedade,
+// abrirAcoesControlesAtivo, abrirAcoesFinanceiroAtivo, abrirAcoesAnexos
+// e abrirAcoesContratosAtivo usam sheetOuAviso — não passavam pelo mesmo
+// scan que abrirSheetAcoes direto, por isso escaparam da 9a.
 //
 // v1.24.0 — ⋮ do ativo com `codigo` (porta única do app): imoveis.editar, cofre.editar, vitrine.gerar, cofre.excluir.
 //
@@ -913,7 +922,7 @@ export function abrirAcoesAtivo() {
     // v1.21.0 — sem rodapé: "Editar" vive aqui (imóvel → formulário do
     // imóvel; campos específicos do ativo em seguida)
     if (ehImovel) acoes.push({ icone: 'pencil', titulo: 'Editar dados do imóvel', codigo: 'imoveis.editar', sub: 'Endereço, valores, uso', aoTocar: () => abrirGestaoImovel() });
-    acoes.push({ icone: 'list', titulo: ehImovel ? 'Editar campos do ativo' : 'Editar dados', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
+    acoes.push({ icone: 'list', titulo: ehImovel ? 'Editar campos do ativo' : 'Editar dados', codigo: 'cofre.editar', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // v1.22.0 (fatia 7) — "Gerar vitrine" deste imóvel (link único) —
     // reaproveita gerarVitrineDoImovel() do App (index.html v1.115.0).
@@ -1118,38 +1127,38 @@ export function iniciarContratacaoDoAtivo() {
 export function abrirAcoesPropriedade() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Propriedade', sub: a.nome_exibicao, acoes: [
-        { icone: 'pencil', titulo: 'Editar divisão', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
+        { icone: 'pencil', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
     ] });
 }
 export function abrirAcoesControlesAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Itens de controle', sub: a.nome_exibicao, acoes: [
-        { icone: 'plus', titulo: 'Novo item de controle', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
-        { icone: 'layers', titulo: 'Modelos de item', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => window.__rzAbrirModelosControle?.() },
-        { icone: 'tags', titulo: 'Tipos de controle', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => window.__rzAbrirSubtiposControle?.() },
+        { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
+        { icone: 'layers', titulo: 'Modelos de item', codigo: 'cofre.controles.editar', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => window.__rzAbrirModelosControle?.() },
+        { icone: 'tags', titulo: 'Tipos de controle', codigo: 'cofre.controles.editar', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => window.__rzAbrirSubtiposControle?.() },
     ] });
 }
 export function abrirAcoesFinanceiroAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Financeiro', sub: a.nome_exibicao, acoes: [
-        { icone: 'plus', titulo: 'Novo lançamento', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
-        { icone: 'wallet', titulo: 'Ver no Financeiro', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
+        { icone: 'plus', titulo: 'Novo lançamento', codigo: 'saidas.registrar', sub: 'Saída ligada a este ativo', aoTocar: () => abrirNovoLancamentoDoAtivo() },
+        { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as saídas deste ativo', aoTocar: () => abrirSaidasDoAtivo() },
     ] });
 }
 export function abrirAcoesAnexos() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Anexos', sub: a.nome_exibicao, acoes: [
-        { icone: 'sparkles', titulo: 'Adicionar documento com IA', sub: 'Lê matrícula, IPTU, apólice e preenche os controles', tipo: 'ia', aoTocar: () => window.__rzUploadAtivo?.(true) },
-        { icone: 'upload', titulo: 'Upload simples', sub: 'Só guarda o arquivo', aoTocar: () => window.__rzUploadAtivo?.(false) },
-        { icone: 'camera', titulo: 'Adicionar fotos', aoTocar: () => { faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } },
+        { icone: 'sparkles', titulo: 'Adicionar documento com IA', codigo: 'cofre.analisar_ia', sub: 'Lê matrícula, IPTU, apólice e preenche os controles', tipo: 'ia', aoTocar: () => window.__rzUploadAtivo?.(true) },
+        { icone: 'upload', titulo: 'Upload simples', codigo: 'cofre.upload', sub: 'Só guarda o arquivo', aoTocar: () => window.__rzUploadAtivo?.(false) },
+        { icone: 'camera', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } },
     ] });
 }
 export function abrirAcoesContratosAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Contratos', sub: a.nome_exibicao, acoes: [
-        { icone: 'link', titulo: 'Contratação: link, WhatsApp e minuta', sub: 'Coleta de dados do locatário e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
-        { icone: 'plus', titulo: 'Cadastrar contrato manualmente', sub: 'Já com este imóvel selecionado', aoTocar: () => abrirNovoContratoDoAtivo() },
-        { icone: 'list', titulo: 'Ver todos na aba Contratos', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
+        { icone: 'link', titulo: 'Contratação: link, WhatsApp e minuta', codigo: 'contratos.criar', sub: 'Coleta de dados do locatário e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
+        { icone: 'plus', titulo: 'Cadastrar contrato manualmente', codigo: 'contratos.criar', sub: 'Já com este imóvel selecionado', aoTocar: () => abrirNovoContratoDoAtivo() },
+        { icone: 'list', titulo: 'Ver todos na aba Contratos', codigo: 'contratos.ver', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-contratos'); } },
     ] });
 }
 

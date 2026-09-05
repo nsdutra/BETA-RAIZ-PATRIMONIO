@@ -6,9 +6,48 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.125.0
-   LINHAS: 30785
+   VERSÃO: Beta v1.128.0
+   LINHAS: 30811
    DATA: 05/09/2026
+   NOVIDADES (Beta v1.128.0) — FATIA 9b (2/3): "Fiadores do contrato" de
+   popup Tipo B pra sheet (abrirSheetForm). O invólucro mudou; a lista de
+   fiadores (renderFiadoresPopup, #dnc-fiadores-lista, atualizarCampo
+   Fiador, adicionar/removerFiadorPopup) é COMPARTILHADA com o popup
+   "Dados novo contrato" e fica intocada até a 9b 3/3, quando os dois
+   migram juntos. salvarFiadoresStandalone: mesma RPC
+   (substituir_fiadores_contrato), fecha o sheet, e o alert() de erro
+   virou toast. "+ Adicionar fiador" virou .rz-btn rz-btn-2 no rodapé da
+   lista. Trava: popup_tipo_b e z_popup caem mais 1. Sem migration.
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.127.0) — FATIA 9b (1/3): "Alterar status do
+   contrato" de popup Tipo B pra sheet da gramática (abrirSheetForm).
+   Mesmos ids de campo (asc-acao/asc-data/asc-obs/asc-pendentes), então
+   salvarAlterarStatusContrato() — com todas as regras de transição,
+   pendentes e sincronização do imóvel — não mudou UMA linha, e
+   abrirAcaoStatusContrato() (pré-seleção pelo ⋮ da ficha) segue igual.
+   fecharModalCampoContrato() passa a fechar o sheet quando o formulário
+   aberto é este (os outros popups que usam o mesmo id continuam como
+   estão até a 9b 2/3 e 3/3). Aviso de pendentes virou .rz-card wine.
+   Trava: popup_tipo_b e z_popup caem mais 1. Sem migration.
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.126.0) — PORTA ÚNICA: 16 ações que escaparam da 9a.
+   Achado pelo Nicola testando como 'consulta' na v1.125 (só Minutas
+   bloqueava no ⚙️; Financeiro e Controles do ativo abriam tudo).
+   16 ações que a 9a tinha deixado passar: no `index.html` — ⋮ de
+   fiadores (Editar/Adicionar fiador), Minuta (Editar/Excluir),
+   contratação (Abrir WhatsApp), Parte (Abrir ficha); em
+   `cofre-ativos.js` (v1.25.0) — Editar dados do ativo, Editar divisão,
+   Novo item de controle, Financeiro (Novo lançamento/Ver no
+   Financeiro), Anexos (IA/upload/fotos), Contratos (link/cadastrar
+   manualmente/ver todos). Causa: essas 12 do cofre-ativos usam
+   `sheetOuAviso`, não `abrirSheetAcoes` direto — o scan da 9a não olhou
+   dentro dela. Deixados sem código, de propósito, por serem informativos
+   ou já protegidos pela ação-mãe: itens do ⚙️ Empresa/Conta (Minha
+   empresa, Robô, Licença, Sair etc.), sub-ações do recibo e da vitrine
+   (a entrada já é gateada por recibo.gerar/vitrine.gerar), escolha de
+   fiador/entidade em listas (a ação-mãe já gateia).
+   Arquivos: index.html + cofre-ativos.js v1.25.0. Sem migration.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.125.0) — FATIA 9a: porta única completa + limpeza 1/3.
    1) `codigo` em TODOS os ⋮ que faltavam (41 ações no index + 5 em
       cofre-ativos v1.24.0 + 3 em cofre-app v1.25.2 + 2 em cadastros v1.0.1
@@ -10322,7 +10361,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.125.0";
+        const APP_VERSAO = "Beta v1.128.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -13266,28 +13305,21 @@
             }
             await carregarFiadoresContrato(contratoId);
 
-            document.getElementById('modal-fiadores-standalone')?.remove();
-            const modal = document.createElement('div');
-            modal.id = 'modal-fiadores-standalone';
-            modal.style = 'position:fixed;inset:0;z-index:97;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Fiadores do contrato</h3>
-                        <button onclick="document.getElementById('modal-fiadores-standalone').remove()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-                    </div>
-                    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-                        <button type="button" onclick="adicionarFiadorPopup()" style="background:var(--pine);color:#fff;font-weight:bold;font-size:11px;padding:6px 10px;border:none;border-radius:6px;">+ Adicionar fiador</button>
-                    </div>
-                    <div id="dnc-fiadores-lista"></div>
-                    <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="salvarFiadoresStandalone('${contratoId}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
-                        <button onclick="document.getElementById('modal-fiadores-standalone').remove()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Sair</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            // v1.128.0 (fatia 9b 2/3) — invólucro Tipo B → sheet da gramática.
+            // A lista (renderFiadoresPopup → #dnc-fiadores-lista) é a mesma do
+            // "Dados novo contrato" e fica intocada até a 9b 3/3. Salvar =
+            // salvarFiadoresStandalone (RPC substituir_fiadores_contrato), que
+            // agora fecha o sheet.
+            const corpo = `
+                <p class="text-xs text-slate-500 mb-2">Nem todo contrato precisa de fiador — só adicione se a minuta exigir.</p>
+                <div id="dnc-fiadores-lista"></div>
+                <button type="button" class="rz-btn rz-btn-2 rz-wide" style="margin-top:8px" onclick="adicionarFiadorPopup()"><svg data-lucide="user-plus"></svg> Adicionar fiador</button>`;
+            abrirSheetForm({
+                titulo: 'Fiadores do contrato', sub: (contratos.find(c => c.id === contratoId) || {}).locatario || '', corpo, rotuloSalvar: 'Salvar',
+                aoSalvar: () => { salvarFiadoresStandalone(contratoId); return false; },
+            });
             renderFiadoresPopup();
+            if (typeof rzIcones === 'function') rzIcones();
         }
 
         async function salvarFiadoresStandalone(contratoId) {
@@ -13304,10 +13336,11 @@
                 });
                 if (error) throw error;
                 document.getElementById('modal-fiadores-standalone')?.remove();
+                if (document.getElementById('dnc-fiadores-lista') && typeof fecharSheet === 'function') fecharSheet(); // v1.128 — sheet
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
                 mostrarToast('Fiadores salvos.', 'success');
             } catch (err) {
-                alert('❌ Não consegui salvar os fiadores: ' + (err.message || String(err)));
+                mostrarToast('Não consegui salvar os fiadores: ' + (err.message || String(err)), 'danger'); // v1.128 — sem alert()
             } finally {
                 if (btn) btn.disabled = false;
             }
@@ -18368,8 +18401,8 @@
             if (!m || typeof abrirSheetAcoes !== 'function') return;
             const acoes = [];
             if (m.arquivoUrl) acoes.push({ icone: 'eye', titulo: 'Ver arquivo do modelo', sub: m.arquivoNome || '', aoTocar: () => window.open(m.arquivoUrl, '_blank') });
-            acoes.push({ icone: 'pencil', titulo: 'Editar', aoTocar: () => abrirFormMinutaSheet(m.id) });
-            acoes.push({ icone: 'trash-2', titulo: 'Excluir', tipo: 'bad', aoTocar: () => excluirMinuta(m.id) });
+            acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'minutas.gerar', aoTocar: () => abrirFormMinutaSheet(m.id) });
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'minutas.gerar', tipo: 'bad', aoTocar: () => excluirMinuta(m.id) });
             abrirSheetAcoes({ titulo: m.nome, sub: 'Minuta de contrato', acoes });
         }
 
@@ -21057,43 +21090,33 @@
                 return true;
             });
 
-            document.getElementById('modal-campo-contrato')?.remove();
-            const modal = document.createElement('div');
-            modal.id = 'modal-campo-contrato';
-            modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Alterar Status do Contrato</h3>
-                        <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-                    </div>
-                    <p style="font-size:11px;color:#64748b;margin-bottom:10px;">Status atual: ${con.status}</p>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        <div>
-                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Ação</label>
-                            <select id="asc-acao" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
-                                ${opcoesDisponiveis.map(o => `<option value="${o.valor}">${o.rotulo}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Data vigência</label><input type="date" id="asc-data" value="${new Date().toISOString().slice(0, 10)}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Observação</label><textarea id="asc-obs" rows="2" placeholder="Escreva aqui uma observação..." style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></textarea></div>
-                        ${pendentes.length > 0 ? `
-                        <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px;">
-                            <p style="font-size:11px;font-weight:bold;color:#92400e;">Este contrato tem ${pendentes.length} recebimento(s) em aberto. O que fazer com eles?</p>
-                            <select id="asc-pendentes" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:6px;background:#fff;">
-                                <option value="baixar_sem_pagamento">Dar baixa sem pagamento</option>
-                                <option value="baixar_pago">Dar baixa como pago</option>
-                                <option value="excluir">Excluir os pendentes</option>
-                            </select>
-                        </div>` : ''}
-                    </div>
-                    <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarAlterarStatusContrato('${con.id}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            // v1.127.0 (fatia 9b) — popup Tipo B → sheet da gramática. Mesmos
+            // ids (asc-acao/asc-data/asc-obs/asc-pendentes): salvarAlterarStatus
+            // Contrato e abrirAcaoStatusContrato (pré-seleção) continuam
+            // intocados. Fecha via fecharModalCampoContrato() (que agora
+            // também fecha o sheet quando o formulário aberto é este).
+            const hoje = new Date().toISOString().slice(0, 10);
+            const corpo = `
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Ação</label>
+                    <select id="asc-acao" class="w-full p-2 border rounded text-sm mt-1 bg-gray-50">${opcoesDisponiveis.map(o => `<option value="${o.valor}">${o.rotulo}</option>`).join('')}</select></div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div><label class="block text-xs font-bold text-gray-600">Data de vigência</label><input type="date" id="asc-data" value="${hoje}" class="w-full p-2 border rounded text-sm mt-1"></div>
+                    <div><label class="block text-xs font-bold text-gray-600">Status atual</label><div class="mt-1 p-2 text-sm text-slate-600">${con.status || '—'}</div></div>
+                </div>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Observação</label><textarea id="asc-obs" rows="2" placeholder="Opcional" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>
+                ${pendentes.length > 0 ? `
+                <div class="rz-card" style="border-color:var(--wine-light);margin-bottom:0">
+                    <p class="text-xs font-semibold" style="color:var(--wine)">${pendentes.length} recebimento${pendentes.length === 1 ? '' : 's'} em aberto neste contrato. O que fazer com ele${pendentes.length === 1 ? '' : 's'}?</p>
+                    <select id="asc-pendentes" class="w-full p-2 border rounded text-sm mt-2">
+                        <option value="baixar_sem_pagamento">Dar baixa sem pagamento</option>
+                        <option value="baixar_pago">Dar baixa como pago</option>
+                        <option value="excluir">Excluir os pendentes</option>
+                    </select>
+                </div>` : ''}`;
+            abrirSheetForm({
+                titulo: 'Alterar status do contrato', sub: con.locatario || '', corpo, rotuloSalvar: 'Salvar',
+                aoSalvar: () => { salvarAlterarStatusContrato(con.id); return false; },
+            });
         }
 
         // CORRIGIDO (v1.53.0) — BUG REAL relatado: ao escolher "Excluir
@@ -21518,6 +21541,9 @@
         // ===================================================================
         function fecharModalCampoContrato() {
             document.getElementById('modal-campo-contrato')?.remove();
+            // v1.127.0 — "Alterar status" virou sheet: se o formulário aberto é
+            // ele (id asc-acao presente), fecha o sheet também.
+            if (document.getElementById('asc-acao') && typeof fecharSheet === 'function') fecharSheet();
         }
 
         // CORRIGIDO (v1.50.0) — BUG REAL relatado: "Could not find the
@@ -22965,7 +22991,7 @@
             const temFiador = (window.__fiadoresFichaAtual || []).length > 0;
             abrirSheetAcoes({ titulo: 'Partes', sub: con.locatario || '', acoes: [
                 { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Dados no formulário do contrato', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
-                { icone: 'user-plus', titulo: temFiador ? 'Editar fiadores' : 'Adicionar fiador', sub: 'Garantias exigidas pela minuta', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
+                { icone: 'user-plus', titulo: temFiador ? 'Editar fiadores' : 'Adicionar fiador', codigo: 'contratos.editar', sub: 'Garantias exigidas pela minuta', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
             ] });
         }
         function abrirAcoesLocatarioContrato(contratoId) {
@@ -28556,7 +28582,7 @@
             if (minuta) {
                 acoes.push(
                     { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
-                    { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
+                    { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', codigo: 'contratos.criar', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
                     { icone: 'download', titulo: 'Conferir minuta padrão', codigo: 'minutas.gerar', aoTocar: () => baixarMinutaPadraoImovel(imo.id) },
                     { icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'A partir de um contrato Assinando já com os dados', aoTocar: () => gerarMinutaNoCofre(imo.id) }
                 );
@@ -30340,7 +30366,7 @@
         function abrirAcoesParte(parteId) {
             const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetAcoes !== 'function') return;
             const acoes = [
-                { icone: 'id-card', titulo: 'Abrir ficha', sub: 'Dados e todos os vínculos', aoTocar: () => abrirFichaParte(pt.id) },
+                { icone: 'id-card', titulo: 'Abrir ficha', codigo: 'partes.ver', sub: 'Dados e todos os vínculos', aoTocar: () => abrirFichaParte(pt.id) },
                 { icone: 'pencil', titulo: 'Editar dados', codigo: 'partes.editar', aoTocar: () => abrirFormParteSheet(pt.id) },
                 { icone: 'plus', titulo: 'Adicionar papel', codigo: 'partes.editar', sub: 'Ligar a um contrato, ativo ou empreendimento', aoTocar: () => abrirAdicionarPapelParte(pt.id) },
             ];
