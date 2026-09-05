@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.25.1 · 04/09/2026
+// Versão: 1.25.2 · 04/09/2026
 //
 // v1.25.1 — expõe window.rzAbrirUploadContextualComFlag (upload com/sem
 // IA pra chamadores fora de Ativos — sheet de Anexos do contrato).
@@ -332,9 +332,9 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-acoes-ativos':
             if (typeof window.abrirSheetAcoes !== 'function') { await ativos.abrirFormAtivo(); break; }
             window.abrirSheetAcoes({ titulo: 'Ativos', sub: 'O que você quer fazer?', acoes: [
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => docs.abrirUploadHome() },
-                { icone: 'plus', titulo: 'Novo ativo', sub: 'Imóvel, veículo, obra de arte…', aoTocar: () => ativos.abrirFormAtivo() },
-                { icone: 'image', titulo: 'Montar vitrine', sub: 'Vários imóveis num link só', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => docs.abrirUploadHome() },
+                { icone: 'plus', titulo: 'Novo ativo', codigo: 'cofre.ativos.criar', sub: 'Imóvel, veículo, obra de arte…', aoTocar: () => ativos.abrirFormAtivo() },
+                { icone: 'image', titulo: 'Montar vitrine', codigo: 'vitrine.gerar', sub: 'Vários imóveis num link só', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
             ]});
             break;
         case 'fechar-busca-ativos': fecharModal('modal-busca-ativos'); break;

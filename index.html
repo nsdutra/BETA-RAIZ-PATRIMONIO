@@ -6,9 +6,27 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.124.0
-   LINHAS: 30838
+   VERSÃO: Beta v1.125.0
+   LINHAS: 30785
    DATA: 05/09/2026
+   NOVIDADES (Beta v1.125.0) — FATIA 9a: porta única completa + limpeza 1/3.
+   1) `codigo` em TODOS os ⋮ que faltavam (41 ações no index + 5 em
+      cofre-ativos v1.24.0 + 3 em cofre-app v1.25.2 + 2 em cadastros v1.0.1
+      + 13 em cofre-controles v1.16.0): contrato (ficha, cobranças, partes,
+      fiadores, anexos, status), recebimentos (+, grupos, inadimplência),
+      contratação, parte, papel, ativo, controles, ocorrências, tipos.
+      Só códigos que já existem no catálogo — nenhuma ação inventa código.
+   2) [MIGRATION aplicada] prestadores.* → partes.* (ver/criar/editar/
+      excluir) com perfis, planos e histórico reapontados; os 3
+      registrarLog('prestadores.excluir') viraram partes.excluir.
+   3) 5 funções órfãs REMOVIDAS (zero chamadores desde a v1.117):
+      salvarManutencista, inicializarServicos, alternarFormularioSindico/
+      Manutencista/Administradora (76 linhas).
+   FICA pra 9b: tab-imoveis (36 ids ainda lidos — o form do imóvel que o
+   ativo reutiliza vive lá; sai junto com a migração de saveImovel), os 3
+   popups Tipo A/B → sheet. 9c: imoveis.fotos, partes.documento,
+   DROP propriedade_imovel_deprecated, cofre.html.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.124.0) — PORTA ÚNICA DO APP (fatia 8). Primeira
    entrega da fatia que toca o index. Pré-requisitos já no banco (via
    conector, 05/09): matriz de perfis corrigida (decisões do Nicola:
@@ -10304,7 +10322,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.124.0";
+        const APP_VERSAO = "Beta v1.125.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -16487,8 +16505,8 @@
         function abrirMenuTiposModelos() {
             const ir = (tab) => () => switchTab(tab);
             abrirSheetAcoes({ titulo: 'Tipos e modelos', sub: 'Listas que alimentam os cadastros', acoes: [
-                { icone: 'home', titulo: 'Tipo de imóvel', aoTocar: ir('tab-tipo-imovel') },
-                { icone: 'landmark', titulo: 'Tipo de empreendimento', aoTocar: ir('tab-tipo-empreendimento') },
+                { icone: 'home', titulo: 'Tipo de imóvel', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-imovel') },
+                { icone: 'landmark', titulo: 'Tipo de empreendimento', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
                 { icone: 'tags', titulo: 'Categoria de documento', codigo: 'cofre.categorias', aoTocar: () => abrirConfiguracaoCofre('categorias') },
                 { icone: 'list-tree', titulo: 'Sub-tipos de item de controle', codigo: 'cofre.controles.editar', aoTocar: () => abrirConfiguracaoCofre('subtipos') },
                 { icone: 'clipboard-list', titulo: 'Modelos de controle', codigo: 'cofre.controles.editar', aoTocar: () => abrirConfiguracaoCofre('modelos') }
@@ -16504,8 +16522,8 @@
             const hero = '<div class="rz-ia-hero"><h4><svg data-lucide="sparkles"></svg>Raiz IA</h4>' +
                 '<p>Lê extratos e documentos e sugere lançamentos, vínculos e categorias. Você sempre confirma antes de gravar.</p></div>';
             const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'O que a IA faz por você hoje', acoes: [
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato bancário', sub: 'Concilia os recebimentos automaticamente', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
-                { icone: 'sparkles', tipo: 'ia', titulo: 'Ler um documento', sub: 'Classifica e sugere o ativo', aoTocar: () => abrirUploadDocumentoNoApp() },
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os recebimentos automaticamente', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Ler um documento', codigo: 'cofre.analisar_ia', sub: 'Classifica e sugere o ativo', aoTocar: () => abrirUploadDocumentoNoApp() },
                 { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Consultas e avisos pelo R.AI.Z', aoTocar: abrirBotWhatsapp }
             ]});
             const corpo = sheet.querySelector('.rz-sh-b');
@@ -17725,15 +17743,7 @@
         }
 
         // v1.41.2 — mesmo padrão liga/desliga de Imóveis/Contratos.
-        function alternarFormularioAdministradora() {
-            const wrapper = document.getElementById('form-administradora-wrapper');
-            if (wrapper && !wrapper.classList.contains('hidden')) {
-                cancelarEdicaoAdministradora();
-            } else {
-                abrirFormularioAdministradora();
-            }
-        }
-
+        // v1.125.0 (fatia 9a) — alternarFormularioAdministradora() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
         function cancelarEdicaoAdministradora() {
 
             document.getElementById('adm-id').value = '';
@@ -17849,7 +17859,7 @@
 
             administradoras = administradoras.filter(a => a.id !== id);
 
-            registrarLog('prestadores.excluir', { prestadorId: id, tipo: 'imobiliaria' });
+            registrarLog('partes.excluir', { prestadorId: id, tipo: 'imobiliaria' });
 
             saveAll(true, "Administradora excluída.", ['administradoras']);
 
@@ -22947,21 +22957,21 @@
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             const imo = imoveis.find(i => i.id === con.imovelId);
             abrirSheetAcoes({ titulo: 'Cobranças', sub: con.locatario || '', acoes: [
-                { icone: 'wallet', titulo: 'Ver no Financeiro', sub: 'Todas as competências deste imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
+                { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as competências deste imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
             ] });
         }
         function abrirAcoesPartesContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             const temFiador = (window.__fiadoresFichaAtual || []).length > 0;
             abrirSheetAcoes({ titulo: 'Partes', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: 'Editar locatário', sub: 'Dados no formulário do contrato', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Dados no formulário do contrato', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
                 { icone: 'user-plus', titulo: temFiador ? 'Editar fiadores' : 'Adicionar fiador', sub: 'Garantias exigidas pela minuta', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
             ] });
         }
         function abrirAcoesLocatarioContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: con.locatario || 'Locatário', sub: 'Locatário', acoes: [
-                { icone: 'pencil', titulo: 'Editar locatário', sub: 'Nome, CPF/CNPJ, contato, endereço', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Nome, CPF/CNPJ, contato, endereço', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
             ] });
         }
         // v1.116.0 (pedido explícito, "edição à frente de cada parte") —
@@ -22974,8 +22984,8 @@
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             await carregarFiadoresContrato(contratoId);
             abrirSheetAcoes({ titulo: 'Fiador', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: 'Editar fiadores', sub: 'Abre a lista completa de garantias', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
-                { icone: 'trash-2', titulo: 'Remover fiador', tipo: 'bad', aoTocar: () => abrirSeletorRemoverFiador(con.id) },
+                { icone: 'pencil', titulo: 'Editar fiadores', codigo: 'contratos.editar', sub: 'Abre a lista completa de garantias', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
+                { icone: 'trash-2', titulo: 'Remover fiador', codigo: 'contratos.editar', tipo: 'bad', aoTocar: () => abrirSeletorRemoverFiador(con.id) },
             ] });
         }
         async function abrirSeletorRemoverFiador(contratoId) {
@@ -23009,10 +23019,10 @@
             const imo = imoveis.find(i => i.id === con.imovelId);
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
             const acoes = [
-                { icone: 'sparkles', titulo: 'Adicionar documento com IA', sub: 'Minuta, aditivo, recibo — com leitura por IA', tipo: 'ia', aoTocar: () => window.rzAbrirUploadContextualComFlag ? window.rzAbrirUploadContextualComFlag('contrato', con.id, con.locatario || 'Contrato', true) : rzCarregarDocumentoContrato(con.id) },
-                { icone: 'upload', titulo: 'Upload simples', sub: 'Só guarda o arquivo', aoTocar: () => window.rzAbrirUploadContextualComFlag?.('contrato', con.id, con.locatario || 'Contrato', false) },
+                { icone: 'sparkles', titulo: 'Adicionar documento com IA', codigo: 'cofre.analisar_ia', sub: 'Minuta, aditivo, recibo — com leitura por IA', tipo: 'ia', aoTocar: () => window.rzAbrirUploadContextualComFlag ? window.rzAbrirUploadContextualComFlag('contrato', con.id, con.locatario || 'Contrato', true) : rzCarregarDocumentoContrato(con.id) },
+                { icone: 'upload', titulo: 'Upload simples', codigo: 'cofre.upload', sub: 'Só guarda o arquivo', aoTocar: () => window.rzAbrirUploadContextualComFlag?.('contrato', con.id, con.locatario || 'Contrato', false) },
             ];
-            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
+            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
             abrirSheetAcoes({ titulo: 'Anexos', sub: con.locatario || '', acoes });
         }
         // v1.113.0 — chips de categoria dos anexos do contrato (mesmo padrão do ativo)
@@ -23048,10 +23058,10 @@
             const imo = imoveis.find(i => i.id === con.imovelId);
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
             const acoes = [
-                { icone: 'history', titulo: 'Histórico', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
+                { icone: 'history', titulo: 'Histórico', codigo: 'contratos.historico.ver', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
             ];
-            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
-            if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });
+            if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
+            if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', codigo: 'cofre.ver', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });
             // v1.116.0 — ações de status por estado do contrato (pedido
             // explícito). "As regras" continuam 100% em
             // abrirAlterarStatusContrato/salvarAlterarStatusContrato (data
@@ -23059,17 +23069,17 @@
             // aberto) — cada item aqui só pré-seleciona a ação nesse mesmo
             // formulário (abrirAcaoStatusContrato), não duplica a lógica.
             if (con.status === 'Assinando') {
-                acoes.push({ icone: 'check-circle-2', titulo: 'Ativar contrato', sub: 'Assinatura concluída — vira Ativo', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
+                acoes.push({ icone: 'check-circle-2', titulo: 'Ativar contrato', codigo: 'contratos.editar', sub: 'Assinatura concluída — vira Ativo', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
             }
             if (con.status === 'Ativo') {
-                acoes.push({ icone: 'pause-circle', titulo: 'Suspender contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Suspenso') });
-                acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
+                acoes.push({ icone: 'pause-circle', titulo: 'Suspender contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Suspenso') });
+                acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
             }
             if (con.status === 'Suspenso') {
-                acoes.push({ icone: 'play-circle', titulo: 'Reativar contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
-                acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
+                acoes.push({ icone: 'play-circle', titulo: 'Reativar contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
+                acoes.push({ icone: 'square-check-big', titulo: 'Encerrar contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Finalizado') });
             }
-            acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', codigo: 'contratos.excluir', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
             abrirSheetAcoes({ titulo: con.locatario || 'Contrato', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', acoes });
         }
         // v1.116.0 — abre o formulário já existente (abrirAlterarStatusContrato)
@@ -26836,10 +26846,10 @@
         function rzAcoesRecebimentos() {
             if (typeof abrirSheetAcoes !== 'function') { alternarPainelGerarMes(); return; }
             abrirSheetAcoes({ titulo: 'Recebimentos', acoes: [
-                { icone: 'sparkles', titulo: 'Importar extrato bancário', sub: 'Concilia os pagamentos automaticamente', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
-                { icone: 'calendar-plus', titulo: 'Gerar mês', sub: 'Lançamentos de todos os contratos vigentes', aoTocar: () => { const p = document.getElementById('painel-gerar-mes'); if (p && p.classList.contains('hidden')) alternarPainelGerarMes(); p?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
-                { icone: 'refresh-cw', titulo: 'Reprocessar conciliação', sub: 'Refaz a comparação extrato × recebimentos', aoTocar: () => reprocessarConciliacaoPendente() },
-                { icone: 'clipboard-list', titulo: 'Painel de conciliação', sub: 'Pendências do último extrato', aoTocar: () => { const w = document.getElementById('painel-conciliacao-wrapper'); if (w && w.classList.contains('hidden')) alternarPainelConciliacao(); w?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+                { icone: 'sparkles', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os pagamentos automaticamente', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+                { icone: 'calendar-plus', titulo: 'Gerar mês', codigo: 'mensal.gerar', sub: 'Lançamentos de todos os contratos vigentes', aoTocar: () => { const p = document.getElementById('painel-gerar-mes'); if (p && p.classList.contains('hidden')) alternarPainelGerarMes(); p?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+                { icone: 'refresh-cw', titulo: 'Reprocessar conciliação', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação extrato × recebimentos', aoTocar: () => reprocessarConciliacaoPendente() },
+                { icone: 'clipboard-list', titulo: 'Painel de conciliação', codigo: 'conciliacao.ver', sub: 'Pendências do último extrato', aoTocar: () => { const w = document.getElementById('painel-conciliacao-wrapper'); if (w && w.classList.contains('hidden')) alternarPainelConciliacao(); w?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
             ] });
         }
         function rzAcoesMensalidade(menId) {
@@ -26888,7 +26898,7 @@
         function rzAcoesGrupoMensal(ref) {
             if (typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: `Competência ${ref}`, acoes: [
-                { icone: 'trash-2', titulo: 'Apagar lançamentos em atraso deste mês', sub: 'Só os que ainda não foram pagos e já venceram', tipo: 'bad', aoTocar: () => apagarInadimplentesDoGrupo(ref) },
+                { icone: 'trash-2', titulo: 'Apagar lançamentos em atraso deste mês', codigo: 'mensal.excluir', sub: 'Só os que ainda não foram pagos e já venceram', tipo: 'bad', aoTocar: () => apagarInadimplentesDoGrupo(ref) },
             ] });
         }
         function renderMensalidades() {
@@ -27900,7 +27910,7 @@
         function rzAcoesGrupoInadimplencia(id) {
             const g = (window.__rzCobrancaGrupo || {})[id]; if (!g || typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: g.titulo, sub: `${formatarMoedaBR(g.total)} em aberto`, acoes: [
-                { icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Abre a conversa com a lista de competências', aoTocar: () => dispararCobrancaWhatsAppDirect(g.celular, g.titulo, g.itens, g.total) },
+                { icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', codigo: 'cobrar.lembrete', sub: 'Abre a conversa com a lista de competências', aoTocar: () => dispararCobrancaWhatsAppDirect(g.celular, g.titulo, g.itens, g.total) },
             ] });
         }
         function dispararCobrancaWhatsAppDirect(celular, grupoTitle, itensText, valorTotal) {
@@ -28541,14 +28551,14 @@
             const mensagemZap = `Olá! Para darmos andamento à locação do imóvel em ${endereco}, preciso de alguns dados seus para gerar o contrato:\n\n- Nome completo\n- CPF ou CNPJ\n- WhatsApp\n- E-mail\n- Endereço atual\n- Profissão\n- Estado civil\n\nVocê pode preencher direto por este link: ${link}`;
             const minuta = encontrarMinutaParaImovel(imo.id);
             const acoes = [
-                { icone: 'file-plus', titulo: 'Dados novo contrato', sub: 'Preencher você mesmo, direto no formulário', aoTocar: () => abrirDadosNovoContratoPopup(imo.id) },
+                { icone: 'file-plus', titulo: 'Dados novo contrato', codigo: 'contratos.criar', sub: 'Preencher você mesmo, direto no formulário', aoTocar: () => abrirDadosNovoContratoPopup(imo.id) },
             ];
             if (minuta) {
                 acoes.push(
-                    { icone: 'copy', titulo: 'Gerar link para coleta de dados', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
+                    { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
                     { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
-                    { icone: 'download', titulo: 'Conferir minuta padrão', aoTocar: () => baixarMinutaPadraoImovel(imo.id) },
-                    { icone: 'file-signature', titulo: 'Gerar minuta', sub: 'A partir de um contrato Assinando já com os dados', aoTocar: () => gerarMinutaNoCofre(imo.id) }
+                    { icone: 'download', titulo: 'Conferir minuta padrão', codigo: 'minutas.gerar', aoTocar: () => baixarMinutaPadraoImovel(imo.id) },
+                    { icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'A partir de um contrato Assinando já com os dados', aoTocar: () => gerarMinutaNoCofre(imo.id) }
                 );
             }
             abrirSheetAcoes({
@@ -28556,7 +28566,7 @@
                 grupos: minuta ? null : [
                     { titulo: 'Dados', acoes: [acoes[0]] },
                     { titulo: 'Sem minuta padrão cadastrada', acoes: [
-                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', sub: 'Necessária pra link, WhatsApp e geração de minuta', aoTocar: () => switchTab('tab-minutas') }
+                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Necessária pra link, WhatsApp e geração de minuta', aoTocar: () => switchTab('tab-minutas') }
                     ] }
                 ]
             });
@@ -30073,15 +30083,7 @@
         }
 
         // v1.41.2 — mesmo padrão liga/desliga de Imóveis/Contratos.
-        function alternarFormularioSindico() {
-            const wrapper = document.getElementById('form-sindico-wrapper');
-            if (wrapper && !wrapper.classList.contains('hidden')) {
-                cancelarEdicaoSindico();
-            } else {
-                abrirFormSindico();
-            }
-        }
-
+        // v1.125.0 (fatia 9a) — alternarFormularioSindico() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
         function cancelarEdicaoSindico() {
             document.getElementById('sind-id').value = '';
             document.getElementById('form-sindico').reset();
@@ -30175,7 +30177,7 @@
             });
             sindicos = sindicos.filter(s => s.id !== id);
 
-            registrarLog('prestadores.excluir', { prestadorId: id, tipo: 'sindico' });
+            registrarLog('partes.excluir', { prestadorId: id, tipo: 'sindico' });
             saveAll(true, "Síndico excluído.", ['sindicos']);
         }
 
@@ -30339,8 +30341,8 @@
             const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetAcoes !== 'function') return;
             const acoes = [
                 { icone: 'id-card', titulo: 'Abrir ficha', sub: 'Dados e todos os vínculos', aoTocar: () => abrirFichaParte(pt.id) },
-                { icone: 'pencil', titulo: 'Editar dados', aoTocar: () => abrirFormParteSheet(pt.id) },
-                { icone: 'plus', titulo: 'Adicionar papel', sub: 'Ligar a um contrato, ativo ou empreendimento', aoTocar: () => abrirAdicionarPapelParte(pt.id) },
+                { icone: 'pencil', titulo: 'Editar dados', codigo: 'partes.editar', aoTocar: () => abrirFormParteSheet(pt.id) },
+                { icone: 'plus', titulo: 'Adicionar papel', codigo: 'partes.editar', sub: 'Ligar a um contrato, ativo ou empreendimento', aoTocar: () => abrirAdicionarPapelParte(pt.id) },
             ];
             // v1.118.0 — a ficha MOSTRAVA os empreendimentos do síndico/
             // manutencista (RPC) mas não EDITAVA (limitação registrada na
@@ -30349,9 +30351,9 @@
             // antiga (data_fim_vigencia; síndico exclusivo por
             // empreendimento).
             if (pt.tipo_prestador === 'sindico' || pt.tipo_prestador === 'manutencista') {
-                acoes.push({ icone: 'landmark', titulo: 'Empreendimentos atendidos', sub: 'Onde este prestador atua', aoTocar: () => abrirEmpreendimentosDaParte(pt.id) });
+                acoes.push({ icone: 'landmark', titulo: 'Empreendimentos atendidos', codigo: 'partes.editar', sub: 'Onde este prestador atua', aoTocar: () => abrirEmpreendimentosDaParte(pt.id) });
             }
-            acoes.push({ icone: 'trash-2', titulo: 'Excluir parte', tipo: 'bad', aoTocar: () => excluirParte(pt.id) });
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir parte', codigo: 'partes.excluir', tipo: 'bad', aoTocar: () => excluirParte(pt.id) });
             abrirSheetAcoes({ titulo: pt.nome, sub: pt.documento ? `${pt.doc_tipo || ''} ${pt.documento}` : '', acoes });
         }
 
@@ -30614,12 +30616,12 @@
             const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetAcoes !== 'function') return;
             const ir = (papel, entTipo) => () => abrirEscolhaEntidadePapel(parteId, papel, entTipo);
             abrirSheetAcoes({ titulo: 'Adicionar papel', sub: pt.nome, acoes: [
-                { icone: 'user', titulo: 'Locatário', sub: 'Num contrato existente', aoTocar: ir('locatario', 'contrato') },
-                { icone: 'shield-check', titulo: 'Fiador', sub: 'Num contrato existente', aoTocar: ir('fiador', 'contrato') },
-                { icone: 'key-round', titulo: 'Proprietário', sub: 'De um ativo', aoTocar: ir('proprietario', 'ativo') },
-                { icone: 'user-search', titulo: 'Interessado', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'interessado', null, null) },
-                { icone: 'handshake', titulo: 'Corretor', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'corretor', null, null) },
-                { icone: 'wrench', titulo: 'Prestador', sub: 'Síndico, administradora ou manutencista', aoTocar: () => abrirFormParteSheet(parteId) },
+                { icone: 'user', titulo: 'Locatário', codigo: 'partes.editar', sub: 'Num contrato existente', aoTocar: ir('locatario', 'contrato') },
+                { icone: 'shield-check', titulo: 'Fiador', codigo: 'partes.editar', sub: 'Num contrato existente', aoTocar: ir('fiador', 'contrato') },
+                { icone: 'key-round', titulo: 'Proprietário', codigo: 'partes.editar', sub: 'De um ativo', aoTocar: ir('proprietario', 'ativo') },
+                { icone: 'user-search', titulo: 'Interessado', codigo: 'partes.editar', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'interessado', null, null) },
+                { icone: 'handshake', titulo: 'Corretor', codigo: 'partes.editar', sub: 'Sem vínculo com entidade', aoTocar: () => gravarPapelParte(parteId, 'corretor', null, null) },
+                { icone: 'wrench', titulo: 'Prestador', codigo: 'partes.editar', sub: 'Síndico, administradora ou manutencista', aoTocar: () => abrirFormParteSheet(parteId) },
             ] });
         }
         function abrirEscolhaEntidadePapel(parteId, papel, entTipo) {
@@ -30682,15 +30684,7 @@
         }
 
         // v1.41.2 — mesmo padrão liga/desliga de Imóveis/Contratos.
-        function alternarFormularioManutencista() {
-            const wrapper = document.getElementById('form-manutencista-wrapper');
-            if (wrapper && !wrapper.classList.contains('hidden')) {
-                cancelarEdicaoManutencista();
-            } else {
-                abrirFormManutencista();
-            }
-        }
-
+        // v1.125.0 (fatia 9a) — alternarFormularioManutencista() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
         function cancelarEdicaoManutencista() {
             document.getElementById('man-id').value = '';
             document.getElementById('form-manutencista').reset();
@@ -30714,37 +30708,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        async function salvarManutencista(e) {
-            e.preventDefault();
-
-            const id = document.getElementById('man-id').value;
-            const empreendimentosMarcados = lerChecksEmpreendimentos('man-empreendimentos-checks');
-
-            const dados = {
-                id: id || 'man_' + Date.now() + Math.random().toString(36).substr(2, 4),
-                nome: document.getElementById('man-nome').value.trim(),
-                whatsapp: document.getElementById('man-whatsapp').value.trim(),
-                empreendimentos: empreendimentosMarcados
-            };
-
-            if (id) {
-                const idx = manutencistas.findIndex(m => m.id === id);
-                if (idx !== -1) manutencistas[idx] = dados;
-            } else {
-                manutencistas.push(dados);
-            }
-
-            cancelarEdicaoManutencista();
-
-            // v1.41.3 — mesmo bug/correção do salvarSindico(): aguarda o
-            // saveAll() trocar o id local pelo id real do banco antes de
-            // recalcular o vínculo com os imóveis (senão o vínculo apontava
-            // pro id temporário, e só "aparecia" depois de um refresh).
-            await saveAll(true, "Manutencista salvo com sucesso!", ['manutencistas']);
-            recalcularVinculosManutencistas();
-            renderImoveis();
-        }
-
+        // v1.125.0 (fatia 9a) — salvarManutencista() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
         function excluirManutencista(id) {
             const emUso = imoveis.some(i => i.manutencistaId === id);
             if (emUso) {
@@ -30757,7 +30721,7 @@
             });
             manutencistas = manutencistas.filter(m => m.id !== id);
 
-            registrarLog('prestadores.excluir', { prestadorId: id, tipo: 'manutencista' });
+            registrarLog('partes.excluir', { prestadorId: id, tipo: 'manutencista' });
             saveAll(true, "Manutencista excluído.", ['manutencistas']);
         }
 
@@ -30793,24 +30757,7 @@
         // mas os dados já foram renderizados desde o carregamento inicial
         // (mesmo padrão de renderImoveis/renderContratos) — isso apenas garante
         // que a tela esteja atualizada caso algo tenha mudado em outra aba.
-        function inicializarServicos() {
-            renderSindicos();
-            renderManutencistas();
-            renderAdministradoras();
-        }
-
-        // Chamar inicialização quando a aba DEV for aberta (será chamado em abaAtiva)
-
-        // Já implementado nos listeners de abas
-
-
-        // v1.108.0 — O modal de cadastro/edição de imóvel (#form-imovel-
-        // wrapper, position:fixed) nasceu DENTRO de <section id="tab-imoveis">,
-        // que fica display:none quando não é a aba ativa — por isso
-        // abrirGestaoImovel precisava trocar pra tab-imoveis antes de abrir
-        // (e o usuário caía na lista antiga ao fechar). Movido pro <body>
-        // uma vez, no boot: abre de qualquer aba, ids intactos, zero
-        // mudança em saveImovel/editarImovel.
+        // v1.125.0 (fatia 9a) — inicializarServicos() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
         function rzMoverFormImovelParaBody() {
             const w = document.getElementById('form-imovel-wrapper');
             if (w && w.parentElement !== document.body) document.body.appendChild(w);

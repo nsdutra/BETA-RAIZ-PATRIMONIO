@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.15.0 · 03/09/2026
+// Versão: 1.16.0 · 03/09/2026
 //
 // v1.15.0 — sem rodapés: ⋮ em Documentos/Contatos do item (abrirAcoesDocsItem /
 // abrirAcoesContatosItem); linha de parte com ⋮ (sem lápis) → sheet.
@@ -330,8 +330,8 @@ export function abrirAcoesControles() { // v1.13.0 — era alternarMaisAcoesCont
         titulo: 'Itens de controle',
         sub: estado.ativoEmFoco?.nome_exibicao || '',
         acoes: [
-            { icone: 'layers', titulo: 'Modelos de item', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => abrirModelosControle() },
-            { icone: 'tags', titulo: 'Tipos de controle', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => abrirSubtiposControle() },
+            { icone: 'layers', titulo: 'Modelos de item', codigo: 'cofre.controles.editar', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => abrirModelosControle() },
+            { icone: 'tags', titulo: 'Tipos de controle', codigo: 'cofre.controles.editar', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => abrirSubtiposControle() },
         ],
     });
 }
@@ -673,25 +673,25 @@ function sheetAcoes(config) {
 export function abrirAcoesDadosItem() {
     const item = itemEmFoco; if (!item) return;
     sheetAcoes({ titulo: item.titulo, sub: rotuloTipoControle(item.tipo), acoes: [
-        { icone: 'pencil', titulo: 'Editar item', aoTocar: () => abrirEditarItem() },
-        { icone: 'trash-2', titulo: 'Excluir item de controle', sub: 'Apaga ocorrências e alertas dele', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
+        { icone: 'pencil', titulo: 'Editar item', codigo: 'cofre.controles.editar', aoTocar: () => abrirEditarItem() },
+        { icone: 'trash-2', titulo: 'Excluir item de controle', codigo: 'cofre.controles.desativar', sub: 'Apaga ocorrências e alertas dele', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
     ] });
 }
 export function abrirAcoesPartesItem() {
     const item = itemEmFoco; if (!item) return;
     sheetAcoes({ titulo: 'Partes do item', sub: item.titulo, acoes: [
-        { icone: 'users', titulo: 'Editar partes', sub: 'Quem responde por este item', aoTocar: () => abrirEditarPartesItem() },
-        { icone: 'receipt', titulo: 'Gerar despesa', sub: 'Lançamento com a parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
+        { icone: 'users', titulo: 'Editar partes', codigo: 'cofre.controles.editar', sub: 'Quem responde por este item', aoTocar: () => abrirEditarPartesItem() },
+        { icone: 'receipt', titulo: 'Gerar despesa', codigo: 'saidas.registrar', sub: 'Lançamento com a parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
     ] });
 }
 export function abrirAcoesDocsItem() {
     sheetAcoes({ titulo: 'Documentos do item', sub: itemEmFoco?.titulo || '', acoes: [
-        { icone: 'upload', titulo: 'Carregar documento', sub: 'Apólice, guia, laudo — com leitura por IA', tipo: 'ia', aoTocar: () => carregarNovoDocumentoItem() },
+        { icone: 'upload', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'Apólice, guia, laudo — com leitura por IA', tipo: 'ia', aoTocar: () => carregarNovoDocumentoItem() },
     ] });
 }
 export function abrirAcoesContatosItem() {
     sheetAcoes({ titulo: 'Contatos do item', sub: itemEmFoco?.titulo || '', acoes: [
-        { icone: 'user-plus', titulo: 'Adicionar contato', sub: 'Com WhatsApp vira atalho no alerta', aoTocar: () => abrirNovoContatoItem() },
+        { icone: 'user-plus', titulo: 'Adicionar contato', codigo: 'cofre.controles.editar', sub: 'Com WhatsApp vira atalho no alerta', aoTocar: () => abrirNovoContatoItem() },
     ] });
 }
 export const alternarMaisAcoesContatosItem = () => abrirNovoContatoItem();
@@ -766,10 +766,10 @@ export function abrirAcoesOcorrencia(ocorrenciaId) {
     if (!oc) return;
     const acoes = [];
     if (oc.status_execucao === 'aberto') {
-        acoes.push({ icone: 'check', titulo: 'Dar baixa', sub: 'Marca como tratada, com descrição opcional', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'tratar') });
-        acoes.push({ icone: 'calendar', titulo: 'Reagendar', sub: 'Muda a data prevista desta ocorrência', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reagendar') });
+        acoes.push({ icone: 'check', titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub: 'Marca como tratada, com descrição opcional', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'tratar') });
+        acoes.push({ icone: 'calendar', titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub: 'Muda a data prevista desta ocorrência', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'reagendar') });
     } else if (oc.status_execucao === 'concluido') {
-        acoes.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "Em aberto", fica no histórico', tipo: 'bad', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'estornar') });
+        acoes.push({ icone: 'undo-2', titulo: 'Estornar', codigo: 'cofre.ocorrencias.estornar', sub: 'Volta pra "Em aberto", fica no histórico', tipo: 'bad', aoTocar: () => alternarAcaoOcorrencia(ocorrenciaId, 'estornar') });
     }
     if (!acoes.length) { mostrarToast('Ocorrência cancelada — sem ações.'); return; }
     if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Ações disponíveis só dentro do app principal.', 'erro'); return; }
@@ -783,11 +783,11 @@ export function alternarAcaoOcorrencia(ocorrenciaId, modo) {
     ocorrenciaEmAcao = { ocorrenciaId, modo };
     const sub = `${itemEmFoco?.titulo || ''} · vence ${formatarDataBR(oc.data_prevista_atual)}`;
     if (modo === 'tratar') {
-        window.abrirSheetForm({ titulo: 'Dar baixa', sub, rotuloSalvar: 'Confirmar baixa',
+        window.abrirSheetForm({ titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub, rotuloSalvar: 'Confirmar baixa',
             corpo: `<div class="rz-f"><label>Descrição da baixa</label><textarea id="oc-tratar-descricao" rows="3" placeholder="Opcional — o que foi feito, com quem, valor"></textarea></div>`,
             aoSalvar: async () => { await confirmarTratarOcorrencia(ocorrenciaId); } });
     } else if (modo === 'reagendar') {
-        window.abrirSheetForm({ titulo: 'Reagendar', sub, rotuloSalvar: 'Confirmar novo prazo',
+        window.abrirSheetForm({ titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub, rotuloSalvar: 'Confirmar novo prazo',
             corpo: `<div class="rz-f"><label>Nova data prevista <i>*</i></label><input type="date" id="oc-reagendar-data" value="${oc.data_prevista_atual}"></div>`,
             aoSalvar: async () => { await confirmarReagendarOcorrencia(ocorrenciaId); } });
     } else if (modo === 'estornar') {

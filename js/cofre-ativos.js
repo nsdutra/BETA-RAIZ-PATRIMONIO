@@ -1,6 +1,8 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.23.0 · 05/09/2026
+// Versão: 1.24.0 · 05/09/2026
+//
+// v1.24.0 — ⋮ do ativo com `codigo` (porta única do app): imoveis.editar, cofre.editar, vitrine.gerar, cofre.excluir.
 //
 // v1.23.0 — ⋮ por linha nas movimentações do chip Financeiro do ativo
 // (entrada → rzAcoesMensalidade; saída → abrirEditarDespesa no App).
@@ -910,14 +912,14 @@ export function abrirAcoesAtivo() {
     const acoes = [];
     // v1.21.0 — sem rodapé: "Editar" vive aqui (imóvel → formulário do
     // imóvel; campos específicos do ativo em seguida)
-    if (ehImovel) acoes.push({ icone: 'pencil', titulo: 'Editar dados do imóvel', sub: 'Endereço, valores, uso', aoTocar: () => abrirGestaoImovel() });
+    if (ehImovel) acoes.push({ icone: 'pencil', titulo: 'Editar dados do imóvel', codigo: 'imoveis.editar', sub: 'Endereço, valores, uso', aoTocar: () => abrirGestaoImovel() });
     acoes.push({ icone: 'list', titulo: ehImovel ? 'Editar campos do ativo' : 'Editar dados', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
-    acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
+    acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // v1.22.0 (fatia 7) — "Gerar vitrine" deste imóvel (link único) —
     // reaproveita gerarVitrineDoImovel() do App (index.html v1.115.0).
-    if (ehImovel && a.status !== 'vendido' && typeof window.gerarVitrineDoImovel === 'function') acoes.push({ icone: 'image', titulo: 'Gerar vitrine', sub: 'Link deste imóvel pra compartilhar', aoTocar: () => window.gerarVitrineDoImovel(a.entidade_origem_id) });
-    if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
-    acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
+    if (ehImovel && a.status !== 'vendido' && typeof window.gerarVitrineDoImovel === 'function') acoes.push({ icone: 'image', titulo: 'Gerar vitrine', codigo: 'vitrine.gerar', sub: 'Link deste imóvel pra compartilhar', aoTocar: () => window.gerarVitrineDoImovel(a.entidade_origem_id) });
+    if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
+    acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), acoes });
 }
 

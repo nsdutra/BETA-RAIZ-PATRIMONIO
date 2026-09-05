@@ -1,6 +1,8 @@
 // ============================================================================
 // cadastros.js — Raiz Patrimônio · Telas de cadastro do menu ⚙️
-// Versão: 1.0.0 · 05/09/2026
+// Versão: 1.0.1 · 05/09/2026
+//
+// v1.0.1 — ⋮ com `codigo` (imoveis.editar / imoveis.excluir) — porta única do app.
 //
 // FATIA 7b-ii (parte 1) — primeiro módulo nascido sob a regra E0 do
 // PLANO_FRAGMENTACAO_INDEX_v1_0.md ("nada novo nasce no index"). Telas
@@ -109,8 +111,8 @@ function abrirAcoes(chave, id) {
     const item = (cache[chave] || []).find(t => t.id === id);
     if (!item || typeof window.abrirSheetAcoes !== 'function') return;
     window.abrirSheetAcoes({ titulo: item.nome, sub: 'Cadastro de ' + cfg.titulo, acoes: [
-        { icone: 'pencil', titulo: 'Renomear', aoTocar: () => abrirFormNome(chave, item) },
-        { icone: 'trash-2', titulo: 'Excluir', tipo: 'bad', aoTocar: () => excluir(chave, item) },
+        { icone: 'pencil', titulo: 'Renomear', codigo: 'imoveis.editar', aoTocar: () => abrirFormNome(chave, item) },
+        { icone: 'trash-2', titulo: 'Excluir', codigo: 'imoveis.excluir', tipo: 'bad', aoTocar: () => excluir(chave, item) },
     ] });
 }
 
