@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.22.0 · 04/09/2026
+// Versão: 1.23.0 · 05/09/2026
+//
+// v1.23.0 — ⋮ por linha nas movimentações do chip Financeiro do ativo
+// (entrada → rzAcoesMensalidade; saída → abrirEditarDespesa no App).
 //
 // v1.22.0 (fatia 7) — "Gerar vitrine" no ⋮ do ativo-imóvel.
 //
@@ -1029,6 +1032,14 @@ async function montarFinanceiroAtivo(a) {
             const atrasado = !pago && !isento && (it.status === 'atrasado' || (it.vencimento && it.vencimento < hoje));
             const status = pago ? r('ok', 'Pago') : isento ? r('neu', 'Isento') : (atrasado ? r('bad', 'Em atraso') : r('run', ehEntrada ? 'A receber' : 'A pagar'));
             const icone = pago ? (ehEntrada ? 'arrow-down-left' : 'arrow-up-right') : isento ? 'minus-circle' : (atrasado ? 'alarm-clock' : 'clock');
+            // v1.23.0 (pedido explícito do Nicola, 05/09: "na aba
+            // Financeiro no ativo, está sem o menu de 3 pontinhos pra
+            // tratar cada item") — ⋮ por linha, ponte pro App: entrada
+            // abre rzAcoesMensalidade (o MESMO sheet Dar baixa/Recibo/
+            // Estornar/Excluir de Financeiro e da ficha do contrato,
+            // v1.116); saída abre abrirEditarDespesa (mesmo destino do
+            // toque na linha de Financeiro › Saídas). A RPC já devolve o
+            // id de cada item (mensalidades.id / lancamentos.id).
             return `
                 <div class="rz-row">
                     <div class="rz-ic${atrasado ? ' rz-bad' : ''}"><i data-lucide="${icone}"></i></div>
@@ -1040,8 +1051,21 @@ async function montarFinanceiroAtivo(a) {
                         <b class="${ehEntrada ? 'rz-in' : 'rz-out'}">${ehEntrada ? '+ ' : '− '}${fmtMoeda(it.valor)}</b>
                         ${status}
                     </div>
+                    <button type="button" data-fin-acao="${it.id}" data-fin-dir="${it.direcao}" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
                 </div>`;
         }).join('');
+        painelLista.querySelectorAll('[data-fin-acao]').forEach(btn => btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-fin-acao');
+            if (btn.getAttribute('data-fin-dir') === 'entrada') {
+                if (typeof window.rzAcoesMensalidade === 'function') window.rzAcoesMensalidade(id);
+                else mostrarToast('Ação só disponível dentro do app principal.', 'erro');
+            } else {
+                if (typeof window.switchTab === 'function' && typeof window.abrirEditarDespesa === 'function') {
+                    window.switchTab('tab-mensal');
+                    window.abrirEditarDespesa(id);
+                } else mostrarToast('Ação só disponível dentro do app principal.', 'erro');
+            }
+        }));
     }
     refrescarIcones();
 }
