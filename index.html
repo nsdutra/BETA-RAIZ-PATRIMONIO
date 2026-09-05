@@ -6,9 +6,39 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.123.0
-   LINHAS: 30751
+   VERSÃO: Beta v1.124.0
+   LINHAS: 30838
    DATA: 05/09/2026
+   NOVIDADES (Beta v1.124.0) — PORTA ÚNICA DO APP (fatia 8). Primeira
+   entrega da fatia que toca o index. Pré-requisitos já no banco (via
+   conector, 05/09): matriz de perfis corrigida (decisões do Nicola:
+   operador exclui, consulta usa IA, dev só master, cofre.baixar →
+   cofre.download, plataforma.* só master_plataforma), códigos novos
+   dados.limpar/dados.apagar, RPC fn_funcionalidades_liberadas.
+   1) carregarFuncionalidadesLiberadas() no boot (após a licença): UMA
+      RPC devolve todos os códigos ativos com motivo (sem_licenca /
+      limite_atingido / sem_perfil). podeUsar(codigo) lê em memória.
+   2) abrirSheetAcoes: ação com `codigo` bloqueado aparece DESABILITADA
+      (cadeado, opacidade, motivo no lugar do sub) e o toque mostra o
+      motivo sem fechar — decisão do Nicola: "mostrar todas, desabilitar"
+      (troubleshooting + upgrade). Substitui a regra "item desabilitado
+      não é ação" da gramática pra ⋮ e ⚙️.
+   3) switchTab: TAB_CODIGO_VER — aba que exige *.ver bloqueado avisa e
+      fica onde está (Ativos/cofre.ver, Contratos, Financeiro/mensal.ver,
+      Resultados, Distribuição/repasses.ver, Pessoas, Dev/dev.acessar).
+   4) ⚙️ com códigos (Partes, Minutas, Pessoas, Alertas, Tipos e modelos);
+      atalho "Prestadores" REMOVIDO (pedido do Nicola — a tela morreu na
+      v1.117). ⋮ da mensalidade com códigos (recibo.gerar, mensal.baixar,
+      mensal.estornar, mensal.excluir).
+   5) Hardcoded → catálogo: dev (dev.acessar), limpar/apagar dados
+      (dados.limpar/dados.apagar), 2× plano_codigo === 'trial' →
+      data_expiracao. Satélites: cofre-documentos.js v1.8.1
+      (cofre.baixar → cofre.download; upload restrito por
+      cofre.ver_restrito), comum-sobre.js v1.1.2 (trial → data_expiracao),
+      comum-pessoas.js v1.3.1 (editar perfil por pessoas.editar).
+   Ainda por anotar com `codigo`: ⋮ de contrato, saída, ativo, parte,
+   minuta (fatia 9 e seguintes) — sem código, a ação segue liberada.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.123.0) — FATIA RESULTADOS: aba Resultados migrada
    pra gramática (pedido Nicola 05/09: "tela na formatação antiga").
    1) SEGMENTO Resumo/Distribuição: flex+bg-slate-100 → .rz-seg + .rz-on
@@ -7424,6 +7454,7 @@
         .rz-sh-f{display:flex;gap:8px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);flex:none}
         .rz-sh-f .rz-btn{flex:1}
         .rz-act{display:flex;align-items:center;gap:12px;width:100%;padding:12px 6px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+        .rz-act.rz-off{opacity:.5;cursor:not-allowed}.rz-act.rz-off .rz-ic{background:var(--paper);color:var(--muted)}.rz-act.rz-off small{color:var(--wine)} /* v1.124 — bloqueado com motivo */
         .rz-act:first-child{border-top:0}
         .rz-act .rz-ic{width:36px;height:36px;border-radius:10px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
         .rz-act .rz-ic svg{width:18px;height:18px}
@@ -10273,7 +10304,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.123.0";
+        const APP_VERSAO = "Beta v1.124.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10344,16 +10375,65 @@
         }
 
         // acoes: [{ icone, titulo, sub, tipo: 'ia' | 'bad' | '', aoTocar: fn, manterAberto: bool }]
+        // ==================================================================
+        // v1.124.0 — PORTA ÚNICA DO APP (fatia 8, fase F antecipada).
+        // Uma RPC no boot (fn_funcionalidades_liberadas) devolve TODOS os
+        // códigos ativos com motivo quando bloqueado (ativo ∧ plano ∧
+        // perfil ∧ limite — a mesma regra do bot). podeUsar(codigo) lê o
+        // conjunto em memória. Decisão do Nicola (05/09): ação bloqueada
+        // NÃO some — aparece desabilitada com o motivo (troubleshooting
+        // e upgrade). Zero tabela nova; nomes vêm de nome_comercial.
+        // ==================================================================
+        let FUNCIONALIDADES_LIBERADAS = new Map();
+        async function carregarFuncionalidadesLiberadas() {
+            FUNCIONALIDADES_LIBERADAS = new Map();
+            if (!CLIENTE_ID_SUPABASE || !perfilLogado) return;
+            try {
+                const { data, error } = await dbAuth.rpc('fn_funcionalidades_liberadas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_perfil: perfilLogado });
+                if (error) throw error;
+                (data || []).forEach(f => FUNCIONALIDADES_LIBERADAS.set(f.codigo, f));
+            } catch (err) {
+                console.warn('carregarFuncionalidadesLiberadas:', err.message);
+            }
+        }
+        // Retorna { ok, motivo, rotulo, limite, usado, textoCurto, textoLongo }.
+        // Código ausente do catálogo = liberado (não inventa bloqueio) — mas
+        // avisa no console pra virar linha no catálogo depois.
+        function podeUsar(codigo) {
+            if (!codigo) return { ok: true, motivo: null };
+            const f = FUNCIONALIDADES_LIBERADAS.get(codigo);
+            if (!f) {
+                if (FUNCIONALIDADES_LIBERADAS.size) console.warn('podeUsar: código fora do catálogo:', codigo);
+                return { ok: true, motivo: null, rotulo: codigo };
+            }
+            const rot = f.rotulo || codigo;
+            const t = {
+                sem_licenca:     ['Não incluído no plano',      f.aviso_padrao || `"${rot}" não faz parte do plano atual da empresa. Fale com a Raiz pra ampliar.`],
+                limite_atingido: [`Limite do mês (${f.usado} de ${f.limite})`, `Sua empresa já usou os ${f.limite} de "${rot}" deste mês. Fale com a Raiz pra ampliar.`],
+                sem_perfil:      ['Sem permissão no seu perfil', `Seu perfil não tem "${rot}". Peça ao administrador da empresa.`],
+            }[f.motivo] || [null, null];
+            return { ok: !f.motivo, motivo: f.motivo, rotulo: rot, limite: f.limite, usado: f.usado, avisar: f.avisar, textoCurto: t[0], textoLongo: t[1] };
+        }
+        function rzMostrarBloqueio(codigo) {
+            const b = podeUsar(codigo);
+            if (b.ok) return false;
+            mostrarToast(b.textoLongo, b.motivo === 'sem_perfil' ? 'danger' : 'info');
+            return true;
+        }
         function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
             const ordenar = lista => [
                 ...lista.filter(a => a.tipo === 'ia'),
                 ...lista.filter(a => a.tipo !== 'ia' && a.tipo !== 'bad'),
                 ...lista.filter(a => a.tipo === 'bad')
             ];
-            const item = (a, i) =>
-                `<button type="button" class="rz-act ${a.tipo === 'bad' ? 'rz-bad' : ''}" data-rz-i="${i}">` +
-                `<div class="rz-ic ${a.tipo ? 'rz-' + a.tipo : ''}"><svg data-lucide="${rzEsc(a.icone || 'chevron-right')}"></svg></div>` +
-                `<div>${rzEsc(a.titulo)}${a.sub ? `<small>${rzEsc(a.sub)}</small>` : ''}</div></button>`;
+            const item = (a, i) => {
+                const b = a.codigo ? podeUsar(a.codigo) : { ok: true };
+                const off = !b.ok;
+                const sub2 = off ? b.textoCurto : a.sub;
+                return `<button type="button" class="rz-act ${a.tipo === 'bad' ? 'rz-bad' : ''} ${off ? 'rz-off' : ''}" data-rz-i="${i}" ${off ? 'aria-disabled="true"' : ''}>` +
+                `<div class="rz-ic ${a.tipo ? 'rz-' + a.tipo : ''}"><svg data-lucide="${rzEsc(off ? 'lock' : (a.icone || 'chevron-right'))}"></svg></div>` +
+                `<div>${rzEsc(a.titulo)}${sub2 ? `<small>${rzEsc(sub2)}</small>` : ''}</div></button>`;
+            };
             let corpo = '', planas = [];
             if (grupos) {
                 grupos.forEach(g => {
@@ -10370,6 +10450,7 @@
             sheet.querySelectorAll('[data-rz-i]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const a = planas[Number(btn.dataset.rzI)];
+                    if (a.codigo && rzMostrarBloqueio(a.codigo)) return; // v1.124 — desabilitado com motivo, sheet fica
                     if (!a.manterAberto) fecharSheet();
                     if (typeof a.aoTocar === 'function') a.aoTocar();
                 });
@@ -10590,7 +10671,7 @@
                     img.style.cssText = 'height:42px;max-width:180px;object-fit:contain;display:block;margin:0 auto;position:static;';
                     espacoAssinatura.appendChild(img);
                 }
-            } else if (LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo === 'trial') {
+            } else if (LICENCA_ATUAL && LICENCA_ATUAL.data_expiracao) { // v1.124 — o que vence é a licença, não o nome trial
                 // FASE 1A (v1.39.0) — empresa em trial, sem assinatura própria
                 // cadastrada ainda: mostra o nome em estilo cursivo (mesma
                 // fonte da rubrica digital) só pra dar a ideia de como o
@@ -11039,7 +11120,7 @@
             // CORRIGIDO — checava o perfil "admin", que não existe mais desde a
             // introdução do sistema de perfis (master_plataforma/master/operador/
             // consulta). DEV é liberado para master e master_plataforma.
-            if (perfilLogado !== 'admin' && perfilLogado !== 'master') {
+            if (!podeUsar('dev.acessar').ok) { // v1.124 — era perfil chumbado
 
                 alert("🔒 Só perfis master têm acesso ao modo desenvolvedor.");
 
@@ -11086,7 +11167,7 @@
         // ativarModoDesenvolvedor) libera "Parametrizações" ao lado dele.
         function alternarAbaParametrizacoes() {
 
-            if (perfilLogado !== 'admin' && perfilLogado !== 'master') return;
+            if (!podeUsar('dev.acessar').ok) return; // v1.124
 
             const btn = document.getElementById('btn-tab-parametrizacoes');
 
@@ -14573,6 +14654,7 @@
             // a assinatura padrão de trial (empresa ainda não tem assinatura
             // própria cadastrada). Falha aqui não bloqueia o login.
             await carregarLicencaAtual();
+            await carregarFuncionalidadesLiberadas(); // v1.124 — porta única
 
             aplicarBrandingCliente();
 
@@ -14733,7 +14815,7 @@
             lista.innerHTML = itensFiltrados.map(function(item) {
                 const nomeEmpresa = item.p.clientes ? item.p.clientes.nome_empresa : '(empresa sem nome)';
                 let selo = '';
-                if (item.lic && item.lic.plano_codigo === 'trial') {
+                if (item.lic && item.lic.data_expiracao) { // v1.124
                     selo = ` <span style="background:var(--brass-light,#f0c88a); color:var(--brass-deep,#a86f27); font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:999px; vertical-align:1px;">TRIAL</span>`;
                 }
                 return `<button onclick="escolherEmpresa(${item.indice})" class="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-left transition active:scale-95 flex justify-between items-center">
@@ -16157,7 +16239,12 @@
             history.replaceState(null, '', novaUrl);
         }
 
+        // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
+        // motivo, fica onde está. Abas sem código não são gateadas.
+        const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver',
+            'tab-relatorios': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar' };
         function switchTab(tabId) {
+            if (TAB_CODIGO_VER[tabId] && rzMostrarBloqueio(TAB_CODIGO_VER[tabId])) return;
 
             // v1.117.0 (fatia 7b-i) — Síndicos/Administradoras/Manutencistas
             // fundidos em Partes (decisão do Nicola, 04/09): as 3 telas
@@ -16372,20 +16459,20 @@
                 sub: perfilLogado ? (empresa + ' · ' + perfilLogado) : empresa,
                 grupos: [
                     { titulo: 'Cadastros', acoes: [
-                        { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários, prestadores', aoTocar: () => { partesFiltroPapel = 'todos'; switchTab('tab-partes'); } },
-                        { icone: 'wrench', titulo: 'Prestadores', sub: 'Síndicos, administradoras, manutencistas', aoTocar: () => { partesFiltroPapel = 'prestadores'; switchTab('tab-partes'); } },
-                        { icone: 'file-signature', titulo: 'Minutas de contrato', aoTocar: ir('tab-minutas') },
+                        { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários, prestadores', codigo: 'contratos.ver', aoTocar: () => { partesFiltroPapel = 'todos'; switchTab('tab-partes'); } },
+                        // v1.124 — atalho "Prestadores" removido (pedido do Nicola, 05/09): a tela morreu na v1.117, o atalho confundia. Partes cobre.
+                        { icone: 'file-signature', titulo: 'Minutas de contrato', codigo: 'minutas.gerar', aoTocar: ir('tab-minutas') },
                         { icone: 'list-tree', titulo: 'Tipos e modelos', sub: 'Imóvel, empreendimento, documento, controle', aoTocar: abrirMenuTiposModelos }
                     ]},
                     { titulo: 'Empresa', acoes: [
                         { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
-                        { icone: 'users', titulo: 'Pessoas e acessos', aoTocar: ir('tab-pessoas') },
+                        { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
                         { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
                         { icone: 'arrow-left-right', titulo: 'Trocar de empresa', aoTocar: trocarEmpresa }
                     ]},
                     { titulo: 'Conta', acoes: [
-                        { icone: 'bell', titulo: 'Alertas do patrimônio', aoTocar: abrirTabAlertas },
+                        { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
                         { icone: 'message-circle', titulo: 'Preferências de comunicação', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => window.open('https://wa.me/5511947461828', '_blank') },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
@@ -16402,9 +16489,9 @@
             abrirSheetAcoes({ titulo: 'Tipos e modelos', sub: 'Listas que alimentam os cadastros', acoes: [
                 { icone: 'home', titulo: 'Tipo de imóvel', aoTocar: ir('tab-tipo-imovel') },
                 { icone: 'landmark', titulo: 'Tipo de empreendimento', aoTocar: ir('tab-tipo-empreendimento') },
-                { icone: 'tags', titulo: 'Categoria de documento', aoTocar: () => abrirConfiguracaoCofre('categorias') },
-                { icone: 'list-tree', titulo: 'Sub-tipos de item de controle', aoTocar: () => abrirConfiguracaoCofre('subtipos') },
-                { icone: 'clipboard-list', titulo: 'Modelos de controle', aoTocar: () => abrirConfiguracaoCofre('modelos') }
+                { icone: 'tags', titulo: 'Categoria de documento', codigo: 'cofre.categorias', aoTocar: () => abrirConfiguracaoCofre('categorias') },
+                { icone: 'list-tree', titulo: 'Sub-tipos de item de controle', codigo: 'cofre.controles.editar', aoTocar: () => abrirConfiguracaoCofre('subtipos') },
+                { icone: 'clipboard-list', titulo: 'Modelos de controle', codigo: 'cofre.controles.editar', aoTocar: () => abrirConfiguracaoCofre('modelos') }
             ]});
         }
 
@@ -26761,14 +26848,14 @@
             const sub = `${con.locatario || ''} · ${men.referencia}`;
             if (men.status === 'Pago') {
                 abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: [
-                    { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
-                    { icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "a receber"', tipo: 'bad', aoTocar: () => estornarMensalidade(men.id) },
+                    { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', codigo: 'recibo.gerar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
+                    { icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "a receber"', tipo: 'bad', codigo: 'mensal.estornar', aoTocar: () => estornarMensalidade(men.id) },
                 ] });
                 return;
             }
             abrirSheetAcoes({ titulo: mensalidadeEmAtraso(men) ? 'Em atraso' : 'A receber', sub, acoes: [
-                { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
-                { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', aoTocar: () => excluirLancamentoMensal(men.id) },
+                { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', codigo: 'mensal.baixar', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
+                { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', codigo: 'mensal.excluir', aoTocar: () => excluirLancamentoMensal(men.id) },
             ] });
         }
         function rzAbrirBaixaMensalidade(menId) {
@@ -29751,7 +29838,7 @@
         // confirmação — a segunda exige digitar o nome da empresa, para não
         // ser algo que sai sem querer num toque duplo.
         async function limparSistemaEmpresaAtual() {
-            if (perfilLogado !== 'master') {
+            if (!podeUsar('dados.limpar').ok) { // v1.124 — era perfil chumbado
                 alert('Só master pode fazer isso.');
                 return;
             }
@@ -29818,7 +29905,7 @@
 
             const secaoLimpar = document.getElementById('dev-limpar-sistema-secao');
             if (secaoLimpar) {
-                secaoLimpar.classList.toggle('hidden', perfilLogado !== 'master');
+                secaoLimpar.classList.toggle('hidden', !podeUsar('dados.limpar').ok); // v1.124
                 const spanNomeLimpar = document.getElementById('dev-limpar-nome-empresa');
                 if (spanNomeLimpar) spanNomeLimpar.textContent = CONFIG_CLIENTE.nomeEmpresa || '-';
             }
@@ -29826,7 +29913,7 @@
             // FASE 1A (v1.39.5) — mesma trava de visibilidade (só master)
             const secaoApagar = document.getElementById('dev-apagar-empresa-secao');
             if (secaoApagar) {
-                secaoApagar.classList.toggle('hidden', perfilLogado !== 'master');
+                secaoApagar.classList.toggle('hidden', !podeUsar('dados.apagar').ok); // v1.124
                 const spanNomeApagar = document.getElementById('dev-apagar-nome-empresa');
                 if (spanNomeApagar) spanNomeApagar.textContent = CONFIG_CLIENTE.nomeEmpresa || '-';
             }
@@ -29837,7 +29924,7 @@
         // fn_apagar_empresa_completa), não só aqui no front — isto aqui é só
         // pra dar uma mensagem amigável antes de nem tentar.
         async function apagarEmpresaCompleta() {
-            if (perfilLogado !== 'master') {
+            if (!podeUsar('dados.apagar').ok) { // v1.124 — era perfil chumbado
                 alert('Só master pode fazer isso.');
                 return;
             }

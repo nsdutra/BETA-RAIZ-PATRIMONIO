@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.8.0 · 04/09/2026
+// Versão: 1.8.1 · 05/09/2026
+//
+// v1.8.1 — cofre.baixar → cofre.download (rename no catálogo, 05/09); upload
+// restrito passa a depender de podeUsar('cofre.ver_restrito') em vez de
+// ['master','admin'] chumbado (porta única do app).
 //
 // v1.8.0 — abrirUploadContextualComFlag(tipo, id, nome, comIA): versão
 // genérica do par ComIA/SemIA de Ativos, pro sheet de Anexos do contrato
@@ -251,7 +255,7 @@ export async function abrirUploadHome() {
     document.getElementById('up-vinculo-busca').classList.add('hidden');
     await preencherCategoriasSelect();
     limparFormularioUpload();
-    document.getElementById('up-restrito-wrapper').classList.toggle('hidden', !['master', 'admin'].includes(estado.pessoa.perfil));
+    document.getElementById('up-restrito-wrapper').classList.toggle('hidden', !(window.podeUsar ? window.podeUsar('cofre.ver_restrito').ok : false));
     abrirModal('modal-upload');
 }
 
@@ -292,7 +296,7 @@ export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibid
 
     await preencherCategoriasSelect();
     limparFormularioUpload();
-    document.getElementById('up-restrito-wrapper').classList.toggle('hidden', !['master', 'admin'].includes(estado.pessoa.perfil));
+    document.getElementById('up-restrito-wrapper').classList.toggle('hidden', !(window.podeUsar ? window.podeUsar('cofre.ver_restrito').ok : false));
     abrirModal('modal-upload');
     refrescarIcones();
 }
@@ -689,7 +693,7 @@ export async function baixarDocumentoAtual() {
     try {
         const url = await api.gerarSignedUrl(d.bucket, d.storage_path, 120);
         window.open(url, '_blank');
-        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.baixar', { documento_id: d.id });
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.download', { documento_id: d.id });
     } catch (err) {
         mostrarToast('Erro ao gerar link de download: ' + err.message, 'erro');
     }

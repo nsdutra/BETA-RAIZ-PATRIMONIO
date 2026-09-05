@@ -1,6 +1,8 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.1.1 · 27/08/2026
+// Versão: 1.1.2 · 05/09/2026
+//
+// v1.1.2 — plano_codigo === 'trial' → data_expiracao (o que vence é a licença, não o nome do plano).
 //
 // v1.1.1 — BUG FIX de conformidade visual (achado pelo usuário): botão
 // "Enviar" (feedback via texto) usava `bg-slate-700`, destoando dos 2
@@ -119,7 +121,7 @@ async function montarLicencaBox(boxEl, ctx, licenca) {
     let botaoContratarHtml = '';
     let botaoCompartilharHtml = '';
 
-    if (licenca.plano_codigo === 'trial' && licenca.data_expiracao) {
+    if (!!licenca.data_expiracao && licenca.data_expiracao) {
         const hoje = new Date();
         const expira = new Date(licenca.data_expiracao);
         const diasRestantes = Math.ceil((expira - hoje) / (1000 * 60 * 60 * 24));
@@ -164,7 +166,7 @@ async function montarLicencaBox(boxEl, ctx, licenca) {
         }
     }
 
-    const corBadge = licenca.plano_codigo === 'trial'
+    const corBadge = !!licenca.data_expiracao
         ? 'background:var(--brass-light,#f0c88a); color:var(--brass-deep,#a86f27)'
         : 'background:#e8f5ed; color:#2f8b57';
 

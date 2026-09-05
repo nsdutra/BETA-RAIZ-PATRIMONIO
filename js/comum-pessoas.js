@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.3.0 · 02/09/2026
+// Versão: 1.3.1 · 05/09/2026
+//
+// v1.3.1 — podeEditarPerfil lê podeUsar('pessoas.editar'). Lista de perfis do
+// prompt e proteção do master ficam pro roteiro #6 (sheet + perfis.protegido).
 //
 // v1.3.0 — pedido explícito: "resolva as pendências de cores listadas".
 // 9 usos de emerald-* trocados por token: 2 pares bg-emerald-50/text-
@@ -283,7 +286,7 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
     const temLogin = !!p.userId;
     const ehMaster = p.perfil === 'master';
     const perfilTravado = ehMaster && perfilLogado !== 'master';
-    const podeEditarPerfil = !ehMaster && (perfilLogado === 'master' || perfilLogado === 'admin');
+    const podeEditarPerfil = !ehMaster && (window.podeUsar ? window.podeUsar('pessoas.editar').ok : false); // v1.3.1 — catálogo, não perfil chumbado
     const idSeguro = p.id || ('novo-' + idx);
     const ehNova = !p.id;
 
