@@ -1,6 +1,10 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.3.1 · 05/09/2026
+// Versão: 1.4.0 · 06/09/2026
+//
+// v1.4.0 — gramática: ⋮ por pessoa (Editar/Remover com código do catálogo → cadeado por perfil)
+// no lugar de lápis/lixeira redondos; título sem h2; + e Salvar no catálogo; perfil em
+// sentence case. Lista de perfis do prompt continua (próxima leva).
 //
 // v1.3.1 — podeEditarPerfil lê podeUsar('pessoas.editar'). Lista de perfis do
 // prompt e proteção do master ficam pro roteiro #6 (sheet + perfis.protegido).
@@ -291,9 +295,10 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
     const idSeguro = p.id || ('novo-' + idx);
     const ehNova = !p.id;
 
-    const botaoRemover = ehMaster
-        ? `<span title="Usuários master não podem ser removidos por aqui" class="w-7 h-7 flex-none flex items-center justify-center text-gray-300"><svg data-lucide="lock" style="width:14px;height:14px"></svg></span>`
-        : `<button type="button" data-acao="remover" data-id="${p.id || ''}" title="Remover" class="w-7 h-7 flex-none flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>`;
+    // v1.4.0 — lápis/lixeira redondos viraram ⋮ (abrirSheetAcoes do App) com
+    // código do catálogo: Editar (pessoas.editar) e Remover (pessoas.excluir)
+    // aparecem com cadeado pra quem não pode. Master não é removível por aqui.
+    const botaoMais = `<button type="button" data-acao="mais" data-id="${p.id || ''}" data-alvo="${idSeguro}" data-master="${ehMaster ? '1' : ''}" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>`;
 
     const botaoAcesso = temLogin && !perfilTravado
         ? `<button type="button" data-acao="desvincular" data-id="${p.id}" class="w-full flex items-center justify-center gap-1.5 bg-red-50 text-red-600 border border-red-200 text-[11px] py-2 rounded-lg font-bold"><svg data-lucide="user-x" style="width:13px;height:13px"></svg> Remover acesso ao sistema</button>`
@@ -307,12 +312,13 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
             <div class="flex items-center justify-between gap-2">
                 <button type="button" data-acao="alternar-detalhe" data-alvo="${idSeguro}" class="flex-1 min-w-0 text-left">
                     <p class="text-xs font-bold text-slate-900 truncate">${(p.nome || '(sem nome)')}${ehMaster ? ' <svg data-lucide="shield-check" style="width:12px;height:12px;display:inline;vertical-align:-1px;color:var(--pine)"></svg>' : ''}</p>
-                    <p class="text-[11px] text-gray-500 truncate">${p.funcao || 'Sem função definida'} · <span class="font-bold uppercase">${p.perfil || 'sem perfil'}</span></p>
+                    <p class="text-[11px] text-gray-500 truncate">${p.funcao || 'Sem função definida'} · <span class="font-semibold">${p.perfil || 'sem perfil'}</span></p>
                     ${badgesAcessoHtml(modulosPorPerfil, p.perfil)}
                 </button>
                 <div class="flex gap-1.5 flex-none">
-                    <button type="button" data-acao="alternar-detalhe" data-alvo="${idSeguro}" title="Editar" class="w-7 h-7 flex items-center justify-center rounded-full border" style="background:var(--sprout-light);color:var(--pine);border-color:var(--sprout)"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
-                    ${botaoRemover}
+                    ${botaoMais}
+                    <button type="button" data-acao="remover" data-id="${p.id || ''}" hidden></button><!-- v1.4.0 — alvo do ⋮ Remover -->
+                    <!-- lápis redondo antigo (hidden, alvo do ⋮ Editar via alternar-detalhe) -->
                 </div>
             </div>
 
@@ -369,12 +375,12 @@ export async function montarAbaPessoas(mountEl, ctx) {
 
     mountEl.innerHTML = `
         <div class="flex items-center gap-3 mb-4">
-            <h2 class="text-lg font-bold flex-1" style="color:var(--pine)">Pessoas</h2>
-            <button type="button" id="cp-btn-nova" class="raiz-btn-toggle w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Nova pessoa"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <p class="flex-1" style="font-family:var(--font-title);font-size:18px;font-weight:600;color:var(--pine)">Pessoas</p>
+            <button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa" title="Nova pessoa"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
         </div>
         <p class="text-[11px] text-gray-500 mb-4">Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.</p>
         <div id="cp-lista" class="space-y-3 mb-4"><p class="text-xs text-center text-gray-400 py-4">Carregando pessoas...</p></div>
-        <button type="button" id="cp-btn-salvar" class="w-full text-white p-2.5 rounded-lg font-bold text-sm shadow" style="background:var(--pine)">Salvar Pessoas</button>
+        <button type="button" id="cp-btn-salvar" class="rz-btn rz-btn-1 rz-wide">Salvar pessoas</button>
     `;
 
     if (!dbAuth || !clienteId) {
@@ -416,6 +422,15 @@ export async function montarAbaPessoas(mountEl, ctx) {
     // evita colisão com outros módulos que também delegam) --------
     mountEl.addEventListener('click', async (ev) => {
         const alvo = ev.target.closest('[data-acao]');
+        if (alvo && alvo.dataset.acao === 'mais') { // v1.4.0
+            const id = alvo.dataset.id, alvoDet = alvo.dataset.alvo, ehM = alvo.dataset.master === '1';
+            const p = pessoas.find(x => (x.id || '') === id) || {};
+            const acoes = [{ icone: 'pencil', titulo: 'Editar', codigo: 'pessoas.editar', aoTocar: () => mountEl.querySelector(`[data-acao="alternar-detalhe"][data-alvo="${alvoDet}"]`)?.click() }];
+            if (!ehM) acoes.push({ icone: 'trash-2', titulo: 'Remover', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => mountEl.querySelector(`[data-acao="remover"][data-id="${id}"]`)?.click() });
+            else acoes.push({ icone: 'lock', titulo: 'Master não pode ser removido por aqui', sub: 'Fale com a Raiz', aoTocar: () => {} });
+            if (typeof window.abrirSheetAcoes === 'function') window.abrirSheetAcoes({ titulo: p.nome || 'Pessoa', sub: p.perfil || '', acoes });
+            return;
+        }
         if (!alvo) return;
         const acao = alvo.dataset.acao;
         const id = alvo.dataset.id;

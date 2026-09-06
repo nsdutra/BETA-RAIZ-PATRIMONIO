@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.25.2 · 04/09/2026
+// Versão: 1.25.3 · 04/09/2026
 //
 // v1.25.1 — expõe window.rzAbrirUploadContextualComFlag (upload com/sem
 // IA pra chamadores fora de Ativos — sheet de Anexos do contrato).
@@ -683,6 +683,7 @@ window.rzAbrirUploadContextual = (tipo, id, nome) => docs.abrirUploadContextual(
 // versão com flag de IA explícito, pro sheet de Anexos do contrato
 // (index.html) oferecer "com IA" / "simples", igual ao de Ativos.
 window.rzAbrirUploadContextualComFlag = (tipo, id, nome, comIA) => docs.abrirUploadContextualComFlag(tipo, id, nome, comIA);
+window.rzAnexarArquivoEntidade = (tipo, id, arquivo, opts) => docs.anexarArquivoEntidade(tipo, id, arquivo, opts); // v1.25.3 — anexo programático (reajuste)
 // v1.24.0 — pontes pros sheets de ⋮ (os botões de rodapé que chamavam estas
 // funções via data-action saíram do markup)
 window.__rzAbrirFormControle = () => controles.abrirFormControle();

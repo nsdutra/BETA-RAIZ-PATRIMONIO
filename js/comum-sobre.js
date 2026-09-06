@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.1.2 · 05/09/2026
+// Versão: 1.2.0 · 06/09/2026
+//
+// v1.2.0 — gramática (REGRAS §6/§7): caixa alta fora, badge do plano vira .rz-st,
+// cards .rz-card com .rz-card-h, Enviar/Sair no catálogo de botões. Lógica intocada.
 //
 // v1.1.2 — plano_codigo === 'trial' → data_expiracao (o que vence é a licença, não o nome do plano).
 //
@@ -173,8 +176,8 @@ async function montarLicencaBox(boxEl, ctx, licenca) {
 
     boxEl.innerHTML = `
         <div class="flex items-center justify-between">
-            <span class="text-[11px] text-gray-400 uppercase tracking-widest font-bold">Seu plano</span>
-            <span class="text-[10px] font-bold px-2.5 py-1 rounded-full" style="${corBadge}">${nomePlano.toUpperCase()}</span>
+            <span class="text-xs font-semibold" style="color:var(--muted)">Seu plano</span>
+            <span class="rz-st rz-ok">${nomePlano}</span>
         </div>
         ${linhaExpiracao}
         ${botaoContratarHtml}
@@ -230,29 +233,29 @@ export async function montarAbaSobre(mountEl, ctx) {
     if (cidadeUf) partesDados.push(cidadeUf);
 
     mountEl.innerHTML = `
-        <div class="bg-white rounded-xl border border-gray-200 p-4 text-center mb-3">
+        <div class="rz-card" style="text-align:center">
             ${configCliente.logoUrl ? `<img src="${configCliente.logoUrl}" class="h-14 mx-auto mb-2" alt="Logo">` : ''}
-            <h2 class="text-xl font-black text-slate-800 mb-0.5">${nome}</h2>
+            <p class="mb-0.5" style="font-family:var(--font-title);font-size:18px;font-weight:600;color:var(--pine)">${nome}</p>
             <p class="text-xs text-gray-500">${partesDados.join(' · ')}</p>
         </div>
 
-        <div id="comum-sobre-licenca-box" class="hidden bg-white rounded-xl border border-gray-200 p-4 mb-3"></div>
+        <div id="comum-sobre-licenca-box" class="hidden rz-card"></div>
 
         <!-- v1.1.0 — seção "Versões": módulos (App/Cofre, o que o host
              passar em ctx.modulos) sempre aparece; bots só aparece se a
              query em edge_function_versoes voltar alguma linha (RLS
              restringe a fn_sou_master()) — ver montarVersoesBots(). -->
-        <div id="comum-sobre-versoes-box" class="hidden bg-white rounded-xl border border-gray-200 p-4 mb-3">
-            <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-2">Versões</p>
+        <div id="comum-sobre-versoes-box" class="hidden rz-card">
+            <div class="rz-card-h"><h3>Versões</h3></div>
             <div id="comum-sobre-versoes-modulos" class="space-y-1 text-[12px]"></div>
             <div id="comum-sobre-versoes-bots-wrap" class="hidden mt-2 pt-2 border-t border-slate-100">
-                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Bots</p>
+                <p class="text-xs font-semibold mb-1" style="color:var(--muted)">Robô e functions</p>
                 <div id="comum-sobre-versoes-bots" class="space-y-1 text-[12px]"></div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-gray-200 p-4 mb-3">
-            <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-2">Dúvidas, suporte ou sugestões?</p>
+        <div class="rz-card">
+            <div class="rz-card-h"><h3>Dúvidas, suporte ou sugestões?</h3></div>
             <div class="grid grid-cols-2 gap-2 mb-2.5">
                 <a href="https://wa.me/${whatsappSuporte}" target="_blank" class="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-white font-bold text-[12px] shadow-sm active:scale-95 transition" style="background:var(--pine)">
                     <svg data-lucide="message-circle" style="width:17px;height:17px"></svg>
@@ -265,10 +268,10 @@ export async function montarAbaSobre(mountEl, ctx) {
             </div>
             <label class="block text-[10.5px] font-bold text-gray-500 mb-1">Ou escreve aqui direto:</label>
             <textarea id="comum-sobre-feedback-texto" placeholder="Sugestão, dúvida ou algo travou..." rows="2" class="w-full p-2 border rounded-lg text-[12.5px] mb-1.5 box-border"></textarea>
-            <button id="comum-sobre-btn-enviar-feedback" class="w-full text-white font-bold text-[12px] py-2 rounded-lg" style="background:var(--pine)">Enviar</button>
+            <button id="comum-sobre-btn-enviar-feedback" class="rz-btn rz-btn-1 rz-wide">Enviar</button>
         </div>
 
-        <button id="comum-sobre-btn-sair" class="w-full bg-white border border-gray-200 text-gray-500 font-bold text-[12.5px] py-2.5 rounded-xl mb-3 flex items-center justify-center gap-2">
+        <button id="comum-sobre-btn-sair" class="rz-btn rz-btn-2 rz-wide" style="margin-bottom:12px">
             <svg data-lucide="log-out" style="width:14px;height:14px"></svg> Sair
         </button>
 

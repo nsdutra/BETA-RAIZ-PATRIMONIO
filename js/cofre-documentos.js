@@ -1,6 +1,8 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.8.1 · 05/09/2026
+// Versão: 1.9.0 · 06/09/2026
+//
+// v1.9.0 — anexarArquivoEntidade(): anexo programático (reajuste contratual).
 //
 // v1.8.1 — cofre.baixar → cofre.download (rename no catálogo, 05/09); upload
 // restrito passa a depender de podeUsar('cofre.ver_restrito') em vez de
@@ -374,6 +376,33 @@ export function escolherCandidatoUpload(tipo, id, nome) {
     document.getElementById('up-vinculo-busca').classList.add('hidden');
 }
 
+// v1.9.0 (06/09/2026) — ANEXO PROGRAMÁTICO: guarda um File no Cofre já
+// vinculado a uma entidade, sem abrir o sheet de upload. Usado pelo
+// reajuste contratual (index.html v1.133). Mesmo caminho de salvarUpload():
+// hash → storage → cofre_documentos → cofre_documento_vinculos. Categoria:
+// a que casar com `categoriaSugerida` (regex no nome), senão a primeira.
+export async function anexarArquivoEntidade(entidadeTipo, entidadeId, arquivo, opts = {}) {
+    if (!arquivo) throw new Error('Sem arquivo.');
+    const hash = await api.calcularHashSha256(arquivo);
+    const documentoId = crypto.randomUUID();
+    const storagePath = api.montarStoragePath(estado.clienteId, documentoId, arquivo.name);
+    await api.uploadArquivoDocumento(storagePath, arquivo);
+    const cats = estado.categorias || [];
+    const rx = opts.categoriaSugerida ? new RegExp(opts.categoriaSugerida, 'i') : null;
+    const cat = (rx && cats.find(c => rx.test(c.nome))) || cats.find(c => /contrato/i.test(c.nome)) || cats[0];
+    try {
+        await api.inserirDocumento({
+            id: documentoId, cliente_id: estado.clienteId, nome_original: arquivo.name, nome_exibicao: opts.nome || arquivo.name,
+            bucket: 'cofre-documentos', storage_path: storagePath, mime_type: arquivo.type, extensao: (arquivo.name.split('.').pop() || '').toLowerCase(),
+            tamanho_bytes: arquivo.size, hash_sha256: hash, categoria_id: cat ? cat.id : null,
+            descricao: opts.descricao || null, tags: [], data_documento: opts.dataDocumento || null, validade_em: null,
+            nivel_acesso: 'empresa', origem: 'app', status: 'ativo', criado_por: estado.pessoa.id,
+        });
+    } catch (err) { await api.removerArquivoDocumento(storagePath); throw err; }
+    await api.inserirVinculo(estado.clienteId, documentoId, entidadeTipo, entidadeId, true, estado.pessoa.id);
+    try { estado.documentos = await api.listarDocumentos(estado.clienteId); } catch (e) { /* lista atualiza no próximo boot */ }
+    return documentoId;
+}
 export async function salvarUpload() {
     const arquivo = document.getElementById('up-arquivo').files[0];
     const nome = document.getElementById('up-nome').value.trim();

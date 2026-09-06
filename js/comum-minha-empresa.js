@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.1.0 · 02/09/2026
+// Versão: 1.2.0 · 06/09/2026
+//
+// v1.2.0 — gramática: botões no catálogo (Salvar = rz-btn-1, assinatura = rz-btn-2 + rz-ico-btn),
+// sentence case; gate parametros.empresa.editar (sem permissão = só leitura, com motivo).
 //
 // v1.1.0 — pedido explícito: "resolva as pendências de cores listadas".
 // bg-emerald-600 (único uso deste arquivo) trocado por var(--pine) —
@@ -204,7 +207,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
 
         <div class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
             <div>
-                <label class="block text-xs font-bold text-gray-600">Nome da Empresa</label>
+                <label class="block text-xs font-bold text-gray-600">Nome da empresa</label>
                 <input type="text" id="cme-nome" disabled class="w-full p-2 border rounded mt-1 text-sm bg-gray-100 text-gray-500" value="${val(dados.nome_empresa)}">
                 <p class="text-[11px] text-gray-400 mt-0.5">Não pode ser alterado nem excluído por aqui.</p>
             </div>
@@ -256,10 +259,10 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                 </div>
             </div>
 
-            <button id="cme-btn-salvar" class="w-full text-white p-2.5 rounded-lg font-bold text-sm shadow" style="background:var(--pine)">Salvar Dados da Empresa</button>
+            ${(window.podeUsar && !window.podeUsar('parametros.empresa.editar').ok) ? `<p class="text-xs mb-2" style="color:var(--wine)">🔒 ${window.podeUsar('parametros.empresa.editar').textoCurto} — só leitura.</p><button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" disabled style="opacity:.5">Salvar dados da empresa</button>` : `<button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide">Salvar dados da empresa</button>`}
 
             <div class="pt-3 border-t border-gray-200">
-                <label class="block text-xs font-bold text-gray-600 mb-1">Assinatura para o Recibo</label>
+                <label class="block text-xs font-bold text-gray-600 mb-1">Assinatura para o recibo</label>
                 <p class="text-[11px] text-gray-400 mb-2">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</p>
 
                 <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} mb-2 p-3 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,white_0%_50%)] bg-[length:16px_16px] rounded-lg border border-gray-200 flex items-center justify-center">
@@ -268,8 +271,8 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
 
                 <div class="flex gap-1.5">
                     <input type="file" id="cme-assinatura-input" accept="image/*" capture="environment" class="hidden">
-                    <button id="cme-btn-assinatura" type="button" class="flex-1 flex items-center justify-center gap-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs py-2.5 rounded-lg shadow-sm active:scale-95 transition"><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar Assinatura' : 'Enviar Assinatura'}</span></button>
-                    <button id="cme-btn-apagar-assinatura" type="button" title="Apagar assinatura" class="${dados.assinatura_url ? '' : 'hidden'} w-10 h-10 flex-none flex items-center justify-center bg-red-50 border border-red-200 text-red-600 rounded-full active:scale-90 transition"><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
+                    <button id="cme-btn-assinatura" type="button" class="rz-btn rz-btn-2" style="flex:1"><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar Assinatura' : 'Enviar Assinatura'}</span></button>
+                    <button id="cme-btn-apagar-assinatura" type="button" title="Apagar assinatura" aria-label="Apagar assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-ico-btn"><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
                 </div>
             </div>
         </div>

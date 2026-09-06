@@ -6,9 +6,61 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.132.0
-   LINHAS: 30969
+   VERSÃO: Beta v1.135.0
+   LINHAS: 30960
    DATA: 06/09/2026
+   NOVIDADES (Beta v1.135.0) — ROTEIRO R6: telas comum-*.js na gramática
+   (prints do Nicola de 05/09). Index só sobe de versão; mudança nos
+   satélites:
+   · comum-licenca.js v1.2.0 — "PLANO ATUAL"/"FUNCIONALIDADES ATIVAS COM
+     LIMITES" → cards .rz-card com .rz-card-h ("Plano atual", "Limites do
+     plano"); status em sentence case; nomes vêm de nome_comercial (9c-1).
+   · comum-sobre.js v1.2.0 — caixa alta fora, badge do plano vira .rz-st,
+     cards .rz-card, Enviar/Sair no catálogo de botões.
+   · comum-minha-empresa.js v1.2.0 — Salvar = rz-btn-1, assinatura =
+     rz-btn-2 + rz-ico-btn; sentence case; GATE parametros.empresa.editar
+     (sem permissão: aviso com motivo e Salvar desabilitado — só leitura).
+   · comum-pessoas.js v1.4.0 — lápis/lixeira redondos → ⋮ por pessoa
+     (Editar = pessoas.editar, Remover = pessoas.excluir → cadeado por
+     perfil); + e Salvar no catálogo; perfil em sentence case. FICA: lista
+     de perfis do prompt → sheet com perfis+protegido (R6, próxima leva).
+   A.9 REGISTRADO: imoveis.fotos tem 14 leitores (não 5) — inclui o upload
+   base64 do form do imóvel e a VITRINE; migrar pra cofre_ativo_fotos é
+   refatoração de vitrine, não limpeza. Vai com a fragmentação (R8).
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.134.0) — FATIA 9c (limpeza final, parte 1).
+   1) tab-imoveis: cabeçalho, segmento Imóveis/Ativos, filtros, 3 contadores
+      e banner da lista antiga REMOVIDOS (74 linhas). Auditoria antes:
+      dos 10 ids, 5 eram lidos pelo JS — 2 já null-safe (?. / if), 3 eram
+      escritas diretas em renderImoveis (contadores) → ganharam null-guard.
+      Fica só o form-imovel-wrapper (a ficha do ativo edita por ele).
+   2) [MIGRATION aplicada] nome_comercial nos 53 códigos que ainda
+      apareciam como código em "Licença e uso" (0 sem nome agora);
+      partes.documento só dígitos (40 linhas, 0 duplicatas); DROP
+      propriedade_imovel_deprecated (100 linhas migradas na v1.115; 0 FKs,
+      0 RPCs, 0 refs no app/bot).
+   FICA (9c parte 2): imoveis.fotos (5 leitores → cofre_ativo_fotos) e
+   cofre.html (0 refs em código; sai do repositório junto com a
+   fragmentação, o deploy não apaga arquivo).
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.133.0) — REAJUSTE CONTRATUAL (pedido do Nicola).
+   Já existia um reajuste (popup Tipo B: valor, %, vigência, observação →
+   contratos.valor/valor_anterior + historico_contrato + log). Evoluído:
+   1) Sheet da gramática (mesmos ids rj-*); % ↔ valor calculam nos dois
+      sentidos; validações em toast; gate contratos.reajustar.
+   2) ANEXO: documento do reajuste vai pro Cofre (cofre-documentos v1.9.0
+      anexarArquivoEntidade — mesmo caminho do upload: hash → storage →
+      cofre_documentos → vínculo com o contrato), categoria "reajuste/
+      aditivo/contrato" quando existir. Aparece em Anexos do contrato.
+   3) Histórico do contrato registra o anexo; log_acessos leva vigência e
+      documentoId.
+   4) Entrada nova: ⋮ da ficha do contrato → "Reajustar contrato".
+   LIMITE CONHECIDO (decisão pendente): "vale a partir de" é registrado no
+   histórico e no documento, mas o valor vigente é atualizado NA HORA —
+   não há coluna pra agendar (contratos tem valor/valor_anterior/
+   reajuste_aplicado). Pra agendar de verdade, seria 1 coluna nova
+   (reajuste_agendado jsonb) + aplicação no gerar-mês. Informo antes.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.132.0) — CONFERÊNCIA DE VERSÕES (PENDÊNCIAS v4 §C,
    pedido do Nicola: "conferir a versão dos arquivos e sinalizar se são as
    últimas"). Zero tabela nova.
@@ -8494,79 +8546,10 @@
         <!-- ================= ABA: IMÓVEIS ================= -->
 
         <section id="tab-imoveis" class="tab-content">
-
-            <!-- v1.90.0 (pedido explícito, 31/08/2026) — segmento Imóveis/
-                 Ativos, mesmo padrão já usado em Financeiro/Cobranças e
-                 Resultados/Distrib. (v1.88.0): só chama switchTab(), NADA
-                 de HTML foi movido/mesclado entre as duas telas. É este
-                 segmento (+ TAB_PARENT_MAP) que faz a unificação de
-                 navegação — "Imóveis" deixou de ter ícone próprio na
-                 barra de baixo, agora vive aqui dentro de "Ativos".
-                 v1.94.0 (pedido explícito, "seguir com a unificação") —
-                 segmento SUBSTITUÍDO por breadcrumb: Imóveis deixou de
-                 ser destino de mesmo nível que Ativos — agora é tela
-                 secundária (mesmo padrão já usado em tab-vitrine, "<
-                 Imóveis"). Continua 100% funcional por dentro (cadastro,
-                 vitrine, filtros) — só mudou a PORTA de entrada. -->
-            <button onclick="switchTab('tab-ativos')" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Ativos</button>
-
-            <!-- v1.47.0 — REDESENHO DA ABA IMÓVEIS (pedido explícito):
-                 - contador de imóveis removido do topo;
-                 - título "Imóveis" removido;
-                 - toggle Lista/Vitrine (pill) removido — Vitrine agora é
-                   ícone próprio, com breadcrumb "< Imóveis" pra voltar
-                   (ver tab-vitrine);
-                 - filtros (Empreendimento/Status) + busca por texto
-                   migraram pra dentro do novo overlay de busca (mesmo
-                   padrão visual do seletor de imóvel existente
-                   #modal-seletor-imovel, mas SEM lista — aqui é filtro,
-                   não seletor de item único).
-                 IDs #imoveis-filtro-emp e #imoveis-filtro-status foram
-                 preservados (só mudaram de lugar no DOM) — toda a lógica
-                 de popularFiltroSelect()/renderImoveis() que já lia esses
-                 IDs continua funcionando sem alteração. -->
-            <div class="flex items-center gap-2 mb-4">
-
-                <!-- v1.49.0 — pedido explícito: os 3 ícones ficam alinhados
-                     à direita, ordem (direita→esquerda): adicionar, buscar,
-                     vitrine. Ícone da Vitrine agora é o mesmo usado como
-                     "Exportar vitrine" (dentro da própria aba Vitrine),
-                     não mais o ícone genérico de imagem. -->
-                <!-- v1.51.0 — pedido explícito: descrição curta da aba,
-                     mesmo padrão textual usado em Síndicos, só que alinhada
-                     à esquerda dos ícones (na mesma linha), não abaixo. -->
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Gerencie seu portfólio de imóveis e seus contratos, tudo em um só lugar.</p>
-
-                <button id="btn-imoveis-vitrine" onclick="switchTab('tab-vitrine')" title="Vitrine" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
-
-                <button id="btn-imoveis-busca" onclick="abrirBuscaImoveis()" title="Buscar imóveis" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
-
-                <button id="btn-toggle-imovel" onclick="abrirCadastroImovelModal()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Cadastrar novo imóvel"><svg data-lucide="plus" style="width:22px;height:22px"></svg></button>
-
-            </div>
-
-            <!-- Filtros legados sem UI própria mais (o seletor de imóvel-
-                 único virou busca por texto; contadores foram removidos do
-                 topo) — mantidos só pra não quebrar código que ainda lê
-                 esses IDs. -->
-            <div class="hidden">
-                <input type="hidden" id="imoveis-filtro-imovel-id" value="todos">
-                <span id="imoveis-filtro-imovel-resumo"></span>
-                <span id="total-imoveis-contador">0</span>
-                <span id="imoveis-vagos-contador">0</span>
-                <span id="imoveis-alugados-contador">0</span>
-            </div>
-
-            <!-- v1.50.0 — banner do filtro especial vindo da Visão Geral
-                 (contratos aguardando assinatura / com alerta). -->
-            <div id="imoveis-banner-filtro-alerta"></div>
-
-            <!-- v1.61.0 — form-imovel-wrapper convertido para o padrão
-                 bottom-sheet (item 6 do Design System): sobe de baixo,
-                 cantos só em cima, X pequeno ao lado do título (sem o X
-                 redondo antigo sobre o fundo escurecido) e rodapé com os
-                 2 botões (Salvar/Fechar) lado a lado. Conteúdo dos 3
-                 steps não foi alterado — só o container. -->
+            <!-- v1.134.0 (fatia 9c) — cabeçalho, segmento, filtros, contadores e banner
+                 da lista antiga de imóveis REMOVIDOS (74 linhas). A lista vive em Ativos
+                 desde a v1.90; só o formulário do imóvel (form-imovel-wrapper, usado
+                 pela ficha do ativo via saveImovel) continua aqui. -->
             <div id="form-imovel-wrapper" class="hidden" style="position:fixed;inset:0;z-index:65;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);" onclick="if(event.target===this) fecharCadastroImovelModal();">
 
                 <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
@@ -10441,7 +10424,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.132.0";
+        const APP_VERSAO = "Beta v1.135.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -19547,11 +19530,11 @@
                 imovelBateComFiltroAlerta(imo)
             );
 
-            document.getElementById('total-imoveis-contador').innerText = imoveisFiltradosParaContagem.length;
+            { const _el = document.getElementById('total-imoveis-contador'); if (_el) _el.innerText = imoveisFiltradosParaContagem.length; } // v1.134 — null-guard (cabeçalho antigo removido)
 
-            document.getElementById('imoveis-vagos-contador').innerText = imoveisFiltradosParaContagem.filter(i => i.status === 'Vago').length;
+            { const _el = document.getElementById('imoveis-vagos-contador'); if (_el) _el.innerText = imoveisFiltradosParaContagem.filter(i => i.status === 'Vago').length; } // v1.134 — null-guard (cabeçalho antigo removido)
 
-            document.getElementById('imoveis-alugados-contador').innerText = imoveisFiltradosParaContagem.filter(i => i.status === 'Alugado').length;
+            { const _el = document.getElementById('imoveis-alugados-contador'); if (_el) _el.innerText = imoveisFiltradosParaContagem.filter(i => i.status === 'Alugado').length; } // v1.134 — null-guard (cabeçalho antigo removido)
 
             // v1.47.0 — antes cada card ia direto pro container via
             // `container.innerHTML +=`; agora acumula num array primeiro,
@@ -21122,34 +21105,30 @@
         // "Dados locatário"), persiste direto: contratos.valor/
         // valor_anterior/reajuste_aplicado + historico_contrato — sem abrir
         // o formulário completo.
+        // v1.133.0 — REAJUSTE CONTRATUAL em sheet (pedido do Nicola, 06/09):
+        // novo valor, % (calculado), vigência, observação e ANEXO (documento
+        // do reajuste guardado no Cofre já vinculado ao contrato). Mesmos ids
+        // rj-* do popup antigo — salvarReajusteContratoPopup segue igual, só
+        // ganhou o anexo. Entrada: ⋮ da ficha ("Reajustar contrato") e o
+        // botão antigo da lista.
         function lancarReajusteContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
-            document.getElementById('modal-campo-contrato')?.remove();
-
-            const modal = document.createElement('div');
-            modal.id = 'modal-campo-contrato';
-            modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Reajuste do Contrato</h3>
-                        <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-                    </div>
-                    <p style="font-size:11px;color:#64748b;margin-bottom:10px;">Valor atual: ${formatarMoedaBR(con.valor)}/mês</p>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Novo valor (R$)</label><input type="number" step="0.01" id="rj-valor" oninput="calcularPctReajustePopup(${con.valor})" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">% Reajuste</label><input type="number" step="0.01" id="rj-pct" oninput="calcularValorReajustePopup(${con.valor})" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Vigência <span style="color:var(--danger)">*</span></label><input type="date" id="rj-vigencia" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Observação</label><textarea id="rj-obs" rows="2" placeholder="Escreva aqui uma observação..." style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></textarea></div>
-                    </div>
-                    <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-                        <button onclick="salvarReajusteContratoPopup('${con.id}')" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.reajustar')) return;
+            const hoje = new Date().toISOString().slice(0, 10);
+            const corpo = `
+                <p class="text-xs text-slate-500 mb-3">Valor atual: <b>${formatarMoedaBR(con.valor)}/mês</b>${con.indiceReajuste ? ' · índice ' + rzEsc(con.indiceReajuste) : ''}</p>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div><label class="block text-xs font-bold text-gray-600">Novo valor (R$) <span style="color:var(--danger)">*</span></label><input type="number" step="0.01" id="rj-valor" oninput="calcularPctReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
+                    <div><label class="block text-xs font-bold text-gray-600">% de reajuste</label><input type="number" step="0.01" id="rj-pct" oninput="calcularValorReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
+                </div>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Vale a partir de <span style="color:var(--danger)">*</span></label><input type="date" id="rj-vigencia" value="${hoje}" class="w-full p-2 border rounded text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">O valor vigente do contrato é atualizado agora; cobranças já geradas não mudam.</p></div>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Observação</label><textarea id="rj-obs" rows="2" placeholder="Ex.: IGP-M acumulado 12 meses, conforme cláusula 5" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>
+                <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Documento do reajuste</label><input type="file" id="rj-arquivo" accept=".pdf,.jpg,.jpeg,.png,.docx" class="w-full text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">Aditivo, notificação ou cálculo. Vai pro Cofre, vinculado a este contrato.</p></div>`;
+            abrirSheetForm({
+                titulo: 'Reajustar contrato', sub: con.locatario || '', corpo, rotuloSalvar: 'Registrar reajuste',
+                aoSalvar: () => { salvarReajusteContratoPopup(con.id); return false; },
+            });
         }
 
         function calcularPctReajustePopup(valorAtual) {
@@ -21172,8 +21151,9 @@
             const vigencia = document.getElementById('rj-vigencia').value;
             const obs = document.getElementById('rj-obs').value.trim();
 
-            if (isNaN(novoValor) || novoValor <= 0) { alert('⚠️ Informe o novo valor.'); return; }
-            if (!vigencia) { alert('⚠️ Informe a vigência do reajuste.'); return; }
+            const arquivoReajuste = document.getElementById('rj-arquivo')?.files?.[0] || null; // v1.133
+            if (isNaN(novoValor) || novoValor <= 0) { mostrarToast('Informe o novo valor.', 'danger'); return; }
+            if (!vigencia) { mostrarToast('Informe a partir de quando vale.', 'danger'); return; }
 
             const valorAntigo = con.valor;
 
@@ -21186,7 +21166,17 @@
 
                 let descricao = `Reajuste de aluguel: ${formatarMoedaBR(valorAntigo)} → ${formatarMoedaBR(novoValor)} (${pct >= 0 ? '+' : ''}${pct}%), vigente desde ${formatarDataBR(vigencia)}.`;
                 if (obs) descricao += ' ' + obs;
-
+                // v1.133 — anexo: guarda no Cofre vinculado ao contrato (motor do Cofre, sem abrir o sheet de upload)
+                let docId = null;
+                if (arquivoReajuste && typeof window.rzAnexarArquivoEntidade === 'function') {
+                    try {
+                        docId = await window.rzAnexarArquivoEntidade('contrato', contratoId, arquivoReajuste, {
+                            nome: `Reajuste ${vigencia.slice(5, 7)}/${vigencia.slice(0, 4)} — ${con.locatario || ''}`.trim(),
+                            descricao: descricao, dataDocumento: vigencia, categoriaSugerida: 'reajuste|aditivo|contrato',
+                        });
+                        descricao += ' [documento anexado no Cofre]';
+                    } catch (errDoc) { mostrarToast('Reajuste salvo, mas o anexo falhou: ' + (errDoc.message || errDoc), 'danger'); }
+                }
                 const { data: inserida, error: errHist } = await dbAuth.from('historico_contrato').insert({ contrato_id: contratoId, tipo: 'reajuste', descricao }).select().single();
                 if (!errHist) {
                     con.historico = con.historico || [];
@@ -21200,12 +21190,12 @@
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
                 mostrarToast('Reajuste registrado!', 'success');
-                registrarLog('contratos.reajustar', { contratoId, valorAntigo, novoValor }); // v1.131
+                registrarLog('contratos.reajustar', { contratoId, valorAntigo, novoValor, vigencia, documentoId: docId }); // v1.133
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui registrar o reajuste: ' + (err.message || String(err)));
+                mostrarToast('Não consegui registrar o reajuste: ' + (err.message || String(err)), 'danger'); // v1.133
             }
         }
 
@@ -21701,7 +21691,7 @@
             document.getElementById('modal-campo-contrato')?.remove();
             // v1.127.0 — "Alterar status" virou sheet: se o formulário aberto é
             // ele (id asc-acao presente), fecha o sheet também.
-            if (document.getElementById('asc-acao') && typeof fecharSheet === 'function') fecharSheet();
+            if ((document.getElementById('asc-acao') || document.getElementById('rj-vigencia')) && typeof fecharSheet === 'function') fecharSheet(); // v1.127/v1.133
         }
 
         // CORRIGIDO (v1.50.0) — BUG REAL relatado: "Could not find the
@@ -23242,7 +23232,8 @@
             const imo = imoveis.find(i => i.id === con.imovelId);
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
             const acoes = [
-                { icone: 'history', titulo: 'Histórico', codigo: 'contratos.historico.ver', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
+                { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor, vigência e documento', aoTocar: () => lancarReajusteContrato(con.id) },
+                    { icone: 'history', titulo: 'Histórico', codigo: 'contratos.historico.ver', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
             ];
             if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
             if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', codigo: 'cofre.ver', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });

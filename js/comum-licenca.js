@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.1.0 · 02/09/2026
+// Versão: 1.2.0 · 06/09/2026
+//
+// v1.2.0 — gramática (REGRAS §6): caixa alta fora ("Plano atual", "Limites do plano"),
+// cards .rz-card com .rz-card-h, rótulos em sentence case. Lógica intocada.
 //
 // v1.1.0 — pedido explícito: "resolva as pendências de cores listadas".
 // 3 usos de emerald-* trocados: barra de uso (era bg-emerald-500, é
@@ -138,12 +141,12 @@ const NOMES_MODULO = { imoveis: 'Imóveis', cofre: 'Cofre de Documentos', gestao
 
 function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
     const nomePlano = licenca.plano_codigo || '-';
-    const status = (licenca.status || '-').toUpperCase();
+    const status = licenca.status ? licenca.status.charAt(0).toUpperCase() + licenca.status.slice(1) : '-'; // v1.2.0 — sentence case
     const inicio = licenca.data_inicio ? new Date(licenca.data_inicio).toLocaleDateString('pt-BR') : '-';
     const fim = licenca.data_expiracao ? new Date(licenca.data_expiracao).toLocaleDateString('pt-BR') : 'sem data de expiração';
 
     const tituloModulo = mostrarRotuloModulo
-        ? `<p class="text-[11px] font-black uppercase tracking-wide mb-1" style="color:var(--brass-deep)">${NOMES_MODULO[licenca.modulo] || licenca.modulo}</p>`
+        ? `<p class="text-xs font-semibold mb-1" style="color:var(--muted)">${NOMES_MODULO[licenca.modulo] || licenca.modulo}</p>`
         : '';
 
     const funcsHtml = funcionalidades.length === 0
@@ -167,26 +170,26 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
         }).join('');
 
     return `
-        <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4">
+        <div class="rz-card">
             ${tituloModulo}
-            <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-3">Plano Atual</p>
+            <div class="rz-card-h"><h3>Plano atual</h3></div>
             <div class="space-y-2">
                 <div class="flex justify-between items-center pb-2 border-b border-gray-200">
-                    <span class="text-sm font-bold text-slate-700">Plano:</span>
+                    <span class="text-sm text-slate-600">Plano</span>
                     <span class="text-sm font-black" style="color:var(--pine)">${nomePlano}</span>
                 </div>
                 <div class="flex justify-between items-center pb-2 border-b border-gray-200">
-                    <span class="text-sm font-bold text-slate-700">Status:</span>
+                    <span class="text-sm text-slate-600">Status</span>
                     <span class="text-sm font-bold" style="color:var(--pine)">${status}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-sm font-bold text-slate-700">Vigência:</span>
+                    <span class="text-sm text-slate-600">Vigência</span>
                     <span class="text-sm font-bold text-slate-600">${inicio} até ${fim}</span>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-            <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-3">Funcionalidades Ativas com Limites</p>
+        <div class="rz-card">
+            <div class="rz-card-h"><h3>Limites do plano</h3><span class="rz-sub">uso no mês · estoque quando for cadastro</span></div>
             <div class="space-y-3 max-h-96 overflow-y-auto">${funcsHtml}</div>
         </div>`;
 }
@@ -214,8 +217,8 @@ export async function montarAbaLicenca(mountEl, ctx) {
 
         if (licencas.length === 0) {
             mountEl.innerHTML = `
-                <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-                    <p class="text-[11px] text-gray-400 uppercase tracking-widest font-bold mb-3">Plano Atual</p>
+                <div class="rz-card">
+                    <div class="rz-card-h"><h3>Plano atual</h3></div>
                     <p class="text-sm text-gray-500 text-center py-4">Nenhuma licença encontrada para esta empresa.</p>
                 </div>`;
             return;
