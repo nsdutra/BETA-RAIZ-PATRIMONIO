@@ -6,9 +6,49 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.129.0
-   LINHAS: 30832
-   DATA: 05/09/2026
+   VERSÃO: Beta v1.131.0
+   LINHAS: 30896
+   DATA: 06/09/2026
+   NOVIDADES (Beta v1.131.0) — FATIA 8 · FASE F: log_acessos do app com
+   os CÓDIGOS DO CATÁLOGO. O app já gravava log_acessos, mas com nomes
+   livres — e a cota (fn_checar_funcionalidade / fn_funcionalidades_
+   liberadas) conta `acao = código`: baixa pelo bot contava, pelo app não.
+   1) [MIGRATION aplicada] 4 linhas novas no catálogo (minutas.criar/
+      editar/excluir — Operar; parametros.empresa.editar — Administrar,
+      é o que vai gatear "Minha empresa" no roteiro #6) e reaponte do
+      histórico: 11 nomes livres → códigos (cofre.controle.* →
+      cofre.controles.*, minutas.gerar_no_cofre/gerar_docx → minutas.gerar,
+      contratos.alterar_status/*_atualizados → contratos.editar, etc.).
+   2) App: 6 registrarLog no index + 3 em cofre-controles.js (v1.17.0)
+      passam a usar o código; o "o quê" (status, título da alteração) vai
+      pro `detalhe`. Telemetria (login, logout, comunicacoes.*, links
+      abertos) fica como está — não é capacidade, não conta cota.
+   3) ⋮ da minuta: Editar/Excluir com minutas.editar/minutas.excluir
+      (tinham minutas.gerar como aproximação).
+   9b — ESTADO REAL: os formulários de contrato e de imóvel JÁ estão no
+   padrão sheet (overlay, rz-grab, rz-x, rz-sh-f) desde fases anteriores;
+   a pendência "Tipo A" estava desatualizada. Resta em tab-imoveis o
+   cabeçalho/filtros da lista antiga (74 linhas), com ids ainda escritos
+   pelo render legado — vai pra 9c com auditoria de null-guard.
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.130.0) — PORTA ÚNICA: chips, barra e recarga
+   (perguntas do Nicola, 05/09: "se eu tirar pessoas.ver do consulta, o
+   menu fica inacessível? E uma tela? E um chip?").
+   1) BARRA INFERIOR: aba bloqueada fica opaca com ponto wine
+      (aplicarBloqueiosNav, chamada após carregar o conjunto). O toque já
+      era bloqueado desde a v1.124; agora também se VÊ.
+   2) CHIPS DA FICHA DO ATIVO (cofre-ativos.js v1.27.0): chip sem
+      permissão aparece com cadeado e NÃO troca — Contratos→contratos.ver,
+      Controles→cofre.controles.ver, Financeiro→mensal.ver,
+      Anexos→cofre.ver. Antes o chip abria e mostrava os dados; só o ⋮
+      tinha cadeado.
+   3) RECARGA SEM RELOGAR: ao voltar pro app (visibilitychange), o
+      conjunto é recarregado (no máximo 1×/min) e a barra reaplicada —
+      mudança feita na Gestão vale em segundos. O bot já checava a cada
+      mensagem; agora o app acompanha.
+   Continua fora, registrado: RLS por perfil nas leituras (quem usa a API
+   com o próprio token ainda lê o que a tela esconde) — fatia própria.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.129.0) — DESEMPENHO DA FICHA DO ATIVO + módulos
    presos no cache (3 prints do Nicola, 05/09 20:55). Index só sobe de
    versão; a mudança é nos satélites:
@@ -7317,6 +7357,8 @@
         /* Barra inferior (v1.39.8) — indicador do item ativo: barrinha fina no
            topo do botão, além da cor. */
         #bottom-nav-bar button{position:relative}
+        #bottom-nav-bar button.rz-nav-off{opacity:.45}#bottom-nav-bar button.rz-nav-off::after{content:'';position:absolute;top:6px;right:calc(50% - 16px);width:10px;height:10px;border-radius:50%;background:var(--wine)} /* v1.130 — aba bloqueada */
+        .rz-chip.rz-off{opacity:.5}.rz-chip.rz-off::before{content:'🔒';font-size:10px;margin-right:2px} /* v1.130 — chip bloqueado */
         #bottom-nav-bar button.bottomnav-active::before{
             content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
             width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--sprout);
@@ -10382,7 +10424,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.129.0";
+        const APP_VERSAO = "Beta v1.131.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10498,6 +10540,27 @@
             mostrarToast(b.textoLongo, b.motivo === 'sem_perfil' ? 'danger' : 'info');
             return true;
         }
+        // v1.130.0 — barra inferior: botão de aba bloqueada fica opaco com
+        // cadeado (mesma linguagem do ⋮). Chamado após carregar o conjunto.
+        function aplicarBloqueiosNav() {
+            Object.entries(TAB_CODIGO_VER).forEach(([tab, codigo]) => {
+                const btn = document.getElementById('btn-' + tab);
+                if (!btn) return;
+                const off = !podeUsar(codigo).ok;
+                btn.classList.toggle('rz-nav-off', off);
+                btn.setAttribute('aria-disabled', off ? 'true' : 'false');
+            });
+        }
+        // v1.130.0 — recarga do conjunto ao voltar pro app (mudança feita na
+        // Gestão vale em segundos, sem relogar). Uma vez por minuto no máximo.
+        let _ultimaRecargaFunc = 0;
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState !== 'visible' || !CLIENTE_ID_SUPABASE) return;
+            if (Date.now() - _ultimaRecargaFunc < 60000) return;
+            _ultimaRecargaFunc = Date.now();
+            await carregarFuncionalidadesLiberadas();
+            aplicarBloqueiosNav();
+        });
         function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
             const ordenar = lista => [
                 ...lista.filter(a => a.tipo === 'ia'),
@@ -14727,6 +14790,7 @@
             // própria cadastrada). Falha aqui não bloqueia o login.
             await carregarLicencaAtual();
             await carregarFuncionalidadesLiberadas(); // v1.124 — porta única
+            _ultimaRecargaFunc = Date.now(); aplicarBloqueiosNav(); // v1.130
 
             aplicarBrandingCliente();
 
@@ -18125,7 +18189,7 @@
                 };
                 minutasContrato.push(dados);
 
-                registrarLog('minutas.gerar_de_contrato_real_ia', {
+                registrarLog('minutas.minutizar_ia', { // v1.131 — código do catálogo
                     minutaNome: dados.nome, escopo: dados.escopo,
                     quantidadeSugestoes: __minzEstado.sugestoes.length, quantidadeConfirmadas: confirmadas.length,
                 });
@@ -18422,8 +18486,8 @@
             if (!m || typeof abrirSheetAcoes !== 'function') return;
             const acoes = [];
             if (m.arquivoUrl) acoes.push({ icone: 'eye', titulo: 'Ver arquivo do modelo', sub: m.arquivoNome || '', aoTocar: () => window.open(m.arquivoUrl, '_blank') });
-            acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'minutas.gerar', aoTocar: () => abrirFormMinutaSheet(m.id) });
-            acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'minutas.gerar', tipo: 'bad', aoTocar: () => excluirMinuta(m.id) });
+            acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'minutas.editar', aoTocar: () => abrirFormMinutaSheet(m.id) });
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'minutas.excluir', tipo: 'bad', aoTocar: () => excluirMinuta(m.id) });
             abrirSheetAcoes({ titulo: m.nome, sub: 'Minuta de contrato', acoes });
         }
 
@@ -19272,7 +19336,7 @@
                 }
 
                 esconderCarregamentoGlobal();
-                registrarLog('minutas.gerar_no_cofre', { contratoId: con.id, minutaId: minuta.id });
+                registrarLog('minutas.gerar', { contratoId: con.id, minutaId: minuta.id, origem: 'cofre' }); // v1.131
                 mostrarToast('Minuta gerada e guardada no Cofre deste contrato!', 'success');
 
                 // CORRIGIDO (v1.58.0 — pedido explícito): o menu "Locação"
@@ -21063,7 +21127,7 @@
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
                 mostrarToast('Reajuste registrado!', 'success');
-                registrarLog('contratos.reajuste', { contratoId, valorAntigo, novoValor });
+                registrarLog('contratos.reajustar', { contratoId, valorAntigo, novoValor }); // v1.131
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
             } catch (err) {
@@ -21512,7 +21576,7 @@
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
                 mostrarToast('Status do contrato atualizado!', 'success');
-                registrarLog('contratos.alterar_status', { contratoId, statusAntigo, statusNovo: acao });
+                registrarLog('contratos.editar', { contratoId, o_que: 'status', statusAntigo, statusNovo: acao }); // v1.131
 
                 // NOVO (30/08/2026) — pedido explícito do Nicola: ao ativar
                 // um contrato que ainda não tem NENHUM item a receber
@@ -21595,7 +21659,7 @@
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
                 mostrarToast('Salvo!', 'success');
-                registrarLog('contratos.' + tituloLog.toLowerCase().replace(/\s+/g, '_'), { contratoId });
+                registrarLog('contratos.editar', { contratoId, o_que: tituloLog }); // v1.131 — código do catálogo; o título vai no detalhe
                 if (con && fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
             } catch (err) {
@@ -22810,7 +22874,7 @@
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
                 mostrarToast('Divisão do contrato salva!', 'success');
-                registrarLog('contratos.divisao_societaria', { contratoId });
+                registrarLog('imoveis.divisao', { contratoId }); // v1.131
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
             } catch (err) {
                 esconderCarregamentoGlobal();

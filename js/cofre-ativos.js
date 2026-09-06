@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.26.0 · 05/09/2026
+// Versão: 1.27.0 · 06/09/2026
+//
+// v1.27.0 — chips da ficha gateados por *.ver (CHIP_CODIGO): sem permissão
+// = cadeado e não troca. Antes o chip abria e mostrava os dados.
 //
 // v1.26.0 — ficha do ativo abre NA HORA: mudarTela primeiro, 6 painéis em
 // paralelo (Promise.all) com catch individual; guarda contra troca de ativo
@@ -860,6 +863,8 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
 // é montado de uma vez em abrirFichaAtivo() (nenhuma busca nova
 // acontece ao trocar de aba) — esta função só troca visibilidade +
 // destaque visual, mesmo espírito leve do trocarSub() do protótipo.
+// v1.27.0 — chip → código *.ver que o gateia (Resumo é sempre livre)
+const CHIP_CODIGO = { contratos: 'contratos.ver', controles: 'cofre.controles.ver', financeiro: 'mensal.ver', arquivos: 'cofre.ver' };
 export function faTrocarAba(nomeAba) {
     // v1.17.0 — chips .rz-chip: destaque é só a classe .rz-on (sem style
     // inline). Compatibilidade: 'dados' → 'resumo', 'propriedade' → 'resumo',
@@ -867,8 +872,16 @@ export function faTrocarAba(nomeAba) {
     // continua caindo no lugar certo).
     const mapa = { dados: 'resumo', propriedade: 'resumo', documentos: 'arquivos', fotos: 'arquivos' };
     const alvo = mapa[nomeAba] || nomeAba;
+    // v1.27.0 — chip com código bloqueado: cadeado e não troca (porta única).
+    const cod = CHIP_CODIGO[alvo];
+    if (cod && typeof window.podeUsar === 'function' && !window.podeUsar(cod).ok) {
+        if (typeof window.rzMostrarBloqueio === 'function') window.rzMostrarBloqueio(cod);
+        return;
+    }
     document.querySelectorAll('.fa-subtab').forEach(btn => {
         btn.classList.toggle('rz-on', btn.dataset.faAba === alvo);
+        const c = CHIP_CODIGO[btn.dataset.faAba];
+        btn.classList.toggle('rz-off', !!(c && typeof window.podeUsar === 'function' && !window.podeUsar(c).ok));
     });
     document.querySelectorAll('.fa-painel').forEach(painel => {
         painel.classList.toggle('hidden', painel.id !== 'fa-painel-' + alvo);

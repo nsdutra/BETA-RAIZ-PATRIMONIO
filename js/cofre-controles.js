@@ -1,6 +1,8 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.16.0 · 03/09/2026
+// Versão: 1.17.0 · 06/09/2026
+//
+// v1.17.0 — log_acessos com códigos do catálogo (cofre.controles.criar/desativar/editar) — fase F.
 //
 // v1.15.0 — sem rodapés: ⋮ em Documentos/Contatos do item (abrirAcoesDocsItem /
 // abrirAcoesContatosItem); linha de parte com ⋮ (sem lápis) → sheet.
@@ -943,7 +945,7 @@ export async function salvarEdicaoItem() {
                     ? gerarOcorrenciasHorizonteRetroativo(itemAtualizado, dataFim, freqIntervalo, freqUnidade)
                     : gerarOcorrenciasHorizonte(itemAtualizado, hojeISO, freqIntervalo, freqUnidade);
                 await api.criarOcorrenciasControleBatch(payloads);
-                await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.regerar_ocorrencias', { itemId: item.id, ocorrenciasGeradas: payloads.length });
+                await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.editar', { itemId: item.id, ocorrenciasGeradas: payloads.length });
                 mostrarToast(`Item atualizado — ${payloads.length} ocorrência(s) regerada(s) ✅`);
             } else {
                 mostrarToast('Item atualizado — ocorrências existentes mantidas ✅');
@@ -982,7 +984,7 @@ export async function excluirItemControleAtual() {
     try {
         await api.arquivarItemControle(item.id);
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'excluir', antes: item, depois: null, pessoa_id: estado.pessoa.id, origem: 'app' });
-        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.desativar', { itemId: item.id });
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.desativar', { itemId: item.id });
 
         for (const d of docsDoItem) {
             const vinculo = (d.cofre_documento_vinculos || []).find(v => v.entidade_tipo === 'item_controle' && v.entidade_id === item.id);
@@ -1233,7 +1235,7 @@ export async function salvarItemControle() {
             : gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade);
         await api.criarOcorrenciasControleBatch(payloads);
 
-        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controle.criar', { ativoId: a.id, itemId: item.id, ocorrenciasGeradas: payloads.length });
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: a.id, itemId: item.id, ocorrenciasGeradas: payloads.length });
         mostrarToast(`Item de controle criado — ${payloads.length} ocorrência(s) gerada(s) ✅`);
         fecharFormControle();
         itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
