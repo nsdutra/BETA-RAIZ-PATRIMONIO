@@ -6,9 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.138.0
-   LINHAS: 28629
+   VERSÃO: Beta v1.139.0
+   LINHAS: 28662
    DATA: 06/09/2026
+   NOVIDADES (Beta v1.139.0) — MÓDULOS PRESOS NO CACHE: SOLUÇÃO DEFINITIVA
+   (prints do Nicola 20:04: financeiro.js 1.0.0 "em dia" — arquivo novo,
+   nunca esteve em cache — mas comum-licenca/minha-empresa/pessoas/sobre,
+   cofre-app 1.25.2 e cofre-documentos 1.8.1 "cache segurou", com o site
+   já certo). Diagnóstico: a coluna "site" do Versões lê o arquivo com
+   ?v=<timestamp> e vem certa; o import() lê a URL limpa e vem velha —
+   ou seja, URL diferente atravessa qualquer cache (navegador, SW que não
+   controla, proxy da operadora); URL igual, não. O "Recarregar módulos"
+   da v1.137 dependia de o SW interceptar — não dá pra garantir.
+   Solução: <script type="importmap"> no <head> (bloco RZ-IMPORTMAP, gerado
+   pelo gerar_versoes.py v1.2 a partir do versoes.json): ./js/X.js →
+   ./js/X.js?v=<versão do arquivo>. O navegador aplica o mapa a TODO
+   import — o import() do index E os imports estáticos dentro dos módulos
+   (cofre-app.js → ./cofre-api.js…) — sem tocar em módulo nenhum. Versão
+   muda → URL muda → busca nova, garantido. Versão igual → cache normal
+   (nada de tráfego extra). O checker de Versões (import('./'+arq)) passa
+   pelo mesmo mapa, então "rodando" reflete a URL versionada. sw.js v2.1
+   continua (pathname não muda com query). Fica: comunicacoes-*.js (carrega
+   por <script src>, fora do versoes.json) e cofre.html standalone (sem
+   mapa — sai do repo no R8).
+   DEPLOY: só index.html + versoes.json mudam (acumula v1.138). Depois do
+   deploy: fechar e reabrir o PWA (ou "Recarregar módulos" 1x) — daí em
+   diante nunca mais precisa.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.138.0) — R8 FATIA 1: FINANCEIRO SAI DO INDEX
    (js/financeiro.js v1.0.0, ES module sob demanda). Decisão do Nicola
    (06/09): "o definitivo de uma vez, o padrão mesmo" — nem script clássico
@@ -7210,6 +7234,15 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- v1.139.0 — IMPORT MAP (gerado pelo gerar_versoes.py, NÃO editar à mão):
+         todo módulo ./js/X.js vira ./js/X.js?v=<versão>. URL nova a cada
+         versão = cache nenhum (navegador, SW, proxy) devolve módulo velho.
+         O navegador aplica o mapa também aos imports estáticos dentro dos
+         módulos (cofre-app.js → ./cofre-api.js etc.). -->
+    <!-- RZ-IMPORTMAP:INICIO -->
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.2.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.3.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
+    <!-- RZ-IMPORTMAP:FIM -->
+
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
 
     <!-- Isso não muda nada no desktop — é o mesmo index.html e o mesmo link. -->
@@ -10495,7 +10528,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.138.0";
+        const APP_VERSAO = "Beta v1.139.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
