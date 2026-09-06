@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.2.0 · 06/09/2026
+// Versão: 1.2.1 · 06/09/2026
+//
+// v1.2.1 — constante VERSAO sincronizada com o header (estava presa em uma
+// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
+// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
+// trava a entrega se header ≠ VERSAO.
+//
+// Versão anterior: 1.2.0 · 06/09/2026
 //
 // v1.2.0 — gramática (REGRAS §6): caixa alta fora ("Plano atual", "Limites do plano"),
 // cards .rz-card com .rz-card-h, rótulos em sentence case. Lógica intocada.
@@ -45,7 +52,7 @@
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
 
-export const VERSAO = '1.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------

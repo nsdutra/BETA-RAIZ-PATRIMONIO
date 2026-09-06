@@ -6,9 +6,25 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.139.0
-   LINHAS: 28662
+   VERSÃO: Beta v1.140.0
+   LINHAS: 28678
    DATA: 06/09/2026
+   NOVIDADES (Beta v1.140.0) — "CACHE SEGUROU" ERA FALSO: NÃO ERA CACHE.
+   Print do Nicola 20:10, com a v1.139 no ar: os MESMOS 6 módulos, com os
+   MESMOS números. Diagnóstico certo, finalmente: em comum-licenca (1.2.0),
+   comum-minha-empresa (1.3.0), comum-pessoas (1.5.0), comum-sobre (1.2.0),
+   cofre-app (1.25.3) e cofre-documentos (1.9.0) o header tinha sido
+   bumpado nas entregas v1.133–v1.136 mas a constante `export const VERSAO`
+   ficou na versão anterior (1.1.0/1.1.0/1.3.1/1.1.2/1.25.2/1.8.1) — e o
+   Versões lê o header como "site" e a constante como "rodando". Os arquivos
+   certos SEMPRE estiveram rodando. O "Recarregar módulos" (v1.137) e o
+   import map (v1.139) caçavam fantasma; o import map fica, é proteção real.
+   Correção: (1) os 6 módulos ganharam bump de patch (1.2.1, 1.3.1, 1.5.1,
+   1.2.1, 1.25.4, 1.9.1) com a constante sincronizada; (2) gerar_versoes.py
+   v1.3 TRAVA a entrega se header ≠ VERSAO em qualquer módulo (provado numa
+   cópia com divergência forçada: aborta com exit 1). Isso vira impossível
+   de repetir sem o gerador acusar. Nenhuma linha de lógica mudou.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.139.0) — MÓDULOS PRESOS NO CACHE: SOLUÇÃO DEFINITIVA
    (prints do Nicola 20:04: financeiro.js 1.0.0 "em dia" — arquivo novo,
    nunca esteve em cache — mas comum-licenca/minha-empresa/pessoas/sobre,
@@ -7240,7 +7256,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.2.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.3.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.2.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.3.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -10528,7 +10544,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.139.0";
+        const APP_VERSAO = "Beta v1.140.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

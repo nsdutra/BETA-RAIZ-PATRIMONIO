@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.5.0 · 06/09/2026
+// Versão: 1.5.1 · 06/09/2026
+//
+// v1.5.1 — constante VERSAO sincronizada com o header (estava presa em uma
+// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
+// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
+// trava a entrega se header ≠ VERSAO.
+//
+// Versão anterior: 1.5.0 · 06/09/2026
 //
 // v1.5.0 (A.5) — perfil escolhido em sheet a partir da tabela perfis (protegido só pra master);
 // os 2 prompt() de perfil saíram. Nenhum nome de perfil chumbado no fluxo.
@@ -104,7 +111,7 @@
 // segredo, mesmo padrão já replicado nesse outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_PESSOAS_VERSAO = '1.2.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';

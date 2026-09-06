@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.25.3 · 04/09/2026
+// Versão: 1.25.4 · 06/09/2026
+//
+// v1.25.4 — constante VERSAO sincronizada com o header (estava presa em uma
+// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
+// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
+// trava a entrega se header ≠ VERSAO.
+//
+// Versão anterior: 1.25.3 · 04/09/2026
 //
 // v1.25.1 — expõe window.rzAbrirUploadContextualComFlag (upload com/sem
 // IA pra chamadores fora de Ativos — sheet de Anexos do contrato).
@@ -224,7 +231,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.25.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.25.4'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';

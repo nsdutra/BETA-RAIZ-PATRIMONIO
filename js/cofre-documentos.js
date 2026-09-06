@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.9.0 · 06/09/2026
+// Versão: 1.9.1 · 06/09/2026
+//
+// v1.9.1 — constante VERSAO sincronizada com o header (estava presa em uma
+// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
+// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
+// trava a entrega se header ≠ VERSAO.
+//
+// Versão anterior: 1.9.0 · 06/09/2026
 //
 // v1.9.0 — anexarArquivoEntidade(): anexo programático (reajuste contratual).
 //
@@ -73,7 +80,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '1.8.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.9.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-ui.js';

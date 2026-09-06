@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.2.0 · 06/09/2026
+// Versão: 1.2.1 · 06/09/2026
+//
+// v1.2.1 — constante VERSAO sincronizada com o header (estava presa em uma
+// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
+// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
+// trava a entrega se header ≠ VERSAO.
+//
+// Versão anterior: 1.2.0 · 06/09/2026
 //
 // v1.2.0 — gramática (REGRAS §6/§7): caixa alta fora, badge do plano vira .rz-st,
 // cards .rz-card com .rz-card-h, Enviar/Sair no catálogo de botões. Lógica intocada.
@@ -56,7 +63,7 @@
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.1.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { buscarLicencaPrincipal } from './comum-licenca.js';
 
 export const COMUM_SOBRE_VERSAO = '1.1.0';

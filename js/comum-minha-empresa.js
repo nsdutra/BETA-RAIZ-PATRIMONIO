@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.3.0 · 06/09/2026
+// Versão: 1.3.1 · 06/09/2026
+//
+// v1.3.1 — constante VERSAO sincronizada com o header (estava presa em uma
+// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
+// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
+// trava a entrega se header ≠ VERSAO.
+//
+// Versão anterior: 1.3.0 · 06/09/2026
 //
 // v1.3.0 — layout na gramática (print do Nicola): tabhead com descrição, card
 // "Dados da empresa" com .rz-card-h, labels leves, assinatura em card próprio.
@@ -35,7 +42,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
