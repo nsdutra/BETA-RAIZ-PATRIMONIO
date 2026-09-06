@@ -1,6 +1,23 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.3.1 · 06/09/2026
+// Versão: 1.4.0 · 06/09/2026
+//
+// v1.4.0 — TELA COMPLETA NA GRAMÁTICA (print do Nicola 20:16: "modelo antigo
+// com formatação ruim; traga os campos completos"). Formulário reescrito no
+// catálogo .rz-f/.rz-f2/.rz-seg (antes era Tailwind solto: alturas e labels
+// desiguais). 4 cards: Identificação (natureza PF/PJ em segmento → rótulo e
+// máscara CPF/CNPJ, responsável, pessoa de contato) · Endereço da sede (UF em
+// select, código IBGE do município) · Recibos e documentos (cidade do recibo,
+// papel na locação, LOGO com upload reduzido no navegador) · Perfil fiscal e
+// societário (regime tributário, distribuição de lucros — enums do banco).
+// Todos os campos são colunas que JÁ existem em `clientes`; nenhuma coluna
+// nova (regra do Nicola). Sem coluna no banco, logo fora da tela: CEP,
+// telefone, e-mail e site da empresa — decisão pendente (PENDÊNCIAS A.5).
+// Gate parametros.empresa.editar: sem permissão, tudo em leitura (inputs
+// desabilitados, botões de upload também). Documento gravado com máscara.
+// Índice também passou a recarregar CONFIG_CLIENTE.logoUrl após salvar.
+//
+// v1.3.1 — 06/09/2026 · constante VERSAO sincronizada.
 //
 // v1.3.1 — constante VERSAO sincronizada com o header (estava presa em uma
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
@@ -42,7 +59,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -210,100 +227,163 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         return;
     }
 
-    const val = (v) => v == null ? '' : v;
+    const esc = (v) => (v == null ? '' : String(v)).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const val = (v) => esc(v);
+    const sel = (atual, valor) => atual === valor ? 'selected' : '';
+    // natureza: pf/pj (coluna `natureza`). Sem valor gravado, infere pelo doc_tipo
+    // ou pelo tamanho do documento (11 dígitos = CPF) — só pra pré-selecionar.
+    const digitos = (v) => (v || '').replace(/\D/g, '');
+    const naturezaInicial = dados.natureza || (dados.doc_tipo === 'CPF' ? 'pf' : dados.doc_tipo === 'CNPJ' ? 'pj' : (digitos(dados.cnpj).length === 11 ? 'pf' : 'pj'));
+    const gate = (window.podeUsar && !window.podeUsar('parametros.empresa.editar').ok) ? window.podeUsar('parametros.empresa.editar') : null;
+    const opcoesUF = ['', 'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
+        .map(uf => `<option value="${uf}" ${sel((dados.uf || '').toUpperCase(), uf)}>${uf || '—'}</option>`).join('');
+
+    // Rótulos dos enums do banco (regime_tributario_enum / modelo_distribuicao_enum /
+    // papel_na_locacao CHECK) — os VALORES são os do banco, só o texto é humano.
+    const REGIMES = [['', 'Não informado'], ['pessoa_fisica', 'Pessoa física (carnê-leão)'], ['simples_nacional', 'Simples Nacional'], ['lucro_presumido', 'Lucro presumido'], ['lucro_real', 'Lucro real']];
+    const MODELOS = [['', 'Não informado'], ['retirada_livre_sem_controle', 'Retirada livre, sem controle'], ['retirada_livre_com_controle', 'Retirada livre, com controle'], ['programada_percentual_fixo', 'Programada, percentual fixo'], ['programada_percentual_variavel', 'Programada, percentual variável']];
+    const PAPEIS = [['', 'Não informado'], ['proprietario', 'Proprietário (aluga o que é seu)'], ['administradora', 'Administradora (aluga para terceiros)'], ['ambos', 'Os dois']];
+    const opts = (lista, atual) => lista.map(([v, t]) => `<option value="${v}" ${sel(atual || '', v)}>${t}</option>`).join('');
 
     mountEl.innerHTML = `
-        <div class="rz-tabhead"><p>Dados da sua empresa, usados em recibos e documentos gerados pelo sistema.</p></div>
+        <div class="rz-tabhead"><p>Dados da sua empresa, usados em recibos, minutas e na leitura tributária do patrimônio.</p></div>
 
-        <div class="rz-card space-y-3"><div class="rz-card-h"><h3>Dados da empresa</h3></div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-500 mb-1">Nome da empresa</label>
-                <input type="text" id="cme-nome" disabled class="w-full p-2 border rounded mt-1 text-sm bg-gray-100 text-gray-500" value="${val(dados.nome_empresa)}">
-                <p class="text-[11px] text-gray-400 mt-0.5">Não pode ser alterado nem excluído por aqui.</p>
+        ${gate ? `<div class="rz-card" style="margin-bottom:12px"><p class="text-xs" style="color:var(--wine)">🔒 ${esc(gate.textoCurto)} — esta tela está só em leitura.</p></div>` : ''}
+
+        <div class="rz-card"><div class="rz-card-h"><h3>Identificação</h3></div>
+            <div class="rz-f"><label>Nome da empresa</label>
+                <input type="text" id="cme-nome" disabled value="${val(dados.nome_empresa)}" style="background:var(--tile);color:var(--muted)">
+                <span class="rz-hint">Não pode ser alterado nem excluído por aqui.</span>
             </div>
-
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">CPF/CNPJ</label>
-                    <input type="text" id="cme-cnpj" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.cnpj)}">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Responsável (assina o recibo)</label>
-                    <input type="text" id="cme-responsavel" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.nome_responsavel)}">
+            <div class="rz-f"><label>Natureza</label>
+                <div class="rz-seg" id="cme-natureza" style="margin-bottom:0">
+                    <button type="button" data-v="pj" class="${naturezaInicial === 'pj' ? 'rz-on' : ''}">Pessoa jurídica</button>
+                    <button type="button" data-v="pf" class="${naturezaInicial === 'pf' ? 'rz-on' : ''}">Pessoa física</button>
                 </div>
             </div>
-
-            <div class="grid grid-cols-3 gap-2">
-                <div class="col-span-2">
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Endereço / Logradouro</label>
-                    <input type="text" id="cme-endereco" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.endereco)}">
+            <div class="rz-f2">
+                <div class="rz-f"><label id="cme-doc-label">${naturezaInicial === 'pf' ? 'CPF' : 'CNPJ'}</label>
+                    <input type="text" id="cme-cnpj" inputmode="numeric" placeholder="${naturezaInicial === 'pf' ? '000.000.000-00' : '00.000.000/0000-00'}" value="${val(dados.cnpj)}">
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Complemento</label>
-                    <input type="text" id="cme-complemento" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.complemento)}">
+                <div class="rz-f"><label>Responsável <i title="assina o recibo">*</i></label>
+                    <input type="text" id="cme-responsavel" placeholder="Quem assina o recibo" value="${val(dados.nome_responsavel)}">
                 </div>
             </div>
-
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Bairro</label>
-                    <input type="text" id="cme-bairro" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.bairro)}">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Cidade</label>
-                    <input type="text" id="cme-cidade" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.cidade)}">
-                </div>
+            <div class="rz-f" style="margin-bottom:0"><label>Pessoa de contato</label>
+                <input type="text" id="cme-contato" placeholder="Com quem a Raiz fala" value="${val(dados.pessoa_contato_nome)}">
             </div>
-
-            <div class="grid grid-cols-3 gap-2">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">UF</label>
-                    <input type="text" id="cme-uf" maxlength="2" class="w-full p-2 border rounded mt-1 text-sm uppercase" value="${val(dados.uf)}">
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-xs font-semibold text-gray-500 mb-1">Cidade impressa no recibo</label>
-                    <select id="cme-cidade-recibo-fonte" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                        <option value="empresa" ${dados.cidade_recibo_fonte !== 'imovel' ? 'selected' : ''}>Cidade da empresa (a de cima)</option>
-                        <option value="imovel" ${dados.cidade_recibo_fonte === 'imovel' ? 'selected' : ''}>Cidade do imóvel alugado</option>
-                    </select>
-                </div>
-            </div>
-
-            ${(window.podeUsar && !window.podeUsar('parametros.empresa.editar').ok) ? `<p class="text-xs mb-2" style="color:var(--wine)">🔒 ${window.podeUsar('parametros.empresa.editar').textoCurto} — só leitura.</p><button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" disabled style="opacity:.5">Salvar dados da empresa</button>` : `<button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide">Salvar dados da empresa</button>`}
         </div>
-        <div class="rz-card">
-                <div class="rz-card-h"><h3>Assinatura para o recibo</h3></div>
-                <p class="text-[11px] text-gray-400 mb-2">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</p>
 
-                <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} mb-2 p-3 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,white_0%_50%)] bg-[length:16px_16px] rounded-lg border border-gray-200 flex items-center justify-center">
-                    <img id="cme-assinatura-preview" class="max-h-20" alt="Assinatura" src="${val(dados.assinatura_url)}">
-                </div>
-
-                <div class="flex gap-1.5">
-                    <input type="file" id="cme-assinatura-input" accept="image/*" capture="environment" class="hidden">
-                    <button id="cme-btn-assinatura" type="button" class="rz-btn rz-btn-2" style="flex:1"><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar Assinatura' : 'Enviar assinatura'}</span></button>
-                    <button id="cme-btn-apagar-assinatura" type="button" title="Apagar assinatura" aria-label="Apagar assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-ico-btn"><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
+        <div class="rz-card"><div class="rz-card-h"><h3>Endereço da sede</h3></div>
+            <div class="rz-f2" style="grid-template-columns:2fr 1fr">
+                <div class="rz-f"><label>Endereço</label><input type="text" id="cme-endereco" placeholder="Rua e número" value="${val(dados.endereco)}"></div>
+                <div class="rz-f"><label>Complemento</label><input type="text" id="cme-complemento" value="${val(dados.complemento)}"></div>
+            </div>
+            <div class="rz-f2">
+                <div class="rz-f"><label>Bairro</label><input type="text" id="cme-bairro" value="${val(dados.bairro)}"></div>
+                <div class="rz-f"><label>Cidade</label><input type="text" id="cme-cidade" value="${val(dados.cidade)}"></div>
+            </div>
+            <div class="rz-f2" style="grid-template-columns:1fr 2fr">
+                <div class="rz-f" style="margin-bottom:0"><label>UF</label><select id="cme-uf">${opcoesUF}</select></div>
+                <div class="rz-f" style="margin-bottom:0"><label>Código IBGE do município</label>
+                    <input type="text" id="cme-ibge" inputmode="numeric" maxlength="7" placeholder="7 dígitos" value="${val(dados.municipio_sede_ibge)}">
+                    <span class="rz-hint">Usado nos tributos municipais (IPTU, ISS) e na NFS-e.</span>
                 </div>
             </div>
-        
+        </div>
+
+        <div class="rz-card"><div class="rz-card-h"><h3>Recibos e documentos</h3></div>
+            <div class="rz-f"><label>Cidade impressa no recibo</label>
+                <select id="cme-cidade-recibo-fonte">
+                    <option value="empresa" ${dados.cidade_recibo_fonte !== 'imovel' ? 'selected' : ''}>Cidade da empresa (a de cima)</option>
+                    <option value="imovel" ${dados.cidade_recibo_fonte === 'imovel' ? 'selected' : ''}>Cidade do imóvel alugado</option>
+                </select>
+            </div>
+            <div class="rz-f"><label>Papel na locação</label>
+                <select id="cme-papel">${opts(PAPEIS, dados.papel_na_locacao)}</select>
+                <span class="rz-hint">Define como o sistema lê contratos e repasses.</span>
+            </div>
+            <div class="rz-f" style="margin-bottom:0"><label>Logo</label>
+                <div id="cme-logo-preview-wrap" class="${dados.logo_url ? '' : 'hidden'}" style="padding:10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);display:flex;align-items:center;justify-content:center;margin-bottom:6px"><img id="cme-logo-preview" alt="Logo" style="max-height:56px" src="${val(dados.logo_url)}"></div>
+                <div class="flex gap-1.5">
+                    <input type="file" id="cme-logo-input" accept="image/*" class="hidden">
+                    <button id="cme-btn-logo" type="button" class="rz-btn rz-btn-2" style="flex:1" ${gate ? 'disabled' : ''}><svg data-lucide="image" style="width:14px;height:14px"></svg> <span id="cme-logo-btn-texto">${dados.logo_url ? 'Trocar logo' : 'Enviar logo'}</span></button>
+                    <button id="cme-btn-apagar-logo" type="button" title="Remover logo" aria-label="Remover logo" class="${dados.logo_url ? '' : 'hidden'} rz-ico-btn" ${gate ? 'disabled' : ''}><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
+                </div>
+                <span class="rz-hint">Aparece no topo do app e na abertura. PNG ou JPG; o sistema reduz para o tamanho certo.</span>
+            </div>
+        </div>
+
+        <div class="rz-card"><div class="rz-card-h"><h3>Perfil fiscal e societário</h3></div>
+            <div class="rz-f"><label>Regime tributário</label>
+                <select id="cme-regime">${opts(REGIMES, dados.regime_tributario)}</select>
+            </div>
+            <div class="rz-f" style="margin-bottom:0"><label>Distribuição de lucros</label>
+                <select id="cme-modelo">${opts(MODELOS, dados.modelo_distribuicao_lucros)}</select>
+                <span class="rz-hint">Alimenta a leitura tributária em Resultados e os sinais da reforma.</span>
+            </div>
+        </div>
+
+        <button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" ${gate ? 'disabled style="opacity:.5"' : ''} style="margin-bottom:12px">Salvar dados da empresa</button>
+
+        <div class="rz-card"><div class="rz-card-h"><h3>Assinatura para o recibo</h3></div>
+            <span class="rz-hint" style="display:block;margin-bottom:8px">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</span>
+            <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} mb-2 p-3 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,white_0%_50%)] bg-[length:16px_16px] rounded-lg border border-gray-200 flex items-center justify-center">
+                <img id="cme-assinatura-preview" class="max-h-20" alt="Assinatura" src="${val(dados.assinatura_url)}">
+            </div>
+            <div class="flex gap-1.5">
+                <input type="file" id="cme-assinatura-input" accept="image/*" capture="environment" class="hidden">
+                <button id="cme-btn-assinatura" type="button" class="rz-btn rz-btn-2" style="flex:1" ${gate ? 'disabled' : ''}><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar assinatura' : 'Enviar assinatura'}</span></button>
+                <button id="cme-btn-apagar-assinatura" type="button" title="Apagar assinatura" aria-label="Apagar assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-ico-btn" ${gate ? 'disabled' : ''}><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
+            </div>
+        </div>
     `;
     if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+    if (gate) mountEl.querySelectorAll('input,select').forEach(el => { if (el.id !== 'cme-nome') el.disabled = true; });
+
+    // -------- natureza (segmento) + máscara do documento --------
+    let natureza = naturezaInicial;
+    const inpDoc = document.getElementById('cme-cnpj');
+    const mascarar = (v) => {
+        const d = digitos(v).slice(0, natureza === 'pf' ? 11 : 14);
+        if (natureza === 'pf') return d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+    };
+    inpDoc.addEventListener('input', () => { inpDoc.value = mascarar(inpDoc.value); });
+    mountEl.querySelectorAll('#cme-natureza button').forEach(b => b.addEventListener('click', () => {
+        if (gate) return;
+        natureza = b.dataset.v;
+        mountEl.querySelectorAll('#cme-natureza button').forEach(x => x.classList.toggle('rz-on', x === b));
+        document.getElementById('cme-doc-label').textContent = natureza === 'pf' ? 'CPF' : 'CNPJ';
+        inpDoc.placeholder = natureza === 'pf' ? '000.000.000-00' : '00.000.000/0000-00';
+        inpDoc.value = mascarar(inpDoc.value);
+    }));
 
     // -------- salvar dados --------
     document.getElementById('cme-btn-salvar').addEventListener('click', async () => {
-        // Mesma observação da versão original: se a coluna ainda não
-        // existir em `clientes` no Supabase, o update abaixo falha com
-        // "column does not exist" — nesse caso é preciso rodar
-        // `ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS <col> text;`
+        const g = (id) => (document.getElementById(id).value || '').trim();
+        const doc = digitos(g('cme-cnpj'));
+        if (doc && doc.length !== (natureza === 'pf' ? 11 : 14)) { onToast?.((natureza === 'pf' ? 'CPF' : 'CNPJ') + ' incompleto.', 'danger'); inpDoc.focus(); return; }
+        const ibge = digitos(g('cme-ibge'));
+        if (ibge && ibge.length !== 7) { onToast?.('Código IBGE tem 7 dígitos.', 'danger'); document.getElementById('cme-ibge').focus(); return; }
+        // Documento gravado COM máscara (é como sai impresso no recibo; a
+        // Rumo já está assim). doc_tipo acompanha a natureza escolhida.
         const payload = {
-            nome_responsavel: document.getElementById('cme-responsavel').value.trim() || null,
-            cnpj: document.getElementById('cme-cnpj').value.trim() || null,
-            endereco: document.getElementById('cme-endereco').value.trim() || null,
-            complemento: document.getElementById('cme-complemento').value.trim() || null,
-            bairro: document.getElementById('cme-bairro').value.trim() || null,
-            cidade: document.getElementById('cme-cidade').value.trim() || null,
-            uf: document.getElementById('cme-uf').value.trim().toUpperCase() || null,
-            cidade_recibo_fonte: document.getElementById('cme-cidade-recibo-fonte').value,
+            natureza,
+            doc_tipo: natureza === 'pf' ? 'CPF' : 'CNPJ',
+            cnpj: doc ? mascarar(doc) : null,
+            nome_responsavel: g('cme-responsavel') || null,
+            pessoa_contato_nome: g('cme-contato') || null,
+            endereco: g('cme-endereco') || null,
+            complemento: g('cme-complemento') || null,
+            bairro: g('cme-bairro') || null,
+            cidade: g('cme-cidade') || null,
+            uf: g('cme-uf').toUpperCase() || null,
+            municipio_sede_ibge: ibge || null,
+            cidade_recibo_fonte: g('cme-cidade-recibo-fonte'),
+            papel_na_locacao: g('cme-papel') || null,
+            regime_tributario: g('cme-regime') || null,
+            modelo_distribuicao_lucros: g('cme-modelo') || null,
         };
         try {
             await salvarDadosEmpresa(dbAuth, clienteId, payload);
@@ -313,6 +393,34 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         } catch (err) {
             onToast?.('Falha ao salvar: ' + err.message, 'danger');
         }
+    });
+
+    // -------- logo (data URL reduzida, mesmo princípio da assinatura: nada
+    // sai do navegador além do resultado final) --------
+    const inputLogo = document.getElementById('cme-logo-input');
+    document.getElementById('cme-btn-logo').addEventListener('click', () => inputLogo.click());
+    inputLogo.addEventListener('change', async () => {
+        const file = inputLogo.files && inputLogo.files[0]; if (!file) return;
+        try {
+            const dataUrl = await reduzirImagem(file, 480, 160);
+            await salvarDadosEmpresa(dbAuth, clienteId, { logo_url: dataUrl });
+            document.getElementById('cme-logo-preview').src = dataUrl;
+            document.getElementById('cme-logo-preview-wrap').classList.remove('hidden');
+            document.getElementById('cme-btn-apagar-logo').classList.remove('hidden');
+            document.getElementById('cme-logo-btn-texto').textContent = 'Trocar logo';
+            registrarLog?.('parametros.empresa.editar', { campo: 'logo' });
+            onBrandingAtualizado?.();
+        } catch (err) { onToast?.('Falha ao salvar o logo: ' + err.message, 'danger'); }
+    });
+    document.getElementById('cme-btn-apagar-logo').addEventListener('click', async () => {
+        if (!confirm('Remover o logo? O nome da empresa volta a aparecer no lugar.')) return;
+        try {
+            await salvarDadosEmpresa(dbAuth, clienteId, { logo_url: null });
+            document.getElementById('cme-logo-preview-wrap').classList.add('hidden');
+            document.getElementById('cme-btn-apagar-logo').classList.add('hidden');
+            document.getElementById('cme-logo-btn-texto').textContent = 'Enviar logo';
+            onBrandingAtualizado?.();
+        } catch (err) { onToast?.('Falha ao remover: ' + err.message, 'danger'); }
     });
 
     // -------- assinatura --------
@@ -327,7 +435,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             document.getElementById('cme-assinatura-preview').src = dataUrl;
             document.getElementById('cme-assinatura-preview-container').classList.remove('hidden');
             document.getElementById('cme-btn-apagar-assinatura').classList.remove('hidden');
-            document.getElementById('cme-assinatura-btn-texto').textContent = 'Trocar Assinatura';
+            document.getElementById('cme-assinatura-btn-texto').textContent = 'Trocar assinatura';
             registrarLog?.('parametros.assinatura.editar', {});
             onBrandingAtualizado?.();
         } catch (err) {
@@ -348,5 +456,25 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         } catch (err) {
             onToast?.('Falha ao remover: ' + err.message, 'danger');
         }
+    });
+}
+
+// Reduz uma imagem no navegador (canvas) pra caber em maxW×maxH, devolvendo
+// PNG em data URL. Usado pelo logo — mesma filosofia da assinatura: o arquivo
+// original nunca sai do aparelho; só o resultado pequeno vai pro banco.
+function reduzirImagem(file, maxW, maxH) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            const k = Math.min(1, maxW / img.width, maxH / img.height);
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            resolve(c.toDataURL('image/png'));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Imagem inválida')); };
+        img.src = url;
     });
 }
