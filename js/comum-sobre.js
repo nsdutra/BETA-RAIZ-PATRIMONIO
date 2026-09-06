@@ -53,6 +53,7 @@
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
 
+export const VERSAO = '1.1.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { buscarLicencaPrincipal } from './comum-licenca.js';
 
 export const COMUM_SOBRE_VERSAO = '1.1.0';

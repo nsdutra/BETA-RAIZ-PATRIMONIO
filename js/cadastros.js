@@ -27,6 +27,7 @@
 //    index → acessíveis via window.
 // ============================================================================
 
+export const VERSAO = '1.0.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const db = () => window.__raizDbAuth;
 const ponte = () => window.__raizCadastrosPonte || {};
 

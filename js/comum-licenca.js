@@ -42,6 +42,7 @@
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
 
+export const VERSAO = '1.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------

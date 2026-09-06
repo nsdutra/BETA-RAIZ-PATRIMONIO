@@ -29,6 +29,7 @@
 // comum-licenca.js).
 // ============================================================================
 
+export const VERSAO = '1.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------

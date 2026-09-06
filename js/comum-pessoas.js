@@ -97,6 +97,7 @@
 // segredo, mesmo padrão já replicado nesse outro arquivo).
 // ============================================================================
 
+export const VERSAO = '1.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_PESSOAS_VERSAO = '1.2.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';

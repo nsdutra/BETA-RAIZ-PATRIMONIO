@@ -92,6 +92,7 @@
 // imediata, e é IMEDIATAMENTE substituído pelo nome real assim que a
 // consulta volta — nunca fica sozinho como fonte de verdade.
 // ============================================================================
+export const VERSAO = '1.6.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';

@@ -6,9 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.131.0
-   LINHAS: 30896
+   VERSÃO: Beta v1.132.0
+   LINHAS: 30969
    DATA: 06/09/2026
+   NOVIDADES (Beta v1.132.0) — CONFERÊNCIA DE VERSÕES (PENDÊNCIAS v4 §C,
+   pedido do Nicola: "conferir a versão dos arquivos e sinalizar se são as
+   últimas"). Zero tabela nova.
+   1) versoes.json (novo, raiz do repositório; gerado por gerar_versoes.py
+      a cada entrega) = o que DEVERIA estar no ar: 18 arquivos.
+   2) Todo módulo js/ exporta `VERSAO` (igual ao header) — 16 arquivos
+      tocados só nessa linha.
+   3) ⚙️ › Conta › "Versões" (gate dev.acessar): sheet que compara, por
+      arquivo, esperado (versoes.json) × site (fetch no-cache do header) ×
+      rodando (VERSAO do módulo importado). Diagnóstico: ✅ em dia ·
+      ⚠️ "não publicado — no ar vX" (rodar deploy) · ⚠️ "cache segurou vY"
+      (botão Recarregar módulos: limpa caches + reload). Bot e functions:
+      edge_function_versoes, como o Sobre já lia.
+   4) Deploy_Raiz.ps1 v2.10 publica versoes.json e compara antes de subir.
+   Regra de entrega (Claude): o zip acumula tudo desde o último deploy
+   confirmado e traz versoes.json — este zip traz os 18 arquivos.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.131.0) — FATIA 8 · FASE F: log_acessos do app com
    os CÓDIGOS DO CATÁLOGO. O app já gravava log_acessos, mas com nomes
    livres — e a cota (fn_checar_funcionalidade / fn_funcionalidades_
@@ -10424,7 +10441,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.131.0";
+        const APP_VERSAO = "Beta v1.132.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10561,6 +10578,61 @@
             await carregarFuncionalidadesLiberadas();
             aplicarBloqueiosNav();
         });
+        // ==================================================================
+        // v1.132.0 — DEV › VERSÕES (PENDÊNCIAS v4 §C). Compara 3 fontes:
+        //   (a) versoes.json publicado no site = o que DEVERIA estar no ar;
+        //   (b) VERSAO exportada por cada módulo carregado = o que o navegador
+        //       está rodando (cache pode segurar versão velha);
+        //   (c) header do arquivo no site (fetch no-cache) = o que o GitHub
+        //       Pages está servindo agora.
+        // Diagnóstico por linha: ✅ em dia · ⚠️ cache (b<c: fechar/reabrir ou
+        // "Recarregar módulos") · ⚠️ não publicado (c<a: rodar o deploy).
+        // Bot: edge_function_versoes (já existia).
+        // ==================================================================
+        async function abrirVersoesDev() {
+            const sheet = abrirSheet(rzSheetCabecalho('Versões', 'O que deveria estar no ar × o que está rodando') + '<div class="rz-sh-b" id="rz-versoes-corpo"><p class="text-xs text-slate-500">Conferindo…</p></div>');
+            const corpo = sheet.querySelector('#rz-versoes-corpo');
+            const ts = Date.now();
+            let esperado = null;
+            try { esperado = await (await fetch('versoes.json?v=' + ts, { cache: 'no-store' })).json(); } catch (e) { /* sem versoes.json ainda */ }
+            const arquivos = esperado ? Object.keys(esperado.arquivos) : [];
+            const lerVersaoNoSite = async (arq) => {
+                try {
+                    const t = await (await fetch(arq + '?v=' + ts, { cache: 'no-store' })).text();
+                    const m = t.match(/VERSÃO: Beta v([0-9.]+)/) || t.match(/Versão: ([0-9]+\.[0-9]+(?:\.[0-9]+)?)/);
+                    return m ? m[1] : null;
+                } catch (e) { return null; }
+            };
+            const lerVersaoCarregada = async (arq) => {
+                if (arq === 'index.html') return APP_VERSAO.replace(/^Beta v/, '');
+                if (!arq.endsWith('.js') || arq === 'sw.js') return null;
+                try { const m = await import('./' + arq); return m.VERSAO || m.COFRE_VERSAO || null; } catch (e) { return null; }
+            };
+            const cmp = (a, b) => { const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d; } return 0; };
+            const linhas = await Promise.all(arquivos.map(async arq => {
+                const esp = esperado.arquivos[arq];
+                const [site, carregada] = await Promise.all([lerVersaoNoSite(arq), lerVersaoCarregada(arq)]);
+                let st = 'ok', motivo = 'em dia';
+                if (site && cmp(site, esp) < 0) { st = 'warn'; motivo = 'não publicado — no ar ' + site; }
+                else if (carregada && site && cmp(carregada, site) < 0) { st = 'warn'; motivo = 'cache segurou ' + carregada; }
+                else if (!site) { st = 'neu'; motivo = 'não consegui ler no site'; }
+                return { arq, esp, site, carregada, st, motivo };
+            }));
+            const bots = await dbAuth.from('edge_function_versoes').select('funcao, versao, ultimo_boot').order('funcao').then(r => r.data || []).catch(() => []);
+            const alertas = linhas.filter(l => l.st === 'warn').length;
+            corpo.innerHTML = `
+                <div class="rz-card ${alertas ? 'rz-atencao' : ''}" style="margin-bottom:12px"><div class="rz-card-h"><h3>${alertas ? alertas + ' arquivo' + (alertas > 1 ? 's' : '') + ' fora do esperado' : 'Tudo em dia'}</h3>${renderStatus(alertas ? 'warn' : 'ok', alertas ? 'Atenção' : 'OK')}</div>
+                    <p class="text-xs text-slate-500">${esperado ? 'versoes.json gerado em ' + rzEsc(esperado.gerado_em) : 'versoes.json ainda não publicado — rode o deploy v1.132'}</p>
+                    ${alertas ? '<button type="button" class="rz-btn rz-btn-2 rz-wide" style="margin-top:8px" onclick="rzRecarregarModulos()"><svg data-lucide="refresh-cw"></svg> Recarregar módulos</button>' : ''}</div>
+                <div class="rz-card rz-list">${linhas.map(l => `<div class="rz-row"><div class="rz-tx"><b>${rzEsc(l.arq)}</b><span>esperado ${rzEsc(l.esp)} · site ${rzEsc(l.site || '?')} · rodando ${rzEsc(l.carregada || '—')}</span></div><div class="rz-rt">${renderStatus(l.st, l.motivo)}</div></div>`).join('')}</div>
+                <p style="font-size:13px;font-weight:700;color:var(--pine);margin:12px 0 6px">Bot e functions</p>
+                <div class="rz-card rz-list">${bots.length ? bots.map(b => `<div class="rz-row"><div class="rz-tx"><b>${rzEsc(b.funcao)}</b><span>último boot ${b.ultimo_boot ? new Date(b.ultimo_boot).toLocaleString('pt-BR') : '—'}</span></div><div class="rz-rt"><b>v${rzEsc(b.versao)}</b></div></div>`).join('') : '<p class="text-xs text-slate-500 py-2">sem registro</p>'}</div>`;
+            if (typeof rzIcones === 'function') rzIcones();
+        }
+        async function rzRecarregarModulos() {
+            try { if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } } catch (e) { /* segue */ }
+            location.reload();
+        }
         function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
             const ordenar = lista => [
                 ...lista.filter(a => a.tipo === 'ia'),
@@ -16609,6 +16681,7 @@
                     ]},
                     { titulo: 'Conta', acoes: [
                         { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
+                        { icone: 'package-check', titulo: 'Versões', sub: 'O que está no ar × o que está rodando', codigo: 'dev.acessar', aoTocar: abrirVersoesDev }, // v1.132
                         { icone: 'message-circle', titulo: 'Preferências de comunicação', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => window.open('https://wa.me/5511947461828', '_blank') },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
