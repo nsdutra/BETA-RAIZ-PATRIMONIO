@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.4.0 · 06/09/2026
+// Versão: 1.5.0 · 06/09/2026
+//
+// v1.5.0 (A.5) — perfil escolhido em sheet a partir da tabela perfis (protegido só pra master);
+// os 2 prompt() de perfil saíram. Nenhum nome de perfil chumbado no fluxo.
 //
 // v1.4.0 — gramática: ⋮ por pessoa (Editar/Remover com código do catálogo → cadeado por perfil)
 // no lugar de lápis/lixeira redondos; título sem h2; + e Salvar no catálogo; perfil em
@@ -390,6 +393,29 @@ export async function montarAbaPessoas(mountEl, ctx) {
 
     let pessoas = [];
     let modulosPorPerfil = new Map();
+    // v1.5.0 (A.5) — perfil escolhido em SHEET, lendo a tabela `perfis`
+    // (escopo empresa) e `protegido`: perfil protegido (master, admin) só
+    // aparece pra quem é master. Substitui os prompt() com lista fixa.
+    let perfisCache = null;
+    async function escolherPerfilSheet(titulo, sub, padrao = 'operador') {
+        if (!perfisCache) {
+            const { data } = await dbAuth.from('perfis').select('codigo, nome, descricao, protegido, escopo').eq('escopo', 'empresa').order('codigo');
+            perfisCache = data || [];
+        }
+        const lista = perfisCache.filter(p => !p.protegido || perfilLogado === 'master');
+        if (!lista.length || typeof window.abrirSheetAcoes !== 'function') {
+            return prompt(titulo + ' — opções: ' + lista.map(p => p.codigo).join(', '), padrao);
+        }
+        return new Promise(resolve => {
+            let escolhido = null;
+            window.abrirSheetAcoes({ titulo, sub, acoes: lista.map(p => ({
+                icone: p.protegido ? 'shield' : 'user', titulo: p.nome || p.codigo, sub: p.descricao || '',
+                aoTocar: () => { escolhido = p.codigo; resolve(p.codigo); },
+            })) });
+            // fechar sem escolher → null (o sheet chama aoFechar? não temos hook aqui: usa polling leve)
+            const iv = setInterval(() => { const aberto = document.getElementById('rz-veil')?.classList.contains('rz-on'); if (escolhido !== null || !aberto) { clearInterval(iv); if (escolhido === null) resolve(null); } }, 300);
+        });
+    }
     let proativasDisponiveis = [];
     let preferenciasMap = new Map();
     try {
@@ -463,7 +489,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         if (acao === 'vincular') {
             const uuid = prompt('Cole aqui o UUID do usuário (Supabase → Authentication → Users → copiar o ID do usuário já criado):');
             if (!uuid) return;
-            const perfil = prompt('Perfil de acesso — opções: admin, operador, consulta' + (perfilLogado === 'master' ? ', master' : ''), 'operador');
+            const perfil = await escolherPerfilSheet('Perfil de acesso', 'Login vinculado manualmente'); // v1.5.0
             if (!perfil) return;
             try {
                 const { error } = await dbAuth.from('pessoas').update({ user_id: uuid.trim(), perfil: perfil.trim() }).eq('id', id);
@@ -498,7 +524,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             if (!pessoa.email) { alert('⚠️ Esta pessoa não tem e-mail cadastrado. Preencha o e-mail antes de criar o acesso.'); return; }
             if (pessoa.userId) { alert('Esta pessoa já tem acesso ao sistema.'); return; }
 
-            const perfilEscolhido = prompt('Perfil de acesso para ' + pessoa.nome + ':\n\nOpções: admin, operador, consulta' + (perfilLogado === 'master' ? ', master' : ''), 'operador');
+            const perfilEscolhido = await escolherPerfilSheet('Perfil de acesso', pessoa.nome); // v1.5.0
             if (!perfilEscolhido) return;
 
             const senhaAleatoria = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + '!1';

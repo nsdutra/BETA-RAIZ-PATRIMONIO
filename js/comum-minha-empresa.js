@@ -1,6 +1,9 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.2.0 · 06/09/2026
+// Versão: 1.3.0 · 06/09/2026
+//
+// v1.3.0 — layout na gramática (print do Nicola): tabhead com descrição, card
+// "Dados da empresa" com .rz-card-h, labels leves, assinatura em card próprio.
 //
 // v1.2.0 — gramática: botões no catálogo (Salvar = rz-btn-1, assinatura = rz-btn-2 + rz-ico-btn),
 // sentence case; gate parametros.empresa.editar (sem permissão = só leitura, com motivo).
@@ -203,55 +206,55 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     const val = (v) => v == null ? '' : v;
 
     mountEl.innerHTML = `
-        <p class="text-[11px] text-gray-500 mb-4">Dados da sua empresa, usados para preencher recibos e documentos gerados pelo sistema.</p>
+        <div class="rz-tabhead"><p>Dados da sua empresa, usados em recibos e documentos gerados pelo sistema.</p></div>
 
-        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border border-gray-200">
+        <div class="rz-card space-y-3"><div class="rz-card-h"><h3>Dados da empresa</h3></div>
             <div>
-                <label class="block text-xs font-bold text-gray-600">Nome da empresa</label>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">Nome da empresa</label>
                 <input type="text" id="cme-nome" disabled class="w-full p-2 border rounded mt-1 text-sm bg-gray-100 text-gray-500" value="${val(dados.nome_empresa)}">
                 <p class="text-[11px] text-gray-400 mt-0.5">Não pode ser alterado nem excluído por aqui.</p>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600">CPF/CNPJ</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">CPF/CNPJ</label>
                     <input type="text" id="cme-cnpj" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.cnpj)}">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600">Responsável (assina o recibo)</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Responsável (assina o recibo)</label>
                     <input type="text" id="cme-responsavel" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.nome_responsavel)}">
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-2">
                 <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-600">Endereço / Logradouro</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Endereço / Logradouro</label>
                     <input type="text" id="cme-endereco" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.endereco)}">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600">Complemento</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Complemento</label>
                     <input type="text" id="cme-complemento" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.complemento)}">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600">Bairro</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Bairro</label>
                     <input type="text" id="cme-bairro" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.bairro)}">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-600">Cidade</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Cidade</label>
                     <input type="text" id="cme-cidade" class="w-full p-2 border rounded mt-1 text-sm" value="${val(dados.cidade)}">
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-2">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600">UF</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">UF</label>
                     <input type="text" id="cme-uf" maxlength="2" class="w-full p-2 border rounded mt-1 text-sm uppercase" value="${val(dados.uf)}">
                 </div>
                 <div class="col-span-2">
-                    <label class="block text-xs font-bold text-gray-600">Cidade impressa no recibo</label>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Cidade impressa no recibo</label>
                     <select id="cme-cidade-recibo-fonte" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
                         <option value="empresa" ${dados.cidade_recibo_fonte !== 'imovel' ? 'selected' : ''}>Cidade da empresa (a de cima)</option>
                         <option value="imovel" ${dados.cidade_recibo_fonte === 'imovel' ? 'selected' : ''}>Cidade do imóvel alugado</option>
@@ -260,9 +263,9 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             </div>
 
             ${(window.podeUsar && !window.podeUsar('parametros.empresa.editar').ok) ? `<p class="text-xs mb-2" style="color:var(--wine)">🔒 ${window.podeUsar('parametros.empresa.editar').textoCurto} — só leitura.</p><button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" disabled style="opacity:.5">Salvar dados da empresa</button>` : `<button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide">Salvar dados da empresa</button>`}
-
-            <div class="pt-3 border-t border-gray-200">
-                <label class="block text-xs font-bold text-gray-600 mb-1">Assinatura para o recibo</label>
+        </div>
+        <div class="rz-card">
+                <div class="rz-card-h"><h3>Assinatura para o recibo</h3></div>
                 <p class="text-[11px] text-gray-400 mb-2">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</p>
 
                 <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} mb-2 p-3 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,white_0%_50%)] bg-[length:16px_16px] rounded-lg border border-gray-200 flex items-center justify-center">
@@ -271,11 +274,11 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
 
                 <div class="flex gap-1.5">
                     <input type="file" id="cme-assinatura-input" accept="image/*" capture="environment" class="hidden">
-                    <button id="cme-btn-assinatura" type="button" class="rz-btn rz-btn-2" style="flex:1"><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar Assinatura' : 'Enviar Assinatura'}</span></button>
+                    <button id="cme-btn-assinatura" type="button" class="rz-btn rz-btn-2" style="flex:1"><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar Assinatura' : 'Enviar assinatura'}</span></button>
                     <button id="cme-btn-apagar-assinatura" type="button" title="Apagar assinatura" aria-label="Apagar assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-ico-btn"><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
                 </div>
             </div>
-        </div>
+        
     `;
     if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 
@@ -333,7 +336,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             await salvarAssinatura(dbAuth, clienteId, null);
             document.getElementById('cme-assinatura-preview-container').classList.add('hidden');
             btnApagarAssinatura.classList.add('hidden');
-            document.getElementById('cme-assinatura-btn-texto').textContent = 'Enviar Assinatura';
+            document.getElementById('cme-assinatura-btn-texto').textContent = 'Enviar assinatura';
             onBrandingAtualizado?.();
         } catch (err) {
             onToast?.('Falha ao remover: ' + err.message, 'danger');

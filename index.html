@@ -6,9 +6,23 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.135.0
-   LINHAS: 30960
+   VERSÃO: Beta v1.136.0
+   LINHAS: 31003
    DATA: 06/09/2026
+   NOVIDADES (Beta v1.136.0) — A.4 RESULTADOS EM 3 SEGMENTOS + R6 (parte 2).
+   1) Resultados: Desempenho · Distribuição · RELATÓRIOS. Regra nova (decisão
+      de 05/09): toda exportação mora em Relatórios — o botão "Exportar
+      relatório analítico PDF" saiu de Desempenho. O catálogo só lista o que
+      existe: Resultados analítico (relatorios.resultados) e Distribuição aos
+      sócios (relatorios.distribuicao, escolhe o sócio num sheet). Pacote do
+      contador e Parâmetros entram quando existirem. Cadeado por plano/perfil
+      na linha; aba gateada por relatorios.ver.
+   2) comum-minha-empresa.js v1.3.0 — layout na gramática de verdade (print
+      do Nicola): tabhead com descrição, card "Dados da empresa" com
+      cabeçalho, labels leves, assinatura em card próprio.
+   3) comum-pessoas.js v1.5.0 (A.5) — os 2 prompt() de perfil viraram sheet
+      lendo a tabela perfis (protegido só pra master). Nenhum perfil chumbado.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.135.0) — ROTEIRO R6: telas comum-*.js na gramática
    (prints do Nicola de 05/09). Index só sobe de versão; mudança nos
    satélites:
@@ -9808,8 +9822,9 @@
         <section id="tab-relatorios" class="tab-content">
 
             <div class="rz-seg">
-                <button class="rz-on" onclick="switchTab('tab-relatorios')">Resumo</button>
+                <button class="rz-on" onclick="switchTab('tab-relatorios')">Desempenho</button>
                 <button onclick="switchTab('tab-socios')">Distribuição</button>
+                <button onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
             </div>
 
             <!-- Hero: KPIs consolidados + Diagnóstico tributário (v1.91.0).
@@ -9843,10 +9858,7 @@
             <p style="font-size:13px;font-weight:700;color:var(--pine);margin:0 0 8px">Mês a Mês</p>
             <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[11px] mb-4"></div>
 
-            <!-- Exportar: .rz-btn catálogo, ícone lucide, sentence case -->
-            <button onclick="baixarRelatorioPdfLocal()" class="rz-btn rz-btn-2 rz-wide">
-                <i data-lucide="bar-chart-2"></i> Exportar relatório analítico PDF
-            </button>
+            <!-- v1.136 (A.4) — botão de exportar saiu daqui: toda exportação mora no segmento Relatórios -->
 
         </section>
 
@@ -9894,11 +9906,25 @@
 
         <!-- ================= ABA: SÓCIOS ================= -->
 
+        <!-- v1.136.0 (A.4) — RELATÓRIOS: um lugar só pra tudo que sai do app.
+             Só entra o que existe (regra "em breve não entra"): resultados
+             analítico e distribuição aos sócios. Pacote do contador e
+             parâmetros entram quando existirem (R8 Financeiro+, 1b). -->
+        <section id="tab-relatorios-catalogo" class="tab-content">
+            <div class="rz-seg">
+                <button onclick="switchTab('tab-relatorios')">Desempenho</button>
+                <button onclick="switchTab('tab-socios')">Distribuição</button>
+                <button class="rz-on" onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
+            </div>
+            <div class="rz-tabhead"><p>Tudo que sai do app em PDF ou planilha. Recibos e vitrines ficam no ⋮ de cada item.</p></div>
+            <div class="rz-card rz-list" id="lista-relatorios"></div>
+        </section>
         <section id="tab-socios" class="tab-content">
 
             <div class="rz-seg">
-                <button onclick="switchTab('tab-relatorios')">Resumo</button>
+                <button onclick="switchTab('tab-relatorios')">Desempenho</button>
                 <button class="rz-on" onclick="switchTab('tab-socios')">Distribuição</button>
+                <button onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): título "Distribuições"
@@ -10424,7 +10450,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.135.0";
+        const APP_VERSAO = "Beta v1.136.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -16433,9 +16459,26 @@
         // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
         // motivo, fica onde está. Abas sem código não são gateadas.
         const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver',
-            'tab-relatorios': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar' };
+            'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar' };
+        // v1.136 (A.4) — catálogo de relatórios: cada linha tem código próprio
+        // (relatorios.resultados / .distribuicao) → cadeado por plano/perfil.
+        function renderCatalogoRelatorios() {
+            const el = document.getElementById('lista-relatorios'); if (!el) return;
+            const socios = [...new Set((typeof repasses !== 'undefined' && Array.isArray(repasses) ? repasses : []).map(r => r.socio).filter(Boolean))];
+            const itens = [
+                { codigo: 'relatorios.resultados', icone: 'bar-chart-2', titulo: 'Resultados analítico', sub: 'PDF com filtros de imóvel e período da aba Desempenho', acao: () => baixarRelatorioPdfLocal() },
+                { codigo: 'relatorios.distribuicao', icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', acao: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, codigo: 'relatorios.distribuicao', aoTocar: () => exportarRelatorioSocioPDF(sc) })) : [{ icone: 'info', titulo: 'Nenhum sócio com distribuição registrada', aoTocar: () => {} }] }) },
+            ];
+            el.innerHTML = itens.map((it, i) => {
+                const b = typeof podeUsar === 'function' ? podeUsar(it.codigo) : { ok: true };
+                return `<div class="rz-row rz-link ${b.ok ? '' : 'rz-off'}" data-rel="${i}"><div class="rz-ic"><svg data-lucide="${b.ok ? it.icone : 'lock'}"></svg></div><div class="rz-tx"><b>${rzEsc(it.titulo)}</b><span>${rzEsc(b.ok ? it.sub : b.textoCurto)}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>`;
+            }).join('');
+            el.querySelectorAll('[data-rel]').forEach(r => r.addEventListener('click', () => { const it = itens[Number(r.dataset.rel)]; if (rzMostrarBloqueio(it.codigo)) return; it.acao(); }));
+            if (typeof rzIcones === 'function') rzIcones();
+        }
         function switchTab(tabId) {
             if (TAB_CODIGO_VER[tabId] && rzMostrarBloqueio(TAB_CODIGO_VER[tabId])) return;
+            if (tabId === 'tab-relatorios-catalogo') setTimeout(renderCatalogoRelatorios, 0); // v1.136
 
             // v1.117.0 (fatia 7b-i) — Síndicos/Administradoras/Manutencistas
             // fundidos em Partes (decisão do Nicola, 04/09): as 3 telas
