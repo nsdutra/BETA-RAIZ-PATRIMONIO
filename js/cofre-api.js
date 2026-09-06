@@ -1,6 +1,8 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.16.0 · 04/09/2026
+// Versão: 1.17.0 · 05/09/2026
+//
+// v1.17.0 — buscarResumoImoveisParaCards: imóveis e contratos em paralelo.
 //
 // v1.16.0 — reaproveita window.__raizDbAuth quando roda dentro do App
 // (GoTrueClient duplicado, fatia 7). Standalone inalterado.
@@ -575,14 +577,12 @@ const STATUS_IMOVEL_SUPABASE_PARA_ROTULO = { disponivel: 'Vago', alugado: 'Aluga
 export async function buscarResumoImoveisParaCards(clienteId) {
     const resumo = new Map();
     try {
-        const { data: imoveisRows, error: e1 } = await dbAuth.from('imoveis')
-            .select('id, status, finalidade_uso, fotos, tipos_imovel(nome), empreendimentos(nome)')
-            .eq('cliente_id', clienteId);
+        // v1.17.0 — as 2 consultas em paralelo (eram em fila; 1 ida a menos no 4G)
+        const [{ data: imoveisRows, error: e1 }, { data: contratosRows, error: e2 }] = await Promise.all([
+            dbAuth.from('imoveis').select('id, status, finalidade_uso, fotos, tipos_imovel(nome), empreendimentos(nome)').eq('cliente_id', clienteId),
+            dbAuth.from('contratos').select('imovel_id, status, locatario, valor').eq('cliente_id', clienteId),
+        ]);
         if (e1) throw e1;
-
-        const { data: contratosRows, error: e2 } = await dbAuth.from('contratos')
-            .select('imovel_id, status, locatario, valor')
-            .eq('cliente_id', clienteId);
         if (e2) throw e2;
 
         (imoveisRows || []).forEach(imo => {

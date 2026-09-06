@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.25.0 · 05/09/2026
+// Versão: 1.26.0 · 05/09/2026
+//
+// v1.26.0 — ficha do ativo abre NA HORA: mudarTela primeiro, 6 painéis em
+// paralelo (Promise.all) com catch individual; guarda contra troca de ativo
+// no meio. Era 6 consultas em fila antes de trocar de tela (Nicola: "nem
+// sempre abre de primeira").
 //
 // v1.25.0 — 12 ações que ficaram sem `codigo` na v1.24 (achado pelo
 // Nicola testando como 'consulta'): Editar dados (ficha do ativo),
@@ -826,22 +831,27 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     document.getElementById('fa-editar-wrapper').classList.add('hidden');
 
     fotosAtivoCache = [];
-    await montarDadosAtivo(a);
-    montarDocumentosAtivo(a);
-    await montarControlesAtivo(a);
-    await montarContratosAtivo(a);
-    await montarFotosAtivo(a);
-    await montarFinanceiroAtivo(a);
-    await montarPropriedadeAtivo(a);
-
-    // v1.93.0 — toda vez que a ficha abre, começa na aba "Dados" (mesmo
-    // comportamento do protótipo: "Ficha abre sempre em Resumo" já era
-    // regra deste projeto desde antes das abas existirem — só reaplicado
-    // aqui em cima do mecanismo novo).
+    // v1.26.0 (Nicola, 05/09: "ao clicar num ativo parece pesado e nem
+    // sempre abre de primeira") — a tela trocava SÓ no fim, depois de 6
+    // consultas em fila (2–4 s no 4G). Agora: troca de tela primeiro (cada
+    // painel já mostra "Carregando..."), ficha abre em Resumo (regra desde
+    // a v1.93.0), e os 6 montar* rodam em PARALELO, cada um com seu catch
+    // (um painel falhar não derruba os outros). Se o usuário tocar em
+    // outro ativo no meio, o repaint final é do ativo mais recente.
     faTrocarAba(chipInicial);
     faTrocarSegArquivos('documentos');
-
     mudarTela('ficha-ativo');
+    montarDocumentosAtivo(a);
+    const seguro = (fn, nome) => fn(a).catch(err => console.warn(`[cofre-ativos] ${nome} falhou:`, err?.message || err));
+    await Promise.all([
+        seguro(montarDadosAtivo, 'montarDadosAtivo'),
+        seguro(montarControlesAtivo, 'montarControlesAtivo'),
+        seguro(montarContratosAtivo, 'montarContratosAtivo'),
+        seguro(montarFotosAtivo, 'montarFotosAtivo'),
+        seguro(montarFinanceiroAtivo, 'montarFinanceiroAtivo'),
+        seguro(montarPropriedadeAtivo, 'montarPropriedadeAtivo'),
+    ]);
+    if (ativoAtualId !== id) return; // outro ativo foi aberto no meio — o dele repinta
 }
 
 // v1.93.0 (pedido explícito, 31/08/2026, "evoluir a exemplo do

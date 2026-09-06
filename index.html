@@ -6,9 +6,30 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.128.0
-   LINHAS: 30811
+   VERSÃO: Beta v1.129.0
+   LINHAS: 30832
    DATA: 05/09/2026
+   NOVIDADES (Beta v1.129.0) — DESEMPENHO DA FICHA DO ATIVO + módulos
+   presos no cache (3 prints do Nicola, 05/09 20:55). Index só sobe de
+   versão; a mudança é nos satélites:
+   1) cofre-ativos.js v1.26.0 — abrirFichaAtivo trocava de tela SÓ no fim,
+      depois de 6 consultas em fila (2–4 s no 4G): por isso "seleciona mas
+      nem sempre abre de primeira". Agora troca de tela primeiro e os 6
+      painéis carregam em paralelo, cada um com seu catch. Guarda contra
+      troca de ativo no meio. Volume de dados NÃO era o problema (Rumo: 49
+      ativos = 21 kB, 1 documento) — era latência × sequência.
+   2) cofre-api.js v1.17.0 — buscarResumoImoveisParaCards com as 2
+      consultas em paralelo.
+   3) sw.js v2.0 — "Sobre" mostrava Cofre v1.21.1 com o GitHub em 1.26.0:
+      import() de módulos presos no cache HTTP (hard refresh não alcança
+      os import() disparados depois, no prefetch em idle). SW passa a
+      buscar todo .js do site com cache:'no-cache' (revalida com ETag →
+      304 barato). Continua SEM cache próprio. Depois deste deploy, o
+      "Sobre" tem que bater com o header de cada módulo.
+   REGISTRADO (roteiro #6, subiu na fila): Minha empresa, Pessoas e
+   acessos e Sobre estão fora da gramática (botões emerald, títulos
+   grandes, caixa alta "SEU PLANO/VERSÕES") — comum-*.js.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.128.0) — FATIA 9b (2/3): "Fiadores do contrato" de
    popup Tipo B pra sheet (abrirSheetForm). O invólucro mudou; a lista de
    fiadores (renderFiadoresPopup, #dnc-fiadores-lista, atualizarCampo
@@ -10361,7 +10382,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.128.0";
+        const APP_VERSAO = "Beta v1.129.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
