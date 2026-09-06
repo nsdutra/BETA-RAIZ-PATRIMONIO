@@ -1,9 +1,9 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-09-06T20:40:52",
+  "gerado_em": "2026-09-06T20:53:15",
   "arquivos": {
-    "index.html": "1.136.0",
-    "sw.js": "2.0",
+    "index.html": "1.137.0",
+    "sw.js": "2.1",
     "js/cadastros.js": "1.0.1",
     "js/cofre-api.js": "1.17.0",
     "js/cofre-app.js": "1.25.3",

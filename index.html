@@ -6,9 +6,23 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.136.0
-   LINHAS: 31003
+   VERSÃO: Beta v1.137.0
+   LINHAS: 31034
    DATA: 06/09/2026
+   NOVIDADES (Beta v1.137.0) — "RECARREGAR MÓDULOS" DE VERDADE (print do
+   Nicola: Versões mostrando 6 módulos presos e o botão sem efeito).
+   Causa: o botão só limpava Cache Storage; o que segura os módulos é o
+   cache HTTP do navegador, e o SW v2.0 não chegou a controlar o PWA
+   ("sw.js rodando —"). Agora: (1) desregistra todo SW, apaga caches,
+   registra o sw.js de novo com updateViaCache:'none', espera ele
+   CONTROLAR (controllerchange) e recarrega com query — a carga nova
+   passa inteira pelo SW; (2) sw.js v2.1 busca todo .js e o versoes.json
+   do site com cache:'reload' (rede sempre, ignora cache HTTP) em vez
+   de 'no-cache' (que só revalida — e o Android nem sempre revalida
+   módulos). (3) registro normal do SW também com updateViaCache:'none'.
+   Depois deste deploy, a primeira carga ainda pode vir mista; o botão
+   resolve a partir daí, e o Versões tem que ficar todo verde.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.136.0) — A.4 RESULTADOS EM 3 SEGMENTOS + R6 (parte 2).
    1) Resultados: Desempenho · Distribuição · RELATÓRIOS. Regra nova (decisão
       de 05/09): toda exportação mora em Relatórios — o botão "Exportar
@@ -10450,7 +10464,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.136.0";
+        const APP_VERSAO = "Beta v1.137.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10638,9 +10652,26 @@
                 <div class="rz-card rz-list">${bots.length ? bots.map(b => `<div class="rz-row"><div class="rz-tx"><b>${rzEsc(b.funcao)}</b><span>último boot ${b.ultimo_boot ? new Date(b.ultimo_boot).toLocaleString('pt-BR') : '—'}</span></div><div class="rz-rt"><b>v${rzEsc(b.versao)}</b></div></div>`).join('') : '<p class="text-xs text-slate-500 py-2">sem registro</p>'}</div>`;
             if (typeof rzIcones === 'function') rzIcones();
         }
+        // v1.137.0 — "Recarregar módulos" DE VERDADE (Nicola: clicou e continuou
+        // preso). O que segura os módulos é o cache HTTP + o SW novo não estar
+        // controlando o PWA. Sequência: (1) desregistra todo SW; (2) apaga Cache
+        // Storage; (3) registra o sw.js de novo (register ignora cache) e espera
+        // ele CONTROLAR a página (clients.claim → controllerchange); (4) recarrega.
+        // Na nova carga, todo import() passa pelo SW v2.1, que busca na rede
+        // com cache:'reload'. Sem SW disponível: cai no reload com query.
         async function rzRecarregarModulos() {
+            mostrarToast('Recarregando módulos…', 'info');
             try { if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); } } catch (e) { /* segue */ }
-            location.reload();
+            if (!('serviceWorker' in navigator)) { location.href = location.pathname + '?r=' + Date.now(); return; }
+            try {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(regs.map(r => r.unregister()));
+                let recarregou = false;
+                const ir = () => { if (recarregou) return; recarregou = true; location.href = location.pathname + '?r=' + Date.now(); };
+                navigator.serviceWorker.addEventListener('controllerchange', ir, { once: true });
+                await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+                setTimeout(ir, 4000); // se o SW não assumir em 4 s, recarrega mesmo assim
+            } catch (e) { location.href = location.pathname + '?r=' + Date.now(); }
         }
         function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
             const ordenar = lista => [
@@ -29420,7 +29451,7 @@
             // com ícone próprio e tela cheia — sem isso, o Android cai no
             // atalho genérico do navegador).
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').catch(function(err) {
+                navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(function(err) {
                     console.warn('Falha ao registrar service worker:', err.message);
                 });
             }
