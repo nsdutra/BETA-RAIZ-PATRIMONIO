@@ -6,9 +6,22 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.143.0
-   LINHAS: 23915
-   DATA: 06/09/2026
+   VERSÃO: Beta v1.144.0
+   LINHAS: 23942
+   DATA: 07/09/2026
+   NOVIDADES (Beta v1.144.0) — E.3.1: COTA VISÍVEL NO APP.
+   Desde a migration e3_cota_tipo_e_uso_por_tipo_v1 (07/09) a RPC
+   fn_funcionalidades_liberadas devolve `cota_tipo` e o `usado` certo
+   (estoque pra ativos/contratos/controles, MB pra storage, mês pra IA —
+   Gemini e Claude contam 1 cada). Aqui: (1) podeUsar() monta o texto do
+   cadeado por tipo — "Limite do plano (49 de 50)" pra estoque, "Espaço
+   esgotado (x de y MB)" pra bytes, "Limite do mês" só pro que é mensal;
+   aviso_padrao do plano, se existir, vence o texto genérico. (2) Um
+   toast por sessão, só pra admin/master, quando alguma cota passou do
+   limite_aviso (ex.: Rumo, 49 de 50 ativos) — sem bloquear nada.
+   (3) comum-licenca.js v1.3.0: cada barra mostra o tipo (no mês / em uso
+   / MB) e o número fica âmbar a 80% e vermelho no teto. Sem migration.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.143.0) — R8 FATIA 4: VITRINE SAI DO INDEX
    (js/vitrine.js v1.0.0). 688 linhas: aba Vitrine, vitrine pública
    (?v=token, lightbox, sair), contratação pública (?contratar=token,
@@ -7314,7 +7327,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.2.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.4.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.4.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -10602,7 +10615,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.143.0";
+        const APP_VERSAO = "Beta v1.144.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10690,6 +10703,14 @@
                 const { data, error } = await dbAuth.rpc('fn_funcionalidades_liberadas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_perfil: perfilLogado });
                 if (error) throw error;
                 (data || []).forEach(f => FUNCIONALIDADES_LIBERADAS.set(f.codigo, f));
+                // v1.144.0 (E.3.1) — cota perto do teto: um aviso por sessão, só
+                // pra quem pode agir (admin/master), sem bloquear nada.
+                const pertoDoTeto = (data || []).filter(f => f.avisar && !f.motivo && f.limite);
+                if (pertoDoTeto.length && !window.__rzAvisouCota && ['admin', 'master', 'master_plataforma'].includes(perfilLogado)) {
+                    window.__rzAvisouCota = true;
+                    const txt = pertoDoTeto.map(f => `${f.usado} de ${f.limite}${f.cota_tipo === 'bytes' ? ' MB' : ''} em "${f.rotulo}"`).join(' · ');
+                    setTimeout(() => mostrarToast(`Seu plano está perto do limite: ${txt}. Veja em ⚙️ › Licença.`, 'info'), 1500);
+                }
             } catch (err) {
                 console.warn('carregarFuncionalidadesLiberadas:', err.message);
             }
@@ -10707,7 +10728,13 @@
             const rot = f.rotulo || codigo;
             const t = {
                 sem_licenca:     ['Não incluído no plano',      f.aviso_padrao || `"${rot}" não faz parte do plano atual da empresa. Fale com a Raiz pra ampliar.`],
-                limite_atingido: [`Limite do mês (${f.usado} de ${f.limite})`, `Sua empresa já usou os ${f.limite} de "${rot}" deste mês. Fale com a Raiz pra ampliar.`],
+                // v1.144.0 (E.3.1) — texto por tipo de cota (funcionalidades.cota_tipo):
+                // estoque = teto do que existe; bytes = MB; mensal = eventos do mês.
+                limite_atingido: f.cota_tipo === 'estoque'
+                    ? [`Limite do plano (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa chegou ao teto de ${f.limite} em "${rot}" do plano atual. Fale com a Raiz pra ampliar.`]
+                    : f.cota_tipo === 'bytes'
+                    ? [`Espaço esgotado (${f.usado} de ${f.limite} MB)`, f.aviso_padrao || `Sua empresa usou os ${f.limite} MB de armazenamento do plano atual. Fale com a Raiz pra ampliar.`]
+                    : [`Limite do mês (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa já usou os ${f.limite} de "${rot}" deste mês. Fale com a Raiz pra ampliar.`],
                 sem_perfil:      ['Sem permissão no seu perfil', `Seu perfil não tem "${rot}". Peça ao administrador da empresa.`],
             }[f.motivo] || [null, null];
             return { ok: !f.motivo, motivo: f.motivo, rotulo: rot, limite: f.limite, usado: f.usado, avisar: f.avisar, textoCurto: t[0], textoLongo: t[1] };

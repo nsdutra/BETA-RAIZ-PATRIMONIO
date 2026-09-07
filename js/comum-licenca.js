@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.2.1 · 06/09/2026
+// Versão: 1.3.0 · 07/09/2026
+//
+// v1.3.0 — E.3.1: cada limite mostra o tipo de cota (no mês / em uso / MB),
+// lido de funcionalidades.cota_tipo (E.3), e o número fica âmbar a partir de
+// 80% e vermelho no limite. fn_verificar_limite já conta por tipo desde a
+// migration e3_cota_tipo_e_uso_por_tipo_v1 — aqui só o rótulo mudou.
+//
+// Versão anterior: 1.2.1 · 06/09/2026
 //
 // v1.2.1 — constante VERSAO sincronizada com o header (estava presa em uma
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
@@ -52,7 +59,7 @@
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
 
-export const VERSAO = '1.2.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -112,11 +119,12 @@ async function buscarFuncionalidadesDoPlano(dbAuth, clienteId, licenca) {
     // busca separada; se falhar, segue com o código técnico mesmo
     // (nunca quebra a tela toda por causa disso).
     let nomesComerciais = {};
+    let cotaTipos = {}; // v1.3.0 — mensal | estoque | bytes (E.3)
     try {
         const codigos = funcs.map(f => f.funcionalidade_codigo).filter(Boolean);
         const { data: info } = await dbAuth
-            .from('funcionalidades').select('codigo, nome_comercial').in('codigo', codigos);
-        (info || []).forEach(fi => { if (fi.nome_comercial) nomesComerciais[fi.codigo] = fi.nome_comercial; });
+            .from('funcionalidades').select('codigo, nome_comercial, cota_tipo').in('codigo', codigos);
+        (info || []).forEach(fi => { if (fi.nome_comercial) nomesComerciais[fi.codigo] = fi.nome_comercial; cotaTipos[fi.codigo] = fi.cota_tipo || 'mensal'; });
     } catch (errNomes) {
         console.warn('[comum-licenca] Nomes comerciais indisponíveis, seguindo com código técnico:', errNomes.message);
     }
@@ -136,6 +144,7 @@ async function buscarFuncionalidadesDoPlano(dbAuth, clienteId, licenca) {
             usado: (usos[i] && usos[i].usado != null) ? usos[i].usado : 0,
             limite: f.limite,
             limiteAviso: f.limite_aviso,
+            cotaTipo: cotaTipos[codigo] || 'mensal',
         };
     });
 }
@@ -166,8 +175,8 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
             return `
                 <div class="border-2 border-slate-300 rounded-xl p-2.5">
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-xs font-bold text-slate-700">${f.rotulo}</span>
-                        <span class="text-[11px] font-bold text-slate-500">${f.usado} / ${f.limite}</span>
+                        <span class="text-xs font-bold text-slate-700">${f.rotulo} <span class="text-[10px] font-normal text-slate-400">· ${f.cotaTipo === 'estoque' ? 'em uso' : f.cotaTipo === 'bytes' ? 'MB' : 'no mês'}</span></span>
+                        <span class="text-[11px] font-bold ${pct >= 100 ? 'text-red-600' : pct >= 80 ? 'text-amber-600' : 'text-slate-500'}">${f.usado}${f.cotaTipo === 'bytes' ? ' MB' : ''} / ${f.limite}${f.cotaTipo === 'bytes' ? ' MB' : ''}</span>
                     </div>
                     <div class="w-full bg-gray-100 rounded-full h-1.5">
                         <div class="h-1.5 rounded-full" style="width:${pct}%;${corBarraStyle}"></div>
@@ -196,7 +205,7 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
             </div>
         </div>
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Limites do plano</h3><span class="rz-sub">uso no mês · estoque quando for cadastro</span></div>
+            <div class="rz-card-h"><h3>Limites do plano</h3><span class="rz-sub">o que conta em cada cota está ao lado do nome</span></div>
             <div class="space-y-3 max-h-96 overflow-y-auto">${funcsHtml}</div>
         </div>`;
 }
