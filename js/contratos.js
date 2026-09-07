@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.0.0 · 06/09/2026
+// Versão: 1.0.1 · 06/09/2026
+//
+// v1.0.1 — BUG da fatia 3 (v1.142): a ficha usava o RETORNO síncrono de
+// avaliarProntidaoContratoParaMinuta(), que virou ponte (Promise) quando
+// Minutas saiu do index. Agora é import estático de ./minutas.js — módulo a
+// módulo, sem ponte. Regra que fica: ponte window[nome] só pra chamada
+// "dispara e esquece"; quem precisa do retorno importa.
+//
+// Versão anterior: 1.0.0 · 06/09/2026
 //
 // R8 — FRAGMENTAÇÃO, FATIA 2 (A.8). Segundo corte do index.html (Beta
 // v1.141.0), mesmo método do financeiro.js v1.0.0 (R8-1): ES module SOB
@@ -58,7 +66,9 @@
 // implícita/arguments/with).
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
+
+export const VERSAO = '1.0.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {

@@ -6,9 +6,40 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.141.0
-   LINHAS: 25731
+   VERSÃO: Beta v1.143.0
+   LINHAS: 23915
    DATA: 06/09/2026
+   NOVIDADES (Beta v1.143.0) — R8 FATIA 4: VITRINE SAI DO INDEX
+   (js/vitrine.js v1.0.0). 688 linhas: aba Vitrine, vitrine pública
+   (?v=token, lightbox, sair), contratação pública (?contratar=token,
+   formulário do interessado), início do processo de contratação pelo
+   imóvel/ativo, resumo pro WhatsApp. Estado exclusivo (4) virou nível de
+   módulo. Boot: quando a URL é pública, o módulo é importado com await
+   ANTES de seguir (visitante nunca vê o login — mesma garantia); sem
+   parâmetro público, não baixa. Ficaram: dados de links_vitrine e
+   processosContratacao, validarCNPJ (compartilhado), banner de contratação
+   do PLANO (é licença), HTML das telas. Zero HTML tocado. DEPLOY:
+   vitrine.js NOVO no manifesto (Deploy_Raiz.ps1 v2.14) e gerar_versoes.py
+   v1.6. Sem migration.
+   CORREÇÃO (achado nesta fatia): contratos.js v1.0.1 — a ficha usava o
+   retorno síncrono de avaliarProntidaoContratoParaMinuta(), que na v1.142
+   virou ponte (Promise) quando Minutas saiu daqui; o card de prontidão da
+   minuta viria errado. Agora contratos.js e vitrine.js IMPORTAM de
+   ./minutas.js (import estático, o import map resolve). Regra: ponte só
+   pra "dispara e esquece"; quem usa retorno, importa. Varredura feita nos
+   4 módulos + index: nenhum outro uso síncrono de ponte.
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.142.0) — R8 FATIA 3: MINUTAS SAI DO INDEX
+   (js/minutas.js v1.0.0). 1219 linhas saíram: tela de modelos, wizard de
+   minutização (DOCX/PDF → IA → revisão → DOCX), geração da minuta preenchida
+   (placeholders, prontidão, gerarMinutaNoCofre), escolha de minuta pro
+   imóvel. Helpers exclusivos vieram junto (assert: ninguém de fora usa).
+   Mesmo desenho das fatias 1 e 2: import() no switchTab('tab-minutas'),
+   pontes window[nome], rzMinSeCarregado('renderMinutas') nos 3 ganchos.
+   Ficaram: minutasContrato + carregar/sincronizar, contratação pública.
+   Zero HTML tocado. DEPLOY: minutas.js NOVO no manifesto (Deploy_Raiz.ps1
+   v2.13) e no gerar_versoes.py (v1.5). Sem migration.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.141.0) — R8 FATIA 2: CONTRATOS SAI DO INDEX
    (js/contratos.js v1.0.0) + MINHA EMPRESA COMPLETA (comum-minha-empresa.js
    v1.4.0).
@@ -7283,7 +7314,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.2.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.4.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.2.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.4.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -10571,7 +10602,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.141.0";
+        const APP_VERSAO = "Beta v1.143.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -13360,22 +13391,10 @@
             const alerta = document.getElementById('imoveis-filtro-alerta');
             if (alerta) alerta.value = 'todos';
             renderImoveis();
-            if (typeof renderVitrine === 'function') renderVitrine();
+            rzVitSeCarregado('renderVitrine');
         }
 
-        // v1.47.0 — overlay de busca da Vitrine (mesmo padrão do de Imóveis
-        // acima, IDs próprios: vitrine-filtro-emp/status, que já existiam
-        // como <select> visíveis num card fixo — só migraram de lugar).
-        function abrirBuscaVitrine() {
-            const modal = document.getElementById('modal-busca-vitrine');
-            modal.classList.remove('hidden');
-            modal.onclick = (ev) => { if (ev.target === modal) fecharBuscaVitrine(); };
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
 
-        function fecharBuscaVitrine() {
-            document.getElementById('modal-busca-vitrine').classList.add('hidden');
-        }
 
         // v1.52.0 — overlay de busca da aba Financeiro, mesmo padrão de
         // Imóveis/Vitrine.
@@ -15119,8 +15138,7 @@
 
                         renderRelatorios();
 
-                        renderVitrine();
-
+                        rzVitSeCarregado('renderVitrine');
                         rzFinSeCarregado('renderPendenciasExtrato');
                         renderAdministradoras();
 
@@ -15128,7 +15146,7 @@
 
                         renderManutencistas();
 
-                        if (typeof renderMinutas === 'function') renderMinutas();
+                        rzMinSeCarregado('renderMinutas');
 
                         dev_carregarLogsSistema();
 
@@ -15465,10 +15483,9 @@
 
             renderRelatorios();
 
-            renderVitrine();
-
+            rzVitSeCarregado('renderVitrine');
             rzFinSeCarregado('renderPendenciasExtrato');
-            if (typeof renderMinutas === 'function') renderMinutas();
+            rzMinSeCarregado('renderMinutas');
 
             renderAdministradoras();
 
@@ -15628,7 +15645,7 @@
                 renderSociosDistribricao();
                 renderRelatorios();
                 rzFinSeCarregado('renderPendenciasExtrato');
-                if (typeof renderMinutas === 'function') renderMinutas();
+                rzMinSeCarregado('renderMinutas');
             }
 
             })(); // fecha executarSalvamento
@@ -16257,6 +16274,53 @@
             if (typeof rzIcones === 'function') rzIcones();
         }
         // =====================================================================
+        // R8 (fatia 4, Beta v1.143.0) — VITRINE VIVE EM js/vitrine.js
+        // Mesmo desenho de Financeiro/Contratos/Minutas (blocos abaixo).
+        // =====================================================================
+        let __rzVitModulo = null;
+        function carregarVitrine() {
+            if (__rzVitModulo) return Promise.resolve(__rzVitModulo);
+            return import('./js/vitrine.js').then(m => (__rzVitModulo = m));
+        }
+        function rzVitSeCarregado(nome, ...args) {
+            if (__rzVitModulo && typeof __rzVitModulo[nome] === 'function') return __rzVitModulo[nome](...args);
+        }
+        [
+            'abrirBuscaVitrine', 'fecharBuscaVitrine', 'copyResumo', 'renderVitrine',
+            'iniciarProcessoContratacao', 'abrirModalOpcoesContratacao', 'iniciarModoContratacaoPublica', 'mostrarErroContratacaoPublica',
+            'fecharTelaContratacaoPublica', 'montarEnderecoContratacaoPublica', 'primeiroCampoInvalidoContratacaoPublica', 'mostrarErroCampoContratacaoPublica',
+            'enviarFormularioContratacaoPublico', 'gerarLinkVitrine', 'gerarVitrineDoImovel', 'gerarLinkVitrineParaIds',
+            'verificarFiltroVitrineExterna', 'abrirLightboxVitrineImovel', 'abrirLightboxVitrine', 'fecharLightboxVitrine',
+            'sairDaVitrinePublica', 'navegarLightboxVitrine', 'atualizarLightboxVitrine'
+        ].forEach(nome => { window[nome] = (...args) => carregarVitrine().then(m => m[nome](...args)); });
+
+        // =====================================================================
+        // R8 (fatia 3, Beta v1.142.0) — MINUTAS VIVE EM js/minutas.js
+        // Mesmo desenho de Financeiro/Contratos (blocos abaixo).
+        // =====================================================================
+        let __rzMinModulo = null;
+        function carregarMinutas() {
+            if (__rzMinModulo) return Promise.resolve(__rzMinModulo);
+            return import('./js/minutas.js').then(m => (__rzMinModulo = m));
+        }
+        function rzMinSeCarregado(nome, ...args) {
+            if (__rzMinModulo && typeof __rzMinModulo[nome] === 'function') return __rzMinModulo[nome](...args);
+        }
+        [
+            'escaparAtributoHtmlMinz', 'abrirWizardMinutizacao', 'fecharWizardMinutizacao', 'atualizarCampoEscopoMinz',
+            'processarArquivoMinutizacao', 'renderRevisaoMinutizacao', 'atualizarPlaceholderEscolhidoMinz', 'voltarPasso1Minutizacao',
+            'aplicarSubstituicoesTextoMinutizacao', 'confirmarMinutizacao', 'abrirFormMinutaSheet', 'abrirFormularioMinuta',
+            'alternarFormularioMinuta', 'cancelarEdicaoMinuta', 'popularSelectsEscopoMinuta', 'popularFiltroSelectComId',
+            'atualizarCampoEscopoMinuta', 'editarMinuta', 'salvarMinuta', 'extrairStoragePathDeUrlAssinada',
+            'excluirMinuta', 'renderMinutas', 'abrirAcoesMinuta', 'abrirAjudaPlaceholdersMinuta',
+            'slugArquivo', 'dataYYYYMMDD', 'encontrarMinutaParaImovel', 'listarMinutasAplicaveis',
+            'extensoData', 'mesesEntreDatas', 'avaliarProntidaoContratoParaMinuta', 'montarValoresPlaceholdersMinuta',
+            'escaparXml', 'preencherMinutaDocx', 'extrairTextoDocxMinutizacao', 'extrairTextoPdfMinutizacao',
+            'gerarDocxDoTextoMinutizacao', 'chamarDeteccaoPlaceholdersIA', 'gerarMinutaContrato', 'gerarMinutaNoCofre',
+            'baixarMinutaPadraoImovel', 'abrirPickerMinutasAplicaveis'
+        ].forEach(nome => { window[nome] = (...args) => carregarMinutas().then(m => m[nome](...args)); });
+
+        // =====================================================================
         // R8 (fatia 2, Beta v1.141.0) — CONTRATOS VIVE EM js/contratos.js
         // Mesmo desenho do Financeiro (bloco abaixo): carregarContratos()
         // importa 1x; rzConSeCarregado() só redesenha se já está no ar;
@@ -16408,8 +16472,17 @@
             if (tabId === 'tab-developer' && typeof dev_inicializar === 'function') {
                 dev_inicializar();
             }
-            if (tabId === 'tab-minutas' && typeof renderMinutas === 'function') {
-                renderMinutas(); // v1.122.0 — selects do form vivem no sheet agora
+            // R8 (fatia 4) — Vitrine sob demanda.
+            if (tabId === 'tab-vitrine') {
+                carregarVitrine()
+                    .then(m => m.montarAbaVitrine())
+                    .catch(err => console.warn('[vitrine] Falha ao carregar módulo:', err.message));
+            }
+            // R8 (fatia 3) — Minutas sob demanda.
+            if (tabId === 'tab-minutas') {
+                carregarMinutas()
+                    .then(m => m.montarAbaMinutas())
+                    .catch(err => console.warn('[minutas] Falha ao carregar módulo:', err.message));
             }
             if (tabId === 'tab-licenca' && typeof inicializarLicenca === 'function') {
                 inicializarLicenca();
@@ -17979,531 +18052,26 @@
             'data_assinatura'
         ];
 
-        function escaparAtributoHtmlMinz(texto) {
-            return String(texto || '')
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        }
 
-        // --- Wizard "Gerar de um contrato real" (Parte 3) ---
-        let __minzEstado = null;
 
-        function abrirWizardMinutizacao() {
-            __minzEstado = null;
-            document.getElementById('minz-nome').value = '';
-            document.getElementById('minz-escopo').value = 'geral';
-            document.getElementById('minz-arquivo-input').value = '';
-            document.getElementById('minz-empreendimento-id').value = '';
-            document.getElementById('minz-tipo-imovel-id').value = '';
-            document.getElementById('minz-imovel-id').value = '';
-            document.getElementById('minz-imovel-resumo').textContent = '-- Escolha o Imóvel --';
-            popularFiltroSelectComId('minz-empreendimento-id', empreendimentosCadastrados);
-            popularFiltroSelectComId('minz-tipo-imovel-id', tiposImovelCadastrados);
-            atualizarCampoEscopoMinz();
-            document.getElementById('minz-passo-1').classList.remove('hidden');
-            document.getElementById('minz-passo-2').classList.add('hidden');
-            document.getElementById('form-minutizar-wrapper').classList.remove('hidden');
-            cancelarEdicaoMinuta();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
 
-        function fecharWizardMinutizacao() {
-            __minzEstado = null;
-            document.getElementById('form-minutizar-wrapper').classList.add('hidden');
-        }
 
-        function atualizarCampoEscopoMinz() {
-            const escopo = document.getElementById('minz-escopo').value;
-            document.getElementById('minz-campo-empreendimento').classList.toggle('hidden', escopo !== 'empreendimento');
-            document.getElementById('minz-campo-tipo').classList.toggle('hidden', escopo !== 'tipo_imovel');
-            document.getElementById('minz-campo-imovel').classList.toggle('hidden', escopo !== 'imovel');
-        }
 
-        async function processarArquivoMinutizacao() {
-            const nome = document.getElementById('minz-nome').value.trim();
-            const escopo = document.getElementById('minz-escopo').value;
-            if (!nome) { alert('⚠️ Dê um nome pra essa minuta.'); return; }
-            if (escopo === 'empreendimento' && !document.getElementById('minz-empreendimento-id').value) { alert('⚠️ Selecione o empreendimento.'); return; }
-            if (escopo === 'tipo_imovel' && !document.getElementById('minz-tipo-imovel-id').value) { alert('⚠️ Selecione o tipo de imóvel.'); return; }
-            if (escopo === 'imovel' && !document.getElementById('minz-imovel-id').value) { alert('⚠️ Selecione o imóvel.'); return; }
 
-            const arquivoInput = document.getElementById('minz-arquivo-input');
-            const arquivo = arquivoInput.files && arquivoInput.files[0];
-            if (!arquivo) { alert('⚠️ Envie o contrato real (.docx ou .pdf).'); return; }
-            const nomeMinusculo = arquivo.name.toLowerCase();
-            const ehDocx = nomeMinusculo.endsWith('.docx');
-            const ehPdf = nomeMinusculo.endsWith('.pdf');
-            if (!ehDocx && !ehPdf) { alert('⚠️ Só .docx ou .pdf são aceitos aqui.'); return; }
 
-            mostrarCarregamentoGlobal('Lendo o contrato...');
-            try {
-                const arrayBuffer = await arquivo.arrayBuffer();
-                const textoOriginal = ehDocx
-                    ? await extrairTextoDocxMinutizacao(arrayBuffer)
-                    : await extrairTextoPdfMinutizacao(arrayBuffer);
 
-                mostrarCarregamentoGlobal('Identificando os dados variáveis com IA...');
-                const sugestoesBrutas = await chamarDeteccaoPlaceholdersIA(textoOriginal);
 
-                __minzEstado = {
-                    nome, escopo,
-                    empreendimentoId: escopo === 'empreendimento' ? document.getElementById('minz-empreendimento-id').value : null,
-                    tipoImovelId: escopo === 'tipo_imovel' ? document.getElementById('minz-tipo-imovel-id').value : null,
-                    imovelId: escopo === 'imovel' ? document.getElementById('minz-imovel-id').value : null,
-                    textoOriginal,
-                    sugestoes: sugestoesBrutas.map(function(s, i) {
-                        return {
-                            id: 'sug_' + i,
-                            trechoOriginal: s.trecho_original,
-                            confianca: s.confianca,
-                            // Já nasce com o valor sugerido pela IA escolhido —
-                            // a pessoa só precisa mexer no que quiser trocar
-                            // ou desmarcar, não escolher tudo do zero.
-                            placeholderEscolhido: s.placeholder,
-                        };
-                    }),
-                };
 
-                esconderCarregamentoGlobal();
 
-                if (__minzEstado.sugestoes.length === 0) {
-                    mostrarToast('A IA não encontrou nenhum trecho reconhecível pra virar placeholder neste texto. Confere se o arquivo tem o conteúdo certo, ou cadastre a minuta manualmente.', 'aviso');
-                }
 
-                renderRevisaoMinutizacao();
-                document.getElementById('minz-passo-1').classList.add('hidden');
-                document.getElementById('minz-passo-2').classList.remove('hidden');
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Não consegui processar esse arquivo: ' + (err.message || String(err)));
-            }
-        }
 
-        function renderRevisaoMinutizacao() {
-            const container = document.getElementById('minz-lista-revisao');
-            if (!__minzEstado || __minzEstado.sugestoes.length === 0) {
-                container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhum trecho identificado.</p>';
-                return;
-            }
-            const opcoesHtmlBase = ['<option value="">(não substituir)</option>']
-                .concat(PLACEHOLDERS_MINUTA_OFICIAIS.map(p => `<option value="${p}">{{${p}}}</option>`))
-                .join('');
 
-            container.innerHTML = __minzEstado.sugestoes.map(function(s) {
-                const corConfianca = s.confianca === 'alta' ? 'raiz-text-pine' : (s.confianca === 'media' ? 'text-amber-700' : 'text-slate-500');
-                // monta as options de novo por linha só pra marcar o
-                // "selected" certo desta sugestão especificamente.
-                const opcoes = ['<option value="">(não substituir)</option>']
-                    .concat(PLACEHOLDERS_MINUTA_OFICIAIS.map(function(p) {
-                        return `<option value="${p}" ${p === s.placeholderEscolhido ? 'selected' : ''}>{{${p}}}</option>`;
-                    })).join('');
-                return `
-                    <div class="border border-slate-200 rounded-xl p-2.5">
-                        <p class="text-xs font-bold text-slate-900 break-words">"${escaparAtributoHtmlMinz(s.trechoOriginal)}"</p>
-                        <p class="text-[11px] ${corConfianca} mt-0.5">Confiança da IA: ${s.confianca}</p>
-                        <select data-minz-id="${s.id}" onchange="atualizarPlaceholderEscolhidoMinz('${s.id}', this.value)" style="background:#f8fafc" class="w-full p-2 border rounded mt-1.5 text-xs">
-                            ${opcoes}
-                        </select>
-                    </div>`;
-            }).join('');
-        }
 
-        function atualizarPlaceholderEscolhidoMinz(id, valor) {
-            if (!__minzEstado) return;
-            const s = __minzEstado.sugestoes.find(x => x.id === id);
-            if (s) s.placeholderEscolhido = valor; // '' = não substituir
-        }
 
-        function voltarPasso1Minutizacao() {
-            document.getElementById('minz-passo-2').classList.add('hidden');
-            document.getElementById('minz-passo-1').classList.remove('hidden');
-        }
 
-        // Aplica as substituições CONFIRMADAS (placeholderEscolhido não
-        // vazio) no texto extraído — todas as ocorrências idênticas desse
-        // trecho, não só a primeira (um nome de locatário provavelmente
-        // aparece mais de uma vez no contrato inteiro).
-        function aplicarSubstituicoesTextoMinutizacao(texto, sugestoesConfirmadas) {
-            let resultado = texto;
-            sugestoesConfirmadas.forEach(function(s) {
-                if (!s.trechoOriginal || !s.placeholderEscolhido) return;
-                resultado = resultado.split(s.trechoOriginal).join(`{{${s.placeholderEscolhido}}}`);
-            });
-            return resultado;
-        }
 
-        async function confirmarMinutizacao() {
-            if (!__minzEstado) return;
 
-            const confirmadas = __minzEstado.sugestoes.filter(s => s.placeholderEscolhido);
-            if (confirmadas.length === 0) {
-                if (!confirm('Nenhum placeholder foi confirmado — a minuta vai ficar com o texto do contrato real, SEM nenhum campo variável (não serve pra reaproveitar). Continuar mesmo assim?')) return;
-            }
 
-            mostrarCarregamentoGlobal('Gerando o modelo da minuta...');
-            try {
-                const textoComPlaceholders = aplicarSubstituicoesTextoMinutizacao(__minzEstado.textoOriginal, confirmadas);
-                const linhas = [__minzEstado.nome].concat(textoComPlaceholders.split('\n'));
-                const blob = await gerarDocxDoTextoMinutizacao(__minzEstado.nome, linhas);
-
-                const nomeDescritivo = `minuta_${slugArquivo(__minzEstado.nome)}_v1_${dataYYYYMMDD()}.docx`;
-                const nomeArquivo = `${CLIENTE_ID_SUPABASE}/minutas-modelo/${nomeDescritivo}`;
-                const { error: errUpload } = await dbAuth.storage.from('contratos-documentos').upload(nomeArquivo, blob, { upsert: true });
-                if (errUpload) throw errUpload;
-                const { data: signedData, error: errSigned } = await dbAuth.storage.from('contratos-documentos').createSignedUrl(nomeArquivo, 315360000);
-                if (errSigned) throw errSigned;
-
-                const dados = {
-                    id: 'minuta_' + Date.now() + Math.random().toString(36).substr(2, 4),
-                    nome: __minzEstado.nome,
-                    escopo: __minzEstado.escopo,
-                    empreendimentoId: __minzEstado.empreendimentoId,
-                    tipoImovelId: __minzEstado.tipoImovelId,
-                    imovelId: __minzEstado.imovelId,
-                    arquivoUrl: signedData.signedUrl,
-                    arquivoNome: nomeDescritivo,
-                    arquivoVersao: 1,
-                    ativa: true,
-                };
-                minutasContrato.push(dados);
-
-                registrarLog('minutas.minutizar_ia', { // v1.131 — código do catálogo
-                    minutaNome: dados.nome, escopo: dados.escopo,
-                    quantidadeSugestoes: __minzEstado.sugestoes.length, quantidadeConfirmadas: confirmadas.length,
-                });
-
-                __minzEstado = null;
-                document.getElementById('form-minutizar-wrapper').classList.add('hidden');
-
-                saveAll(true, 'Minuta gerada a partir do contrato real!', ['minutasContrato']);
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Não consegui gerar o modelo: ' + (err.message || String(err)));
-            }
-        }
-
-        // v1.122.0 (fatia 7b-ii parte 2) — o formulário de minuta virou
-        // sheet da gramática. TODOS os ids dos campos foram preservados:
-        // salvarMinuta() (upload .docx pro storage + gravação) continua
-        // lendo por getElementById sem UMA linha alterada. editar = mesmo
-        // sheet pré-preenchido. abrirFormularioMinuta/alternarFormulario
-        // Minuta viraram aliases (chamadores antigos espalhados).
-        function abrirFormMinutaSheet(minutaId) {
-            if (typeof abrirSheetForm !== 'function') return;
-            const m = minutaId ? minutasContrato.find(x => x.id === minutaId) : null;
-            abrirSheetForm({
-                titulo: m ? 'Editar minuta' : 'Cadastrar minuta',
-                sub: m ? m.nome : 'Modelo .docx com placeholders',
-                rotuloSalvar: 'Salvar',
-                corpo: `
-                    <input type="hidden" id="minuta-id">
-                    <div><label class="block text-xs font-bold text-gray-600">Nome da minuta <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="minuta-nome" placeholder="Ex.: Locação comercial padrão" class="w-full p-2 border rounded mt-1 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-600">Escopo <span style="color:var(--danger)">*</span></label>
-                        <select id="minuta-escopo" onchange="atualizarCampoEscopoMinuta()" class="w-full p-2 border rounded mt-1 text-sm">
-                            <option value="geral">Geral (vale pra todos os imóveis)</option>
-                            <option value="empreendimento">Por empreendimento</option>
-                            <option value="tipo_imovel">Por tipo de imóvel</option>
-                            <option value="imovel">Por imóvel específico</option>
-                        </select></div>
-                    <div id="minuta-campo-empreendimento" class="hidden"><label class="block text-xs font-bold text-gray-600">Empreendimento <span style="color:var(--danger)">*</span></label>
-                        <select id="minuta-empreendimento-id" class="w-full p-2 border rounded mt-1 text-sm"></select></div>
-                    <div id="minuta-campo-tipo" class="hidden"><label class="block text-xs font-bold text-gray-600">Tipo de imóvel <span style="color:var(--danger)">*</span></label>
-                        <select id="minuta-tipo-imovel-id" class="w-full p-2 border rounded mt-1 text-sm"></select></div>
-                    <div id="minuta-campo-imovel" class="hidden"><label class="block text-xs font-bold text-gray-600">Imóvel <span style="color:var(--danger)">*</span></label>
-                        <input type="hidden" id="minuta-imovel-id" value="">
-                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minuta-imovel-id').value = id; document.getElementById('minuta-imovel-resumo').textContent = resumo; })" class="w-full p-2 border rounded mt-1 text-sm text-left bg-white"><span id="minuta-imovel-resumo">-- Escolha o imóvel --</span></button></div>
-                    <div>
-                        <div class="flex items-center justify-between mt-1"><label class="block text-xs font-bold text-gray-600">Arquivo do modelo (.docx) <span style="color:var(--danger)">*</span></label>
-                        <button type="button" onclick="abrirAjudaPlaceholdersMinuta()" class="text-[11px] font-bold raiz-text-pine underline">Ver placeholders</button></div>
-                        <div id="minuta-arquivo-atual-info" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 mt-1.5 mb-1 flex items-center justify-between gap-2">
-                            <span class="text-[11px] text-slate-600 truncate" id="minuta-arquivo-atual-nome"></span>
-                            <span class="text-[10px] text-slate-400 flex-none">enviar outro substitui</span>
-                        </div>
-                        <p id="minuta-arquivo-novo-nome" class="text-[11px] raiz-text-pine font-bold"></p>
-                        <input type="file" id="minuta-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                    </div>`,
-                aoSalvar: async () => { await salvarMinuta({ preventDefault: () => {} }); return false; },
-            });
-            popularSelectsEscopoMinuta();
-            if (m) {
-                document.getElementById('minuta-id').value = m.id;
-                document.getElementById('minuta-nome').value = m.nome;
-                document.getElementById('minuta-escopo').value = m.escopo || 'geral';
-                document.getElementById('minuta-empreendimento-id').value = m.empreendimentoId || '';
-                document.getElementById('minuta-tipo-imovel-id').value = m.tipoImovelId || '';
-                document.getElementById('minuta-imovel-id').value = m.imovelId || '';
-                const imo = m.imovelId ? imoveis.find(i => i.id === m.imovelId) : null;
-                if (imo) document.getElementById('minuta-imovel-resumo').textContent = `${imo.empreendimento} - ${imo.enderecoRua}, ${imo.enderecoNum}`;
-                if (m.arquivoUrl) {
-                    document.getElementById('minuta-arquivo-atual-nome').innerText = m.arquivoNome || 'arquivo-modelo.docx';
-                    document.getElementById('minuta-arquivo-atual-info').classList.remove('hidden');
-                }
-            }
-            atualizarCampoEscopoMinuta();
-            rzIcones();
-        }
-        function abrirFormularioMinuta() { abrirFormMinutaSheet(); }
-        function alternarFormularioMinuta() { abrirFormMinutaSheet(); }
-        // v1.122.0 — chamada no fim de salvarMinuta(); os campos agora
-        // vivem no sheet (morrem com ele), então: null-safe + fecharSheet.
-        function cancelarEdicaoMinuta() {
-            const idEl = document.getElementById('minuta-id');
-            if (idEl) idEl.value = '';
-            if (typeof fecharSheet === 'function') fecharSheet();
-        }
-
-        function popularSelectsEscopoMinuta() {
-            popularFiltroSelectComId('minuta-empreendimento-id', empreendimentosCadastrados);
-            popularFiltroSelectComId('minuta-tipo-imovel-id', tiposImovelCadastrados);
-        }
-
-        // v1.42.0 — variante de popularFiltroSelect que preserva o id real
-        // como value (não o nome) — necessário aqui porque a minuta vincula
-        // pelo id do empreendimento/tipo, não pelo nome.
-        function popularFiltroSelectComId(selectId, itens) {
-            const select = document.getElementById(selectId);
-            if (!select) return;
-            const valorAtual = select.value || '';
-            select.innerHTML = '<option value="">-- Selecione --</option>' +
-                (itens || []).map(function(it) { return `<option value="${it.id}">${it.nome}</option>`; }).join('');
-            select.value = valorAtual;
-        }
-
-        function atualizarCampoEscopoMinuta() {
-            const escopo = document.getElementById('minuta-escopo').value;
-            document.getElementById('minuta-campo-empreendimento').classList.toggle('hidden', escopo !== 'empreendimento');
-            document.getElementById('minuta-campo-tipo').classList.toggle('hidden', escopo !== 'tipo_imovel');
-            document.getElementById('minuta-campo-imovel').classList.toggle('hidden', escopo !== 'imovel');
-        }
-
-        function editarMinuta(id) { abrirFormMinutaSheet(id); }
-
-        async function salvarMinuta(e) {
-            e.preventDefault();
-
-            const escopo = document.getElementById('minuta-escopo').value;
-
-            if (escopo === 'empreendimento' && !document.getElementById('minuta-empreendimento-id').value) {
-                alert('⚠️ Selecione o empreendimento desta minuta.');
-                return;
-            }
-            if (escopo === 'tipo_imovel' && !document.getElementById('minuta-tipo-imovel-id').value) {
-                alert('⚠️ Selecione o tipo de imóvel desta minuta.');
-                return;
-            }
-            if (escopo === 'imovel' && !document.getElementById('minuta-imovel-id').value) {
-                alert('⚠️ Selecione o imóvel desta minuta.');
-                return;
-            }
-
-            const id = document.getElementById('minuta-id').value;
-            const arquivoInput = document.getElementById('minuta-arquivo-input');
-            const arquivoNovo = arquivoInput.files && arquivoInput.files[0];
-
-            if (!id && !arquivoNovo) {
-                alert('⚠️ Envie o arquivo .docx do modelo.');
-                return;
-            }
-            if (arquivoNovo && !arquivoNovo.name.toLowerCase().endsWith('.docx')) {
-                const ehPdf = arquivoNovo.name.toLowerCase().endsWith('.pdf');
-                // CORRIGIDO (v1.68.0, pedido explícito — "não estou
-                // conseguindo anexar PDF"): antes o <input accept=".docx">
-                // já impedia PDF de aparecer como selecionável no seletor
-                // de arquivo do celular, então a pessoa nem chegava a ver
-                // mensagem nenhuma — parecia simplesmente "não funciona".
-                // Agora o seletor aceita PDF também (dá pra escolher), mas
-                // a mensagem deixa claro que o PDF ainda não é processado
-                // automaticamente aqui — é a funcionalidade de "gerar
-                // minuta a partir de um contrato real" (Parte 3 da
-                // especificação combinada), que ainda não foi construída,
-                // só especificada. Isto NÃO é o mesmo cadastro de sempre
-                // com um limite técnico bobo — é uma função futura
-                // diferente que ainda não existe.
-                alert(ehPdf
-                    ? '⚠️ PDF ainda não é convertido automaticamente aqui — essa função (gerar minuta a partir de um contrato real em PDF) está em desenvolvimento, ainda não pronta. Por enquanto, envie o modelo em .docx, já com os {{placeholders}} nos pontos que variam (ou abra o PDF no Word/Google Docs e "Salvar como" .docx primeiro).'
-                    : '⚠️ Só arquivos .docx (Word) ou .pdf são aceitos aqui. Se for outro formato, abra e "Salvar como" .docx primeiro.');
-                return;
-            }
-
-            const minutaExistente = id ? minutasContrato.find(m => m.id === id) : null;
-
-            const dados = {
-                id: id || 'minuta_' + Date.now() + Math.random().toString(36).substr(2, 4),
-                nome: document.getElementById('minuta-nome').value.trim(),
-                escopo: escopo,
-                empreendimentoId: escopo === 'empreendimento' ? document.getElementById('minuta-empreendimento-id').value : null,
-                tipoImovelId: escopo === 'tipo_imovel' ? document.getElementById('minuta-tipo-imovel-id').value : null,
-                imovelId: escopo === 'imovel' ? document.getElementById('minuta-imovel-id').value : null,
-                arquivoUrl: minutaExistente ? minutaExistente.arquivoUrl : null,
-                arquivoNome: minutaExistente ? minutaExistente.arquivoNome : null,
-                arquivoVersao: minutaExistente ? (minutaExistente.arquivoVersao || 1) : 1,
-                ativa: true
-            };
-
-            if (arquivoNovo) {
-                mostrarCarregamentoGlobal("Enviando arquivo do modelo...");
-                try {
-                    // CORRIGIDO (v1.67.0, pedido explícito — nome de arquivo
-                    // inteligível): antes o nome salvo (arquivo_nome) e o
-                    // path no Storage vinham do File.name bruto do upload —
-                    // sem sanitizar sufixo de download duplicado do
-                    // navegador (" (1)") nem se proteger de alguém reenviar
-                    // um arquivo que já tinha sido baixado daqui antes (o
-                    // nome anterior, com seu próprio timestamp, virava parte
-                    // do nome novo). Agora o nome vem SEMPRE do campo "Nome
-                    // da minuta" (nunca do File.name), com versão que sobe a
-                    // cada reenvio em vez de empilhar timestamp:
-                    // minuta_{slug}_v{n}_{data}.docx.
-                    dados.arquivoVersao = (dados.arquivoVersao || 1) + (minutaExistente ? 1 : 0);
-                    const nomeDescritivo = `minuta_${slugArquivo(dados.nome)}_v${dados.arquivoVersao}_${dataYYYYMMDD()}.docx`;
-                    const nomeArquivo = `${CLIENTE_ID_SUPABASE}/minutas-modelo/${nomeDescritivo}`;
-                    const { error: errUpload } = await dbAuth.storage.from('contratos-documentos').upload(nomeArquivo, arquivoNovo, { upsert: true });
-                    if (errUpload) throw errUpload;
-                    const { data: signedData, error: errSigned } = await dbAuth.storage.from('contratos-documentos').createSignedUrl(nomeArquivo, 315360000);
-                    if (errSigned) throw errSigned;
-                    dados.arquivoUrl = signedData.signedUrl;
-                    dados.arquivoNome = nomeDescritivo;
-                } catch (err) {
-                    esconderCarregamentoGlobal();
-                    alert('❌ Falha ao enviar o arquivo: ' + (err.message || String(err)));
-                    return;
-                }
-                esconderCarregamentoGlobal();
-            }
-
-            if (id) {
-                const idx = minutasContrato.findIndex(m => m.id === id);
-                if (idx !== -1) minutasContrato[idx] = dados;
-            } else {
-                minutasContrato.push(dados);
-            }
-
-            cancelarEdicaoMinuta();
-
-            registrarLog(id ? 'minutas.editar' : 'minutas.criar', { minutaNome: dados.nome, escopo: dados.escopo });
-
-            saveAll(true, "Minuta salva com sucesso!", ['minutasContrato']);
-        }
-
-        // CORRIGIDO (v1.67.0, achado em auditoria — vazamento de Storage):
-        // excluir uma minuta só apagava a linha da tabela, nunca o arquivo
-        // no bucket — todo .docx de modelo excluído ficava órfão. A URL
-        // assinada guardada já contém o caminho real dentro do bucket
-        // (.../object/sign/contratos-documentos/<path>?token=...), então dá
-        // pra extrair sem precisar de uma coluna nova só pra isso. Falha ao
-        // remover do Storage não impede a exclusão do cadastro (a linha sai
-        // de qualquer forma) — só fica registrada no console pra investigar
-        // depois, não trava a ação do usuário.
-        function extrairStoragePathDeUrlAssinada(url, bucket) {
-            if (!url) return null;
-            const marcador = `/object/sign/${bucket}/`;
-            const idx = url.indexOf(marcador);
-            if (idx === -1) return null;
-            const resto = url.slice(idx + marcador.length);
-            const semQuery = resto.split('?')[0];
-            try { return decodeURIComponent(semQuery); } catch (e) { return semQuery; }
-        }
-
-        function excluirMinuta(id) {
-            if (!confirm("Confirma a exclusão desta minuta?")) return;
-
-            const minuta = minutasContrato.find(m => m.id === id);
-            const storagePath = minuta ? extrairStoragePathDeUrlAssinada(minuta.arquivoUrl, 'contratos-documentos') : null;
-            if (storagePath) {
-                dbAuth.storage.from('contratos-documentos').remove([storagePath]).then(({ error }) => {
-                    if (error) console.error('excluirMinuta: falha ao remover arquivo do Storage (linha já será excluída mesmo assim):', error.message);
-                });
-            }
-
-            dbAuth.from('minutas_contrato').delete().eq('id', id).then(({ error }) => {
-                if (error) logScreen('Erro ao excluir minuta no Supabase: ' + error.message, true);
-            });
-
-            minutasContrato = minutasContrato.filter(m => m.id !== id);
-
-            registrarLog('minutas.excluir', { minutaId: id });
-
-            saveAll(true, "Minuta excluída.", ['minutasContrato']);
-        }
-
-        // v1.122.0 — lista na gramática: .rz-row com ⋮ (Ver arquivo /
-        // Editar / Excluir). Regras de escopo/nomes idênticas às antigas.
-        function renderMinutas() {
-            const container = document.getElementById('lista-minutas');
-            if (!container) return;
-            if (!minutasContrato.length) {
-                container.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-signature"></svg></div><p>Nenhuma minuta ainda. Cadastre um modelo .docx no "+" ou gere de um contrato real com a varinha.</p></div>';
-                rzIcones();
-                return;
-            }
-            const rotuloEscopo = { geral: 'Geral', empreendimento: 'Empreendimento', tipo_imovel: 'Tipo de imóvel', imovel: 'Imóvel' };
-            container.innerHTML = minutasContrato.map(m => {
-                let detalheEscopo = '';
-                if (m.escopo === 'empreendimento') {
-                    const e = empreendimentosCadastrados.find(x => x.id === m.empreendimentoId);
-                    detalheEscopo = e ? e.nome : '-';
-                } else if (m.escopo === 'tipo_imovel') {
-                    const t = tiposImovelCadastrados.find(x => x.id === m.tipoImovelId);
-                    detalheEscopo = t ? t.nome : '-';
-                } else if (m.escopo === 'imovel') {
-                    const imo = imoveis.find(x => x.id === m.imovelId);
-                    detalheEscopo = imo ? `${imo.enderecoRua}, ${imo.enderecoNum}` : '-';
-                }
-                return `
-                <div class="rz-row">
-                    <div class="rz-ic"><svg data-lucide="file-signature"></svg></div>
-                    <div class="rz-tx"><b>${rzEsc(m.nome)}</b><span>${rotuloEscopo[m.escopo] || m.escopo}${detalheEscopo ? ' · ' + rzEsc(detalheEscopo) : ''}</span></div>
-                    <button type="button" onclick="abrirAcoesMinuta('${m.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
-                </div>`;
-            }).join('');
-            rzIcones();
-        }
-        function abrirAcoesMinuta(id) {
-            const m = minutasContrato.find(x => x.id === id);
-            if (!m || typeof abrirSheetAcoes !== 'function') return;
-            const acoes = [];
-            if (m.arquivoUrl) acoes.push({ icone: 'eye', titulo: 'Ver arquivo do modelo', sub: m.arquivoNome || '', aoTocar: () => window.open(m.arquivoUrl, '_blank') });
-            acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'minutas.editar', aoTocar: () => abrirFormMinutaSheet(m.id) });
-            acoes.push({ icone: 'trash-2', titulo: 'Excluir', codigo: 'minutas.excluir', tipo: 'bad', aoTocar: () => excluirMinuta(m.id) });
-            abrirSheetAcoes({ titulo: m.nome, sub: 'Minuta de contrato', acoes });
-        }
-
-        // v1.42.0 — janela de ajuda com a lista de placeholders disponíveis
-        // (mesmo texto documentado na migration SQL, resumido para a tela).
-        function abrirAjudaPlaceholdersMinuta() {
-            const antigo = document.getElementById('modal-ajuda-placeholders');
-            if (antigo) { antigo.remove(); return; }
-
-            const grupos = [
-                { titulo: 'Empresa (Locador)', itens: ['locador_nome', 'locador_cnpj', 'locador_responsavel', 'locador_endereco', 'locador_cidade'] },
-                { titulo: 'Imóvel', itens: ['imovel_endereco', 'imovel_empreendimento', 'imovel_tipo', 'imovel_descricao'] },
-                { titulo: 'Contrato', itens: ['aluguel_valor', 'aluguel_vencimento_dia', 'contrato_inicio', 'contrato_fim', 'contrato_prazo_meses', 'indice_reajuste'] },
-                { titulo: 'Locatário (preenchido pelo interessado)', itens: ['locatario_nome', 'locatario_documento', 'locatario_doc_tipo', 'locatario_whatsapp', 'locatario_email', 'locatario_endereco_atual', 'locatario_profissao', 'locatario_estado_civil'] },
-                { titulo: 'Data', itens: ['data_assinatura'] }
-            ];
-
-            const modal = document.createElement('div');
-            modal.id = 'modal-ajuda-placeholders';
-            modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:center;justify-content:center;background:rgba(23,33,30,.5);padding:16px;';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.3);">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Placeholders disponíveis</h3>
-                        <button onclick="document.getElementById('modal-ajuda-placeholders').remove()" style="background:#17211e;border:none;border-radius:9999px;width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                    </div>
-                    <p style="font-size:11px;color:#64748b;margin-bottom:10px;">Toque num placeholder pra copiar. Cole no texto da minuta nos pontos que variam por locatário/imóvel/contrato.</p>
-                    ${grupos.map(g => `
-                        <p style="font-size:10px;font-weight:bold;color:#94a3b8;text-transform:uppercase;margin-top:10px;margin-bottom:4px;">${g.titulo}</p>
-                        <div style="display:flex;flex-wrap:wrap;gap:4px;">
-                            ${g.itens.map(p => `<button onclick="navigator.clipboard.writeText('{{${p}}}'); mostrarToast('Copiado: {{${p}}}', 'success');" style="font-size:10px;font-family:monospace;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;color:#334155;">{{${p}}}</button>`).join('')}
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
-        }
 
         function renderAdministradoras() {
 
@@ -18564,308 +18132,15 @@
         // Documentos), anexando automaticamente.
         // ============================================================================
 
-        // v1.67.0 — helper de nome de arquivo intuitivo, reaproveitado por
-        // salvarMinuta() e gerarMinutaNoCofre() (mesma lógica de sanitização
-        // que já existia solta/duplicada em 3 outros pontos do arquivo —
-        // aqui centralizada só pra uso novo, sem tocar nos 3 já existentes).
-        function slugArquivo(texto) {
-            return (texto || '')
-                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/^-+|-+$/g, '')
-                .slice(0, 60) || 'sem-nome';
-        }
 
-        function dataYYYYMMDD(d) {
-            const ref = d || new Date();
-            return `${ref.getFullYear()}${String(ref.getMonth() + 1).padStart(2, '0')}${String(ref.getDate()).padStart(2, '0')}`;
-        }
 
-        function encontrarMinutaParaImovel(imovelId) {
-            const imo = imoveis.find(i => i.id === imovelId);
-            if (!imo) return null;
 
-            return minutasContrato.find(m => m.ativa !== false && m.escopo === 'imovel' && m.imovelId === imovelId)
-                || minutasContrato.find(m => m.ativa !== false && m.escopo === 'tipo_imovel' && m.tipoImovelId === imo.tipoId)
-                || minutasContrato.find(m => m.ativa !== false && m.escopo === 'empreendimento' && m.empreendimentoId === imo.empreendimentoId)
-                || minutasContrato.find(m => m.ativa !== false && m.escopo === 'geral')
-                || null;
-        }
 
-        // NOVO (30/08/2026) — pedido explícito do Nicola: "pode ter 2 ou
-        // mais tipos de minuta aplicáveis a um mesmo imóvel... o sistema
-        // deve permitir a escolha de qual minuta padrão usar". Diferente
-        // de encontrarMinutaParaImovel() (resolve UMA só, a mais
-        // específica, pro atalho rápido "Gerar Minuta"), esta devolve
-        // TODAS as ativas que se aplicam, em qualquer nível da cascata —
-        // usada só pelo picker de "Conferir minuta padrão".
-        function listarMinutasAplicaveis(imovelId) {
-            const imo = imoveis.find(i => i.id === imovelId);
-            if (!imo) return [];
 
-            return minutasContrato.filter(m => {
-                if (m.ativa === false) return false;
-                if (m.escopo === 'imovel') return m.imovelId === imovelId;
-                if (m.escopo === 'tipo_imovel') return m.tipoImovelId === imo.tipoId;
-                if (m.escopo === 'empreendimento') return m.empreendimentoId === imo.empreendimentoId;
-                if (m.escopo === 'geral') return true;
-                return false;
-            });
-        }
 
-        function extensoData(dataStr) {
-            if (!dataStr) return '';
-            const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-            const d = new Date(dataStr + 'T00:00:00');
-            if (isNaN(d.getTime())) return dataStr;
-            return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
-        }
 
-        function mesesEntreDatas(inicio, fim) {
-            if (!inicio || !fim) return '';
-            const di = new Date(inicio + 'T00:00:00');
-            const df = new Date(fim + 'T00:00:00');
-            if (isNaN(di.getTime()) || isNaN(df.getTime())) return '';
-            return Math.round((df - di) / (1000 * 60 * 60 * 24 * 30));
-        }
 
-        // v1.42.1 — monta o dicionário de placeholders a partir do contrato,
-        // imóvel e empresa. Documentação completa de cada placeholder está
-        // na migration SQL (migration_v2_minutas_contrato_e_processos_contratacao.sql).
-        // ===================================================================
-        // v1.46.0 — REGRA CANÔNICA DE PRONTIDÃO PARA MINUTA
-        // Especificação 02_ESPECIFICACAO_PRONTIDAO_CONTRATO_MINUTA_v1.md.
-        // "Assinando" é STATUS (fase do processo); isto aqui é PRONTIDÃO
-        // (cadastro completo e válido pra virar documento). São coisas
-        // diferentes — daqui pra frente, nenhum lugar do app decide se
-        // mostra "Gerar Minuta" olhando só con.status.
-        //
-        // 4 camadas do documento:
-        //  1) contrato completo pra assinatura — verificado aqui (síncrono,
-        //     usa os MESMOS validadores que o formulário já usa: validarCPF/
-        //     validarCNPJ/validarTelefoneBR/validarEmailFormato — nenhum
-        //     validador novo foi inventado).
-        //  2) dados relacionados válidos — verificado aqui (imóvel existe,
-        //     empresa carregada).
-        //  3) minuta aplicável e acessível — verificado aqui
-        //     (encontrarMinutaParaImovel + arquivoUrl presente).
-        //  4) placeholders do MODELO REAL preenchidos — só é possível
-        //     conferir de verdade depois de abrir o .docx escolhido; isso
-        //     acontece dentro de gerarMinutaContrato() (defesa final, ver
-        //     abaixo), não aqui — repetir o download só pra pré-visualizar
-        //     na ficha pesaria a UI sem necessidade real.
-        // ===================================================================
-        function avaliarProntidaoContratoParaMinuta(con, imo) {
 
-            const faltantes = [];
-            const invalidos = [];
-
-            if (!con.locatario) faltantes.push('Nome do locatário');
-
-            if (!con.cpf) {
-                faltantes.push('CPF/CNPJ do locatário');
-            } else {
-                const digitos = con.cpf.replace(/\D/g, '');
-                const docOk = digitos.length === 11 ? validarCPF(digitos) : (digitos.length === 14 ? validarCNPJ(digitos) : false);
-                if (!docOk) invalidos.push('CPF/CNPJ do locatário é inválido');
-            }
-
-            if (!con.inicio) faltantes.push('Data de início da vigência');
-            if (!con.fim) faltantes.push('Data de fim da vigência');
-            if (con.inicio && con.fim && new Date(con.fim + 'T00:00:00') <= new Date(con.inicio + 'T00:00:00')) {
-                invalidos.push('Data de fim precisa ser depois do início');
-            }
-
-            if (!con.valor || con.valor <= 0) faltantes.push('Valor do aluguel (maior que zero)');
-
-            if (!con.vencimentoDia || con.vencimentoDia < 1 || con.vencimentoDia > 31) faltantes.push('Dia de vencimento válido (1 a 31)');
-
-            if (!con.reajuste) faltantes.push('Índice de reajuste');
-
-            if (con.whatsapp) {
-                const r = validarTelefoneBR(con.whatsapp);
-                if (r.ok === false) invalidos.push('WhatsApp do locatário é inválido');
-            }
-            if (con.email) {
-                const r = validarEmailFormato(con.email);
-                if (r.ok === false) invalidos.push('E-mail do locatário é inválido');
-            }
-
-            // Camada 2 — relacionados
-            if (!imo) faltantes.push('Imóvel vinculado válido');
-            if (!CONFIG_CLIENTE || !CONFIG_CLIENTE.nomeEmpresa) faltantes.push('Dados da empresa (locador) carregados');
-
-            // Camada 3 — minuta aplicável
-            const minuta = imo ? encontrarMinutaParaImovel(imo.id) : null;
-            const minutaAplicavel = !!(minuta && minuta.arquivoUrl);
-            if (!minutaAplicavel) faltantes.push('Nenhuma minuta cadastrada se aplica a este imóvel (Configurações → Minutas)');
-
-            const pronto = faltantes.length === 0 && invalidos.length === 0;
-
-            return { pronto, faltantes, invalidos, minutaAplicavel };
-
-        }
-
-        // v1.42.1 — monta o dicionário de placeholders a partir do contrato,
-        // imóvel e empresa. Documentação completa de cada placeholder está
-        // na migration SQL (migration_v2_minutas_contrato_e_processos_contratacao.sql).
-        // NOVO (30/08/2026) — 3º parâmetro `fiadores` (array, opcional):
-        // placeholders fiador_1_*/fiador_2_*/etc. Fiador que não existe
-        // fica com todas as chaves em '' — é assim que o mecanismo JÁ
-        // EXISTENTE de checagem em preencherMinutaDocx() (placeholdersVazios
-        // Detectados) descobre sozinho se a minuta escolhida precisa de
-        // fiador e ele não foi cadastrado — nenhuma lógica de validação
-        // nova foi criada aqui, só populado o dicionário.
-        function montarValoresPlaceholdersMinuta(con, imo, fiadores) {
-            const enderecoEmpresa = [CONFIG_CLIENTE.endereco, CONFIG_CLIENTE.complemento, CONFIG_CLIENTE.bairro, CONFIG_CLIENTE.cidade, CONFIG_CLIENTE.uf].filter(Boolean).join(', ');
-            const enderecoImovel = [imo?.enderecoRua, imo?.enderecoNum, imo?.enderecoComp, imo?.enderecoBairro, imo?.enderecoCidade].filter(Boolean).join(', ');
-
-            const valores = {
-                locador_nome: CONFIG_CLIENTE.nomeEmpresa || '',
-                locador_cnpj: CONFIG_CLIENTE.cnpj || '',
-                locador_responsavel: CONFIG_CLIENTE.nomeResponsavel || '',
-                locador_endereco: enderecoEmpresa,
-                locador_cidade: CONFIG_CLIENTE.cidade || '',
-                imovel_endereco: enderecoImovel,
-                imovel_empreendimento: imo?.empreendimento || '',
-                imovel_tipo: imo?.tipo || '',
-                imovel_descricao: imo?.descricao || '',
-                aluguel_valor: con?.valor ? formatarMoedaBR(con.valor) : '',
-                aluguel_vencimento_dia: con?.vencimentoDia || '',
-                contrato_inicio: con?.inicio ? formatarDataBR(con.inicio) : '',
-                contrato_fim: con?.fim ? formatarDataBR(con.fim) : '',
-                contrato_prazo_meses: mesesEntreDatas(con?.inicio, con?.fim),
-                indice_reajuste: con?.reajuste || '',
-                locatario_nome: con?.locatario || '',
-                locatario_documento: con?.cpf || '',
-                locatario_doc_tipo: con?.docTipo || '',
-                locatario_whatsapp: con?.whatsapp || '',
-                locatario_email: con?.email || '',
-                locatario_endereco_atual: con?.locatarioEnderecoAtual || '',
-                locatario_profissao: con?.locatarioProfissao || '',
-                locatario_estado_civil: con?.locatarioEstadoCivil || '',
-                data_assinatura: extensoData(new Date().toISOString().slice(0, 10))
-            };
-
-            // Até 4 fiadores previstos nos placeholders (fiador_1_ a
-            // fiador_4_) — na prática o normal é 0/1/2, mas não trava a
-            // minuta se algum dia precisar de mais; fiador inexistente
-            // simplesmente fica com string vazia em todas as chaves.
-            for (let i = 1; i <= 4; i++) {
-                const f = (fiadores || [])[i - 1] || null;
-                const p = 'fiador_' + i + '_';
-                valores[p + 'nome'] = f?.nome || '';
-                valores[p + 'cpf'] = f?.cpf || '';
-                valores[p + 'doc_tipo'] = f?.doc_tipo || '';
-                valores[p + 'rg'] = f?.rg || '';
-                valores[p + 'rg_orgao_expedidor'] = f?.rg_orgao_expedidor || '';
-                valores[p + 'nacionalidade'] = f?.nacionalidade || '';
-                valores[p + 'data_nascimento'] = f?.data_nascimento ? formatarDataBR(f.data_nascimento) : '';
-                valores[p + 'profissao'] = f?.profissao || '';
-                valores[p + 'estado_civil'] = f?.estado_civil || '';
-                valores[p + 'regime_bens'] = f?.regime_bens || '';
-                valores[p + 'conjuge_nome'] = f?.conjuge_nome || '';
-                valores[p + 'conjuge_cpf'] = f?.conjuge_cpf || '';
-                valores[p + 'conjuge_rg'] = f?.conjuge_rg || '';
-                valores[p + 'conjuge_profissao'] = f?.conjuge_profissao || '';
-                valores[p + 'whatsapp'] = f?.whatsapp || '';
-                valores[p + 'email'] = f?.email || '';
-                valores[p + 'endereco_atual'] = f?.endereco_atual || '';
-                valores[p + 'imovel_matricula'] = f?.imovel_matricula || '';
-                valores[p + 'imovel_cartorio_registro'] = f?.imovel_cartorio_registro || '';
-                valores[p + 'imovel_endereco'] = f?.imovel_endereco || '';
-            }
-            // fiadores_qtd — útil pra um trecho condicional simples no
-            // modelo tipo "Este contrato tem {{fiadores_qtd}} fiador(es)."
-            valores.fiadores_qtd = (fiadores || []).length;
-
-            return valores;
-        }
-
-        // v1.42.1 — escapa caracteres especiais de XML (o texto vai direto
-        // dentro de um <w:t> do document.xml do Word) — sem isso, um nome
-        // com "&" ou "<" quebraria o arquivo .docx gerado.
-        function escaparXml(texto) {
-            return String(texto || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&apos;');
-        }
-
-        // v1.42.1 — CORAÇÃO da geração de minuta: abre o .docx (é um .zip
-        // com XML dentro) via JSZip, funde runs de texto quebrados pelo
-        // Word (spell-check/autocorreção costuma partir um "{{placeholder}}"
-        // em vários <w:r> — sem isso, a substituição simples falharia em
-        // arquivos editados manualmente no Word), substitui cada
-        // {{placeholder}} pelo valor real, e gera um novo .docx (Blob) —
-        // pronto pra baixar/enviar, sem precisar de nenhum servidor.
-        async function preencherMinutaDocx(arrayBufferDocx, valores) {
-            const zip = await JSZip.loadAsync(arrayBufferDocx);
-
-            const caminhoDocumento = 'word/document.xml';
-            const arquivoXml = zip.file(caminhoDocumento);
-            if (!arquivoXml) throw new Error('Arquivo .docx inválido (não encontrei word/document.xml dentro dele).');
-
-            let xml = await arquivoXml.async('string');
-
-            // Funde texto quebrado entre runs: uma sequência "...</w:t></w:r><w:r...><w:t...>..."
-            // sem NADA de conteúdo relevante entre elas além de metadados de
-            // formatação é comum quando o Word divide o texto ao redor de
-            // marcas de correção ortográfica. Junta o CONTEÚDO de <w:t> de
-            // runs adjacentes antes de fazer a substituição, preservando a
-            // formatação do primeiro run da sequência (simplificação segura:
-            // perde formatação mista dentro de um mesmo placeholder, que é
-            // um caso raríssimo em campos curtos como estes).
-            xml = xml.replace(/(<w:t[^>]*>)([^<]*)(<\/w:t>)(\s*<\/w:r>\s*<w:r[^>]*>\s*(?:<w:rPr>.*?<\/w:rPr>\s*)?<w:t[^>]*>)([^<]*)(<\/w:t>)/g,
-                function(match, abre1, texto1, fecha1, meio, texto2) {
-                    // só funde se pelo menos um dos dois pedaços contiver "{" ou "}"
-                    // (evita mexer em texto normal do contrato à toa)
-                    if ((texto1 + texto2).indexOf('{') === -1 && (texto1 + texto2).indexOf('}') === -1) return match;
-                    return abre1 + texto1 + texto2 + fecha1;
-                }
-            );
-            // roda a fusão de novo (encadeamentos de 3+ runs quebrados)
-            for (let tentativa = 0; tentativa < 4; tentativa++) {
-                const antes = xml;
-                xml = xml.replace(/(<w:t[^>]*>)([^<]*\{[^<]*)(<\/w:t>)(\s*<\/w:r>\s*<w:r[^>]*>\s*(?:<w:rPr>.*?<\/w:rPr>\s*)?<w:t[^>]*>)([^<]*)(<\/w:t>)/g,
-                    function(match, abre1, texto1, fecha1, meio, texto2) { return abre1 + texto1 + texto2 + fecha1; }
-                );
-                if (xml === antes) break;
-            }
-
-            // v1.46.0 — CAMADA 4 REAL da prontidão (Especificação de
-            // Prontidão §5): só dá pra saber quais placeholders o MODELO
-            // REAL usa depois de abri-lo — é aqui, não antes. Guarda o xml
-            // ANTES da troca pra saber quais placeholders conhecidos
-            // realmente apareciam no modelo E ficaram vazios (pendência de
-            // negócio), e depois da troca sobra qualquer "{{...}}" que o
-            // sistema não sabia preencher (placeholder desconhecido do
-            // modelo — também bloqueia, evita "Nenhum placeholder residual"
-            // falhar no teste de aceite).
-            const xmlAntesDaTroca = xml;
-            const placeholdersVaziosDetectados = [];
-
-            Object.keys(valores).forEach(function(chave) {
-                const placeholder = '{{' + chave + '}}';
-                if (xmlAntesDaTroca.indexOf(placeholder) !== -1 && !valores[chave]) {
-                    placeholdersVaziosDetectados.push(chave);
-                }
-                const valorEscapado = escaparXml(valores[chave]);
-                xml = xml.split(placeholder).join(valorEscapado);
-            });
-
-            const residuaisMatch = xml.match(/\{\{[^}]{1,60}\}\}/g);
-            const placeholdersResiduais = residuaisMatch ? [...new Set(residuaisMatch)] : [];
-
-            zip.file(caminhoDocumento, xml);
-
-            const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-
-            return { blob, placeholdersVaziosDetectados, placeholdersResiduais };
-        }
 
         // ============================================================================
         // MINUTIZAÇÃO — Parte 3 da especificação de Minutas (v1.69.0,
@@ -18895,376 +18170,11 @@
 
         // --- Extração de texto ---
 
-        async function extrairTextoDocxMinutizacao(arrayBuffer) {
-            const zip = await JSZip.loadAsync(arrayBuffer);
-            const arquivoXml = zip.file('word/document.xml');
-            if (!arquivoXml) throw new Error('Arquivo .docx inválido (não encontrei word/document.xml dentro dele).');
-            let xml = await arquivoXml.async('string');
-            xml = xml.replace(/<\/w:p>/g, '\n');
-            xml = xml.replace(/<w:tab\/>/g, '\t');
-            let texto = xml.replace(/<[^>]+>/g, '');
-            texto = texto.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
-            texto = texto.split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).filter(l => l.length > 0).join('\n');
-            return texto;
-        }
 
-        // Heurística de linha: pdf.js devolve os textos em fragmentos soltos
-        // com posição (x,y) — sem heurística, tudo vira uma linha só por
-        // página. Quebra em nova linha quando o Y muda mais que 2pt em
-        // relação ao fragmento anterior (mudou de linha na página real).
-        // CORRIGIDO (30/08/2026) — BUG REAL achado pelo Nicola testando com
-        // um contrato real: palavras saíam quebradas ("c asado" em vez de
-        // "casado", "9 15" em vez de "915", "s eja" em vez de "seja"). A
-        // versão anterior inserida SEMPRE um espaço entre fragmentos
-        // (`item.str + ' '`) — mas o pdf.js frequentemente devolve UMA
-        // MESMA palavra partida em vários fragmentos (por kerning/hinting
-        // da fonte no PDF original), sem espaço real entre eles. Agora só
-        // insere espaço quando há um vão de verdade entre o fim de um
-        // fragmento e o início do próximo (maior que ~30% da largura média
-        // de caractere daquele fragmento) — palavra partida por kerning
-        // (vão pequeno/zero) não ganha espaço; palavras realmente
-        // separadas (vão maior) continuam ganhando.
-        async function extrairTextoPdfMinutizacao(arrayBuffer) {
-            if (typeof pdfjsLib === 'undefined') throw new Error('Biblioteca de leitura de PDF não carregou — recarregue a página e tente de novo.');
-            if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            }
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            const paginas = [];
-            for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const content = await page.getTextContent();
-                let linhaAtual = '';
-                let yAnterior = null;
-                let xFimAnterior = null;
-                const linhasPagina = [];
-                content.items.forEach(function(item) {
-                    const y = item.transform[5];
-                    const x = item.transform[4];
-                    if (yAnterior !== null && Math.abs(y - yAnterior) > 2) {
-                        if (linhaAtual.trim()) linhasPagina.push(linhaAtual.trim());
-                        linhaAtual = '';
-                        xFimAnterior = null;
-                    }
-                    if (item.str) {
-                        // vão real entre o fim do fragmento anterior e o
-                        // início deste — largura de caractere estimada a
-                        // partir da escala horizontal do próprio fragmento
-                        // (transform[0]), não um valor fixo (PDFs têm
-                        // fontes/zoom diferentes entre si).
-                        const larguraCharEstimada = Math.max(Math.abs(item.transform[0]) * 0.5, 1);
-                        const vao = xFimAnterior !== null ? x - xFimAnterior : 0;
-                        const precisaEspaco = xFimAnterior !== null
-                            && !/^\s/.test(item.str)
-                            && !linhaAtual.endsWith(' ')
-                            && vao > larguraCharEstimada;
-                        linhaAtual += (precisaEspaco ? ' ' : '') + item.str;
-                        xFimAnterior = x + (item.width || 0);
-                    }
-                    yAnterior = y;
-                });
-                if (linhaAtual.trim()) linhasPagina.push(linhaAtual.trim());
-                paginas.push(linhasPagina.join('\n'));
-            }
-            const texto = paginas.join('\n\n').trim();
-            if (texto.length < 20) throw new Error('Não consegui ler texto neste PDF — se for um PDF escaneado (imagem, sem texto selecionável), não dá pra extrair automaticamente ainda. Tenta um PDF com texto de verdade, ou converte pra .docx.');
-            return texto;
-        }
 
-        // --- Geração de um .docx novo, limpo, com formatação padrão ---
-        // Estrutura OOXML mínima válida (testada e confirmada abrindo em
-        // leitor de verdade antes de entrar aqui) — [Content_Types].xml +
-        // _rels/.rels + word/document.xml + word/_rels/document.xml.rels +
-        // word/styles.xml (2 estilos: Normal e Titulo) + docProps/core.xml
-        // + docProps/app.xml. Reaproveita escaparXml() já existente (usada
-        // por preencherMinutaDocx) — mesma função, um lugar só.
-        async function gerarDocxDoTextoMinutizacao(tituloDocumento, linhasTexto) {
-            const zip = new JSZip();
 
-            const contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-                '<Default Extension="xml" ContentType="application/xml"/>' +
-                '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
-                '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
-                '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
-                '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>' +
-                '</Types>';
 
-            const relsRoot = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
-                '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
-                '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>' +
-                '</Relationships>';
 
-            const docRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
-                '</Relationships>';
-
-            const styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-                '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-                '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>' +
-                '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="Titulo"><w:name w:val="Titulo"/><w:basedOn w:val="Normal"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>' +
-                '</w:styles>';
-
-            const core = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-                '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">' +
-                `<dc:title>${escaparXml(tituloDocumento)}</dc:title><dc:creator>Raiz Patrim\u00f4nio</dc:creator>` +
-                '</cp:coreProperties>';
-
-            const appXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-                '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">' +
-                '<Application>Raiz Patrim\u00f4nio</Application></Properties>';
-
-            const paragrafosXml = linhasTexto.map(function(linha, i) {
-                if (i === 0) {
-                    return `<w:p><w:pPr><w:pStyle w:val="Titulo"/></w:pPr><w:r><w:t xml:space="preserve">${escaparXml(linha)}</w:t></w:r></w:p>`;
-                }
-                if (!linha.trim()) return '<w:p/>';
-                return `<w:p><w:pPr><w:jc w:val="both"/></w:pPr><w:r><w:t xml:space="preserve">${escaparXml(linha)}</w:t></w:r></w:p>`;
-            }).join('');
-
-            const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
-                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-                `<w:body>${paragrafosXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1417" w:right="1417" w:bottom="1417" w:left="1417"/></w:sectPr></w:body>` +
-                '</w:document>';
-
-            zip.file('[Content_Types].xml', contentTypes);
-            zip.file('_rels/.rels', relsRoot);
-            zip.file('word/document.xml', documentXml);
-            zip.file('word/_rels/document.xml.rels', docRels);
-            zip.file('word/styles.xml', styles);
-            zip.file('docProps/core.xml', core);
-            zip.file('docProps/app.xml', appXml);
-
-            return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-        }
-
-        // --- Chamada à IA (Edge Function nova, minuta-detectar-placeholders) ---
-        async function chamarDeteccaoPlaceholdersIA(texto) {
-            const { data, error } = await dbAuth.functions.invoke('minuta-detectar-placeholders', {
-                body: { cliente_id: CLIENTE_ID_SUPABASE, texto },
-            });
-            if (error) throw new Error(error.message || 'Falha ao chamar a detecção de placeholders por IA.');
-            if (data?.erro) throw new Error(data.erro);
-            return data?.sugestoes || [];
-        }
-
-        // CORRIGIDO (v1.67.0 — bug real achado em auditoria de paridade da
-        // funcionalidade de Minutas): esta função gravava o anexo em
-        // `contratos.anexos`, coluna que não existe mais na tabela desde a
-        // migração do sistema de documentos pro Cofre (cofre_documentos +
-        // cofre_documento_vinculos, ver gerarMinutaNoCofre() abaixo). O
-        // `.update()` que gravava isso nunca checava erro — então o botão
-        // "Gerar Minuta" da Ficha do Contrato subia o arquivo pro bucket
-        // certo, mostrava toast de sucesso, mas o vínculo nunca era salvo:
-        // o documento ficava órfão no Storage e nunca aparecia em lugar
-        // nenhum (nem no box "Documento" da própria ficha, que já lê do
-        // Cofre). Corrigido eliminando a duplicação: esta função agora só
-        // resolve o imóvel do contrato e delega inteiramente pra
-        // gerarMinutaNoCofre() — mesma prontidão, mesmo preenchimento,
-        // mesmo destino (Cofre), sem lógica duplicada em dois lugares que
-        // podem divergir de novo no futuro.
-        // CORRIGIDO (30/08/2026, pedido explícito do Nicola testando):
-        // antes "Gerar Minuta" nunca oferecia escolha (delegava direto pra
-        // gerarMinutaNoCofre sem checar se havia mais de 1 minuta
-        // aplicável) — só "Conferir minuta padrão" mostrava o picker, e
-        // esse picker misturava as 2 ações (ver/gerar) na mesma tela.
-        // Agora os 2 botões usam o MESMO listarMinutasAplicaveis() e o
-        // MESMO abrirPickerMinutasAplicaveis(), só com o `modo` diferente
-        // — "Gerar Minuta" só oferece "gerar" por opção, "Conferir minuta
-        // padrão" só oferece "visualizar" por opção. Com só 1 aplicável,
-        // os 2 continuam pulando o picker (comportamento idêntico a antes).
-        async function gerarMinutaContrato(contratoId) {
-            const con = contratos.find(c => c.id === contratoId);
-            if (!con) return;
-
-            const aplicaveis = listarMinutasAplicaveis(con.imovelId);
-            if (aplicaveis.length > 1) {
-                abrirPickerMinutasAplicaveis(con.imovelId, aplicaveis, 'gerar');
-                return;
-            }
-            await gerarMinutaNoCofre(con.imovelId);
-        }
-
-        // ===================================================================
-        // v1.55.0 — NOVO: "Gerar minuta" a partir do menu Locação (pedido
-        // explícito). Sobe pro COFRE (cofre-documentos + cofre_documentos +
-        // cofre_documento_vinculos), como um documento tipo "Minuta
-        // Contratual" já vinculado ao contrato. Reaproveita 100% a mesma
-        // regra de prontidão/preenchimento (avaliarProntidaoContratoParaMinuta/
-        // montarValoresPlaceholdersMinuta/preencherMinutaDocx) — só muda o
-        // destino do upload.
-        // ===================================================================
-        // CORRIGIDO (v1.59.0 — pedido explícito): antes a validação rodava
-        // em 2 etapas separadas (avaliarProntidaoContratoParaMinuta primeiro,
-        // preencherMinutaDocx depois) — cada uma travava com seu próprio
-        // alerta, então a pessoa corrigia o 1º aviso, clicava de novo, e só
-        // aí via o 2º ("observação" do IMÓVEL, que o modelo de minuta usa
-        // mas não fazia parte da checagem de prontidão do contrato). Agora
-        // as duas checagens rodam ANTES de qualquer alerta, e tudo que
-        // estiver faltando aparece junto, numa única mensagem.
-        // v1.67.0 — desde esta versão, esta função também é o destino de
-        // gerarMinutaContrato() (ver acima) — é o ÚNICO lugar que sobe
-        // minuta preenchida de verdade, chamado a partir dos 2 pontos de
-        // entrada (pill "Gerar Minuta" da Ficha do Contrato + menu
-        // "Locação"). Nome do arquivo gerado também corrigido nesta versão
-        // (pedido explícito): antes era só "Minuta - {locatário}.docx", sem
-        // nenhuma referência a qual modelo deu origem; agora referencia o
-        // nome da própria minuta, igual a convenção usada no cadastro do
-        // modelo (slugArquivo/dataYYYYMMDD).
-        // v1.70.0 (30/08/2026) — 2º parâmetro opcional `minutaIdEscolhida`:
-        // quando informado (vindo do picker de "Conferir minuta padrão"
-        // com mais de uma opção aplicável — ver listarMinutasAplicaveis),
-        // usa ESSA minuta específica em vez de resolver sozinho por
-        // encontrarMinutaParaImovel(). Sem o parâmetro, comportamento
-        // idêntico a antes (botão "Gerar Minuta" continua resolvendo
-        // sozinho pela mais específica).
-        async function gerarMinutaNoCofre(imovelId, minutaIdEscolhida) {
-            const imo = imoveis.find(i => i.id === imovelId);
-            if (!imo) return;
-
-            const con = contratos.find(c => c.imovelId === imovelId && c.status === 'Assinando');
-            if (!con) {
-                alert('⚠️ Ainda não há um contrato "Assinando" para este imóvel — gere o link ou cadastre os dados do novo contrato primeiro.');
-                return;
-            }
-
-            const minuta = minutaIdEscolhida
-                ? minutasContrato.find(m => m.id === minutaIdEscolhida && m.ativa !== false)
-                : encontrarMinutaParaImovel(imovelId);
-            if (!minuta || !minuta.arquivoUrl) {
-                alert('⚠️ Nenhuma minuta cadastrada se aplica a este imóvel.');
-                return;
-            }
-
-            mostrarCarregamentoGlobal('Verificando dados...');
-
-            const prontidao = avaliarProntidaoContratoParaMinuta(con, imo);
-            const problemasCombinados = [...prontidao.faltantes, ...prontidao.invalidos];
-
-            // NOVO (30/08/2026) — fiadores do contrato, pra alimentar o
-            // dicionário de placeholders (ver montarValoresPlaceholdersMinuta).
-            let fiadoresDoContrato = [];
-            try {
-                const { data: fiadoresData, error: errFiadores } = await dbAuth.from('contrato_fiadores')
-                    .select('*').eq('contrato_id', con.id).order('ordem');
-                if (errFiadores) throw errFiadores;
-                fiadoresDoContrato = fiadoresData || [];
-            } catch (err) {
-                console.error('gerarMinutaNoCofre: falha ao buscar fiadores (segue sem eles):', err.message || err);
-            }
-
-            let arrayBufferModelo, resultadoPreenchimento;
-            try {
-                const respostaModelo = await fetch(minuta.arquivoUrl);
-                if (!respostaModelo.ok) throw new Error('Não consegui baixar o arquivo do modelo (HTTP ' + respostaModelo.status + ').');
-                arrayBufferModelo = await respostaModelo.arrayBuffer();
-
-                const valores = montarValoresPlaceholdersMinuta(con, imo, fiadoresDoContrato);
-                resultadoPreenchimento = await preencherMinutaDocx(arrayBufferModelo, valores);
-
-                resultadoPreenchimento.placeholdersVaziosDetectados.forEach(p => problemasCombinados.push('Campo usado no modelo, ainda vazio: ' + p));
-                resultadoPreenchimento.placeholdersResiduais.forEach(p => problemasCombinados.push('Modelo usa um placeholder que o sistema não sabe preencher: ' + p));
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Não consegui verificar o modelo de minuta: ' + (err.message || String(err)));
-                return;
-            }
-
-            if (problemasCombinados.length > 0) {
-                esconderCarregamentoGlobal();
-                // NOVO — se algum problema menciona "fiador_", oferece o
-                // atalho pra já abrir o cadastro em vez de só avisar.
-                const faltaFiador = problemasCombinados.some(p => p.toLowerCase().includes('fiador_'));
-                const sufixoFiador = faltaFiador ? '\n\nA minuta escolhida exige dados de fiador — toque em "Dados Contrato" pra cadastrar.' : '';
-                alert('⚠️ Minuta ainda indisponível — faltam ' + problemasCombinados.length + ' informação(ões):\n\n' + problemasCombinados.map(l => '• ' + l).join('\n') + sufixoFiador + '\n\nCompletar os dados antes de gerar.');
-                return;
-            }
-
-            mostrarCarregamentoGlobal('Gerando minuta...');
-
-            try {
-
-                // CORRIGIDO (v1.67.0, pedido explícito): nome intuitivo,
-                // referenciando o modelo de origem — igual convenção usada
-                // no cadastro da minuta (minuta_{slug}_v{n}_{data}.docx).
-                const nomeArquivo = `contrato_${slugArquivo(con.locatario)}_${slugArquivo(minuta.nome)}_${dataYYYYMMDD()}.docx`;
-                const nomeSanitizado = nomeArquivo.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
-                const agora = new Date();
-                const storagePath = `${CLIENTE_ID_SUPABASE}/${agora.getFullYear()}/${String(agora.getMonth() + 1).padStart(2, '0')}/minuta_${con.id}_${Date.now()}/${nomeSanitizado}`;
-
-                const { error: errUpload } = await dbAuth.storage.from('cofre-documentos').upload(storagePath, resultadoPreenchimento.blob, { contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-                if (errUpload) throw errUpload;
-
-                // Categoria "Minuta Contratual" — usa uma já cadastrada se
-                // existir (busca por nome), sem criar categoria nova sem
-                // necessidade nem travar a geração se não encontrar.
-                let categoriaId = null;
-                try {
-                    const { data: cats } = await dbAuth.from('cofre_categorias').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE).ilike('nome', '%minuta%').limit(1);
-                    if (cats && cats.length > 0) categoriaId = cats[0].id;
-                } catch (e) { /* segue sem categoria, não bloqueia */ }
-
-                const { data: docInserido, error: errDoc } = await dbAuth.from('cofre_documentos').insert({
-                    cliente_id: CLIENTE_ID_SUPABASE,
-                    nome_original: nomeArquivo,
-                    nome_exibicao: nomeArquivo,
-                    bucket: 'cofre-documentos',
-                    storage_path: storagePath,
-                    mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    extensao: 'docx',
-                    categoria_id: categoriaId,
-                    descricao: 'Minuta contratual gerada automaticamente a partir do modelo "' + minuta.nome + '".',
-                    origem: 'app',
-                    status: 'ativo'
-                }).select('id').single();
-                if (errDoc) throw errDoc;
-
-                await dbAuth.from('cofre_documento_vinculos').insert({
-                    cliente_id: CLIENTE_ID_SUPABASE,
-                    documento_id: docInserido.id,
-                    entidade_tipo: 'contrato',
-                    entidade_id: con.id,
-                    principal: true,
-                    criado_por: pessoaIdLogada || null
-                });
-
-                // CORRIGIDO (v1.56.0 — pedido explícito): a geração pelo
-                // botão nunca gravava no histórico do contrato. Mesmo
-                // padrão usado em toda parte (historico_contrato, tipo
-                // 'anexo' — enum já existente, é literalmente pra isso).
-                const descricaoHistoricoMinuta = `Minuta contratual gerada e guardada no Cofre ("${nomeArquivo}"), a partir do modelo "${minuta.nome}".`;
-                const { data: histInserido, error: errHistMinuta } = await dbAuth.from('historico_contrato').insert({
-                    contrato_id: con.id, tipo: 'anexo', descricao: descricaoHistoricoMinuta
-                }).select().single();
-                if (!errHistMinuta) {
-                    con.historico = con.historico || [];
-                    con.historico.push({ data: histInserido.criado_em, descricao: descricaoHistoricoMinuta, tipo: 'anexo', _salvo: true });
-                }
-
-                esconderCarregamentoGlobal();
-                registrarLog('minutas.gerar', { contratoId: con.id, minutaId: minuta.id, origem: 'cofre' }); // v1.131
-                mostrarToast('Minuta gerada e guardada no Cofre deste contrato!', 'success');
-
-                // CORRIGIDO (v1.58.0 — pedido explícito): o menu "Locação"
-                // só fecha aqui, no sucesso — os alerts de validação acima
-                // (contrato inexistente/dados faltando/sem minuta) não
-                // fecham mais o menu, ele continua na tela depois que a
-                // pessoa clica OK no alerta.
-                document.getElementById('modal-opcoes-contratacao')?.remove();
-
-                if (fichaImovelAtualId === imovelId) renderFichaImovelUnica(imo);
-                rzConSeCarregado('reabrirFichaSeFor', con.id); // R8-2 — estado da ficha vive em contratos.js
-
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Não consegui gerar a minuta: ' + (err.message || String(err)));
-            }
-        }
 
 
         function popularFiltroSelect(selectId, valores) {
@@ -21468,15 +20378,6 @@
 
 
 
-        function copyResumo(end, tipo, val, suites, cond) {
-
-            const txt = `🏠 *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - OPORTUNIDADE*\n📍 *Tipo:* ${tipo}\n📍 *Endereço:* ${end}\n💰 *Valor Locação:* R$ ${val.toLocaleString('pt-BR')}\n📦 *Condomínio:* R$ ${cond}`;
-
-            navigator.clipboard.writeText(txt);
-
-            alert("Resumo de locação copiado!");
-
-        }
 
 
 
@@ -23340,98 +22241,6 @@
 
         }
 
-        function renderVitrine() {
-
-            const container = document.getElementById('lista-vitrine');
-
-            if(!container) return;
-
-            container.innerHTML = '';
-
-            popularFiltroSelect('vitrine-filtro-emp', imoveis.map(i => i.empreendimento));
-
-            const fEmp = document.getElementById('vitrine-filtro-emp').value;
-
-            const fStat = document.getElementById('vitrine-filtro-status').value;
-
-            imoveis.forEach(imo => {
-
-                if(fEmp !== 'todos' && imo.empreendimento !== fEmp) return;
-
-                if(fStat !== 'todos' && imo.status !== fStat) return;
-
-                // Espelha exatamente o que aparece no link público da vitrine — todas
-
-                // as fotos (não só a primeira) e os mesmos campos (até Energia).
-
-                // Código do IPTU e demais dados internos (manutenção, sócios) NUNCA
-
-                // aparecem aqui, igual no link público.
-
-                let fotosHtml = '';
-
-                if (imo.fotos && imo.fotos.length > 0) {
-
-                    fotosHtml = '<div class="flex gap-1.5 overflow-x-auto py-2">' +
-
-                        imo.fotos.map((foto, idx) => `<img src="${foto}" onclick="event.stopPropagation(); abrirLightboxImovelSalvo('${imo.id}', ${idx})" class="w-16 h-16 object-cover rounded-lg border flex-none cursor-pointer">`).join('') +
-
-                        '</div>';
-
-                }
-
-                const badgeEnergia = imo.energiaRumo === 'Sim'
-
-                    ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo ml-1"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>`
-
-                    : '';
-
-                container.innerHTML += `
-
-                    <div class="bg-white p-3 rounded-xl border border-gray-200">
-
-                        <div class="flex gap-3 items-start">
-
-                            <input type="checkbox" data-id="${imo.id}" class="vitrine-checkbox w-4 h-4 text-emerald-600 rounded mt-1">
-
-                            <div class="flex-1 min-w-0">
-
-                                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded ${imo.status==='Vago'?'bg-amber-100 text-amber-800':(imo.status==='Assinando'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800')}">${imo.status}</span>${badgeEnergia}
-
-                                <p class="text-xs font-bold mt-1 text-slate-900">${imo.empreendimento} - ${imo.tipo}</p>
-
-                                <p class="text-[11px] text-gray-500">${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}, ${imo.enderecoCidade || ''}</p>
-
-                                <p class="text-[11px] text-gray-500">Tamanho: ${imo.tamanho}m² | Suítes: ${imo.suites} | WC: ${imo.banheiros}</p>
-
-                                <p class="text-[11px] text-gray-500">Condomínio: R$ ${imo.condominio} | IPTU: R$ ${imo.iptu}</p>
-
-                                ${imo.descricao ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${imo.descricao}</p>` : ''}
-
-                                <p class="text-[13px] font-black raiz-text-pine mt-1">Aluguel: R$ ${imo.valor.toLocaleString('pt-BR')}</p>
-
-                            </div>
-
-                            <!-- v1.49.0 — "Iniciar Contratação" removido do
-                                 card da Vitrine (pedido explícito) — o
-                                 fluxo continua existindo, só que agora só
-                                 pela ficha do imóvel (box Contrato → Mais
-                                 ações → Iniciar contratação). -->
-                            <button onclick="event.stopPropagation(); copyResumo('${(imo.enderecoRua || '') + ', ' + (imo.enderecoNum || '')}', '${imo.tipo}', ${imo.valor || 0}, ${imo.suites || 0}, ${imo.condominio || 0})" title="Copiar resumo para WhatsApp" class="w-8 h-8 flex-none flex items-center justify-center bg-slate-100 text-slate-700 rounded-full border border-slate-300"><svg data-lucide="copy" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg></button>
-
-                        </div>
-
-                        ${fotosHtml}
-
-                    </div>
-
-                `;
-
-            });
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        }
 
         // ============================================================================
         // PROCESSO DE CONTRATAÇÃO (v1.42.0) — interessado escolhe 1 imóvel na
@@ -23441,142 +22250,11 @@
         // e recolhe os dados manualmente, repassando depois pro bot.ia).
         // ============================================================================
 
-        async function iniciarProcessoContratacao(imovelId) {
 
-            const imo = imoveis.find(i => i.id === imovelId);
-            if (!imo) return;
 
-            // Uso do Imóvel (revisão DS, 25/08/2026) — pedido explícito:
-            // imóvel de uso pessoal nunca pode ter contrato de aluguel.
-            // Guarda única aqui (função-fonte) cobre todos os pontos de
-            // entrada: pill "Locação" da Ficha (montarBoxSemContratoFicha),
-            // reabertura de processo "Assinando", e a Vitrine pública.
-            if (imo.finalidadeUso === 'uso_proprio') {
-                alert('⚠️ Este imóvel está marcado como "Uso Pessoal" — não é possível criar um contrato de aluguel para ele.\n\nSe isso mudou, altere o "Uso do imóvel" no cadastro (Detalhes do Imóvel) antes de continuar.');
-                return;
-            }
-
-            mostrarCarregamentoGlobal("Preparando processo de contratação...");
-
-            try {
-                const token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2))).replace(/-/g, '');
-
-                const linha = {
-                    cliente_id: CLIENTE_ID_SUPABASE,
-                    imovel_id: imovelId,
-                    token: token,
-                    status: 'aguardando_preenchimento',
-                    origem: null // definido no clique de "Gerar Link" ou "Abrir WhatsApp"
-                };
-
-                const { data: inserido, error } = await dbAuth.from('processos_contratacao').insert(linha).select('id').single();
-                if (error) throw error;
-
-                esconderCarregamentoGlobal();
-
-                abrirModalOpcoesContratacao(imo, token, inserido.id);
-
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Não consegui iniciar o processo de contratação: ' + (err.message || String(err)) + '\n\nSe o erro mencionar "processos_contratacao" ou "relation does not exist", a migration do módulo de Minutas ainda não foi rodada no banco.');
-            }
-
-        }
-
-        // v1.116.0 (pedido explícito: "para um novo contrato ou em
-        // assinatura, deixar as opções do print no menu 3 bolinhas") —
-        // popup HTML solto (bottom-sheet com estilo inline, fora da
-        // gramática) virou abrirSheetAcoes. Nenhuma regra de negócio
-        // mudou: mesmo token, mesmo registrarLog, mesma checagem de
-        // minuta padrão (encontrarMinutaParaImovel) pra decidir se
-        // mostra as 4 opções ou o aviso "cadastre uma minuta".
-        function abrirModalOpcoesContratacao(imo, token, processoId) {
-            if (typeof abrirSheetAcoes !== 'function') return;
-            const link = `https://app.raizpatrimonio.com.br/?contratar=${token}`;
-            const endereco = `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}`;
-            const mensagemZap = `Olá! Para darmos andamento à locação do imóvel em ${endereco}, preciso de alguns dados seus para gerar o contrato:\n\n- Nome completo\n- CPF ou CNPJ\n- WhatsApp\n- E-mail\n- Endereço atual\n- Profissão\n- Estado civil\n\nVocê pode preencher direto por este link: ${link}`;
-            const minuta = encontrarMinutaParaImovel(imo.id);
-            const acoes = [
-                { icone: 'file-plus', titulo: 'Dados novo contrato', codigo: 'contratos.criar', sub: 'Preencher você mesmo, direto no formulário', aoTocar: () => abrirDadosNovoContratoPopup(imo.id) },
-            ];
-            if (minuta) {
-                acoes.push(
-                    { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
-                    { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', codigo: 'contratos.criar', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
-                    { icone: 'download', titulo: 'Conferir minuta padrão', codigo: 'minutas.gerar', aoTocar: () => baixarMinutaPadraoImovel(imo.id) },
-                    { icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'A partir de um contrato Assinando já com os dados', aoTocar: () => gerarMinutaNoCofre(imo.id) }
-                );
-            }
-            abrirSheetAcoes({
-                titulo: 'Locação', sub: endereco, acoes,
-                grupos: minuta ? null : [
-                    { titulo: 'Dados', acoes: [acoes[0]] },
-                    { titulo: 'Sem minuta padrão cadastrada', acoes: [
-                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Necessária pra link, WhatsApp e geração de minuta', aoTocar: () => switchTab('tab-minutas') }
-                    ] }
-                ]
-            });
-        }
-
-        // "Conferir minuta padrão" — pedido explícito: baixa o ARQUIVO da
-        // minuta padrão (o modelo em si, sem preencher nada) — não confundir
-        // com gerarMinutaContrato(), que preenche os dados de um contrato
-        // específico. Aqui é só "dar uma olhada" no modelo que será usado.
-        // v1.70.0 (30/08/2026) — quando houver MAIS DE UMA minuta aplicável
-        // ao imóvel, abre um picker (pedido explícito do Nicola) em vez de
-        // pegar a primeira sozinho — o cliente escolhe qual ver, e pode
-        // seguir direto pro fluxo de geração com a escolhida
-        // (gerarMinutaNoCofre(imovelId, minutaId)). Com só 1 aplicável,
-        // comportamento idêntico a antes (abre direto, sem picker).
-        function baixarMinutaPadraoImovel(imovelId) {
-            const aplicaveis = listarMinutasAplicaveis(imovelId);
-            if (aplicaveis.length === 0) { alert('⚠️ Nenhuma minuta padrão disponível para este imóvel.'); return; }
-
-            if (aplicaveis.length === 1) {
-                window.open(aplicaveis[0].arquivoUrl, '_blank');
-                registrarLog('minutas.conferir_padrao', { imovelId, minutaId: aplicaveis[0].id });
-                return;
-            }
-
-            abrirPickerMinutasAplicaveis(imovelId, aplicaveis, 'visualizar');
-        }
 
         const ESCOPO_MINUTA_ROTULO = { geral: 'Geral (toda empresa)', empreendimento: 'Empreendimento', tipo_imovel: 'Tipo de imóvel', imovel: 'Este imóvel específico' };
 
-        // CORRIGIDO (30/08/2026) — `modo` ('gerar'|'visualizar') decide
-        // qual ÚNICA ação cada opção do picker oferece — antes misturava
-        // "Ver modelo em branco" e "Usar esta e gerar" na mesma tela,
-        // pedido explícito do Nicola pra separar: quem clicou "Gerar
-        // Minuta" quer escolher qual GERAR; quem clicou "Conferir minuta
-        // padrão" quer escolher qual VER — não as duas coisas juntas.
-        function abrirPickerMinutasAplicaveis(imovelId, aplicaveis, modo) {
-            document.getElementById('modal-picker-minutas')?.remove();
-            const modal = document.createElement('div');
-            modal.id = 'modal-picker-minutas';
-            modal.style = 'position:fixed;inset:0;z-index:97;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:80vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Mais de uma minuta se aplica — escolha qual ${modo === 'gerar' ? 'gerar' : 'ver'}</h3>
-                        <button onclick="document.getElementById('modal-picker-minutas').remove()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        ${aplicaveis.map(m => `
-                            <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;">
-                                <p style="font-size:13px;font-weight:bold;color:#1e293b;margin-bottom:2px;">${(m.nome || '').replace(/</g, '&lt;')}</p>
-                                <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Escopo: ${ESCOPO_MINUTA_ROTULO[m.escopo] || m.escopo}</p>
-                                ${modo === 'gerar'
-                                    ? `<button onclick="document.getElementById('modal-picker-minutas').remove(); gerarMinutaNoCofre('${imovelId}', '${m.id}');" style="width:100%;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Gerar com este modelo</button>`
-                                    : `<button onclick="window.open('${m.arquivoUrl}', '_blank')" style="width:100%;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Ver modelo em branco</button>`
-                                }
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
-            registrarLog('minutas.picker_aberto', { imovelId, qtdOpcoes: aplicaveis.length, modo });
-        }
 
 
 
@@ -23598,523 +22276,23 @@
         // devolvem só os campos que esta tela precisa — nunca a linha inteira.
         // ============================================================================
 
-        let processoContratacaoAtual = null;
-        let tokenContratacaoPublicaAtual = null;
 
-        async function iniciarModoContratacaoPublica(token) {
 
-            document.getElementById('tela-contratacao-publica').classList.remove('hidden');
-            tokenContratacaoPublicaAtual = token;
 
-            try {
-                const { data: linhas, error } = await dbAuth
-                    .rpc('fn_processo_publico_obter', { p_token: token });
 
-                if (error) throw error;
 
-                const processo = Array.isArray(linhas) ? linhas[0] : linhas;
 
-                // A RPC já valida token+status='aguardando_preenchimento'+prazo —
-                // se vier vazio, é porque o link expirou, já foi usado, ou não existe.
-                if (!processo) {
-                    mostrarErroContratacaoPublica('Este link não é mais válido — já foi usado ou expirou. Peça um novo link a quem te enviou este.');
-                    return;
-                }
 
-                processoContratacaoAtual = processo;
 
-                const resumoImovel = processo.imovel_endereco_rua
-                    ? `${processo.imovel_endereco_rua}, ${processo.imovel_endereco_num || ''}${processo.imovel_endereco_comp ? ' - ' + processo.imovel_endereco_comp : ''}, ${processo.imovel_endereco_bairro || ''}, ${processo.imovel_endereco_cidade || ''}`
-                    : 'Imóvel selecionado';
 
-                document.getElementById('contratacao-publica-imovel-resumo').textContent = resumoImovel;
-                document.getElementById('contratacao-publica-carregando').classList.add('hidden');
-                document.getElementById('contratacao-publica-form-wrapper').classList.remove('hidden');
 
-            } catch (err) {
-                console.error('Erro ao carregar processo de contratação:', err);
-                mostrarErroContratacaoPublica('Não consegui carregar os dados deste link agora. Tente de novo em alguns instantes.');
-            }
 
-        }
 
-        function mostrarErroContratacaoPublica(mensagem) {
-            document.getElementById('contratacao-publica-carregando').classList.add('hidden');
-            document.getElementById('contratacao-publica-erro-texto').textContent = mensagem;
-            document.getElementById('contratacao-publica-erro').classList.remove('hidden');
-        }
 
-        // CORRIGIDO (v1.51.0) — pedido explícito: fechar tenta fechar a
-        // ABA/janela do navegador (window.close(), só funciona se a aba foi
-        // aberta via script/link direto — é o caso normal de quem abre o
-        // link do WhatsApp). Se o navegador não permitir fechar (guia digitada
-        // manualmente, por exemplo), cai num aviso simples em vez de mandar
-        // pra landing page.
-        function fecharTelaContratacaoPublica() {
-            window.close();
-            setTimeout(() => {
-                document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#152a24;color:#fff;font-family:sans-serif;text-align:center;padding:24px;"><p style="font-size:14px;">Você já pode fechar esta aba.</p></div>';
-            }, 300);
-        }
 
-        // v1.44.2 — monta o texto único salvo em interessado_endereco_atual
-        // a partir dos campos estruturados do formulário (rua/número/
-        // complemento/bairro/cidade/UF/CEP). Não criei colunas novas na
-        // tabela pra isso — ver observação no HANDOFF sobre essa decisão.
-        function montarEnderecoContratacaoPublica() {
-            const rua = document.getElementById('cp-endereco-rua').value.trim();
-            const num = document.getElementById('cp-endereco-num').value.trim();
-            const comp = document.getElementById('cp-endereco-comp').value.trim();
-            const bairro = document.getElementById('cp-endereco-bairro').value.trim();
-            const cidade = document.getElementById('cp-endereco-cidade').value.trim();
-            const uf = document.getElementById('cp-endereco-uf').value;
-            const cep = document.getElementById('cp-endereco-cep').value.trim();
 
-            if (!rua && !num && !bairro && !cidade && !cep) return null;
 
-            let partes = rua;
-            if (num) partes += (partes ? ', ' : '') + num;
-            if (comp) partes += ' - ' + comp;
-            if (bairro) partes += (partes ? ', ' : '') + bairro;
-            if (cidade) partes += (partes ? ', ' : '') + cidade + (uf ? '/' + uf : '');
-            else if (uf) partes += (partes ? ' - ' : '') + uf;
-            if (cep) partes += (partes ? ' - CEP ' : 'CEP ') + cep;
 
-            return partes || null;
-        }
-
-        // v1.45.0 (Correção de Direção UX — item 8.3) — localiza o primeiro
-        // campo inválido do formulário público antes do submit, reaproveitando
-        // os mesmos validadores que já existem (validarCPF/validarCNPJ,
-        // validarTelefoneBR, validarEmailFormato, validarCEPFormato) — nenhuma
-        // regra de validação nova foi inventada, só a checagem "qual é o
-        // primeiro problema" antes de mandar pro Supabase.
-        function primeiroCampoInvalidoContratacaoPublica() {
-
-            const nome = document.getElementById('cp-nome').value.trim();
-            if (!nome) return { id: 'cp-nome', indicadorId: 'cp-nome-erro', msg: 'Informe o nome completo.' };
-
-            const doc = document.getElementById('cp-documento').value.replace(/\D/g, '');
-            if (!doc) return { id: 'cp-documento', indicadorId: 'cp-doc-indicador', msg: 'Informe o CPF ou CNPJ.' };
-            const docOk = doc.length === 11 ? validarCPF(doc) : (doc.length === 14 ? validarCNPJ(doc) : false);
-            if (!docOk) return { id: 'cp-documento', indicadorId: 'cp-doc-indicador', msg: 'CPF/CNPJ inválido — confira os números.' };
-
-            const telResultado = validarTelefoneBR(document.getElementById('cp-whatsapp').value);
-            if (telResultado.vazio) return { id: 'cp-whatsapp', indicadorId: 'cp-whatsapp-indicador', msg: 'Informe o WhatsApp.' };
-            if (telResultado.ok === false) return { id: 'cp-whatsapp', indicadorId: 'cp-whatsapp-indicador', msg: telResultado.motivo };
-
-            const emailResultado = validarEmailFormato(document.getElementById('cp-email').value);
-            if (emailResultado.vazio) return { id: 'cp-email', indicadorId: 'cp-email-indicador', msg: 'Informe o e-mail.' };
-            if (emailResultado.ok === false) return { id: 'cp-email', indicadorId: 'cp-email-indicador', msg: emailResultado.motivo };
-
-            // v1.54.0 — CORRIGIDO (pedido explícito): TODOS os campos do
-            // formulário público agora são obrigatórios, não só bairro/
-            // cidade/CEP.
-            if (!document.getElementById('cp-endereco-rua').value.trim()) return { id: 'cp-endereco-rua', indicadorId: null, msg: 'Informe o endereço (rua/avenida).' };
-            if (!document.getElementById('cp-endereco-num').value.trim()) return { id: 'cp-endereco-num', indicadorId: null, msg: 'Informe o número.' };
-            if (!document.getElementById('cp-endereco-comp').value.trim()) return { id: 'cp-endereco-comp', indicadorId: null, msg: 'Informe o complemento (ou "N/A" se não houver).' };
-            if (!document.getElementById('cp-endereco-bairro').value.trim()) return { id: 'cp-endereco-bairro', indicadorId: null, msg: 'Informe o bairro.' };
-            if (!document.getElementById('cp-endereco-cidade').value.trim()) return { id: 'cp-endereco-cidade', indicadorId: null, msg: 'Informe a cidade.' };
-            if (!document.getElementById('cp-endereco-uf').value) return { id: 'cp-endereco-uf', indicadorId: null, msg: 'Selecione o estado (UF).' };
-
-            const cepResultado = validarCEPFormato(document.getElementById('cp-endereco-cep').value);
-            if (cepResultado.vazio) return { id: 'cp-endereco-cep', indicadorId: 'cp-cep-indicador', msg: 'Informe o CEP.' };
-            if (cepResultado.ok === false) return { id: 'cp-endereco-cep', indicadorId: 'cp-cep-indicador', msg: cepResultado.motivo };
-
-            if (!document.getElementById('cp-profissao').value.trim()) return { id: 'cp-profissao', indicadorId: null, msg: 'Informe a profissão.' };
-            if (!document.getElementById('cp-estado-civil').value) return { id: 'cp-estado-civil', indicadorId: null, msg: 'Selecione o estado civil.' };
-
-            return null;
-        }
-
-        function mostrarErroCampoContratacaoPublica(campoInvalido) {
-            const indicador = document.getElementById(campoInvalido.indicadorId);
-            if (indicador) {
-                indicador.innerText = '⚠️ ' + campoInvalido.msg;
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 text-red-600 font-bold';
-            }
-            const input = document.getElementById(campoInvalido.id);
-            if (input) {
-                input.classList.add('border-red-400');
-                input.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                input.focus();
-            }
-        }
-
-        async function enviarFormularioContratacaoPublico(e) {
-            e.preventDefault();
-
-            if (!processoContratacaoAtual) return;
-
-            // v1.45.0 — checa o primeiro campo inválido ANTES de mexer no
-            // botão/backend; foca e rola até ele, mostra a mensagem no
-            // mesmo indicador que o campo já usa (não inventa um padrão
-            // visual novo).
-            const campoInvalido = primeiroCampoInvalidoContratacaoPublica();
-            if (campoInvalido) {
-                mostrarErroCampoContratacaoPublica(campoInvalido);
-                return;
-            }
-
-            const btn = document.getElementById('btn-enviar-contratacao-publica');
-            const textoOriginalBtn = btn.innerText;
-            btn.disabled = true;
-            btn.innerText = 'Enviando...';
-
-            const documento = document.getElementById('cp-documento').value.trim();
-            const digitosDoc = documento.replace(/\D/g, '');
-
-            try {
-                // v1.76.0 — trocado de UPDATE direto (dbAuth.from(...).update(...))
-                // pra RPC (fn_processo_publico_preencher): a função revalida
-                // token+status+prazo no servidor antes de gravar, e o status
-                // final ('preenchido') é decidido dentro da função, nunca
-                // aceito do cliente — fecha a mesma exposição corrigida na
-                // leitura (ver comentário no início de iniciarModoContratacaoPublica).
-                const { error } = await dbAuth.rpc('fn_processo_publico_preencher', {
-                    p_token: tokenContratacaoPublicaAtual,
-                    p_nome: document.getElementById('cp-nome').value.trim(),
-                    p_doc_tipo: digitosDoc.length > 11 ? 'CNPJ' : 'CPF',
-                    p_documento: documento,
-                    p_whatsapp: document.getElementById('cp-whatsapp').value.trim(),
-                    p_email: document.getElementById('cp-email').value.trim() || null,
-                    p_endereco_atual: montarEnderecoContratacaoPublica(),
-                    p_profissao: document.getElementById('cp-profissao').value.trim() || null,
-                    p_estado_civil: document.getElementById('cp-estado-civil').value || null
-                });
-
-                if (error) throw error;
-
-                document.getElementById('contratacao-publica-form-wrapper').classList.add('hidden');
-                document.getElementById('contratacao-publica-sucesso').classList.remove('hidden');
-                // v1.45.0 — o formulário pode ter ficado rolado lá embaixo;
-                // sem isso, a mensagem de sucesso aparecia fora da área
-                // visível em telas pequenas.
-                document.getElementById('tela-contratacao-publica').scrollTo({ top: 0, behavior: 'smooth' });
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-
-            } catch (err) {
-                console.error('Erro ao enviar dados de contratação:', err);
-                alert('❌ Não consegui enviar seus dados agora. Verifique sua internet e tente de novo.\n\n' + (err.message || String(err)));
-                btn.disabled = false;
-                btn.innerText = textoOriginalBtn;
-            }
-
-        }
-
-        // v1.115.0 (fatia 7) — a geração do link saiu de dentro do handler
-        // da tela pra gerarLinkVitrineParaIds(ids), pra ser reaproveitada
-        // pelo ⋮ do ativo ("Gerar vitrine", cofre-ativos.js v1.22.0). O
-        // resultado deixou de ser confirm()/alert() (3 popups) e virou sheet
-        // com Copiar · WhatsApp · Abrir (REGRAS §3) + toast nos erros.
-        function gerarLinkVitrine() {
-            const checkboxes = document.querySelectorAll('.vitrine-checkbox:checked');
-            if (checkboxes.length === 0) {
-                mostrarToast('Escolha ao menos um imóvel.', 'danger');
-                return;
-            }
-            const idsSelecionados = [];
-            checkboxes.forEach(cb => idsSelecionados.push(cb.getAttribute('data-id')));
-            gerarLinkVitrineParaIds(idsSelecionados);
-        }
-        function gerarVitrineDoImovel(imovelId) {
-            if (!imovelId) { mostrarToast('Este ativo não está ligado a um imóvel.', 'danger'); return; }
-            gerarLinkVitrineParaIds([String(imovelId)]);
-        }
-        function gerarLinkVitrineParaIds(idsSelecionados) {
-            // Gera um token curto e aleatório (6 caracteres) e registra a associação
-            // token -> ids no Supabase, para não expor os IDs internos na URL pública.
-            const token = Math.random().toString(36).substr(2, 6).toUpperCase();
-            criarLinkVitrineSupabase(token, idsSelecionados).then(() => {
-                links.push({
-                    token: token,
-                    ids: idsSelecionados.join(','),
-                    criadoEm: new Date().toISOString(),
-                    criadoEmBrasilia: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-                    qtdImoveis: idsSelecionados.length
-                });
-                dev_carregarLinks();
-                registrarLog('vitrine.gerar', { token: token, qtdImoveis: idsSelecionados.length });
-                const localUrl = window.location.href.split('?')[0];
-                const linkFinal = `${localUrl}?v=${token}`;
-                const textoWhats = encodeURIComponent(`Confira ${idsSelecionados.length > 1 ? 'estes imóveis' : 'este imóvel'}: ${linkFinal}`);
-                const copiar = () => navigator.clipboard.writeText(linkFinal).then(() => mostrarToast('Link copiado.', 'success')).catch(() => mostrarToast('Não consegui copiar; use "Abrir a vitrine".', 'danger'));
-                copiar();
-                abrirSheetAcoes({ titulo: 'Vitrine pronta', sub: linkFinal, acoes: [
-                    { icone: 'copy', titulo: 'Copiar link', sub: 'Já foi copiado; toque pra copiar de novo', aoTocar: copiar },
-                    { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', aoTocar: () => window.open(`https://wa.me/?text=${textoWhats}`, '_blank') },
-                    { icone: 'external-link', titulo: 'Abrir a vitrine', aoTocar: () => window.open(linkFinal, '_blank') }
-                ]});
-            }).catch((err) => {
-                mostrarToast('Falha de conexão ao gerar o link. Verifique sua internet e tente de novo.', 'danger');
-                console.error("Erro ao gerar link de vitrine:", err);
-            });
-        }
-
-        async function verificarFiltroVitrineExterna() {
-
-            const urlParams = new URLSearchParams(window.location.search);
-
-            const temAssetsAntigo = urlParams.get('viewShowcase') === 'true' && urlParams.get('assets');
-
-            const temTokenCurto = !!urlParams.get('v');
-
-            if (!temAssetsAntigo && !temTokenCurto) return; // não é um link de vitrine, segue fluxo normal do sistema
-
-            // Mostra imediatamente uma tela de carregamento dedicada da vitrine —
-
-            // nunca deixa o visitante público ver a tela de login do sistema
-
-            // principal, nem por um instante, enquanto o token é resolvido.
-
-            document.body.innerHTML = `
-
-                <div class="max-w-md mx-auto p-4 space-y-6 bg-emerald-900 min-h-screen text-white">
-
-                    <div class="text-center py-4 border-b border-emerald-800 relative">
-
-                        <button onclick="sairDaVitrinePublica()" class="absolute top-3 right-0 text-xs font-bold text-slate-300 bg-emerald-800 border border-emerald-700 rounded-full px-3 py-1.5 active:scale-95 transition"><svg data-lucide="x" style="width:14px;height:14px"></svg> Sair</button>
-
-                        <h1 class="text-2xl font-black text-emerald-400">${CONFIG_CLIENTE.nomeEmpresa}</h1>
-
-                        <p class="text-[11px] text-gray-400 uppercase tracking-widest mt-1">Vitrine de Imóveis Selecionados</p>
-
-                    </div>
-
-                    <div id="external-showcase-container" class="space-y-4">
-
-                        <p class="text-xs text-center text-slate-400 py-12 animate-pulse">🔄 Carregando vitrine...</p>
-
-                    </div>
-
-                </div>
-
-                <div id="lightbox-vitrine" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
-
-                    <button onclick="fecharLightboxVitrine()" class="absolute top-4 right-4 text-white text-2xl font-bold"><svg data-lucide="x" style="width:16px;height:16px"></svg></button>
-
-                    <button onclick="navegarLightboxVitrine(-1)" class="absolute left-2 text-white text-3xl font-bold px-2">‹</button>
-
-                    <img id="lightbox-vitrine-img" class="max-h-[85vh] max-w-full rounded-lg object-contain">
-
-                    <button onclick="navegarLightboxVitrine(1)" class="absolute right-2 text-white text-3xl font-bold px-2">›</button>
-
-                    <p id="lightbox-vitrine-contador" class="absolute bottom-4 text-white text-xs"></p>
-
-                </div>
-
-            `;
-
-            let listIds = null;
-
-            if (temAssetsAntigo) {
-
-                // Formato antigo (link com IDs expostos) — mantido por compatibilidade
-
-                // com links já enviados antes da mudança para o link curto mascarado.
-
-                listIds = urlParams.get('assets').split(',');
-
-            } else if (temTokenCurto) {
-
-                // ETAPA 3 — antes eram 2 chamadas ao Apps Script (resolver token +
-                // buscar TODOS os imóveis para filtrar no navegador — um vazamento
-                // de portfólio inteiro que já tínhamos corrigido no backend antigo,
-                // mas o front nunca chegou a usar a versão corrigida). Agora é uma
-                // única consulta ao Supabase, já filtrada pela política de RLS —
-                // o visitante nunca recebe nada além dos imóveis daquele link.
-                try {
-
-                    imoveis = await resolverVitrinePublicaSupabase(urlParams.get('v'));
-                    listIds = imoveis.map(function(i) { return i.id; });
-
-                } catch (e) {
-
-                    document.getElementById('external-showcase-container').innerHTML =
-                        `<p class="text-xs text-center text-red-400 py-12"><svg data-lucide="alert-triangle" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Link inválido, expirado, ou falha ao carregar.<br>${e.message || ''}</p>`;
-                    return;
-
-                }
-
-            }
-
-            if (!listIds) return;
-
-            // v1.43.1 — vitrine pública não usa mais o Apps Script legado.
-            // Como não existe sessão autenticada, registra no schema comercial,
-            // na mesma tabela de eventos públicos já usada pela landing.
-            try {
-                dbAuth.schema('comercial').from('eventos_landing').insert({
-                    pagina: 'app_vitrine',
-                    referrer: document.referrer || null,
-                    utm_source: 'app',
-                    utm_medium: 'vitrine_publica',
-                    utm_campaign: 'acesso_vitrine',
-                    user_agent: navigator.userAgent
-                }).then(function(res) {
-                    if (res.error) console.warn('Falha ao registrar acesso à vitrine:', res.error.message);
-                });
-            } catch (err) {
-                console.warn('Falha ao registrar acesso à vitrine:', err.message);
-            }
-
-            const listContainer = document.getElementById('external-showcase-container');
-
-            listContainer.innerHTML = '';
-
-            let exibidos = 0;
-
-            listIds.forEach(id => {
-
-                const imo = imoveis.find(i => i.id === id);
-
-                if (imo) {
-
-                    exibidos++;
-
-                    let slideFotos = '';
-
-                    if (imo.fotos && imo.fotos.length > 0) {
-
-                        slideFotos = '<div class="flex gap-2 overflow-x-auto py-2">';
-
-                        imo.fotos.forEach((foto, idx) => {
-
-                            slideFotos += `<img src="${foto}" onclick="abrirLightboxVitrineImovel('${imo.id}', ${idx})" class="w-48 h-32 object-cover rounded-xl border border-emerald-700 flex-none cursor-pointer active:scale-95 transition">`;
-
-                        });
-
-                        slideFotos += '</div>';
-
-                    }
-
-                    const badgeEnergia = imo.energiaRumo === 'Sim'
-
-                        ? `<div class="mt-2 bg-yellow-900/40 border border-yellow-700 rounded-lg p-2 text-[11px] text-yellow-200"><svg data-lucide="zap" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> <strong>Energia disponível</strong> — desconto na conta de energia.</div>`
-
-                        : '';
-
-                    listContainer.innerHTML += `
-
-                        <div class="bg-emerald-950 p-4 rounded-2xl border border-emerald-800">
-
-                            <span class="bg-emerald-900 text-emerald-100 text-[11px] font-bold px-2 py-0.5 rounded">${imo.tipo}</span>
-
-                            <h3 class="text-base font-bold mt-2">${imo.empreendimento}</h3>
-
-                            <p class="text-xs text-slate-400">📍 ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}, ${imo.enderecoCidade || ''}</p>
-
-                            <p class="text-[11px] text-slate-500 mt-1">Tamanho: ${imo.tamanho}m²</p>
-
-                            <p class="text-[11px] text-slate-500">Condomínio: R$ ${imo.condominio} | IPTU: R$ ${imo.iptu}</p>
-
-                            ${imo.descricao ? `<p class="text-[11px] text-slate-300 mt-2 italic">${imo.descricao}</p>` : ''}
-
-                            ${badgeEnergia}
-
-                            ${slideFotos}
-
-                            <div class="mt-3 pt-3 border-t border-emerald-900 flex justify-between items-baseline">
-
-                                <span class="text-[11px] text-slate-400">Locação Integral</span>
-
-                                <span class="text-lg font-black text-emerald-400">R$ ${imo.valor.toLocaleString('pt-BR')}/mês</span>
-
-                            </div>
-
-                        </div>
-
-                    `;
-
-                }
-
-            });
-
-            if (exibidos === 0) {
-
-                listContainer.innerHTML = '<p class="text-xs text-center text-red-400 py-12">Nenhum imóvel disponível para exibição direta.</p>';
-
-            }
-
-        }
-
-        let lightboxVitrineFotos = [];
-
-        let lightboxVitrineIndex = 0;
-
-        function abrirLightboxVitrineImovel(imovelId, indiceInicial) {
-
-            const imo = imoveis.find(i => i.id === imovelId);
-
-            if (!imo || !imo.fotos) return;
-
-            abrirLightboxVitrine(imo.fotos, indiceInicial);
-
-        }
-
-        function abrirLightboxVitrine(fotos, indiceInicial) {
-
-            lightboxVitrineFotos = fotos;
-
-            lightboxVitrineIndex = indiceInicial;
-
-            atualizarLightboxVitrine();
-
-            document.getElementById('lightbox-vitrine').classList.remove('hidden');
-
-        }
-
-        function fecharLightboxVitrine() {
-
-            document.getElementById('lightbox-vitrine').classList.add('hidden');
-
-        }
-
-        // v7.4.0 — Botão "Sair" na vitrine pública. window.close() só funciona
-        // se a aba foi aberta via script; em links visitados diretamente
-        // (o caso mais comum aqui), o navegador bloqueia por segurança — por
-        // isso mostramos uma tela de despedida como plano B.
-        function sairDaVitrinePublica() {
-
-            window.close();
-
-            setTimeout(function () {
-
-                document.body.innerHTML = `
-
-                    <div class="max-w-md mx-auto p-4 min-h-screen bg-emerald-900 text-white flex items-center justify-center text-center">
-
-                        <div>
-
-                            <h1 class="text-2xl font-black text-emerald-400 mb-2">${CONFIG_CLIENTE.nomeEmpresa}</h1>
-
-                            <p class="text-sm text-slate-300">Você já pode fechar esta aba.</p>
-
-                        </div>
-
-                    </div>
-
-                `;
-
-            }, 150);
-
-        }
-
-        function navegarLightboxVitrine(direcao) {
-
-            lightboxVitrineIndex = (lightboxVitrineIndex + direcao + lightboxVitrineFotos.length) % lightboxVitrineFotos.length;
-
-            atualizarLightboxVitrine();
-
-        }
-
-        function atualizarLightboxVitrine() {
-
-            document.getElementById('lightbox-vitrine-img').src = lightboxVitrineFotos[lightboxVitrineIndex];
-
-            document.getElementById('lightbox-vitrine-contador').innerText = `${lightboxVitrineIndex + 1} / ${lightboxVitrineFotos.length}`;
-
-        }
 
         window.onload = async function() {
 
@@ -24135,13 +22313,19 @@
             // com a splash inteira em vez de continuar o boot normal.
             const paramsContratacao = new URLSearchParams(window.location.search);
             const tokenContratacao = paramsContratacao.get('contratar');
-            if (tokenContratacao) {
-                document.getElementById('splash-screen').classList.add('hidden');
-                await iniciarModoContratacaoPublica(tokenContratacao);
-                return;
+            // R8 (fatia 4) — vitrine/contratação pública vivem em js/vitrine.js.
+            // Só importa quando a URL é pública; e importa ANTES de seguir, pra
+            // o visitante nunca ver o login (mesma garantia de antes).
+            const ehVitrinePublica = !!paramsContratacao.get('v') || (paramsContratacao.get('viewShowcase') === 'true' && !!paramsContratacao.get('assets'));
+            if (tokenContratacao || ehVitrinePublica) {
+                const vit = await carregarVitrine();
+                if (tokenContratacao) {
+                    document.getElementById('splash-screen').classList.add('hidden');
+                    await vit.iniciarModoContratacaoPublica(tokenContratacao);
+                    return;
+                }
+                vit.verificarFiltroVitrineExterna();
             }
-
-            verificarFiltroVitrineExterna();
 
             // Registra o Service Worker (necessário em algumas versões do
             // Chrome/Android para o app aparecer como "instalável" de verdade,
