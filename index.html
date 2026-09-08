@@ -6,9 +6,28 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.144.0
-   LINHAS: 23942
+   VERSÃO: Beta v1.145.0
+   LINHAS: 23961
    DATA: 07/09/2026
+   NOVIDADES (Beta v1.145.0) — CORREÇÃO URGENTE: ⚙️ › LICENÇA QUEBRADA.
+   comum-licenca.js v1.3.0 (v1.144.0, algumas horas atrás) fazia select
+   direto de `funcionalidades.cota_tipo`; a migration de unificação com
+   comercial.categoria_licenca (mesma tarde) derrubou essa coluna —
+   `funcionalidades.cota_tipo` nunca foi pensado pra durar, era um desvio
+   temporário até eu achar que categoria_licenca já existia e fazia esse
+   papel. O select falhava (capturado por try/catch, não travava a tela),
+   mas toda linha caía no pior fallback: nome técnico bruto em vez do
+   nome comercial, e "no mês" em vez de "em uso" pra ativos/contratos/
+   storage. comum-licenca.js v1.3.1: para de ler a coluna morta, deriva o
+   tipo de cota a partir de `id_categoria` (que já vem de
+   plano_funcionalidade) + `categoria_licenca.item` — mesma regra que a
+   RPC usa. Testado nos 3 caminhos com o mesmo cliente (Rumo,
+   cofre.ativos.criar): fn_funcionalidades_liberadas (app) 49/50 estoque
+   avisar=true · fn_checar_funcionalidade (bot) 49/50 avisar=true ·
+   fn_checar_limite (gate real de criação) permitido=true 49/50 — os três
+   batendo entre si, idêntico ao resultado de antes da correção de hoje.
+   Sem migration.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.144.0) — E.3.1: COTA VISÍVEL NO APP.
    Desde a migration e3_cota_tipo_e_uso_por_tipo_v1 (07/09) a RPC
    fn_funcionalidades_liberadas devolve `cota_tipo` e o `usado` certo
@@ -7327,7 +7346,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.4.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.4.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -10615,7 +10634,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.144.0";
+        const APP_VERSAO = "Beta v1.145.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

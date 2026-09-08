@@ -1,6 +1,19 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.3.0 · 07/09/2026
+// Versão: 1.3.1 · 07/09/2026
+//
+// v1.3.1 — CORREÇÃO: a v1.3.0 fazia select('...cota_tipo') direto em
+// `funcionalidades`, coluna derrubada horas depois na unificação com
+// comercial.categoria_licenca (migration
+// unificar_categoria_licenca_fn_uso_funcionalidade_v1). O select falhava
+// (capturado pelo try/catch), então TODA linha caía no fallback: nome
+// técnico bruto em vez de nome comercial, e "mensal" pra tudo (a Rumo
+// mostraria "49/50 no mês" em vez de "49/50 em uso"). Corrigido: busca só
+// nome_comercial ali; cota_tipo agora deriva de id_categoria (que já vem
+// de plano_funcionalidade) + comercial.categoria_licenca.item, com a
+// MESMA regra que fn_funcionalidades_liberadas usa no banco.
+//
+// Versão anterior: 1.3.0 · 07/09/2026
 //
 // v1.3.0 — E.3.1: cada limite mostra o tipo de cota (no mês / em uso / MB),
 // lido de funcionalidades.cota_tipo (E.3), e o número fica âmbar a partir de
@@ -59,7 +72,7 @@
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
 
-export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -119,14 +132,37 @@ async function buscarFuncionalidadesDoPlano(dbAuth, clienteId, licenca) {
     // busca separada; se falhar, segue com o código técnico mesmo
     // (nunca quebra a tela toda por causa disso).
     let nomesComerciais = {};
-    let cotaTipos = {}; // v1.3.0 — mensal | estoque | bytes (E.3)
+    let cotaTipos = {}; // v1.3.1 — mensal | estoque | bytes, derivado da categoria (ver abaixo)
     try {
         const codigos = funcs.map(f => f.funcionalidade_codigo).filter(Boolean);
         const { data: info } = await dbAuth
-            .from('funcionalidades').select('codigo, nome_comercial, cota_tipo').in('codigo', codigos);
-        (info || []).forEach(fi => { if (fi.nome_comercial) nomesComerciais[fi.codigo] = fi.nome_comercial; cotaTipos[fi.codigo] = fi.cota_tipo || 'mensal'; });
+            .from('funcionalidades').select('codigo, nome_comercial').in('codigo', codigos);
+        (info || []).forEach(fi => { if (fi.nome_comercial) nomesComerciais[fi.codigo] = fi.nome_comercial; });
     } catch (errNomes) {
         console.warn('[comum-licenca] Nomes comerciais indisponíveis, seguindo com código técnico:', errNomes.message);
+    }
+    // v1.3.1 — cota_tipo NÃO existe mais em funcionalidades (derrubada na
+    // unificação com comercial.categoria_licenca, 07/09). `funcs` (de
+    // plano_funcionalidade) já traz `id_categoria`; busca só o item da
+    // categoria (tabela de 5 linhas) e deriva com a MESMA regra da RPC
+    // fn_funcionalidades_liberadas (item_custodia→estoque,
+    // bytes_custodia→bytes, resto→mensal) — pra nunca divergir do que o
+    // resto do app mostra.
+    try {
+        const idsCategoria = [...new Set(funcs.map(f => f.id_categoria).filter(Boolean))];
+        if (idsCategoria.length) {
+            const { data: cats } = await dbAuth.schema('comercial')
+                .from('categoria_licenca').select('id_categoria_licenca, item').in('id_categoria_licenca', idsCategoria);
+            const itemPorCategoria = {};
+            (cats || []).forEach(c => { itemPorCategoria[c.id_categoria_licenca] = c.item; });
+            funcs.forEach(f => {
+                const item = itemPorCategoria[f.id_categoria];
+                const codigo = f.funcionalidade_codigo || f.funcionalidade || f.codigo;
+                cotaTipos[codigo] = item === 'item_custodia' ? 'estoque' : item === 'bytes_custodia' ? 'bytes' : 'mensal';
+            });
+        }
+    } catch (errCat) {
+        console.warn('[comum-licenca] Categoria de cota indisponível, assumindo mensal:', errCat.message);
     }
 
     const usos = await Promise.all(funcs.map(f => {
