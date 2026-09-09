@@ -6,69 +6,9 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.148.0
-   LINHAS: 16752
-   DATA: 09/09/2026
-   NOVIDADES (Beta v1.148.0) — A.11: AVISO DE LIMITE NO PADRÃO DAS
-   COMUNICAÇÕES + INTERESSE AVISA O COMERCIAL NA HORA.
-   1) js/comunicacoes/comunicacoes-ui.js 1.48.0 + comunicacoes-app.js
-      1.48.0: renderer do formato tipo='upsell'/formato='modal' que
-      existia no banco desde 29/08 e nunca aparecia (caía em
-      'formato_app_nao_implementado'). Mostra título, mensagem, as cotas
-      perto do teto (usado/limite + plano sugerido, de
-      fn_funcionalidades_liberadas) e os botões do conteúdo: "Quero
-      conhecer as opções" (registra 'confirmou_interesse' → trigger no
-      banco → Edge Function notificar-comercial 1.0 manda WhatsApp pro
-      +55 11 94746-1828 com empresa, pessoa, contato e o limite que motivou),
-      "Tirar dúvida no WhatsApp" (abre o wa.me comercial com texto pronto)
-      e "Agora não". Ganho colateral: as 4 mensagens de licença vencendo
-      (upsell_aviso_1..4) passam a aparecer.
-   2) Este index: o toast verde "perto do limite" (v1.144.0) sai — o modal
-      substitui; ⚙️ › Licença continua com as barras. Evento
-      raiz:comunicacoes:processar passa nomeEmpresa (texto do wa.me).
-   MIGRATION (já aplicada 09/09): a11_upsell_limite_regra_interesse_trigger_v1
-   — tipo de regra funcionalidade_proximo_limite (contexto do servidor
-   ganha funcionalidadesProximoLimite), evento confirmou_interesse,
-   comunicação upsell_limite_v1 no plano de upsell (admin/master, qualquer
-   cota perto do teto, 72h entre exibições, 3 no máximo), trigger pg_net.
-   Edge Function NOVA: notificar-comercial 1.0 (zip raiz-entrega-ef-a11).
-   Gestão: a regra nova aparece só-leitura em Comunicações (como as outras
-   14); o plano sugerido é o select id_oferta_upsell que já existe em
-   Parâmetros › Planos — hoje nenhuma linha está preenchida.
-   ------------------------------------------------------------------
-   NOVIDADES (Beta v1.147.0) — A.12/A.13: UPLOAD INTELIGENTE (a IA lê antes)
-   + A.5.1: CONTATO DA EMPRESA. PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0.
-   1) Upload invertido (cofre-documentos.js 2.0.0, ativos-markup.js 1.21.0,
-      cofre-api.js 1.18.0, cofre-app.js 1.26.0): caixa mínima — Câmera ·
-      Arquivo · "Ler com IA" — o arquivo sobe, cofre-extrair-documento 1.5
-      lê em modo pré-insert e UMA tela de confirmação chega preenchida:
-      tipo + resumo, nome sugerido, categoria › subcategoria (casada por
-      codigo do gabarito global), datas/vigência, vínculo com candidatos
-      reais, contatos, "Manter arquivo no Cofre" (padrão da categoria —
-      desmarcado = só os dados, arquivo apagado do Storage, chip "Só dados"
-      na ficha, sem Baixar) e "Controlar vencimento" (padrão da categoria;
-      cria item de controle com antecedência/reforço/recorrência do
-      subtipo, pelo mesmo caminho da tela Controles —
-      cofre-controles.js 1.18.0 criarItemControleDeDocumento). Cancelar
-      apaga o arquivo. Sem IA = mesma tela, vazia. O modal de sugestões
-      pós-upload SAIU. Auditoria da extração passa a ser gravada com
-      status_revisao confirmado/corrigido e revisado_por (RPC
-      fn_cofre_registrar_extracao). Word/Excel entram sem leitura.
-   2) A.5.1 (comum-minha-empresa.js 1.5.0): CEP, telefone, e-mail e site em
-      ⚙️ › Minha empresa — colunas novas em `clientes`.
-   3) Reforço de alerta por item (A.13 opção A): cofre_itens_controle.
-      alerta_repeticao_dias, lido pelo diario-eventos 1.12 (null = 7 dias).
-      Só o item nascido do upload preenche por enquanto; o formulário
-      manual de Controles ganha o campo numa próxima fatia.
-   MIGRATIONS (já aplicadas 09/09): a5_1_clientes_cep_telefone_email_site_v1,
-   a12_a13_categorias_gabarito_padroes_subtipos_v1, a12_a13_fase2_rpc_
-   extracao_e_repeticao_alerta_v1. Edge Functions que precisam estar no
-   ar ANTES deste app: cofre-extrair-documento 1.5, _shared_cofre/
-   extracao.ts 1.6, diario-eventos 1.12 (zip raiz-entrega-ef-a12a13-fase2).
-   PENDENTE nesta frente: A.9 (fotos do imóvel → cofre_ativo_fotos) fica
-   pro próximo pacote; bot 2.51 (as 2 perguntas) e Gestão 0.19.0 (tela de
-   padrões) são as fases 4 e 5 da proposta.
-   ------------------------------------------------------------------
+   VERSÃO: Beta v1.146.0
+   LINHAS: 16725
+   DATA: 08/09/2026
    NOVIDADES (Beta v1.146.0) — CHANGELOG SAI DO INDEX (R8, item "de leve").
    O cabeçalho deste arquivo tinha 7.332 linhas de histórico (204 versões,
    30% do arquivo) que o navegador baixava e todo leitor rolava. Agora ele
@@ -115,7 +55,38 @@
    (3) comum-licenca.js v1.3.0: cada barra mostra o tipo (no mês / em uso
    / MB) e o número fica âmbar a 80% e vermelho no teto. Sem migration.
    ------------------------------------------------------------------
-   Versões anteriores (v1.143.0 … v1.143.0): CHANGELOG_APP.md, na raiz do
+   NOVIDADES (Beta v1.143.0) — R8 FATIA 4: VITRINE SAI DO INDEX
+   (js/vitrine.js v1.0.0). 688 linhas: aba Vitrine, vitrine pública
+   (?v=token, lightbox, sair), contratação pública (?contratar=token,
+   formulário do interessado), início do processo de contratação pelo
+   imóvel/ativo, resumo pro WhatsApp. Estado exclusivo (4) virou nível de
+   módulo. Boot: quando a URL é pública, o módulo é importado com await
+   ANTES de seguir (visitante nunca vê o login — mesma garantia); sem
+   parâmetro público, não baixa. Ficaram: dados de links_vitrine e
+   processosContratacao, validarCNPJ (compartilhado), banner de contratação
+   do PLANO (é licença), HTML das telas. Zero HTML tocado. DEPLOY:
+   vitrine.js NOVO no manifesto (Deploy_Raiz.ps1 v2.14) e gerar_versoes.py
+   v1.6. Sem migration.
+   CORREÇÃO (achado nesta fatia): contratos.js v1.0.1 — a ficha usava o
+   retorno síncrono de avaliarProntidaoContratoParaMinuta(), que na v1.142
+   virou ponte (Promise) quando Minutas saiu daqui; o card de prontidão da
+   minuta viria errado. Agora contratos.js e vitrine.js IMPORTAM de
+   ./minutas.js (import estático, o import map resolve). Regra: ponte só
+   pra "dispara e esquece"; quem usa retorno, importa. Varredura feita nos
+   4 módulos + index: nenhum outro uso síncrono de ponte.
+   ------------------------------------------------------------------
+   NOVIDADES (Beta v1.142.0) — R8 FATIA 3: MINUTAS SAI DO INDEX
+   (js/minutas.js v1.0.0). 1219 linhas saíram: tela de modelos, wizard de
+   minutização (DOCX/PDF → IA → revisão → DOCX), geração da minuta preenchida
+   (placeholders, prontidão, gerarMinutaNoCofre), escolha de minuta pro
+   imóvel. Helpers exclusivos vieram junto (assert: ninguém de fora usa).
+   Mesmo desenho das fatias 1 e 2: import() no switchTab('tab-minutas'),
+   pontes window[nome], rzMinSeCarregado('renderMinutas') nos 3 ganchos.
+   Ficaram: minutasContrato + carregar/sincronizar, contratação pública.
+   Zero HTML tocado. DEPLOY: minutas.js NOVO no manifesto (Deploy_Raiz.ps1
+   v2.13) e no gerar_versoes.py (v1.5). Sem migration.
+   ------------------------------------------------------------------
+   Versões anteriores (v1.1.0 … v1.141.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -139,7 +110,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.18.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.26.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.21.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.17.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.25.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.17.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=1.9.1","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.4.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.20.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3427,7 +3398,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.148.0";
+        const APP_VERSAO = "Beta v1.146.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3515,11 +3486,14 @@
                 const { data, error } = await dbAuth.rpc('fn_funcionalidades_liberadas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_perfil: perfilLogado });
                 if (error) throw error;
                 (data || []).forEach(f => FUNCIONALIDADES_LIBERADAS.set(f.codigo, f));
-                // v1.148.0 (A.11) — o toast verde de "perto do limite" (v1.144.0)
-                // SAIU: o aviso agora é a comunicação upsell_limite_v1, no padrão
-                // dos modais (js/comunicacoes, renderizarUpsell), com opções de
-                // upgrade e contato com o comercial. A barra em ⚙️ › Licença
-                // continua mostrando as cotas.
+                // v1.144.0 (E.3.1) — cota perto do teto: um aviso por sessão, só
+                // pra quem pode agir (admin/master), sem bloquear nada.
+                const pertoDoTeto = (data || []).filter(f => f.avisar && !f.motivo && f.limite);
+                if (pertoDoTeto.length && !window.__rzAvisouCota && ['admin', 'master', 'master_plataforma'].includes(perfilLogado)) {
+                    window.__rzAvisouCota = true;
+                    const txt = pertoDoTeto.map(f => `${f.usado} de ${f.limite}${f.cota_tipo === 'bytes' ? ' MB' : ''} em "${f.rotulo}"`).join(' · ');
+                    setTimeout(() => mostrarToast(`Seu plano está perto do limite: ${txt}. Veja em ⚙️ › Licença.`, 'info'), 1500);
+                }
             } catch (err) {
                 console.warn('carregarFuncionalidadesLiberadas:', err.message);
             }
@@ -8039,7 +8013,6 @@
                                 quantidadeImoveis: Array.isArray(imoveis) ? imoveis.length : 0,
                                 plano: LICENCA_ATUAL ? LICENCA_ATUAL.plano_codigo : null,
                                 perfil: perfilLogado,
-                                nomeEmpresa: (typeof CONFIG_CLIENTE !== 'undefined' && CONFIG_CLIENTE?.nomeEmpresa) || null, // v1.148.0 — texto pronto do wa.me comercial
                                 tela: 'inicio',
                                 onAcaoFinal: function(acao) {
                                     if (acao === 'abrir_formulario_imovel') abrirFormularioImovel();
@@ -16745,7 +16718,7 @@
 
     </div>
 
-    <script type="module" src="./js/comunicacoes/comunicacoes-app.js?v=1.48.0"></script> <!-- v1.148.0: ?v= evita módulo velho no cache (fora do import map) -->
+    <script type="module" src="./js/comunicacoes/comunicacoes-app.js"></script>
 
 </body>
 
