@@ -1,6 +1,18 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.20.0 · 04/09/2026
+// Versão: 1.21.0 · 09/09/2026
+//
+// v1.21.0 (A.12/A.13 — PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0 §5):
+// #modal-upload virou caixa mínima (Câmera · Arquivo · toggle "Ler com IA");
+// NOVO #modal-confirmar-upload — tela única com tudo que a IA leu (tipo,
+// resumo, nome, categoria › subcategoria, datas, vigência, vínculo com
+// candidatos reais, contatos, "Manter arquivo", "Controlar vencimento" com
+// o bloco do item de controle). #modal-sugestoes-ia SAIU (o pós-upload
+// deixou de existir — a confirmação acontece antes de salvar). Ficha do
+// documento: botão Baixar ganhou id fd-btn-baixar (some quando o arquivo
+// não foi mantido).
+//
+// Versão anterior: 1.20.0 · 04/09/2026
 //
 // v1.20.0 (fatia 7) — cabeçalho da lista de Ativos com 2 ícones no
 // catálogo (.rz-ico-btn): Buscar + "+" que abre sheet. Vitrine e Upload
@@ -182,7 +194,7 @@
 // O QUE FOI EXTRAÍDO: os 15 blocos de nível 0 do <body> do cofre.html —
 // #app-cofre (o shell principal) + 13 modais (#modal-busca-global,
 // #modal-busca-ativos, #modal-lightbox-fotos,
-// #modal-upload, #modal-ficha-doc, #modal-sugestoes-ia,
+// #modal-upload, #modal-confirmar-upload, #modal-ficha-doc,
 // #modal-criacao-assistida, #modal-menu-conta, #modal-sobre-cofre,
 // #modal-categorias, #modal-subtipos-controle, #modal-modelos-controle)
 // + #toast. Cobertura conferida: dos 157 ids que js/cofre-*.js referencia
@@ -239,7 +251,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.20.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.21.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -1057,21 +1069,49 @@ export const ATIVOS_MARKUP = `<style>
 <div id="modal-upload" class="modal-overlay hidden">
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
-            <div><h3 class="text-base font-bold">Novo documento</h3><p class="text-xs" style="color:var(--sage)" id="upload-contexto-legenda"></p></div>
+            <div><h3 class="text-base font-bold">Enviar documento</h3><p class="text-xs" style="color:var(--sage)" id="upload-contexto-legenda"></p></div>
             <button type="button" data-action="fechar-upload" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-                <label class="text-xs font-semibold block mb-1">Arquivo <span style="color:var(--danger)">*</span></label>
-                <input type="file" id="up-arquivo" class="w-full text-sm border-2 border-slate-300 rounded-xl p-2" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
-                <p class="raiz-indicador-inline" id="up-arquivo-info"></p>
+        <!-- v1.21.0 (A.12/A.13) — caixa mínima: a IA lê primeiro, a tela de confirmação vem depois. -->
+        <div class="grid grid-cols-2 gap-3">
+            <button type="button" data-action="up-escolher-camera" class="flex flex-col items-center justify-center gap-2 border-2 border-slate-300 rounded-2xl py-5 text-sm font-semibold" style="color:var(--pine)"><i data-lucide="camera" style="width:26px;height:26px"></i> Câmera</button>
+            <button type="button" data-action="up-escolher-arquivo" class="flex flex-col items-center justify-center gap-2 border-2 border-slate-300 rounded-2xl py-5 text-sm font-semibold" style="color:var(--pine)"><i data-lucide="folder-open" style="width:26px;height:26px"></i> Arquivo</button>
+        </div>
+        <input type="file" id="up-arquivo" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
+        <input type="file" id="up-camera" class="hidden" accept="image/*" capture="environment">
+        <label class="flex items-center gap-2 mt-4 text-sm"><input type="checkbox" id="up-com-ia" class="w-4 h-4" checked> <i data-lucide="sparkles" style="width:14px;height:14px;color:var(--warning)"></i> Ler com IA <span class="text-xs" style="color:var(--sage)" id="up-com-ia-hint">— preenche tudo pra você só conferir</span></label>
+        <p class="text-xs mt-1" style="color:var(--sage)">Até 25 MB. PDF ou foto passam pela IA; Word/Excel entram sem leitura.</p>
+        <p class="raiz-indicador-inline" id="up-status"></p>
+    </div>
+</div>
+
+<!-- v1.21.0 (A.12/A.13) — tela única de confirmação: o que a IA leu (ou vazia, sem IA). Nada é aplicado sem o cliente salvar. -->
+<div id="modal-confirmar-upload" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-2">
+            <div>
+                <h3 class="text-base font-bold flex items-center gap-2" id="uc-titulo">Confira o documento</h3>
+                <p class="text-xs" style="color:var(--sage)" id="uc-tipo">—</p>
             </div>
-            <div><label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label><input type="text" id="up-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-            <div><label class="text-xs font-semibold block mb-1">Categoria <span style="color:var(--danger)">*</span></label><select id="up-categoria" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></select></div>
+            <button type="button" data-action="cancelar-confirmacao-upload" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+        </div>
+        <p id="uc-resumo" class="hidden raiz-bloco-interno text-sm mb-3"></p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label><input type="text" id="uc-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+            <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Categoria › Subcategoria <span style="color:var(--danger)">*</span></label><select id="uc-categoria" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-categoria-mudou"></select></div>
+            <div><label class="text-xs font-semibold block mb-1">Data do documento</label><input type="date" id="uc-data-documento" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+            <div><label class="text-xs font-semibold block mb-1">Validade</label><input type="date" id="uc-validade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+            <div id="uc-vigencia-bloco" class="hidden sm:col-span-2 grid grid-cols-2 gap-3">
+                <div><label class="text-xs font-semibold block mb-1">Vigência — início</label><input type="date" id="uc-vig-inicio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                <div><label class="text-xs font-semibold block mb-1">Vigência — fim</label><input type="date" id="uc-vig-fim" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+            </div>
+            <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Descrição</label><textarea id="uc-descricao" rows="2" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></textarea></div>
 
             <div id="up-vinculo-bloco" class="sm:col-span-2">
                 <label class="text-xs font-semibold block mb-1">Vincular a</label>
                 <div id="up-vinculo-travado" class="hidden raiz-bloco-interno text-sm"></div>
+                <div id="up-vinculo-ia" class="hidden space-y-1 mb-2"></div>
                 <div id="up-vinculo-livre">
                     <select id="up-vinculo-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm mb-2" data-action-change="upload-vinculo-tipo-mudou">
                         <option value="triagem">Ainda não sei — deixar em triagem</option>
@@ -1084,18 +1124,39 @@ export const ATIVOS_MARKUP = `<style>
                 </div>
             </div>
 
-            <div><label class="text-xs font-semibold block mb-1">Data do documento</label><input type="date" id="up-data-documento" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-            <div><label class="text-xs font-semibold block mb-1">Validade</label><input type="date" id="up-validade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-            <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Descrição</label><textarea id="up-descricao" rows="2" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></textarea></div>
+            <div id="uc-contatos-bloco" class="hidden sm:col-span-2">
+                <label class="text-xs font-semibold block mb-1">Contatos encontrados no documento</label>
+                <div id="uc-contatos-lista" class="space-y-1"></div>
+            </div>
+
+            <div class="sm:col-span-2 raiz-bloco-interno">
+                <label class="flex items-start gap-2 text-sm"><input type="checkbox" id="uc-manter-arquivo" class="w-4 h-4 mt-0.5"><span><b>Manter o arquivo no Cofre</b><br><span class="text-xs" style="color:var(--sage)">Desmarcado: o Raiz guarda só os dados lidos e apaga o arquivo — menos dado armazenado.</span></span></label>
+            </div>
+
+            <div class="sm:col-span-2 raiz-bloco-interno">
+                <label class="flex items-start gap-2 text-sm"><input type="checkbox" id="uc-controlar" class="w-4 h-4 mt-0.5" data-action-change="uc-controlar-mudou"><span><b>Controlar vencimento</b><br><span class="text-xs" style="color:var(--sage)" id="uc-controlar-hint">Cria um item de controle com alerta no WhatsApp.</span></span></label>
+                <div id="uc-controle-bloco" class="hidden grid grid-cols-2 gap-2 mt-3">
+                    <div><label class="text-xs font-semibold block mb-1">Tipo</label><select id="uc-ctl-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-tipo-mudou"><option value="seguro">Seguro</option><option value="tributo">Tributo / taxa</option><option value="documento">Documento</option><option value="manutencao">Manutenção</option></select></div>
+                    <div><label class="text-xs font-semibold block mb-1">Subtipo</label><select id="uc-ctl-subtipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-subtipo-mudou"></select></div>
+                    <div class="col-span-2"><label class="text-xs font-semibold block mb-1">Título do controle</label><input type="text" id="uc-ctl-titulo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    <div><label class="text-xs font-semibold block mb-1">Início</label><input type="date" id="uc-ctl-data-inicio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    <div><label class="text-xs font-semibold block mb-1">Vence em <span style="color:var(--danger)">*</span></label><input type="date" id="uc-ctl-data-fim" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    <div><label class="text-xs font-semibold block mb-1">Avisar (dias antes)</label><input type="number" min="0" id="uc-ctl-antecedencia" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    <div><label class="text-xs font-semibold block mb-1">Reforço a cada (dias)</label><input type="number" min="1" id="uc-ctl-reforco" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    <div><label class="text-xs font-semibold block mb-1">Repete a cada</label><input type="number" min="1" id="uc-ctl-rec-intervalo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="vazio = não repete"></div>
+                    <div><label class="text-xs font-semibold block mb-1">Unidade</label><select id="uc-ctl-rec-unidade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"><option value="ano">ano(s)</option><option value="mes">mês(es)</option><option value="semana">semana(s)</option><option value="dia">dia(s)</option></select></div>
+                </div>
+            </div>
+
             <div id="up-restrito-wrapper" class="hidden sm:col-span-2 flex items-center gap-2">
                 <input type="checkbox" id="up-restrito" class="w-4 h-4"><label for="up-restrito" class="text-xs">Marcar como acesso restrito</label>
             </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-            <button data-action="salvar-upload" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar documento</button>
-            <button type="button" data-action="fechar-upload" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
+            <button data-action="salvar-confirmacao-upload" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
+            <button type="button" data-action="cancelar-confirmacao-upload" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Cancelar</button>
         </div>
-        <p class="raiz-indicador-inline" id="up-status"></p>
+        <p class="raiz-indicador-inline" id="uc-status"></p>
     </div>
 </div>
 
@@ -1129,46 +1190,10 @@ export const ATIVOS_MARKUP = `<style>
         <div class="grid grid-cols-2 gap-2">
             <button id="fd-btn-vincular" data-action="abrir-vincular-agora" class="hidden px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="link" style="width:14px;height:14px"></i> Vincular</button>
             <button data-action="categorizar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center justify-center gap-1"><i data-lucide="tag" style="width:14px;height:14px"></i> Categorizar</button>
-            <button data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
+            <button id="fd-btn-baixar" data-action="baixar-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1" style="background:var(--pine)"><i data-lucide="download" style="width:14px;height:14px"></i> Baixar</button>
             <button data-action="excluir-documento-atual" class="px-3 py-2 rounded-xl text-xs font-semibold border-2 border-slate-300 text-slate-600 flex items-center justify-center gap-1"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Excluir</button>
         </div>
         <p class="raiz-indicador-inline" id="fd-status"></p>
-    </div>
-</div>
-
-<div id="modal-sugestoes-ia" class="modal-overlay hidden">
-    <div class="modal-box p-5">
-        <div class="flex items-start justify-between mb-3">
-            <div>
-                <h3 class="text-base font-bold flex items-center gap-2"><i data-lucide="sparkles" style="width:16px;height:16px;color:var(--warning)"></i> Sugestões da IA</h3>
-                <p class="text-xs" style="color:var(--sage)" id="sug-tipo-detectado">—</p>
-            </div>
-            <button type="button" data-action="ignorar-sugestoes-ia" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-        </div>
-        <p class="text-xs mb-3" style="color:var(--sage)">Nada aqui é aplicado sozinho — revise e confirme só o que fizer sentido.</p>
-
-        <div id="sug-categoria-bloco" class="hidden raiz-bloco-interno mb-2">
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="sug-aplicar-categoria" checked> Categoria sugerida: <b id="sug-categoria-nome"></b></label>
-        </div>
-
-        <div id="sug-vinculo-bloco" class="hidden mb-2">
-            <p class="text-xs font-semibold mb-1" style="color:var(--sage)">Vincular a</p>
-            <div id="sug-vinculo-opcoes" class="space-y-1"></div>
-        </div>
-
-        <div id="sug-alerta-bloco" class="hidden raiz-bloco-interno mb-2">
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="sug-aplicar-alerta" checked> Criar alerta: <span id="sug-alerta-texto"></span></label>
-        </div>
-
-        <div id="sug-contato-bloco" class="hidden raiz-bloco-interno mb-3">
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="sug-aplicar-contato" checked> Adicionar contato: <span id="sug-contato-texto"></span></label>
-        </div>
-
-        <div class="flex justify-end gap-2">
-            <button type="button" data-action="ignorar-sugestoes-ia" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Deixar em triagem</button>
-            <button data-action="aplicar-sugestoes-ia" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Aplicar selecionados</button>
-        </div>
-        <p class="raiz-indicador-inline" id="sug-status"></p>
     </div>
 </div>
 

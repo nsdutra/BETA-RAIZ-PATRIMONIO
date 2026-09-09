@@ -5,6 +5,51 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.143.0) — R8 FATIA 4: VITRINE SAI DO INDEX
+(js/vitrine.js v1.0.0). 688 linhas: aba Vitrine, vitrine pública
+(?v=token, lightbox, sair), contratação pública (?contratar=token,
+formulário do interessado), início do processo de contratação pelo
+imóvel/ativo, resumo pro WhatsApp. Estado exclusivo (4) virou nível de
+módulo. Boot: quando a URL é pública, o módulo é importado com await
+ANTES de seguir (visitante nunca vê o login — mesma garantia); sem
+parâmetro público, não baixa. Ficaram: dados de links_vitrine e
+processosContratacao, validarCNPJ (compartilhado), banner de contratação
+do PLANO (é licença), HTML das telas. Zero HTML tocado. DEPLOY:
+vitrine.js NOVO no manifesto (Deploy_Raiz.ps1 v2.14) e gerar_versoes.py
+v1.6. Sem migration.
+CORREÇÃO (achado nesta fatia): contratos.js v1.0.1 — a ficha usava o
+retorno síncrono de avaliarProntidaoContratoParaMinuta(), que na v1.142
+virou ponte (Promise) quando Minutas saiu daqui; o card de prontidão da
+minuta viria errado. Agora contratos.js e vitrine.js IMPORTAM de
+./minutas.js (import estático, o import map resolve). Regra: ponte só
+pra "dispara e esquece"; quem usa retorno, importa. Varredura feita nos
+4 módulos + index: nenhum outro uso síncrono de ponte.
+------------------------------------------------------------------
+Versões anteriores (v1.142.0 … v1.142.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
+NOVIDADES (Beta v1.142.0) — R8 FATIA 3: MINUTAS SAI DO INDEX
+(js/minutas.js v1.0.0). 1219 linhas saíram: tela de modelos, wizard de
+minutização (DOCX/PDF → IA → revisão → DOCX), geração da minuta preenchida
+(placeholders, prontidão, gerarMinutaNoCofre), escolha de minuta pro
+imóvel. Helpers exclusivos vieram junto (assert: ninguém de fora usa).
+Mesmo desenho das fatias 1 e 2: import() no switchTab('tab-minutas'),
+pontes window[nome], rzMinSeCarregado('renderMinutas') nos 3 ganchos.
+Ficaram: minutasContrato + carregar/sincronizar, contratação pública.
+Zero HTML tocado. DEPLOY: minutas.js NOVO no manifesto (Deploy_Raiz.ps1
+v2.13) e no gerar_versoes.py (v1.5). Sem migration.
+------------------------------------------------------------------
+Versões anteriores (v1.1.0 … v1.141.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.141.0) — R8 FATIA 2: CONTRATOS SAI DO INDEX
 (js/contratos.js v1.0.0) + MINHA EMPRESA COMPLETA (comum-minha-empresa.js
 v1.4.0).

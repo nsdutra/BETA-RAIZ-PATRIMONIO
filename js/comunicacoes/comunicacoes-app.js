@@ -1,5 +1,16 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — Adaptador App
-// Beta v1.47.0
+// Beta v1.48.0
+//
+// v1.48.0 (A.11, 09/09/2026) — case tipo='upsell' + formato='modal' em
+// processar() (renderizarUpsell, comunicacoes-ui.js). Cotas perto do teto
+// vêm de fn_funcionalidades_liberadas (ctx.perfil — o index já mandava).
+// Ações: 'confirmar_interesse' registra evento novo 'confirmou_interesse'
+// (detalhe: limites + oferta_upsell + comunicacao) → trigger no banco avisa
+// o WhatsApp comercial na hora (notificar-comercial 1.0), toast de
+// "recebido"; 'abrir_bot_comercial' registra 'clicou' e abre
+// conteudo.link_bot_comercial (wa.me) com texto pronto; 'fechar' registra
+// 'fechou'. Ganho colateral: as 4 mensagens de licença vencendo (upsell_
+// aviso_1..4) passam a aparecer — nunca tinham sido renderizadas.
 //
 // v1.47.0 — 2 correções pedidas pelo Nicola após testar em produção:
 // (a) BUG DE VERDADE: quem é master em várias empresas via o mesmo
@@ -58,9 +69,9 @@
 // isso sozinho a partir de pessoa_id/cliente_id. Não precisei tocar em
 // index.html pra parar de mandar esses campos: são só ignorados agora,
 // sem custo, e removê-los de lá é limpeza opcional pra outra hora.
-import {configurarApiComunicacoes,registrarLoginComunicacoes,buscarProximaComunicacao,buscarTermosLegaisPendentes,registrarInteracao,responderNps} from './comunicacoes-api.js';
-import {renderizarOnboarding,renderizarNps,renderizarAceiteTermos,fecharComunicacao} from './comunicacoes-ui.js';
-import {obterEstadoPwa,solicitarInstalacaoPwa} from './pwa-instalacao.js';
+import {configurarApiComunicacoes,registrarLoginComunicacoes,buscarProximaComunicacao,buscarTermosLegaisPendentes,registrarInteracao,responderNps} from './comunicacoes-api.js?v=1.48.0';
+import {renderizarOnboarding,renderizarNps,renderizarAceiteTermos,renderizarUpsell,fecharComunicacao} from './comunicacoes-ui.js?v=1.48.0';
+import {obterEstadoPwa,solicitarInstalacaoPwa} from './pwa-instalacao.js?v=1.48.0';
 
 const loginsRegistrados=new Map();
 
@@ -117,6 +128,32 @@ async function processar(ev){
    renderizarNps({comunicacao:c,
     onFechar:async()=>{await seguro(c,ctx,'fechou',{motivo:'agora_nao'});fecharComunicacao();},
     onEnviar:async({nota,comentario})=>{await responderNps({comunicacaoId:c.id,pessoaId:ctx.pessoaId,clienteId:ctx.clienteId,nota,comentario});fecharComunicacao();ctx.onToast?.('Obrigado pelo feedback! 🙏','success');}
+   });return;
+  }
+  if(c.tipo==='upsell'&&c.formato==='modal'){
+   // v1.48.0 — cotas perto do teto, mesma fonte do podeUsar() do index
+   let limites=[];
+   try{
+    const {data}=await ctx.dbAuth.rpc('fn_funcionalidades_liberadas',{p_cliente_id:ctx.clienteId,p_perfil:ctx.perfil||'operador'});
+    limites=(data||[]).filter(f=>f.avisar&&!f.motivo&&f.limite).map(f=>({codigo:f.codigo,rotulo:f.rotulo,usado:f.usado,limite:f.limite,cota_tipo:f.cota_tipo,oferta_upsell:f.oferta_upsell}));
+   }catch(e){console.warn('[comunicacoes] limites:',e.message);}
+   const link=c.conteudo?.link_bot_comercial||'https://wa.me/5511947461828';
+   const textoZap=encodeURIComponent(`Olá! Sou do ${ctx.nomeEmpresa||'Raiz Patrimônio'} e quero saber as opções de plano.${limites.length?` Estou em ${limites.map(l=>`${l.usado}/${l.limite} em ${l.rotulo}`).join(', ')}.`:''}`);
+   renderizarUpsell({comunicacao:c,limites,
+    onAcao:async(op)=>{
+     const detalheBase={comunicacao:c.codigo,limites,oferta_upsell:[...new Set(limites.map(l=>l.oferta_upsell).filter(Boolean))].join(',')||null};
+     if(op.acao==='confirmar_interesse'){
+      await registrarInteracao({comunicacaoId:c.id,pessoaId:ctx.pessoaId,clienteId:ctx.clienteId,evento:'confirmou_interesse',detalhe:detalheBase});
+      await seguro(c,ctx,'concluiu',{acao:'confirmar_interesse'});
+      fecharComunicacao();ctx.onToast?.('Recebido! A Raiz entra em contato com você em breve. 🌱','success');return;
+     }
+     if(op.acao==='abrir_bot_comercial'){
+      await seguro(c,ctx,'clicou',{acao:'abrir_bot_comercial',...detalheBase});
+      window.open(`${link}${link.includes('?')?'&':'?'}text=${textoZap}`,'_blank','noopener');
+      fecharComunicacao();return;
+     }
+     await seguro(c,ctx,'fechou',{motivo:'agora_nao'});fecharComunicacao();
+    }
    });return;
   }
   await seguro(c,ctx,'erro',{motivo:'formato_app_nao_implementado',formato:c.formato});ctx.onSemComunicacao?.();

@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.17.0 · 05/09/2026
+// Versão: 1.18.0 · 09/09/2026
+//
+// v1.18.0 (A.12/A.13) — listarCategoriasGabarito() (linhas globais de
+// cofre_categorias, cliente_id null: padrões de manter arquivo / controle);
+// analisarArquivoComIA(storagePath, mime) (cofre-extrair-documento 1.5 em
+// modo pré-insert — antes de gravar cofre_documentos); registrarExtracao()
+// (RPC fn_cofre_registrar_extracao: auditoria gravada depois do insert, já
+// com status_revisao/revisado_por). analisarDocumentoComIA(documentoId)
+// mantida pra compatibilidade.
+//
+// Versão anterior: 1.17.0
 //
 // v1.17.0 — buscarResumoImoveisParaCards: imóveis e contratos em paralelo.
 //
@@ -147,7 +157,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.17.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.18.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -360,6 +370,43 @@ export async function analisarDocumentoComIA(documentoId) {
     const { data, error } = await dbAuth.functions.invoke('cofre-extrair-documento', { body: { documento_id: documentoId } });
     if (error) throw error;
     return data; // { analisado: boolean, resultado?: {...}, motivo?: string, erro?: string }
+}
+
+// v1.18.0 (A.12/A.13) — análise ANTES do insert: o arquivo já está no
+// Storage, cofre_documentos ainda não existe. A function valida o tenant
+// pelo 1º segmento do path + pessoa do usuário (RLS) e NÃO grava auditoria
+// (quem grava é registrarExtracao, depois do insert).
+export async function analisarArquivoComIA(storagePath, mimeType) {
+    const { data, error } = await dbAuth.functions.invoke('cofre-extrair-documento', { body: { storage_path: storagePath, mime_type: mimeType, bucket: 'cofre-documentos' } });
+    if (error) throw error;
+    return data; // { analisado, modo:'pre_insert', resultado?, motivo?, avisoLimite? }
+}
+
+// v1.18.0 — auditoria da extração (o que a IA leu × o que o cliente
+// confirmou). RPC security definer valida o documento pelo tenant.
+export async function registrarExtracao(documentoId, resultadoIA, statusRevisao, confirmado) {
+    const r = resultadoIA || {};
+    const { data, error } = await dbAuth.rpc('fn_cofre_registrar_extracao', {
+        p_documento_id: documentoId, p_tipo_documento: r.tipoDocumentoDetectado || 'desconhecido',
+        p_confianca: { alta: 0.9, media: 0.6, baixa: 0.3 }[r.confianca] ?? 0.3, p_modelo: r.modeloUsado || null,
+        p_dados: {
+            categoriaSugerida: r.categoriaSugerida ?? null, categoriaCodigoSugerido: r.categoriaCodigoSugerido ?? null,
+            nomeSugerido: r.nomeSugerido ?? null, resumo: r.resumo ?? null, dataDocumento: r.dataDocumento ?? null,
+            validadeEm: r.validadeEm ?? null, vigenciaInicio: r.vigenciaInicio ?? null, vigenciaFim: r.vigenciaFim ?? null,
+            tipoAtivoSugerido: r.tipoAtivoSugerido ?? null, alertasSugeridos: r.alertasSugeridos ?? [], contatosSugeridos: r.contatosSugeridos ?? [],
+        },
+        p_candidatos: r.candidatosVinculo ?? [], p_status_revisao: statusRevisao, p_confirmado: confirmado ?? null,
+    });
+    if (error) throw error;
+    return data;
+}
+
+// v1.18.0 — gabarito global de categorias (cliente_id null): codigo,
+// manter_arquivo_padrao, controle_tipo_padrao, controle_subtipo_padrao_id.
+export async function listarCategoriasGabarito() {
+    const { data, error } = await dbAuth.from('cofre_categorias').select('*').is('cliente_id', null).eq('ativo', true).order('ordem');
+    if (error) throw error;
+    return data || [];
 }
 
 // ============================================================================

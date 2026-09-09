@@ -1,6 +1,29 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.9.1 · 06/09/2026
+// Versão: 2.0.0 · 09/09/2026
+//
+// v2.0.0 (A.12/A.13 — PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0 §5) — FLUXO
+// DE UPLOAD INVERTIDO. Antes: formulário completo → salvar → IA analisa em
+// segundo plano → modal de sugestões. Agora: caixa mínima (Câmera · Arquivo ·
+// "Ler com IA") → arquivo sobe pro Storage → cofre-extrair-documento 1.5 em
+// modo pré-insert → UMA tela de confirmação (#modal-confirmar-upload) já
+// preenchida: tipo, resumo, nome sugerido, categoria › subcategoria casada por
+// `codigo` do gabarito global, datas/vigência, vínculo com candidatos reais,
+// contatos, "Manter arquivo no Cofre" e "Controlar vencimento" (bloco do item
+// de controle com antecedência/reforço/recorrência do subtipo). Salvar grava
+// documento → vínculo → auditoria (fn_cofre_registrar_extracao, já com
+// status_revisao/revisado_por) → contatos → item de controle (via
+// cofre-controles.criarItemControleDeDocumento, import dinâmico) → descarte
+// do arquivo quando a categoria é "só dados" (arquivo_mantido=false,
+// log cofre.documento_descartado). Cancelar apaga o arquivo do Storage. Sem
+// IA = mesma tela, vazia, com os padrões da categoria. SAÍRAM:
+// analisarAposUpload/montarModalSugestoesIA/ignorarSugestoesIA/
+// aplicarSugestoesIA e o flag pularAnaliseIAProximoUpload. Ficha do
+// documento: "Só dados" quando o arquivo não foi mantido (sem Baixar).
+// Padrões lidos de cofre_categorias (gabarito) e cofre_controle_subtipos
+// (migration a12_a13_categorias_gabarito_padroes_subtipos_v1).
+//
+// Versão anterior: 1.9.1 · 06/09/2026
 //
 // v1.9.1 — constante VERSAO sincronizada com o header (estava presa em uma
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
@@ -80,7 +103,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '1.9.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.0.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-ui.js';
@@ -97,10 +120,7 @@ function classeBadgeVinculo(status) {
     return status === 'triagem' ? BADGE_PENDENTE : (status === 'empresa' ? BADGE_NEUTRO : BADGE_OK);
 }
 
-let uploadContexto = null; // { entidadeTipo, entidadeId, nome } | null quando livre
-let vinculoEscolhidoUpload = null; // { tipo, id, nome } | null (triagem)
 let docAtualId = null;
-let pularAnaliseIAProximoUpload = false; // true = "Upload simples" (pedido explícito, sem IA)
 
 // ============================================================================
 // HOME
@@ -252,98 +272,266 @@ function docCardCompactoHtml(d) {
 // todos" — essa listagem já existe na própria aba Ativos).
 
 // ============================================================================
-// UPLOAD — dois caminhos (prompt corretivo §11)
+// UPLOAD — v2.0.0 (09/09/2026, A.12/A.13): a IA lê ANTES de gravar.
+// Caixa mínima (Câmera · Arquivo · "Ler com IA") → arquivo sobe pro Storage
+// → cofre-extrair-documento em modo pré-insert → UMA tela de confirmação com
+// tudo preenchido → Salvar executa o que está parametrizado na categoria
+// (manter arquivo ou só dados; controlar vencimento com item de controle).
+// Sem IA = mesma tela, vazia. Cancelar apaga o arquivo já enviado (nada
+// fica órfão no Storage).
 // ============================================================================
-export async function abrirUploadHome() {
-    uploadContexto = null;
-    vinculoEscolhidoUpload = null;
-    document.getElementById('upload-contexto-legenda').textContent = 'Sem contexto pré-definido — escolha onde este documento se encaixa, ou deixe em triagem.';
-    document.getElementById('up-vinculo-travado').classList.add('hidden');
-    document.getElementById('up-vinculo-livre').classList.remove('hidden');
-    document.getElementById('up-vinculo-tipo').value = 'triagem';
-    document.getElementById('up-vinculo-candidatos').innerHTML = '';
-    document.getElementById('up-vinculo-busca').classList.add('hidden');
-    await preencherCategoriasSelect();
-    limparFormularioUpload();
-    document.getElementById('up-restrito-wrapper').classList.toggle('hidden', !(window.podeUsar ? window.podeUsar('cofre.ver_restrito').ok : false));
-    abrirModal('modal-upload');
-}
+const LIMITE_ARQUIVO = 25 * 1024 * 1024;
+const MIMES_IA = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+let up = null;                // upload em curso: { contexto, vinculo, comIA, arquivo, hash, documentoId, storagePath, ia, padroes }
+let gabaritoCategorias = null; // linhas globais de cofre_categorias (padrões)
+let subtiposControle = null;   // cofre_controle_subtipos global + cliente (padrões de ocorrência)
 
-// Upload contextual — chamado de dentro da ficha do ativo OU de um deep
-// link contexto=contrato|pagamento vindo de Imóveis. Vínculo já vem
-// preenchido e TRAVADO (prompt corretivo §11-A: "NÃO perguntar de novo").
-export async function abrirUploadNoAtivoComIA(ativo) {
-    if (!ativo) return;
-    pularAnaliseIAProximoUpload = false;
-    await abrirUploadContextual('ativo', ativo.id, ativo.nome_exibicao);
-}
+function podeIA() { return window.podeUsar ? window.podeUsar('cofre.analisar_ia').ok : true; }
+function podeControlar() { return window.podeUsar ? window.podeUsar('cofre.controles.criar').ok : true; }
 
-export async function abrirUploadNoAtivoSemIA(ativo) {
-    if (!ativo) return;
-    pularAnaliseIAProximoUpload = true;
-    await abrirUploadContextual('ativo', ativo.id, ativo.nome_exibicao);
-}
-
-// v1.8.0 (04/09/2026, "chip de anexos de contrato ainda está diferente do
-// de ativos, não traz as 3 opções") — versão genérica das duas funções
-// acima, com o flag de IA como parâmetro em vez de fixo no nome, pra
-// qualquer chamador fora de Ativos (hoje: ficha do contrato, index.html)
-// poder abrir os dois modos sem duplicar a lógica de
-// pularAnaliseIAProximoUpload.
-export async function abrirUploadContextualComFlag(entidadeTipo, entidadeId, nomeExibido, comIA) {
-    pularAnaliseIAProximoUpload = !comIA;
-    await abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido);
-}
-
-export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido) {
-    uploadContexto = { entidadeTipo, entidadeId, nome: nomeExibido || null };
-    vinculoEscolhidoUpload = { tipo: entidadeTipo, id: entidadeId, nome: nomeExibido || rotuloEntidadeTipo(entidadeTipo) };
-
-    document.getElementById('upload-contexto-legenda').textContent = `Este documento já sai vinculado a: ${nomeExibido || rotuloEntidadeTipo(entidadeTipo)}.${pularAnaliseIAProximoUpload ? ' Upload simples — sem análise por IA.' : ' Com análise por IA após salvar.'}`;
-    document.getElementById('up-vinculo-travado').classList.remove('hidden');
-    document.getElementById('up-vinculo-travado').innerHTML = `<i data-lucide="link" style="width:14px;height:14px;display:inline"></i> ${escapeHtml(nomeExibido || rotuloEntidadeTipo(entidadeTipo))}`;
-    document.getElementById('up-vinculo-livre').classList.add('hidden');
-
-    await preencherCategoriasSelect();
-    limparFormularioUpload();
-    document.getElementById('up-restrito-wrapper').classList.toggle('hidden', !(window.podeUsar ? window.podeUsar('cofre.ver_restrito').ok : false));
-    abrirModal('modal-upload');
-    refrescarIcones();
-}
+export async function abrirUploadHome() { await abrirPickerUpload(null, true); }
+export async function abrirUploadNoAtivoComIA(ativo) { if (ativo) await abrirPickerUpload({ entidadeTipo: 'ativo', entidadeId: ativo.id, nome: ativo.nome_exibicao, tipoAtivo: ativo.tipo_ativo }, true); }
+export async function abrirUploadNoAtivoSemIA(ativo) { if (ativo) await abrirPickerUpload({ entidadeTipo: 'ativo', entidadeId: ativo.id, nome: ativo.nome_exibicao, tipoAtivo: ativo.tipo_ativo }, false); }
+export async function abrirUploadContextualComFlag(entidadeTipo, entidadeId, nomeExibido, comIA) { await abrirPickerUpload({ entidadeTipo, entidadeId, nome: nomeExibido }, !!comIA); }
+export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido) { await abrirPickerUpload({ entidadeTipo, entidadeId, nome: nomeExibido }, true); }
 
 function rotuloEntidadeTipo(t) {
     return { ativo: 'Ativo', imovel: 'Imóvel', contrato: 'Contrato', pagamento: 'Pagamento', empresa: 'Empresa', item_controle: 'Item de controle' }[t] || t;
 }
 
-function limparFormularioUpload() {
-    ['up-arquivo', 'up-nome', 'up-descricao', 'up-data-documento', 'up-validade'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    document.getElementById('up-arquivo-info').textContent = '';
+async function abrirPickerUpload(contexto, comIA) {
+    up = {
+        contexto, tipoAtivo: contexto?.tipoAtivo || null, comIA: comIA && podeIA(), arquivo: null, hash: null, documentoId: null, storagePath: null, ia: null,
+        vinculo: contexto ? { tipo: contexto.entidadeTipo, id: contexto.entidadeId, nome: contexto.nome || rotuloEntidadeTipo(contexto.entidadeTipo) } : null,
+    };
+    document.getElementById('upload-contexto-legenda').textContent = contexto
+        ? `Vai sair vinculado a: ${up.vinculo.nome}.`
+        : 'Escolha a foto ou o arquivo — o resto você confere na tela seguinte.';
+    const chk = document.getElementById('up-com-ia');
+    chk.checked = up.comIA; chk.disabled = !podeIA();
+    document.getElementById('up-com-ia-hint').textContent = podeIA() ? '— preenche tudo pra você só conferir' : '— indisponível no seu plano';
+    ['up-arquivo', 'up-camera'].forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('up-status').textContent = '';
-    document.getElementById('up-restrito').checked = false;
+    abrirModal('modal-upload');
+    refrescarIcones();
 }
 
-async function preencherCategoriasSelect() {
-    document.getElementById('up-categoria').innerHTML = estado.categorias.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+export function fecharUpload() { fecharModal('modal-upload'); }
+export function escolherArquivoUpload() { document.getElementById('up-arquivo').click(); }
+export function escolherCameraUpload() { document.getElementById('up-camera').click(); }
+
+export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
+    const f = document.getElementById(inputId).files[0];
+    if (!f || !up) return;
+    const statusEl = document.getElementById('up-status');
+    if (f.size > LIMITE_ARQUIVO) { statusEl.textContent = '⚠️ Arquivo maior que 25MB.'; statusEl.style.color = 'var(--danger)'; document.getElementById(inputId).value = ''; return; }
+    up.arquivo = f;
+    up.comIA = document.getElementById('up-com-ia').checked && podeIA();
+    await processarArquivoUpload();
 }
 
-export function fecharUpload() {
-    fecharModal('modal-upload');
-}
+async function processarArquivoUpload() {
+    const statusEl = document.getElementById('up-status');
+    const f = up.arquivo;
+    statusEl.style.color = 'var(--sage)';
+    statusEl.textContent = 'Enviando arquivo…';
 
-export function aoSelecionarArquivoUpload() {
-    const f = document.getElementById('up-arquivo').files[0];
-    if (!f) return;
-    const LIMITE = 25 * 1024 * 1024;
-    const infoEl = document.getElementById('up-arquivo-info');
-    if (f.size > LIMITE) {
-        infoEl.textContent = '⚠️ Arquivo maior que 25MB.';
-        infoEl.style.color = 'var(--danger)';
-        document.getElementById('up-arquivo').value = '';
-        return;
+    up.hash = await api.calcularHashSha256(f);
+    if (up.hash && estado.documentos.some(d => d.hash_sha256 === up.hash)) {
+        const existente = estado.documentos.find(d => d.hash_sha256 === up.hash);
+        if (!confirm(`Este arquivo parece idêntico a "${existente.nome_exibicao}", já cadastrado. Enviar mesmo assim?`)) { statusEl.textContent = ''; return; }
     }
-    infoEl.textContent = `${f.name} · ${formatarBytes(f.size)}`;
-    infoEl.style.color = 'var(--sage)';
-    if (!document.getElementById('up-nome').value) document.getElementById('up-nome').value = f.name.replace(/\.[^.]+$/, '');
+    up.documentoId = crypto.randomUUID();
+    up.storagePath = api.montarStoragePath(estado.clienteId, up.documentoId, f.name);
+    try {
+        await api.uploadArquivoDocumento(up.storagePath, f);
+    } catch (err) {
+        statusEl.textContent = '❌ Falha no upload: ' + err.message; statusEl.style.color = 'var(--danger)'; return;
+    }
+
+    if (up.comIA && MIMES_IA.includes(f.type)) {
+        statusEl.style.color = 'var(--brass, #b8860b)';
+        statusEl.textContent = '✨ Lendo o documento com IA…';
+        try {
+            const resp = await api.analisarArquivoComIA(up.storagePath, f.type);
+            if (resp?.analisado && resp.resultado) up.ia = resp.resultado;
+            else mostrarToast(resp?.motivo || resp?.erro || 'A IA não conseguiu ler — preencha manualmente.', 'aviso');
+            if (resp?.avisoLimite) mostrarToast(resp.avisoLimite, 'aviso');
+        } catch (err) {
+            console.warn('IA indisponível neste upload:', err.message);
+            mostrarToast('IA indisponível agora — preencha manualmente.', 'aviso');
+        }
+    } else if (up.comIA) {
+        mostrarToast('Word/Excel não passam pela IA — preencha os dados.', 'aviso');
+    }
+
+    try { await carregarApoioUpload(); } catch (err) { console.warn('apoio do upload:', err.message); }
+    fecharModal('modal-upload');
+    montarConfirmacaoUpload();
+    abrirModal('modal-confirmar-upload');
+    refrescarIcones();
+}
+
+async function carregarApoioUpload() {
+    if (!estado.categorias?.length) estado.categorias = await api.listarCategorias(estado.clienteId);
+    if (!gabaritoCategorias) gabaritoCategorias = await api.listarCategoriasGabarito();
+    if (!subtiposControle) subtiposControle = await api.listarSubtiposControle(estado.clienteId);
+}
+
+// Padrão efetivo da categoria: gabarito global (por codigo) → linha do
+// cliente → sistema (guarda = sim, vigência = não). Mesma regra de
+// fn_cofre_categoria_padroes() no banco, resolvida aqui pra não fazer RPC a
+// cada troca de select.
+function padroesDaCategoria(categoriaId) {
+    const c = (estado.categorias || []).find(x => x.id === categoriaId);
+    const g = c?.codigo ? (gabaritoCategorias || []).find(x => x.codigo === c.codigo) : null;
+    return {
+        manterArquivo: g?.manter_arquivo_padrao ?? c?.manter_arquivo_padrao ?? true,
+        controleTipo: g?.controle_tipo_padrao ?? c?.controle_tipo_padrao ?? null,
+        controleSubtipoId: g?.controle_subtipo_padrao_id ?? c?.controle_subtipo_padrao_id ?? null,
+    };
+}
+
+function vinculoPermiteControle() {
+    return !!up?.vinculo && (up.vinculo.tipo === 'ativo' || up.vinculo.tipo === 'contrato');
+}
+
+function montarConfirmacaoUpload() {
+    const r = up.ia;
+    const g = id => document.getElementById(id);
+    g('uc-titulo').innerHTML = r ? '<i data-lucide="sparkles" style="width:16px;height:16px;color:var(--warning)"></i> Confira o que a IA leu' : 'Dados do documento';
+    g('uc-tipo').textContent = r ? `${r.tipoDocumentoDetectado}${r.confianca === 'baixa' ? ' · leitura incerta, confira com atenção' : ''}` : `${up.arquivo.name} · ${formatarBytes(up.arquivo.size)}`;
+    g('uc-resumo').classList.toggle('hidden', !r?.resumo);
+    g('uc-resumo').textContent = r?.resumo || '';
+    g('uc-status').textContent = '';
+
+    // categorias: grupo › nome (optgroup por grupo)
+    const cats = (estado.categorias || []).filter(c => c.ativo !== false);
+    const grupos = {};
+    cats.forEach(c => { const gr = c.grupo || 'outros'; (grupos[gr] = grupos[gr] || []).push(c); });
+    g('uc-categoria').innerHTML = Object.keys(grupos).sort().map(gr =>
+        `<optgroup label="${escapeHtml(rotuloGrupo(gr))}">${grupos[gr].map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('')}</optgroup>`).join('');
+    let catSugerida = null;
+    if (r?.categoriaCodigoSugerido) catSugerida = cats.find(c => c.codigo === r.categoriaCodigoSugerido);
+    if (!catSugerida && r?.categoriaSugerida) catSugerida = cats.find(c => c.nome.toLowerCase() === r.categoriaSugerida.toLowerCase());
+    if (!catSugerida) catSugerida = cats.find(c => c.codigo === 'outros.outros') || cats[0];
+    if (catSugerida) g('uc-categoria').value = catSugerida.id;
+
+    g('uc-nome').value = r?.nomeSugerido || up.arquivo.name.replace(/\.[^.]+$/, '');
+    g('uc-descricao').value = '';
+    g('uc-data-documento').value = r?.dataDocumento || '';
+    g('uc-validade').value = r?.validadeEm || '';
+    g('uc-vig-inicio').value = r?.vigenciaInicio || '';
+    g('uc-vig-fim').value = r?.vigenciaFim || '';
+    g('uc-vigencia-bloco').classList.toggle('hidden', !(r?.vigenciaInicio || r?.vigenciaFim));
+
+    // vínculo
+    g('up-vinculo-travado').classList.toggle('hidden', !up.contexto);
+    g('up-vinculo-livre').classList.toggle('hidden', !!up.contexto);
+    g('up-vinculo-ia').classList.add('hidden');
+    g('up-vinculo-ia').innerHTML = '';
+    if (up.contexto) {
+        g('up-vinculo-travado').innerHTML = `<i data-lucide="link" style="width:14px;height:14px;display:inline"></i> ${escapeHtml(up.vinculo.nome)}`;
+    } else {
+        g('up-vinculo-tipo').value = 'triagem';
+        g('up-vinculo-candidatos').innerHTML = '';
+        g('up-vinculo-busca').classList.add('hidden');
+        up.vinculo = null;
+        const cands = r?.candidatosVinculo || [];
+        if (cands.length) {
+            g('up-vinculo-ia').classList.remove('hidden');
+            g('up-vinculo-ia').innerHTML = cands.map((c, i) => `
+                <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="${i}" data-action-change="uc-vinculo-ia-mudou" ${i === 0 ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">(${c.tipo === 'imovel' ? 'imóvel' : 'ativo'})</span></label>`).join('') + `
+                <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="outro" data-action-change="uc-vinculo-ia-mudou"> Outro — escolher abaixo</label>`;
+            up.vinculo = { tipo: cands[0].tipo, id: cands[0].id, nome: cands[0].nome };
+            g('up-vinculo-livre').classList.add('hidden');
+        }
+    }
+
+    // contatos
+    const contatos = (r?.contatosSugeridos || []).filter(c => c?.nome);
+    g('uc-contatos-bloco').classList.toggle('hidden', !contatos.length);
+    g('uc-contatos-lista').innerHTML = contatos.map((c, i) => `
+        <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="checkbox" class="uc-contato" value="${i}" checked> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">${escapeHtml(c.papel || 'outro')}${c.telefone ? ' · ' + escapeHtml(c.telefone) : ''}</span></label>`).join('');
+
+    g('up-restrito').checked = false;
+    g('up-restrito-wrapper').classList.toggle('hidden', !(window.podeUsar ? window.podeUsar('cofre.ver_restrito').ok : false));
+
+    aplicarPadroesCategoriaUpload(true);
+}
+
+function rotuloGrupo(gr) {
+    return { imovel: 'Imóvel', contrato: 'Contrato', financeiro: 'Financeiro', societario: 'Societário', operacional: 'Operacional', veiculo: 'Veículo', vida: 'Vida e proteção', outros: 'Outros' }[gr] || gr;
+}
+
+// Troca de categoria (ou 1ª montagem): aplica os padrões parametrizados —
+// manter arquivo e controlar vencimento — e pré-preenche o bloco de controle.
+export function aplicarPadroesCategoriaUpload(primeira = false) {
+    if (!up) return;
+    const g = id => document.getElementById(id);
+    up.padroes = padroesDaCategoria(g('uc-categoria').value);
+    g('uc-manter-arquivo').checked = !!up.padroes.manterArquivo;
+    const permite = vinculoPermiteControle() && podeControlar();
+    const chk = g('uc-controlar');
+    chk.disabled = !permite;
+    g('uc-controlar-hint').textContent = !podeControlar() ? 'Controle de vencimento indisponível no seu plano.'
+        : !vinculoPermiteControle() ? 'Vincule a um ativo ou contrato pra controlar o vencimento.'
+        : 'Cria um item de controle com alerta no WhatsApp.';
+    const dataFim = g('uc-vig-fim').value || g('uc-validade').value;
+    chk.checked = permite && !!up.padroes.controleTipo && !!dataFim;
+    g('uc-controle-bloco').classList.toggle('hidden', !chk.checked);
+    if (up.padroes.controleTipo) g('uc-ctl-tipo').value = up.padroes.controleTipo;
+    preencherSubtiposControleUpload(up.padroes.controleSubtipoId);
+    g('uc-ctl-titulo').value = g('uc-nome').value;
+    g('uc-ctl-data-inicio').value = g('uc-vig-inicio').value || g('uc-data-documento').value || new Date().toISOString().slice(0, 10);
+    g('uc-ctl-data-fim').value = dataFim || '';
+    aplicarPadraoSubtipoUpload();
+}
+
+export function aoMudarControlarUpload() {
+    const chk = document.getElementById('uc-controlar');
+    document.getElementById('uc-controle-bloco').classList.toggle('hidden', !chk.checked);
+    if (chk.checked && !document.getElementById('uc-ctl-titulo').value) document.getElementById('uc-ctl-titulo').value = document.getElementById('uc-nome').value;
+}
+
+export function aoMudarTipoControleUpload() { preencherSubtiposControleUpload(null); aplicarPadraoSubtipoUpload(); }
+
+function preencherSubtiposControleUpload(subtipoIdPreferido) {
+    const tipo = document.getElementById('uc-ctl-tipo').value;
+    const tipoAtivo = up?.tipoAtivo || null;
+    let lista = (subtiposControle || []).filter(s => s.tipo === tipo);
+    if (tipoAtivo) {
+        const compat = lista.filter(s => !s.tipo_ativo_aplicavel?.length || s.tipo_ativo_aplicavel.includes(tipoAtivo));
+        if (compat.length) lista = compat;
+    }
+    // Dica da IA: subtipo cujo nome aparece no tipo detectado (ex.: "CNH")
+    const detectado = (up?.ia?.tipoDocumentoDetectado || '').toLowerCase();
+    const pelaIA = detectado ? lista.find(s => detectado.includes(s.nome.toLowerCase()) || detectado.includes(s.codigo.replace(/_/g, ' '))) : null;
+    const sel = document.getElementById('uc-ctl-subtipo');
+    sel.innerHTML = `<option value="">— sem subtipo —</option>` + lista.map(s => `<option value="${s.id}">${escapeHtml(s.nome)}</option>`).join('');
+    const alvo = subtipoIdPreferido && lista.some(s => s.id === subtipoIdPreferido) ? subtipoIdPreferido : (pelaIA?.id || '');
+    sel.value = alvo;
+}
+
+// Padrão de ocorrência do subtipo (antecedência · reforço · recorrência) —
+// A.13, cofre_controle_subtipos.*_padrao_*. Editável na hora.
+export function aplicarPadraoSubtipoUpload() {
+    const g = id => document.getElementById(id);
+    const s = (subtiposControle || []).find(x => x.id === g('uc-ctl-subtipo').value);
+    const tipo = g('uc-ctl-tipo').value;
+    const fallback = { seguro: [60, 30, 1, 'ano'], tributo: [30, 7, 1, 'ano'], documento: [180, 60, null, null], manutencao: [15, 7, null, null] }[tipo] || [30, 7, null, null];
+    g('uc-ctl-antecedencia').value = s?.antecedencia_padrao_dias ?? fallback[0];
+    g('uc-ctl-reforco').value = s?.repeticao_padrao_dias ?? fallback[1];
+    g('uc-ctl-rec-intervalo').value = s?.recorrencia_padrao_intervalo ?? fallback[2] ?? '';
+    g('uc-ctl-rec-unidade').value = s?.recorrencia_padrao_unidade ?? fallback[3] ?? 'ano';
+}
+
+export function aoMudarVinculoIaUpload() {
+    const v = document.querySelector('input[name="uc-vinculo-ia"]:checked')?.value;
+    const livre = document.getElementById('up-vinculo-livre');
+    if (v === 'outro') { up.vinculo = null; livre.classList.remove('hidden'); document.getElementById('up-vinculo-tipo').value = 'triagem'; }
+    else { const c = up.ia.candidatosVinculo[parseInt(v, 10)]; up.vinculo = { tipo: c.tipo, id: c.id, nome: c.nome }; livre.classList.add('hidden'); }
+    aplicarPadroesCategoriaUpload();
 }
 
 // Troca de tipo de vínculo no upload livre — mostra busca de candidato
@@ -352,7 +540,7 @@ export async function aoMudarTipoVinculoUpload() {
     const tipo = document.getElementById('up-vinculo-tipo').value;
     const buscaEl = document.getElementById('up-vinculo-busca');
     const candidatosEl = document.getElementById('up-vinculo-candidatos');
-    vinculoEscolhidoUpload = tipo === 'triagem' ? null : (tipo === 'empresa' ? { tipo: 'empresa', id: null, nome: 'Empresa (geral)' } : null);
+    up.vinculo = tipo === 'triagem' ? null : (tipo === 'empresa' ? { tipo: 'empresa', id: null, nome: 'Empresa (geral)' } : null);
     candidatosEl.innerHTML = '';
     if (tipo === 'ativo' || tipo === 'imovel') {
         buscaEl.classList.remove('hidden');
@@ -362,6 +550,7 @@ export async function aoMudarTipoVinculoUpload() {
     } else {
         buscaEl.classList.add('hidden');
     }
+    aplicarPadroesCategoriaUpload();
 }
 
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
@@ -373,14 +562,135 @@ async function buscarCandidatosUpload(tipo, termo) {
     if (candidatos.length === 0) { el.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nada encontrado. Você pode salvar em triagem e resolver depois.</p>`; return; }
     el.innerHTML = candidatos.map(c => {
         const nome = tipo === 'ativo' ? c.nome_exibicao : `${c.endereco_rua}, ${c.endereco_num || ''}`;
-        return `<button type="button" data-action="escolher-candidato-upload" data-tipo="${tipo}" data-id="${c.id}" data-nome="${escapeHtml(nome)}" class="w-full text-left text-xs border-2 border-slate-200 rounded-lg p-2 hover:border-emerald-700">${escapeHtml(nome)}</button>`;
+        return `<button type="button" data-action="escolher-candidato-upload" data-tipo="${tipo}" data-id="${c.id}" data-nome="${escapeHtml(nome)}" data-tipo-ativo="${escapeHtml(c.tipo_ativo || '')}" class="w-full text-left text-xs border-2 border-slate-200 rounded-lg p-2 hover:border-emerald-700">${escapeHtml(nome)}</button>`;
     }).join('');
 }
 
-export function escolherCandidatoUpload(tipo, id, nome) {
-    vinculoEscolhidoUpload = { tipo, id, nome };
+export function escolherCandidatoUpload(tipo, id, nome, tipoAtivo) {
+    up.vinculo = { tipo, id, nome };
+    if (tipoAtivo) up.tipoAtivo = tipoAtivo;
     document.getElementById('up-vinculo-candidatos').innerHTML = `<div class="raiz-bloco-interno text-xs flex items-center justify-between"><span>✅ ${escapeHtml(nome)}</span></div>`;
     document.getElementById('up-vinculo-busca').classList.add('hidden');
+    aplicarPadroesCategoriaUpload();
+}
+
+export async function cancelarConfirmacaoUpload() {
+    if (up?.storagePath) { try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ } }
+    fecharModal('modal-confirmar-upload');
+    up = null;
+}
+
+// Compatibilidade: chamadores antigos de salvarUpload() caem no salvar novo.
+export async function salvarUpload() { await salvarConfirmacaoUpload(); }
+
+export async function salvarConfirmacaoUpload() {
+    if (!up?.storagePath) return;
+    const g = id => document.getElementById(id);
+    const statusEl = g('uc-status');
+    const nome = g('uc-nome').value.trim();
+    const categoriaId = g('uc-categoria').value;
+    const manter = g('uc-manter-arquivo').checked;
+    const controlar = g('uc-controlar').checked && !g('uc-controlar').disabled;
+    if (!nome) return marcarErroConfirmacao('Informe o nome de exibição.');
+    if (!categoriaId) return marcarErroConfirmacao('Selecione uma categoria.');
+    if (controlar && !g('uc-ctl-data-fim').value) return marcarErroConfirmacao('Informe a data de vencimento do controle.');
+    if (controlar && !g('uc-ctl-titulo').value.trim()) return marcarErroConfirmacao('Informe o título do controle.');
+
+    statusEl.style.color = 'var(--sage)';
+    statusEl.textContent = 'Salvando…';
+    const f = up.arquivo;
+    const nivelAcesso = g('up-restrito').checked ? 'restrito' : 'empresa';
+    const dados = {
+        data_documento: g('uc-data-documento').value || null, validade_em: g('uc-validade').value || g('uc-vig-fim').value || null,
+        descricao: g('uc-descricao').value.trim() || null,
+    };
+
+    try {
+        await api.inserirDocumento({
+            id: up.documentoId, cliente_id: estado.clienteId, nome_original: f.name, nome_exibicao: nome,
+            bucket: 'cofre-documentos', storage_path: up.storagePath, mime_type: f.type, extensao: (f.name.split('.').pop() || '').toLowerCase(),
+            tamanho_bytes: f.size, hash_sha256: up.hash, categoria_id: categoriaId, tags: [], ...dados,
+            nivel_acesso: nivelAcesso, origem: 'app', status: 'ativo', criado_por: estado.pessoa.id, arquivo_mantido: manter,
+        });
+    } catch (err) {
+        await api.removerArquivoDocumento(up.storagePath);
+        return marcarErroConfirmacao('Falha ao salvar (upload desfeito): ' + err.message);
+    }
+
+    const avisos = [];
+    if (up.vinculo && up.vinculo.tipo !== 'triagem') {
+        try { await api.inserirVinculo(estado.clienteId, up.documentoId, up.vinculo.tipo, up.vinculo.id, true, estado.pessoa.id); }
+        catch (err) { avisos.push('vínculo: ' + err.message); }
+    }
+
+    // Auditoria: o que a IA leu × o que o cliente confirmou (A.12, RPC).
+    if (up.ia) {
+        const cat = estado.categorias.find(c => c.id === categoriaId);
+        const confirmado = { categoriaCodigo: cat?.codigo || null, categoriaId, nome, ...dados, manterArquivo: manter, controlar };
+        const igual = (cat?.codigo || null) === (up.ia.categoriaCodigoSugerido || null) && nome === (up.ia.nomeSugerido || '') &&
+            (dados.data_documento || null) === (up.ia.dataDocumento || null);
+        try { await api.registrarExtracao(up.documentoId, up.ia, igual ? 'confirmado' : 'corrigido', confirmado); }
+        catch (err) { console.warn('auditoria da extração:', err.message); }
+    }
+
+    // Contatos marcados → cofre_contatos_acionamento (mesmo insert do antigo modal de sugestões)
+    const marcados = [...document.querySelectorAll('.uc-contato:checked')].map(el => up.ia?.contatosSugeridos?.[parseInt(el.value, 10)]).filter(Boolean);
+    for (const c of marcados) {
+        try { await api.criarContato({ cliente_id: estado.clienteId, documento_id: up.documentoId, papel: c.papel || 'outro', nome: c.nome, telefone: c.telefone || null, email: c.email || null }); }
+        catch (err) { avisos.push('contato ' + c.nome + ': ' + err.message); }
+    }
+
+    // Item de controle — mesmo caminho da tela Controles (cofre-controles.js).
+    let itemCriado = null;
+    if (controlar) {
+        try {
+            const ctl = await import('./cofre-controles.js');
+            const recInt = parseInt(g('uc-ctl-rec-intervalo').value, 10) || null;
+            itemCriado = await ctl.criarItemControleDeDocumento({
+                ativoId: up.vinculo.tipo === 'ativo' ? up.vinculo.id : null,
+                contratoId: up.vinculo.tipo === 'contrato' ? up.vinculo.id : null,
+                tipo: g('uc-ctl-tipo').value, subtipoId: g('uc-ctl-subtipo').value || null,
+                titulo: g('uc-ctl-titulo').value.trim(),
+                dataBase: g('uc-ctl-data-inicio').value || g('uc-ctl-data-fim').value, dataFim: g('uc-ctl-data-fim').value,
+                freqIntervalo: recInt, freqUnidade: recInt ? g('uc-ctl-rec-unidade').value : null,
+                antecedencia: parseInt(g('uc-ctl-antecedencia').value, 10) || 0,
+                repeticao: parseInt(g('uc-ctl-reforco').value, 10) || null,
+                documentoId: up.documentoId,
+            });
+            await api.inserirVinculo(estado.clienteId, up.documentoId, 'item_controle', itemCriado.id, false, estado.pessoa.id);
+        } catch (err) { avisos.push('controle: ' + err.message); }
+    }
+
+    // Minimização (A.12): categoria "só dados" → arquivo sai do Storage, dados ficam.
+    if (!manter) {
+        try {
+            await api.removerArquivoDocumento(up.storagePath);
+            await api.atualizarDocumento(up.documentoId, { arquivo_mantido: false, arquivo_descartado_em: new Date().toISOString() });
+            await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.documento_descartado', { documento_id: up.documentoId, categoria_id: categoriaId });
+        } catch (err) { avisos.push('descarte do arquivo: ' + err.message); }
+    }
+
+    await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.upload', {
+        documento_id: up.documentoId, nome, categoria_id: categoriaId, comIA: !!up.ia, manterArquivo: manter, itemControleId: itemCriado?.id,
+        ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : undefined,
+    });
+
+    const partes = ['Documento salvo'];
+    if (itemCriado) partes.push('vencimento sob controle');
+    if (!manter) partes.push('só os dados guardados');
+    mostrarToast(partes.join(' · ') + ' ✅');
+    avisos.forEach(a => mostrarToast('Atenção — ' + a, 'aviso'));
+    fecharModal('modal-confirmar-upload');
+    up = null;
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    if (itemCriado) window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    if (marcados.length) window.dispatchEvent(new CustomEvent('cofre:recarregar-contatos'));
+}
+
+function marcarErroConfirmacao(msg) {
+    const el = document.getElementById('uc-status');
+    el.textContent = '⚠️ ' + msg;
+    el.style.color = 'var(--danger)';
 }
 
 // v1.9.0 (06/09/2026) — ANEXO PROGRAMÁTICO: guarda um File no Cofre já
@@ -410,204 +720,6 @@ export async function anexarArquivoEntidade(entidadeTipo, entidadeId, arquivo, o
     try { estado.documentos = await api.listarDocumentos(estado.clienteId); } catch (e) { /* lista atualiza no próximo boot */ }
     return documentoId;
 }
-export async function salvarUpload() {
-    const arquivo = document.getElementById('up-arquivo').files[0];
-    const nome = document.getElementById('up-nome').value.trim();
-    const categoriaId = document.getElementById('up-categoria').value;
-    const statusEl = document.getElementById('up-status');
-
-    if (!arquivo) return marcarErroUpload('Selecione um arquivo.');
-    if (!nome) return marcarErroUpload('Informe o nome de exibição.');
-    if (!categoriaId) return marcarErroUpload('Selecione uma categoria.');
-
-    statusEl.style.color = 'var(--sage)';
-    statusEl.textContent = 'Calculando hash e enviando arquivo…';
-
-    const hash = await api.calcularHashSha256(arquivo);
-    if (hash && estado.documentos.some(d => d.hash_sha256 === hash)) {
-        const existente = estado.documentos.find(d => d.hash_sha256 === hash);
-        if (!confirm(`Este arquivo parece idêntico a "${existente.nome_exibicao}", já cadastrado. Enviar mesmo assim?`)) { statusEl.textContent = ''; return; }
-    }
-
-    const documentoId = crypto.randomUUID();
-    const storagePath = api.montarStoragePath(estado.clienteId, documentoId, arquivo.name);
-
-    try {
-        await api.uploadArquivoDocumento(storagePath, arquivo);
-    } catch (err) {
-        statusEl.textContent = '❌ Falha no upload: ' + err.message;
-        statusEl.style.color = 'var(--danger)';
-        return;
-    }
-
-    const tags = []; // campo de tags livre removido da v1.1.0 do modal (mantido no schema) — pode ser reintroduzido sem migration
-    const nivelAcesso = document.getElementById('up-restrito').checked ? 'restrito' : 'empresa';
-
-    let docInserido;
-    try {
-        docInserido = await api.inserirDocumento({
-            id: documentoId, cliente_id: estado.clienteId, nome_original: arquivo.name, nome_exibicao: nome,
-            bucket: 'cofre-documentos', storage_path: storagePath, mime_type: arquivo.type, extensao: (arquivo.name.split('.').pop() || '').toLowerCase(),
-            tamanho_bytes: arquivo.size, hash_sha256: hash, categoria_id: categoriaId,
-            descricao: document.getElementById('up-descricao').value.trim() || null, tags,
-            data_documento: document.getElementById('up-data-documento').value || null,
-            validade_em: document.getElementById('up-validade').value || null,
-            nivel_acesso: nivelAcesso, origem: 'app', status: 'ativo', criado_por: estado.pessoa.id,
-        });
-    } catch (err) {
-        await api.removerArquivoDocumento(storagePath);
-        statusEl.textContent = '❌ Falha ao salvar metadados (upload desfeito): ' + err.message;
-        statusEl.style.color = 'var(--danger)';
-        return;
-    }
-
-    if (vinculoEscolhidoUpload) {
-        try {
-            await api.inserirVinculo(estado.clienteId, documentoId, vinculoEscolhidoUpload.tipo, vinculoEscolhidoUpload.id, true, estado.pessoa.id);
-        } catch (err) {
-            mostrarToast('Documento salvo, mas o vínculo falhou: ' + err.message, 'aviso');
-        }
-    }
-
-    await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.upload', {
-        documento_id: documentoId, nome, categoria_id: categoriaId,
-        ativoId: vinculoEscolhidoUpload?.tipo === 'ativo' ? vinculoEscolhidoUpload.id : undefined,
-    });
-
-    mostrarToast('Documento salvo no Cofre ✅');
-    fecharUpload();
-    window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
-
-    // FASE 2 (20/08/2026) — dispara a análise por IA depois de salvar. Não
-    // bloqueia nem atrasa o "documento salvo" acima — roda em segundo
-    // plano e só abre um modal se encontrar algo útil pra sugerir.
-    // v1.1.1 (24/08/2026) — "Upload simples" (pedido explícito) pula essa
-    // análise; "Com IA" mantém o comportamento de sempre.
-    if (!pularAnaliseIAProximoUpload) {
-        analisarAposUpload(documentoId, !!vinculoEscolhidoUpload);
-    }
-    pularAnaliseIAProximoUpload = false;
-}
-
-function marcarErroUpload(msg) {
-    const el = document.getElementById('up-status');
-    el.textContent = '⚠️ ' + msg;
-    el.style.color = 'var(--danger)';
-}
-
-// ============================================================================
-// FASE 2 — análise por IA após o upload (20/08/2026)
-// ============================================================================
-let sugestaoIaAtual = null; // { documentoId, resultado, vinculoJaDefinido }
-
-async function analisarAposUpload(documentoId, vinculoJaDefinido) {
-    let resposta;
-    try {
-        resposta = await api.analisarDocumentoComIA(documentoId);
-    } catch (err) {
-        console.warn('Análise por IA não disponível para este documento:', err.message);
-        return;
-    }
-    if (!resposta?.analisado || !resposta.resultado) return;
-
-    const r = resposta.resultado;
-    const temAlgoUtil = r.categoriaSugerida || (!vinculoJaDefinido && r.candidatosVinculo.length > 0) || r.alertasSugeridos[0] || r.contatosSugeridos[0];
-    if (!temAlgoUtil) return;
-
-    sugestaoIaAtual = { documentoId, resultado: r, vinculoJaDefinido };
-    montarModalSugestoesIA();
-    abrirModal('modal-sugestoes-ia');
-}
-
-function montarModalSugestoesIA() {
-    const { resultado: r, vinculoJaDefinido } = sugestaoIaAtual;
-    document.getElementById('sug-tipo-detectado').textContent = r.tipoDocumentoDetectado;
-
-    const categoriaExiste = r.categoriaSugerida && estado.categorias.some(c => c.nome.toLowerCase() === r.categoriaSugerida.toLowerCase());
-    document.getElementById('sug-categoria-bloco').classList.toggle('hidden', !categoriaExiste);
-    if (categoriaExiste) document.getElementById('sug-categoria-nome').textContent = r.categoriaSugerida;
-
-    const vinculoBloco = document.getElementById('sug-vinculo-bloco');
-    const mostrarVinculo = !vinculoJaDefinido && r.candidatosVinculo.length > 0;
-    vinculoBloco.classList.toggle('hidden', !mostrarVinculo);
-    if (mostrarVinculo) {
-        document.getElementById('sug-vinculo-opcoes').innerHTML = r.candidatosVinculo.map((c, i) => `
-            <label class="flex items-center gap-2 text-sm raiz-bloco-interno">
-                <input type="radio" name="sug-vinculo" value="${i}" ${i === 0 ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">(${c.tipo})</span>
-            </label>`).join('') + `
-            <label class="flex items-center gap-2 text-sm raiz-bloco-interno">
-                <input type="radio" name="sug-vinculo" value="nenhum"> Nenhum — deixar em triagem
-            </label>`;
-    }
-
-    // v6: sugestão de alerta pela IA não vira mais evento avulso (ver nota em
-    // aplicarSugestoesIA) — bloco escondido até termos um fluxo real de
-    // "criar item de controle a partir da sugestão".
-    document.getElementById('sug-alerta-bloco').classList.add('hidden');
-
-    const contato = r.contatosSugeridos[0];
-    document.getElementById('sug-contato-bloco').classList.toggle('hidden', !contato?.nome);
-    if (contato?.nome) {
-        document.getElementById('sug-contato-texto').textContent = contato.nome + (contato.telefone ? ` · ${contato.telefone}` : '');
-    }
-
-    document.getElementById('sug-status').textContent = '';
-}
-
-export function ignorarSugestoesIA() {
-    fecharModal('modal-sugestoes-ia');
-    sugestaoIaAtual = null;
-}
-
-export async function aplicarSugestoesIA() {
-    if (!sugestaoIaAtual) return;
-    const { documentoId, resultado: r } = sugestaoIaAtual;
-    const statusEl = document.getElementById('sug-status');
-    statusEl.textContent = 'Aplicando…';
-    statusEl.style.color = 'var(--sage)';
-
-    try {
-        if (document.getElementById('sug-aplicar-categoria')?.checked && !document.getElementById('sug-categoria-bloco').classList.contains('hidden')) {
-            const cat = estado.categorias.find(c => c.nome.toLowerCase() === r.categoriaSugerida.toLowerCase());
-            if (cat) await api.atualizarDocumento(documentoId, { categoria_id: cat.id, data_documento: r.dataDocumento, validade_em: r.validadeEm });
-        } else if (r.dataDocumento || r.validadeEm) {
-            await api.atualizarDocumento(documentoId, { data_documento: r.dataDocumento, validade_em: r.validadeEm });
-        }
-
-        if (!document.getElementById('sug-vinculo-bloco').classList.contains('hidden')) {
-            const escolhaRadio = document.querySelector('input[name="sug-vinculo"]:checked')?.value;
-            if (escolhaRadio && escolhaRadio !== 'nenhum') {
-                const c = r.candidatosVinculo[parseInt(escolhaRadio, 10)];
-                await api.inserirVinculo(estado.clienteId, documentoId, c.tipo, c.id, true, estado.pessoa.id);
-            }
-        }
-
-        // v6: sugestão de alerta pela IA não cria mais evento avulso (tabela
-        // cofre_eventos removida) — alertas agora só existem via Item de
-        // Controle. Checkbox "aplicar alerta" desativada no formulário (ver
-        // montarModalSugestoesIA) até termos um fluxo de "criar item de
-        // controle a partir da sugestão da IA" (pendente).
-
-        const contato = r.contatosSugeridos[0];
-        if (document.getElementById('sug-aplicar-contato')?.checked && contato?.nome) {
-            await api.criarContato({
-                cliente_id: estado.clienteId, documento_id: documentoId, papel: contato.papel || 'outro',
-                nome: contato.nome, telefone: contato.telefone, email: contato.email,
-            });
-        }
-
-        mostrarToast('Sugestões aplicadas ✅');
-        fecharModal('modal-sugestoes-ia');
-        sugestaoIaAtual = null;
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
-        window.dispatchEvent(new CustomEvent('cofre:recarregar-contatos'));
-    } catch (err) {
-        statusEl.textContent = '❌ ' + err.message;
-        statusEl.style.color = 'var(--danger)';
-    }
-}
-
 // ============================================================================
 // "VINCULAR AGORA" — documento já salvo em triagem, sem passar de novo pelo
 // upload (lacuna identificada em produção, 20/08/2026: antes não existia
@@ -683,12 +795,14 @@ export async function abrirFichaDocumento(id) {
     const chip = chipVencimento(dias);
     let chips = `<span class="${classeBadgeVinculo(statusVinculo)}">${escapeHtml(rotuloStatusVinculo(statusVinculo))}</span>`;
     if (d.nivel_acesso === 'restrito') chips += `<span class="${BADGE_ALERTA}">Restrito</span>`;
+    if (d.arquivo_mantido === false) chips += `<span class="${BADGE_NEUTRO}">Só dados</span>`; // v2.0.0 (A.12)
     if (chip) chips += `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>`;
     document.getElementById('fd-chips').innerHTML = chips;
+    document.getElementById('fd-btn-baixar')?.classList.toggle('hidden', d.arquivo_mantido === false);
 
     document.getElementById('fd-meta').innerHTML = `
         <p><strong>Enviado em:</strong> ${formatarDataBR((d.criado_em || '').slice(0, 10))}</p>
-        <p><strong>Tamanho:</strong> ${formatarBytes(d.tamanho_bytes)}</p>
+        <p><strong>Tamanho:</strong> ${formatarBytes(d.tamanho_bytes)}${d.arquivo_mantido === false ? ' · <em>arquivo não armazenado — só os dados lidos</em>' : ''}</p>
         <p><strong>Origem:</strong> ${d.origem === 'bot_whatsapp' ? 'WhatsApp' : 'App'}</p>
         ${d.descricao ? `<p><strong>Descrição:</strong> ${escapeHtml(d.descricao)}</p>` : ''}
     `;
@@ -727,6 +841,7 @@ export async function irParaVinculo(tipo, id) {
 export async function baixarDocumentoAtual() {
     const d = estado.documentos.find(x => x.id === docAtualId) || await api.buscarDocumentoPorId(docAtualId);
     if (!d) return;
+    if (d.arquivo_mantido === false) { mostrarToast('Este documento foi guardado só com os dados — o arquivo não está armazenado.', 'aviso'); return; }
     try {
         const url = await api.gerarSignedUrl(d.bucket, d.storage_path, 120);
         window.open(url, '_blank');

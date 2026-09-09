@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.17.0 · 06/09/2026
+// Versão: 1.18.0 · 09/09/2026
+//
+// v1.18.0 (A.13) — criarItemControleDeDocumento(): item de controle criado a
+// partir da confirmação do upload (cofre-documentos.js v2.0.0), pelo MESMO
+// caminho de salvarItemControle() — criarItemControle → histórico →
+// ocorrências no horizonte (retroativo quando tem data fim) → log. Aceita
+// ativo OU contrato (CHECK cofre_itens_controle_entidade_check), grava
+// origem='documento' e o reforço novo alerta_repeticao_dias (migration
+// a12_a13_categorias_gabarito_padroes_subtipos_v1; diario-eventos 1.12 lê).
+// Chamada por import dinâmico (cofre-documentos ↔ cofre-controles já se
+// importam; dinâmico evita ciclo no boot).
+//
+// Versão anterior: 1.17.0 · 06/09/2026
 //
 // v1.17.0 — log_acessos com códigos do catálogo (cofre.controles.criar/desativar/editar) — fase F.
 //
@@ -190,7 +202,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.17.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.18.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1243,6 +1255,38 @@ export async function salvarItemControle() {
         renderizarListaControles();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // atualiza Home/Visão Geral com as novas ocorrências
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// v1.18.0 (A.13) — item de controle nascido de um documento (upload com
+// confirmação). Mesmo pipeline de salvarItemControle(), sem depender do
+// formulário nem de estado.ativoEmFoco. Devolve o item criado.
+export async function criarItemControleDeDocumento(p) {
+    if (!p.ativoId && !p.contratoId) throw new Error('Item de controle precisa de um ativo ou contrato.');
+    if (!p.titulo) throw new Error('Informe o título do controle.');
+    const dataFim = p.dataFim || null;
+    const dataBase = p.dataBase || dataFim;
+    if (!dataBase) throw new Error('Informe a data de vencimento.');
+    const direcao = dataFim ? 'fim' : 'inicio';
+    const freqIntervalo = p.freqIntervalo || null;
+    const freqUnidade = freqIntervalo ? p.freqUnidade : null;
+    const item = await api.criarItemControle({
+        cliente_id: estado.clienteId, ativo_id: p.ativoId || null, contrato_id: p.contratoId || null,
+        tipo: p.tipo, subtipo_id: p.subtipoId || null, titulo: p.titulo,
+        recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade,
+        data_base: dataBase, data_fim: dataFim, direcao_alerta: direcao,
+        alerta_ativo: true, antecedencia_alerta_dias: p.antecedencia ?? 0, alerta_repeticao_dias: p.repeticao || null,
+        origem: 'documento', criado_por: estado.pessoa.id,
+    });
+    await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
+    const payloads = direcao === 'fim'
+        ? gerarOcorrenciasHorizonteRetroativo(item, dataFim, freqIntervalo, freqUnidade)
+        : gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade);
+    await api.criarOcorrenciasControleBatch(payloads);
+    await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: p.ativoId, contratoId: p.contratoId, itemId: item.id, ocorrenciasGeradas: payloads.length, origem: 'documento', documentoId: p.documentoId });
+    if (estado.ativoEmFoco && p.ativoId === estado.ativoEmFoco.id) {
+        try { itensDoAtivoAtual = await api.listarItensControleAtivo(p.ativoId); renderizarListaControles(); } catch (e) { /* lista atualiza ao reabrir */ }
+    }
+    return item;
 }
 
 // Gera as ocorrências de um item dentro do horizonte de 120 dias a partir de

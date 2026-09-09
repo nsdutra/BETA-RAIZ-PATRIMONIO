@@ -1,5 +1,14 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — UI App
-// Beta v1.46.0
+// Beta v1.48.0
+//
+// v1.48.0 (A.11, 09/09/2026) — renderizarUpsell(): renderer do formato
+// tipo='upsell' + formato='modal' que existia no banco desde 29/08 (4
+// mensagens de licença vencendo + upsell_limite_v1, nova) e nunca tinha
+// sido implementado no app (caía em 'formato_app_nao_implementado'). Usa
+// titulo/mensagem/conteudo.opcoes (acao: confirmar_interesse |
+// abrir_bot_comercial | fechar) e conteudo.resumo_condicoes; quando
+// conteudo.mostrar_limites, lista as cotas perto do teto (rótulo, usado/
+// limite, plano sugerido) que vêm de fn_funcionalidades_liberadas.
 //
 // v1.46.0 — pedido explícito do Nicola após testar: renderizarAceite()
 // (1 modal por termo, em sequência) virou renderizarAceiteTermos() — 1
@@ -117,6 +126,32 @@ export function renderizarOnboarding({comunicacao,estadoPwa,onFechar,onConcluir,
   indice++;desenhar();
  });
  desenhar();
+}
+// NOVO (v1.48.0, A.11) — modal de upsell / aviso de limite.
+// limites: [{codigo, rotulo, usado, limite, cota_tipo, oferta_upsell}] (pode ser vazio)
+export function renderizarUpsell({comunicacao,limites=[],onAcao}){
+ const o=baseOverlay();const ct=comunicacao.conteudo||{};
+ const fmt=l=>`${l.usado??'?'} de ${l.limite??'?'}${l.cota_tipo==='bytes'?' MB':''}`;
+ const linhas=(ct.mostrar_limites&&limites.length)?`<div style="background:#f7f4ed;border-radius:12px;padding:10px 12px;margin:0 0 14px">${limites.map(l=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid #ece8de"><span style="color:var(--ink,#17211e);font-weight:600">${l.rotulo||l.codigo}</span><span style="color:var(--brass,#c68a3b);font-weight:700">${fmt(l)}</span></div>`).join('')}${limites.some(l=>l.oferta_upsell)?`<p style="font-size:12px;color:var(--sage,#6b857a);margin:8px 0 0">Plano sugerido: <b>${[...new Set(limites.map(l=>l.oferta_upsell).filter(Boolean))].join(', ')}</b></p>`:''}</div>`:'';
+ const cor={confirmar_interesse:'background:var(--pine,#1e3a32);color:#fff',abrir_bot_comercial:'background:#25d366;color:#fff',fechar:'background:#f2efe7;color:#4a5852'};
+ const opcoes=(Array.isArray(ct.opcoes)&&ct.opcoes.length?ct.opcoes:[{acao:'fechar',rotulo:'Fechar'}]);
+ const botoes=opcoes.map((op,i)=>`<button type="button" data-acao="${op.acao}" data-i="${i}" style="width:100%;border:0;border-radius:12px;padding:12px;font-weight:800;font-size:13.5px;margin-top:8px;cursor:pointer;${cor[op.acao]||cor.fechar}">${op.rotulo||op.acao}</button>`).join('');
+ o.innerHTML=`<div style="width:100%;max-width:400px;background:var(--paper,#faf9f5);border-radius:18px;box-shadow:0 24px 60px -25px rgba(0,0,0,.55);overflow:hidden">
+  <div style="padding:24px 24px 0">
+   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="color:var(--brass,#c68a3b)">${svg('sprout')}</span><h2 style="font-family:'Bricolage Grotesque',sans-serif;font-size:19px;margin:0;color:var(--ink,#17211e)">${comunicacao.titulo||'Seu plano'}</h2></div>
+   <p style="font-size:13.5px;line-height:1.5;color:#4a5852;margin:0 0 14px">${comunicacao.mensagem||''}</p>
+   ${linhas}
+   ${ct.resumo_condicoes&&!/^\[preencher/i.test(ct.resumo_condicoes)?`<p style="font-size:12px;line-height:1.45;color:var(--sage,#6b857a);margin:0 0 6px">${ct.resumo_condicoes}</p>`:''}
+  </div>
+  <div style="padding:8px 24px 24px" id="rc-upsell-botoes">${botoes}</div>
+  <p id="rc-upsell-status" style="display:none;font-size:12px;color:var(--sage,#6b857a);text-align:center;margin:-14px 0 16px"></p>
+ </div>`;
+ o.querySelectorAll('[data-acao]').forEach(b=>b.addEventListener('click',async()=>{
+  const op=opcoes[Number(b.dataset.i)];
+  o.querySelectorAll('[data-acao]').forEach(x=>x.disabled=true);
+  try{ await onAcao?.(op); }
+  catch(e){ o.querySelectorAll('[data-acao]').forEach(x=>x.disabled=false); const st=o.querySelector('#rc-upsell-status'); st.style.display='block'; st.textContent='Não deu certo agora — tente de novo.'; console.warn('[comunicacoes]',e.message); }
+ }));
 }
 export function renderizarNps({comunicacao,onFechar,onEnviar}){
  const o=baseOverlay();let nota=0;

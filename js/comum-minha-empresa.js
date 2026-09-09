@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.4.0 · 06/09/2026
+// Versão: 1.5.0 · 09/09/2026
+//
+// v1.5.0 (A.5.1, 09/09/2026) — CEP, telefone, e-mail e site da empresa:
+// colunas criadas em `clientes` (migration a5_1_clientes_cep_telefone_email_
+// site_v1, CHECK de CEP 8 dígitos e e-mail). Campos no card de contato e
+// de endereço; CEP salvo só com dígitos.
+//
+// Versão anterior: 1.4.0 · 06/09/2026
 //
 // v1.4.0 — TELA COMPLETA NA GRAMÁTICA (print do Nicola 20:16: "modelo antigo
 // com formatação ruim; traga os campos completos"). Formulário reescrito no
@@ -59,7 +66,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.4.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -269,12 +276,18 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                     <input type="text" id="cme-responsavel" placeholder="Quem assina o recibo" value="${val(dados.nome_responsavel)}">
                 </div>
             </div>
-            <div class="rz-f" style="margin-bottom:0"><label>Pessoa de contato</label>
+            <div class="rz-f"><label>Pessoa de contato</label>
                 <input type="text" id="cme-contato" placeholder="Com quem a Raiz fala" value="${val(dados.pessoa_contato_nome)}">
             </div>
+            <div class="rz-f2">
+                <div class="rz-f"><label>Telefone</label><input type="tel" id="cme-telefone" inputmode="tel" placeholder="(11) 90000-0000" value="${val(dados.telefone)}"></div>
+                <div class="rz-f"><label>E-mail</label><input type="email" id="cme-email" inputmode="email" placeholder="contato@empresa.com.br" value="${val(dados.email)}"></div>
+            </div>
+            <div class="rz-f" style="margin-bottom:0"><label>Site</label><input type="url" id="cme-site" inputmode="url" placeholder="https://" value="${val(dados.site)}"></div>
         </div>
 
         <div class="rz-card"><div class="rz-card-h"><h3>Endereço da sede</h3></div>
+            <div class="rz-f" style="max-width:180px"><label>CEP</label><input type="text" id="cme-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${val(dados.cep)}"></div>
             <div class="rz-f2" style="grid-template-columns:2fr 1fr">
                 <div class="rz-f"><label>Endereço</label><input type="text" id="cme-endereco" placeholder="Rua e número" value="${val(dados.endereco)}"></div>
                 <div class="rz-f"><label>Complemento</label><input type="text" id="cme-complemento" value="${val(dados.complemento)}"></div>
@@ -374,6 +387,10 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             cnpj: doc ? mascarar(doc) : null,
             nome_responsavel: g('cme-responsavel') || null,
             pessoa_contato_nome: g('cme-contato') || null,
+            telefone: g('cme-telefone') || null,
+            email: g('cme-email') || null,
+            site: g('cme-site') || null,
+            cep: (g('cme-cep') || '').replace(/\D/g, '') || null,
             endereco: g('cme-endereco') || null,
             complemento: g('cme-complemento') || null,
             bairro: g('cme-bairro') || null,

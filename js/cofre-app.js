@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.25.4 · 06/09/2026
+// Versão: 1.26.0 · 09/09/2026
+//
+// v1.26.0 (A.12/A.13) — despacho do upload novo (cofre-documentos 2.0.0):
+// up-escolher-camera / up-escolher-arquivo, cancelar/salvar-confirmacao-
+// upload, uc-categoria-mudou, uc-controlar-mudou, uc-ctl-tipo-mudou,
+// uc-ctl-subtipo-mudou, uc-vinculo-ia-mudou; listener de change no #up-camera.
+// SAÍRAM: salvar-upload, ignorar/aplicar-sugestoes-ia (modal removido).
+//
+// Versão anterior: 1.25.4
 //
 // v1.25.4 — constante VERSAO sincronizada com o header (estava presa em uma
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
@@ -231,7 +239,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.25.4'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.26.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -387,7 +395,10 @@ document.addEventListener('click', async (ev) => {
         // ---- documentos
         case 'abrir-upload-home': await docs.abrirUploadHome(); break;
         case 'fechar-upload': docs.fecharUpload(); break;
-        case 'salvar-upload': await docs.salvarUpload(); break;
+        case 'up-escolher-camera': docs.escolherCameraUpload(); break;
+        case 'up-escolher-arquivo': docs.escolherArquivoUpload(); break;
+        case 'cancelar-confirmacao-upload': await docs.cancelarConfirmacaoUpload(); break;
+        case 'salvar-confirmacao-upload': await docs.salvarConfirmacaoUpload(); break;
         case 'abrir-documento': await docs.abrirFichaDocumento(id); break;
         case 'alternar-editar-alerta': docs.alternarEditarAlerta(id); break;
         case 'confirmar-editar-alerta': await docs.confirmarEditarAlerta(id); break;
@@ -396,11 +407,9 @@ document.addEventListener('click', async (ev) => {
         case 'baixar-documento-atual': await docs.baixarDocumentoAtual(); break;
         case 'excluir-documento-atual': await docs.excluirDocumentoAtual(); break;
         case 'ir-para-vinculo': await docs.irParaVinculo(alvo.dataset.tipo, alvo.dataset.id); break;
-        case 'escolher-candidato-upload': docs.escolherCandidatoUpload(alvo.dataset.tipo, alvo.dataset.id, alvo.dataset.nome); break;
+        case 'escolher-candidato-upload': docs.escolherCandidatoUpload(alvo.dataset.tipo, alvo.dataset.id, alvo.dataset.nome, alvo.dataset.tipoAtivo); break;
 
-        // ---- Fase 2 (IA) e "Vincular agora"
-        case 'ignorar-sugestoes-ia': docs.ignorarSugestoesIA(); break;
-        case 'aplicar-sugestoes-ia': await docs.aplicarSugestoesIA(); break;
+        // ---- "Vincular agora" (o modal de sugestões da IA saiu na v1.26.0 — confirmação acontece antes de salvar)
         case 'abrir-vincular-agora': docs.abrirVincularAgora(); break;
         case 'fechar-vincular-agora': docs.fecharVincularAgora(); break;
         case 'confirmar-vincular-agora': await docs.confirmarVincularAgora(); break;
@@ -571,6 +580,11 @@ document.addEventListener('change', async (ev) => {
         // atualizarCamposEstruturadosAtivo() em cofre-ativos.js).
         case 'ativo-imovel-origem-mudou': ativos.atualizarCamposEstruturadosAtivo(); break;
         case 'upload-vinculo-tipo-mudou': await docs.aoMudarTipoVinculoUpload(); break;
+        case 'uc-categoria-mudou': docs.aplicarPadroesCategoriaUpload(); break;
+        case 'uc-controlar-mudou': docs.aoMudarControlarUpload(); break;
+        case 'uc-ctl-tipo-mudou': docs.aoMudarTipoControleUpload(); break;
+        case 'uc-ctl-subtipo-mudou': docs.aplicarPadraoSubtipoUpload(); break;
+        case 'uc-vinculo-ia-mudou': docs.aoMudarVinculoIaUpload(); break;
         case 'fd-vincular-tipo-mudou': await docs.aoMudarTipoVinculoAgora(); break;
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;
         case 'ic-tipo-mudou': controles.aoMudarTipoControleForm(); break;
@@ -582,7 +596,8 @@ document.addEventListener('change', async (ev) => {
 
 // input de arquivo (upload) tem handler próprio simples — não passa por
 // data-action porque `change` de <input type=file> já é bem específico.
-document.getElementById('up-arquivo')?.addEventListener('change', () => docs.aoSelecionarArquivoUpload());
+document.getElementById('up-arquivo')?.addEventListener('change', () => docs.aoSelecionarArquivoUpload('up-arquivo'));
+document.getElementById('up-camera')?.addEventListener('change', () => docs.aoSelecionarArquivoUpload('up-camera')); // v1.26.0
 document.getElementById('busca-global-input')?.addEventListener('input', debounce(() => docs.renderizarBuscaGlobal(), 200));
 document.getElementById('busca-global-status')?.addEventListener('change', () => docs.renderizarBuscaGlobal());
 document.getElementById('filtro-ativo-tipo')?.addEventListener('change', () => ativos.renderAtivosLista(document.getElementById('filtro-ativo-tipo').value, document.getElementById('filtro-ativo-busca').value));
