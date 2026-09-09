@@ -5,6 +5,26 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.144.0) — E.3.1: COTA VISÍVEL NO APP.
+Desde a migration e3_cota_tipo_e_uso_por_tipo_v1 (07/09) a RPC
+fn_funcionalidades_liberadas devolve `cota_tipo` e o `usado` certo
+(estoque pra ativos/contratos/controles, MB pra storage, mês pra IA —
+Gemini e Claude contam 1 cada). Aqui: (1) podeUsar() monta o texto do
+cadeado por tipo — "Limite do plano (49 de 50)" pra estoque, "Espaço
+esgotado (x de y MB)" pra bytes, "Limite do mês" só pro que é mensal;
+aviso_padrao do plano, se existir, vence o texto genérico. (2) Um
+toast por sessão, só pra admin/master, quando alguma cota passou do
+limite_aviso (ex.: Rumo, 49 de 50 ativos) — sem bloquear nada.
+(3) comum-licenca.js v1.3.0: cada barra mostra o tipo (no mês / em uso
+/ MB) e o número fica âmbar a 80% e vermelho no teto. Sem migration.
+------------------------------------------------------------------
+Versões anteriores (v1.143.0 … v1.143.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.143.0) — R8 FATIA 4: VITRINE SAI DO INDEX
 (js/vitrine.js v1.0.0). 688 linhas: aba Vitrine, vitrine pública
 (?v=token, lightbox, sair), contratação pública (?contratar=token,

@@ -6,9 +6,32 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.148.0
-   LINHAS: 16752
+   VERSÃO: Beta v1.149.0
+   LINHAS: 16762
    DATA: 09/09/2026
+   NOVIDADES (Beta v1.149.0) — MOTOR DOCUMENTAL FASE 3: A CONFIRMAÇÃO DO
+   UPLOAD FALA A LÍNGUA DO CATÁLOGO (decisões D1–D11).
+   1) cofre-documentos.js 2.1.0 · ativos-markup.js 1.22.0 · cofre-api.js
+      1.19.0 · cofre-app.js 1.27.0: a leitura por IA vai com tipo_ativo +
+      ativo em foco (cofre-extrair-documento 1.6) e a tela usa
+      resultado.motor: select "Tipo de documento" (catálogo global; com IA
+      vem preenchido e "Reler" reclassifica; sem IA é ele que manda —
+      categoria, guardar arquivo, controle e campos vêm do tipo); bloco
+      "Dados do documento" com os campos do tipo, editáveis, com evidência
+      e marca "confira" (confiança baixa ou validação falhou), gravados em
+      cofre_documentos.dados_estruturados; avisos: vencido, titular
+      divergente, validações, foto com 2 documentos, vencimento calculado;
+      "Vence em" único alimentando validade_em e o item de controle.
+   2) D10: documento vencido não gera controle — a tela avisa e pergunta
+      se sobe mesmo assim; fica com chip "Vencido" e vencido_no_upload.
+   3) Identificadores fortes gravados no ativo ao salvar (CPF na Vida;
+      placa/RENAVAM/chassi no veículo) — o próximo documento casa sozinho.
+   4) Auditoria pela RPC nova (subtipo, campos, validações, execução da IA,
+      versão do prompt, canal) — base da tela de Assertividade (fase 4).
+   DEPENDE de: Edge Functions da fase 2 no ar (extracao 1.7,
+   cofre-extrair-documento 1.6, motor_documental 1.0). Sem elas a tela
+   funciona no modo legado (sem dados estruturados).
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.148.0) — A.11: AVISO DE LIMITE NO PADRÃO DAS
    COMUNICAÇÕES + INTERESSE AVISA O COMERCIAL NA HORA.
    1) js/comunicacoes/comunicacoes-ui.js 1.48.0 + comunicacoes-app.js
@@ -102,20 +125,7 @@
    batendo entre si, idêntico ao resultado de antes da correção de hoje.
    Sem migration.
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.144.0) — E.3.1: COTA VISÍVEL NO APP.
-   Desde a migration e3_cota_tipo_e_uso_por_tipo_v1 (07/09) a RPC
-   fn_funcionalidades_liberadas devolve `cota_tipo` e o `usado` certo
-   (estoque pra ativos/contratos/controles, MB pra storage, mês pra IA —
-   Gemini e Claude contam 1 cada). Aqui: (1) podeUsar() monta o texto do
-   cadeado por tipo — "Limite do plano (49 de 50)" pra estoque, "Espaço
-   esgotado (x de y MB)" pra bytes, "Limite do mês" só pro que é mensal;
-   aviso_padrao do plano, se existir, vence o texto genérico. (2) Um
-   toast por sessão, só pra admin/master, quando alguma cota passou do
-   limite_aviso (ex.: Rumo, 49 de 50 ativos) — sem bloquear nada.
-   (3) comum-licenca.js v1.3.0: cada barra mostra o tipo (no mês / em uso
-   / MB) e o número fica âmbar a 80% e vermelho no teto. Sem migration.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.143.0 … v1.143.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.144.0 … v1.144.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -139,7 +149,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.18.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.26.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.21.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.27.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.22.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3427,7 +3437,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.148.0";
+        const APP_VERSAO = "Beta v1.149.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

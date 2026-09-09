@@ -1,6 +1,29 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.0.0 · 09/09/2026
+// Versão: 2.1.0 · 09/09/2026
+//
+// v2.1.0 (Motor Documental fase 3, D1–D11) — a confirmação passa a falar a
+// língua do motor (cofre-extrair-documento 1.6 / extracao 1.7):
+//   - chamada leva tipo_ativo + ativo_id (1 chamada quando o ativo restringe;
+//     titular divergente detectado); `resultado.motor` é a fonte quando existe
+//   - select "Tipo de documento" (catálogo global): com IA vem preenchido e
+//     "Reler" reclassifica (classificacao_forcada); sem IA é ele que manda —
+//     categoria, manter arquivo, controle e campos vêm do tipo
+//   - bloco "Dados do documento": campos do tipo, editáveis, com evidência e
+//     marca "confira" (confiança < 0,75 ou validação falhou); gravados em
+//     cofre_documentos.dados_estruturados
+//   - avisos: vencido (D10: NÃO cria controle, pergunta se sobe mesmo assim),
+//     titular divergente, validações que falharam, orçamento ≠ apólice
+//   - "Vence em" único: alimenta validade_em e data_fim do item (espelho);
+//     "calculada — confira" quando derivada por regra
+//   - salvar: auditoria pela RPC nova (registrarExtracaoMotor), vencido_no_
+//     upload, subtipo_codigo, e identificadores fortes gravados no ativo
+//     (CPF na Vida; placa/RENAVAM/chassi no veículo) pro próximo casar
+//   - contatos sugeridos agora vêm de motor.partes (papel)
+// Categorias/subtipos são globais (D1): listarCategorias segue por cliente
+// só pra retrocompatibilidade de linhas antigas; o select usa o gabarito.
+//
+// Versão anterior: 2.0.0 · 09/09/2026
 //
 // v2.0.0 (A.12/A.13 — PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0 §5) — FLUXO
 // DE UPLOAD INVERTIDO. Antes: formulário completo → salvar → IA analisa em
@@ -103,7 +126,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.0.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-ui.js';
@@ -284,7 +307,8 @@ const LIMITE_ARQUIVO = 25 * 1024 * 1024;
 const MIMES_IA = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 let up = null;                // upload em curso: { contexto, vinculo, comIA, arquivo, hash, documentoId, storagePath, ia, padroes }
 let gabaritoCategorias = null; // linhas globais de cofre_categorias (padrões)
-let subtiposControle = null;   // cofre_controle_subtipos global + cliente (padrões de ocorrência)
+let subtiposControle = null;   // v2.1.0 — catálogo global (cofre_controle_subtipos, cliente_id null, ativo)
+const LIMIAR_CONFIRA = 0.75;
 
 function podeIA() { return window.podeUsar ? window.podeUsar('cofre.analisar_ia').ok : true; }
 function podeControlar() { return window.podeUsar ? window.podeUsar('cofre.controles.criar').ok : true; }
@@ -353,8 +377,8 @@ async function processarArquivoUpload() {
         statusEl.style.color = 'var(--brass, #b8860b)';
         statusEl.textContent = '✨ Lendo o documento com IA…';
         try {
-            const resp = await api.analisarArquivoComIA(up.storagePath, f.type);
-            if (resp?.analisado && resp.resultado) up.ia = resp.resultado;
+            const resp = await api.analisarArquivoComIA(up.storagePath, f.type, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null });
+            if (resp?.analisado && resp.resultado) { up.ia = resp.resultado; up.motor = resp.resultado.motor || null; }
             else mostrarToast(resp?.motivo || resp?.erro || 'A IA não conseguiu ler — preencha manualmente.', 'aviso');
             if (resp?.avisoLimite) mostrarToast(resp.avisoLimite, 'aviso');
         } catch (err) {
@@ -375,7 +399,7 @@ async function processarArquivoUpload() {
 async function carregarApoioUpload() {
     if (!estado.categorias?.length) estado.categorias = await api.listarCategorias(estado.clienteId);
     if (!gabaritoCategorias) gabaritoCategorias = await api.listarCategoriasGabarito();
-    if (!subtiposControle) subtiposControle = await api.listarSubtiposControle(estado.clienteId);
+    if (!subtiposControle) subtiposControle = await api.listarCatalogoSubtipos(); // v2.1.0 — global
 }
 
 // Padrão efetivo da categoria: gabarito global (por codigo) → linha do
@@ -397,33 +421,33 @@ function vinculoPermiteControle() {
 }
 
 function montarConfirmacaoUpload() {
-    const r = up.ia;
+    const r = up.ia; const m = up.motor;
     const g = id => document.getElementById(id);
     g('uc-titulo').innerHTML = r ? '<i data-lucide="sparkles" style="width:16px;height:16px;color:var(--warning)"></i> Confira o que a IA leu' : 'Dados do documento';
-    g('uc-tipo').textContent = r ? `${r.tipoDocumentoDetectado}${r.confianca === 'baixa' ? ' · leitura incerta, confira com atenção' : ''}` : `${up.arquivo.name} · ${formatarBytes(up.arquivo.size)}`;
+    g('uc-tipo').textContent = r ? `${m?.subtipo_nome || r.tipoDocumentoDetectado}${(m ? m.confianca < 0.55 : r.confianca === 'baixa') ? ' · leitura incerta, confira com atenção' : ''}` : `${up.arquivo.name} · ${formatarBytes(up.arquivo.size)}`;
     g('uc-resumo').classList.toggle('hidden', !r?.resumo);
     g('uc-resumo').textContent = r?.resumo || '';
     g('uc-status').textContent = '';
 
-    // categorias: grupo › nome (optgroup por grupo)
-    const cats = (estado.categorias || []).filter(c => c.ativo !== false);
+    // categorias: grupo › nome (gabarito global é a fonte; linhas do cliente só pra ids antigos)
+    const cats = catalogoCategoriasParaSelect();
     const grupos = {};
     cats.forEach(c => { const gr = c.grupo || 'outros'; (grupos[gr] = grupos[gr] || []).push(c); });
     g('uc-categoria').innerHTML = Object.keys(grupos).sort().map(gr =>
         `<optgroup label="${escapeHtml(rotuloGrupo(gr))}">${grupos[gr].map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('')}</optgroup>`).join('');
-    let catSugerida = null;
-    if (r?.categoriaCodigoSugerido) catSugerida = cats.find(c => c.codigo === r.categoriaCodigoSugerido);
-    if (!catSugerida && r?.categoriaSugerida) catSugerida = cats.find(c => c.nome.toLowerCase() === r.categoriaSugerida.toLowerCase());
-    if (!catSugerida) catSugerida = cats.find(c => c.codigo === 'outros.outros') || cats[0];
-    if (catSugerida) g('uc-categoria').value = catSugerida.id;
 
-    g('uc-nome').value = r?.nomeSugerido || up.arquivo.name.replace(/\.[^.]+$/, '');
+    // tipo de documento (catálogo)
+    montarSelectTipoDoc(m?.subtipo_codigo || null);
+    g('uc-reler').classList.toggle('hidden', !r);
+
+    g('uc-nome').value = m?.nome_sugerido || r?.nomeSugerido || up.arquivo.name.replace(/\.[^.]+$/, '');
     g('uc-descricao').value = '';
-    g('uc-data-documento').value = r?.dataDocumento || '';
-    g('uc-validade').value = r?.validadeEm || '';
-    g('uc-vig-inicio').value = r?.vigenciaInicio || '';
-    g('uc-vig-fim').value = r?.vigenciaFim || '';
-    g('uc-vigencia-bloco').classList.toggle('hidden', !(r?.vigenciaInicio || r?.vigenciaFim));
+    g('uc-data-documento').value = m ? (m.campos?.data_emissao || m.campos?.data_documento || r?.dataDocumento || '') : (r?.dataDocumento || '');
+    g('uc-validade').value = m ? (m.vencimento?.data || '') : (r?.validadeEm || r?.vigenciaFim || '');
+    g('uc-validade-flag').classList.toggle('hidden', !m?.vencimento?.derivada);
+    g('uc-vig-inicio').value = m?.campos?.vigencia_inicio || r?.vigenciaInicio || '';
+    g('uc-vig-fim').value = m?.campos?.vigencia_fim || r?.vigenciaFim || '';
+    g('uc-vigencia-bloco').classList.toggle('hidden', !(g('uc-vig-inicio').value || g('uc-vig-fim').value));
 
     // vínculo
     g('up-vinculo-travado').classList.toggle('hidden', !up.contexto);
@@ -440,24 +464,179 @@ function montarConfirmacaoUpload() {
         const cands = r?.candidatosVinculo || [];
         if (cands.length) {
             g('up-vinculo-ia').classList.remove('hidden');
+            const sug = m?.vinculo?.sugerido?.id;
             g('up-vinculo-ia').innerHTML = cands.map((c, i) => `
-                <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="${i}" data-action-change="uc-vinculo-ia-mudou" ${i === 0 ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">(${c.tipo === 'imovel' ? 'imóvel' : 'ativo'})</span></label>`).join('') + `
+                <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="${i}" data-action-change="uc-vinculo-ia-mudou" ${(sug ? c.id === sug : i === 0) ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">(${c.tipo === 'imovel' ? 'imóvel' : 'ativo'})</span></label>`).join('') + `
                 <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="radio" name="uc-vinculo-ia" value="outro" data-action-change="uc-vinculo-ia-mudou"> Outro — escolher abaixo</label>`;
-            up.vinculo = { tipo: cands[0].tipo, id: cands[0].id, nome: cands[0].nome };
+            const escolhido = cands.find(c => c.id === sug) || cands[0];
+            up.vinculo = { tipo: escolhido.tipo, id: escolhido.id, nome: escolhido.nome };
             g('up-vinculo-livre').classList.add('hidden');
         }
     }
 
-    // contatos
-    const contatos = (r?.contatosSugeridos || []).filter(c => c?.nome);
+    // contatos (motor.partes > legado)
+    const contatos = (m?.partes?.length ? m.partes.map(p => ({ nome: p.nome, papel: p.papel, telefone: null, email: null, documento: p.documento })) : (r?.contatosSugeridos || [])).filter(c => c?.nome);
+    up.contatosSugeridos = contatos;
     g('uc-contatos-bloco').classList.toggle('hidden', !contatos.length);
     g('uc-contatos-lista').innerHTML = contatos.map((c, i) => `
-        <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="checkbox" class="uc-contato" value="${i}" checked> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">${escapeHtml(c.papel || 'outro')}${c.telefone ? ' · ' + escapeHtml(c.telefone) : ''}</span></label>`).join('');
+        <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="checkbox" class="uc-contato" value="${i}" ${c.papel && c.papel !== 'outro' ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">${escapeHtml(c.papel || 'outro')}${c.documento ? ' · ' + escapeHtml(c.documento) : ''}</span></label>`).join('');
 
     g('up-restrito').checked = false;
     g('up-restrito-wrapper').classList.toggle('hidden', !(window.podeUsar ? window.podeUsar('cofre.ver_restrito').ok : false));
 
-    aplicarPadroesCategoriaUpload(true);
+    aplicarSubtipoUpload(true);
+    renderizarAvisosUpload();
+}
+
+// v2.1.0 — o select de categoria usa o gabarito global; as linhas do cliente
+// ficam só pra manter ids antigos (documentos já gravados apontam pra elas).
+function catalogoCategoriasParaSelect() {
+    const globais = (gabaritoCategorias || []).filter(c => c.ativo !== false);
+    if (globais.length) return globais;
+    return (estado.categorias || []).filter(c => c.ativo !== false);
+}
+function categoriaIdPorCodigo(codigo) {
+    if (!codigo) return null;
+    const cats = catalogoCategoriasParaSelect();
+    return cats.find(c => c.codigo === codigo)?.id || null;
+}
+
+function montarSelectTipoDoc(codigoAtual) {
+    const sel = document.getElementById('uc-tipo-doc');
+    const tipoAtivo = up?.tipoAtivo || null;
+    const lista = (subtiposControle || []).filter(s => s.ia_reconhece !== false || s.codigo === codigoAtual);
+    const aplic = tipoAtivo ? lista.filter(s => !s.tipo_ativo_aplicavel?.length || s.tipo_ativo_aplicavel.includes(tipoAtivo)) : lista;
+    const outros = lista.filter(s => !aplic.includes(s));
+    const opt = s => `<option value="${s.codigo}">${escapeHtml(s.nome)}</option>`;
+    sel.innerHTML = `<option value="">— escolher o tipo —</option>` +
+        (aplic.length ? `<optgroup label="${tipoAtivo ? 'Deste tipo de ativo' : 'Tipos'}">${aplic.map(opt).join('')}</optgroup>` : '') +
+        (outros.length && tipoAtivo ? `<optgroup label="Outros">${outros.map(opt).join('')}</optgroup>` : '') +
+        `<option value="outro">Não classificado / outro</option>`;
+    sel.value = codigoAtual && [...sel.options].some(o => o.value === codigoAtual) ? codigoAtual : (codigoAtual === 'outro' ? 'outro' : '');
+}
+
+function subtipoSelecionado() {
+    const codigo = document.getElementById('uc-tipo-doc').value;
+    return (subtiposControle || []).find(s => s.codigo === codigo) || null;
+}
+
+// Troca do tipo de documento (com ou sem IA): tudo abaixo segue o catálogo.
+export function aplicarSubtipoUpload(primeira = false) {
+    if (!up) return;
+    const g = id => document.getElementById(id);
+    const s = subtipoSelecionado();
+    const m = up.motor;
+    const mesmoDaIA = !!(m && s && m.subtipo_codigo === s.codigo);
+    // categoria pelo tipo (catálogo) → senão pela IA legada → senão Outros
+    const catId = categoriaIdPorCodigo(s?.categoria_codigo) || categoriaIdPorCodigo(mesmoDaIA ? m?.categoria_codigo : null) || categoriaIdPorCodigo(up.ia?.categoriaCodigoSugerido) || categoriaIdPorCodigo('outros.outros');
+    if (catId) g('uc-categoria').value = catId;
+    up.padroes = padroesDaCategoria(g('uc-categoria').value);
+    if (s?.manter_arquivo_padrao != null) up.padroes.manterArquivo = s.manter_arquivo_padrao;
+    if (s?.gera_controle_padrao) { up.padroes.controleTipo = s.tipo; up.padroes.controleSubtipoId = s.id; }
+    else if (s) { up.padroes.controleTipo = null; up.padroes.controleSubtipoId = null; }
+    g('uc-manter-arquivo').checked = !!up.padroes.manterArquivo;
+
+    // dados estruturados: campos do tipo (valores da IA quando é o mesmo tipo)
+    renderizarDadosCampos(s, mesmoDaIA ? m : null);
+    // vencimento: campo único
+    if (!primeira || !g('uc-validade').value) {
+        const v = mesmoDaIA ? (m.vencimento?.data || '') : (g('uc-validade').value || '');
+        g('uc-validade').value = v;
+        g('uc-validade-flag').classList.toggle('hidden', !(mesmoDaIA && m.vencimento?.derivada));
+    }
+
+    // controle
+    const vencido = !!g('uc-validade').value && g('uc-validade').value < new Date().toISOString().slice(0, 10);
+    const permite = vinculoPermiteControle() && podeControlar() && !vencido;
+    const chk = g('uc-controlar');
+    chk.disabled = !permite;
+    g('uc-controlar-hint').textContent = !podeControlar() ? 'Controle de vencimento indisponível no seu plano.'
+        : vencido ? 'Documento vencido não gera controle (D10). Suba o documento novo pra controlar.'
+        : !vinculoPermiteControle() ? 'Vincule a um ativo ou contrato pra controlar o vencimento.'
+        : 'Cria um item de controle com alerta no WhatsApp.';
+    const geraPadrao = s ? !!s.gera_controle_padrao : !!up.padroes.controleTipo;
+    const bloqueadoPorValidacao = mesmoDaIA && m.gera_controle === false && !vencido;
+    chk.checked = permite && geraPadrao && !!g('uc-validade').value && !bloqueadoPorValidacao;
+    g('uc-controle-bloco').classList.toggle('hidden', !chk.checked);
+    if (up.padroes.controleTipo) g('uc-ctl-tipo').value = up.padroes.controleTipo;
+    preencherSubtiposControleUpload(up.padroes.controleSubtipoId);
+    g('uc-ctl-titulo').value = g('uc-nome').value;
+    g('uc-ctl-data-inicio').value = g('uc-vig-inicio').value || g('uc-data-documento').value || new Date().toISOString().slice(0, 10);
+    g('uc-ctl-data-fim').value = g('uc-validade').value || '';
+    aplicarPadraoSubtipoUpload();
+    if (mesmoDaIA && m.controle_sugerido) {
+        if (m.controle_sugerido.antecedencia != null) g('uc-ctl-antecedencia').value = m.controle_sugerido.antecedencia;
+        if (m.controle_sugerido.repeticao != null) g('uc-ctl-reforco').value = m.controle_sugerido.repeticao;
+        g('uc-ctl-rec-intervalo').value = m.controle_sugerido.rec_intervalo ?? '';
+        if (m.controle_sugerido.rec_unidade) g('uc-ctl-rec-unidade').value = m.controle_sugerido.rec_unidade;
+    }
+}
+
+// Bloco "Dados do documento" — um input por campo do catálogo.
+function renderizarDadosCampos(s, m) {
+    const bloco = document.getElementById('uc-dados-bloco');
+    const cont = document.getElementById('uc-dados-campos');
+    const campos = (s?.campos || []).filter(c => c.tipo !== 'partes');
+    if (!campos.length) { bloco.classList.add('hidden'); cont.innerHTML = ''; return; }
+    const ruins = new Set((m?.validacoes || []).filter(v => !v.ok).flatMap(v => v.campos || []));
+    cont.innerHTML = campos.map(c => {
+        const val = m?.campos?.[c.campo] ?? '';
+        const conf = m?.confianca_campos?.[c.campo];
+        const confira = m && ((conf != null && conf < LIMIAR_CONFIRA) || ruins.has(c.campo) || (c.obrigatorio && (val === '' || val == null)));
+        const ev = m?.evidencias?.[c.campo] ? ` title="lido em: ${escapeHtml(String(m.evidencias[c.campo]).slice(0, 120))}"` : '';
+        const tipoInput = c.tipo === 'data' ? 'date' : (c.tipo === 'valor' ? 'number' : 'text');
+        const extra = c.tipo === 'valor' ? ' step="0.01"' : (c.tipo === 'cpf' || c.tipo === 'renavam' ? ' inputmode="numeric"' : '');
+        return `<div><label class="text-xs block mb-0.5" style="color:${confira ? 'var(--warning)' : 'var(--sage)'}">${escapeHtml(c.rotulo)}${confira ? ' · confira' : ''}${c.obrigatorio ? ' *' : ''}</label>
+            <input type="${tipoInput}"${extra} class="uc-dado w-full border-2 ${confira ? 'border-amber-400' : 'border-slate-300'} rounded-xl p-2 text-sm" data-campo="${c.campo}" data-tipo="${c.tipo}" value="${escapeHtml(val == null ? '' : String(val))}"${ev}></div>`;
+    }).join('');
+    bloco.classList.remove('hidden');
+}
+
+function lerDadosEstruturados() {
+    const out = {};
+    document.querySelectorAll('.uc-dado').forEach(el => {
+        let v = el.value.trim(); if (v === '') { out[el.dataset.campo] = null; return; }
+        if (el.dataset.tipo === 'valor') v = Number(v);
+        if (['cpf', 'renavam', 'numero'].includes(el.dataset.tipo)) v = v.replace(/\D/g, '');
+        if (['placa', 'chassi'].includes(el.dataset.tipo)) v = v.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        out[el.dataset.campo] = v;
+    });
+    return out;
+}
+
+// Avisos do motor: vencido (D10), titular divergente, validações, orçamento≠apólice.
+function renderizarAvisosUpload() {
+    const el = document.getElementById('uc-avisos');
+    const m = up?.motor; const g = id => document.getElementById(id);
+    const avisos = [];
+    const venc = g('uc-validade').value;
+    if (venc && venc < new Date().toISOString().slice(0, 10)) avisos.push({ cor: 'var(--danger)', texto: `Este documento está vencido desde ${formatarDataBR(venc)}. Ele será guardado como vencido e não vai gerar controle — subir mesmo assim?` });
+    if (m?.titular?.divergente && m.titular.mensagem) avisos.push({ cor: 'var(--warning)', texto: m.titular.mensagem });
+    (m?.validacoes || []).filter(v => !v.ok && v.codigo !== 'campo_obrigatorio_ausente').forEach(v => avisos.push({ cor: 'var(--warning)', texto: v.mensagem || v.codigo }));
+    if (m && m.classificacao?.motivo && /mais de um|2 documentos|dois documentos/i.test(m.classificacao.motivo)) avisos.push({ cor: 'var(--warning)', texto: 'A foto parece ter mais de um documento — a IA leu o principal. Se quiser guardar os dois, envie separado.' });
+    if (m?.vencimento?.derivada && !m?.titular?.divergente) avisos.push({ cor: 'var(--sage)', texto: 'O vencimento foi calculado pela regra do tipo (não estava legível). Confira antes de salvar.' });
+    el.classList.toggle('hidden', !avisos.length);
+    el.innerHTML = avisos.map(a => `<div class="text-xs rounded-xl px-3 py-2" style="background:#fff7ed;border:1px solid ${a.cor};color:#4a5852">${escapeHtml(a.texto)}</div>`).join('');
+}
+
+export function aoMudarTipoDocUpload() { aplicarSubtipoUpload(false); renderizarAvisosUpload(); refrescarIcones(); }
+export function aoMudarValidadeUpload() {
+    document.getElementById('uc-ctl-data-fim').value = document.getElementById('uc-validade').value || '';
+    aplicarSubtipoUpload(true); renderizarAvisosUpload();
+}
+
+// "Reler": reclassifica com o tipo escolhido (gasta cota de IA).
+export async function relerComoTipoUpload() {
+    const codigo = document.getElementById('uc-tipo-doc').value;
+    if (!up?.storagePath || !codigo || codigo === 'outro') { mostrarToast('Escolha um tipo pra reler.', 'aviso'); return; }
+    const st = document.getElementById('uc-status'); st.style.color = 'var(--brass, #b8860b)'; st.textContent = '✨ Relendo como ' + (subtipoSelecionado()?.nome || codigo) + '…';
+    try {
+        const resp = await api.analisarArquivoComIA(up.storagePath, up.arquivo.type, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null, classificacaoForcada: codigo });
+        if (resp?.analisado && resp.resultado) { up.ia = resp.resultado; up.motor = resp.resultado.motor || null; montarConfirmacaoUpload(); refrescarIcones(); }
+        else mostrarToast(resp?.motivo || 'Não deu pra reler agora.', 'aviso');
+        if (resp?.avisoLimite) mostrarToast(resp.avisoLimite, 'aviso');
+    } catch (err) { mostrarToast('IA indisponível agora.', 'aviso'); }
+    st.textContent = '';
 }
 
 function rotuloGrupo(gr) {
@@ -467,25 +646,12 @@ function rotuloGrupo(gr) {
 // Troca de categoria (ou 1ª montagem): aplica os padrões parametrizados —
 // manter arquivo e controlar vencimento — e pré-preenche o bloco de controle.
 export function aplicarPadroesCategoriaUpload(primeira = false) {
+    // v2.1.0 — o tipo de documento manda; troca manual de categoria só reaplica "manter arquivo".
     if (!up) return;
     const g = id => document.getElementById(id);
-    up.padroes = padroesDaCategoria(g('uc-categoria').value);
+    if (!subtipoSelecionado()) { aplicarSubtipoUpload(primeira); return; }
+    up.padroes = { ...(up.padroes || {}), manterArquivo: padroesDaCategoria(g('uc-categoria').value).manterArquivo };
     g('uc-manter-arquivo').checked = !!up.padroes.manterArquivo;
-    const permite = vinculoPermiteControle() && podeControlar();
-    const chk = g('uc-controlar');
-    chk.disabled = !permite;
-    g('uc-controlar-hint').textContent = !podeControlar() ? 'Controle de vencimento indisponível no seu plano.'
-        : !vinculoPermiteControle() ? 'Vincule a um ativo ou contrato pra controlar o vencimento.'
-        : 'Cria um item de controle com alerta no WhatsApp.';
-    const dataFim = g('uc-vig-fim').value || g('uc-validade').value;
-    chk.checked = permite && !!up.padroes.controleTipo && !!dataFim;
-    g('uc-controle-bloco').classList.toggle('hidden', !chk.checked);
-    if (up.padroes.controleTipo) g('uc-ctl-tipo').value = up.padroes.controleTipo;
-    preencherSubtiposControleUpload(up.padroes.controleSubtipoId);
-    g('uc-ctl-titulo').value = g('uc-nome').value;
-    g('uc-ctl-data-inicio').value = g('uc-vig-inicio').value || g('uc-data-documento').value || new Date().toISOString().slice(0, 10);
-    g('uc-ctl-data-fim').value = dataFim || '';
-    aplicarPadraoSubtipoUpload();
 }
 
 export function aoMudarControlarUpload() {
@@ -593,16 +759,22 @@ export async function salvarConfirmacaoUpload() {
     const controlar = g('uc-controlar').checked && !g('uc-controlar').disabled;
     if (!nome) return marcarErroConfirmacao('Informe o nome de exibição.');
     if (!categoriaId) return marcarErroConfirmacao('Selecione uma categoria.');
-    if (controlar && !g('uc-ctl-data-fim').value) return marcarErroConfirmacao('Informe a data de vencimento do controle.');
+    g('uc-ctl-data-fim').value = g('uc-validade').value || g('uc-ctl-data-fim').value || '';
+    if (controlar && !g('uc-ctl-data-fim').value) return marcarErroConfirmacao('Informe a data de vencimento (Vence em).');
     if (controlar && !g('uc-ctl-titulo').value.trim()) return marcarErroConfirmacao('Informe o título do controle.');
 
     statusEl.style.color = 'var(--sage)';
     statusEl.textContent = 'Salvando…';
     const f = up.arquivo;
     const nivelAcesso = g('up-restrito').checked ? 'restrito' : 'empresa';
+    const validade = g('uc-validade').value || g('uc-vig-fim').value || null;
+    const vencido = !!validade && validade < new Date().toISOString().slice(0, 10);
+    const subtipoSel = subtipoSelecionado();
+    const dadosEstruturados = lerDadosEstruturados();
     const dados = {
-        data_documento: g('uc-data-documento').value || null, validade_em: g('uc-validade').value || g('uc-vig-fim').value || null,
+        data_documento: g('uc-data-documento').value || null, validade_em: validade,
         descricao: g('uc-descricao').value.trim() || null,
+        subtipo_codigo: subtipoSel?.codigo || (g('uc-tipo-doc').value === 'outro' ? 'outro' : null), dados_estruturados: dadosEstruturados, vencido_no_upload: vencido,
     };
 
     try {
@@ -623,18 +795,36 @@ export async function salvarConfirmacaoUpload() {
         catch (err) { avisos.push('vínculo: ' + err.message); }
     }
 
-    // Auditoria: o que a IA leu × o que o cliente confirmou (A.12, RPC).
+    // Auditoria: o que a IA leu × o que o cliente confirmou (motor → RPC nova; legado → RPC antiga).
     if (up.ia) {
-        const cat = estado.categorias.find(c => c.id === categoriaId);
-        const confirmado = { categoriaCodigo: cat?.codigo || null, categoriaId, nome, ...dados, manterArquivo: manter, controlar };
-        const igual = (cat?.codigo || null) === (up.ia.categoriaCodigoSugerido || null) && nome === (up.ia.nomeSugerido || '') &&
-            (dados.data_documento || null) === (up.ia.dataDocumento || null);
-        try { await api.registrarExtracao(up.documentoId, up.ia, igual ? 'confirmado' : 'corrigido', confirmado); }
-        catch (err) { console.warn('auditoria da extração:', err.message); }
+        const cat = catalogoCategoriasParaSelect().find(c => c.id === categoriaId) || estado.categorias.find(c => c.id === categoriaId);
+        const confirmado = { categoriaCodigo: cat?.codigo || null, categoriaId, nome, subtipo_codigo: dados.subtipo_codigo, dados_estruturados: dadosEstruturados, validade_em: validade, data_documento: dados.data_documento, manterArquivo: manter, controlar, vencido };
+        let igual;
+        if (up.motor) {
+            const mc = up.motor.campos || {};
+            igual = up.motor.subtipo_codigo === dados.subtipo_codigo && (up.motor.vencimento?.data || null) === validade &&
+                Object.keys(dadosEstruturados).every(k => (dadosEstruturados[k] ?? null) === (mc[k] ?? null));
+            try { await api.registrarExtracaoMotor(up.documentoId, up.motor, up.ia, igual ? 'confirmado' : 'corrigido', confirmado); }
+            catch (err) { console.warn('auditoria do motor:', err.message); }
+        } else {
+            igual = (cat?.codigo || null) === (up.ia.categoriaCodigoSugerido || null) && nome === (up.ia.nomeSugerido || '') && (dados.data_documento || null) === (up.ia.dataDocumento || null);
+            try { await api.registrarExtracao(up.documentoId, up.ia, igual ? 'confirmado' : 'corrigido', confirmado); }
+            catch (err) { console.warn('auditoria da extração:', err.message); }
+        }
+    }
+
+    // Identificadores fortes no ativo (fase 3): o próximo documento casa sem escolher.
+    if (up.vinculo?.tipo === 'ativo' && up.vinculo.id) {
+        const idn = {};
+        if (dadosEstruturados.cpf) idn.cpf = dadosEstruturados.cpf;
+        if (dadosEstruturados.placa) idn.placa = dadosEstruturados.placa;
+        if (dadosEstruturados.renavam) idn.renavam = dadosEstruturados.renavam;
+        if (dadosEstruturados.chassi) idn.chassi = dadosEstruturados.chassi;
+        if (Object.keys(idn).length) { try { await api.mesclarIdentificadoresAtivo(up.vinculo.id, idn); } catch (err) { console.warn('identificadores do ativo:', err.message); } }
     }
 
     // Contatos marcados → cofre_contatos_acionamento (mesmo insert do antigo modal de sugestões)
-    const marcados = [...document.querySelectorAll('.uc-contato:checked')].map(el => up.ia?.contatosSugeridos?.[parseInt(el.value, 10)]).filter(Boolean);
+    const marcados = [...document.querySelectorAll('.uc-contato:checked')].map(el => up.contatosSugeridos?.[parseInt(el.value, 10)]).filter(Boolean);
     for (const c of marcados) {
         try { await api.criarContato({ cliente_id: estado.clienteId, documento_id: up.documentoId, papel: c.papel || 'outro', nome: c.nome, telefone: c.telefone || null, email: c.email || null }); }
         catch (err) { avisos.push('contato ' + c.nome + ': ' + err.message); }
@@ -677,6 +867,7 @@ export async function salvarConfirmacaoUpload() {
 
     const partes = ['Documento salvo'];
     if (itemCriado) partes.push('vencimento sob controle');
+    if (vencido) partes.push('guardado como vencido');
     if (!manter) partes.push('só os dados guardados');
     mostrarToast(partes.join(' · ') + ' ✅');
     avisos.forEach(a => mostrarToast('Atenção — ' + a, 'aviso'));
@@ -796,6 +987,7 @@ export async function abrirFichaDocumento(id) {
     let chips = `<span class="${classeBadgeVinculo(statusVinculo)}">${escapeHtml(rotuloStatusVinculo(statusVinculo))}</span>`;
     if (d.nivel_acesso === 'restrito') chips += `<span class="${BADGE_ALERTA}">Restrito</span>`;
     if (d.arquivo_mantido === false) chips += `<span class="${BADGE_NEUTRO}">Só dados</span>`; // v2.0.0 (A.12)
+    if (d.vencido_no_upload || (d.validade_em && d.validade_em < new Date().toISOString().slice(0, 10))) chips += `<span class="${BADGE_ALERTA}">Vencido</span>`; // v2.1.0 (D10)
     if (chip) chips += `<span class="${chip.classe}">${escapeHtml(chip.texto)}</span>`;
     document.getElementById('fd-chips').innerHTML = chips;
     document.getElementById('fd-btn-baixar')?.classList.toggle('hidden', d.arquivo_mantido === false);

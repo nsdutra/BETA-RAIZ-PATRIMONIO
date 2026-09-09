@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.18.0 · 09/09/2026
+// Versão: 1.19.0 · 09/09/2026
+//
+// v1.19.0 (Motor Documental fase 3) — listarCatalogoSubtipos() (catálogo
+// global de cofre_controle_subtipos com campos/regra/padrões, pra tela de
+// confirmação e caminho sem IA); analisarArquivoComIA ganha opções
+// {tipoAtivo, ativoId, classificacaoForcada, motor}; registrarExtracaoMotor()
+// grava pela RPC nova (subtipo_codigo, campos, validacoes, execucao_ia,
+// prompt_versao, canal) e leva dados_estruturados pro documento;
+// mesclarIdentificadoresAtivo() grava CPF/placa/RENAVAM/chassi no ativo pra
+// o próximo documento casar por identificador forte.
 //
 // v1.18.0 (A.12/A.13) — listarCategoriasGabarito() (linhas globais de
 // cofre_categorias, cliente_id null: padrões de manter arquivo / controle);
@@ -157,7 +166,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.18.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.19.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -376,10 +385,51 @@ export async function analisarDocumentoComIA(documentoId) {
 // Storage, cofre_documentos ainda não existe. A function valida o tenant
 // pelo 1º segmento do path + pessoa do usuário (RLS) e NÃO grava auditoria
 // (quem grava é registrarExtracao, depois do insert).
-export async function analisarArquivoComIA(storagePath, mimeType) {
-    const { data, error } = await dbAuth.functions.invoke('cofre-extrair-documento', { body: { storage_path: storagePath, mime_type: mimeType, bucket: 'cofre-documentos' } });
+export async function analisarArquivoComIA(storagePath, mimeType, opcoes = {}) {
+    const body = { storage_path: storagePath, mime_type: mimeType, bucket: 'cofre-documentos' };
+    if (opcoes.tipoAtivo) body.tipo_ativo = opcoes.tipoAtivo;
+    if (opcoes.ativoId) body.ativo_id = opcoes.ativoId;
+    if (opcoes.classificacaoForcada) body.classificacao_forcada = opcoes.classificacaoForcada;
+    if (opcoes.motor) body.motor = opcoes.motor;
+    const { data, error } = await dbAuth.functions.invoke('cofre-extrair-documento', { body });
     if (error) throw error;
-    return data; // { analisado, modo:'pre_insert', resultado?, motivo?, avisoLimite? }
+    return data; // { analisado, modo:'pre_insert', motor_versao, resultado?: {...legado, motor}, motivo?, avisoLimite? }
+}
+
+// v1.19.0 — catálogo global (fase 1 do motor): é o vocabulário da tela.
+export async function listarCatalogoSubtipos() {
+    const { data, error } = await dbAuth.from('cofre_controle_subtipos')
+        .select('id, codigo, nome, tipo, tipo_ativo_aplicavel, sinonimos, titular_escopo, categoria_codigo, gera_controle_padrao, ia_reconhece, campos, regra_vencimento, complexidade, manter_arquivo_padrao, antecedencia_padrao_dias, repeticao_padrao_dias, recorrencia_padrao_intervalo, recorrencia_padrao_unidade, ordem')
+        .is('cliente_id', null).eq('ativo', true).order('ordem', { nullsFirst: false }).order('nome');
+    if (error) throw error;
+    return data || [];
+}
+
+// v1.19.0 — auditoria completa do motor (o que a IA leu × o que o cliente confirmou).
+export async function registrarExtracaoMotor(documentoId, motor, legado, statusRevisao, confirmado) {
+    const m = motor || {}; const r = legado || {};
+    const { data, error } = await dbAuth.rpc('fn_cofre_registrar_extracao', {
+        p_documento_id: documentoId, p_tipo_documento: m.subtipo_nome || r.tipoDocumentoDetectado || 'desconhecido',
+        p_confianca: typeof m.confianca === 'number' ? m.confianca : ({ alta: 0.9, media: 0.6, baixa: 0.3 }[r.confianca] ?? 0.3),
+        p_modelo: `motor ${m.motor_versao || '?'}`,
+        p_dados: { categoriaCodigoSugerido: m.categoria_codigo ?? r.categoriaCodigoSugerido ?? null, nomeSugerido: m.nome_sugerido ?? r.nomeSugerido ?? null, resumo: m.resumo ?? r.resumo ?? null, vencimento: m.vencimento ?? null, titular: m.titular ?? null, partes: m.partes ?? [], classificacao: m.classificacao ?? null, evidencias: m.evidencias ?? {}, confianca_campos: m.confianca_campos ?? {}, revisor: m.revisor ?? null },
+        p_candidatos: m.vinculo?.candidatos ?? r.candidatosVinculo ?? [], p_status_revisao: statusRevisao, p_confirmado: confirmado ?? null,
+        p_subtipo_codigo: confirmado?.subtipo_codigo ?? m.subtipo_codigo ?? null, p_campos: m.campos ?? {}, p_validacoes: m.validacoes ?? [],
+        p_execucao_ia: m.execucao_ia ?? null, p_prompt_versao: m.prompt_versao ?? null, p_canal: 'app',
+    });
+    if (error) throw error;
+    return data;
+}
+
+// v1.19.0 — identificadores fortes no ativo (merge; nunca apaga o que já tinha).
+export async function mesclarIdentificadoresAtivo(ativoId, patch) {
+    const limpo = Object.fromEntries(Object.entries(patch || {}).filter(([, v]) => v != null && v !== ''));
+    if (!Object.keys(limpo).length) return null;
+    const { data: atual } = await dbAuth.from('cofre_ativos').select('identificadores').eq('id', ativoId).maybeSingle();
+    const novo = { ...(atual?.identificadores || {}), ...limpo };
+    const { error } = await dbAuth.from('cofre_ativos').update({ identificadores: novo }).eq('id', ativoId);
+    if (error) throw error;
+    return novo;
 }
 
 // v1.18.0 — auditoria da extração (o que a IA leu × o que o cliente

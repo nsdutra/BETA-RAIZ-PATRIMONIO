@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.26.0 · 09/09/2026
+// Versão: 1.27.0 · 09/09/2026
+//
+// v1.27.0 (Motor Documental fase 3) — despacho: uc-tipo-doc-mudou,
+// uc-validade-mudou (change) e uc-reler-tipo (click) do #modal-confirmar-upload.
 //
 // v1.26.0 (A.12/A.13) — despacho do upload novo (cofre-documentos 2.0.0):
 // up-escolher-camera / up-escolher-arquivo, cancelar/salvar-confirmacao-
@@ -239,7 +242,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.26.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.27.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -399,6 +402,7 @@ document.addEventListener('click', async (ev) => {
         case 'up-escolher-arquivo': docs.escolherArquivoUpload(); break;
         case 'cancelar-confirmacao-upload': await docs.cancelarConfirmacaoUpload(); break;
         case 'salvar-confirmacao-upload': await docs.salvarConfirmacaoUpload(); break;
+        case 'uc-reler-tipo': await docs.relerComoTipoUpload(); break; // v1.27.0
         case 'abrir-documento': await docs.abrirFichaDocumento(id); break;
         case 'alternar-editar-alerta': docs.alternarEditarAlerta(id); break;
         case 'confirmar-editar-alerta': await docs.confirmarEditarAlerta(id); break;
@@ -581,6 +585,8 @@ document.addEventListener('change', async (ev) => {
         case 'ativo-imovel-origem-mudou': ativos.atualizarCamposEstruturadosAtivo(); break;
         case 'upload-vinculo-tipo-mudou': await docs.aoMudarTipoVinculoUpload(); break;
         case 'uc-categoria-mudou': docs.aplicarPadroesCategoriaUpload(); break;
+        case 'uc-tipo-doc-mudou': docs.aoMudarTipoDocUpload(); break; // v1.27.0
+        case 'uc-validade-mudou': docs.aoMudarValidadeUpload(); break; // v1.27.0
         case 'uc-controlar-mudou': docs.aoMudarControlarUpload(); break;
         case 'uc-ctl-tipo-mudou': docs.aoMudarTipoControleUpload(); break;
         case 'uc-ctl-subtipo-mudou': docs.aplicarPadraoSubtipoUpload(); break;

@@ -1,6 +1,15 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.21.0 · 09/09/2026
+// Versão: 1.22.0 · 09/09/2026
+//
+// v1.22.0 (Motor Documental fase 3) — #modal-confirmar-upload ganha: select
+// "Tipo de documento" (catálogo global; no caminho sem IA é ele que manda,
+// com IA vem preenchido e "Reler como este tipo" reclassifica), bloco
+// #uc-avisos (vencido, titular divergente, validações que falharam, campos
+// "confira"), bloco #uc-dados-bloco com os campos estruturados do tipo
+// (editáveis, com evidência), e UM só "Vence em" (#uc-validade) — o campo de
+// vencimento do controle vira espelho (escondido). Chip "calculada — confira"
+// quando o vencimento foi derivado por regra.
 //
 // v1.21.0 (A.12/A.13 — PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0 §5):
 // #modal-upload virou caixa mínima (Câmera · Arquivo · toggle "Ler com IA");
@@ -251,7 +260,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.21.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.22.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -1096,12 +1105,24 @@ export const ATIVOS_MARKUP = `<style>
             <button type="button" data-action="cancelar-confirmacao-upload" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <p id="uc-resumo" class="hidden raiz-bloco-interno text-sm mb-3"></p>
+        <div id="uc-avisos" class="hidden space-y-1 mb-3"></div>
+        <div class="mb-3">
+            <label class="text-xs font-semibold block mb-1">Tipo de documento</label>
+            <div class="flex gap-2">
+                <select id="uc-tipo-doc" class="flex-1 border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-tipo-doc-mudou"></select>
+                <button type="button" id="uc-reler" data-action="uc-reler-tipo" class="hidden px-3 rounded-xl text-xs font-semibold" style="background:var(--warning);color:#fff">Reler</button>
+            </div>
+        </div>
+        <div id="uc-dados-bloco" class="hidden raiz-bloco-interno mb-3">
+            <p class="text-xs font-semibold mb-2">Dados do documento <span class="text-xs font-normal" style="color:var(--sage)">— lidos pela IA; toque pra corrigir</span></p>
+            <div id="uc-dados-campos" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+        </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label><input type="text" id="uc-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
             <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Categoria › Subcategoria <span style="color:var(--danger)">*</span></label><select id="uc-categoria" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-categoria-mudou"></select></div>
             <div><label class="text-xs font-semibold block mb-1">Data do documento</label><input type="date" id="uc-data-documento" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-            <div><label class="text-xs font-semibold block mb-1">Validade</label><input type="date" id="uc-validade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+            <div><label class="text-xs font-semibold block mb-1">Vence em <span id="uc-validade-flag" class="hidden text-xs font-normal" style="color:var(--warning)">· calculada — confira</span></label><input type="date" id="uc-validade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-validade-mudou"></div>
             <div id="uc-vigencia-bloco" class="hidden sm:col-span-2 grid grid-cols-2 gap-3">
                 <div><label class="text-xs font-semibold block mb-1">Vigência — início</label><input type="date" id="uc-vig-inicio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                 <div><label class="text-xs font-semibold block mb-1">Vigência — fim</label><input type="date" id="uc-vig-fim" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
@@ -1140,7 +1161,7 @@ export const ATIVOS_MARKUP = `<style>
                     <div><label class="text-xs font-semibold block mb-1">Subtipo</label><select id="uc-ctl-subtipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-ctl-subtipo-mudou"></select></div>
                     <div class="col-span-2"><label class="text-xs font-semibold block mb-1">Título do controle</label><input type="text" id="uc-ctl-titulo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                     <div><label class="text-xs font-semibold block mb-1">Início</label><input type="date" id="uc-ctl-data-inicio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-                    <div><label class="text-xs font-semibold block mb-1">Vence em <span style="color:var(--danger)">*</span></label><input type="date" id="uc-ctl-data-fim" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    <div class="hidden"><input type="date" id="uc-ctl-data-fim"></div> <!-- v1.22.0: espelho do "Vence em" único -->
                     <div><label class="text-xs font-semibold block mb-1">Avisar (dias antes)</label><input type="number" min="0" id="uc-ctl-antecedencia" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                     <div><label class="text-xs font-semibold block mb-1">Reforço a cada (dias)</label><input type="number" min="1" id="uc-ctl-reforco" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                     <div><label class="text-xs font-semibold block mb-1">Repete a cada</label><input type="number" min="1" id="uc-ctl-rec-intervalo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="vazio = não repete"></div>
