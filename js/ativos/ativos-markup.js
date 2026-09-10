@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.24.0 · 10/09/2026
+// Versão: 1.25.0 · 10/09/2026
+//
+// v1.25.0 — A.10: formulários de item de controle (novo e editar) ganham
+// "Valor previsto (R$) · Parcelas · Dias entre parcelas" (ic-*/fic-ed-*).
+// Com valor, cada ocorrência prevista nasce com despesa prevista no
+// Financeiro (trigger do banco); parcelas>1 = "IPVA em 3×". Sem valor = só
+// lembrete, como sempre.
 //
 // v1.24.0 — o seletor de tipo + botão Reler estouravam a largura do sheet
 // (print do Nicola: conteúdo cortado nas laterais). min-w-0 no flex e no
@@ -268,7 +274,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.24.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.25.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -776,8 +782,22 @@ export const ATIVOS_MARKUP = `<style>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Avisar com quantos dias de antecedência</label>
                 <input type="number" min="0" id="ic-antecedencia" value="7" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
             </div>
+            <div class="col-span-2 grid grid-cols-3 gap-2">
+                <div>
+                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Valor previsto (R$)</label>
+                    <input type="number" min="0" step="0.01" id="ic-valor-previsto" placeholder="opcional" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Parcelas</label>
+                    <input type="number" min="1" step="1" id="ic-parcelas" value="1" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Dias entre parcelas</label>
+                    <input type="number" min="1" step="1" id="ic-parcela-intervalo" value="30" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                </div>
+            </div>
         </div>
-        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único). Sem data fim = sem fim de vigência (só pode gerar a partir do início). Escolhendo "Fim (retroativo)", as ocorrências são contadas pra trás a partir da data fim, na frequência escolhida. Ao salvar, as ocorrências já são geradas automaticamente.</p>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único). Sem data fim = sem fim de vigência (só pode gerar a partir do início). Escolhendo "Fim (retroativo)", as ocorrências são contadas pra trás a partir da data fim, na frequência escolhida. Ao salvar, as ocorrências já são geradas automaticamente. Com valor previsto, cada ocorrência já nasce com a despesa prevista no Financeiro (dividida pelas parcelas).</p>
         <div class="flex gap-2 mt-3">
             <button type="button" data-action="fechar-form-controle" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
             <button data-action="salvar-item-controle" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar item de controle</button>
@@ -846,6 +866,20 @@ export const ATIVOS_MARKUP = `<style>
             <div class="col-span-2">
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Avisar com quantos dias de antecedência</label>
                 <input type="number" min="0" id="fic-ed-antecedencia" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            </div>
+            <div class="col-span-2 grid grid-cols-3 gap-2">
+                <div>
+                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Valor previsto (R$)</label>
+                    <input type="number" min="0" step="0.01" id="fic-ed-valor-previsto" placeholder="opcional" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Parcelas</label>
+                    <input type="number" min="1" step="1" id="fic-ed-parcelas" value="1" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Dias entre parcelas</label>
+                    <input type="number" min="1" step="1" id="fic-ed-parcela-intervalo" value="30" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                </div>
             </div>
         </div>
         <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente. Mudar a data início, a data fim, a direção ou a frequência impacta os alertas — o Cofre pergunta se quer regerar as ocorrências futuras ou manter as que já existem.</p>

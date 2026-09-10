@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.29.0 · 10/09/2026
+// Versão: 1.30.0 · 10/09/2026
+//
+// v1.30.0 — A.10: ações novas do item de controle (cofre-controles.js 1.20.0):
+// filtrar-controles-encerrados (chip Ativos/Encerrados no card), encerrar-item-
+// controle-atual, reabrir-item-controle-atual. 'excluir-item-controle-atual'
+// continua (agora é exclusão de verdade, com guarda no banco).
 //
 // v1.29.0 (A.24) — despacho: up-pdf-destravar e up-pdf-sem-leitura (PDF com senha).
 //
@@ -247,7 +252,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.29.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.30.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -557,6 +562,9 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-editar-item': controles.fecharEditarItem(); break;
         case 'salvar-edicao-item': await controles.salvarEdicaoItem(); break;
         case 'excluir-item-controle-atual': await controles.excluirItemControleAtual(); break;
+        case 'encerrar-item-controle-atual': await controles.encerrarItemControleAtual(); break;   // v1.30.0 — A.10
+        case 'reabrir-item-controle-atual': await controles.reabrirItemControleAtual(); break;     // v1.30.0 — A.10
+        case 'filtrar-controles-encerrados': controles.filtrarControles(alvo.dataset.chave); break; // v1.30.0 — A.10
         // v1.18.0 (NOVO, 02/09/2026) — chip "Partes" do item de controle.
         case 'abrir-editar-partes-item': await controles.abrirEditarPartesItem(); break;
         case 'fi-salvar-partes-item': await controles.salvarPartesItemAtual(); break;

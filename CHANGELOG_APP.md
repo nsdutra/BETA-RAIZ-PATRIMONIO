@@ -5,6 +5,25 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.155.0) — UPLOAD DE PDF FALHANDO NO ANDROID + "OUTRA
+FOTO" ABRINDO A CÂMERA (achados do Nicola).
+1) cofre-api.js 1.20.0: "Failed to fetch" ao subir PDF — o arquivo agora
+   é lido pra memória ANTES do upload (no Android/Chrome o File vindo
+   do seletor pode ficar inválido depois de um await; o hash já tinha
+   lido, a 2ª leitura no fetch falhava), mime por extensão quando o
+   type vem vazio, 1 retry automático em falha de rede e mensagem em
+   português com botão "Tentar de novo".
+2) cofre-documentos.js 2.6.0: o quality gate lembra a origem — vindo de
+   Arquivo, o botão vira "Escolher outro arquivo" e reabre o seletor;
+   vindo de Câmera, "Tirar outra foto".
+------------------------------------------------------------------
+Versões anteriores (v1.154.0 … v1.154.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.154.0) — 3 AJUSTES FINOS DO TESTE (cofre-documentos.js
 2.5.0) + BANCO.
 1) "Enviar assim mesmo" do quality gate vira botão secundário, lado a

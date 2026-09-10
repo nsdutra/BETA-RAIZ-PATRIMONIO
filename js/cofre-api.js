@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.20.0 · 10/09/2026
+// Versão: 1.21.0 · 10/09/2026
+//
+// v1.21.0 — A.10 (Encerrar × Excluir, PROPOSTA v2.2): listarItensControleAtivo
+// ganha `incluirEncerrados` (default false — comportamento de sempre);
+// encerrarItemControle (= o antigo arquivar, ativo=false; o trigger
+// trg_item_controle_encerrar apaga as ocorrências abertas e as despesas
+// previstas delas); reabrirItemControle (ativo=true); excluirItemControleDeVez
+// (DELETE físico — o banco bloqueia com P0001 se houver ocorrência concluída;
+// FK em cascata apaga as abertas). arquivarItemControle fica como alias.
 //
 // v1.20.0 — "Falha no upload: Failed to fetch" com PDF pelo Android (Nicola,
 // 10/09). uploadArquivoDocumento() ficou robusto: (1) lê o arquivo pra
@@ -174,7 +182,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.20.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.21.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -938,10 +946,12 @@ export async function arquivarSubtipoControle(id) {
     if (error) throw error;
 }
 
-export async function listarItensControleAtivo(ativoId) {
-    const { data, error } = await dbAuth.from('cofre_itens_controle')
+export async function listarItensControleAtivo(ativoId, incluirEncerrados = false) { // v1.21.0 — incluirEncerrados
+    let q = dbAuth.from('cofre_itens_controle')
         .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome)')
-        .eq('ativo_id', ativoId).eq('ativo', true).order('criado_em');
+        .eq('ativo_id', ativoId).order('criado_em');
+    if (!incluirEncerrados) q = q.eq('ativo', true);
+    const { data, error } = await q;
     if (error) throw error;
     return data || [];
 }
@@ -957,9 +967,19 @@ export async function atualizarItemControle(id, patch) {
     if (error) throw error;
 }
 
-export async function arquivarItemControle(id) {
+// v1.21.0 — A.10/v2.2: Encerrar (soft, histórico fica) × Excluir de vez (DELETE).
+export async function encerrarItemControle(id) {
     const { error } = await dbAuth.from('cofre_itens_controle').update({ ativo: false }).eq('id', id);
     if (error) throw error;
+}
+export const arquivarItemControle = encerrarItemControle; // alias (nome antigo)
+export async function reabrirItemControle(id) {
+    const { error } = await dbAuth.from('cofre_itens_controle').update({ ativo: true }).eq('id', id);
+    if (error) throw error;
+}
+export async function excluirItemControleDeVez(id) {
+    const { error } = await dbAuth.from('cofre_itens_controle').delete().eq('id', id);
+    if (error) throw error; // P0001 "Este item tem ocorrências já tratadas..." vem do trigger trg_item_controle_guarda_exclusao
 }
 
 export async function buscarItemControlePorId(id) {

@@ -1,6 +1,21 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.19.0 · 10/09/2026
+// Versão: 1.20.0 · 10/09/2026
+//
+// v1.20.0 — A.10 (ocorrência ↔ despesa + Encerrar × Excluir, PROPOSTA v1.0
+// §4.1 / v2.2). Banco já no ar (triggers). Nesta tela:
+//   · Formulários (novo/editar): Valor previsto · Parcelas · Dias entre
+//     parcelas (campos em ativos-markup.js 1.25.0). Com valor, cada ocorrência
+//     prevista nasce com despesa prevista no Financeiro; parcelas>1 = irmãs.
+//   · Ficha: "Valor previsto" nos dados; ocorrência mostra o valor (real ou
+//     previsto) quando houver.
+//   · Menu Dados: "Encerrar item" (neutro — some daqui pra frente, histórico
+//     fica; abertas e despesas previstas somem, trigger) e "Excluir item de
+//     vez" (bad — DELETE; o banco bloqueia se houver ocorrência tratada, com
+//     a mensagem "Reabra-as antes de excluir"). Ficha de item encerrado:
+//     status "Encerrado", ações Reabrir / Excluir de vez, sem Editar.
+//   · Card Controles: chips Ativos / Encerrados (só aparecem se houver
+//     encerrado) — lista carrega tudo e filtra local (filtrarControles).
 //
 // v1.19.0 — OCORRÊNCIA FANTASMA NO INÍCIO DA VIGÊNCIA (achado do Nicola:
 // apólice 19/08/2026–19/08/2027 nasceu com 2 ocorrências, uma "vencida há
@@ -216,7 +231,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.19.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.20.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -233,6 +248,9 @@ let modelosCache = null; // idem, pros modelos de item de controle por tipo de a
 let modeloEmEdicao = null; // id do modelo sendo editado no momento, ou null (modo "criar novo")
 let itensDoAtivoAtual = [];
 let itemEmFoco = null;
+let filtroControles = 'ativos'; // v1.20.0 — 'ativos' | 'encerrados'
+function itensFiltrados() { return itensDoAtivoAtual.filter(i => filtroControles === 'encerrados' ? i.ativo === false : i.ativo !== false); }
+function moedaBR(v) { return (typeof window.formatarMoedaBR === 'function') ? window.formatarMoedaBR(v) : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 // BUG FIX (25/08/2026, achado pelo usuário) — guarda a tela de onde a
 // ficha do item foi aberta de verdade (Home, Alertas ou Ficha do
 // Ativo), pra "< Voltar" não mentir. Antes ia sempre pra "ficha-ativo",
@@ -249,7 +267,7 @@ let contatoEmEdicaoId = null; // id do contato sendo editado, ou null (modo "cri
 // ============================================================================
 export async function montarControlesAtivo(a) {
     try {
-        itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
+        itensDoAtivoAtual = await api.listarItensControleAtivo(a.id, true); // v1.20.0 — inclui encerrados (filtro local)
     } catch (err) {
         document.getElementById('fa-tab-controles').innerHTML = `<p class="text-xs" style="color:var(--danger)">Erro ao carregar controles: ${escapeHtml(err.message)}</p>`;
         return;
@@ -271,22 +289,37 @@ function statusHtml(sem, texto) {
     return typeof window.renderStatus === 'function' ? window.renderStatus(sem, texto) : `<span class="rz-st rz-${sem}">${escapeHtml(texto)}</span>`;
 }
 function atualizarEstadoChipControles() {
-    const dias = itensDoAtivoAtual.map(diasProximaOcorrencia).filter(d => d !== null);
+    const ativos = itensDoAtivoAtual.filter(i => i.ativo !== false); // v1.20.0 — encerrados não contam
+    const dias = ativos.map(diasProximaOcorrencia).filter(d => d !== null);
     const vencidos = dias.filter(d => d < 0).length;
     const vencendo = dias.filter(d => d >= 0 && d <= 30).length;
-    if (typeof window.faAtualizarContadorFicha === 'function') window.faAtualizarContadorFicha('controles', itensDoAtivoAtual.length, vencidos + vencendo > 0);
+    if (typeof window.faAtualizarContadorFicha === 'function') window.faAtualizarContadorFicha('controles', ativos.length, vencidos + vencendo > 0);
     const cab = document.getElementById('fa-controles-status');
     if (!cab) return;
     if (vencidos) cab.innerHTML = statusHtml('bad', `${vencidos} vencido${vencidos === 1 ? '' : 's'}`);
     else if (vencendo) cab.innerHTML = statusHtml('warn', `${vencendo} vencendo`);
-    else if (itensDoAtivoAtual.length) cab.innerHTML = statusHtml('ok', 'Em dia');
+    else if (ativos.length) cab.innerHTML = statusHtml('ok', 'Em dia');
     else cab.innerHTML = '';
+}
+
+// v1.20.0 — chip Ativos/Encerrados (mesmo molde do chip "Encerrados" de Contratos)
+export function filtrarControles(chave) {
+    filtroControles = chave === 'encerrados' ? 'encerrados' : 'ativos';
+    renderizarListaControles();
+}
+function chipsControlesHtml() {
+    const nEnc = itensDoAtivoAtual.filter(i => i.ativo === false).length;
+    if (!nEnc) { filtroControles = 'ativos'; return ''; }
+    const nAt = itensDoAtivoAtual.length - nEnc;
+    const chip = (k, r, n) => `<button type="button" class="rz-chip ${filtroControles === k ? 'rz-on' : ''}" data-action="filtrar-controles-encerrados" data-chave="${k}">${r} <span class="rz-n">${n}</span></button>`;
+    return `<div class="rz-chips" style="margin-bottom:6px">${chip('ativos', 'Ativos', nAt)}${chip('encerrados', 'Encerrados', nEnc)}</div>`;
 }
 
 function renderizarListaControles() {
     const alvo = document.getElementById('fa-tab-controles');
     if (!alvo) return;
     atualizarEstadoChipControles();
+    const lista = itensFiltrados(); // v1.20.0
     if (!itensDoAtivoAtual.length) {
         // v1.13.0 — vazio no formato único (REGRAS §9): a ação fica no
         // rodapé do card ("Novo item"), por isso o vazio não repete botão.
@@ -294,7 +327,8 @@ function renderizarListaControles() {
         refrescarIcones();
         return;
     }
-    alvo.innerHTML = itensDoAtivoAtual.map(itemResumoHtml).join('');
+    alvo.innerHTML = chipsControlesHtml() + (lista.length ? lista.map(itemResumoHtml).join('')
+        : `<div class="rz-empty"><p>Nenhum item ${filtroControles === 'encerrados' ? 'encerrado' : 'ativo'}.</p></div>`);
     refrescarIcones();
 }
 
@@ -329,6 +363,14 @@ function itemResumoHtml(item) {
     // chipVencimento() (bg-amber/green Tailwind) deixou de ser usado aqui.
     const subtitulo = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
     const iconeTipo = { seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check';
+    if (item.ativo === false) { // v1.20.0 — encerrado: histórico visível, sem urgência
+        return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
+            <div class="rz-ic rz-neu"><i data-lucide="archive"></i></div>
+            <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
+            <div class="rz-rt">${statusHtml('neu', 'Encerrado')}</div>
+            <i data-lucide="chevron-right" class="rz-chev"></i>
+        </div>`;
+    }
     if (item.alerta_ativo === false) {
         return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
             <div class="rz-ic rz-neu"><i data-lucide="bell-off"></i></div>
@@ -621,7 +663,8 @@ function renderizarFichaItemControle() {
     const ocorrencias = (item.cofre_ocorrencias_controle || []).slice().sort((x, y) => (x.data_prevista_atual > y.data_prevista_atual ? 1 : -1));
     const proxima = ocorrencias.find(o => o.status_execucao === 'aberto');
     const diasProx = item.alerta_ativo === false ? null : (proxima ? diasAte(proxima.data_prevista_atual) : null);
-    const statusItem = item.alerta_ativo === false ? statusHtml('neu', 'Alertas desligados')
+    const statusItem = item.ativo === false ? statusHtml('neu', 'Encerrado') // v1.20.0
+        : item.alerta_ativo === false ? statusHtml('neu', 'Alertas desligados')
         : diasProx === null ? statusHtml('ok', 'Sem pendência')
         : diasProx < 0 ? statusHtml('bad', `Vencido há ${Math.abs(diasProx)}d`)
         : diasProx <= 30 ? statusHtml('warn', diasProx === 0 ? 'Vence hoje' : `${diasProx} dia${diasProx === 1 ? '' : 's'}`)
@@ -637,7 +680,8 @@ function renderizarFichaItemControle() {
         kv('Início', formatarDataBR(item.data_base)) +
         kv('Fim', item.data_fim ? formatarDataBR(item.data_fim) : 'Sem fim de vigência') +
         kv('Frequência', escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))) +
-        kv('Alerta', `${item.antecedencia_alerta_dias} dias antes · ${item.direcao_alerta === 'fim' ? 'a partir do fim' : 'a partir do início'}`);
+        kv('Alerta', `${item.antecedencia_alerta_dias} dias antes · ${item.direcao_alerta === 'fim' ? 'a partir do fim' : 'a partir do início'}`) +
+        (item.valor_previsto ? kv('Valor previsto', `${moedaBR(item.valor_previsto)}${(item.parcelas || 1) > 1 ? ` · ${item.parcelas}× de ${moedaBR(item.valor_previsto / item.parcelas)}` : ''}`) : ''); // v1.20.0
     renderizarDocumentosItemControle();
 
     const elOc = document.getElementById('fic-ocorrencia');
@@ -656,7 +700,7 @@ function renderizarFichaItemControle() {
             else if (dias <= 30) { sem = 'warn'; rot = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; ic = 'clock'; cls = ' rz-warn'; }
             return `<div class="rz-row rz-link" data-action="abrir-acoes-ocorrencia" data-id="${oc.id}">
                 <div class="rz-ic${cls}"><i data-lucide="${ic}"></i></div>
-                <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
+                <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}${(oc.valor_real ?? oc.valor_previsto) ? ` · ${moedaBR(oc.valor_real ?? oc.valor_previsto)}` : ''}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
                 <div class="rz-rt">${statusHtml(sem, rot)}</div>
                 <i data-lucide="ellipsis-vertical" class="rz-chev"></i>
             </div>`;
@@ -702,8 +746,13 @@ function sheetAcoes(config) {
 export function abrirAcoesDadosItem() {
     const item = itemEmFoco; if (!item) return;
     sheetAcoes({ titulo: item.titulo, sub: rotuloTipoControle(item.tipo), acoes: [
-        { icone: 'pencil', titulo: 'Editar item', codigo: 'cofre.controles.editar', aoTocar: () => abrirEditarItem() },
-        { icone: 'trash-2', titulo: 'Excluir item de controle', codigo: 'cofre.controles.desativar', sub: 'Apaga ocorrências e alertas dele', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
+        ...(item.ativo === false ? [ // v1.20.0 — encerrado
+            { icone: 'rotate-ccw', titulo: 'Reabrir item', codigo: 'cofre.controles.editar', sub: 'Volta a gerar ocorrências e alertas', aoTocar: () => reabrirItemControleAtual() },
+        ] : [
+            { icone: 'pencil', titulo: 'Editar item', codigo: 'cofre.controles.editar', aoTocar: () => abrirEditarItem() },
+            { icone: 'archive', titulo: 'Encerrar item', codigo: 'cofre.controles.desativar', sub: 'Para de gerar alertas; histórico fica visível em "Encerrados"', aoTocar: () => encerrarItemControleAtual() },
+        ]),
+        { icone: 'trash-2', titulo: 'Excluir item de vez', codigo: 'cofre.controles.desativar', sub: 'Some do banco. Bloqueado se houver ocorrência já tratada', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
     ] });
 }
 export function abrirAcoesPartesItem() {
@@ -903,6 +952,9 @@ export function abrirEditarItem() {
     document.getElementById('fic-ed-freq-intervalo').value = item.frequencia_intervalo || '';
     document.getElementById('fic-ed-freq-unidade').value = item.frequencia_unidade || 'mes';
     document.getElementById('fic-ed-antecedencia').value = item.antecedencia_alerta_dias;
+    const elVp = document.getElementById('fic-ed-valor-previsto'); if (elVp) elVp.value = item.valor_previsto ?? ''; // v1.20.0
+    const elPc = document.getElementById('fic-ed-parcelas'); if (elPc) elPc.value = item.parcelas || 1;
+    const elPi = document.getElementById('fic-ed-parcela-intervalo'); if (elPi) elPi.value = item.parcela_intervalo_dias || 30;
     abrirModal('modal-editar-item-controle');
 }
 
@@ -924,6 +976,9 @@ export async function salvarEdicaoItem() {
     const freqIntervalo = parseInt(document.getElementById('fic-ed-freq-intervalo').value, 10) || null;
     const freqUnidade = freqIntervalo ? document.getElementById('fic-ed-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('fic-ed-antecedencia').value, 10) || 0;
+    const valorPrevisto = parseFloat(document.getElementById('fic-ed-valor-previsto')?.value) || null; // v1.20.0
+    const parcelas = Math.max(1, parseInt(document.getElementById('fic-ed-parcelas')?.value, 10) || 1);
+    const parcelaIntervalo = Math.max(1, parseInt(document.getElementById('fic-ed-parcela-intervalo')?.value, 10) || 30);
     if (!titulo) { mostrarToast('Informe um título.', 'erro'); return; }
     if (!dataInicio) { mostrarToast('Informe a data início.', 'erro'); return; }
     if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Pra gerar a partir do fim, informe a data fim.', 'erro'); return; }
@@ -942,7 +997,8 @@ export async function salvarEdicaoItem() {
 
     try {
         const antes = { tipo: item.tipo, titulo: item.titulo, subtipo_id: item.subtipo_id, frequencia_intervalo: item.frequencia_intervalo, frequencia_unidade: item.frequencia_unidade, antecedencia_alerta_dias: item.antecedencia_alerta_dias, data_base: item.data_base, data_fim: item.data_fim, direcao_alerta: item.direcao_alerta };
-        const depois = { tipo, titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia, data_base: dataInicio, data_fim: dataFim, direcao_alerta: direcaoAlerta };
+        const depois = { tipo, titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia, data_base: dataInicio, data_fim: dataFim, direcao_alerta: direcaoAlerta,
+            valor_previsto: valorPrevisto, parcelas, parcela_intervalo_dias: parcelaIntervalo }; // v1.20.0
         await api.atualizarItemControle(item.id, depois);
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'editar', antes, depois, pessoa_id: estado.pessoa.id, origem: 'app' });
 
@@ -987,9 +1043,42 @@ export async function salvarEdicaoItem() {
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
+// v1.20.0 — A.10/v2.2: Encerrar (soft) — abertas e despesas previstas somem
+// por trigger; concluídas e realizadas ficam. Documentos vinculados não são
+// tocados (continuam no item, visível em "Encerrados").
+export async function encerrarItemControleAtual() {
+    const item = itemEmFoco; if (!item) return;
+    const abertas = (item.cofre_ocorrencias_controle || []).filter(o => o.status_execucao === 'aberto').length;
+    if (!confirm(`Encerrar "${item.titulo}"?\n\nEle para de gerar ocorrências e alertas${abertas ? ` (${abertas} em aberto somem, com as despesas previstas delas)` : ''}. O que já foi tratado fica no histórico, visível em "Encerrados". Dá pra reabrir depois.`)) return;
+    try {
+        await api.encerrarItemControle(item.id);
+        await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'encerrar', antes: item, depois: { ...item, ativo: false }, pessoa_id: estado.pessoa.id, origem: 'app' });
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.desativar', { itemId: item.id, modo: 'encerrar' });
+        mostrarToast('Item encerrado.');
+        voltarFichaItemControle();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+export async function reabrirItemControleAtual() {
+    const item = itemEmFoco; if (!item) return;
+    try {
+        await api.reabrirItemControle(item.id);
+        await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'reabrir', antes: item, depois: { ...item, ativo: true }, pessoa_id: estado.pessoa.id, origem: 'app' });
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.editar', { itemId: item.id, modo: 'reabrir' });
+        mostrarToast('Item reaberto — as próximas ocorrências voltam a ser geradas pela regra.');
+        await recarregarFichaItemControle();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
 export async function excluirItemControleAtual() {
     const item = itemEmFoco;
-    if (!confirm(`Excluir o item de controle "${item.titulo}"?\n\nTodas as ocorrências/alertas deste item somem junto da Visão Geral. Isso fica registrado e não pode ser desfeito pela interface.`)) return;
+    // v1.20.0 — exclusão DE VERDADE (v2.2). Guarda no banco: com ocorrência
+    // tratada, o DELETE falha com a mensagem do trigger (mostrada abaixo).
+    if ((item.cofre_ocorrencias_controle || []).some(o => o.status_execucao === 'concluido')) {
+        mostrarToast('Este item tem ocorrências já tratadas. Estorne-as antes de excluir — ou use "Encerrar item" pra manter o histórico.', 'erro'); return;
+    }
+    if (!confirm(`Excluir DE VEZ o item de controle "${item.titulo}"?\n\nEle some do banco com as ocorrências em aberto e as despesas previstas delas. Não dá pra desfazer. Se quiser só parar os alertas mantendo o histórico, use "Encerrar item".`)) return;
 
     // Documentos vinculados a este item (pedido explícito, 25/08/2026) —
     // pergunta SEPARADA, só se houver algum: apagar de vez, ou manter
@@ -1009,8 +1098,8 @@ export async function excluirItemControleAtual() {
     }
 
     try {
-        await api.arquivarItemControle(item.id);
-        await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'excluir', antes: item, depois: null, pessoa_id: estado.pessoa.id, origem: 'app' });
+        await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'excluir', antes: item, depois: null, pessoa_id: estado.pessoa.id, origem: 'app' }); // antes do DELETE (FK)
+        await api.excluirItemControleDeVez(item.id); // v1.20.0
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.desativar', { itemId: item.id });
 
         for (const d of docsDoItem) {
@@ -1232,6 +1321,9 @@ export async function salvarItemControle() {
     const freqIntervalo = parseInt(document.getElementById('ic-freq-intervalo').value, 10) || null;
     const freqUnidade = freqIntervalo ? document.getElementById('ic-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('ic-antecedencia').value, 10) || 0;
+    const valorPrevisto = parseFloat(document.getElementById('ic-valor-previsto')?.value) || null; // v1.20.0
+    const parcelas = Math.max(1, parseInt(document.getElementById('ic-parcelas')?.value, 10) || 1);
+    const parcelaIntervalo = Math.max(1, parseInt(document.getElementById('ic-parcela-intervalo')?.value, 10) || 30);
 
     if (!titulo) { mostrarToast('Informe um título para o item de controle.', 'erro'); return; }
     if (!dataBase) { mostrarToast('Informe a data início.', 'erro'); return; }
@@ -1246,6 +1338,7 @@ export async function salvarItemControle() {
             recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade,
             data_base: dataBase, data_fim: dataFim, direcao_alerta: direcaoAlerta,
             alerta_ativo: true, antecedencia_alerta_dias: antecedencia,
+            valor_previsto: valorPrevisto, parcelas, parcela_intervalo_dias: parcelaIntervalo, // v1.20.0
             origem: 'manual', criado_por: estado.pessoa.id,
         });
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
