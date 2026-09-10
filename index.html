@@ -6,9 +6,32 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.151.0
-   LINHAS: 16841
+   VERSÃO: Beta v1.152.0
+   LINHAS: 16831
    DATA: 09/09/2026
+   NOVIDADES (Beta v1.152.0) — ABA ATIVOS ABRIA A EMPRESA ERRADA
+   (achado do Nicola: "Rumo e Santos Dutras continuam sem aparecer os
+   ativos" — as duas TÊM ativos, 49 e 6).
+   Causa: corrida na inicialização. O ativos-boot.js punha ?cliente_id=
+   na URL, importava o módulo do Cofre e restaurava a URL no `finally`;
+   como nav.bootstrap() roda assíncrono ao importar e não era aguardado,
+   ele lia a URL JÁ restaurada e caía no fallback "primeira empresa da
+   lista" — que, pra quem tem 12 vínculos, quase nunca é a empresa
+   aberta na tela. Quando essa primeira empresa não tinha ativos, a lista
+   vinha vazia; quando tinha, mostrava os ativos de OUTRA empresa.
+   1) ativos-boot.js 1.3.0: a empresa passa a ir por
+      window.__raizClienteId (não depende de tempo) e a URL só é
+      restaurada depois de 'cofre:dados-carregados' (com teto de 10 s).
+      Se a empresa mudar sem recarregar a página, o módulo reinicia.
+   2) cofre-navegacao.js 1.7.0: bootstrap() lê o global primeiro; a URL
+      continua valendo pro cofre.html standalone. Se a empresa pedida
+      não for acessível, diz isso em vez de abrir outra em silêncio.
+   3) cofre-ativos.js 1.27.1: lista vazia deixa de mentir "Nenhum ativo
+      controlado ainda" quando o motivo é permissão — mostra o motivo.
+   NOTA: licença expirada NÃO corta acesso hoje (a RLS olha perfil, não
+   licença) — o padrão atual é seguir alertando. Suspensão/expiração
+   será tratada na frente A.22.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.151.0) — DOCUMENTO PENDENTE DE VÍNCULO VOLTOU A TER
    FLUXO (achado do Nicola).
    O que estava quebrado: o card "N documentos em triagem" da Visão Geral
@@ -112,40 +135,7 @@
    14); o plano sugerido é o select id_oferta_upsell que já existe em
    Parâmetros › Planos — hoje nenhuma linha está preenchida.
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.147.0) — A.12/A.13: UPLOAD INTELIGENTE (a IA lê antes)
-   + A.5.1: CONTATO DA EMPRESA. PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0.
-   1) Upload invertido (cofre-documentos.js 2.0.0, ativos-markup.js 1.21.0,
-      cofre-api.js 1.18.0, cofre-app.js 1.26.0): caixa mínima — Câmera ·
-      Arquivo · "Ler com IA" — o arquivo sobe, cofre-extrair-documento 1.5
-      lê em modo pré-insert e UMA tela de confirmação chega preenchida:
-      tipo + resumo, nome sugerido, categoria › subcategoria (casada por
-      codigo do gabarito global), datas/vigência, vínculo com candidatos
-      reais, contatos, "Manter arquivo no Cofre" (padrão da categoria —
-      desmarcado = só os dados, arquivo apagado do Storage, chip "Só dados"
-      na ficha, sem Baixar) e "Controlar vencimento" (padrão da categoria;
-      cria item de controle com antecedência/reforço/recorrência do
-      subtipo, pelo mesmo caminho da tela Controles —
-      cofre-controles.js 1.18.0 criarItemControleDeDocumento). Cancelar
-      apaga o arquivo. Sem IA = mesma tela, vazia. O modal de sugestões
-      pós-upload SAIU. Auditoria da extração passa a ser gravada com
-      status_revisao confirmado/corrigido e revisado_por (RPC
-      fn_cofre_registrar_extracao). Word/Excel entram sem leitura.
-   2) A.5.1 (comum-minha-empresa.js 1.5.0): CEP, telefone, e-mail e site em
-      ⚙️ › Minha empresa — colunas novas em `clientes`.
-   3) Reforço de alerta por item (A.13 opção A): cofre_itens_controle.
-      alerta_repeticao_dias, lido pelo diario-eventos 1.12 (null = 7 dias).
-      Só o item nascido do upload preenche por enquanto; o formulário
-      manual de Controles ganha o campo numa próxima fatia.
-   MIGRATIONS (já aplicadas 09/09): a5_1_clientes_cep_telefone_email_site_v1,
-   a12_a13_categorias_gabarito_padroes_subtipos_v1, a12_a13_fase2_rpc_
-   extracao_e_repeticao_alerta_v1. Edge Functions que precisam estar no
-   ar ANTES deste app: cofre-extrair-documento 1.5, _shared_cofre/
-   extracao.ts 1.6, diario-eventos 1.12 (zip raiz-entrega-ef-a12a13-fase2).
-   PENDENTE nesta frente: A.9 (fotos do imóvel → cofre_ativo_fotos) fica
-   pro próximo pacote; bot 2.51 (as 2 perguntas) e Gestão 0.19.0 (tela de
-   padrões) são as fases 4 e 5 da proposta.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.146.0 … v1.146.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.147.0 … v1.147.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -169,7 +159,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.3.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.23.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.3.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.23.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3457,7 +3447,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.151.0";
+        const APP_VERSAO = "Beta v1.152.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

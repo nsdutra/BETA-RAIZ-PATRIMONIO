@@ -1,6 +1,14 @@
 // ============================================================================
 // js/ativos/ativos-boot.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.2.0 · 31/08/2026
+// Versão: 1.3.0 · 09/09/2026
+//
+// v1.3.0 — CORRIDA QUE ABRIA A EMPRESA ERRADA: o passo 3 punha ?cliente_id=
+// na URL e o `finally` restaurava a URL assim que o import resolvia — mas
+// nav.bootstrap() roda assíncrono ao importar e lia a URL já restaurada,
+// caindo em "primeira empresa da lista". Agora a empresa vai por
+// window.__raizClienteId (cofre-navegacao 1.7.0 lê esse global primeiro) e
+// a URL só é restaurada depois de 'cofre:dados-carregados' — a URL vira
+// reforço, não a fonte. Sintoma: Ativos vazio em empresas que têm ativos.
 //
 // v1.2.0 — indicador de carregamento (pedido explícito, "a tela tem um
 // delay de carregamento") — spinner + texto mostrados IMEDIATAMENTE,
@@ -73,10 +81,19 @@
 // de ser a porta de entrada padrão.
 // ============================================================================
 
-export const VERSAO = '1.2.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 let ativosJaInicializado = false;
+let clienteIdDoBoot = null; // v1.3.0 — pra detectar troca de empresa sem reload
 
 export async function montarAtivosTab(clienteIdAtual) {
+    // v1.3.0 — trocou de empresa sem recarregar a página? o módulo precisa
+    // reiniciar, senão continua mostrando os ativos da empresa anterior.
+    if (ativosJaInicializado && clienteIdAtual && clienteIdDoBoot && clienteIdAtual !== clienteIdDoBoot) {
+        console.warn('[ativos-boot] empresa mudou — recarregando para reiniciar o módulo Ativos');
+        window.__raizClienteId = clienteIdAtual;
+        location.reload();
+        return;
+    }
     if (ativosJaInicializado) return;
     ativosJaInicializado = true;
 
@@ -156,6 +173,9 @@ export async function montarAtivosTab(clienteIdAtual) {
 
     // 3) garante que o Cofre resolve a MESMA empresa que já está ativa no App
     const urlOriginal = window.location.href;
+    // v1.3.0 — fonte de verdade da empresa, imune a tempo/restauração de URL.
+    window.__raizClienteId = clienteIdAtual || null;
+    clienteIdDoBoot = clienteIdAtual || null;
     const params = new URLSearchParams(window.location.search);
     if (clienteIdAtual) params.set('cliente_id', clienteIdAtual);
     const urlComContexto = window.location.pathname + '?' + params.toString() + window.location.hash;
@@ -169,7 +189,10 @@ export async function montarAtivosTab(clienteIdAtual) {
         container.innerHTML = '<div class="p-6 text-center text-sm" style="color:var(--sage)">Não foi possível carregar Ativos agora. Toque novamente ou recarregue a página.</div>';
         ativosJaInicializado = false; // permite tentar de novo numa próxima tentativa
     } finally {
-        // restaura a URL visível, sem reload e sem entrar no histórico
-        window.history.replaceState(window.history.state, '', urlOriginal);
+        // v1.3.0 — restaura a URL só DEPOIS que o boot leu a empresa (ou num
+        // teto de segurança), nunca antes: era isso que abria outra empresa.
+        const restaurar = () => window.history.replaceState(window.history.state, '', urlOriginal);
+        window.addEventListener('cofre:dados-carregados', restaurar, { once: true });
+        setTimeout(restaurar, 10000);
     }
 }

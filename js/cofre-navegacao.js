@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.2 · 04/09/2026
+// v1.7.0 (09/09/2026) — EMPRESA ERRADA NA ABA ATIVOS (achado do Nicola:
+// "Rumo e Santos Dutras continuam sem aparecer os ativos"). O App fixa a
+// empresa pondo ?cliente_id= na URL antes de importar este módulo e
+// restaura a URL logo depois; como bootstrap() é assíncrono e não era
+// aguardado, na prática ele lia a URL JÁ restaurada e caía no fallback
+// "primeira empresa da lista" — que pra um usuário com 12 vínculos
+// raramente é a empresa aberta na tela. Agora bootstrap() lê primeiro
+// window.__raizClienteId (global que o hospedeiro define e não depende de
+// tempo); a URL continua funcionando como antes pro cofre.html standalone.
+//
+// Versão: 1.7.0 · 09/09/2026
+//
+// Versão anterior: 1.6.2 · 04/09/2026
 //
 // v1.6.2 — "Ativos está demorando pra aparecer": a checagem de
 // cofre.categorias (que só esconde um ícone) deixou de bloquear
@@ -92,7 +104,7 @@
 // imediata, e é IMEDIATAMENTE substituído pelo nome real assim que a
 // consulta volta — nunca fica sozinho como fonte de verdade.
 // ============================================================================
-export const VERSAO = '1.6.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';
@@ -103,7 +115,9 @@ export async function bootstrap() {
     const contextoParam = normalizarContexto(params.get('contexto'));
     const refParam = params.get('ref');
     const nomeParam = params.get('nome'); // cosmético apenas — ver cabeçalho
-    const clienteIdCompat = params.get('cliente_id'); // compatibilidade v1.0.0
+    // v1.7.0 — o global vem primeiro: é imune à restauração da URL feita
+    // pelo ativos-boot.js. A URL segue valendo pro cofre.html standalone.
+    const clienteIdCompat = window.__raizClienteId || params.get('cliente_id'); // compatibilidade v1.0.0
     // v1.4.0 (31/08/2026, pedido explícito) — 'categorias'|'subtipos'|
     // 'modelos': abre direto uma tela de CONFIGURAÇÃO do Cofre, vinda do
     // menu Configurações do App (index.html, abrirConfiguracaoCofre()) —
@@ -137,6 +151,11 @@ export async function bootstrap() {
 
     if (!escolhida && refParam && contextoParam) {
         escolhida = await tentarResolverEmpresaPorContexto(pessoaRows, contextoParam, refParam);
+    }
+    if (!escolhida && clienteIdCompat) {
+        // pediram uma empresa específica e a pessoa não tem acesso a ela:
+        // melhor dizer isso do que abrir outra empresa silenciosamente.
+        return falhaAcesso('Sua conta não tem acesso aos ativos desta empresa.');
     }
     if (!escolhida) escolhida = pessoaRows[0];
 

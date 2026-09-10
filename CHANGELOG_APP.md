@@ -5,6 +5,46 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.147.0) — A.12/A.13: UPLOAD INTELIGENTE (a IA lê antes)
++ A.5.1: CONTATO DA EMPRESA. PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0.
+1) Upload invertido (cofre-documentos.js 2.0.0, ativos-markup.js 1.21.0,
+   cofre-api.js 1.18.0, cofre-app.js 1.26.0): caixa mínima — Câmera ·
+   Arquivo · "Ler com IA" — o arquivo sobe, cofre-extrair-documento 1.5
+   lê em modo pré-insert e UMA tela de confirmação chega preenchida:
+   tipo + resumo, nome sugerido, categoria › subcategoria (casada por
+   codigo do gabarito global), datas/vigência, vínculo com candidatos
+   reais, contatos, "Manter arquivo no Cofre" (padrão da categoria —
+   desmarcado = só os dados, arquivo apagado do Storage, chip "Só dados"
+   na ficha, sem Baixar) e "Controlar vencimento" (padrão da categoria;
+   cria item de controle com antecedência/reforço/recorrência do
+   subtipo, pelo mesmo caminho da tela Controles —
+   cofre-controles.js 1.18.0 criarItemControleDeDocumento). Cancelar
+   apaga o arquivo. Sem IA = mesma tela, vazia. O modal de sugestões
+   pós-upload SAIU. Auditoria da extração passa a ser gravada com
+   status_revisao confirmado/corrigido e revisado_por (RPC
+   fn_cofre_registrar_extracao). Word/Excel entram sem leitura.
+2) A.5.1 (comum-minha-empresa.js 1.5.0): CEP, telefone, e-mail e site em
+   ⚙️ › Minha empresa — colunas novas em `clientes`.
+3) Reforço de alerta por item (A.13 opção A): cofre_itens_controle.
+   alerta_repeticao_dias, lido pelo diario-eventos 1.12 (null = 7 dias).
+   Só o item nascido do upload preenche por enquanto; o formulário
+   manual de Controles ganha o campo numa próxima fatia.
+MIGRATIONS (já aplicadas 09/09): a5_1_clientes_cep_telefone_email_site_v1,
+a12_a13_categorias_gabarito_padroes_subtipos_v1, a12_a13_fase2_rpc_
+extracao_e_repeticao_alerta_v1. Edge Functions que precisam estar no
+ar ANTES deste app: cofre-extrair-documento 1.5, _shared_cofre/
+extracao.ts 1.6, diario-eventos 1.12 (zip raiz-entrega-ef-a12a13-fase2).
+PENDENTE nesta frente: A.9 (fotos do imóvel → cofre_ativo_fotos) fica
+pro próximo pacote; bot 2.51 (as 2 perguntas) e Gestão 0.19.0 (tela de
+padrões) são as fases 4 e 5 da proposta.
+------------------------------------------------------------------
+Versões anteriores (v1.146.0 … v1.146.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.146.0) — CHANGELOG SAI DO INDEX (R8, item "de leve").
 O cabeçalho deste arquivo tinha 7.332 linhas de histórico (204 versões,
 30% do arquivo) que o navegador baixava e todo leitor rolava. Agora ele

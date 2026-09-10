@@ -503,12 +503,15 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
 function explicarListaVazia(el) {
     const gate = window.podeUsar ? window.podeUsar('cofre.ver') : { ok: true };
     if (gate.ok) return; // estado vazio normal, já está no markup
+    // 09/09: confirmado com o Nicola que licença vencida NÃO corta acesso hoje
+    // (o padrão é seguir alertando — suspensão/expiração é a frente A.22). Este
+    // estado cobre só falta de permissão de perfil, que é o que a RLS checa.
     const porLicenca = ['sem_licenca', 'licenca_expirada', 'suspenso'].includes(gate.motivo);
     el.innerHTML = `
         <i data-lucide="${porLicenca ? 'lock' : 'eye-off'}" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
-        <p class="text-sm font-semibold">${porLicenca ? 'Licença expirada' : 'Sem acesso aos ativos'}</p>
+        <p class="text-sm font-semibold">${porLicenca ? 'Acesso bloqueado nesta empresa' : 'Sem acesso aos ativos'}</p>
         <p class="text-xs mb-3" style="color:var(--sage)">${porLicenca
-            ? 'Os ativos desta empresa continuam guardados — voltam assim que a licença for renovada.'
+            ? 'Os ativos continuam guardados — o bloqueio é da licença desta empresa, não dos dados.'
             : 'Seu perfil não tem permissão para ver os ativos desta empresa.'}</p>
         ${porLicenca ? `<button data-action="ir-licenca" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Ver licença</button>` : ''}`;
     refrescarIcones();
