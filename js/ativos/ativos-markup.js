@@ -1,6 +1,16 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.25.0 · 10/09/2026
+// Versão: 1.27.0 · 10/09/2026
+//
+// v1.27.0 — Documentos arquivados: entrada nova no menu Conta › Cofre
+// ("Documentos arquivados") e modal-documentos-arquivados (mesmo molde de
+// modal-categorias/modal-subtipos-controle) — cofre-documentos.js 2.11.0
+// cuida do conteúdo.
+//
+// v1.26.0 — A.10: bloco "Controlar vencimento" do upload com IA ganha Valor
+// previsto · Parcelas · Dias entre parcelas (uc-ctl-*), sugeridos a partir do
+// que a IA já extraiu (cofre-documentos.js aplicarSubtipoUpload) — editáveis
+// antes de salvar, igual aos demais campos do documento.
 //
 // v1.25.0 — A.10: formulários de item de controle (novo e editar) ganham
 // "Valor previsto (R$) · Parcelas · Dias entre parcelas" (ic-*/fic-ed-*).
@@ -274,7 +284,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.25.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.27.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -1220,6 +1230,11 @@ export const ATIVOS_MARKUP = `<style>
                     <div><label class="text-xs font-semibold block mb-1">Reforço a cada (dias)</label><input type="number" min="1" id="uc-ctl-reforco" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
                     <div><label class="text-xs font-semibold block mb-1">Repete a cada</label><input type="number" min="1" id="uc-ctl-rec-intervalo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="vazio = não repete"></div>
                     <div><label class="text-xs font-semibold block mb-1">Unidade</label><select id="uc-ctl-rec-unidade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"><option value="ano">ano(s)</option><option value="mes">mês(es)</option><option value="semana">semana(s)</option><option value="dia">dia(s)</option></select></div>
+                    <div class="col-span-2 grid grid-cols-3 gap-2" id="uc-ctl-valor-wrap"><!-- v1.26.0 — A.10, sugerido pela IA quando o documento traz valor -->
+                        <div><label class="text-xs font-semibold block mb-1">Valor previsto (R$)</label><input type="text" inputmode="decimal" id="uc-ctl-valor-previsto" placeholder="opcional" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" onblur="this.value=window.__rzFmtValor?window.__rzFmtValor(this.value):this.value"></div>
+                        <div><label class="text-xs font-semibold block mb-1">Parcelas</label><input type="number" min="1" step="1" id="uc-ctl-parcelas" value="1" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                        <div><label class="text-xs font-semibold block mb-1">Dias entre parcelas</label><input type="number" min="1" step="1" id="uc-ctl-parcela-intervalo" value="30" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
+                    </div>
                 </div>
             </div>
 
@@ -1321,6 +1336,10 @@ export const ATIVOS_MARKUP = `<style>
                 <i data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--pine)"></i>
                 <span class="text-sm font-medium" style="color:var(--ink)">Modelos de item de controle</span>
             </button>
+            <button data-action="abrir-documentos-arquivados" class="w-full flex items-center gap-3 px-2 py-3 rounded-lg active:bg-gray-100 transition text-left">
+                <i data-lucide="archive" style="width:18px;height:18px;color:var(--pine)"></i>
+                <span class="text-sm font-medium" style="color:var(--ink)">Documentos arquivados</span>
+            </button>
 
             <p class="text-[10px] font-bold uppercase tracking-wide px-2 pt-3 pb-0.5" style="color:var(--sage)">Conta</p>
             <!-- MERGE (pedido explícito, 26/08/2026) — Pessoas/Minha
@@ -1378,6 +1397,17 @@ export const ATIVOS_MARKUP = `<style>
                  do deploy — ver checklist em DEPLOY_RAIZ_PATRIMONIO.md). -->
             <div class="flex justify-between border-b pb-1"><span style="color:var(--sage)">App Raiz Patrimônio</span><b id="sobre-versao-app-principal">Beta v1.62.5</b></div>
         </div>
+    </div>
+</div>
+
+<div id="modal-documentos-arquivados" class="modal-overlay hidden">
+    <div class="modal-box p-5">
+        <div class="flex items-start justify-between mb-3">
+            <h3 class="text-base font-bold">Documentos arquivados</h3>
+            <button type="button" data-action="fechar-documentos-arquivados" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
+        </div>
+        <p class="text-[11px] mb-2" style="color:var(--sage)">Documentos excluídos na ficha continuam aqui, reversíveis, até você excluir de vez.</p>
+        <div id="doc-arq-lista"></div>
     </div>
 </div>
 

@@ -1,6 +1,31 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.9.0 · 10/09/2026
+// Versão: 2.11.0 · 10/09/2026
+//
+// v2.11.0 — Documentos arquivados (pendência do Nicola): tela nova
+// (modal-documentos-arquivados, aberta pelo menu Conta › Cofre ›
+// "Documentos arquivados") listando status='excluido' — Restaurar (volta
+// pra ativo), Vincular agora (reaproveita o mesmo fluxo de "em triagem" da
+// ficha do documento) e Excluir de vez (apaga do Storage + a linha, com
+// guarda de confirmação; loga cofre.excluir_de_vez antes). BUG FIX: o card
+// "N documento(s) pendente(s) de vínculo" da Visão Geral contava documentos
+// arquivados na consulta (sem filtrar status), por isso o número nunca
+// batia com a lista — corrigido em index.html (query com .eq('status',
+// 'ativo')), não é código deste arquivo.
+//
+// v2.10.0 — A.10 (pedido do Nicola: "muitas vezes já aparece se o valor do
+// documento foi parcelado — aproveite pra extrair a configuração correta").
+// Bloco "Controlar vencimento" ganha Valor previsto/Parcelas/Dias entre
+// parcelas (ativos-markup.js 1.26.0), sugeridos por sugerirValorParcelasIA()
+// a partir dos campos já extraídos pela IA para o subtipo: valor total
+// (campo "valor"/"premio_total"/"valor_financiado", nessa ordem), parcelas
+// (campo "parcelas" quando >1) e o intervalo entre elas (calculado de
+// "primeira_parcela"/"ultima_parcela" quando o subtipo os tem — ex.
+// financiamento_veiculo; senão 30 dias, mesmo padrão do item manual). Tudo
+// editável antes de salvar, como os demais campos do documento. Passa a
+// gravar valor_previsto/parcelas/parcela_intervalo_dias no item —
+// criarItemControleDeDocumento (cofre-controles.js) e criarItemControle
+// (cofre-api.js) recebem os campos novos.
 //
 // v2.9.0 — "IA indisponível agora" sem motivo (Nicola, 10/09): o log da
 // Edge Function mostrou 2 respostas 400 "storage_path inválido" sem
@@ -241,7 +266,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.9.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.11.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -958,6 +983,38 @@ export function aplicarSubtipoUpload(primeira = false) {
         g('uc-ctl-rec-intervalo').value = m.controle_sugerido.rec_intervalo ?? '';
         if (m.controle_sugerido.rec_unidade) g('uc-ctl-rec-unidade').value = m.controle_sugerido.rec_unidade;
     }
+    // v2.10.0 — A.10: valor/parcelas sugeridos pela IA (ou limpos, se o
+    // subtipo mudou pra um que a IA não classificou).
+    const sug = mesmoDaIA ? sugerirValorParcelasIA(s, m) : null;
+    g('uc-ctl-valor-previsto').value = sug ? formatarValorBR(sug.valorTotal) : '';
+    g('uc-ctl-parcelas').value = sug ? sug.parcelas : 1;
+    g('uc-ctl-parcela-intervalo').value = sug ? sug.intervalo : 30;
+}
+
+// v2.10.0 — lê os campos JÁ EXTRAÍDOS (m.campos, conforme o esquema do
+// subtipo s.campos) e sugere valor total previsto + parcelamento, sem
+// depender de nome de campo fixo (cada subtipo usa um): prioridade
+// 'valor' → 'premio_total' → 'valor_financiado' pro total; 'parcelas' pra
+// quantidade; se só houver 'valor_parcela' (sem total), total = parcela ×
+// qtd; intervalo vem de 'primeira_parcela'/'ultima_parcela' quando existem
+// (ex. financiamento_veiculo), senão o padrão de 30 dias.
+function sugerirValorParcelasIA(s, m) {
+    if (!s || !m?.campos) return null;
+    const campos = s.campos || [];
+    const existe = campo => campos.some(c => c.campo === campo);
+    const num = campo => { const v = m.campos[campo]; if (v === null || v === undefined || v === '') return null; const n = typeof v === 'number' ? v : parseValorBR(String(v)); return Number.isFinite(n) ? n : null; };
+    let parcelas = 1;
+    if (existe('parcelas')) { const p = parseInt(m.campos.parcelas, 10); if (Number.isInteger(p) && p > 1) parcelas = p; }
+    let valorTotal = null;
+    for (const campo of ['valor', 'premio_total', 'valor_financiado']) { if (existe(campo)) { const v = num(campo); if (v != null) { valorTotal = v; break; } } }
+    if (valorTotal == null && existe('valor_parcela') && parcelas > 1) { const vp = num('valor_parcela'); if (vp != null) valorTotal = Math.round(vp * parcelas * 100) / 100; }
+    if (valorTotal == null) return null;
+    let intervalo = 30;
+    if (parcelas > 1 && existe('primeira_parcela') && existe('ultima_parcela') && m.campos.primeira_parcela && m.campos.ultima_parcela) {
+        const dias = Math.round((new Date(m.campos.ultima_parcela) - new Date(m.campos.primeira_parcela)) / 86400000 / (parcelas - 1));
+        if (Number.isFinite(dias) && dias > 0) intervalo = dias;
+    }
+    return { valorTotal, parcelas, intervalo };
 }
 
 // Bloco "Dados do documento" — um input por campo do catálogo.
@@ -1269,6 +1326,9 @@ export async function salvarConfirmacaoUpload() {
         try {
             const ctl = await import('./cofre-controles.js');
             const recInt = parseInt(g('uc-ctl-rec-intervalo').value, 10) || null;
+            const valorPrevisto = parseValorBR(g('uc-ctl-valor-previsto').value) ?? null; // v2.10.0 — A.10
+            const parcelasCtl = Math.max(1, parseInt(g('uc-ctl-parcelas').value, 10) || 1);
+            const parcelaIntervaloCtl = Math.max(1, parseInt(g('uc-ctl-parcela-intervalo').value, 10) || 30);
             itemCriado = await ctl.criarItemControleDeDocumento({
                 ativoId: up.vinculo.tipo === 'ativo' ? up.vinculo.id : null,
                 contratoId: up.vinculo.tipo === 'contrato' ? up.vinculo.id : null,
@@ -1278,6 +1338,7 @@ export async function salvarConfirmacaoUpload() {
                 freqIntervalo: recInt, freqUnidade: recInt ? g('uc-ctl-rec-unidade').value : null,
                 antecedencia: parseInt(g('uc-ctl-antecedencia').value, 10) || 0,
                 repeticao: parseInt(g('uc-ctl-reforco').value, 10) || null,
+                valorPrevisto, parcelas: parcelasCtl, parcelaIntervaloDias: parcelaIntervaloCtl, // v2.10.0 — A.10
                 documentoId: up.documentoId,
             });
             await api.inserirVinculo(estado.clienteId, up.documentoId, 'item_controle', itemCriado.id, false, estado.pessoa.id);
@@ -1518,6 +1579,88 @@ export async function excluirDocumentoAtual() {
         mostrarToast('Documento excluído.');
         fecharFichaDoc();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// ============================================================================
+// v2.11.0 — DOCUMENTOS ARQUIVADOS (status='excluido'): ver, restaurar,
+// vincular ou excluir de vez. Modal simples (mesmo molde de modal-categorias/
+// modal-subtipos-controle), aberto pelo menu Conta.
+// ============================================================================
+let arquivadosCache = [];
+
+export async function abrirDocumentosArquivados() {
+    if (typeof window.abrirModal !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
+    document.getElementById('doc-arq-lista').innerHTML = `<p class="text-xs" style="color:var(--sage)">Carregando...</p>`;
+    window.abrirModal('modal-documentos-arquivados');
+    try {
+        arquivadosCache = await api.listarDocumentosArquivados(estado.clienteId);
+        renderizarDocumentosArquivados();
+    } catch (err) {
+        document.getElementById('doc-arq-lista').innerHTML = `<p class="text-xs" style="color:var(--danger)">Erro ao carregar: ${escapeHtml(err.message)}</p>`;
+    }
+}
+export function fecharDocumentosArquivados() { fecharModal('modal-documentos-arquivados'); }
+
+function renderizarDocumentosArquivados() {
+    const el = document.getElementById('doc-arq-lista');
+    if (!el) return;
+    if (!arquivadosCache.length) {
+        el.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhum documento arquivado.</p>`;
+        return;
+    }
+    el.innerHTML = arquivadosCache.map(d => {
+        const semVinculo = !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0;
+        return `<div class="raiz-bloco-interno" style="margin-bottom:6px">
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0"><b class="text-xs block truncate">${escapeHtml(d.nome_exibicao)}</b>
+                    <span class="text-[10px]" style="color:var(--sage)">Arquivado em ${formatarDataBR((d.excluido_em || '').slice(0, 10))}${semVinculo ? ' · sem vínculo' : ''}</span></div>
+            </div>
+            <div class="flex gap-1.5 mt-1.5 flex-wrap">
+                <button type="button" data-action="restaurar-documento-arquivado" data-id="${d.id}" class="text-[11px] font-semibold px-2 py-1 rounded-lg" style="background:var(--pine);color:#fff">Restaurar</button>
+                ${semVinculo ? `<button type="button" data-action="vincular-documento-arquivado" data-id="${d.id}" class="text-[11px] font-semibold px-2 py-1 rounded-lg" style="background:var(--line);color:var(--ink)">Vincular</button>` : ''}
+                <button type="button" data-action="excluir-documento-arquivado-de-vez" data-id="${d.id}" class="text-[11px] font-semibold px-2 py-1 rounded-lg" style="background:#fef2f2;color:var(--danger)">Excluir de vez</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+export async function restaurarDocumentoArquivado(id) {
+    const d = arquivadosCache.find(x => x.id === id);
+    try {
+        await api.restaurarDocumento(id);
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.restaurar', { documento_id: id, nome: d?.nome_exibicao });
+        mostrarToast('Documento restaurado.');
+        arquivadosCache = arquivadosCache.filter(x => x.id !== id);
+        renderizarDocumentosArquivados();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+// Restaura (documento arquivado sem vínculo precisa estar 'ativo' pra entrar
+// no fluxo normal de vínculo) e reabre a ficha já no modo "vincular agora".
+export async function vincularDocumentoArquivado(id) {
+    try {
+        await api.restaurarDocumento(id);
+        arquivadosCache = arquivadosCache.filter(x => x.id !== id);
+        renderizarDocumentosArquivados();
+        fecharDocumentosArquivados();
+        estado.documentos = await api.listarDocumentos(estado.clienteId);
+        await abrirFichaDocumento(id);
+        abrirVincularAgora();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+export async function excluirDocumentoArquivadoDeVez(id) {
+    const d = arquivadosCache.find(x => x.id === id);
+    if (!confirm(`Excluir "${d?.nome_exibicao || 'este documento'}" de vez?\n\nO arquivo (se ainda estiver guardado) e o registro somem. Não pode ser desfeito.`)) return;
+    try {
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.excluir_de_vez', { documento_id: id, nome: d?.nome_exibicao });
+        await api.excluirDocumentoDeVez(id);
+        mostrarToast('Documento excluído de vez.');
+        arquivadosCache = arquivadosCache.filter(x => x.id !== id);
+        renderizarDocumentosArquivados();
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

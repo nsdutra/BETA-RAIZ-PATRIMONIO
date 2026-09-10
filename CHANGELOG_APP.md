@@ -5,6 +5,47 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.157.0) — 3 ACHADOS DO TESTE DA APÓLICE (Nicola).
+1) OCORRÊNCIA FANTASMA (cofre-controles.js 1.19.0): apólice 19/08/2026–
+   19/08/2027 nascia com uma ocorrência "vencida há 22d" em 19/08/2026.
+   O gerador retroativo andava pra trás a partir do fim, ciclo a ciclo,
+   e num item anual fim − 1 ano cai no INÍCIO da vigência. Agora: nunca
+   antes de data_base, e item nascido de documento cria só o vencimento
+   lido (o próximo ciclo o banco gera ao fechar este).
+2) VALORES (cofre-documentos.js 2.8.0 + motor 1.3): "321635" virou
+   "3.216,35" — campo tipo valor formata em pt-BR com 2 casas e aceita
+   3.216,35 / 3216,35 / 3216.35 ao editar; vale pra todo tipo/subtipo do
+   catálogo. No motor, parseValorBR parou de apagar o ponto decimal.
+3) PARTES (motor 1.3 + app): seguradora, corretor, locador, etc. lidos
+   nos campos viram partes com papel e aparecem marcados como contatos
+   (titular/segurado/proprietário não — é a própria pessoa da carteira).
+Bot 2.52 + pdf-destravar 1.0 (A.24 no WhatsApp): PDF com senha → pergunta
+a senha (ou 0 = guardar sem ler) → destrava por qpdf em WebAssembly numa
+function isolada → lê pela cópia; o original protegido fica no Cofre.
+------------------------------------------------------------------
+Versões anteriores (v1.156.0 … v1.156.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
+NOVIDADES (Beta v1.156.0) — A.24: PDF PROTEGIDO POR SENHA (cofre-imagem.js
+1.1.0, cofre-documentos.js 2.7.0, cofre-app.js 1.29.0).
+Antes de subir, o app detecta PDF com senha (pdf.js) e pede a senha no
+próprio sheet. Com a senha, abre o PDF NO CELULAR, renderiza as páginas
+e monta uma cópia sem senha (jsPDF) só pra leitura da IA — sobe em
+tmp-ia/ e é apagada depois. O ORIGINAL protegido é o que fica no Cofre.
+A senha não sai do aparelho nem é gravada. Senha errada → pede de novo;
+"Enviar sem ler (só guardar)" sobe o original sem IA.
+------------------------------------------------------------------
+Versões anteriores (v1.155.0 … v1.155.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.155.0) — UPLOAD DE PDF FALHANDO NO ANDROID + "OUTRA
 FOTO" ABRINDO A CÂMERA (achados do Nicola).
 1) cofre-api.js 1.20.0: "Failed to fetch" ao subir PDF — o arquivo agora

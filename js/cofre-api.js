@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.21.0 · 10/09/2026
+// Versão: 1.22.0 · 10/09/2026
+//
+// v1.22.0 — Documentos arquivados (pendência: contagem do alerta incluía
+// arquivados, tela de "sem vínculo" nunca mostrava). listarDocumentosArquivados
+// (status='excluido' — mesmo RLS já libera pra quem tem cofre.editar/cofre.excluir,
+// sem migration), restaurarDocumento (volta pra 'ativo'), excluirDocumentoDeVez
+// (agora sim: apaga o arquivo do Storage quando havia, remove os vínculos e a
+// linha — DELETE físico). Quem chama registra o log ANTES (mesmo padrão de
+// excluirDocumentoAtual, que já existia e não mudou de comportamento) — a
+// função em si não loga, porque depois do DELETE não haveria mais documento_id
+// pra referenciar num log gravado depois.
 //
 // v1.21.0 — A.10 (Encerrar × Excluir, PROPOSTA v2.2): listarItensControleAtivo
 // ganha `incluirEncerrados` (default false — comportamento de sempre);
@@ -182,7 +192,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.21.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.22.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -322,6 +332,35 @@ export async function inserirDocumento(payload) {
 
 export async function atualizarDocumento(id, patch) {
     const { error } = await dbAuth.from('cofre_documentos').update(patch).eq('id', id);
+    if (error) throw error;
+}
+
+// v1.22.0 — Documentos arquivados (status='excluido'): ver, restaurar, vincular
+// ou excluir de vez. A política de SELECT já libera esse status pra quem tem
+// cofre.editar/cofre.excluir (ou master) — nenhuma mudança de RLS foi precisa.
+export async function listarDocumentosArquivados(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_documentos')
+        .select('*, cofre_documento_vinculos(id, entidade_tipo, entidade_id, principal)')
+        .eq('cliente_id', clienteId).eq('status', 'excluido')
+        .order('excluido_em', { ascending: false });
+    if (error) throw error;
+    return data || [];
+}
+export async function restaurarDocumento(id) {
+    const { error } = await dbAuth.from('cofre_documentos').update({ status: 'ativo', excluido_em: null, excluido_por: null }).eq('id', id);
+    if (error) throw error;
+}
+// Apaga de vez: arquivo do Storage (quando existia) + vínculos + a linha do
+// documento. Loga ANTES de apagar (senão perde a referência pro nome/id).
+export async function excluirDocumentoDeVez(id) {
+    const { data: doc, error: erroBusca } = await dbAuth.from('cofre_documentos').select('*').eq('id', id).single();
+    if (erroBusca) throw erroBusca;
+    if (doc.arquivo_mantido !== false && doc.storage_path) {
+        const { error: erroStorage } = await dbAuth.storage.from(doc.bucket || 'cofre-documentos').remove([doc.storage_path]);
+        if (erroStorage) console.warn('excluirDocumentoDeVez: falha ao apagar do Storage (segue apagando a linha):', erroStorage.message);
+    }
+    await dbAuth.from('cofre_documento_vinculos').delete().eq('documento_id', id);
+    const { error } = await dbAuth.from('cofre_documentos').delete().eq('id', id);
     if (error) throw error;
 }
 

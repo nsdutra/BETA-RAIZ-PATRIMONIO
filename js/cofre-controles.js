@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.20.0 · 10/09/2026
+// Versão: 1.20.1 · 10/09/2026
+//
+// v1.20.1 — A.10: criarItemControleDeDocumento recebe valorPrevisto/
+// parcelas/parcelaIntervaloDias (upload com IA, cofre-documentos.js 2.10.0)
+// e repassa pro item, igual ao formulário manual.
 //
 // v1.20.0 — A.10 (ocorrência ↔ despesa + Encerrar × Excluir, PROPOSTA v1.0
 // §4.1 / v2.2). Banco já no ar (triggers). Nesta tela:
@@ -231,7 +235,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.20.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.20.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1382,6 +1386,7 @@ export async function criarItemControleDeDocumento(p) {
         recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade,
         data_base: dataBase, data_fim: dataFim, direcao_alerta: direcao,
         alerta_ativo: true, antecedencia_alerta_dias: p.antecedencia ?? 0, alerta_repeticao_dias: p.repeticao || null,
+        valor_previsto: p.valorPrevisto ?? null, parcelas: p.parcelas || 1, parcela_intervalo_dias: p.parcelaIntervaloDias || 30, // v1.20.1 — A.10
         origem: 'documento', criado_por: estado.pessoa.id,
     });
     await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });

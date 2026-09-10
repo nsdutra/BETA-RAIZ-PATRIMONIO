@@ -6,9 +6,41 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.160.0
-   LINHAS: 16786
+   VERSÃO: Beta v1.162.0
+   LINHAS: 16791
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.162.0) — DOCUMENTOS ARQUIVADOS (cofre-documentos.js
+   2.11.0, cofre-api.js 1.22.0, cofre-app.js 1.31.0, ativos-markup.js 1.27.0).
+   Pedido do Nicola: ver, restaurar, vincular ou excluir de vez os documentos
+   excluídos (status='excluido' — reversível até hoje, mas sem tela nenhuma
+   pra chegar neles).
+   1) Menu Conta › Cofre › "Documentos arquivados": lista, com Restaurar
+      (volta pra ativo), Vincular agora (só quando sem vínculo — reabre a
+      ficha no mesmo fluxo de "em triagem" que já existe) e Excluir de vez
+      (apaga o arquivo do Storage quando ainda estava guardado + a linha,
+      DELETE físico de verdade, com confirmação e log antes de apagar).
+      RLS já liberava esse status pra quem tem cofre.editar/cofre.excluir —
+      nenhuma migration precisou.
+   2) BUG FIX achado no meio do trabalho: o card "N documento(s) pendente(s)
+      de vínculo" da Visão Geral contava TODOS os documentos sem vínculo,
+      inclusive arquivados — por isso o número nunca batia com a lista (que
+      já filtrava certo). Query corrigida com .eq('status','ativo').
+   NOVIDADES (Beta v1.161.0) — A.10: VALOR/PARCELAS NO UPLOAD COM IA
+   (cofre-documentos.js 2.10.0, cofre-controles.js 1.20.1, ativos-markup.js
+   1.26.0). Pedido do Nicola: "muitas vezes já aparece se o valor foi
+   parcelado — aproveite pra extrair a configuração correta".
+   Bloco "Controlar vencimento" do upload ganha Valor previsto/Parcelas/Dias
+   entre parcelas, sugeridos pela IA a partir do que já foi extraído pro
+   subtipo (sem nome de campo fixo — funciona pra qualquer subtipo do
+   catálogo): total por "valor"/"premio_total"/"valor_financiado" (nessa
+   ordem); parcelas por "parcelas" (só se >1); intervalo calculado de
+   "primeira_parcela"/"ultima_parcela" quando o subtipo os tem (ex.
+   financiamento_veiculo), senão 30 dias — tudo editável antes de salvar.
+   BUG FIX (banco, conector): parcelas de item recorrente gerava as
+   parcelas-irmãs em CADA ciclo, não só na primeira ocorrência do item —
+   achado no teste do Nicola (item quinzenal virou 30 ocorrências/despesas
+   até 3 meses além do fim configurado). Corrigido na trigger
+   fn_ocorrencia_nasce_despesa.
    NOVIDADES (Beta v1.160.0) — A.10 NO ITEM DE CONTROLE: VALOR/PARCELAS +
    ENCERRAR × EXCLUIR (cofre-controles.js 1.20.0, cofre-api.js 1.21.0,
    cofre-app.js 1.30.0, ativos-markup.js 1.25.0). index.html só sobe versão.
@@ -61,34 +93,7 @@
       auto-vincula com exatamente 1" nunca fechava. Agora exige o
       primeiro nome batendo também; nome idêntico vira candidato forte.
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.157.0) — 3 ACHADOS DO TESTE DA APÓLICE (Nicola).
-   1) OCORRÊNCIA FANTASMA (cofre-controles.js 1.19.0): apólice 19/08/2026–
-      19/08/2027 nascia com uma ocorrência "vencida há 22d" em 19/08/2026.
-      O gerador retroativo andava pra trás a partir do fim, ciclo a ciclo,
-      e num item anual fim − 1 ano cai no INÍCIO da vigência. Agora: nunca
-      antes de data_base, e item nascido de documento cria só o vencimento
-      lido (o próximo ciclo o banco gera ao fechar este).
-   2) VALORES (cofre-documentos.js 2.8.0 + motor 1.3): "321635" virou
-      "3.216,35" — campo tipo valor formata em pt-BR com 2 casas e aceita
-      3.216,35 / 3216,35 / 3216.35 ao editar; vale pra todo tipo/subtipo do
-      catálogo. No motor, parseValorBR parou de apagar o ponto decimal.
-   3) PARTES (motor 1.3 + app): seguradora, corretor, locador, etc. lidos
-      nos campos viram partes com papel e aparecem marcados como contatos
-      (titular/segurado/proprietário não — é a própria pessoa da carteira).
-   Bot 2.52 + pdf-destravar 1.0 (A.24 no WhatsApp): PDF com senha → pergunta
-   a senha (ou 0 = guardar sem ler) → destrava por qpdf em WebAssembly numa
-   function isolada → lê pela cópia; o original protegido fica no Cofre.
-   ------------------------------------------------------------------
-   NOVIDADES (Beta v1.156.0) — A.24: PDF PROTEGIDO POR SENHA (cofre-imagem.js
-   1.1.0, cofre-documentos.js 2.7.0, cofre-app.js 1.29.0).
-   Antes de subir, o app detecta PDF com senha (pdf.js) e pede a senha no
-   próprio sheet. Com a senha, abre o PDF NO CELULAR, renderiza as páginas
-   e monta uma cópia sem senha (jsPDF) só pra leitura da IA — sobe em
-   tmp-ia/ e é apagada depois. O ORIGINAL protegido é o que fica no Cofre.
-   A senha não sai do aparelho nem é gravada. Senha errada → pede de novo;
-   "Enviar sem ler (só guardar)" sobe o original sem IA.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.155.0 … v1.155.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.157.0 … v1.157.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -112,7 +117,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.1.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.21.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.30.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.9.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.25.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.1.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.22.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.31.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -11477,7 +11482,7 @@
                     .eq('cofre_itens_controle.ativo', true)
                     .order('data_prevista_atual'),
                 dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE }),
-                dbAuth.from('cofre_documentos').select('id, cofre_documento_vinculos(entidade_tipo)').eq('cliente_id', CLIENTE_ID_SUPABASE)
+                dbAuth.from('cofre_documentos').select('id, cofre_documento_vinculos(entidade_tipo)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo') // v1.162.0 — BUG FIX: contava arquivados
             ]);
 
             // --- KPIs do hero (Patrimônio sob gestão / Recebido / Ocupação) ---

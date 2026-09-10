@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.30.0 · 10/09/2026
+// Versão: 1.31.0 · 10/09/2026
+//
+// v1.31.0 — Documentos arquivados: dispatch novo pras 5 ações da tela
+// (cofre-documentos.js 2.11.0 / ativos-markup.js 1.27.0).
 //
 // v1.30.0 — A.10: ações novas do item de controle (cofre-controles.js 1.20.0):
 // filtrar-controles-encerrados (chip Ativos/Encerrados no card), encerrar-item-
@@ -252,7 +255,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.30.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.31.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -391,6 +394,11 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-bot': window.open('https://wa.me/5511978950609?text=' + encodeURIComponent('Olá, como o R.AI.Z pode me ajudar?'), '_blank', 'noopener'); break;
         case 'fechar-categorias': docs.fecharCategorias(); break;
         case 'salvar-categoria': await docs.salvarCategoria(); break;
+        case 'abrir-documentos-arquivados': fecharModal('modal-menu-conta'); await docs.abrirDocumentosArquivados(); break; // v1.31.0
+        case 'fechar-documentos-arquivados': docs.fecharDocumentosArquivados(); break;
+        case 'restaurar-documento-arquivado': await docs.restaurarDocumentoArquivado(alvo.dataset.id); break;
+        case 'vincular-documento-arquivado': await docs.vincularDocumentoArquivado(alvo.dataset.id); break;
+        case 'excluir-documento-arquivado-de-vez': await docs.excluirDocumentoArquivadoDeVez(alvo.dataset.id); break;
         case 'abrir-subtipos-controle': fecharModal('modal-menu-conta'); await controles.abrirSubtiposControle(); break;
         case 'fechar-subtipos-controle': controles.fecharSubtiposControle(); break;
         case 'salvar-subtipo-controle': await controles.salvarSubtipoControle(); break;
