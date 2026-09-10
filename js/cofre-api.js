@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.19.0 · 09/09/2026
+// Versão: 1.20.0 · 10/09/2026
+//
+// v1.20.0 — "Falha no upload: Failed to fetch" com PDF pelo Android (Nicola,
+// 10/09). uploadArquivoDocumento() ficou robusto: (1) lê o arquivo pra
+// memória ANTES de subir — no Android/Chrome o File vindo do seletor pode
+// ficar inválido depois de um await (o hash já tinha lido; a 2ª leitura no
+// fetch falhava); (2) contentType por extensão quando file.type vem vazio
+// (comum em PDF vindo de outro app); (3) 1 retry automático em falha de
+// rede, com 1,2 s de espera; (4) mensagem de erro em português.
 //
 // v1.19.0 (Motor Documental fase 3) — listarCatalogoSubtipos() (catálogo
 // global de cofre_controle_subtipos com campos/regra/padrões, pra tela de
@@ -166,7 +174,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.19.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.20.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -267,9 +275,31 @@ export function montarStoragePath(clienteId, documentoId, nomeOriginal) {
     return `${clienteId}/${agora.getFullYear()}/${String(agora.getMonth() + 1).padStart(2, '0')}/${documentoId}/${nomeSanitizado}`;
 }
 
+const MIME_POR_EXT = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+export function mimeDoArquivo(file) {
+    if (file?.type) return file.type;
+    const ext = String(file?.name || '').split('.').pop().toLowerCase();
+    return MIME_POR_EXT[ext] || 'application/octet-stream';
+}
+
 export async function uploadArquivoDocumento(storagePath, file) {
-    const { error } = await dbAuth.storage.from('cofre-documentos').upload(storagePath, file, { contentType: file.type, upsert: false });
-    if (error) throw error;
+    const contentType = mimeDoArquivo(file);
+    // v1.20.0 — corpo em memória: independe do handle do seletor (Android).
+    let corpo = file;
+    try { if (file instanceof Blob && typeof file.arrayBuffer === 'function') corpo = new Blob([await file.arrayBuffer()], { type: contentType }); }
+    catch (e) { console.warn('[upload] não consegui ler o arquivo pra memória, tentando direto:', e.message); }
+    let ultimoErro = null;
+    for (let tentativa = 1; tentativa <= 2; tentativa++) {
+        try {
+            const { error } = await dbAuth.storage.from('cofre-documentos').upload(storagePath, corpo, { contentType, upsert: tentativa > 1 });
+            if (!error) return;
+            ultimoErro = error;
+            if (!/fetch|network|timeout|Failed/i.test(String(error.message || error))) break; // erro de regra (413, 409…) não adianta repetir
+        } catch (e) { ultimoErro = e; }
+        if (tentativa === 1) await new Promise(r => setTimeout(r, 1200));
+    }
+    const msg = String(ultimoErro?.message || ultimoErro || '');
+    throw new Error(/fetch|network|Failed/i.test(msg) ? 'sem conexão com o servidor de arquivos — confira a internet e tente de novo' : msg);
 }
 
 export async function removerArquivoDocumento(storagePath) {

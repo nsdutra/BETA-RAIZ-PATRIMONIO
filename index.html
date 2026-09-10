@@ -6,9 +6,21 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.154.0
-   LINHAS: 16806
+   VERSÃO: Beta v1.155.0
+   LINHAS: 16794
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.155.0) — UPLOAD DE PDF FALHANDO NO ANDROID + "OUTRA
+   FOTO" ABRINDO A CÂMERA (achados do Nicola).
+   1) cofre-api.js 1.20.0: "Failed to fetch" ao subir PDF — o arquivo agora
+      é lido pra memória ANTES do upload (no Android/Chrome o File vindo
+      do seletor pode ficar inválido depois de um await; o hash já tinha
+      lido, a 2ª leitura no fetch falhava), mime por extensão quando o
+      type vem vazio, 1 retry automático em falha de rede e mensagem em
+      português com botão "Tentar de novo".
+   2) cofre-documentos.js 2.6.0: o quality gate lembra a origem — vindo de
+      Arquivo, o botão vira "Escolher outro arquivo" e reabre o seletor;
+      vindo de Câmera, "Tirar outra foto".
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.154.0) — 3 AJUSTES FINOS DO TESTE (cofre-documentos.js
    2.5.0) + BANCO.
    1) "Enviar assim mesmo" do quality gate vira botão secundário, lado a
@@ -86,31 +98,7 @@
    licença) — o padrão atual é seguir alertando. Suspensão/expiração
    será tratada na frente A.22.
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.151.0) — DOCUMENTO PENDENTE DE VÍNCULO VOLTOU A TER
-   FLUXO (achado do Nicola).
-   O que estava quebrado: o card "N documentos em triagem" da Visão Geral
-   chamava switchTab('tab-ativos') e caía numa tela em branco — porque a
-   tela "home" do Cofre, onde a lista de triagem morava, foi apagada no
-   corte do markup v1.5.0 e ninguém reapontou o card. E a tela de Alertas
-   nunca listou esses documentos (só controles, contratos e sinais
-   tributários).
-   1) Tela de Alertas ganha a categoria "Documentos": cada documento
-      pendente vira um alerta próprio, com chip de filtro e contador.
-   2) O card da Visão Geral abre Alertas JÁ filtrado em Documentos
-      (abrirTabAlertas aceita categoria inicial) e mudou de texto:
-      "N pendentes de vínculo · Toque para vincular a um ativo, imóvel
-      ou à empresa".
-   3) Tocar no alerta abre a ficha do documento com o "Vincular agora"
-      já aberto (ponte abrirDocumentoPendente, mesmo padrão do
-      abrirAlertaItemControle) — o formulário que já existia e estava
-      inalcançável a partir do alerta.
-   4) Ao vincular, o evento cofre:triagem-resolvida atualiza a lista de
-      Alertas e a Visão Geral na hora — o item some sozinho.
-   cofre-documentos.js 2.3.0: listarDocumentosEmTriagem() vira fonte única
-   (Home do Cofre, Visão Geral e Alertas liam cada um do seu jeito),
-   resumoDocumentosEmTriagem() e abrirDocumentoEmTriagem().
-   ------------------------------------------------------------------
-   Versões anteriores (v1.150.0 … v1.150.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.151.0 … v1.151.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -134,7 +122,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.5.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.20.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.6.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3422,7 +3410,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.154.0";
+        const APP_VERSAO = "Beta v1.155.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

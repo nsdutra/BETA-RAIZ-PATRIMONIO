@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.5.0 · 10/09/2026
+// Versão: 2.6.0 · 10/09/2026
+//
+// v2.6.0 — 2 achados do Nicola (10/09):
+//   - "Tirar outra foto" abria a CÂMERA mesmo quando o arquivo tinha vindo
+//     do seletor de arquivos. Agora o gate lembra a origem: vindo de
+//     Arquivo, o botão vira "Escolher outro arquivo" e reabre o seletor.
+//   - "Failed to fetch" no upload de PDF pelo Android: tratado em
+//     cofre-api 1.20.0 (arquivo lido pra memória antes de subir, mime por
+//     extensão, 1 retry); aqui a mensagem ficou em português e o quality
+//     gate/hash reaproveitam a mesma leitura.
+//
+// Versão anterior: 2.5.0 · 10/09/2026
 //
 // v2.5.0 — 3 ajustes finos do teste do Nicola (10/09):
 //   - "Enviar assim mesmo" no quality gate vira botão secundário, no mesmo
@@ -197,7 +208,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.5.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.6.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -462,7 +473,7 @@ function mostrarBloqueioQualidade(q) {
     el.style.color = 'var(--danger)';
     el.innerHTML = q.bloqueios.map(b => `⚠️ ${escapeHtml(b.mensagem)}`).join('<br>') +
         `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">` +
-        `<button type="button" data-action="up-tentar-outra-foto" style="flex:1;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700">Tirar outra foto</button>` +
+        `<button type="button" data-action="up-tentar-outra-foto" style="flex:1;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700">${up.origemInput === 'up-arquivo' ? 'Escolher outro arquivo' : 'Tirar outra foto'}</button>` +
         `<button type="button" data-action="up-enviar-assim-mesmo" style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700">Enviar assim mesmo</button>` +
         `</div>`;
     up.arquivo = null;
@@ -473,7 +484,8 @@ function mostrarBloqueioQualidade(q) {
 export function tentarOutraFotoUpload() {
     document.getElementById('up-status').textContent = '';
     up.bloqueadoPorQualidade = null;
-    escolherCameraUpload();
+    // v2.6.0 — reabre a MESMA origem (câmera ou seletor de arquivos).
+    if (up.origemInput === 'up-arquivo') escolherArquivoUpload(); else escolherCameraUpload();
 }
 
 // Escape do gate: o cliente decide. Fica registrado na auditoria.
@@ -493,6 +505,7 @@ export function escolherCameraUpload() { document.getElementById('up-camera').cl
 export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
     const f = document.getElementById(inputId).files[0];
     if (!f || !up) return;
+    up.origemInput = inputId; // v2.6.0 — pra "outra foto"/"outro arquivo" reabrir a origem certa
     const statusEl = document.getElementById('up-status');
     if (f.size > LIMITE_ARQUIVO) { statusEl.textContent = '⚠️ Arquivo maior que 25MB.'; statusEl.style.color = 'var(--danger)'; document.getElementById(inputId).value = ''; return; }
     up.arquivo = f;
@@ -528,15 +541,20 @@ async function processarArquivoUpload() {
     try {
         await api.uploadArquivoDocumento(up.storagePath, f);
     } catch (err) {
-        statusEl.textContent = '❌ Falha no upload: ' + err.message; statusEl.style.color = 'var(--danger)'; return;
+        statusEl.innerHTML = '❌ Não consegui enviar o arquivo: ' + escapeHtml(err.message) +
+            `<br><button type="button" data-action="up-tentar-outra-foto" style="margin-top:8px;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Tentar de novo</button>`;
+        statusEl.style.color = 'var(--danger)';
+        up.bloqueadoPorQualidade = null;
+        return;
     }
 
-    if (up.comIA && MIMES_IA.includes(f.type)) {
+    const mimeArquivo = api.mimeDoArquivo(f); // v2.6.0 — PDF de outro app pode vir com type vazio
+    if (up.comIA && MIMES_IA.includes(mimeArquivo)) {
         statusEl.style.color = 'var(--brass, #b8860b)';
         statusEl.textContent = '✨ Lendo o documento com IA…';
         // v2.2.0 — a leitura usa a versão tratada (recorte/orientação/contraste);
         // o Cofre continua guardando o ORIGINAL, que já subiu acima.
-        let caminhoLeitura = up.storagePath, mimeLeitura = f.type;
+        let caminhoLeitura = up.storagePath, mimeLeitura = mimeArquivo;
         try {
             up.tratamento = await tratarImagem(f, { orientacaoEsperada: null });
             if (up.tratamento?.blob) {
@@ -1070,7 +1088,7 @@ export async function salvarConfirmacaoUpload() {
     try {
         await api.inserirDocumento({
             id: up.documentoId, cliente_id: estado.clienteId, nome_original: f.name, nome_exibicao: nome,
-            bucket: 'cofre-documentos', storage_path: up.storagePath, mime_type: f.type, extensao: (f.name.split('.').pop() || '').toLowerCase(),
+            bucket: 'cofre-documentos', storage_path: up.storagePath, mime_type: api.mimeDoArquivo(f), extensao: (f.name.split('.').pop() || '').toLowerCase(),
             tamanho_bytes: f.size, hash_sha256: up.hash, categoria_id: categoriaId, tags: [], ...dados,
             nivel_acesso: nivelAcesso, origem: 'app', status: 'ativo', criado_por: estado.pessoa.id, arquivo_mantido: manter,
         });

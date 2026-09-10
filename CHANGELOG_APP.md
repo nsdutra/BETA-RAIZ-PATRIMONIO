@@ -5,6 +5,37 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.151.0) — DOCUMENTO PENDENTE DE VÍNCULO VOLTOU A TER
+FLUXO (achado do Nicola).
+O que estava quebrado: o card "N documentos em triagem" da Visão Geral
+chamava switchTab('tab-ativos') e caía numa tela em branco — porque a
+tela "home" do Cofre, onde a lista de triagem morava, foi apagada no
+corte do markup v1.5.0 e ninguém reapontou o card. E a tela de Alertas
+nunca listou esses documentos (só controles, contratos e sinais
+tributários).
+1) Tela de Alertas ganha a categoria "Documentos": cada documento
+   pendente vira um alerta próprio, com chip de filtro e contador.
+2) O card da Visão Geral abre Alertas JÁ filtrado em Documentos
+   (abrirTabAlertas aceita categoria inicial) e mudou de texto:
+   "N pendentes de vínculo · Toque para vincular a um ativo, imóvel
+   ou à empresa".
+3) Tocar no alerta abre a ficha do documento com o "Vincular agora"
+   já aberto (ponte abrirDocumentoPendente, mesmo padrão do
+   abrirAlertaItemControle) — o formulário que já existia e estava
+   inalcançável a partir do alerta.
+4) Ao vincular, o evento cofre:triagem-resolvida atualiza a lista de
+   Alertas e a Visão Geral na hora — o item some sozinho.
+cofre-documentos.js 2.3.0: listarDocumentosEmTriagem() vira fonte única
+(Home do Cofre, Visão Geral e Alertas liam cada um do seu jeito),
+resumoDocumentosEmTriagem() e abrirDocumentoEmTriagem().
+------------------------------------------------------------------
+Versões anteriores (v1.150.0 … v1.150.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.150.0) — QUALITY GATE DA FOTO, PRÉ-TRATAMENTO E
 CRIAR ATIVO A PARTIR DO DOCUMENTO (itens 2, 3 e 12 do ajuste de
 arquitetura de 09/09; a decisão sobre OCR externo segue EM ABERTO).
