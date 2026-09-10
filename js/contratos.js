@@ -1,7 +1,29 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.0.1 · 06/09/2026
+// Versão: 1.1.0 · 10/09/2026
+//
+// v1.1.0 — A.10 (ocorrências como histórico universal, PROPOSTA v2.0 §4.3):
+//   (1) Card "Ocorrências" na ficha do contrato (painel Resumo, logo abaixo
+//       de Condições) — mesmo molde do box da ficha do item de controle
+//       (cofre-controles.js): abertas primeiro (vence/vencido), depois as
+//       registradas (reajuste, renovação, alteração, assinatura, anexo…), até
+//       8 linhas + "Ver tudo" (histórico). Lê cofre_ocorrencias_controle por
+//       contrato_id (a view historico_contrato continua servindo o histórico).
+//       Linha aberta → sheet Dar baixa / Reagendar (triggers do banco espelham
+//       na despesa, quando houver).
+//   (2) "Renovar contrato" (código contratos.estender) no ⋮ da ficha e do card:
+//       novo fim, valor (opcional, % calculada), vigência do valor, observação
+//       e documento (vai pro Cofre vinculado ao contrato, igual ao reajuste).
+//       Grava pela RPC fn_contrato_renovar (banco decide: estende fim, muda
+//       valor com valor_anterior, cria ocorrência 'renovacao' com receber_ate/
+//       valor_a_receber/percentual/documento). Nenhuma regra aqui.
+//   Bridges novas no index: montarOcorrenciasContrato, abrirAcoesOcorrenciaContrato,
+//   salvarBaixaOcorrenciaContrato, salvarReagendarOcorrenciaContrato,
+//   renovarContrato, calcularPctRenovacaoPopup, calcularValorRenovacaoPopup,
+//   salvarRenovacaoContratoPopup.
+//
+// Versão anterior: 1.0.1 · 06/09/2026
 //
 // v1.0.1 — BUG da fatia 3 (v1.142): a ficha usava o RETORNO síncrono de
 // avaliarProntidaoContratoParaMinuta(), que virou ponte (Promise) quando
@@ -68,7 +90,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.0.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1506,6 +1528,10 @@ export function reabrirFichaSeFor(contratoId) {
                             ${kv('Imóvel', escapeHtmlSaidas(imo ? `${imo.empreendimento || ''} · ${enderecoCurto}` : '—'))}
                         </div>
                     </div>
+                    <div class="rz-card" id="fc-card-ocorrencias">
+                        <div class="rz-card-h"><h3>Ocorrências</h3><span class="rz-sub" id="fc-ocorrencias-status"></span><button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div id="fc-ocorrencias"><p class="rz-desc">Carregando...</p></div>
+                    </div>
                 </div>
 
                 <div class="fc-painel hidden" id="fc-painel-cobrancas">
@@ -1566,6 +1592,196 @@ export function reabrirFichaSeFor(contratoId) {
             switchTab('tab-contrato-ficha');
             if (typeof lucide !== 'undefined') lucide.createIcons();
             if (abreArquivos) montarDocumentosContrato(con.id);
+            montarOcorrenciasContrato(con.id); // v1.1.0 — A.10
+        }
+
+        // ===================================================================
+        // v1.1.0 — A.10: card "Ocorrências" do contrato + Renovar contrato
+        // ===================================================================
+        let ocorrenciasContratoAtual = []; // cache da ficha aberta (pra sheet de ações)
+
+        const OC_CONTRATO_ROTULO = { prevista: 'Prevista', revisional: 'Revisão', renovacao: 'Renovação', reajuste: 'Reajuste', sinistro: 'Sinistro', alteracao: 'Alteração', assinatura: 'Assinatura', anexo: 'Anexo', nota: 'Anotação', documento: 'Documento', pagamento: 'Pagamento', servico: 'Serviço', uso: 'Uso' };
+        const OC_CONTRATO_ICONE = { prevista: 'calendar-clock', revisional: 'calendar-clock', renovacao: 'refresh-cw', reajuste: 'trending-up', sinistro: 'triangle-alert', alteracao: 'pencil', assinatura: 'file-signature', anexo: 'paperclip', nota: 'sticky-note', documento: 'file-text', pagamento: 'banknote', servico: 'wrench', uso: 'gauge' };
+        const LIMITE_OCORRENCIAS_CARD = 8;
+
+        export async function montarOcorrenciasContrato(contratoId) {
+            const el = document.getElementById('fc-ocorrencias');
+            const elSt = document.getElementById('fc-ocorrencias-status');
+            if (!el || fichaContratoAtualId !== contratoId) return;
+            try {
+                const { data, error } = await dbAuth.from('cofre_ocorrencias_controle')
+                    .select('id, tipo, status_execucao, data_prevista_atual, tratamento_descricao, valor_a_receber, receber_ate, percentual_reajuste, documento_id, criado_em')
+                    .eq('contrato_id', contratoId);
+                if (error) throw error;
+                const todas = data || [];
+                const abertas = todas.filter(o => o.status_execucao === 'aberto').sort((a, b) => (a.data_prevista_atual || '').localeCompare(b.data_prevista_atual || ''));
+                const fechadas = todas.filter(o => o.status_execucao !== 'aberto').sort((a, b) => (b.data_prevista_atual || '').localeCompare(a.data_prevista_atual || '') || (b.criado_em || '').localeCompare(a.criado_em || ''));
+                ocorrenciasContratoAtual = todas;
+                if (elSt) elSt.innerHTML = todas.length ? `${abertas.length} em aberto · ${fechadas.length} registrada${fechadas.length === 1 ? '' : 's'}` : '';
+                if (!todas.length) {
+                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-check"></svg></div><p>Nada registrado ainda. Reajustes, renovações e alterações aparecem aqui.</p></div>`;
+                } else {
+                    const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+                    const linhas = [...abertas, ...fechadas].slice(0, LIMITE_OCORRENCIAS_CARD).map(oc => {
+                        const aberta = oc.status_execucao === 'aberto';
+                        const rot = OC_CONTRATO_ROTULO[oc.tipo] || rzEsc(oc.tipo || 'Ocorrência');
+                        const ic = OC_CONTRATO_ICONE[oc.tipo] || 'circle-dot';
+                        let sem = 'ok', st = rot, cls = '';
+                        if (aberta) {
+                            const dias = Math.round((new Date(oc.data_prevista_atual + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
+                            if (dias < 0) { sem = 'bad'; st = `Vencido há ${Math.abs(dias)}d`; cls = ' rz-bad'; }
+                            else if (dias <= 30) { sem = 'warn'; st = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; cls = ' rz-warn'; }
+                            else { st = 'Em dia'; }
+                        } else if (oc.status_execucao === 'cancelado') { sem = 'neu'; st = 'Cancelada'; cls = ' rz-neu'; }
+                        const titulo = aberta ? `${rot} · vence ${formatarDataBR(oc.data_prevista_atual)}` : `${rot} · ${formatarDataBR(oc.data_prevista_atual)}`;
+                        const desc = oc.tratamento_descricao ? rzEsc(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : '');
+                        return `<div class="rz-row ${aberta ? 'rz-link' : ''}" ${aberta ? `onclick="abrirAcoesOcorrenciaContrato('${oc.id}')"` : ''}>
+                            <div class="rz-ic${cls}"><svg data-lucide="${ic}"></svg></div>
+                            <div class="rz-tx"><b>${titulo}</b><span>${desc}</span></div>
+                            <div class="rz-rt">${rs(sem, st)}</div>
+                            ${aberta ? '<svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>' : ''}
+                        </div>`;
+                    }).join('');
+                    const maisHtml = todas.length > LIMITE_OCORRENCIAS_CARD
+                        ? `<div class="rz-card-f"><button type="button" onclick="verHistoricoContrato('${contratoId}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="history"></svg> Ver tudo (${todas.length})</button></div>` : '';
+                    el.innerHTML = linhas + maisHtml;
+                }
+            } catch (err) {
+                el.innerHTML = `<p class="rz-desc">Não consegui carregar as ocorrências: ${rzEsc(err.message || String(err))}</p>`;
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        export function abrirAcoesOcorrenciaContrato(ocorrenciaId) {
+            const oc = ocorrenciasContratoAtual.find(o => o.id === ocorrenciaId);
+            if (!oc || oc.status_execucao !== 'aberto') return;
+            const con = contratos.find(c => c.id === fichaContratoAtualId);
+            const rot = OC_CONTRATO_ROTULO[oc.tipo] || oc.tipo;
+            const sub = `${con?.locatario || ''} · vence ${formatarDataBR(oc.data_prevista_atual)}`;
+            const acoes = [
+                { icone: 'check', titulo: 'Dar baixa', codigo: 'cofre.ocorrencias.tratar', sub: 'Marca como tratada, com descrição opcional', aoTocar: () => abrirSheetForm({ titulo: 'Dar baixa', sub, rotuloSalvar: 'Confirmar baixa',
+                    corpo: `<div class="rz-f"><label>Descrição da baixa</label><textarea id="occ-baixa-descricao" rows="3" placeholder="Opcional — o que foi feito, com quem, valor"></textarea></div>`,
+                    aoSalvar: () => { salvarBaixaOcorrenciaContrato(oc.id); return false; } }) },
+                { icone: 'calendar', titulo: 'Reagendar', codigo: 'cofre.ocorrencias.reagendar', sub: 'Muda a data prevista', aoTocar: () => abrirSheetForm({ titulo: 'Reagendar', sub, rotuloSalvar: 'Confirmar novo prazo',
+                    corpo: `<div class="rz-f"><label>Nova data prevista <i>*</i></label><input type="date" id="occ-reagendar-data" value="${oc.data_prevista_atual}"></div>`,
+                    aoSalvar: () => { salvarReagendarOcorrenciaContrato(oc.id); return false; } }) },
+            ];
+            if (oc.tipo === 'renovacao' || oc.tipo === 'revisional') acoes.unshift({ icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim, valor e documento — baixa esta ocorrência', aoTocar: () => renovarContrato(fichaContratoAtualId, oc.id) });
+            abrirSheetAcoes({ titulo: `${rot} · ${formatarDataBR(oc.data_prevista_atual)}`, sub: con?.locatario || 'Contrato', acoes });
+        }
+
+        export async function salvarBaixaOcorrenciaContrato(ocorrenciaId) {
+            const descricao = document.getElementById('occ-baixa-descricao')?.value.trim() || null;
+            mostrarCarregamentoGlobal('Dando baixa...');
+            try {
+                const { error } = await dbAuth.from('cofre_ocorrencias_controle').update({
+                    status_execucao: 'concluido', tratado_em: new Date().toISOString(), tratado_por: pessoaIdLogada || null, tratamento_descricao: descricao,
+                }).eq('id', ocorrenciaId);
+                if (error) throw error;
+                esconderCarregamentoGlobal(); fecharSheet(); mostrarToast('Baixa registrada!', 'success');
+                registrarLog('cofre.ocorrencias.tratar', { ocorrenciaId, contratoId: fichaContratoAtualId });
+                montarOcorrenciasContrato(fichaContratoAtualId);
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Não consegui dar baixa: ' + (err.message || String(err)), 'danger'); }
+        }
+
+        export async function salvarReagendarOcorrenciaContrato(ocorrenciaId) {
+            const data = document.getElementById('occ-reagendar-data')?.value;
+            if (!data) { mostrarToast('Informe a nova data.', 'danger'); return; }
+            mostrarCarregamentoGlobal('Reagendando...');
+            try {
+                const { error } = await dbAuth.from('cofre_ocorrencias_controle').update({ data_prevista_atual: data }).eq('id', ocorrenciaId);
+                if (error) throw error;
+                esconderCarregamentoGlobal(); fecharSheet(); mostrarToast('Reagendada!', 'success');
+                registrarLog('cofre.ocorrencias.reagendar', { ocorrenciaId, contratoId: fichaContratoAtualId, data });
+                montarOcorrenciasContrato(fichaContratoAtualId);
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Não consegui reagendar: ' + (err.message || String(err)), 'danger'); }
+        }
+
+        // --- Renovar contrato -------------------------------------------------
+        export function renovarContrato(contratoId, ocorrenciaOrigemId = null) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) return;
+            if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.estender')) return;
+            const fimAtual = con.fim || '';
+            const proximoDia = fimAtual ? new Date(fimAtual + 'T00:00:00') : new Date();
+            if (fimAtual) proximoDia.setDate(proximoDia.getDate() + 1);
+            const sugestaoVigencia = proximoDia.toISOString().slice(0, 10);
+            const sugestaoFim = (() => { const d = new Date((fimAtual || new Date().toISOString().slice(0, 10)) + 'T00:00:00'); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10); })();
+            const corpo = `
+                <p class="text-xs text-slate-500 mb-3">Vigência atual: <b>${formatarDataBR(con.inicio)} → ${fimAtual ? formatarDataBR(fimAtual) : 'sem fim'}</b> · aluguel <b>${formatarMoedaBR(con.valor)}/mês</b></p>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Novo fim da vigência <span style="color:var(--danger)">*</span></label><input type="date" id="rn-fim" value="${sugestaoFim}" min="${fimAtual}" class="w-full p-2 border rounded text-sm mt-1"></div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div><label class="block text-xs font-bold text-gray-600">Novo valor (R$)</label><input type="number" step="0.01" id="rn-valor" value="${con.valor}" oninput="calcularPctRenovacaoPopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
+                    <div><label class="block text-xs font-bold text-gray-600">% de reajuste</label><input type="number" step="0.01" id="rn-pct" value="0" oninput="calcularValorRenovacaoPopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
+                </div>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Valor vale a partir de</label><input type="date" id="rn-vigencia" value="${sugestaoVigencia}" class="w-full p-2 border rounded text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">Mantendo o mesmo valor, só a vigência é estendida. Cobranças já geradas não mudam.</p></div>
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Observação</label><textarea id="rn-obs" rows="2" placeholder="Ex.: aditivo assinado em cartório; renovação por mais 12 meses" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>
+                <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Documento da renovação</label><input type="file" id="rn-arquivo" accept=".pdf,.jpg,.jpeg,.png,.docx" class="w-full text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">Aditivo ou termo de renovação. Vai pro Cofre, vinculado a este contrato.</p></div>`;
+            abrirSheetForm({
+                titulo: 'Renovar contrato', sub: con.locatario || '', corpo, rotuloSalvar: 'Registrar renovação',
+                aoSalvar: () => { salvarRenovacaoContratoPopup(con.id, ocorrenciaOrigemId); return false; },
+            });
+        }
+
+        export function calcularPctRenovacaoPopup(valorAtual) {
+            const novo = parseFloat(document.getElementById('rn-valor').value);
+            if (isNaN(novo) || !valorAtual) return;
+            document.getElementById('rn-pct').value = (((novo - valorAtual) / valorAtual) * 100).toFixed(2);
+        }
+
+        export function calcularValorRenovacaoPopup(valorAtual) {
+            const pct = parseFloat(document.getElementById('rn-pct').value);
+            if (isNaN(pct)) return;
+            document.getElementById('rn-valor').value = (valorAtual * (1 + pct / 100)).toFixed(2);
+        }
+
+        export async function salvarRenovacaoContratoPopup(contratoId, ocorrenciaOrigemId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con) return;
+            const novoFim = document.getElementById('rn-fim').value;
+            const novoValor = parseFloat(document.getElementById('rn-valor').value);
+            const vigencia = document.getElementById('rn-vigencia').value || null;
+            const obs = document.getElementById('rn-obs').value.trim();
+            const arquivo = document.getElementById('rn-arquivo')?.files?.[0] || null;
+            if (!novoFim) { mostrarToast('Informe o novo fim da vigência.', 'danger'); return; }
+            if (con.fim && novoFim <= con.fim) { mostrarToast('O novo fim precisa ser depois de ' + formatarDataBR(con.fim) + '.', 'danger'); return; }
+            if (!isNaN(novoValor) && novoValor <= 0) { mostrarToast('Valor inválido.', 'danger'); return; }
+
+            mostrarCarregamentoGlobal('Registrando renovação...');
+            try {
+                let docId = null;
+                if (arquivo && typeof window.rzAnexarArquivoEntidade === 'function') {
+                    try {
+                        docId = await window.rzAnexarArquivoEntidade('contrato', contratoId, arquivo, {
+                            nome: `Renovação até ${formatarDataBR(novoFim)} — ${con.locatario || ''}`.trim(),
+                            descricao: `Renovação contratual até ${formatarDataBR(novoFim)}.${obs ? ' ' + obs : ''}`, dataDocumento: vigencia || novoFim, categoriaSugerida: 'renovacao|aditivo|contrato',
+                        });
+                    } catch (errDoc) { mostrarToast('O anexo falhou, a renovação segue sem ele: ' + (errDoc.message || errDoc), 'danger'); }
+                }
+                const { data: ocId, error } = await dbAuth.rpc('fn_contrato_renovar', {
+                    p_contrato_id: contratoId, p_novo_fim: novoFim, p_novo_valor: isNaN(novoValor) ? null : novoValor,
+                    p_vigencia: vigencia, p_observacao: obs || null, p_documento_id: docId,
+                });
+                if (error) throw error;
+                // A ocorrência de revisão/renovação que originou a ação é baixada (v2.0 §4.3)
+                if (ocorrenciaOrigemId) {
+                    await dbAuth.from('cofre_ocorrencias_controle').update({ status_execucao: 'concluido', tratado_em: new Date().toISOString(), tratado_por: pessoaIdLogada || null, tratamento_descricao: `Renovado até ${formatarDataBR(novoFim)}` }).eq('id', ocorrenciaOrigemId).eq('status_execucao', 'aberto');
+                }
+                const valorAntigo = con.valor;
+                con.fim = novoFim;
+                if (!isNaN(novoValor) && novoValor !== valorAntigo) { con.valor = novoValor; con.valorAnterior = valorAntigo; con.reajusteAplicado = true; }
+                con.historico = con.historico || [];
+                con.historico.push({ data: new Date().toISOString(), descricao: `Renovação até ${formatarDataBR(novoFim)}${!isNaN(novoValor) && novoValor !== valorAntigo ? ` · ${formatarMoedaBR(valorAntigo)} → ${formatarMoedaBR(novoValor)}` : ''}${obs ? '. ' + obs : ''}`, tipo: 'renovacao', _salvo: true });
+
+                esconderCarregamentoGlobal(); fecharSheet();
+                mostrarToast('Renovação registrada!', 'success');
+                registrarLog('contratos.estender', { contratoId, novoFim, novoValor: isNaN(novoValor) ? null : novoValor, vigencia, documentoId: docId, ocorrenciaId: ocId });
+                if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                mostrarToast('Não consegui registrar a renovação: ' + (err.message || String(err)), 'danger');
+            }
         }
 
         // v1.111.0 — "Carregar documento" do contrato no MESMO modal do ativo
@@ -1704,6 +1920,7 @@ export function reabrirFichaSeFor(contratoId) {
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
             const acoes = [
                 { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor, vigência e documento', aoTocar: () => lancarReajusteContrato(con.id) },
+                { icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim de vigência, valor e documento', aoTocar: () => renovarContrato(con.id) }, // v1.1.0 — A.10
                     { icone: 'history', titulo: 'Histórico', codigo: 'contratos.historico.ver', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
             ];
             if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });

@@ -1,12 +1,12 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-09-10T10:43:33",
+  "gerado_em": "2026-09-10T16:15:19",
   "arquivos": {
-    "index.html": "1.158.0",
+    "index.html": "1.159.0",
     "sw.js": "2.1",
     "js/cadastros.js": "1.0.1",
     "js/financeiro.js": "1.0.0",
-    "js/contratos.js": "1.0.1",
+    "js/contratos.js": "1.1.0",
     "js/minutas.js": "1.0.0",
     "js/vitrine.js": "1.0.0",
     "js/cofre-api.js": "1.20.0",
@@ -28,7 +28,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 16796,
+      "linhas": 16795,
       "funcoes": 48
     },
     "sw.js": {
@@ -44,8 +44,8 @@
       "funcoes": 65
     },
     "js/contratos.js": {
-      "linhas": 3192,
-      "funcoes": 82
+      "linhas": 3409,
+      "funcoes": 90
     },
     "js/minutas.js": {
       "linhas": 1301,

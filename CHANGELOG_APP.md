@@ -5,6 +5,26 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.154.0) — 3 AJUSTES FINOS DO TESTE (cofre-documentos.js
+2.5.0) + BANCO.
+1) "Enviar assim mesmo" do quality gate vira botão secundário, lado a
+   lado com "Tirar outra foto", mesmo tamanho (era link sublinhado).
+2) Criar ativo a partir do documento passa a permitir "Controlar
+   vencimento" na MESMA confirmação: o ativo nasce ao salvar e o item
+   de controle nasce em seguida, já vinculado — tudo num toque.
+3) Erro "cofre_itens_controle_tipo_check" ao controlar uma CNH era do
+   banco: a CHECK de tipo só aceitava seguro/manutencao/tributo. As 3
+   CHECKs (itens, subtipos, modelos) foram unificadas em
+   seguro/manutencao/tributo/documento/suporte/servico — o que a
+   proposta do A.16 já previa ("quem entrar primeiro leva").
+------------------------------------------------------------------
+Versões anteriores (v1.153.0 … v1.153.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.153.0) — LEITURA DE DOCUMENTO VOLTANDO VAZIA
 (teste do Nicola: CRLV e CNH com o tipo certo no título, mas "Não
 classificado" no seletor e todos os campos em branco).
