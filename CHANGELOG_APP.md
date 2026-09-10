@@ -4,6 +4,33 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.159.0) — A.10: OCORRÊNCIAS NA FICHA DO CONTRATO +
+RENOVAR CONTRATO (contratos.js 1.1.0). Pedido do Nicola em 10/09.
+1) Card "Ocorrências" no Resumo da ficha do contrato — mesmo molde do box
+   da ficha do item de controle: abertas primeiro (vence/vencido), depois
+   as registradas (reajuste, renovação, alteração, assinatura, anexo…), até
+   8 linhas + "Ver tudo". Toque numa aberta → Dar baixa / Reagendar (o
+   banco espelha na despesa quando houver — triggers do A.10).
+2) "Renovar contrato" (contratos.estender) no ⋮ da ficha: novo fim, valor
+   (opcional, % calculada), vigência do valor, observação e documento (Cofre).
+   Regra 100% no banco: RPC fn_contrato_renovar estende o fim, muda o valor
+   com valor_anterior e cria a ocorrência 'renovacao' (receber_ate,
+   valor_a_receber, percentual, documento). Renovar a partir de uma
+   ocorrência de revisão/renovação aberta já dá baixa nela.
+Banco (já aplicado pelo conector, 10/09): historico_contrato virou VIEW sobre
+cofre_ocorrencias_controle (contrato_id) — histórico e reajuste continuam
+iguais; ocorrência↔despesa por trigger; 31 fantasmas apagados.
+Bridges novas: montarOcorrenciasContrato, abrirAcoesOcorrenciaContrato,
+salvarBaixaOcorrenciaContrato, salvarReagendarOcorrenciaContrato,
+renovarContrato, calcularPctRenovacaoPopup, calcularValorRenovacaoPopup,
+salvarRenovacaoContratoPopup.
+------------------------------------------------------------------
+Versões anteriores (v1.158.0 … v1.158.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.158.0) — 2 ACHADOS DO TESTE COM O CHA (Nicola).
 1) "IA indisponível agora" sem motivo: o log da Edge Function mostrou
    2 respostas 400 "storage_path inválido" sem nenhum erro real — sinal
