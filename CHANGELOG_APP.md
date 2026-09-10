@@ -4,6 +4,29 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.160.0) — A.10 NO ITEM DE CONTROLE: VALOR/PARCELAS +
+ENCERRAR × EXCLUIR (cofre-controles.js 1.20.0, cofre-api.js 1.21.0,
+cofre-app.js 1.30.0, ativos-markup.js 1.25.0). index.html só sobe versão.
+1) Formulários do item (novo/editar): Valor previsto · Parcelas · Dias entre
+   parcelas. Com valor, cada ocorrência prevista nasce com despesa prevista
+   no Financeiro (trigger); parcelas>1 = "IPVA em 3×". Ficha mostra o valor
+   previsto e o valor (real/previsto) em cada ocorrência.
+2) Menu Dados do item: "Encerrar item" (neutro — para de gerar alertas,
+   abertas e despesas previstas somem, histórico fica visível) e "Excluir
+   item de vez" (bad — DELETE; bloqueado se houver ocorrência tratada:
+   "Estorne-as antes de excluir"). Ficha de encerrado: status "Encerrado",
+   Reabrir / Excluir de vez, sem Editar.
+3) Card Itens de controle: chips Ativos / Encerrados (aparecem só quando há
+   encerrado) — mesmo molde do "Encerrados" de Contratos.
+Banco (conector, 10/09): FKs de histórico (SET NULL) e contatos (CASCADE)
+pra permitir a exclusão de verdade; guarda P0001 no trigger.
+------------------------------------------------------------------
+Versões anteriores (v1.159.0 … v1.159.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.159.0) — A.10: OCORRÊNCIAS NA FICHA DO CONTRATO +
 RENOVAR CONTRATO (contratos.js 1.1.0). Pedido do Nicola em 10/09.
 1) Card "Ocorrências" no Resumo da ficha do contrato — mesmo molde do box

@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.31.0 · 10/09/2026
+// Versão: 1.32.0 · 10/09/2026
+//
+// v1.32.0 — BUG REAL achado pelo Nicola (10/09): "Documentos arquivados"
+// (v1.31.0) tinha ido pro modal-menu-conta de ativos-markup.js — morto
+// desde a v1.115.0 do index.html, quando o menu de Conta virou sheet
+// dinâmico (abrirMenuConta()/abrirMenuTiposModelos()). Corrigido no lugar
+// certo: 'arquivados' novo no listener cofre:abrir-configuracao, chamado
+// por abrirConfiguracaoCofre('arquivados') a partir do menu real (index.html
+// v1.165.0). O botão velho fica em ativos-markup.js — mesmo padrão de outras
+// telas mortas do projeto (ex.: tab-imoveis), não escopo desta correção.
 //
 // v1.31.0 — Documentos arquivados: dispatch novo pras 5 ações da tela
 // (cofre-documentos.js 2.11.0 / ativos-markup.js 1.27.0).
@@ -255,7 +264,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.31.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -768,6 +777,7 @@ window.addEventListener('cofre:abrir-configuracao', async (ev) => {
     if (tela === 'categorias') docs.abrirConfiguracoes();
     else if (tela === 'subtipos') await controles.abrirSubtiposControle();
     else if (tela === 'modelos') await controles.abrirModelosControle();
+    else if (tela === 'arquivados') await docs.abrirDocumentosArquivados(); // v1.32.0 — corrige o menu real (abrirMenuConta/abrirMenuTiposModelos, index.html); o antigo modal-menu-conta (ativos-markup.js) está morto desde a v1.115.0, achado no relato do Nicola (10/09)
 });
 
 window.addEventListener('cofre:montar-home', () => docs.montarHome());
