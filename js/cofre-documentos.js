@@ -1,6 +1,24 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.1.0 · 09/09/2026
+// Versão: 2.2.0 · 09/09/2026
+//
+// v2.2.0 (ajuste de arquitetura de 09/09, itens 2, 3 e 12 + criar ativo):
+//   - QUALITY GATE antes de qualquer chamada de IA (cofre-imagem.js 1.0.0):
+//     foto desfocada, escura, com reflexo, cortada ou pequena demais NÃO sobe
+//     e NÃO gasta IA — mensagem pronta + botão "Tirar outra foto". Avisos
+//     (não bloqueiam) aparecem na tela de confirmação.
+//   - PRÉ-PROCESSAMENTO leve: recorte da área do documento, orientação e
+//     contraste suave. O ORIGINAL é o que vai pro Cofre; a versão tratada é
+//     enviada só pra leitura (sobe em <cliente>/tmp-ia/ e é apagada depois).
+//   - CRIAR ATIVO NO UPLOAD: quando o documento não casa com nenhum ativo
+//     (ou não há vínculo), a confirmação oferece "Criar <tipo> a partir deste
+//     documento" — nome, tipo e campos (placa, RENAVAM, chassi, CPF…) vêm do
+//     que a IA leu, pelo mesmo caminho de cofre-ativos.salvarAtivo.
+//   - Métricas de qualidade e tratamento gravadas na auditoria (item 12).
+// A decisão sobre OCR externo (Document AI) segue EM ABERTO — nada aqui
+// depende dela; este passo é o que dá pra fazer sem custo e sem vendor.
+//
+// Versão anterior: 2.1.0 · 09/09/2026
 //
 // v2.1.0 (Motor Documental fase 3, D1–D11) — a confirmação passa a falar a
 // língua do motor (cofre-extrair-documento 1.6 / extracao 1.7):
@@ -126,8 +144,9 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.2.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
+import { avaliarFoto, tratarImagem, resumoQualidade } from './cofre-imagem.js'; // v2.2.0
 import * as api from './cofre-api.js';
 import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-ui.js';
 import {
@@ -340,6 +359,34 @@ async function abrirPickerUpload(contexto, comIA) {
     refrescarIcones();
 }
 
+// v2.2.0 — foto reprovada no quality gate: mostra o que corrigir, sem gastar IA.
+function mostrarBloqueioQualidade(q) {
+    const el = document.getElementById('up-status');
+    el.style.color = 'var(--danger)';
+    el.innerHTML = q.bloqueios.map(b => `⚠️ ${escapeHtml(b.mensagem)}`).join('<br>') +
+        `<br><button type="button" data-action="up-tentar-outra-foto" style="margin-top:8px;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Tirar outra foto</button>` +
+        `<br><button type="button" data-action="up-enviar-assim-mesmo" style="margin-top:6px;background:transparent;color:var(--sage);border:none;font-size:11px;text-decoration:underline">Enviar assim mesmo</button>`;
+    up.arquivo = null;
+    ['up-arquivo', 'up-camera'].forEach(id => { const i = document.getElementById(id); if (i) i.value = ''; });
+    up.bloqueadoPorQualidade = q;
+}
+
+export function tentarOutraFotoUpload() {
+    document.getElementById('up-status').textContent = '';
+    up.bloqueadoPorQualidade = null;
+    escolherCameraUpload();
+}
+
+// Escape do gate: o cliente decide. Fica registrado na auditoria.
+export async function enviarAssimMesmoUpload() {
+    const q = up?.bloqueadoPorQualidade; if (!q) return;
+    const inputCam = document.getElementById('up-camera'), inputArq = document.getElementById('up-arquivo');
+    const f = q.arquivo || up.arquivoBloqueado; if (!f) { mostrarToast('Escolha a foto de novo.', 'aviso'); return; }
+    up.arquivo = f; up.qualidadeIgnorada = true; up.bloqueadoPorQualidade = null;
+    document.getElementById('up-status').textContent = '';
+    await processarArquivoUpload();
+}
+
 export function fecharUpload() { fecharModal('modal-upload'); }
 export function escolherArquivoUpload() { document.getElementById('up-arquivo').click(); }
 export function escolherCameraUpload() { document.getElementById('up-camera').click(); }
@@ -357,6 +404,18 @@ export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
 async function processarArquivoUpload() {
     const statusEl = document.getElementById('up-status');
     const f = up.arquivo;
+
+    // v2.2.0 — QUALITY GATE: antes do upload e antes da IA. Foto ruim volta
+    // na hora, com instrução do que corrigir; nada é enviado nem cobrado.
+    statusEl.style.color = 'var(--sage)';
+    statusEl.textContent = 'Conferindo a foto…';
+    up.qualidade = await avaliarFoto(f, { orientacaoEsperada: null });
+    if (up.qualidade?.aplicavel && !up.qualidade.ok && !up.qualidadeIgnorada) {
+        up.arquivoBloqueado = f;
+        mostrarBloqueioQualidade({ ...up.qualidade, arquivo: f });
+        return;
+    }
+
     statusEl.style.color = 'var(--sage)';
     statusEl.textContent = 'Enviando arquivo…';
 
@@ -376,14 +435,27 @@ async function processarArquivoUpload() {
     if (up.comIA && MIMES_IA.includes(f.type)) {
         statusEl.style.color = 'var(--brass, #b8860b)';
         statusEl.textContent = '✨ Lendo o documento com IA…';
+        // v2.2.0 — a leitura usa a versão tratada (recorte/orientação/contraste);
+        // o Cofre continua guardando o ORIGINAL, que já subiu acima.
+        let caminhoLeitura = up.storagePath, mimeLeitura = f.type;
         try {
-            const resp = await api.analisarArquivoComIA(up.storagePath, f.type, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null });
+            up.tratamento = await tratarImagem(f, { orientacaoEsperada: null });
+            if (up.tratamento?.blob) {
+                const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.jpg`;
+                await api.uploadArquivoDocumento(tmp, up.tratamento.blob);
+                up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'image/jpeg';
+            }
+        } catch (err) { console.warn('pré-processamento pulado:', err.message); }
+        try {
+            const resp = await api.analisarArquivoComIA(caminhoLeitura, mimeLeitura, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null });
             if (resp?.analisado && resp.resultado) { up.ia = resp.resultado; up.motor = resp.resultado.motor || null; }
             else mostrarToast(resp?.motivo || resp?.erro || 'A IA não conseguiu ler — preencha manualmente.', 'aviso');
             if (resp?.avisoLimite) mostrarToast(resp.avisoLimite, 'aviso');
         } catch (err) {
             console.warn('IA indisponível neste upload:', err.message);
             mostrarToast('IA indisponível agora — preencha manualmente.', 'aviso');
+        } finally {
+            if (up.storagePathTemp) { try { await api.removerArquivoDocumento(up.storagePathTemp); } catch (e) { /* melhor esforço */ } up.storagePathTemp = null; }
         }
     } else if (up.comIA) {
         mostrarToast('Word/Excel não passam pela IA — preencha os dados.', 'aviso');
@@ -414,6 +486,92 @@ function padroesDaCategoria(categoriaId) {
         controleTipo: g?.controle_tipo_padrao ?? c?.controle_tipo_padrao ?? null,
         controleSubtipoId: g?.controle_subtipo_padrao_id ?? c?.controle_subtipo_padrao_id ?? null,
     };
+}
+
+// v2.2.0 — o documento pode CRIAR o ativo. Tipo e campos vêm do catálogo +
+// do que a IA leu; a criação usa o mesmo caminho da tela de Ativos.
+const TIPO_ATIVO_SUGERIDO = {
+    cnh: 'vida_protecao', cin_rg: 'vida_protecao', passaporte: 'vida_protecao', visto: 'vida_protecao',
+    carteira_profissional: 'vida_protecao', carteira_maritimo: 'vida_protecao', carteira_aeronautica: 'vida_protecao',
+    seguro_vida: 'vida_protecao', seguro_viagem: 'vida_protecao',
+    crlv: 'veiculo', ipva_global: 'veiculo', licenciamento_veicular: 'veiculo', atpv_e: 'veiculo',
+    multa_transito: 'veiculo', seguro_veiculo: 'veiculo', financiamento_veiculo: 'veiculo', registro_blindagem: 'veiculo_blindado',
+    iptu_global: 'imovel', condominio: 'imovel', seguro_incendio: 'imovel', avcb_clcb: 'imovel',
+    contrato_locacao: 'imovel', itr: 'terreno', ccir_regularidade_cadastral: 'terreno', outorga_agua: 'terreno', licenca_ambiental_rural: 'terreno',
+    vacinacao_pet: 'animal', vermifugo_antiparasitario_pet: 'animal', consulta_checkup_pet: 'animal', seguro_plano_pet: 'animal',
+};
+
+function tipoAtivoDoDocumento() {
+    const s = subtipoSelecionado();
+    if (!s) return null;
+    if (up?.tipoAtivo) return up.tipoAtivo;
+    if (s.tipo_ativo_aplicavel?.length === 1) return s.tipo_ativo_aplicavel[0];
+    return TIPO_ATIVO_SUGERIDO[s.codigo] || (s.tipo_ativo_aplicavel?.[0] ?? null);
+}
+
+// Nome do ativo a partir do que foi lido (nunca do nome do arquivo).
+function nomeAtivoSugerido(tipo, dados) {
+    if (tipo === 'vida_protecao') return dados.titular || dados.nome || null;
+    if (tipo === 'veiculo' || tipo === 'veiculo_blindado') {
+        const base = dados.marca_modelo || [dados.marca, dados.modelo].filter(Boolean).join(' ') || 'Veículo';
+        return dados.placa ? `${base} — ${dados.placa}` : base;
+    }
+    if (tipo === 'imovel' || tipo === 'terreno') return dados.imovel_endereco || dados.endereco || dados.inscricao_imobiliaria || null;
+    if (tipo === 'animal') return dados.nome_animal || dados.nome || null;
+    return dados.titular || dados.proprietario || null;
+}
+
+// dados_especificos no formato que cofre-ativos espera (CAMPOS_POR_TIPO_ATIVO).
+function dadosEspecificosDoDocumento(tipo, dados) {
+    const d = {};
+    if (tipo === 'veiculo' || tipo === 'veiculo_blindado') {
+        if (dados.placa) d.placa = dados.placa;
+        if (dados.chassi) d.chassi = dados.chassi;
+        if (dados.renavam) d.renavam = dados.renavam;
+        if (dados.ano_fabricacao || dados.ano_modelo) d.ano = String(dados.ano_modelo || dados.ano_fabricacao);
+        if (dados.cor) d.cor = dados.cor;
+        const mm = String(dados.marca_modelo || '').split(/[\/ ]/).filter(Boolean);
+        if (mm.length) { d.marca = mm[0]; if (mm.length > 1) d.modelo = mm.slice(1).join(' '); }
+    }
+    return d;
+}
+
+export function abrirCriarAtivoDoDocumento() {
+    const g = id => document.getElementById(id);
+    const tipo = tipoAtivoDoDocumento();
+    if (!tipo) { mostrarToast('Escolha o tipo de documento primeiro.', 'aviso'); return; }
+    const dados = lerDadosEstruturados();
+    const nome = nomeAtivoSugerido(tipo, dados) || g('uc-nome').value || '';
+    up.novoAtivo = { tipo, nome, dados_especificos: dadosEspecificosDoDocumento(tipo, dados) };
+    g('uc-novo-ativo-tipo').textContent = rotuloTipoAtivo ? rotuloTipoAtivo(tipo) : tipo;
+    g('uc-novo-ativo-nome').value = nome;
+    g('uc-novo-ativo-bloco').classList.remove('hidden');
+    g('uc-criar-ativo-btn').classList.add('hidden');
+}
+
+export function cancelarCriarAtivoDoDocumento() {
+    up.novoAtivo = null;
+    document.getElementById('uc-novo-ativo-bloco').classList.add('hidden');
+    document.getElementById('uc-criar-ativo-btn').classList.remove('hidden');
+    aplicarSubtipoUpload(false);
+}
+
+// Cria o ativo pelo mesmo caminho da tela de Ativos (100% do titular, como o
+// formulário faz por padrão) e já deixa o documento vinculado a ele.
+async function criarAtivoDoDocumentoSeMarcado() {
+    if (!up.novoAtivo) return null;
+    const nome = document.getElementById('uc-novo-ativo-nome').value.trim();
+    if (!nome) throw new Error('informe o nome do ativo');
+    const novo = await api.criarAtivo({
+        cliente_id: estado.clienteId, tipo_ativo: up.novoAtivo.tipo, nome_exibicao: nome, status: 'ativo',
+        dados_especificos: up.novoAtivo.dados_especificos || {}, criado_por: estado.pessoa.id,
+    });
+    try { await api.salvarPropriedadeAtivo(novo.id, [{ tipo_proprietario: 'socio_interno', pessoa_id: estado.pessoa.id, nome_externo: '', percentual: 100 }]); }
+    catch (err) { console.warn('propriedade do ativo novo:', err.message); }
+    up.vinculo = { tipo: 'ativo', id: novo.id, nome };
+    up.tipoAtivo = up.novoAtivo.tipo;
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+    return novo;
 }
 
 function vinculoPermiteControle() {
@@ -486,6 +644,7 @@ function montarConfirmacaoUpload() {
 
     aplicarSubtipoUpload(true);
     renderizarAvisosUpload();
+    atualizarOfertaCriarAtivo();
 }
 
 // v2.1.0 — o select de categoria usa o gabarito global; as linhas do cliente
@@ -613,13 +772,26 @@ function renderizarAvisosUpload() {
     if (venc && venc < new Date().toISOString().slice(0, 10)) avisos.push({ cor: 'var(--danger)', texto: `Este documento está vencido desde ${formatarDataBR(venc)}. Ele será guardado como vencido e não vai gerar controle — subir mesmo assim?` });
     if (m?.titular?.divergente && m.titular.mensagem) avisos.push({ cor: 'var(--warning)', texto: m.titular.mensagem });
     (m?.validacoes || []).filter(v => !v.ok && v.codigo !== 'campo_obrigatorio_ausente').forEach(v => avisos.push({ cor: 'var(--warning)', texto: v.mensagem || v.codigo }));
+    (up?.qualidade?.avisos || []).forEach(a => avisos.push({ cor: 'var(--sage)', texto: a.mensagem })); // v2.2.0 — quality gate (não bloqueia)
     if (m && m.classificacao?.motivo && /mais de um|2 documentos|dois documentos/i.test(m.classificacao.motivo)) avisos.push({ cor: 'var(--warning)', texto: 'A foto parece ter mais de um documento — a IA leu o principal. Se quiser guardar os dois, envie separado.' });
     if (m?.vencimento?.derivada && !m?.titular?.divergente) avisos.push({ cor: 'var(--sage)', texto: 'O vencimento foi calculado pela regra do tipo (não estava legível). Confira antes de salvar.' });
     el.classList.toggle('hidden', !avisos.length);
     el.innerHTML = avisos.map(a => `<div class="text-xs rounded-xl px-3 py-2" style="background:#fff7ed;border:1px solid ${a.cor};color:#4a5852">${escapeHtml(a.texto)}</div>`).join('');
 }
 
-export function aoMudarTipoDocUpload() { aplicarSubtipoUpload(false); renderizarAvisosUpload(); refrescarIcones(); }
+export function aoMudarTipoDocUpload() { aplicarSubtipoUpload(false); renderizarAvisosUpload(); atualizarOfertaCriarAtivo(); refrescarIcones(); }
+
+// Oferece criar o ativo quando o documento não tem a que se vincular.
+function atualizarOfertaCriarAtivo() {
+    const g = id => document.getElementById(id);
+    const btn = g('uc-criar-ativo-btn'); if (!btn) return;
+    const semVinculo = !up?.vinculo || up.vinculo.tipo === 'triagem' || !up.vinculo.id;
+    const tipo = tipoAtivoDoDocumento();
+    const mostra = semVinculo && !!tipo && !up?.novoAtivo && !up?.contexto;
+    btn.classList.toggle('hidden', !mostra);
+    if (mostra) btn.textContent = `+ Criar ${(rotuloTipoAtivo ? rotuloTipoAtivo(tipo) : tipo).toLowerCase()} a partir deste documento`;
+    if (up?.novoAtivo) g('uc-novo-ativo-bloco').classList.remove('hidden');
+}
 export function aoMudarValidadeUpload() {
     document.getElementById('uc-ctl-data-fim').value = document.getElementById('uc-validade').value || '';
     aplicarSubtipoUpload(true); renderizarAvisosUpload();
@@ -735,9 +907,12 @@ async function buscarCandidatosUpload(tipo, termo) {
 export function escolherCandidatoUpload(tipo, id, nome, tipoAtivo) {
     up.vinculo = { tipo, id, nome };
     if (tipoAtivo) up.tipoAtivo = tipoAtivo;
+    up.novoAtivo = null;
+    document.getElementById('uc-novo-ativo-bloco')?.classList.add('hidden');
     document.getElementById('up-vinculo-candidatos').innerHTML = `<div class="raiz-bloco-interno text-xs flex items-center justify-between"><span>✅ ${escapeHtml(nome)}</span></div>`;
     document.getElementById('up-vinculo-busca').classList.add('hidden');
     aplicarPadroesCategoriaUpload();
+    atualizarOfertaCriarAtivo();
 }
 
 export async function cancelarConfirmacaoUpload() {
@@ -790,6 +965,13 @@ export async function salvarConfirmacaoUpload() {
     }
 
     const avisos = [];
+    // v2.2.0 — cria o ativo pedido na confirmação (antes do vínculo).
+    if (up.novoAtivo) {
+        try {
+            const novo = await criarAtivoDoDocumentoSeMarcado();
+            if (novo) mostrarToast(`Ativo "${novo.nome_exibicao}" criado ✅`);
+        } catch (err) { avisos.push('criar ativo: ' + err.message); up.novoAtivo = null; }
+    }
     if (up.vinculo && up.vinculo.tipo !== 'triagem') {
         try { await api.inserirVinculo(estado.clienteId, up.documentoId, up.vinculo.tipo, up.vinculo.id, true, estado.pessoa.id); }
         catch (err) { avisos.push('vínculo: ' + err.message); }
@@ -798,7 +980,8 @@ export async function salvarConfirmacaoUpload() {
     // Auditoria: o que a IA leu × o que o cliente confirmou (motor → RPC nova; legado → RPC antiga).
     if (up.ia) {
         const cat = catalogoCategoriasParaSelect().find(c => c.id === categoriaId) || estado.categorias.find(c => c.id === categoriaId);
-        const confirmado = { categoriaCodigo: cat?.codigo || null, categoriaId, nome, subtipo_codigo: dados.subtipo_codigo, dados_estruturados: dadosEstruturados, validade_em: validade, data_documento: dados.data_documento, manterArquivo: manter, controlar, vencido };
+        const confirmado = { categoriaCodigo: cat?.codigo || null, categoriaId, nome, subtipo_codigo: dados.subtipo_codigo, dados_estruturados: dadosEstruturados, validade_em: validade, data_documento: dados.data_documento, manterArquivo: manter, controlar, vencido,
+            qualidade: resumoQualidade(up.qualidade, up.tratamento), qualidade_ignorada: !!up.qualidadeIgnorada, ativo_criado: up.novoAtivo ? up.vinculo?.id ?? null : null };
         let igual;
         if (up.motor) {
             const mc = up.motor.campos || {};

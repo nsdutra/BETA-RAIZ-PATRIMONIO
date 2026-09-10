@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.22.0 · 09/09/2026
+// Versão: 1.23.0 · 09/09/2026
+//
+// v1.23.0 — criar ativo a partir do documento: botão #uc-criar-ativo-btn e
+// bloco #uc-novo-ativo-bloco (tipo sugerido + nome editável) no
+// #modal-confirmar-upload, logo abaixo do vínculo.
 //
 // v1.22.0 (Motor Documental fase 3) — #modal-confirmar-upload ganha: select
 // "Tipo de documento" (catálogo global; no caminho sem IA é ele que manda,
@@ -260,7 +264,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.22.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.23.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -1142,6 +1146,18 @@ export const ATIVOS_MARKUP = `<style>
                     </select>
                     <input id="up-vinculo-busca" type="text" class="hidden w-full border-2 border-slate-300 rounded-xl p-2 text-sm mb-1" placeholder="Digite para buscar…">
                     <div id="up-vinculo-candidatos" class="space-y-1"></div>
+                </div>
+            </div>
+
+            <div class="sm:col-span-2">
+                <button type="button" id="uc-criar-ativo-btn" data-action="uc-criar-ativo" class="hidden w-full text-left text-xs font-semibold rounded-xl border-2 border-dashed p-2.5" style="border-color:var(--pine);color:var(--pine)">+ Criar ativo a partir deste documento</button>
+                <div id="uc-novo-ativo-bloco" class="hidden raiz-bloco-interno">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-xs font-semibold">Novo <span id="uc-novo-ativo-tipo">ativo</span> — será criado ao salvar</p>
+                        <button type="button" data-action="uc-cancelar-criar-ativo" class="text-xs" style="color:var(--sage);text-decoration:underline">cancelar</button>
+                    </div>
+                    <input type="text" id="uc-novo-ativo-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="Nome do ativo">
+                    <p class="text-xs mt-1" style="color:var(--sage)">Os dados lidos (placa, chassi, RENAVAM…) já vão junto. Você ajusta depois na ficha.</p>
                 </div>
             </div>
 

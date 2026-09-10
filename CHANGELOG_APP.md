@@ -5,6 +5,32 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.145.0) — CORREÇÃO URGENTE: ⚙️ › LICENÇA QUEBRADA.
+comum-licenca.js v1.3.0 (v1.144.0, algumas horas atrás) fazia select
+direto de `funcionalidades.cota_tipo`; a migration de unificação com
+comercial.categoria_licenca (mesma tarde) derrubou essa coluna —
+`funcionalidades.cota_tipo` nunca foi pensado pra durar, era um desvio
+temporário até eu achar que categoria_licenca já existia e fazia esse
+papel. O select falhava (capturado por try/catch, não travava a tela),
+mas toda linha caía no pior fallback: nome técnico bruto em vez do
+nome comercial, e "no mês" em vez de "em uso" pra ativos/contratos/
+storage. comum-licenca.js v1.3.1: para de ler a coluna morta, deriva o
+tipo de cota a partir de `id_categoria` (que já vem de
+plano_funcionalidade) + `categoria_licenca.item` — mesma regra que a
+RPC usa. Testado nos 3 caminhos com o mesmo cliente (Rumo,
+cofre.ativos.criar): fn_funcionalidades_liberadas (app) 49/50 estoque
+avisar=true · fn_checar_funcionalidade (bot) 49/50 avisar=true ·
+fn_checar_limite (gate real de criação) permitido=true 49/50 — os três
+batendo entre si, idêntico ao resultado de antes da correção de hoje.
+Sem migration.
+------------------------------------------------------------------
+Versões anteriores (v1.144.0 … v1.144.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.144.0) — E.3.1: COTA VISÍVEL NO APP.
 Desde a migration e3_cota_tipo_e_uso_por_tipo_v1 (07/09) a RPC
 fn_funcionalidades_liberadas devolve `cota_tipo` e o `usado` certo

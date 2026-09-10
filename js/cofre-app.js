@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.27.0 · 09/09/2026
+// Versão: 1.28.0 · 09/09/2026
+//
+// v1.28.0 — quality gate (up-tentar-outra-foto, up-enviar-assim-mesmo) e
+// criar ativo a partir do documento (uc-criar-ativo, uc-cancelar-criar-ativo).
 //
 // v1.27.0 (Motor Documental fase 3) — despacho: uc-tipo-doc-mudou,
 // uc-validade-mudou (change) e uc-reler-tipo (click) do #modal-confirmar-upload.
@@ -242,7 +245,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.27.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.28.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -403,6 +406,10 @@ document.addEventListener('click', async (ev) => {
         case 'cancelar-confirmacao-upload': await docs.cancelarConfirmacaoUpload(); break;
         case 'salvar-confirmacao-upload': await docs.salvarConfirmacaoUpload(); break;
         case 'uc-reler-tipo': await docs.relerComoTipoUpload(); break; // v1.27.0
+        case 'up-tentar-outra-foto': docs.tentarOutraFotoUpload(); break; // v1.28.0
+        case 'up-enviar-assim-mesmo': await docs.enviarAssimMesmoUpload(); break; // v1.28.0
+        case 'uc-criar-ativo': docs.abrirCriarAtivoDoDocumento(); break; // v1.28.0
+        case 'uc-cancelar-criar-ativo': docs.cancelarCriarAtivoDoDocumento(); break; // v1.28.0
         case 'abrir-documento': await docs.abrirFichaDocumento(id); break;
         case 'alternar-editar-alerta': docs.alternarEditarAlerta(id); break;
         case 'confirmar-editar-alerta': await docs.confirmarEditarAlerta(id); break;
