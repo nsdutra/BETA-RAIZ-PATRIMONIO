@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.22.0 · 10/09/2026
+// Versão: 1.23.0 · 10/09/2026
+//
+// v1.23.0 — A.9 (transição imóveis → ativos, passo 1 de 5): publicação real
+// na vitrine. alternarPublicarVitrineFoto era um stub — só marcava a flag,
+// nunca copiava o arquivo nem sincronizava `imoveis.fotos` (a vitrine
+// pública, sem login, lê direto dessa coluna). Agora copia o arquivo do
+// bucket privado (cofre-documentos) pro público (imoveis-fotos, o mesmo já
+// usado pelas fotos antigas) e sincroniza a URL — só o que está marcado fica
+// exposto. Despublicar reverte os dois lados. Ganhou o parâmetro clienteId
+// (este arquivo não importa `estado` — quem chama já tem).
 //
 // v1.22.0 — Documentos arquivados (pendência: contagem do alerta incluía
 // arquivados, tela de "sem vínculo" nunca mostrava). listarDocumentosArquivados
@@ -192,7 +201,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.22.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.23.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -838,9 +847,49 @@ export async function inserirFotoAtivo(payload) {
     if (error) throw error;
 }
 
-export async function alternarPublicarVitrineFoto(fotoId, valor) {
-    const { error } = await dbAuth.from('cofre_ativo_fotos').update({ publicar_vitrine: valor }).eq('id', fotoId);
-    if (error) throw error;
+// v1.23.0 — A.9: publicação REAL na vitrine (era um stub — só marcava a flag
+// e mostrava "publicação real ainda não implementada", cofre-ativos.js já
+// documentava isso). Hoje a vitrine pública (link sem login) lê direto
+// `imoveis.fotos` — então publicar precisa: copiar o arquivo do bucket
+// privado (cofre-documentos) pro bucket público (imoveis-fotos, o mesmo já
+// usado pelas fotos antigas) e sincronizar a URL pública em `imoveis.fotos`.
+// Despublicar remove dos dois lados. Só funciona pra fotos de ativo do tipo
+// imóvel — outros tipos ainda não têm vitrine.
+export async function alternarPublicarVitrineFoto(fotoId, valor, clienteId) {
+    const { error: erroFlag } = await dbAuth.from('cofre_ativo_fotos').update({ publicar_vitrine: valor }).eq('id', fotoId);
+    if (erroFlag) throw erroFlag;
+
+    const { data: foto, error: erroFoto } = await dbAuth.from('cofre_ativo_fotos').select('*, cofre_ativos(entidade_origem_tipo, entidade_origem_id)').eq('id', fotoId).single();
+    if (erroFoto) throw erroFoto;
+    const imovelId = foto.cofre_ativos?.entidade_origem_tipo === 'imovel' ? foto.cofre_ativos.entidade_origem_id : null;
+    if (!imovelId) return; // foto de ativo sem vitrine (não é imóvel) — só a flag importa
+
+    const ext = (foto.nome_arquivo?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    const caminhoPublico = `${clienteId}/${imovelId}/${fotoId}.${ext}`;
+
+    const { data: imovelRow, error: erroImovel } = await dbAuth.from('imoveis').select('fotos').eq('id', imovelId).single();
+    if (erroImovel) throw erroImovel;
+    const fotosAtuais = Array.isArray(imovelRow.fotos) ? imovelRow.fotos : [];
+
+    if (valor) {
+        const { data: blob, error: erroDownload } = await dbAuth.storage.from(foto.bucket).download(foto.storage_path);
+        if (erroDownload) throw erroDownload;
+        const { error: erroUpload } = await dbAuth.storage.from('imoveis-fotos').upload(caminhoPublico, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+        if (erroUpload) throw erroUpload;
+        const urlPublica = dbAuth.storage.from('imoveis-fotos').getPublicUrl(caminhoPublico).data.publicUrl;
+        if (!fotosAtuais.includes(urlPublica)) {
+            const { error: erroSalvar } = await dbAuth.from('imoveis').update({ fotos: [...fotosAtuais, urlPublica] }).eq('id', imovelId);
+            if (erroSalvar) throw erroSalvar;
+        }
+    } else {
+        await dbAuth.storage.from('imoveis-fotos').remove([caminhoPublico]); // best-effort — não bloqueia se já não existia
+        const urlPublica = dbAuth.storage.from('imoveis-fotos').getPublicUrl(caminhoPublico).data.publicUrl;
+        const restantes = fotosAtuais.filter(u => u !== urlPublica);
+        if (restantes.length !== fotosAtuais.length) {
+            const { error: erroSalvar } = await dbAuth.from('imoveis').update({ fotos: restantes }).eq('id', imovelId);
+            if (erroSalvar) throw erroSalvar;
+        }
+    }
 }
 
 export async function excluirFotoAtivo(fotoId) {

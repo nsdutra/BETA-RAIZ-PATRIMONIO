@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.27.1 · 09/09/2026
+// Versão: 1.28.0 · 10/09/2026
+//
+// v1.28.0 — A.9: acompanha cofre-api.js 1.23.0 (publicação real na vitrine)
+// — alternarVitrineFoto passa clienteId e o toast deixou de avisar "ainda
+// não implementada".
 //
 // v1.27.1 (09/09/2026) — LISTA VAZIA QUE NÃO EXPLICA NADA (achado do
 // Nicola: "os ativos das empresas não estão carregando"). Causa: a RLS de
@@ -352,7 +356,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.27.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.28.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1920,10 +1924,13 @@ export function navegarLightboxFotoAtivo(direcao) {
     document.getElementById('lightbox-fotos-contador').textContent = `${lightboxFotosIndex + 1} / ${n}`;
 }
 
+// v1.28.0 — A.9: a publicação na vitrine agora é real (cofre-api.js 1.23.0
+// copia o arquivo pro bucket público e sincroniza imoveis.fotos) — toast
+// atualizado, tirado o aviso de "ainda não implementada".
 export async function alternarVitrineFoto(fotoId, valor) {
     try {
-        await api.alternarPublicarVitrineFoto(fotoId, valor);
-        mostrarToast(valor ? 'Foto selecionada para a Vitrine (publicação real ainda não implementada — ver HANDOFF).' : 'Foto removida da seleção.', 'aviso');
+        await api.alternarPublicarVitrineFoto(fotoId, valor, estado.clienteId);
+        mostrarToast(valor ? 'Foto publicada na vitrine.' : 'Foto removida da vitrine.');
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

@@ -6,9 +6,34 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.162.0
-   LINHAS: 16791
+   VERSÃO: Beta v1.163.0
+   LINHAS: 16802
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.163.0) — A.9 (transição imóveis → ativos, passo 1 de
+   5 combinados com o Nicola): cofre-api.js 1.23.0, cofre-ativos.js 1.28.0.
+   1) Publicação na vitrine agora é real — era um stub desde que a tela foi
+      construída (o toast avisava isso). Marcar "Publicar na vitrine" numa
+      foto do Ativo copia o arquivo do Cofre (bucket privado) pro bucket
+      público (imoveis-fotos) e sincroniza `imoveis.fotos`, que é o que a
+      vitrine pública (link sem login) lê direto. Só o que está marcado fica
+      exposto — antes, a vitrine expunha TODAS as fotos do cadastro do
+      imóvel. Despublicar reverte os dois lados.
+   2) Upload de foto direto no formulário de imóvel CORTADO — era o que
+      gravava base64 dentro de `imoveis.fotos` (1 imóvel chegou a 7 fotos
+      assim, ~750 KB na linha). Fotos agora só entram pela ficha do imóvel
+      (seção "Fotos", já existia, manda pro Cofre) ou pelo Ativo.
+   BUG FIX achado no meio do trabalho: `APP_VERSAO` (splash/Sobre/Dev)
+   estava travada em "Beta v1.158.0" desde essa versão — 4 entregas
+   desatualizada. Corrigido; `gerar_versoes.py` v1.10 agora trava essa
+   divergência também (testado de propósito).
+   Ainda falta (fica pra quando A.8 fragmentar imoveis.js): os 16 pontos que
+   ainda leem `imo.fotos` puro pra exibição interna (lightbox da lista,
+   miniatura do card) — hoje mostram só o que está publicado na vitrine, não
+   todas as fotos do Cofre. E 1 imóvel ainda tem 7 fotos em base64 dentro do
+   JSON — é dado de teste no tenant interno BETA-RAIZ-PATRIMONIO (endereço
+   "teste, 123, Sta Lúcia", empreendimento Canaã), não cliente real; migra
+   sozinho na primeira vez que alguém abrir a aba Fotos do Ativo dele, ou dá
+   pra simplesmente excluir esse imóvel de teste.
    NOVIDADES (Beta v1.162.0) — DOCUMENTOS ARQUIVADOS (cofre-documentos.js
    2.11.0, cofre-api.js 1.22.0, cofre-app.js 1.31.0, ativos-markup.js 1.27.0).
    Pedido do Nicola: ver, restaurar, vincular ou excluir de vez os documentos
@@ -77,23 +102,8 @@
    salvarBaixaOcorrenciaContrato, salvarReagendarOcorrenciaContrato,
    renovarContrato, calcularPctRenovacaoPopup, calcularValorRenovacaoPopup,
    salvarRenovacaoContratoPopup.
-   NOVIDADES (Beta v1.158.0) — 2 ACHADOS DO TESTE COM O CHA (Nicola).
-   1) "IA indisponível agora" sem motivo: o log da Edge Function mostrou
-      2 respostas 400 "storage_path inválido" sem nenhum erro real — sinal
-      de estado.clienteId vazio no instante do upload (corrida de
-      navegação). cofre-documentos.js 2.9.0: processarArquivoUpload aborta
-      ANTES de montar o caminho se a empresa não estiver carregada, com
-      mensagem clara e "Tentar de novo". cofre-extrair-documento 1.7 passa
-      a logar o motivo quando essa validação falhar.
-   2) BOT — CHA do Nicola achou "2 possíveis donos" e ofereceu criar um
-      ativo novo, mesmo já existindo "Nicola Santos Dutra" idêntico.
-      Causa no motor_documental 1.4: o casamento de nome batia só pelo
-      SOBRENOME (a família inteira usa "Santos Dutra"), então o Nicola
-      real e a Francisca Helena viravam os "2 candidatos" e a regra "só
-      auto-vincula com exatamente 1" nunca fechava. Agora exige o
-      primeiro nome batendo também; nome idêntico vira candidato forte.
    ------------------------------------------------------------------
-   Versões anteriores (v1.157.0 … v1.157.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.158.0 … v1.158.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -117,7 +127,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.1.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.22.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.31.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.1.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.31.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1778,25 +1788,21 @@
 
                     </div>
 
-                    <!-- Gestão de Múltiplas Fotos (Até 10) -->
+                    <!-- Gestão de Múltiplas Fotos — v1.163.0 (A.9): upload direto no
+                         formulário CORTADO (gravava base64 dentro de imoveis.fotos,
+                         inchando a linha — 1 imóvel chegou a ter 7 fotos assim). Fotos
+                         agora só entram pela ficha do imóvel (seção "Fotos", já manda
+                         pro Cofre via cofre_ativo_fotos, com miniatura e exclusão
+                         funcionando) ou pelo Ativo › Anexos › Fotos. Widget velho
+                         (processarMultiplasFotos, fotosCarregadasBase64) fica no
+                         código só até a fatia A.8 remover de vez; nada mais aponta
+                         pra ele daqui. -->
 
                     <div class="bg-slate-50 p-3 rounded-xl border-2 border-slate-300">
 
-                        <div class="flex items-center justify-between h-9">
+                        <label class="text-xs font-normal text-gray-600">Fotos do imóvel</label>
 
-                            <label class="text-xs font-normal text-gray-600 flex items-center h-9 m-0">Fotos do Imóvel (até 10)</label>
-
-                            <div class="flex gap-1.5">
-
-                                <input type="file" id="imo-file-picker" accept="image/*" multiple class="hidden" onchange="processarMultiplasFotos(this)">
-
-                                <button type="button" onclick="document.getElementById('imo-file-picker').click()" title="Anexar fotos" class="w-9 h-9 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-
-                            </div>
-
-                        </div>
-
-                        <div id="form-images-preview-container" class="grid grid-cols-5 gap-2 mt-2" style="grid-auto-rows: auto;"></div>
+                        <p class="text-[11px] text-gray-400 mt-1">Adicione fotos depois de salvar, na ficha do imóvel (seção "Fotos") ou pelo Ativo.</p>
 
                     </div>
 
@@ -3405,7 +3411,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.162.0";
+        const APP_VERSAO = "Beta v1.163.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10218,7 +10224,12 @@
 
                 valor: parseFloat(document.getElementById('imo-valor').value) || 0,
 
-                fotos: fotosCarregadasBase64.length > 0 ? fotosCarregadasBase64 : (id ? (imoveis.find(i => i.id === id).fotos || []) : []),
+                // v1.163.0 (A.9) — fotos não entram mais por aqui (widget removido
+                // do formulário, v1.163.0). Salvar sempre preserva o que já está em
+                // imoveis.fotos (hoje só URLs públicas sincronizadas pela vitrine —
+                // ver alternarPublicarVitrineFoto, cofre-api.js 1.23.0); nunca mais
+                // escreve fotosCarregadasBase64 aqui.
+                fotos: id ? (imoveis.find(i => i.id === id).fotos || []) : [],
 
                 divisao: divisao,
 
@@ -10272,7 +10283,7 @@
 
             fotosCarregadasBase64 = [];
 
-            document.getElementById('form-images-preview-container').innerHTML = '';
+            (document.getElementById('form-images-preview-container') || {}).innerHTML = ''; // v1.163.0 — container saiu do form (A.9); null-safe
 
             
 
@@ -10426,7 +10437,7 @@
 
             fotosCarregadasBase64 = [];
 
-            document.getElementById('form-images-preview-container').innerHTML = '';
+            (document.getElementById('form-images-preview-container') || {}).innerHTML = ''; // v1.163.0 — container saiu do form (A.9); null-safe
 
             renderSocioInputs();
 

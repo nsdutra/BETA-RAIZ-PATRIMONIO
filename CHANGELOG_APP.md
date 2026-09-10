@@ -4,6 +4,28 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.158.0) — 2 ACHADOS DO TESTE COM O CHA (Nicola).
+1) "IA indisponível agora" sem motivo: o log da Edge Function mostrou
+   2 respostas 400 "storage_path inválido" sem nenhum erro real — sinal
+   de estado.clienteId vazio no instante do upload (corrida de
+   navegação). cofre-documentos.js 2.9.0: processarArquivoUpload aborta
+   ANTES de montar o caminho se a empresa não estiver carregada, com
+   mensagem clara e "Tentar de novo". cofre-extrair-documento 1.7 passa
+   a logar o motivo quando essa validação falhar.
+2) BOT — CHA do Nicola achou "2 possíveis donos" e ofereceu criar um
+   ativo novo, mesmo já existindo "Nicola Santos Dutra" idêntico.
+   Causa no motor_documental 1.4: o casamento de nome batia só pelo
+   SOBRENOME (a família inteira usa "Santos Dutra"), então o Nicola
+   real e a Francisca Helena viravam os "2 candidatos" e a regra "só
+   auto-vincula com exatamente 1" nunca fechava. Agora exige o
+   primeiro nome batendo também; nome idêntico vira candidato forte.
+------------------------------------------------------------------
+Versões anteriores (v1.157.0 … v1.157.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 ------------------------------------------------------------------
 NOVIDADES (Beta v1.157.0) — 3 ACHADOS DO TESTE DA APÓLICE (Nicola).
 1) OCORRÊNCIA FANTASMA (cofre-controles.js 1.19.0): apólice 19/08/2026–
