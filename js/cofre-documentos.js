@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.4.0 · 10/09/2026
+// Versão: 2.5.0 · 10/09/2026
+//
+// v2.5.0 — 3 ajustes finos do teste do Nicola (10/09):
+//   - "Enviar assim mesmo" no quality gate vira botão secundário, no mesmo
+//     padrão de "Tirar outra foto" (era um link sublinhado miúdo);
+//   - criar ativo a partir do documento passa a permitir "Controlar
+//     vencimento" na MESMA confirmação: o ativo nasce ao salvar, e o item de
+//     controle nasce em seguida, vinculado a ele — tudo num toque;
+//   - o erro "cofre_itens_controle_tipo_check" ao controlar uma CNH era do
+//     banco (CHECK sem 'documento') — unificada por migration.
+//
+// Versão anterior: 2.4.0 · 10/09/2026
 //
 // v2.4.0 — LEITURA QUE FALHA NÃO PODE PARECER "documento não reconhecido"
 // (teste do Nicola: CRLV e CNH classificados certo, tela toda vazia em
@@ -186,7 +197,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.4.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.5.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -450,8 +461,10 @@ function mostrarBloqueioQualidade(q) {
     const el = document.getElementById('up-status');
     el.style.color = 'var(--danger)';
     el.innerHTML = q.bloqueios.map(b => `⚠️ ${escapeHtml(b.mensagem)}`).join('<br>') +
-        `<br><button type="button" data-action="up-tentar-outra-foto" style="margin-top:8px;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Tirar outra foto</button>` +
-        `<br><button type="button" data-action="up-enviar-assim-mesmo" style="margin-top:6px;background:transparent;color:var(--sage);border:none;font-size:11px;text-decoration:underline">Enviar assim mesmo</button>`;
+        `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">` +
+        `<button type="button" data-action="up-tentar-outra-foto" style="flex:1;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700">Tirar outra foto</button>` +
+        `<button type="button" data-action="up-enviar-assim-mesmo" style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700">Enviar assim mesmo</button>` +
+        `</div>`;
     up.arquivo = null;
     ['up-arquivo', 'up-camera'].forEach(id => { const i = document.getElementById(id); if (i) i.value = ''; });
     up.bloqueadoPorQualidade = q;
@@ -639,6 +652,9 @@ export function abrirCriarAtivoDoDocumento() {
     g('uc-novo-ativo-nome').value = nome;
     g('uc-novo-ativo-bloco').classList.remove('hidden');
     g('uc-criar-ativo-btn').classList.add('hidden');
+    up.tipoAtivo = tipo;
+    aplicarSubtipoUpload(false); // v2.5.0 — libera "Controlar vencimento" com o ativo novo
+    renderizarAvisosUpload();
 }
 
 export function cancelarCriarAtivoDoDocumento() {
@@ -667,6 +683,9 @@ async function criarAtivoDoDocumentoSeMarcado() {
 }
 
 function vinculoPermiteControle() {
+    // v2.5.0 — ativo novo pedido na confirmação conta como vínculo: ele nasce
+    // ao salvar, antes do item de controle.
+    if (up?.novoAtivo) return true;
     return !!up?.vinculo && (up.vinculo.tipo === 'ativo' || up.vinculo.tipo === 'contrato');
 }
 

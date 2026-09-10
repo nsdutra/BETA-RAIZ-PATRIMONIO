@@ -5,6 +5,42 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.150.0) — QUALITY GATE DA FOTO, PRÉ-TRATAMENTO E
+CRIAR ATIVO A PARTIR DO DOCUMENTO (itens 2, 3 e 12 do ajuste de
+arquitetura de 09/09; a decisão sobre OCR externo segue EM ABERTO).
+1) js/cofre-imagem.js 1.0.0 (ARQUIVO NOVO, entra no manifesto): mede
+   resolução, nitidez (variância do laplaciano), iluminação, reflexo,
+   enquadramento e orientação — tudo no próprio celular, sem custo e
+   sem chamada de IA. Foto desfocada/escura/com reflexo/cortada não
+   sobe: mensagem pronta ("Parte do documento ficou fora da foto.
+   Enquadre os quatro cantos e tente novamente.") + "Tirar outra foto",
+   com escape "Enviar assim mesmo" registrado na auditoria. Avisos que
+   não bloqueiam aparecem na tela de conferência.
+2) Pré-tratamento leve antes da leitura: recorte da área do documento,
+   orientação e contraste suave (nunca binariza — selo, foto e QR
+   precisam sobreviver). O ORIGINAL é o que fica no Cofre; a versão
+   tratada sobe em <cliente>/tmp-ia/ só pra IA ler e é apagada logo
+   depois.
+3) CRIAR ATIVO NO UPLOAD (cofre-documentos.js 2.2.0, ativos-markup.js
+   1.23.0, cofre-app.js 1.28.0): quando o documento não tem a que se
+   vincular, a confirmação oferece "Criar <tipo> a partir deste
+   documento" — tipo vem do catálogo, nome e campos (placa, chassi,
+   RENAVAM, marca/modelo, ano, cor) vêm do que a IA leu. Criação pelo
+   mesmo caminho da tela de Ativos (com propriedade 100% do titular),
+   e o documento já sai vinculado ao ativo novo.
+4) Métricas de qualidade e do tratamento gravadas na auditoria (item
+   12) — alimentam a tela de Assertividade da fase 4.
+NOTA: o extrator dos 20 subtipos de identidade/veículo/seguros passou
+de Haiku pra Sonnet no catálogo (banco, sem deploy) em 09/09 — reversível
+por UPDATE. Rodar o golden set antes de decidir OCR externo.
+------------------------------------------------------------------
+Versões anteriores (v1.149.0 … v1.149.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.149.0) — MOTOR DOCUMENTAL FASE 3: A CONFIRMAÇÃO DO
 UPLOAD FALA A LÍNGUA DO CATÁLOGO (decisões D1–D11).
 1) cofre-documentos.js 2.1.0 · ativos-markup.js 1.22.0 · cofre-api.js

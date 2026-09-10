@@ -6,9 +6,22 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.153.0
-   LINHAS: 16822
+   VERSÃO: Beta v1.154.0
+   LINHAS: 16806
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.154.0) — 3 AJUSTES FINOS DO TESTE (cofre-documentos.js
+   2.5.0) + BANCO.
+   1) "Enviar assim mesmo" do quality gate vira botão secundário, lado a
+      lado com "Tirar outra foto", mesmo tamanho (era link sublinhado).
+   2) Criar ativo a partir do documento passa a permitir "Controlar
+      vencimento" na MESMA confirmação: o ativo nasce ao salvar e o item
+      de controle nasce em seguida, já vinculado — tudo num toque.
+   3) Erro "cofre_itens_controle_tipo_check" ao controlar uma CNH era do
+      banco: a CHECK de tipo só aceitava seguro/manutencao/tributo. As 3
+      CHECKs (itens, subtipos, modelos) foram unificadas em
+      seguro/manutencao/tributo/documento/suporte/servico — o que a
+      proposta do A.16 já previa ("quem entrar primeiro leva").
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.153.0) — LEITURA DE DOCUMENTO VOLTANDO VAZIA
    (teste do Nicola: CRLV e CNH com o tipo certo no título, mas "Não
    classificado" no seletor e todos os campos em branco).
@@ -97,36 +110,7 @@
    (Home do Cofre, Visão Geral e Alertas liam cada um do seu jeito),
    resumoDocumentosEmTriagem() e abrirDocumentoEmTriagem().
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.150.0) — QUALITY GATE DA FOTO, PRÉ-TRATAMENTO E
-   CRIAR ATIVO A PARTIR DO DOCUMENTO (itens 2, 3 e 12 do ajuste de
-   arquitetura de 09/09; a decisão sobre OCR externo segue EM ABERTO).
-   1) js/cofre-imagem.js 1.0.0 (ARQUIVO NOVO, entra no manifesto): mede
-      resolução, nitidez (variância do laplaciano), iluminação, reflexo,
-      enquadramento e orientação — tudo no próprio celular, sem custo e
-      sem chamada de IA. Foto desfocada/escura/com reflexo/cortada não
-      sobe: mensagem pronta ("Parte do documento ficou fora da foto.
-      Enquadre os quatro cantos e tente novamente.") + "Tirar outra foto",
-      com escape "Enviar assim mesmo" registrado na auditoria. Avisos que
-      não bloqueiam aparecem na tela de conferência.
-   2) Pré-tratamento leve antes da leitura: recorte da área do documento,
-      orientação e contraste suave (nunca binariza — selo, foto e QR
-      precisam sobreviver). O ORIGINAL é o que fica no Cofre; a versão
-      tratada sobe em <cliente>/tmp-ia/ só pra IA ler e é apagada logo
-      depois.
-   3) CRIAR ATIVO NO UPLOAD (cofre-documentos.js 2.2.0, ativos-markup.js
-      1.23.0, cofre-app.js 1.28.0): quando o documento não tem a que se
-      vincular, a confirmação oferece "Criar <tipo> a partir deste
-      documento" — tipo vem do catálogo, nome e campos (placa, chassi,
-      RENAVAM, marca/modelo, ano, cor) vêm do que a IA leu. Criação pelo
-      mesmo caminho da tela de Ativos (com propriedade 100% do titular),
-      e o documento já sai vinculado ao ativo novo.
-   4) Métricas de qualidade e do tratamento gravadas na auditoria (item
-      12) — alimentam a tela de Assertividade da fase 4.
-   NOTA: o extrator dos 20 subtipos de identidade/veículo/seguros passou
-   de Haiku pra Sonnet no catálogo (banco, sem deploy) em 09/09 — reversível
-   por UPDATE. Rodar o golden set antes de decidir OCR externo.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.149.0 … v1.149.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.150.0 … v1.150.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -150,7 +134,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.4.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.5.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3438,7 +3422,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.153.0";
+        const APP_VERSAO = "Beta v1.154.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
