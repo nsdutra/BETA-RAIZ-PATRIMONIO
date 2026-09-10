@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# gerar_versoes.py v1.10 (10/09/2026) — trava DIVERGÊNCIA também pro
+# APP_VERSAO do index.html (achado na proposta do contador: ficou 4 entregas
+# desatualizado, 1.158.0 vs header 1.162.0, porque só o header e o export
+# const VERSAO dos módulos eram checados — essa linha à parte, não).
 # gerar_versoes.py v1.9 (09/09/2026) — ARQ ganha js/cofre-imagem.js (quality
 # gate/pré-tratamento da foto, app v1.150.0).
 # gerar_versoes.py v1.8 (08/09/2026) — ROLA o changelog do header do index.html
@@ -40,6 +44,15 @@ for f in ARQ:
         c = re.search(r"^export const (?:VERSAO|COFRE_VERSAO)\s*=\s*'([0-9.]+)'", s, re.M)
         if not c: print('SEM export const VERSAO:', f); sys.exit(1)
         if c.group(1) != m.group(1): print(f'DIVERGÊNCIA em {f}: header {m.group(1)} × VERSAO {c.group(1)} — corrija antes de entregar'); sys.exit(1)
+    if f == 'index.html':
+        # v1.10 — achado real (proposta do contador, 10/09/2026): APP_VERSAO
+        # ficou 4 entregas atrás do header (1.158.0 enquanto o header já
+        # dizia 1.162.0) — ninguém lembrou de editar essa linha à parte.
+        # Mesmo defeito que o comentário da própria linha já registrava ter
+        # acontecido antes (v1.37.1→v1.38.3). Trava igual à divergência de VERSAO.
+        c = re.search(r'const APP_VERSAO\s*=\s*"Beta v([0-9.]+)"', s)
+        if not c: print('SEM APP_VERSAO em index.html'); sys.exit(1)
+        if c.group(1) != m.group(1): print(f'DIVERGÊNCIA em index.html: header {m.group(1)} × APP_VERSAO {c.group(1)} — corrija antes de entregar'); sys.exit(1)
     out['arquivos'][f] = m.group(1)
     linhas = s.count('\n') + (0 if s.endswith('\n') else 1)
     if f.endswith('.html'):

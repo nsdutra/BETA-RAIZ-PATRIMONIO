@@ -1,6 +1,6 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-09-10T18:00:22",
+  "gerado_em": "2026-09-10T20:58:11",
   "arquivos": {
     "index.html": "1.162.0",
     "sw.js": "2.1",
@@ -28,7 +28,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 16809,
+      "linhas": 16791,
       "funcoes": 48
     },
     "sw.js": {
