@@ -5,6 +5,36 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.152.0) — ABA ATIVOS ABRIA A EMPRESA ERRADA
+(achado do Nicola: "Rumo e Santos Dutras continuam sem aparecer os
+ativos" — as duas TÊM ativos, 49 e 6).
+Causa: corrida na inicialização. O ativos-boot.js punha ?cliente_id=
+na URL, importava o módulo do Cofre e restaurava a URL no `finally`;
+como nav.bootstrap() roda assíncrono ao importar e não era aguardado,
+ele lia a URL JÁ restaurada e caía no fallback "primeira empresa da
+lista" — que, pra quem tem 12 vínculos, quase nunca é a empresa
+aberta na tela. Quando essa primeira empresa não tinha ativos, a lista
+vinha vazia; quando tinha, mostrava os ativos de OUTRA empresa.
+1) ativos-boot.js 1.3.0: a empresa passa a ir por
+   window.__raizClienteId (não depende de tempo) e a URL só é
+   restaurada depois de 'cofre:dados-carregados' (com teto de 10 s).
+   Se a empresa mudar sem recarregar a página, o módulo reinicia.
+2) cofre-navegacao.js 1.7.0: bootstrap() lê o global primeiro; a URL
+   continua valendo pro cofre.html standalone. Se a empresa pedida
+   não for acessível, diz isso em vez de abrir outra em silêncio.
+3) cofre-ativos.js 1.27.1: lista vazia deixa de mentir "Nenhum ativo
+   controlado ainda" quando o motivo é permissão — mostra o motivo.
+NOTA: licença expirada NÃO corta acesso hoje (a RLS olha perfil, não
+licença) — o padrão atual é seguir alertando. Suspensão/expiração
+será tratada na frente A.22.
+------------------------------------------------------------------
+Versões anteriores (v1.151.0 … v1.151.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.151.0) — DOCUMENTO PENDENTE DE VÍNCULO VOLTOU A TER
 FLUXO (achado do Nicola).
 O que estava quebrado: o card "N documentos em triagem" da Visão Geral

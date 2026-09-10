@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.155.0
-   LINHAS: 16794
+   VERSÃO: Beta v1.156.0
+   LINHAS: 16780
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.156.0) — A.24: PDF PROTEGIDO POR SENHA (cofre-imagem.js
+   1.1.0, cofre-documentos.js 2.7.0, cofre-app.js 1.29.0).
+   Antes de subir, o app detecta PDF com senha (pdf.js) e pede a senha no
+   próprio sheet. Com a senha, abre o PDF NO CELULAR, renderiza as páginas
+   e monta uma cópia sem senha (jsPDF) só pra leitura da IA — sobe em
+   tmp-ia/ e é apagada depois. O ORIGINAL protegido é o que fica no Cofre.
+   A senha não sai do aparelho nem é gravada. Senha errada → pede de novo;
+   "Enviar sem ler (só guardar)" sobe o original sem IA.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.155.0) — UPLOAD DE PDF FALHANDO NO ANDROID + "OUTRA
    FOTO" ABRINDO A CÂMERA (achados do Nicola).
    1) cofre-api.js 1.20.0: "Failed to fetch" ao subir PDF — o arquivo agora
@@ -75,30 +84,7 @@
    1.7.0, empresa por window.__raizClienteId) seguem no pacote — são
    corretas em si (a corrida existia), mas NÃO eram a causa desta falha.
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.152.0) — ABA ATIVOS ABRIA A EMPRESA ERRADA
-   (achado do Nicola: "Rumo e Santos Dutras continuam sem aparecer os
-   ativos" — as duas TÊM ativos, 49 e 6).
-   Causa: corrida na inicialização. O ativos-boot.js punha ?cliente_id=
-   na URL, importava o módulo do Cofre e restaurava a URL no `finally`;
-   como nav.bootstrap() roda assíncrono ao importar e não era aguardado,
-   ele lia a URL JÁ restaurada e caía no fallback "primeira empresa da
-   lista" — que, pra quem tem 12 vínculos, quase nunca é a empresa
-   aberta na tela. Quando essa primeira empresa não tinha ativos, a lista
-   vinha vazia; quando tinha, mostrava os ativos de OUTRA empresa.
-   1) ativos-boot.js 1.3.0: a empresa passa a ir por
-      window.__raizClienteId (não depende de tempo) e a URL só é
-      restaurada depois de 'cofre:dados-carregados' (com teto de 10 s).
-      Se a empresa mudar sem recarregar a página, o módulo reinicia.
-   2) cofre-navegacao.js 1.7.0: bootstrap() lê o global primeiro; a URL
-      continua valendo pro cofre.html standalone. Se a empresa pedida
-      não for acessível, diz isso em vez de abrir outra em silêncio.
-   3) cofre-ativos.js 1.27.1: lista vazia deixa de mentir "Nenhum ativo
-      controlado ainda" quando o motivo é permissão — mostra o motivo.
-   NOTA: licença expirada NÃO corta acesso hoje (a RLS olha perfil, não
-   licença) — o padrão atual é seguir alertando. Suspensão/expiração
-   será tratada na frente A.22.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.151.0 … v1.151.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.152.0 … v1.152.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -122,7 +108,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.20.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.6.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.20.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.29.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.7.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3410,7 +3396,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.155.0";
+        const APP_VERSAO = "Beta v1.156.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

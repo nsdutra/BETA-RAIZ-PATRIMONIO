@@ -1,6 +1,16 @@
 // ============================================================================
 // js/cofre-imagem.js — Qualidade e pré-tratamento da foto (antes da IA)
-// Raiz Patrimônio · Versão: 1.0.0 · 09/09/2026
+// Raiz Patrimônio · Versão: 1.1.0 · 10/09/2026
+//
+// v1.1.0 (A.24) — PDF PROTEGIDO POR SENHA. Tudo no celular, com o pdf.js e o
+// jsPDF que o app já carrega — a senha NUNCA sai do aparelho:
+//   detectarPdfProtegido(file) → true quando o pdf.js pede senha;
+//   destravarPdf(file, senha)  → abre com a senha, renderiza cada página em
+//                                JPEG e monta um PDF novo (jsPDF), sem senha,
+//                                pra IA ler. O ORIGINAL protegido é o que fica
+//                                no Cofre; o destravado sobe em tmp-ia/ e é
+//                                apagado depois (mesmo caminho da foto tratada).
+//   Senha errada → erro 'senha_incorreta' (a tela pede de novo).
 //
 // v1.0.0 — itens 2 e 3 do ajuste de arquitetura de 09/09 (quality gate +
 // pré-processamento leve), implementados NO CLIENTE: custo zero, latência
@@ -25,7 +35,7 @@
 // Só roda em image/*; PDF passa direto (texto nativo não precisa disso).
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: lido por Dev › Versões — manter igual ao header
 
 const LIMIARES = {
     larguraMinima: 900,           // abaixo disso, texto de documento não sobrevive
@@ -268,4 +278,61 @@ export function resumoQualidade(avaliacao, tratamento) {
         tratamento: tratamento?.aplicado ?? [],
         versao_qualidade: VERSAO,
     };
+}
+
+
+// ============================================================================
+// v1.1.0 — PDF protegido por senha (A.24)
+// ============================================================================
+function pdfjs() {
+    if (typeof pdfjsLib === 'undefined') throw new Error('Biblioteca de PDF não carregou — recarregue a página.');
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    return pdfjsLib;
+}
+
+// Devolve true quando o PDF exige senha pra abrir. PDF normal → false.
+export async function detectarPdfProtegido(file) {
+    if (!file || !/pdf/i.test(file.type || file.name || '')) return false;
+    try {
+        const data = await file.arrayBuffer();
+        const tarefa = pdfjs().getDocument({ data, password: '' });
+        // pdf.js chama onPassword quando precisa de senha — é o nosso sinal.
+        let precisa = false;
+        tarefa.onPassword = (_cb, motivo) => { precisa = true; tarefa.destroy(); };
+        try { const doc = await tarefa.promise; await doc.destroy(); } catch (e) { if (precisa) return true; if (/password/i.test(String(e?.name || e?.message))) return true; }
+        return precisa;
+    } catch { return false; }
+}
+
+// Abre com a senha e devolve { blob (PDF sem senha), paginas } — ou lança
+// 'senha_incorreta'. Renderiza em ~150 dpi: bom pra leitura, leve pra subir.
+export async function destravarPdf(file, senha) {
+    const lib = pdfjs();
+    const data = await file.arrayBuffer();
+    let doc;
+    try {
+        doc = await lib.getDocument({ data, password: senha }).promise;
+    } catch (e) {
+        if (/password/i.test(String(e?.name || e?.message))) throw new Error('senha_incorreta');
+        throw e;
+    }
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) throw new Error('Biblioteca de PDF (jsPDF) não carregou — recarregue a página.');
+    let out = null;
+    const paginas = Math.min(doc.numPages, 20); // documentos pessoais têm 1–5 páginas; 20 é folga
+    for (let i = 1; i <= paginas; i++) {
+        const page = await doc.getPage(i);
+        const vp1 = page.getViewport({ scale: 1 });
+        const escala = Math.min(2, 1600 / Math.max(vp1.width, vp1.height)); // ~150 dpi em A4
+        const vp = page.getViewport({ scale: escala });
+        const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+        const jpeg = c.toDataURL('image/jpeg', 0.85);
+        const larguraMm = vp1.width * 0.3528, alturaMm = vp1.height * 0.3528; // pt → mm
+        if (!out) out = new jsPDF({ unit: 'mm', format: [larguraMm, alturaMm], orientation: larguraMm > alturaMm ? 'landscape' : 'portrait' });
+        else out.addPage([larguraMm, alturaMm], larguraMm > alturaMm ? 'landscape' : 'portrait');
+        out.addImage(jpeg, 'JPEG', 0, 0, larguraMm, alturaMm);
+    }
+    await doc.destroy();
+    return { blob: out.output('blob'), paginas };
 }

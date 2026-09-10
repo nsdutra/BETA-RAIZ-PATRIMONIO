@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.6.0 · 10/09/2026
+// Versão: 2.7.0 · 10/09/2026
+//
+// v2.7.0 (A.24) — PDF PROTEGIDO POR SENHA. Antes de subir, o app detecta
+// (pdf.js) e pede a senha no próprio sheet; abre no celular e gera uma cópia
+// sem senha só pra leitura da IA (sobe em tmp-ia/, apagada depois). O
+// ORIGINAL protegido é o que fica no Cofre. A senha nunca sai do aparelho e
+// não é gravada. Senha errada → pede de novo; "Enviar sem ler" guarda o
+// original sem IA. cofre-imagem.js 1.1.0 faz a parte de PDF.
+//
+// Versão anterior: 2.6.0 · 10/09/2026
 //
 // v2.6.0 — 2 achados do Nicola (10/09):
 //   - "Tirar outra foto" abria a CÂMERA mesmo quando o arquivo tinha vindo
@@ -208,7 +217,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.6.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.7.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -223,6 +232,8 @@ async function imagemMod() {
     return _imagemMod;
 }
 const avaliarFoto = async (f, o) => (await imagemMod())?.avaliarFoto(f, o) ?? { ok: true, bloqueios: [], avisos: [], medidas: null, aplicavel: false };
+const detectarPdfProtegido = async (f) => { try { return !!(await (await imagemMod())?.detectarPdfProtegido(f)); } catch { return false; } };
+const destravarPdf = async (f, senha) => (await imagemMod())?.destravarPdf(f, senha);
 const tratarImagem = async (f, o) => (await imagemMod())?.tratarImagem(f, o) ?? null;
 const resumoQualidade = (a, t) => _imagemMod ? _imagemMod.resumoQualidade(a, t) : null;
 import * as api from './cofre-api.js';
@@ -481,6 +492,41 @@ function mostrarBloqueioQualidade(q) {
     up.bloqueadoPorQualidade = q;
 }
 
+// v2.7.0 (A.24) — pedido de senha do PDF, no próprio sheet de upload.
+function mostrarPedidoSenhaPdf(erro = false) {
+    const el = document.getElementById('up-status');
+    el.style.color = erro ? 'var(--danger)' : 'var(--sage)';
+    el.innerHTML = `${erro ? '⚠️ Senha incorreta — tente de novo.' : '🔒 Este PDF está protegido por senha. Informe a senha pra IA conseguir ler.'}<br>
+        <span style="font-size:11px;color:var(--sage)">A senha é usada só aqui no seu celular e não fica guardada. O arquivo original, ainda protegido, é o que vai pro Cofre.</span>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <input type="password" id="up-pdf-senha" inputmode="numeric" autocomplete="off" placeholder="Senha do PDF" style="flex:1;min-width:140px;border:2px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:14px">
+            <button type="button" data-action="up-pdf-destravar" style="background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Destravar e ler</button>
+        </div>
+        <button type="button" data-action="up-pdf-sem-leitura" style="margin-top:8px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Enviar sem ler (só guardar)</button>`;
+    setTimeout(() => document.getElementById('up-pdf-senha')?.focus(), 50);
+}
+
+export async function destravarPdfUpload() {
+    const senha = document.getElementById('up-pdf-senha')?.value ?? '';
+    if (!senha) { mostrarPedidoSenhaPdf(); return; }
+    const el = document.getElementById('up-status');
+    el.style.color = 'var(--sage)'; el.textContent = 'Abrindo o PDF…';
+    try {
+        const r = await destravarPdf(up.arquivo, senha);
+        if (!r?.blob) throw new Error('não consegui gerar a cópia de leitura');
+        up.pdfDestravado = r.blob;
+        await processarArquivoUpload();
+    } catch (err) {
+        if (String(err?.message) === 'senha_incorreta') { mostrarPedidoSenhaPdf(true); return; }
+        el.style.color = 'var(--danger)'; el.textContent = '❌ ' + err.message;
+    }
+}
+
+export async function enviarPdfSemLeituraUpload() {
+    up.pdfSemLeitura = true; up.comIA = false;
+    await processarArquivoUpload();
+}
+
 export function tentarOutraFotoUpload() {
     document.getElementById('up-status').textContent = '';
     up.bloqueadoPorQualidade = null;
@@ -506,6 +552,7 @@ export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
     const f = document.getElementById(inputId).files[0];
     if (!f || !up) return;
     up.origemInput = inputId; // v2.6.0 — pra "outra foto"/"outro arquivo" reabrir a origem certa
+    up.pdfDestravado = null; up.pdfSemLeitura = false; // v2.7.0 — arquivo novo, estado de senha zerado
     const statusEl = document.getElementById('up-status');
     if (f.size > LIMITE_ARQUIVO) { statusEl.textContent = '⚠️ Arquivo maior que 25MB.'; statusEl.style.color = 'var(--danger)'; document.getElementById(inputId).value = ''; return; }
     up.arquivo = f;
@@ -516,6 +563,15 @@ export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
 async function processarArquivoUpload() {
     const statusEl = document.getElementById('up-status');
     const f = up.arquivo;
+
+    // v2.7.0 (A.24) — PDF com senha: pede a senha antes de subir; a leitura
+    // usa uma cópia destravada gerada no celular. Sem senha, o cliente pode
+    // subir o original sem leitura.
+    if (up.comIA && /pdf/i.test(api.mimeDoArquivo(f)) && !up.pdfDestravado && !up.pdfSemLeitura) {
+        statusEl.style.color = 'var(--sage)';
+        statusEl.textContent = 'Conferindo o PDF…';
+        if (await detectarPdfProtegido(f)) { mostrarPedidoSenhaPdf(); return; }
+    }
 
     // v2.2.0 — QUALITY GATE: antes do upload e antes da IA. Foto ruim volta
     // na hora, com instrução do que corrigir; nada é enviado nem cobrado.
@@ -556,11 +612,18 @@ async function processarArquivoUpload() {
         // o Cofre continua guardando o ORIGINAL, que já subiu acima.
         let caminhoLeitura = up.storagePath, mimeLeitura = mimeArquivo;
         try {
-            up.tratamento = await tratarImagem(f, { orientacaoEsperada: null });
-            if (up.tratamento?.blob) {
-                const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.jpg`;
-                await api.uploadArquivoDocumento(tmp, up.tratamento.blob);
-                up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'image/jpeg';
+            if (up.pdfDestravado) {
+                // v2.7.0 — cópia sem senha, só pra leitura (o original protegido já subiu)
+                const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.pdf`;
+                await api.uploadArquivoDocumento(tmp, up.pdfDestravado);
+                up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'application/pdf';
+            } else {
+                up.tratamento = await tratarImagem(f, { orientacaoEsperada: null });
+                if (up.tratamento?.blob) {
+                    const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.jpg`;
+                    await api.uploadArquivoDocumento(tmp, up.tratamento.blob);
+                    up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'image/jpeg';
+                }
             }
         } catch (err) { console.warn('pré-processamento pulado:', err.message); }
         try {
