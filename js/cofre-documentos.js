@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.8.0 · 10/09/2026
+// Versão: 2.9.0 · 10/09/2026
+//
+// v2.9.0 — "IA indisponível agora" sem motivo (Nicola, 10/09): o log da
+// Edge Function mostrou 2 respostas 400 "storage_path inválido" sem
+// nenhum erro real — sinal de estado.clienteId vazio no instante do
+// upload (corrida de navegação). Guarda nova: processarArquivoUpload
+// aborta ANTES de montar o caminho se a empresa não estiver carregada,
+// com mensagem clara e "Tentar de novo" — em vez de subir com um caminho
+// quebrado e falhar depois, muda, lá na IA. cofre-extrair-documento 1.7
+// passou a logar o motivo quando isso acontece.
+//
+// Versão anterior: 2.8.0 · 10/09/2026
 //
 // v2.8.0 — 2 achados do teste da apólice (Nicola, 10/09):
 //   - VALORES em "Dados do documento" sem formatação (321635): agora todo
@@ -230,7 +241,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.8.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.9.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -576,6 +587,16 @@ export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
 async function processarArquivoUpload() {
     const statusEl = document.getElementById('up-status');
     const f = up.arquivo;
+
+    // v2.9.0 — sem empresa carregada, nem tenta: o caminho do Storage
+    // (<clienteId>/...) sairia quebrado e a IA falharia muda lá na frente.
+    if (!estado.clienteId) {
+        statusEl.style.color = 'var(--danger)';
+        statusEl.innerHTML = '⚠️ A empresa ainda está carregando — aguarde um instante.' +
+            `<br><button type="button" data-action="up-tentar-outra-foto" style="margin-top:8px;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Tentar de novo</button>`;
+        up.arquivo = null;
+        return;
+    }
 
     // v2.7.0 (A.24) — PDF com senha: pede a senha antes de subir; a leitura
     // usa uma cópia destravada gerada no celular. Sem senha, o cliente pode

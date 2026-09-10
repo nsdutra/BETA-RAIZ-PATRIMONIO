@@ -6,9 +6,25 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.157.0
-   LINHAS: 16780
+   VERSÃO: Beta v1.158.0
+   LINHAS: 16773
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.158.0) — 2 ACHADOS DO TESTE COM O CHA (Nicola).
+   1) "IA indisponível agora" sem motivo: o log da Edge Function mostrou
+      2 respostas 400 "storage_path inválido" sem nenhum erro real — sinal
+      de estado.clienteId vazio no instante do upload (corrida de
+      navegação). cofre-documentos.js 2.9.0: processarArquivoUpload aborta
+      ANTES de montar o caminho se a empresa não estiver carregada, com
+      mensagem clara e "Tentar de novo". cofre-extrair-documento 1.7 passa
+      a logar o motivo quando essa validação falhar.
+   2) BOT — CHA do Nicola achou "2 possíveis donos" e ofereceu criar um
+      ativo novo, mesmo já existindo "Nicola Santos Dutra" idêntico.
+      Causa no motor_documental 1.4: o casamento de nome batia só pelo
+      SOBRENOME (a família inteira usa "Santos Dutra"), então o Nicola
+      real e a Francisca Helena viravam os "2 candidatos" e a regra "só
+      auto-vincula com exatamente 1" nunca fechava. Agora exige o
+      primeiro nome batendo também; nome idêntico vira candidato forte.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.157.0) — 3 ACHADOS DO TESTE DA APÓLICE (Nicola).
    1) OCORRÊNCIA FANTASMA (cofre-controles.js 1.19.0): apólice 19/08/2026–
       19/08/2027 nascia com uma ocorrência "vencida há 22d" em 19/08/2026.
@@ -61,30 +77,7 @@
       seguro/manutencao/tributo/documento/suporte/servico — o que a
       proposta do A.16 já previa ("quem entrar primeiro leva").
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.153.0) — LEITURA DE DOCUMENTO VOLTANDO VAZIA
-   (teste do Nicola: CRLV e CNH com o tipo certo no título, mas "Não
-   classificado" no seletor e todos os campos em branco).
-   CAUSA RAIZ (Edge Function, motor_documental 1.1): a chamada enviava
-   `temperature: 0`, e o Sonnet 5 responde 400 "`temperature` is
-   deprecated for this model". Como o catálogo passou a usar sonnet como
-   extrator nos 20 subtipos críticos, TODA extração falhava — só a
-   classificação (haiku) sobrevivia. O motor então devolvia
-   subtipo_codigo='outro' com o nome do tipo real, e a tela mostrava um
-   documento "não reconhecido" que na verdade tinha sido reconhecido.
-   Corrigido lá: sem `temperature`, mais fallback de modelo (se o
-   configurado falhar, tenta o alternativo antes de desistir).
-   No app (cofre-documentos.js 2.4.0, ativos-markup.js 1.24.0):
-   1) Quando a extração falha mas a classificação acertou, o seletor já
-      abre no TIPO CLASSIFICADO e um aviso vermelho explica: "A IA
-      reconheceu que é <tipo>, mas não conseguiu ler os campos. Toque em
-      Reler para tentar de novo, ou preencha à mão."
-   2) "Criar ativo a partir deste documento" bloqueado quando nenhum
-      campo foi lido — era assim que nascia um ativo chamado "Veículo",
-      sem placa nem chassi.
-   3) Seletor de tipo + botão Reler estouravam a largura do sheet
-      (conteúdo cortado nas laterais): min-w-0 no flex e no select.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.152.1 … v1.152.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.153.0 … v1.153.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -108,7 +101,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.20.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.29.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.19.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.8.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.20.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.29.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.19.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.9.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3396,7 +3389,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.157.0";
+        const APP_VERSAO = "Beta v1.158.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
