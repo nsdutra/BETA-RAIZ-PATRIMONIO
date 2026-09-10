@@ -5,36 +5,6 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
-NOVIDADES (Beta v1.153.0) — LEITURA DE DOCUMENTO VOLTANDO VAZIA
-(teste do Nicola: CRLV e CNH com o tipo certo no título, mas "Não
-classificado" no seletor e todos os campos em branco).
-CAUSA RAIZ (Edge Function, motor_documental 1.1): a chamada enviava
-`temperature: 0`, e o Sonnet 5 responde 400 "`temperature` is
-deprecated for this model". Como o catálogo passou a usar sonnet como
-extrator nos 20 subtipos críticos, TODA extração falhava — só a
-classificação (haiku) sobrevivia. O motor então devolvia
-subtipo_codigo='outro' com o nome do tipo real, e a tela mostrava um
-documento "não reconhecido" que na verdade tinha sido reconhecido.
-Corrigido lá: sem `temperature`, mais fallback de modelo (se o
-configurado falhar, tenta o alternativo antes de desistir).
-No app (cofre-documentos.js 2.4.0, ativos-markup.js 1.24.0):
-1) Quando a extração falha mas a classificação acertou, o seletor já
-   abre no TIPO CLASSIFICADO e um aviso vermelho explica: "A IA
-   reconheceu que é <tipo>, mas não conseguiu ler os campos. Toque em
-   Reler para tentar de novo, ou preencha à mão."
-2) "Criar ativo a partir deste documento" bloqueado quando nenhum
-   campo foi lido — era assim que nascia um ativo chamado "Veículo",
-   sem placa nem chassi.
-3) Seletor de tipo + botão Reler estouravam a largura do sheet
-   (conteúdo cortado nas laterais): min-w-0 no flex e no select.
-------------------------------------------------------------------
-Versões anteriores (v1.152.1 … v1.152.1): CHANGELOG_APP.md, na raiz do
-repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
-das 5 versões mais recentes deste cabeçalho.
-
----
-
-------------------------------------------------------------------
 NOVIDADES (Beta v1.152.1) — ATIVOS SUMIRAM DEPOIS DA v1.149 (achado do
 Nicola). CAUSA REAL, e não era a da v1.152.0: na v1.150.0 o
 cofre-documentos.js passou a importar cofre-imagem.js de forma
