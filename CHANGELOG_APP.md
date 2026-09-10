@@ -5,6 +5,40 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.148.0) — A.11: AVISO DE LIMITE NO PADRÃO DAS
+COMUNICAÇÕES + INTERESSE AVISA O COMERCIAL NA HORA.
+1) js/comunicacoes/comunicacoes-ui.js 1.48.0 + comunicacoes-app.js
+   1.48.0: renderer do formato tipo='upsell'/formato='modal' que
+   existia no banco desde 29/08 e nunca aparecia (caía em
+   'formato_app_nao_implementado'). Mostra título, mensagem, as cotas
+   perto do teto (usado/limite + plano sugerido, de
+   fn_funcionalidades_liberadas) e os botões do conteúdo: "Quero
+   conhecer as opções" (registra 'confirmou_interesse' → trigger no
+   banco → Edge Function notificar-comercial 1.0 manda WhatsApp pro
+   +55 11 94746-1828 com empresa, pessoa, contato e o limite que motivou),
+   "Tirar dúvida no WhatsApp" (abre o wa.me comercial com texto pronto)
+   e "Agora não". Ganho colateral: as 4 mensagens de licença vencendo
+   (upsell_aviso_1..4) passam a aparecer.
+2) Este index: o toast verde "perto do limite" (v1.144.0) sai — o modal
+   substitui; ⚙️ › Licença continua com as barras. Evento
+   raiz:comunicacoes:processar passa nomeEmpresa (texto do wa.me).
+MIGRATION (já aplicada 09/09): a11_upsell_limite_regra_interesse_trigger_v1
+— tipo de regra funcionalidade_proximo_limite (contexto do servidor
+ganha funcionalidadesProximoLimite), evento confirmou_interesse,
+comunicação upsell_limite_v1 no plano de upsell (admin/master, qualquer
+cota perto do teto, 72h entre exibições, 3 no máximo), trigger pg_net.
+Edge Function NOVA: notificar-comercial 1.0 (zip raiz-entrega-ef-a11).
+Gestão: a regra nova aparece só-leitura em Comunicações (como as outras
+14); o plano sugerido é o select id_oferta_upsell que já existe em
+Parâmetros › Planos — hoje nenhuma linha está preenchida.
+------------------------------------------------------------------
+Versões anteriores (v1.147.0 … v1.147.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.147.0) — A.12/A.13: UPLOAD INTELIGENTE (a IA lê antes)
 + A.5.1: CONTATO DA EMPRESA. PROPOSTA_UPLOAD_INTELIGENTE_CATEGORIAS v1.0.
 1) Upload invertido (cofre-documentos.js 2.0.0, ativos-markup.js 1.21.0,

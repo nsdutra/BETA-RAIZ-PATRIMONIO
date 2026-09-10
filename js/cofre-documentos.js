@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.3.0 · 09/09/2026
+// Versão: 2.3.1 · 10/09/2026
+//
+// v2.3.1 — REGRESSÃO GRAVE (achado do Nicola: "antes, 1.149 apareciam, e agora
+// pararam"): o import estático de cofre-imagem.js (v2.2.0) derrubava o módulo
+// de Ativos inteiro quando esse arquivo não estava publicado — e ele não
+// estava, porque faltava a linha dele no $Manifesto do Deploy_Raiz.ps1. Um
+// recurso opcional (quality gate da foto) não pode quebrar a tela principal:
+// virou import dinâmico com degradação silenciosa. Diagnóstico anterior
+// ("empresa errada") estava errado — as correções de ativos-boot 1.3.0 e
+// cofre-navegacao 1.7.0 ficam de pé por serem corretas em si, mas NÃO eram
+// a causa desta falha.
+//
+// Versão anterior: 2.3.0 · 09/09/2026
 //
 // v2.3.0 — DOCUMENTO EM TRIAGEM VOLTOU A TER FLUXO (achado do Nicola):
 // o card "N documentos em triagem" da Visão Geral chamava só
@@ -161,9 +173,23 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
-import { avaliarFoto, tratarImagem, resumoQualidade } from './cofre-imagem.js'; // v2.2.0
+// v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
+// cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
+// falhou e derrubou o MÓDULO INTEIRO de Ativos — a aba ficou vazia. Nenhum
+// recurso opcional pode ter esse poder: agora carrega sob demanda e, se não
+// existir, o upload segue sem quality gate (degrada, não quebra).
+let _imagemMod = null, _imagemFalhou = false;
+async function imagemMod() {
+    if (_imagemMod || _imagemFalhou) return _imagemMod;
+    try { _imagemMod = await import('./cofre-imagem.js'); }
+    catch (err) { _imagemFalhou = true; console.warn('[cofre] quality gate indisponível (cofre-imagem.js não carregou):', err.message); }
+    return _imagemMod;
+}
+const avaliarFoto = async (f, o) => (await imagemMod())?.avaliarFoto(f, o) ?? { ok: true, bloqueios: [], avisos: [], medidas: null, aplicavel: false };
+const tratarImagem = async (f, o) => (await imagemMod())?.tratarImagem(f, o) ?? null;
+const resumoQualidade = (a, t) => _imagemMod ? _imagemMod.resumoQualidade(a, t) : null;
 import * as api from './cofre-api.js';
 import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-ui.js';
 import {
