@@ -1,6 +1,20 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.18.0 · 09/09/2026
+// Versão: 1.19.0 · 10/09/2026
+//
+// v1.19.0 — OCORRÊNCIA FANTASMA NO INÍCIO DA VIGÊNCIA (achado do Nicola:
+// apólice 19/08/2026–19/08/2027 nasceu com 2 ocorrências, uma "vencida há
+// 22d" em 19/08/2026). Causa: gerarOcorrenciasHorizonteRetroativo() anda
+// pra trás a partir do fim, ciclo a ciclo, até 120 dias atrás — e, num
+// item anual, fim − 1 ano cai exatamente no INÍCIO da vigência, que não é
+// um vencimento. Dois consertos:
+//   - o gerador retroativo nunca cria ocorrência em data ≤ data_base
+//     (o início da vigência não é ciclo vencido);
+//   - item nascido de documento (criarItemControleDeDocumento) cria SÓ a
+//     ocorrência do vencimento — o próximo ciclo é gerado pelo banco
+//     quando esse fechar, como em qualquer item recorrente.
+//
+// Versão anterior: 1.18.0 · 09/09/2026
 //
 // v1.18.0 (A.13) — criarItemControleDeDocumento(): item de controle criado a
 // partir da confirmação do upload (cofre-documentos.js v2.0.0), pelo MESMO
@@ -202,7 +216,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.18.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.19.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1278,8 +1292,10 @@ export async function criarItemControleDeDocumento(p) {
         origem: 'documento', criado_por: estado.pessoa.id,
     });
     await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
+    // v1.19.0 — documento: só o vencimento lido. Ciclos passados não existem
+    // (a apólice começou agora); o próximo é gerado pelo banco ao fechar este.
     const payloads = direcao === 'fim'
-        ? gerarOcorrenciasHorizonteRetroativo(item, dataFim, freqIntervalo, freqUnidade)
+        ? [{ cliente_id: estado.clienteId, item_controle_id: item.id, alerta_habilitado: !!item.alerta_ativo, status_execucao: 'aberto', competencia: primeiroDiaDoMes(dataFim), data_prevista_original: dataFim, data_prevista_atual: dataFim }]
         : gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade);
     await api.criarOcorrenciasControleBatch(payloads);
     await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: p.ativoId, contratoId: p.contratoId, itemId: item.id, ocorrenciasGeradas: payloads.length, origem: 'documento', documentoId: p.documentoId });
@@ -1357,7 +1373,7 @@ function gerarOcorrenciasHorizonteRetroativo(item, dataFim, freqIntervalo, freqU
     const payloads = [];
     let dataAtual = dataFim;
     let guarda = 0;
-    while (dataAtual >= limiteAntigoISO && guarda < MAX_OCORRENCIAS_GERADAS) {
+    while (dataAtual >= limiteAntigoISO && guarda < MAX_OCORRENCIAS_GERADAS && !(item.data_base && dataAtual <= item.data_base && dataAtual !== dataFim)) { // v1.19.0 — nunca antes do início da vigência
         payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataAtual), data_prevista_original: dataAtual, data_prevista_atual: dataAtual });
         dataAtual = dataAnterior(dataAtual, freqUnidade, freqIntervalo);
         guarda++;

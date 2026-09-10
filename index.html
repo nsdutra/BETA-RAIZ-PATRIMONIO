@@ -6,9 +6,27 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.156.0
+   VERSÃO: Beta v1.157.0
    LINHAS: 16780
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.157.0) — 3 ACHADOS DO TESTE DA APÓLICE (Nicola).
+   1) OCORRÊNCIA FANTASMA (cofre-controles.js 1.19.0): apólice 19/08/2026–
+      19/08/2027 nascia com uma ocorrência "vencida há 22d" em 19/08/2026.
+      O gerador retroativo andava pra trás a partir do fim, ciclo a ciclo,
+      e num item anual fim − 1 ano cai no INÍCIO da vigência. Agora: nunca
+      antes de data_base, e item nascido de documento cria só o vencimento
+      lido (o próximo ciclo o banco gera ao fechar este).
+   2) VALORES (cofre-documentos.js 2.8.0 + motor 1.3): "321635" virou
+      "3.216,35" — campo tipo valor formata em pt-BR com 2 casas e aceita
+      3.216,35 / 3216,35 / 3216.35 ao editar; vale pra todo tipo/subtipo do
+      catálogo. No motor, parseValorBR parou de apagar o ponto decimal.
+   3) PARTES (motor 1.3 + app): seguradora, corretor, locador, etc. lidos
+      nos campos viram partes com papel e aparecem marcados como contatos
+      (titular/segurado/proprietário não — é a própria pessoa da carteira).
+   Bot 2.52 + pdf-destravar 1.0 (A.24 no WhatsApp): PDF com senha → pergunta
+   a senha (ou 0 = guardar sem ler) → destrava por qpdf em WebAssembly numa
+   function isolada → lê pela cópia; o original protegido fica no Cofre.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.156.0) — A.24: PDF PROTEGIDO POR SENHA (cofre-imagem.js
    1.1.0, cofre-documentos.js 2.7.0, cofre-app.js 1.29.0).
    Antes de subir, o app detecta PDF com senha (pdf.js) e pede a senha no
@@ -66,25 +84,7 @@
    3) Seletor de tipo + botão Reler estouravam a largura do sheet
       (conteúdo cortado nas laterais): min-w-0 no flex e no select.
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.152.1) — ATIVOS SUMIRAM DEPOIS DA v1.149 (achado do
-   Nicola). CAUSA REAL, e não era a da v1.152.0: na v1.150.0 o
-   cofre-documentos.js passou a importar cofre-imagem.js de forma
-   ESTÁTICA; esse arquivo é novo e não subiu no deploy porque faltava a
-   linha dele no $Manifesto do Deploy_Raiz.ps1. Import quebrado derruba o
-   módulo inteiro — cofre-documentos → cofre-app → aba Ativos vazia, em
-   TODAS as empresas. (O mesmo buraco de manifesto deixou a tela do Motor
-   Documental em branco no Gestão.)
-   1) cofre-documentos.js 2.3.1: o quality gate passa a ser import
-      DINÂMICO com degradação silenciosa — se o arquivo não estiver
-      publicado, o upload funciona sem ele e a tela não cai. Nenhum
-      recurso opcional volta a ter poder de derrubar a tela principal.
-   2) Deploy_Raiz.ps1 v2.19 (entregue à parte): $Manifesto ganha
-      cofre-imagem.js, gerar_versoes.py e gestao-parametros-documental.js.
-   NOTA: as correções da v1.152.0 (ativos-boot 1.3.0 e cofre-navegacao
-   1.7.0, empresa por window.__raizClienteId) seguem no pacote — são
-   corretas em si (a corrida existia), mas NÃO eram a causa desta falha.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.152.0 … v1.152.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.152.1 … v1.152.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -108,7 +108,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.20.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.29.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.7.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.20.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.29.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.19.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.8.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.24.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3396,7 +3396,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.156.0";
+        const APP_VERSAO = "Beta v1.157.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

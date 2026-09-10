@@ -5,6 +5,31 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.152.1) — ATIVOS SUMIRAM DEPOIS DA v1.149 (achado do
+Nicola). CAUSA REAL, e não era a da v1.152.0: na v1.150.0 o
+cofre-documentos.js passou a importar cofre-imagem.js de forma
+ESTÁTICA; esse arquivo é novo e não subiu no deploy porque faltava a
+linha dele no $Manifesto do Deploy_Raiz.ps1. Import quebrado derruba o
+módulo inteiro — cofre-documentos → cofre-app → aba Ativos vazia, em
+TODAS as empresas. (O mesmo buraco de manifesto deixou a tela do Motor
+Documental em branco no Gestão.)
+1) cofre-documentos.js 2.3.1: o quality gate passa a ser import
+   DINÂMICO com degradação silenciosa — se o arquivo não estiver
+   publicado, o upload funciona sem ele e a tela não cai. Nenhum
+   recurso opcional volta a ter poder de derrubar a tela principal.
+2) Deploy_Raiz.ps1 v2.19 (entregue à parte): $Manifesto ganha
+   cofre-imagem.js, gerar_versoes.py e gestao-parametros-documental.js.
+NOTA: as correções da v1.152.0 (ativos-boot 1.3.0 e cofre-navegacao
+1.7.0, empresa por window.__raizClienteId) seguem no pacote — são
+corretas em si (a corrida existia), mas NÃO eram a causa desta falha.
+------------------------------------------------------------------
+Versões anteriores (v1.152.0 … v1.152.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.152.0) — ABA ATIVOS ABRIA A EMPRESA ERRADA
 (achado do Nicola: "Rumo e Santos Dutras continuam sem aparecer os
 ativos" — as duas TÊM ativos, 49 e 6).

@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.7.0 · 10/09/2026
+// Versão: 2.8.0 · 10/09/2026
+//
+// v2.8.0 — 2 achados do teste da apólice (Nicola, 10/09):
+//   - VALORES em "Dados do documento" sem formatação (321635): agora todo
+//     campo tipo 'valor' aparece como "3.216,35" (pt-BR, 2 casas) num input
+//     de texto com teclado decimal, e é convertido de volta pra número ao
+//     salvar — aceita "3.216,35", "3216,35" e "3216.35". Vale pra qualquer
+//     tipo/subtipo do catálogo (a formatação é pelo tipo do campo, não pelo
+//     documento). O motor 1.3 também parou de mandar "321635".
+//   - PARTES não viravam contatos: o motor 1.3 passa a derivar partes dos
+//     campos (seguradora, corretor, segurado…) e aqui elas vêm marcadas por
+//     padrão (papéis conhecidos), gravadas em cofre_contatos_acionamento.
+//
+// Versão anterior: 2.7.0 · 10/09/2026
 //
 // v2.7.0 (A.24) — PDF PROTEGIDO POR SENHA. Antes de subir, o app detecta
 // (pdf.js) e pede a senha no próprio sheet; abre no celular e gera uma cópia
@@ -217,7 +230,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.7.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.8.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -831,7 +844,8 @@ function montarConfirmacaoUpload() {
     up.contatosSugeridos = contatos;
     g('uc-contatos-bloco').classList.toggle('hidden', !contatos.length);
     g('uc-contatos-lista').innerHTML = contatos.map((c, i) => `
-        <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="checkbox" class="uc-contato" value="${i}" ${c.papel && c.papel !== 'outro' ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">${escapeHtml(c.papel || 'outro')}${c.documento ? ' · ' + escapeHtml(c.documento) : ''}</span></label>`).join('');
+        <label class="flex items-center gap-2 text-sm raiz-bloco-interno"><input type="checkbox" class="uc-contato" value="${i}" ${c.papel && !['outro', 'titular', 'segurado', 'proprietario'].includes(c.papel) ? 'checked' : ''}> ${escapeHtml(c.nome)} <span class="text-xs" style="color:var(--sage)">${escapeHtml(c.papel || 'outro')}${c.documento ? ' · ' + escapeHtml(c.documento) : ''}</span></label>`).join('');
+    // v2.8.0 — titular/segurado/proprietário é a própria pessoa da carteira, não um contato de acionamento; os demais (seguradora, corretor, administradora…) entram marcados.
 
     g('up-restrito').checked = false;
     g('up-restrito-wrapper').classList.toggle('hidden', !(window.podeUsar ? window.podeUsar('cofre.ver_restrito').ok : false));
@@ -937,19 +951,38 @@ function renderizarDadosCampos(s, m) {
         const conf = m?.confianca_campos?.[c.campo];
         const confira = m && ((conf != null && conf < LIMIAR_CONFIRA) || ruins.has(c.campo) || (c.obrigatorio && (val === '' || val == null)));
         const ev = m?.evidencias?.[c.campo] ? ` title="lido em: ${escapeHtml(String(m.evidencias[c.campo]).slice(0, 120))}"` : '';
-        const tipoInput = c.tipo === 'data' ? 'date' : (c.tipo === 'valor' ? 'number' : 'text');
-        const extra = c.tipo === 'valor' ? ' step="0.01"' : (c.tipo === 'cpf' || c.tipo === 'renavam' ? ' inputmode="numeric"' : '');
-        return `<div><label class="text-xs block mb-0.5" style="color:${confira ? 'var(--warning)' : 'var(--sage)'}">${escapeHtml(c.rotulo)}${confira ? ' · confira' : ''}${c.obrigatorio ? ' *' : ''}</label>
-            <input type="${tipoInput}"${extra} class="uc-dado w-full border-2 ${confira ? 'border-amber-400' : 'border-slate-300'} rounded-xl p-2 text-sm" data-campo="${c.campo}" data-tipo="${c.tipo}" value="${escapeHtml(val == null ? '' : String(val))}"${ev}></div>`;
+        const tipoInput = c.tipo === 'data' ? 'date' : 'text';
+        const extra = c.tipo === 'valor' ? ' inputmode="decimal" placeholder="0,00"' : (c.tipo === 'cpf' || c.tipo === 'renavam' ? ' inputmode="numeric"' : '');
+        const mostrado = c.tipo === 'valor' ? formatarValorBR(val) : (val == null ? '' : String(val)); // v2.8.0
+        return `<div><label class="text-xs block mb-0.5" style="color:${confira ? 'var(--warning)' : 'var(--sage)'}">${escapeHtml(c.rotulo)}${confira ? ' · confira' : ''}${c.obrigatorio ? ' *' : ''}${c.tipo === 'valor' ? ' <span style="color:var(--sage)">(R$)</span>' : ''}</label>
+            <input type="${tipoInput}"${extra} class="uc-dado w-full border-2 ${confira ? 'border-amber-400' : 'border-slate-300'} rounded-xl p-2 text-sm" data-campo="${c.campo}" data-tipo="${c.tipo}" value="${escapeHtml(mostrado)}"${ev}${c.tipo === 'valor' ? ' onblur="this.value=window.__rzFmtValor?window.__rzFmtValor(this.value):this.value"' : ''}></div>`;
     }).join('');
     bloco.classList.remove('hidden');
 }
+
+// v2.8.0 — valores no padrão brasileiro nos dois sentidos.
+function formatarValorBR(v) {
+    if (v === null || v === undefined || v === '') return '';
+    const n = typeof v === 'number' ? v : parseValorBR(String(v));
+    return n === null ? String(v) : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function parseValorBR(t) {
+    let x = String(t ?? '').replace(/[^\d,.\-]/g, '');
+    if (!x) return null;
+    const temVirgula = x.includes(','), temPonto = x.includes('.');
+    if (temVirgula && temPonto) x = x.replace(/\./g, '').replace(',', '.');
+    else if (temVirgula) x = x.replace(',', '.');
+    else if (temPonto && /\.\d{3}(\.|$)/.test(x) && !/\.\d{1,2}$/.test(x)) x = x.replace(/\./g, '');
+    const n = Number(x);
+    return Number.isFinite(n) ? Math.round(n * 100) / 100 : null;
+}
+window.__rzFmtValor = formatarValorBR;
 
 function lerDadosEstruturados() {
     const out = {};
     document.querySelectorAll('.uc-dado').forEach(el => {
         let v = el.value.trim(); if (v === '') { out[el.dataset.campo] = null; return; }
-        if (el.dataset.tipo === 'valor') v = Number(v);
+        if (el.dataset.tipo === 'valor') { v = parseValorBR(v); if (v === null) { out[el.dataset.campo] = null; return; } }
         if (['cpf', 'renavam', 'numero'].includes(el.dataset.tipo)) v = v.replace(/\D/g, '');
         if (['placa', 'chassi'].includes(el.dataset.tipo)) v = v.toUpperCase().replace(/[^A-Z0-9]/g, '');
         out[el.dataset.campo] = v;
