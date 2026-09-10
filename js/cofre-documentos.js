@@ -1,6 +1,23 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.2.0 · 09/09/2026
+// Versão: 2.3.0 · 09/09/2026
+//
+// v2.3.0 — DOCUMENTO EM TRIAGEM VOLTOU A TER FLUXO (achado do Nicola):
+// o card "N documentos em triagem" da Visão Geral chamava só
+// switchTab('tab-ativos') e caía numa tela em branco, e a tela de Alertas
+// não listava esses documentos. Agora:
+//   - listarDocumentosEmTriagem() — fonte única (documento sem vínculo),
+//     usada pela Visão Geral, pela tela de Alertas e pela Home do Cofre;
+//   - abrirDocumentoEmTriagem(id) — ponte App→Cofre no mesmo padrão de
+//     abrirItemControleComOrigemAlertas (cofre-controles 1.9.0): garante os
+//     dados carregados, abre a ficha do documento e já deixa o "Vincular
+//     agora" aberto, que é a ação que resolve a pendência;
+//   - abrirTriagemDocumentos() — quando há mais de um, abre a lista em
+//     Ativos › Documentos filtrada por "Em triagem" em vez de tela vazia.
+// Nenhuma regra nova: reaproveita classificarStatusVinculo e o formulário
+// "Vincular agora" que já existiam.
+//
+// Versão anterior: 2.2.0 · 09/09/2026
 //
 // v2.2.0 (ajuste de arquitetura de 09/09, itens 2, 3 e 12 + criar ativo):
 //   - QUALITY GATE antes de qualquer chamada de IA (cofre-imagem.js 1.0.0):
@@ -144,7 +161,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.2.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import { avaliarFoto, tratarImagem, resumoQualidade } from './cofre-imagem.js'; // v2.2.0
 import * as api from './cofre-api.js';
@@ -193,6 +210,8 @@ function ocorrenciaParaAlertaViewHome(oc) {
 // (são todos da mesma seção) — checagem única, sem repetir em cada
 // linha.
 export function montarHome() {
+    // A tela home do Cofre saiu do app (markup v1.5.0) — segue existindo só no
+    // cofre.html. Sem os elementos, não há o que montar.
     if (!document.getElementById('kpi-total-ativos')) return;
 
     document.getElementById('kpi-total-ativos').textContent = estado.ativos.length;
@@ -204,7 +223,7 @@ export function montarHome() {
     document.getElementById('kpi-vencendo').textContent = vencendo.length;
     document.getElementById('kpi-vencidos').textContent = vencidos.length;
 
-    const emTriagem = estado.documentos.filter(d => classificarStatusVinculo(d.cofre_documento_vinculos) === 'triagem');
+    const emTriagem = listarDocumentosEmTriagem();
     const wrapperTriagem = document.getElementById('home-triagem-wrapper');
     wrapperTriagem.classList.toggle('hidden', emTriagem.length === 0);
     document.getElementById('home-lista-triagem').innerHTML = emTriagem.slice(0, 5).map(docCardCompactoHtml).join('');
@@ -221,6 +240,34 @@ export function montarHome() {
         : `<p class="text-xs text-slate-500">Nada pedindo atenção agora. 🎉</p>`;
 
     refrescarIcones();
+}
+
+// v2.3.0 — fonte única de "documento pendente de vínculo". Home do Cofre,
+// Visão Geral e tela de Alertas leem daqui — antes cada uma refazia o filtro.
+export function listarDocumentosEmTriagem() {
+    return (estado.documentos || []).filter(d => classificarStatusVinculo(d.cofre_documento_vinculos) === 'triagem');
+}
+
+// v2.3.0 — ponte App→Cofre (mesmo padrão de abrirItemControleComOrigemAlertas):
+// abre a ficha do documento com o "Vincular agora" já aberto — que é a ação
+// que resolve a pendência. A tela "home" do Cofre, onde a lista de triagem
+// morava, foi apagada no corte do markup v1.5.0; o lugar dela agora é a tela
+// de Alertas (index.html), pela categoria "Documentos".
+export async function abrirDocumentoEmTriagem(documentoId) {
+    await abrirFichaDocumento(documentoId);
+    const wrapper = document.getElementById('fd-vincular-agora-wrapper');
+    if (wrapper && !wrapper.classList.contains('hidden')) abrirVincularAgora();
+}
+
+// v2.3.0 — dados prontos pro card de alerta (a tela de Alertas não conhece a
+// forma de cofre_documentos).
+export function resumoDocumentosEmTriagem() {
+    return listarDocumentosEmTriagem().map(d => ({
+        id: d.id,
+        titulo: d.nome_exibicao || d.nome_original || 'Documento sem nome',
+        subtitulo: 'Pendente de vínculo — toque para vincular',
+        criado_em: d.criado_em || null,
+    }));
 }
 
 // Revisão de design (25/08/2026, pedido explícito) — igualar 1:1 ao
@@ -1147,6 +1194,9 @@ export async function confirmarVincularAgora() {
         mostrarToast('Documento vinculado ✅');
         fecharVincularAgora();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+        // v2.3.0 — a tela de Alertas e o card da Visão Geral mostram os
+        // pendentes de vínculo: some da lista assim que resolve.
+        window.dispatchEvent(new CustomEvent('cofre:triagem-resolvida', { detail: { documentoId: docAtualId } }));
         await abrirFichaDocumento(docAtualId);
     } catch (err) {
         mostrarToast('Erro ao vincular: ' + err.message, 'erro');

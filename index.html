@@ -6,9 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.150.0
-   LINHAS: 16772
+   VERSÃO: Beta v1.151.0
+   LINHAS: 16841
    DATA: 09/09/2026
+   NOVIDADES (Beta v1.151.0) — DOCUMENTO PENDENTE DE VÍNCULO VOLTOU A TER
+   FLUXO (achado do Nicola).
+   O que estava quebrado: o card "N documentos em triagem" da Visão Geral
+   chamava switchTab('tab-ativos') e caía numa tela em branco — porque a
+   tela "home" do Cofre, onde a lista de triagem morava, foi apagada no
+   corte do markup v1.5.0 e ninguém reapontou o card. E a tela de Alertas
+   nunca listou esses documentos (só controles, contratos e sinais
+   tributários).
+   1) Tela de Alertas ganha a categoria "Documentos": cada documento
+      pendente vira um alerta próprio, com chip de filtro e contador.
+   2) O card da Visão Geral abre Alertas JÁ filtrado em Documentos
+      (abrirTabAlertas aceita categoria inicial) e mudou de texto:
+      "N pendentes de vínculo · Toque para vincular a um ativo, imóvel
+      ou à empresa".
+   3) Tocar no alerta abre a ficha do documento com o "Vincular agora"
+      já aberto (ponte abrirDocumentoPendente, mesmo padrão do
+      abrirAlertaItemControle) — o formulário que já existia e estava
+      inalcançável a partir do alerta.
+   4) Ao vincular, o evento cofre:triagem-resolvida atualiza a lista de
+      Alertas e a Visão Geral na hora — o item some sozinho.
+   cofre-documentos.js 2.3.0: listarDocumentosEmTriagem() vira fonte única
+   (Home do Cofre, Visão Geral e Alertas liam cada um do seu jeito),
+   resumoDocumentosEmTriagem() e abrirDocumentoEmTriagem().
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.150.0) — QUALITY GATE DA FOTO, PRÉ-TRATAMENTO E
    CRIAR ATIVO A PARTIR DO DOCUMENTO (itens 2, 3 e 12 do ajuste de
    arquitetura de 09/09; a decisão sobre OCR externo segue EM ABERTO).
@@ -121,21 +145,7 @@
    pro próximo pacote; bot 2.51 (as 2 perguntas) e Gestão 0.19.0 (tela de
    padrões) são as fases 4 e 5 da proposta.
    ------------------------------------------------------------------
-   NOVIDADES (Beta v1.146.0) — CHANGELOG SAI DO INDEX (R8, item "de leve").
-   O cabeçalho deste arquivo tinha 7.332 linhas de histórico (204 versões,
-   30% do arquivo) que o navegador baixava e todo leitor rolava. Agora ele
-   mantém só as 5 versões mais recentes; o resto vive em CHANGELOG_APP.md,
-   na raiz do repositório, mais recente primeiro. O hábito não muda: o
-   changelog continua sendo escrito AQUI, no header — é o gerar_versoes.py
-   v1.8 que, na entrega, rola automaticamente pro .md tudo além das 5
-   últimas (idempotente: não duplica se rodar de novo). Ele também passou a
-   manter a linha LINHAS: acima por conta própria (até a v1.145 era à mão).
-   Nenhuma linha de código mudou — só o comentário de cabeçalho. Decisão
-   do Nicola (07/09): "de leve, um item por vez" — este é o primeiro dos
-   itens restantes do diagnóstico do index. DEPLOY: CHANGELOG_APP.md é
-   arquivo NOVO no manifesto (Deploy_Raiz.ps1 v2.17), destino raiz do repo.
-   ------------------------------------------------------------------
-   Versões anteriores (v1.145.0 … v1.145.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.146.0 … v1.146.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -159,7 +169,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.2.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.23.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.0.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.19.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.28.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.27.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.18.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.3.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.0.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.6.2","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.2.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.23.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3447,7 +3457,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.150.0";
+        const APP_VERSAO = "Beta v1.151.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11599,9 +11609,12 @@
                 if (emTriagem.length > 0) {
                     itensFundidos.push(pontoAtencaoHtml({
                         icone: 'inbox', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
-                        titulo: `${emTriagem.length} documento${emTriagem.length > 1 ? 's' : ''} em triagem`,
-                        subtitulo: 'Sem contexto resolvido ainda — abrir Ativos',
-                        onclick: "switchTab('tab-ativos')"
+                        titulo: `${emTriagem.length} documento${emTriagem.length > 1 ? 's' : ''} pendente${emTriagem.length > 1 ? 's' : ''} de vínculo`,
+                        subtitulo: 'Toque para vincular a um ativo, imóvel ou à empresa',
+                        // v1.151.0 — antes ia pra switchTab('tab-ativos') e caía numa
+                        // tela em branco (a home do Cofre, onde a lista morava, foi
+                        // apagada no markup v1.5.0). Agora abre Alertas já no filtro.
+                        onclick: "abrirTabAlertas('documento')"
                     }));
                 }
             } else {
@@ -11742,6 +11755,21 @@
 
             mount.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Carregando...</p>';
 
+            // v1.151.0 — documentos pendentes de vínculo entram na tela de
+            // Alertas (a lista sumiu quando a home do Cofre foi apagada).
+            let docsTriagem = [];
+            try {
+                const docs = await import('./js/cofre-documentos.js');
+                const est = await import('./js/cofre-estado.js');
+                if (!est.estado.clienteId) {
+                    await new Promise(resolve => {
+                        window.addEventListener('cofre:dados-carregados', resolve, { once: true });
+                        setTimeout(resolve, 6000);
+                    });
+                }
+                docsTriagem = docs.resumoDocumentosEmTriagem();
+            } catch (err) { console.warn('[alertas] documentos em triagem:', err.message); }
+
             const [resControles, resTributario] = await Promise.allSettled([
                 dbAuth.from('cofre_ocorrencias_controle')
                     .select('*, cofre_itens_controle!inner(id, ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
@@ -11833,6 +11861,15 @@
                 houveErro = true;
             }
 
+            // ---- Documentos pendentes de vínculo ----
+            docsTriagem.forEach(d => {
+                itens.push({
+                    categoria: 'documento', dias: null,
+                    titulo: d.titulo, subtitulo: d.subtitulo,
+                    onClick: `abrirDocumentoPendente('${d.id}')`
+                });
+            });
+
             alertasTodos = itens;
             if (houveErro && itens.length === 0) {
                 mount.innerHTML = `<p class="text-xs text-red-500 text-center py-6">Não foi possível carregar os alertas agora.</p>`;
@@ -11852,6 +11889,7 @@
                 { chave: 'ativo', rotulo: 'Ativos' },
                 { chave: 'item_controle', rotulo: 'Itens de controle' },
                 { chave: 'contrato', rotulo: 'Contratos' },
+                { chave: 'documento', rotulo: 'Documentos' },
                 { chave: 'outro', rotulo: 'Outros' }
             ];
             // v1.108.0 — chips no catálogo (.rz-chip, 1 linha com rolagem,
@@ -11944,9 +11982,40 @@
         }
 
         let origemAoAbrirAlertas = null;
-        function abrirTabAlertas() {
+        function abrirTabAlertas(filtroInicial) {
             origemAoAbrirAlertas = document.querySelector('.tab-content:not(.hidden)')?.id || 'tab-geral';
+            // v1.151.0 — o card da Visão Geral pode pedir uma categoria já
+            // selecionada (ex.: 'documento' vindo de "pendentes de vínculo").
+            alertasFiltroAtual = filtroInicial || 'todos';
             switchTab('tab-alertas');
+        }
+
+        // v1.151.0 — quando o vínculo é resolvido na ficha, a lista de alertas
+        // e o card da Visão Geral se atualizam sozinhos.
+        window.addEventListener('cofre:triagem-resolvida', () => {
+            if (!document.getElementById('tab-alertas')?.classList.contains('hidden') && typeof montarAlertasPatrimonio === 'function') montarAlertasPatrimonio();
+            if (typeof renderVisaoGeral === 'function') renderVisaoGeral();
+        });
+
+        // v1.151.0 — ponte App→Cofre pro documento pendente: abre a ficha com o
+        // "Vincular agora" já aberto (mesmo padrão de abrirAlertaItemControle).
+        async function abrirDocumentoPendente(documentoId) {
+            switchTab('tab-ativos');
+            try {
+                const [{ estado }, docs] = await Promise.all([
+                    import('./js/cofre-estado.js'),
+                    import('./js/cofre-documentos.js')
+                ]);
+                if (!estado.clienteId) {
+                    await new Promise(resolve => {
+                        window.addEventListener('cofre:dados-carregados', resolve, { once: true });
+                        setTimeout(resolve, 8000);
+                    });
+                }
+                await docs.abrirDocumentoEmTriagem(documentoId);
+            } catch (err) {
+                mostrarToast('Não consegui abrir o documento: ' + (err.message || String(err)), 'danger');
+            }
         }
         function voltarDeAlertas() {
             const origem = origemAoAbrirAlertas || 'tab-geral';

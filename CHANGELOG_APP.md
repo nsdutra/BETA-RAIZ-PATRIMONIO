@@ -5,6 +5,27 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.146.0) — CHANGELOG SAI DO INDEX (R8, item "de leve").
+O cabeçalho deste arquivo tinha 7.332 linhas de histórico (204 versões,
+30% do arquivo) que o navegador baixava e todo leitor rolava. Agora ele
+mantém só as 5 versões mais recentes; o resto vive em CHANGELOG_APP.md,
+na raiz do repositório, mais recente primeiro. O hábito não muda: o
+changelog continua sendo escrito AQUI, no header — é o gerar_versoes.py
+v1.8 que, na entrega, rola automaticamente pro .md tudo além das 5
+últimas (idempotente: não duplica se rodar de novo). Ele também passou a
+manter a linha LINHAS: acima por conta própria (até a v1.145 era à mão).
+Nenhuma linha de código mudou — só o comentário de cabeçalho. Decisão
+do Nicola (07/09): "de leve, um item por vez" — este é o primeiro dos
+itens restantes do diagnóstico do index. DEPLOY: CHANGELOG_APP.md é
+arquivo NOVO no manifesto (Deploy_Raiz.ps1 v2.17), destino raiz do repo.
+------------------------------------------------------------------
+Versões anteriores (v1.145.0 … v1.145.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.145.0) — CORREÇÃO URGENTE: ⚙️ › LICENÇA QUEBRADA.
 comum-licenca.js v1.3.0 (v1.144.0, algumas horas atrás) fazia select
 direto de `funcionalidades.cota_tipo`; a migration de unificação com
