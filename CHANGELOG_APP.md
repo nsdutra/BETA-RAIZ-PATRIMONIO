@@ -5,6 +5,36 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 ---
 
 ------------------------------------------------------------------
+NOVIDADES (Beta v1.149.0) — MOTOR DOCUMENTAL FASE 3: A CONFIRMAÇÃO DO
+UPLOAD FALA A LÍNGUA DO CATÁLOGO (decisões D1–D11).
+1) cofre-documentos.js 2.1.0 · ativos-markup.js 1.22.0 · cofre-api.js
+   1.19.0 · cofre-app.js 1.27.0: a leitura por IA vai com tipo_ativo +
+   ativo em foco (cofre-extrair-documento 1.6) e a tela usa
+   resultado.motor: select "Tipo de documento" (catálogo global; com IA
+   vem preenchido e "Reler" reclassifica; sem IA é ele que manda —
+   categoria, guardar arquivo, controle e campos vêm do tipo); bloco
+   "Dados do documento" com os campos do tipo, editáveis, com evidência
+   e marca "confira" (confiança baixa ou validação falhou), gravados em
+   cofre_documentos.dados_estruturados; avisos: vencido, titular
+   divergente, validações, foto com 2 documentos, vencimento calculado;
+   "Vence em" único alimentando validade_em e o item de controle.
+2) D10: documento vencido não gera controle — a tela avisa e pergunta
+   se sobe mesmo assim; fica com chip "Vencido" e vencido_no_upload.
+3) Identificadores fortes gravados no ativo ao salvar (CPF na Vida;
+   placa/RENAVAM/chassi no veículo) — o próximo documento casa sozinho.
+4) Auditoria pela RPC nova (subtipo, campos, validações, execução da IA,
+   versão do prompt, canal) — base da tela de Assertividade (fase 4).
+DEPENDE de: Edge Functions da fase 2 no ar (extracao 1.7,
+cofre-extrair-documento 1.6, motor_documental 1.0). Sem elas a tela
+funciona no modo legado (sem dados estruturados).
+------------------------------------------------------------------
+Versões anteriores (v1.148.0 … v1.148.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+------------------------------------------------------------------
 NOVIDADES (Beta v1.148.0) — A.11: AVISO DE LIMITE NO PADRÃO DAS
 COMUNICAÇÕES + INTERESSE AVISA O COMERCIAL NA HORA.
 1) js/comunicacoes/comunicacoes-ui.js 1.48.0 + comunicacoes-app.js

@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.23.0 · 09/09/2026
+// Versão: 1.24.0 · 10/09/2026
+//
+// v1.24.0 — o seletor de tipo + botão Reler estouravam a largura do sheet
+// (print do Nicola: conteúdo cortado nas laterais). min-w-0 no flex e no
+// select; o sheet ganha overflow-x hidden.
 //
 // v1.23.0 — criar ativo a partir do documento: botão #uc-criar-ativo-btn e
 // bloco #uc-novo-ativo-bloco (tipo sugerido + nome editável) no
@@ -264,7 +268,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.23.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.24.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -1100,7 +1104,7 @@ export const ATIVOS_MARKUP = `<style>
 
 <!-- v1.21.0 (A.12/A.13) — tela única de confirmação: o que a IA leu (ou vazia, sem IA). Nada é aplicado sem o cliente salvar. -->
 <div id="modal-confirmar-upload" class="modal-overlay hidden">
-    <div class="modal-box p-5">
+    <div class="modal-box p-5" style="overflow-x:hidden">
         <div class="flex items-start justify-between mb-2">
             <div>
                 <h3 class="text-base font-bold flex items-center gap-2" id="uc-titulo">Confira o documento</h3>
@@ -1112,9 +1116,9 @@ export const ATIVOS_MARKUP = `<style>
         <div id="uc-avisos" class="hidden space-y-1 mb-3"></div>
         <div class="mb-3">
             <label class="text-xs font-semibold block mb-1">Tipo de documento</label>
-            <div class="flex gap-2">
-                <select id="uc-tipo-doc" class="flex-1 border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-tipo-doc-mudou"></select>
-                <button type="button" id="uc-reler" data-action="uc-reler-tipo" class="hidden px-3 rounded-xl text-xs font-semibold" style="background:var(--warning);color:#fff">Reler</button>
+            <div class="flex gap-2 items-stretch min-w-0">
+                <select id="uc-tipo-doc" class="flex-1 min-w-0 border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-tipo-doc-mudou"></select>
+                <button type="button" id="uc-reler" data-action="uc-reler-tipo" class="hidden flex-none px-3 rounded-xl text-xs font-semibold" style="background:var(--warning);color:#fff">Reler</button>
             </div>
         </div>
         <div id="uc-dados-bloco" class="hidden raiz-bloco-interno mb-3">

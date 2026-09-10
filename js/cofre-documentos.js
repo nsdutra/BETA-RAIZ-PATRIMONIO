@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.3.1 · 10/09/2026
+// Versão: 2.4.0 · 10/09/2026
+//
+// v2.4.0 — LEITURA QUE FALHA NÃO PODE PARECER "documento não reconhecido"
+// (teste do Nicola: CRLV e CNH classificados certo, tela toda vazia em
+// "Não classificado"). Quando o motor classifica mas a extração falha, ele
+// devolve subtipo_codigo='outro' com o nome do tipo real. Agora o app:
+//   - detecta esse caso (classificacao.codigo real × subtipo_codigo 'outro'),
+//     pré-seleciona o TIPO CLASSIFICADO no select e mostra um aviso vermelho
+//     "a IA reconheceu <tipo> mas não conseguiu ler os campos — toque em Reler";
+//   - não deixa criar ativo a partir de um documento sem nenhum campo lido.
+// A causa raiz estava na Edge Function (motor_documental 1.1: `temperature`
+// recusado pelo Sonnet 5 derrubava toda extração).
+//
+// Versão anterior: 2.3.1 · 10/09/2026
 //
 // v2.3.1 — REGRESSÃO GRAVE (achado do Nicola: "antes, 1.149 apareciam, e agora
 // pararam"): o import estático de cofre-imagem.js (v2.2.0) derrubava o módulo
@@ -173,7 +186,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.4.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -614,6 +627,12 @@ export function abrirCriarAtivoDoDocumento() {
     const tipo = tipoAtivoDoDocumento();
     if (!tipo) { mostrarToast('Escolha o tipo de documento primeiro.', 'aviso'); return; }
     const dados = lerDadosEstruturados();
+    // v2.4.0 — sem nenhum campo lido, o ativo nasceria vazio e sem nome útil
+    // (foi o que aconteceu no teste: um ativo chamado "Veículo", sem placa).
+    if (!Object.values(dados).some(v => v !== null && v !== '')) {
+        mostrarToast('Preencha ao menos um dado do documento antes de criar o ativo.', 'aviso');
+        return;
+    }
     const nome = nomeAtivoSugerido(tipo, dados) || g('uc-nome').value || '';
     up.novoAtivo = { tipo, nome, dados_especificos: dadosEspecificosDoDocumento(tipo, dados) };
     g('uc-novo-ativo-tipo').textContent = rotuloTipoAtivo ? rotuloTipoAtivo(tipo) : tipo;
@@ -667,8 +686,10 @@ function montarConfirmacaoUpload() {
     g('uc-categoria').innerHTML = Object.keys(grupos).sort().map(gr =>
         `<optgroup label="${escapeHtml(rotuloGrupo(gr))}">${grupos[gr].map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('')}</optgroup>`).join('');
 
-    // tipo de documento (catálogo)
-    montarSelectTipoDoc(m?.subtipo_codigo || null);
+    // tipo de documento (catálogo). v2.4.0 — se a extração falhou, o motor
+    // devolve 'outro' mas a classificação sabe o tipo: usa o classificado.
+    up.leituraFalhou = !!(m && m.subtipo_codigo === 'outro' && m.classificacao?.codigo && m.classificacao.codigo !== 'outro');
+    montarSelectTipoDoc((up.leituraFalhou ? m.classificacao.codigo : m?.subtipo_codigo) || null);
     g('uc-reler').classList.toggle('hidden', !r);
 
     g('uc-nome').value = m?.nome_sugerido || r?.nomeSugerido || up.arquivo.name.replace(/\.[^.]+$/, '');
@@ -848,6 +869,8 @@ function renderizarAvisosUpload() {
     (up?.qualidade?.avisos || []).forEach(a => avisos.push({ cor: 'var(--sage)', texto: a.mensagem })); // v2.2.0 — quality gate (não bloqueia)
     if (m && m.classificacao?.motivo && /mais de um|2 documentos|dois documentos/i.test(m.classificacao.motivo)) avisos.push({ cor: 'var(--warning)', texto: 'A foto parece ter mais de um documento — a IA leu o principal. Se quiser guardar os dois, envie separado.' });
     if (m?.vencimento?.derivada && !m?.titular?.divergente) avisos.push({ cor: 'var(--sage)', texto: 'O vencimento foi calculado pela regra do tipo (não estava legível). Confira antes de salvar.' });
+    // v2.4.0 — o caso mais confuso: reconheceu o documento, mas não leu nada.
+    if (up?.leituraFalhou) avisos.unshift({ cor: 'var(--danger)', texto: `A IA reconheceu que é ${subtipoSelecionado()?.nome || 'este tipo'}, mas não conseguiu ler os campos. Toque em "Reler" para tentar de novo, ou preencha à mão.` });
     el.classList.toggle('hidden', !avisos.length);
     el.innerHTML = avisos.map(a => `<div class="text-xs rounded-xl px-3 py-2" style="background:#fff7ed;border:1px solid ${a.cor};color:#4a5852">${escapeHtml(a.texto)}</div>`).join('');
 }
