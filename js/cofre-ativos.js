@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.27.0 · 06/09/2026
+// Versão: 1.27.1 · 09/09/2026
+//
+// v1.27.1 (09/09/2026) — LISTA VAZIA QUE NÃO EXPLICA NADA (achado do
+// Nicola: "os ativos das empresas não estão carregando"). Causa: a RLS de
+// cofre_ativos exige `cofre.ver`; com a licença expirada o SELECT volta
+// zero linhas e a tela mostrava "Nenhum ativo controlado ainda" — como se
+// a empresa não tivesse ativos, escondendo que o problema é licença.
+// Agora o estado vazio consulta podeUsar('cofre.ver') e, quando o motivo é
+// licença/plano, troca a mensagem e o botão por "Ver licença". Vale pra
+// qualquer empresa que expire (hoje 3 estão nesse estado).
 //
 // v1.27.0 — chips da ficha gateados por *.ver (CHIP_CODIGO): sem permissão
 // = cadeado e não troca. Antes o chip abria e mostrava os dados.
@@ -343,7 +352,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.27.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.27.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -482,9 +491,26 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         container.innerHTML = `<div class="space-y-2">${lista.map(ativoCardHtml).join('')}</div>`;
     }
 
-    document.getElementById('ativos-estado-vazio').classList.toggle('hidden', estado.ativos.length !== 0);
+    const vazio = document.getElementById('ativos-estado-vazio');
+    vazio.classList.toggle('hidden', estado.ativos.length !== 0);
     container.classList.toggle('hidden', estado.ativos.length === 0);
+    if (estado.ativos.length === 0) explicarListaVazia(vazio);
     renderChipsAtivos();
+    refrescarIcones();
+}
+
+// Lista vazia: distingue "não tem ativo" de "não pode ver" (licença/plano).
+function explicarListaVazia(el) {
+    const gate = window.podeUsar ? window.podeUsar('cofre.ver') : { ok: true };
+    if (gate.ok) return; // estado vazio normal, já está no markup
+    const porLicenca = ['sem_licenca', 'licenca_expirada', 'suspenso'].includes(gate.motivo);
+    el.innerHTML = `
+        <i data-lucide="${porLicenca ? 'lock' : 'eye-off'}" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+        <p class="text-sm font-semibold">${porLicenca ? 'Licença expirada' : 'Sem acesso aos ativos'}</p>
+        <p class="text-xs mb-3" style="color:var(--sage)">${porLicenca
+            ? 'Os ativos desta empresa continuam guardados — voltam assim que a licença for renovada.'
+            : 'Seu perfil não tem permissão para ver os ativos desta empresa.'}</p>
+        ${porLicenca ? `<button data-action="ir-licenca" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">Ver licença</button>` : ''}`;
     refrescarIcones();
 }
 
