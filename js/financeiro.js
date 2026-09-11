@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.0.0 · 06/09/2026
+// Versão: 1.1.0 · 10/09/2026
+//
+// v1.1.0 — módulo Apoio ao Contador, item 6 do plano (10/09/2026):
+// gerarMensalidades() ("Gerar Mês") passa a chamar fn_gerar_mensalidades_
+// competencia (banco) em vez da função JS local — fonte única a partir de
+// agora, compartilhada com o disparo automático de contratos.js e o cron.
+// saveAll() não entra mais nesta rota; recarrega mensalidades direto do
+// banco depois da RPC.
 //
 // R8 — FRAGMENTAÇÃO, FATIA 1 (A.8, roteiro v4.7). Primeiro corte do
 // Financeiro pra fora do index.html (Beta v1.138.0). Decisão do Nicola
@@ -65,7 +72,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -743,7 +750,14 @@ export function montarAbaFinanceiro(tabId) {
             if (recebimentoDetalheAtualId === menId) setTimeout(() => abrirRecebimentoDetalhe(menId), 50);
         }
 
-        export function gerarMensalidades() {
+        // v1.X — A.10/módulo contador: "Gerar Mês" agora chama a RPC
+        // fn_gerar_mensalidades_competencia (banco) em vez da função JS local
+        // gerarMensalidadesParaCompetencia — que fica só como referência
+        // histórica, não é mais chamada daqui. saveAll() não entra mais nesta
+        // rota: a RPC já grava direto, só recarrega mensalidades do banco
+        // (mesmo mapeamento de sempre, carregarMensalidadesSupabase) e
+        // redesenha.
+        export async function gerarMensalidades() {
 
             const selectRef = document.getElementById('men-referencia');
 
@@ -757,17 +771,37 @@ export function montarAbaFinanceiro(tabId) {
 
             }
 
-            gerarMensalidadesParaCompetencia(ref);
+            const [mes, ano] = ref.split('/').map(Number);
+            const referenciaISO = `${ano}-${String(mes).padStart(2, '0')}-01`;
 
-            const idxAtual = arrayCompetencias.indexOf(ref);
+            mostrarCarregamentoGlobal('Gerando mês...');
+            try {
+                const { data, error } = await dbAuth.rpc('fn_gerar_mensalidades_competencia', {
+                    p_cliente_id: CLIENTE_ID_SUPABASE, p_referencia: referenciaISO,
+                });
+                if (error) throw error;
 
-            if(idxAtual !== -1 && idxAtual + 1 < arrayCompetencias.length) {
+                mensalidades = await carregarMensalidadesSupabase();
 
-                selectRef.value = arrayCompetencias[idxAtual + 1];
+                const idxAtual = arrayCompetencias.indexOf(ref);
 
+                if(idxAtual !== -1 && idxAtual + 1 < arrayCompetencias.length) {
+
+                    selectRef.value = arrayCompetencias[idxAtual + 1];
+
+                }
+
+                registrarLog('mensal.gerar', { referencia: ref, geradas: (data || []).length });
+                esconderCarregamentoGlobal();
+                mostrarToast(`${(data || []).length} mensalidade(s) gerada(s) para ${ref}.`, 'success');
+                renderMensalidades();
+                renderInadimplencia();
+                renderRelatorios();
+                renderSociosDistribricao();
+            } catch (err) {
+                esconderCarregamentoGlobal();
+                alert('⚠️ Falha ao gerar mensalidades: ' + (err.message || String(err)));
             }
-
-            saveAll(true, `Mensalidades geradas para ${ref}`, ['mensalidades']);
 
         }
 

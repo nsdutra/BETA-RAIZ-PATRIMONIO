@@ -4,6 +4,52 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.162.0) — DOCUMENTOS ARQUIVADOS (cofre-documentos.js
+2.11.0, cofre-api.js 1.22.0, cofre-app.js 1.31.0, ativos-markup.js 1.27.0).
+Pedido do Nicola: ver, restaurar, vincular ou excluir de vez os documentos
+excluídos (status='excluido' — reversível até hoje, mas sem tela nenhuma
+pra chegar neles).
+1) Menu Conta › Cofre › "Documentos arquivados": lista, com Restaurar
+   (volta pra ativo), Vincular agora (só quando sem vínculo — reabre a
+   ficha no mesmo fluxo de "em triagem" que já existe) e Excluir de vez
+   (apaga o arquivo do Storage quando ainda estava guardado + a linha,
+   DELETE físico de verdade, com confirmação e log antes de apagar).
+   RLS já liberava esse status pra quem tem cofre.editar/cofre.excluir —
+   nenhuma migration precisou.
+2) BUG FIX achado no meio do trabalho: o card "N documento(s) pendente(s)
+   de vínculo" da Visão Geral contava TODOS os documentos sem vínculo,
+   inclusive arquivados — por isso o número nunca batia com a lista (que
+   já filtrava certo). Query corrigida com .eq('status','ativo').
+------------------------------------------------------------------
+Versões anteriores (v1.161.0 … v1.161.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.161.0) — A.10: VALOR/PARCELAS NO UPLOAD COM IA
+(cofre-documentos.js 2.10.0, cofre-controles.js 1.20.1, ativos-markup.js
+1.26.0). Pedido do Nicola: "muitas vezes já aparece se o valor foi
+parcelado — aproveite pra extrair a configuração correta".
+Bloco "Controlar vencimento" do upload ganha Valor previsto/Parcelas/Dias
+entre parcelas, sugeridos pela IA a partir do que já foi extraído pro
+subtipo (sem nome de campo fixo — funciona pra qualquer subtipo do
+catálogo): total por "valor"/"premio_total"/"valor_financiado" (nessa
+ordem); parcelas por "parcelas" (só se >1); intervalo calculado de
+"primeira_parcela"/"ultima_parcela" quando o subtipo os tem (ex.
+financiamento_veiculo), senão 30 dias — tudo editável antes de salvar.
+BUG FIX (banco, conector): parcelas de item recorrente gerava as
+parcelas-irmãs em CADA ciclo, não só na primeira ocorrência do item —
+achado no teste do Nicola (item quinzenal virou 30 ocorrências/despesas
+até 3 meses além do fim configurado). Corrigido na trigger
+fn_ocorrencia_nasce_despesa.
+------------------------------------------------------------------
+Versões anteriores (v1.160.0 … v1.160.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.160.0) — A.10 NO ITEM DE CONTROLE: VALOR/PARCELAS +
 ENCERRAR × EXCLUIR (cofre-controles.js 1.20.0, cofre-api.js 1.21.0,
 cofre-app.js 1.30.0, ativos-markup.js 1.25.0). index.html só sobe versão.

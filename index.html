@@ -6,9 +6,30 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.165.0
-   LINHAS: 15043
+   VERSÃO: Beta v1.167.0
+   LINHAS: 15262
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.167.0) — Módulo Apoio ao Contador, itens 5/6 do plano
+   (banco já tinha os itens 1-4 e 7 aplicados pelo conector). contratos.js
+   1.2.0: ativar/renovar contrato chama fn_gerar_mensalidades_horizonte (90
+   dias) em vez de gerar só o mês local. financeiro.js 1.1.0: botão "Gerar
+   Mês" chama fn_gerar_mensalidades_competencia (banco) — fonte única entre
+   botão manual, disparo automático e cron.
+   NOVIDADES (Beta v1.166.0) — BUG REAL achado pelo Nicola: app travava no
+   boot ("Falha ao buscar imóveis: Failed to fetch dynamically imported
+   module .../js/imoveis.js") e "Editar dados do imóvel" não abria nada
+   (mesma causa — a promise da import() falhando nunca é tratada).
+   Causa raiz: a fatia A.8 (v1.164.0) levou carregarImoveisSupabase/
+   sincronizarImovelSupabase/sincronizarImoveisSupabase/
+   carregarTiposImovelSupabase pra dentro do módulo lazy — mas essas 4 são
+   a camada de DADO (populam o array `imoveis` ANTES da 1ª tela), não de
+   tela. Toda fatia anterior (contratos/minutas/financeiro) já seguia a
+   regra de nunca mover carregar*Supabase/sincronizar*Supabase — só não
+   tinha ficado escrita, e eu não conferi antes de aplicar em imóveis.
+   Corrigido: as 4 voltaram pra cá (imoveis.js 1.1.0, só as 47 de tela).
+   Se o manifesto do Deploy_Raiz.ps1 já tinha a linha do imoveis.js mas o
+   arquivo mesmo assim não subiu antes, vale conferir se a linha foi
+   adicionada de fato (ver LEIA-ME da entrega anterior).
    NOVIDADES (Beta v1.165.0) — BUG REAL achado pelo Nicola (prints do app):
    "Documentos arquivados" (v1.162.0) não aparecia em lugar nenhum. Causa:
    fui pro modal-menu-conta de ativos-markup.js — que está MORTO desde a
@@ -58,40 +79,8 @@
    "teste, 123, Sta Lúcia", empreendimento Canaã), não cliente real; migra
    sozinho na primeira vez que alguém abrir a aba Fotos do Ativo dele, ou dá
    pra simplesmente excluir esse imóvel de teste.
-   NOVIDADES (Beta v1.162.0) — DOCUMENTOS ARQUIVADOS (cofre-documentos.js
-   2.11.0, cofre-api.js 1.22.0, cofre-app.js 1.31.0, ativos-markup.js 1.27.0).
-   Pedido do Nicola: ver, restaurar, vincular ou excluir de vez os documentos
-   excluídos (status='excluido' — reversível até hoje, mas sem tela nenhuma
-   pra chegar neles).
-   1) Menu Conta › Cofre › "Documentos arquivados": lista, com Restaurar
-      (volta pra ativo), Vincular agora (só quando sem vínculo — reabre a
-      ficha no mesmo fluxo de "em triagem" que já existe) e Excluir de vez
-      (apaga o arquivo do Storage quando ainda estava guardado + a linha,
-      DELETE físico de verdade, com confirmação e log antes de apagar).
-      RLS já liberava esse status pra quem tem cofre.editar/cofre.excluir —
-      nenhuma migration precisou.
-   2) BUG FIX achado no meio do trabalho: o card "N documento(s) pendente(s)
-      de vínculo" da Visão Geral contava TODOS os documentos sem vínculo,
-      inclusive arquivados — por isso o número nunca batia com a lista (que
-      já filtrava certo). Query corrigida com .eq('status','ativo').
-   NOVIDADES (Beta v1.161.0) — A.10: VALOR/PARCELAS NO UPLOAD COM IA
-   (cofre-documentos.js 2.10.0, cofre-controles.js 1.20.1, ativos-markup.js
-   1.26.0). Pedido do Nicola: "muitas vezes já aparece se o valor foi
-   parcelado — aproveite pra extrair a configuração correta".
-   Bloco "Controlar vencimento" do upload ganha Valor previsto/Parcelas/Dias
-   entre parcelas, sugeridos pela IA a partir do que já foi extraído pro
-   subtipo (sem nome de campo fixo — funciona pra qualquer subtipo do
-   catálogo): total por "valor"/"premio_total"/"valor_financiado" (nessa
-   ordem); parcelas por "parcelas" (só se >1); intervalo calculado de
-   "primeira_parcela"/"ultima_parcela" quando o subtipo os tem (ex.
-   financiamento_veiculo), senão 30 dias — tudo editável antes de salvar.
-   BUG FIX (banco, conector): parcelas de item recorrente gerava as
-   parcelas-irmãs em CADA ciclo, não só na primeira ocorrência do item —
-   achado no teste do Nicola (item quinzenal virou 30 ocorrências/despesas
-   até 3 meses além do fim configurado). Corrigido na trigger
-   fn_ocorrencia_nasce_despesa.
    ------------------------------------------------------------------
-   Versões anteriores (v1.160.0 … v1.160.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.162.0 … v1.162.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -115,7 +104,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.1.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.0.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.1.0","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.1.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3399,7 +3388,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.165.0";
+        const APP_VERSAO = "Beta v1.167.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4898,6 +4887,236 @@
             const mapa = { 'Ativo': 'ativo', 'Suspenso': 'suspenso', 'Finalizado': 'finalizado', 'Assinando': 'assinando' };
             return mapa[status] || 'ativo';
         }
+
+        // v1.166.0 — VOLTOU PRA CÁ (bug real, achado pelo Nicola): tinha ido
+        // pra imoveis.js na fatia A.8, mas isso quebra o boot — o app
+        // depende do array `imoveis` já estar pronto ANTES da primeira
+        // tela, e uma dynamic import() no meio do carregamento inicial é
+        // exatamente o que a proposta original queria evitar. Mesmo padrão
+        // de TODO o resto do projeto (contratos.js/minutas.js/financeiro.js
+        // nunca levaram seus carregar*Supabase/sincronizar*Supabase — só a
+        // camada de tela, nunca a de dado/boot): confirmado revendo
+        // carregarContratosSupabase logo abaixo, nunca saiu daqui.
+
+
+        async function carregarImoveisSupabase() {
+
+            const { data: imoveisRows, error: errImoveis } = await dbAuth
+                .from('imoveis')
+                .select('*, tipos_imovel(nome), empreendimentos(nome)')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE);
+
+            if (errImoveis) throw errImoveis;
+
+            const idsImoveis = (imoveisRows || []).map(function(i) { return i.id; });
+
+            let propriedades = [];
+            if (idsImoveis.length > 0) {
+                // v1.101.0 (02/09/2026, pedido explícito: "vasculha tudo
+                // pra ver quem lê a tabela de propriedades hoje pra
+                // trocar pra esta de ativo também") — antes lia direto
+                // de propriedade_imovel; agora lê propriedade_ativo,
+                // filtrando pelo ativo que referencia cada imóvel
+                // (cofre_ativos.entidade_origem_id). Dado já migrado
+                // nesta sessão — mesmos valores, fonte nova.
+                const { data: propRows, error: errProp } = await dbAuth
+                    .from('propriedade_ativo')
+                    .select('*, pessoas(nome), cofre_ativos!inner(entidade_origem_id, entidade_origem_tipo)')
+                    .eq('cofre_ativos.entidade_origem_tipo', 'imovel')
+                    .in('cofre_ativos.entidade_origem_id', idsImoveis);
+                if (errProp) throw errProp;
+                propriedades = propRows || [];
+            }
+
+            // CORRIGIDO — sindicoId/manutencistaId eram deixados sempre vazios aqui,
+            // por isso nunca apareciam no imóvel mesmo com o vínculo existindo em
+            // "prestador_vinculo". Busca todos os vínculos vigentes (data_fim_vigencia
+            // nula) de uma vez, e casa por empreendimento_id de cada imóvel.
+            const { data: vinculosRows, error: errVinc } = await dbAuth
+                .from('prestador_vinculo')
+                .select('prestador_id, empreendimento_id, tipo_prestador')
+                .is('data_fim_vigencia', null);
+            if (errVinc) throw errVinc;
+            const vinculosVigentes = vinculosRows || [];
+
+            return (imoveisRows || []).map(function(row) {
+
+                const divisao = {};
+                propriedades
+                    .filter(function(p) { return p.cofre_ativos && p.cofre_ativos.entidade_origem_id === row.id; })
+                    .forEach(function(p) {
+                        const nomeDono = p.tipo_proprietario === 'socio_interno'
+                            ? (p.pessoas ? p.pessoas.nome : SOCIO_PADRAO)
+                            : p.nome_externo;
+                        divisao[nomeDono] = p.percentual;
+                    });
+                // CORRIGIDO — não preenche mais SOCIO_PADRAO=100 como default
+                // quando não há dono cadastrado; fica vazio mesmo, refletindo a
+                // realidade (imóvel sem divisão societária lançada ainda).
+
+                const vinculoSindico = vinculosVigentes.find(function(v) { return v.empreendimento_id === row.empreendimento_id && v.tipo_prestador === 'sindico'; });
+                const vinculoManutencista = vinculosVigentes.find(function(v) { return v.empreendimento_id === row.empreendimento_id && v.tipo_prestador === 'manutencista'; });
+
+                return {
+                    id: row.id,
+                    empreendimento: row.empreendimentos ? row.empreendimentos.nome : '',
+                    empreendimentoId: row.empreendimento_id || null,
+                    enderecoRua: row.endereco_rua || '',
+                    enderecoNum: row.endereco_num || '',
+                    enderecoComp: row.endereco_comp || '',
+                    enderecoBairro: row.endereco_bairro || '',
+                    enderecoCidade: row.endereco_cidade || '',
+                    finalidadeUso: row.finalidade_uso || 'long_stay',
+                    tipo: row.tipos_imovel ? row.tipos_imovel.nome : '',
+                    tipoId: row.tipo_id || null,
+                    tamanho: row.tamanho || 0,
+                    suites: 0,
+                    banheiros: 0,
+                    condominio: row.condominio || 0,
+                    iptu: row.iptu || 0,
+                    codigoIPTU: row.codigo_iptu || '',
+                    manutencaoNome: row.manutencao_nome || '',
+                    manutencaoZap: row.manutencao_zap || '',
+                    descricao: row.descricao || '',
+                    energiaRumo: row.energia_disponivel ? 'Sim' : 'Não',
+                    valorMercado: row.valor_mercado || 0,
+                    valor: row.valor || 0,
+                    fotos: row.fotos || [],
+                    divisao: divisao,
+                    parteRumo: { [CONFIG_CLIENTE.nomeEmpresa || SOCIO_PADRAO]: 100 }, // ver nota de simplificação acima
+                    status: mapStatusSupabaseParaAntigo(row.status),
+                    sindicoId: vinculoSindico ? vinculoSindico.prestador_id : '',
+                    manutencistaId: vinculoManutencista ? vinculoManutencista.prestador_id : ''
+                };
+
+            });
+
+        }
+
+
+        async function sincronizarImovelSupabase(imo) {
+
+            // CORRIGIDO — antes criava tipo/empreendimento novo automaticamente ao
+            // ver um nome desconhecido. Agora exige que já exista (cadastrado em
+            // Parametrizações) — o formulário só oferece opções já cadastradas, então
+            // "não encontrado" aqui só acontece se o cadastro de origem foi apagado
+            // entre a abertura do formulário e o salvamento.
+            const tipoEncontrado = tiposImovelCadastrados.find(function(t) { return t.nome === imo.tipo; });
+            const empreendimentoEncontrado = empreendimentosCadastrados.find(function(e) { return e.nome === imo.empreendimento; });
+            const tipoId = tipoEncontrado ? tipoEncontrado.id : null;
+            const empreendimentoId = empreendimentoEncontrado ? empreendimentoEncontrado.id : null;
+
+            const linha = {
+                cliente_id: CLIENTE_ID_SUPABASE,
+                tipo_id: tipoId,
+                empreendimento_id: empreendimentoId,
+                endereco_rua: imo.enderecoRua,
+                endereco_num: imo.enderecoNum,
+                endereco_comp: imo.enderecoComp,
+                endereco_bairro: imo.enderecoBairro,
+                endereco_cidade: imo.enderecoCidade,
+                finalidade_uso: imo.finalidadeUso || 'long_stay',
+                tamanho: imo.tamanho || null,
+                condominio: imo.condominio || null,
+                iptu: imo.iptu || null,
+                codigo_iptu: imo.codigoIPTU || null,
+                valor: imo.valor || null,
+                fotos: imo.fotos || [],
+                status: mapStatusAntigoParaSupabase(imo.status),
+                manutencao_nome: imo.manutencaoNome || null,
+                manutencao_zap: imo.manutencaoZap || null,
+                energia_disponivel: imo.energiaRumo === 'Sim',
+                descricao: imo.descricao || null,
+                valor_mercado: imo.valorMercado || null
+            };
+
+            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(imo.id || '');
+
+            let imovelId;
+            if (idEhUuidValido) {
+                const { error } = await dbAuth.from('imoveis').update(linha).eq('id', imo.id);
+                if (error) throw error;
+                imovelId = imo.id;
+            } else {
+                // v1.84.0 — trocado o insert direto por fn_criar_ativo (motor único
+                // de criação, ver DIRETRIZES_TECNICAS/DIAGNOSTICO_PLANO). Só este
+                // ramo mudou — update acima e divisão societária abaixo continuam
+                // exatamente como estavam. "linha" já tem todos os campos com o
+                // nome de coluna certo (não o nome do objeto `imo` em memória),
+                // então passa direto como p_dados.
+                const { data: criado, error } = await dbAuth.rpc('fn_criar_ativo', {
+                    p_cliente_id: CLIENTE_ID_SUPABASE,
+                    p_tipo_ativo: 'imovel',
+                    p_nome_exibicao: null,
+                    p_dados: linha
+                }).single();
+                if (error) throw error;
+                imovelId = criado.imovel_id;
+                imo.id = imovelId; // o app em memória passa a usar o id de verdade do Postgres
+            }
+
+            // CORRIGIDO (causa raiz real do "soma 200%", presente desde o início):
+            // delete + insert como duas chamadas separadas do navegador viram DUAS
+            // transações no banco. A trigger de "soma = 100%" é deferrable (só
+            // valida no fim da transação) — mas o delete sozinho JÁ é uma
+            // transação inteira: ao terminar, a soma fica 0%, a trigger dispara e
+            // desfaz o delete inteiro. As linhas antigas nunca saíam de verdade, e
+            // o insert seguinte empilhava 100% em cima — daí o 200%, em qualquer
+            // edição, sempre. Agora as duas operações rodam dentro de UMA função
+            // no banco (RPC) — mesma transação de verdade, a trigger só vê o
+            // resultado final.
+            const nomesDivisao = Object.keys(imo.divisao || {});
+            let linhasPropriedade = [];
+            if (nomesDivisao.length > 0) {
+                const { data: pessoasCliente } = await dbAuth.from('pessoas').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE);
+                linhasPropriedade = nomesDivisao.map(function(nome) {
+                    // Casamento por nome completo OU só o primeiro nome — o formulário usa
+                    // nomes curtos (ex.: SOCIO_PADRAO = "Nicola"), mas pessoas.nome guarda o
+                    // nome completo ("Nicola Santos Dutra"). Sem isso, a comparação exata
+                    // nunca batia, e a divisão do sócio padrão nunca era gravada.
+                    const pessoaEncontrada = (pessoasCliente || []).find(function(p) {
+                        return p.nome === nome || p.nome.split(' ')[0] === nome;
+                    });
+                    return pessoaEncontrada
+                        ? { tipo_proprietario: 'socio_interno', pessoa_id: pessoaEncontrada.id, nome_externo: '', percentual: imo.divisao[nome] }
+                        : { tipo_proprietario: 'terceiro_externo', pessoa_id: '', nome_externo: nome, percentual: imo.divisao[nome] };
+                });
+            }
+
+            // v1.101.0 (02/09/2026, pedido explícito: "vasculha tudo pra
+            // ver quem lê a tabela de propriedades hoje pra trocar pra
+            // esta de ativo também") — trocado substituir_propriedade_imovel
+            // por substituir_propriedade_ativo: resolve o ativo_id deste
+            // imóvel (fn_criar_ativo já garante que ele existe, criado/
+            // atualizado ATOMICAMENTE junto do imóvel) e grava lá — mesma
+            // RPC que o chip Propriedade (Ativos) e o popup "Divisão
+            // Societária" usam agora, fonte única.
+            const { data: ativoDoImovel, error: errAtivoDoImovel } = await dbAuth.from('cofre_ativos')
+                .select('id').eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId).single();
+            if (errAtivoDoImovel || !ativoDoImovel) throw new Error('Não achei o ativo correspondente a este imóvel (cofre_ativos) pra gravar a divisão societária.');
+
+            const { error: errProp } = await dbAuth.rpc('substituir_propriedade_ativo', {
+                p_ativo_id: ativoDoImovel.id,
+                p_linhas: linhasPropriedade
+            });
+            if (errProp) throw errProp;
+
+            return imovelId;
+        }
+
+
+        async function sincronizarImoveisSupabase(listaImoveis) {
+            return sincronizarListaComResiliencia(listaImoveis, sincronizarImovelSupabase, 'imóvel');
+        }
+
+
+
+        async function carregarTiposImovelSupabase() {
+            const { data, error } = await dbAuth.from('tipos_imovel').select('*').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome');
+            if (error) throw error;
+            return data || [];
+        }
+
 
         async function carregarContratosSupabase() {
 
@@ -8719,15 +8938,15 @@
             if (__rzImoModulo && typeof __rzImoModulo[nome] === 'function') return __rzImoModulo[nome](...args);
         }
         [
-            'renderImoveis', 'saveImovel', 'renderFichaImovelUnica', 'normalizarImovel', 'sincronizarImovelSupabase',
-            'carregarImoveisSupabase', 'cancelarEdicaoImovel', 'abrirDetalhesImovel', 'editarImovel', 'salvarDivisaoImovelPopup',
+            'renderImoveis', 'saveImovel', 'renderFichaImovelUnica', 'normalizarImovel',
+            'cancelarEdicaoImovel', 'abrirDetalhesImovel', 'editarImovel', 'salvarDivisaoImovelPopup',
             'abrirFichaImovel', 'excluirImovel', 'salvarDetalhesImovelPopup', 'montarCabecalhoImovelHtml', 'renderListaSeletorImovel',
             'alternarMaisAcoesFichaImovel', 'montarFotosImovelDoCofre', 'enviarFotosImovelParaCofre', 'abrirFormularioImovel',
             'acionarZapIptuImovel', 'sincronizarBotaoToggleImovel', 'validarStepImovel', 'selecionarImovelDoSeletor',
-            'renderPreviewFotosImovel', 'alternarFormularioImovel', 'voltarDaFichaImovel', 'sincronizarImoveisSupabase',
+            'renderPreviewFotosImovel', 'alternarFormularioImovel', 'voltarDaFichaImovel',
             'buscarOuCriarAtivoCofreDoImovel', 'irParaStepImovel', 'fecharSeletorImovel', 'resetStepsImovel', 'limparBuscaImoveis',
             'removerFotoImovel', 'removerFotoImovelDoCofre', 'filtrarListaSeletorImovel', 'abrirLightboxImovelSalvo',
-            'carregarTiposImovelSupabase', 'abrirSeletorImovel', 'alternarMaisAcoesFotosImovel', 'avancarStepImovel',
+            'abrirSeletorImovel', 'alternarMaisAcoesFotosImovel', 'avancarStepImovel',
             'obterContratoPrincipalDoImovel', 'abrirBuscaImoveis', 'filtrarImoveisPorAlertaContrato', 'obterContratosContextuaisDoImovel',
             'rzMoverFormImovelParaBody', 'voltarStepImovel', 'limparFiltroAlertaContratoImoveis', 'imovelIsentoDeAlertas',
             'fecharBuscaImoveis', 'fecharCadastroImovelModal', 'abrirCadastroImovelModal',

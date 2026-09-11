@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.1.0 · 10/09/2026
+// Versão: 1.2.0 · 10/09/2026
+//
+// v1.2.0 — módulo Apoio ao Contador, itens 5/6 do plano (10/09/2026): ao
+// ativar ou renovar um contrato, chama fn_gerar_mensalidades_horizonte
+// (banco, 90 dias) em vez da geração de 1 mês só em JS local — mesma RPC do
+// botão "Gerar Mês" (financeiro.js) e do cron diário. gerarMensalidadesPara
+// Competencia (index.html) não é mais chamada daqui.
 //
 // v1.1.0 — A.10 (ocorrências como histórico universal, PROPOSTA v2.0 §4.3):
 //   (1) Card "Ocorrências" na ficha do contrato (painel Resumo, logo abaixo
@@ -90,7 +96,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.1.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.2.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1070,22 +1076,22 @@ export function reabrirFichaSeFor(contratoId) {
                 // NOVO (30/08/2026) — pedido explícito do Nicola: ao ativar
                 // um contrato que ainda não tem NENHUM item a receber
                 // gerado (comum quando o contrato pula direto pra Ativo,
-                // sem passar por Assinando — ver v1.73.0), gera já a
-                // competência atual pra ESSE contrato só (gerarMensalidades
-                // Para Competencia com contratoIdFiltro — mesma rotina do
-                // botão manual do Financeiro, trava anti-duplicidade já
-                // embutida). Silencioso se não gerar nada (ex.: contrato
-                // com início no futuro) — não é erro, só não há nada a
-                // cobrar ainda.
+                // sem passar por Assinando — ver v1.73.0), gera já os
+                // recebimentos. v1.X (10/09/2026) — passou a chamar
+                // fn_gerar_mensalidades_horizonte (banco, 90 dias), não só a
+                // competência atual — mesma RPC do botão "Gerar Mês" e do
+                // cron diário. Silencioso se não gerar nada (ex.: contrato
+                // com início no futuro além do horizonte) — não é erro.
                 if (acao === 'Ativo' && !mensalidades.some(m => m.contratoId === contratoId)) {
-                    const hoje = new Date();
-                    const refAtual = String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
-                    const idsGerados = [];
-                    const qtdGerada = gerarMensalidadesParaCompetencia(refAtual, idsGerados, contratoId);
-                    if (qtdGerada > 0) {
-                        await saveAll(true, null, ['mensalidades'], idsGerados);
-                        mostrarToast('Item a receber de ' + refAtual + ' gerado.', 'success');
-                        registrarLog('mensalidades.gerar_automatico_ativacao', { contratoId, referencia: refAtual });
+                    const { data: geradas, error: erroGerar } = await dbAuth.rpc('fn_gerar_mensalidades_horizonte', {
+                        p_cliente_id: CLIENTE_ID_SUPABASE, p_contrato_id: contratoId, p_dias_horizonte: 90,
+                    });
+                    if (erroGerar) {
+                        console.warn('fn_gerar_mensalidades_horizonte falhou na ativação:', erroGerar.message);
+                    } else if ((geradas || []).length > 0) {
+                        mensalidades = await carregarMensalidadesSupabase();
+                        mostrarToast(geradas.length + ' item(ns) a receber gerado(s), até 90 dias.', 'success');
+                        registrarLog('mensalidades.gerar_automatico_ativacao', { contratoId, quantidade: geradas.length });
                     }
                 }
 
@@ -1763,6 +1769,17 @@ export function reabrirFichaSeFor(contratoId) {
                     p_vigencia: vigencia, p_observacao: obs || null, p_documento_id: docId,
                 });
                 if (error) throw error;
+
+                // v1.X (10/09/2026) — fim mudou: garante os recebimentos até
+                // 90 dias à frente também (insert-only, nunca mexe no que já
+                // existe — nem pendente nem pago). Mesma RPC do botão "Gerar
+                // Mês"/ativação/cron.
+                const { data: geradasRenov, error: erroGerarRenov } = await dbAuth.rpc('fn_gerar_mensalidades_horizonte', {
+                    p_cliente_id: CLIENTE_ID_SUPABASE, p_contrato_id: contratoId, p_dias_horizonte: 90,
+                });
+                if (erroGerarRenov) console.warn('fn_gerar_mensalidades_horizonte falhou na renovação:', erroGerarRenov.message);
+                else if ((geradasRenov || []).length > 0) mensalidades = await carregarMensalidadesSupabase();
+
                 // A ocorrência de revisão/renovação que originou a ação é baixada (v2.0 §4.3)
                 if (ocorrenciaOrigemId) {
                     await dbAuth.from('cofre_ocorrencias_controle').update({ status_execucao: 'concluido', tratado_em: new Date().toISOString(), tratado_por: pessoaIdLogada || null, tratamento_descricao: `Renovado até ${formatarDataBR(novoFim)}` }).eq('id', ocorrenciaOrigemId).eq('status_execucao', 'aberto');
