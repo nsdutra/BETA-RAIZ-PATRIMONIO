@@ -6,9 +6,24 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.176.0
-   LINHAS: 15291
+   VERSÃO: Beta v1.177.0
+   LINHAS: 15289
    DATA: 11/09/2026
+   NOVIDADES (Beta v1.177.0) — Etapa 7/8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md,
+   PARCIAL (ver pendências abaixo, nada de tab-conciliacao/"Gerar mês" nesta
+   entrega ainda). (1) O comentário CSS da linha ~401 e os 2 contornos do
+   cabeçalho (#main-header .rz-hdr + forcarLayoutHeaderGlobal) já estavam
+   corrigidos/removidos neste arquivo antes desta sessão — versão do header
+   só alinhada com o que o próprio comentário já dizia (Parte I do plano).
+   (2) financeiro.js 1.5.0: removida a função ressincronizarFingerprintAposEstorno
+   (v1.4.1, mais cedo hoje) — fazia na mão o que os triggers de espelho do
+   banco (Etapa 3) já fazem sozinhos, de forma mais completa. Fica só o
+   refresh de tela (atualizarConciliacaoSeAberta), sem gravação duplicada.
+   PENDENTE (Etapa 7, resto): tab-conciliacao como 3º segmento do Financeiro;
+   tab-inadimplencia redirecionada ("Em atraso" vira chip); "Gerar mês" sai
+   (painel-gerar-mes, gerarMensalidades, alternarPainelGerarMes, pontes);
+   ativar contrato pergunta pelos meses retroativos; reajuste/edição chamam
+   fn_mensalidades_realinhar (contratos.js).
    NOVIDADES (Beta v1.176.0) — Pacote cumulativo de fechamento da sessão
    (nenhuma mudança de comportamento além do que já estava nas versões
    abaixo). Corrigido um deslize de versionamento: cofre-documentos.js
@@ -398,8 +413,9 @@
            Fonte: REGRAS_EXPERIENCIA_RAIZ_v3_0.md §18 + PROTOTIPO_UX_RAIZ_v3_0.html.
            Esta é a lista INTEIRA de classes de UI permitidas em código novo.
            Código novo não usa style="" de layout nem cor Tailwind
-           (emerald-*/slate-*) — só estas classes + tokens. Prefixo rz- porque
-           .card/.btn/.chip/.nav já existiam no arquivo com outro significado.
+           (emerald-* ou slate-*) — só estas classes + tokens. Prefixo rz-
+           porque .card/.btn/.chip/.nav já existiam no arquivo com outro
+           significado.
            Fatia 1 da migração (§19): aditiva, nenhuma tela usa ainda.
            ==================================================================== */
         /* 4. cabeçalho global e de aba */
@@ -417,19 +433,17 @@
         .rz-hdr .rz-ia svg{width:20px;height:20px}
         .rz-hdr .rz-brand h1 img{max-height:1.5em;display:inline-block;vertical-align:middle}
         .rz-hdr .rz-off{display:inline-block;font-size:10px;font-weight:700;background:var(--danger);color:#fff;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;animation:rz-pulse 1.4s infinite}
-        /* v1.116.0 — cabeçalho chegou desformatado em campo (print do
-           Nicola): as regras filhas (.rz-hdr .rz-ia/.rz-avatar) bateram
-           certo (círculos aparecem estilizados no print), mas o
-           CONTAINER (padding/flex/cor de fundo do próprio .rz-hdr) não —
-           consistente com CSS em cache (service worker/navegador)
-           divergindo do HTML já atualizado. Regra do container repetida
-           aqui, com o id junto (#main-header .rz-hdr), puramente
-           defensivo; ver também forcarLayoutHeaderGlobal() no JS, que
-           força o mesmo layout via style inline (sempre vence, seja qual
-           for a causa real do CSS não ter aplicado). */
-        #main-header .rz-hdr{background:var(--pine);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px}
-        #main-header .rz-hdr .rz-brand{flex:1;min-width:0}
-        #main-header .rz-hdr .rz-avatar,#main-header .rz-hdr .rz-ia{flex:none}
+        /* v1.116.0 — "cabeçalho desformatado em campo" (print do Nicola):
+           causa raiz encontrada e corrigida na v1.177.0 (Parte I do plano
+           de conciliação) — o comentário CSS do catálogo, acima, fechava
+           antes da hora em "(emerald-*/slate-*)" (o "*/" ali dentro
+           encerra o comentário de verdade) e o texto solto que sobrava
+           virava um seletor inválido que engolia a regra .rz-hdr{...}
+           logo abaixo — layout nunca aplicava, parecia cache. Corrigido
+           o comentário (1 caractere: "/" trocado por " ou "); os 2
+           contornos que tratavam o sintoma (regra duplicada com #main-
+           header e forcarLayoutHeaderGlobal() no JS) saem — não são mais
+           necessários e escondiam a causa real. */
         @keyframes rz-pulse{0%,100%{opacity:1}50%{opacity:.45}}
         .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine-light);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
@@ -7663,7 +7677,6 @@
                     document.getElementById('splash-screen').classList.add('hidden');
 
                     document.getElementById('main-header').classList.remove('hidden');
-                    forcarLayoutHeaderGlobal();
 
                     document.getElementById('main-content').classList.remove('hidden');
 
@@ -9338,27 +9351,12 @@
         }
         window.addEventListener('cofre:dados-carregados', atualizarContextoHeader);
 
-        // v1.116.0 — cabeçalho chegou desformatado num aparelho (print do
-        // Nicola: círculos do Raiz IA/avatar certos, mas sem a barra pine
-        // por trás e o texto solto por cima do conteúdo). A causa mais
-        // provável é `sw.js` (service worker) servindo uma versão em cache
-        // do próprio `index.html` — HTML novo com CSS antigo dentro do
-        // mesmo arquivo não é possível (CSS é inline), mas um cache
-        // parcial/corrompido do navegador pode aplicar a folha de estilo
-        // errada nessa sessão. Reforço estrutural (regra `#main-header
-        // .rz-hdr` duplicada no fim do catálogo) cobre o caso de CSS
-        // conflitante; isto aqui é a rede de segurança final — força o
-        // layout via `style=` inline direto no elemento, que sempre vence
-        // qualquer folha de estilo, seja qual for a causa. Roda 1x no
-        // login; chamada é barata (poucas linhas), sem custo perceptível.
-        function forcarLayoutHeaderGlobal() {
-            const hdr = document.querySelector('#main-header .rz-hdr');
-            if (!hdr) return;
-            hdr.style.cssText = 'background:var(--pine);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px';
-            const brand = hdr.querySelector('.rz-brand');
-            if (brand) brand.style.cssText = 'flex:1;min-width:0';
-            hdr.querySelectorAll('.rz-ia,.rz-avatar').forEach(el => { el.style.flex = 'none'; });
-        }
+        // v1.177.0 — forcarLayoutHeaderGlobal() e a chamada no boot saíram:
+        // era rede de segurança pro "cabeçalho desformatado em campo"
+        // (v1.116.0), sintoma de um bug de CSS de verdade (comentário que
+        // fechava antes da hora, corrigido acima, Parte I do plano de
+        // conciliação) tratado por anos como cache do navegador. Causa raiz
+        // corrigida, contorno sai.
 
         // v1.71.0 — LGPD: tela de preferências de comunicação, 1 toggle por
         // mensagem que permite opt-out (permite_opt_out=true) — substitui o

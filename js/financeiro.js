@@ -1,7 +1,19 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.4.1 · 10/09/2026
+// Versão: 1.5.0 · 11/09/2026
+//
+// v1.5.0 — Etapa 7/8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md. Achado ao
+// revisar antes de mexer na tela: ressincronizarFingerprintAposEstorno()
+// (v1.4.1, hoje mais cedo) fazia na mão exatamente o que
+// fn_mensalidade_espelha_fingerprint/fn_lancamento_espelha_fingerprint
+// (triggers de banco, Etapa 3) passaram a fazer sozinhos — e de forma mais
+// completa (também limpam regra_codigo, que a função aqui não limpava).
+// Removida; fica só atualizarConciliacaoSeAberta() (refresh de tela, sem
+// gravação). Nenhuma perda: os dois pontos de chamada continuam
+// resincronizando a tela de conciliação do mesmo jeito, só que o RESET em
+// si agora é feito uma vez só, no banco, pra qualquer caminho que apague o
+// pagamento (app, bot ou futura tela de gestão) — não só o estorno nativo.
 //
 // v1.4.1 — pedido explícito do Nicola ("não dá pra deixar desta forma"):
 // estornarMensalidade/estornarPagamentoDespesa (telas nativas, fora da
@@ -127,7 +139,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.4.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -634,7 +646,10 @@ export function montarAbaFinanceiro(tabId) {
                     status: 'previsto', data_pagamento: null, forma_pagamento: null
                 }).eq('id', id);
                 if (error) throw error;
-                await ressincronizarFingerprintAposEstorno('lancamento', id);
+                // v1.5.0 — Etapa 7/8: fn_lancamento_espelha_fingerprint (trigger,
+                // Etapa 3) já resetou o fingerprint na linha UPDATE acima — só
+                // atualiza a tela de conciliação, se estiver aberta.
+                await atualizarConciliacaoSeAberta();
                 lancamentos = await carregarLancamentosSupabase();
                 esconderCarregamentoGlobal();
                 mostrarToast('Pagamento estornado.', 'success');
@@ -1057,9 +1072,11 @@ export function montarAbaFinanceiro(tabId) {
 
                 registrarLog('mensal.estornar', { mensalidadeId: menId, referencia: mensalidades[idx].referencia });
 
-                await ressincronizarFingerprintAposEstorno('mensalidade', menId);
-
-                saveAll(true, "Pagamento estornado.", ['mensalidades']);
+                // v1.5.0 — Etapa 7/8: fn_mensalidade_espelha_fingerprint (trigger,
+                // Etapa 3) reseta o fingerprint sozinho quando saveAll grava o status
+                // (encadeado com .then — saveAll não é aguardada aqui, mesmo padrão
+                // já usado nesta função antes desta mudança).
+                saveAll(true, "Pagamento estornado.", ['mensalidades']).then(() => atualizarConciliacaoSeAberta());
 
             }
 
@@ -2116,23 +2133,14 @@ export function montarAbaFinanceiro(tabId) {
         let conciliacaoUniChip = 'todos';
         let despesaOrigemFingerprintId = null; // v2 — setado quando "Nova despesa" é aberta a partir da conciliação; salvarDespesa() usa isso pra vincular o fingerprint de volta
 
-        // v3 — pedido explícito do Nicola (10/09/2026, "não dá pra deixar
-        // desta forma"): estornar pelo lado NATIVO (Recebimento/Despesa,
-        // fora da tela de conciliação) tem que ressincronizar o
-        // extrato_fingerprints também — senão a linha do extrato fica
-        // "conciliado" apontando pra um pagamento que não existe mais.
-        // Reaproveitada pelos dois lados (mensalidade e lançamento) — só
-        // desfaz o vínculo (volta pendente), nunca mexe na despesa/
-        // mensalidade em si, que já foi tratada por quem chamou.
-        async function ressincronizarFingerprintAposEstorno(destinoTipo, destinoId) {
-            try {
-                await dbAuth.from('extrato_fingerprints')
-                    .update({ status_conciliacao: 'pendente', destino_tipo: null, destino_id: null, conciliado_em: null, conciliado_por: null })
-                    .eq('destino_tipo', destinoTipo).eq('destino_id', destinoId).eq('status_conciliacao', 'conciliado');
-                if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
-            } catch (err) {
-                devLog('ERRO_CONCILIACAO', 'Falha ao ressincronizar extrato após estorno nativo: ' + err.message);
-            }
+        // v1.5.0 (Etapa 7/8 da conciliação) — a função que morava aqui
+        // (ressincronizarFingerprintAposEstorno) fazia, na mão, exatamente o
+        // que fn_mensalidade_espelha_fingerprint/fn_lancamento_espelha_fingerprint
+        // (triggers de banco, Etapa 3 do plano) agora fazem sozinhos sempre
+        // que o status sai de 'pago' — inclusive limpando regra_codigo, que
+        // esta função não fazia. Fica só o refresh da tela, se estiver aberta.
+        async function atualizarConciliacaoSeAberta() {
+            if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
         }
 
         export async function carregarConciliacaoUnificada() {
