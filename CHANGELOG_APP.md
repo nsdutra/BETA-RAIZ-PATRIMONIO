@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.169.0) — Módulo Apoio ao Contador, Etapa 2B completa
+(financeiro.js 1.3.0): tela de conciliação unificada, o protótipo que o
+Nicola aprovou — segmento Tudo/Entradas/Saídas + chips Pendentes/
+Conciliados/Não controlado, os dois cruzáveis. Abre junto do painel de
+conciliação de sempre (Financeiro › Recebimentos › ⋮ › Painel de
+conciliação). Toque numa linha de saída pendente já busca sugestão no
+banco (fn_extrato_sugerir_destino) e oferece Vincular/Criar
+saída/Marcar como repasse/Não controlar; conciliada oferece Estornar.
+Entrada continua no painel de Pendências de sempre (não duplicado) — o
+toque só aponta pra lá.
+------------------------------------------------------------------
+Versões anteriores (v1.168.0 … v1.168.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.168.0) — Módulo Apoio ao Contador, etapa 2B destravada
 (financeiro.js 1.2.0): a investigação que faltava (ler a importação de
 extrato inteira) achou que saída hoje só reconhece repasse pros sócios

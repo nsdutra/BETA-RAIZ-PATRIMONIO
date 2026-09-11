@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.173.0
+   VERSÃO: Beta v1.174.0
    LINHAS: 15291
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.174.0) — CAUSA RAIZ do "Editar dados do imóvel não
+   abre", enfim (3ª tentativa): renderPreviewFotosImovel() escrevia num
+   container que eu mesmo removi no A.9, e editarImovel() chama ela ANTES
+   de exibir o modal — a execução morria ali, calada. Corrigido em
+   imoveis.js 1.4.0, com varredura dos 71 ids do módulo pra achar outros
+   casos iguais.
+   Etapa 3 do módulo contador (Alertas): a tela e os 5 sinais tributários
+   já existiam desde a v1.85.0 — faltava só a categoria "movimentações".
+   Entraram 2 sinais novos (extrato parado há +15 dias, conciliação
+   pendente antiga) dentro da mesma RPC, sem mudança de app.
    NOVIDADES (Beta v1.173.0) — Dois bugs reais fechados a pedido do
    Nicola. 1) "Editar dados do imóvel" PERSISTIA quebrado: causa real era
    rzMoverFormImovelParaBody() (move o formulário pro body, chamada direto
@@ -36,18 +46,8 @@
    não fala mais em "descartar" saída (ela vai pra tela nova); borda
    esquerda colorida no card novo pra ficar visualmente separado do painel
    de Pendências antigo, que fica logo abaixo.
-   NOVIDADES (Beta v1.169.0) — Módulo Apoio ao Contador, Etapa 2B completa
-   (financeiro.js 1.3.0): tela de conciliação unificada, o protótipo que o
-   Nicola aprovou — segmento Tudo/Entradas/Saídas + chips Pendentes/
-   Conciliados/Não controlado, os dois cruzáveis. Abre junto do painel de
-   conciliação de sempre (Financeiro › Recebimentos › ⋮ › Painel de
-   conciliação). Toque numa linha de saída pendente já busca sugestão no
-   banco (fn_extrato_sugerir_destino) e oferece Vincular/Criar
-   saída/Marcar como repasse/Não controlar; conciliada oferece Estornar.
-   Entrada continua no painel de Pendências de sempre (não duplicado) — o
-   toque só aponta pra lá.
    ------------------------------------------------------------------
-   Versões anteriores (v1.168.0 … v1.168.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.169.0 … v1.169.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +71,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.4.1","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.3.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.4.1","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.4.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3385,7 +3385,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.173.0";
+        const APP_VERSAO = "Beta v1.174.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
