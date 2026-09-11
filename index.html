@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.178.2
-   LINHAS: 15032
+   VERSÃO: Beta v1.178.3
+   LINHAS: 15007
    DATA: 11/09/2026
+   NOVIDADES (Beta v1.178.3) — pedido do Nicola: painel de Pendências legado
+   (Filtrar Pendências, barras vermelhas por mês) removido de vez — v1.178.2
+   tinha deixado de pé de propósito (30 pendências reais, R$ 127 mil);
+   migração conferida no banco antes de tirar (nenhuma perdida — todas já
+   tinham fingerprint correspondente, 2 corrigidas por dessincronia). HTML
+   dos 4 selects de filtro + lista removido; pontes window[...] das 5
+   funções do painel removidas. Ver changelog de financeiro.js 1.6.2 pro
+   raciocínio completo (inclusive reprocessarConciliacaoPendente()
+   reescrita pra usar extrato_fingerprints em vez do painel legado).
    NOVIDADES (Beta v1.178.2) — mesmo achado do Nicola: pontes window[...] pra
    3 funções novas de financeiro.js 1.6.1 (busca manual de recebimento —
    abrirBuscarMensalidadeManual/filtrarVincularManual/selecionarMensalidadeManual).
@@ -2576,45 +2585,15 @@
                 <div id="conc-uni-lista" class="space-y-1.5"></div>
             </div>
 
-            <div id="painel-pendencias-extrato-wrapper" class="hidden mb-4">
-
-                <div class="bg-white p-3 rounded-xl shadow-sm mb-4 border border-gray-200">
-
-                    <span class="text-[11px] font-bold uppercase text-slate-500 block mb-2">Filtrar Pendências</span>
-
-                    <div class="grid grid-cols-2 gap-2">
-
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
-                            <select id="pex-filtro-locatario" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todos</option></select>
-                        </div>
-
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500">Competência</label>
-                            <select id="pex-filtro-competencia" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todas</option></select>
-                        </div>
-
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
-                            <select id="pex-filtro-empreendimento" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todos</option></select>
-                        </div>
-
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500">Imóvel</label>
-                            <select id="pex-filtro-imovel" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todos</option></select>
-                        </div>
-
-                    </div>
-
-                    <div class="flex justify-end mt-2">
-                        <span id="pex-resumo" class="text-[13px] font-bold text-red-700 whitespace-nowrap">R$ 0,00 (0)</span>
-                    </div>
-
-                </div>
-
-                <div id="painel-pendencias-extrato" class="space-y-3"></div>
-
-            </div>
+            <!-- v1.178.2 — painel de Pendências legado (pendencias_extrato)
+                 removido. Migração conferida antes de tirar: as 30 pendências
+                 reais da Rumo (R$ 127 mil) todas já tinham fingerprint
+                 correspondente em extrato_fingerprints — 2 já estavam
+                 resolvidas por baixo (rendimento, R01) mas a pendência antiga
+                 tinha ficado travada em "Pendente" (dessincronia real entre
+                 os 2 sistemas, corrigida no banco); as outras 28 continuam
+                 'pendente', já visíveis e acionáveis na Conciliação nova
+                 (segmento Entradas · chip Pendentes). Nenhum dado perdido. -->
 
         </section>
 
@@ -7734,7 +7713,6 @@
                         renderRelatorios();
 
                         rzVitSeCarregado('renderVitrine');
-                        rzFinSeCarregado('renderPendenciasExtrato');
                         renderAdministradoras();
 
                         renderSindicos();
@@ -8058,7 +8036,6 @@
             renderRelatorios();
 
             rzVitSeCarregado('renderVitrine');
-            rzFinSeCarregado('renderPendenciasExtrato');
             rzMinSeCarregado('renderMinutas');
 
             renderAdministradoras();
@@ -8218,7 +8195,6 @@
                 rzFinSeCarregado('renderInadimplencia');
                 renderSociosDistribricao();
                 renderRelatorios();
-                rzFinSeCarregado('renderPendenciasExtrato');
                 rzMinSeCarregado('renderMinutas');
             }
 
@@ -9011,8 +8987,7 @@
             'gerarProximasCompetencias', 'alternarNovoFornecedor', 'fecharPopupDespesa', 'salvarDespesa',
             'confirmarPagamentoDespesa', 'estornarPagamentoDespesa', 'excluirDespesa', 'arquivoEhExtratoImagemOuPdf',
             'processarExtratoViaIA', 'processarExtratoImportado', 'conciliarTransacoes', 'reprocessarConciliacaoPendente',
-            'renderPendenciasExtrato', 'alternarGrupoPendencias', 'vincularPendenciaExtrato', 'confirmarPendenciaDupla',
-            'descartarPendenciaExtrato', 'normalizarNomeParaComparacao', 'nomesParecem', // v1.177.0 — alternarPainelConciliacao saiu (Etapa 7/8, painel virou aba própria)
+            'normalizarNomeParaComparacao', 'nomesParecem', // v1.178.2 — renderPendenciasExtrato/alternarGrupoPendencias/vincularPendenciaExtrato/confirmarPendenciaDupla/descartarPendenciaExtrato saíram (painel de Pendências legado removido)
             'nomesIguaisSocio', 'abrirModalOpcoesRecibo', 'salvarObservacaoRecibo', 'fecharModalOpcoes',
             'dispararAcaoDoMenu', 'popularFiltrosMensal', // v1.177.0 — gerarMensalidades/alternarPainelGerarMes saíram (Gerar mês removido, Etapa 7)
             'carregarConciliacaoUnificada', 'filtrarConciliacaoSegmento', 'filtrarConciliacaoChip', 'abrirAcoesConciliacaoLinha', // v1.X — Etapa 2B

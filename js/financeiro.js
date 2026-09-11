@@ -1,7 +1,29 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.6.1 · 11/09/2026
+// Versão: 1.6.2 · 11/09/2026
+//
+// v1.6.2 — pedido do Nicola: migração + remoção total do painel de
+// Pendências legado (v1.6.1 tinha deixado de pé por decisão consciente —
+// tinha ~30 pendências reais da Rumo, R$ 127 mil). Migração conferida no
+// banco antes de remover: as 30 já tinham fingerprint correspondente em
+// extrato_fingerprints (nenhuma perdida); 2 estavam com o status antigo
+// dessincronizado do real (já resolvidas por baixo — rendimento, R01 — mas
+// a pendência legada tinha ficado travada em "Pendente"), corrigidas no
+// banco; as outras 28 seguem 'pendente', já visíveis/acionáveis na
+// Conciliação nova. Removidos: HTML do painel (4 selects de filtro + lista
+// agrupada por mês), renderPendenciasExtrato, alternarGrupoPendencias,
+// vincularPendenciaExtrato, confirmarPendenciaDupla, descartarPendenciaExtrato,
+// gruposPendenciasAbertos, e todo call-site (montarAbaFinanceiro, 4 pontos
+// de refresh pós-salvamento, pontes window[...]). reprocessarConciliacaoPendente()
+// reescrita: buscava em pendenciasExtrato (congelado desde v1.6.1, só
+// cresceria com dado histórico) — agora busca extrato_fingerprints
+// (status_conciliacao='pendente', direção entrada) direto, mesma fonte que
+// a Conciliação usa; idempotente pelo mesmo motivo de sempre (chave igual,
+// trigger de banco ignora o insert duplicado, só a reclassificação roda de
+// novo). "Confirmação dupla" confirmado no backlog — pedido explícito do
+// Nicola (é incomum; as 30 pendências reais da Rumo eram todas
+// 'nao_identificado', nenhuma 'confirmacao_dupla').
 //
 // v1.6.1 — achado do Nicola testando no celular: painel de Pendências legado
 // (pendencias_extrato) ainda era alimentado em PARALELO pela importação —
@@ -201,17 +223,17 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
     if (tabId === 'tab-mensal') { renderMensalidades(); }
     else if (tabId === 'tab-inadimplencia') { renderInadimplencia(); }
     else if (tabId === 'tab-saidas') { renderSaidas(); }
-    // v1.177.0 — Etapa 7/8: Conciliação virou aba própria (tab-conciliacao),
-    // não mais painel dentro de tab-mensal — carregarConciliacaoUnificada()
-    // e renderPendenciasExtrato() (painel legado) migraram pra cá.
-    else if (tabId === 'tab-conciliacao') { carregarConciliacaoUnificada(); renderPendenciasExtrato(); }
+    // v1.178.2 — Etapa 7/8 + retirada do painel de Pendências legado:
+    // Conciliação é aba própria, só carregarConciliacaoUnificada() agora
+    // (renderPendenciasExtrato() removida — painel legado retirado).
+    else if (tabId === 'tab-conciliacao') { carregarConciliacaoUnificada(); }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -1080,7 +1102,6 @@ export function montarAbaFinanceiro(tabId) {
                 renderInadimplencia();
                 renderSociosDistribricao();
                 renderRelatorios();
-                renderPendenciasExtrato();
             } catch (err) {
                 esconderCarregamentoGlobal();
                 alert('⚠️ Falha ao salvar o pagamento: ' + err.message);
@@ -1791,365 +1812,62 @@ export function montarAbaFinanceiro(tabId) {
 
         }
 
+        // v1.178.2 — retirada do painel de Pendências legado: reprocessar
+        // buscava pendências em pendenciasExtrato (agora congelado, só
+        // dados históricos) — fonte trocada pra extrato_fingerprints
+        // (status_conciliacao='pendente'), a mesma que a Conciliação usa.
+        // Reconstrói e passa pelo MESMO pipeline de sempre
+        // (conciliarTransacoes → conciliarRecebimento →
+        // fn_classificar_pagamento_contrato) — idempotente por natureza (a
+        // chave é a mesma, o trigger de banco ignora o insert duplicado do
+        // fingerprint, só a reclassificação roda de novo). conciliarTransacoes
+        // já chama fn_conciliacao_aplicar no fim (Etapa 8) — saída pendente
+        // (que este reprocessamento não tenta re-casar sozinho) também ganha
+        // uma chance pelo motor novo de graça.
         export async function reprocessarConciliacaoPendente() {
 
-            const pendentesNaoIdentificados = pendenciasExtrato.filter(p => p.status === 'Pendente' && p.tipo === 'nao_identificado');
+            const { data: pendentesFp, error: erroFp } = await dbAuth.from('extrato_fingerprints')
+                .select('id, data, valor, razao_social, documento_original')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status_conciliacao', 'pendente').eq('direcao', 'entrada');
 
-            if (pendentesNaoIdentificados.length === 0) {
+            if (erroFp) { mostrarToast('Erro ao buscar pendências: ' + erroFp.message, 'danger'); return; }
 
-                alert("Não há pendências do tipo 'não identificado' para reprocessar agora.");
+            if (!pendentesFp || pendentesFp.length === 0) {
+
+                alert("Não há entradas pendentes para reprocessar agora.");
 
                 return;
 
             }
 
-            if (!confirm(`Reprocessar ${pendentesNaoIdentificados.length} pendência(s)? Isso gera novamente os recebimentos da(s) competência(s) envolvida(s) e tenta conciliar cada pendência de novo.`)) return;
+            if (!confirm(`Reprocessar ${pendentesFp.length} entrada(s) pendente(s)? Isso tenta achar contrato e mensalidade de novo para cada uma.`)) return;
 
             mostrarCarregamentoGlobal("Reprocessando conciliação...");
 
-            // Reconstrói cada pendência como se fosse uma linha de extrato, reusando
+            const transacoesReconstituidas = pendentesFp.map(p => ({
 
-            // exatamente a mesma lógica de conciliação usada na importação de arquivo.
+                dataISO: p.data, valor: Math.abs(parseFloat(p.valor)),
 
-            const transacoesReconstituidas = pendentesNaoIdentificados.map(p => ({
-
-                dataISO: p.data,
-
-                valor: p.valor,
-
-                razaoSocial: p.razaoSocial,
-
-                documento: p.documento || '',
-
-                descricao: ''
+                razaoSocial: p.razao_social || '', documento: p.documento_original || '', descricao: ''
 
             }));
 
-            await conciliarTransacoes(transacoesReconstituidas, '🔄 Reprocessamento concluído!');
+            await conciliarTransacoes(transacoesReconstituidas, '🔄 Reprocessamento concluído!', 'Itaú');
 
         }
 
-        let gruposPendenciasAbertos = null;
+        // v1.178.2 — painel de Pendências legado retirado (achado do
+        // Nicola testando no celular; migração conferida em banco antes de
+        // tirar: as 30 pendências reais da Rumo já tinham fingerprint
+        // correspondente, 2 corrigidas por dessincronia, 28 seguem
+        // 'pendente' e já visíveis/acionáveis na Conciliação nova — nenhum
+        // dado perdido). Removidas: renderPendenciasExtrato,
+        // alternarGrupoPendencias, vincularPendenciaExtrato,
+        // confirmarPendenciaDupla, descartarPendenciaExtrato,
+        // gruposPendenciasAbertos. "Confirmação dupla" (1 pagamento cobrindo
+        // 2 meses) fica no backlog — pedido explícito do Nicola (incomum;
+        // nenhum caso real achado na base da Rumo ao investigar).
 
-        export function renderPendenciasExtrato() {
-
-            const wrapper = document.getElementById('painel-pendencias-extrato-wrapper');
-
-            const container = document.getElementById('painel-pendencias-extrato');
-
-            if (!wrapper || !container) return;
-
-            const pendentesTotal = pendenciasExtrato.filter(p => p.status === 'Pendente');
-
-            wrapper.classList.toggle('hidden', pendentesTotal.length === 0);
-
-            // Popular os 4 filtros a partir dos contratos sugeridos das próprias pendências.
-
-            const contratosSugeridos = pendentesTotal.map(p => p.contratoIdSugerido ? contratos.find(c => c.id === p.contratoIdSugerido) : null).filter(Boolean);
-
-            popularFiltroSelect('pex-filtro-locatario', contratosSugeridos.map(c => c.locatario));
-
-            const selectPexCompetencia = document.getElementById('pex-filtro-competencia');
-
-            if (selectPexCompetencia) {
-
-                const valorAtualComp = selectPexCompetencia.value || 'todos';
-
-                // Normaliza qualquer formato herdado (ex: data ISO antiga) para
-
-                // MM/AAAA, igual ao filtro da Fila de Recebimentos, e ordena
-
-                // cronologicamente (não em ordem alfabética, que ficaria errado).
-
-                const competenciasUnicas = [...new Set(pendentesTotal.map(p => normalizarCompetencia(p.referenciaSugerida)).filter(Boolean))]
-
-                    .sort((a, b) => { const [ma, aa] = a.split('/'), [mb, ab] = b.split('/'); return (aa + ma).localeCompare(ab + mb); });
-
-                selectPexCompetencia.innerHTML = '<option value="todos">Todas</option>' + competenciasUnicas.map(c => `<option value="${c}">${c}</option>`).join('');
-
-                selectPexCompetencia.value = (valorAtualComp === 'todos' || competenciasUnicas.includes(valorAtualComp)) ? valorAtualComp : 'todos';
-
-            }
-
-            popularFiltroSelect('pex-filtro-empreendimento', contratosSugeridos.map(c => { const imo = imoveis.find(i => i.id === c.imovelId); return imo ? imo.empreendimento : null; }));
-
-            const selectPexImovel = document.getElementById('pex-filtro-imovel');
-
-            if (selectPexImovel) {
-
-                const valorAtualImovel = selectPexImovel.value || 'todos';
-
-                const imoveisUnicos = [...new Map(contratosSugeridos.map(c => imoveis.find(i => i.id === c.imovelId)).filter(Boolean).map(i => [i.id, i])).values()];
-
-                selectPexImovel.innerHTML = '<option value="todos">Todos</option>' + imoveisUnicos.map(i => `<option value="${i.id}">${i.empreendimento} - ${i.enderecoRua}</option>`).join('');
-
-                selectPexImovel.value = (valorAtualImovel === 'todos' || imoveisUnicos.some(i => i.id === valorAtualImovel)) ? valorAtualImovel : 'todos';
-
-            }
-
-            const fLocatario = document.getElementById('pex-filtro-locatario')?.value || 'todos';
-
-            const fCompetencia = document.getElementById('pex-filtro-competencia')?.value || 'todos';
-
-            const fEmpreendimento = document.getElementById('pex-filtro-empreendimento')?.value || 'todos';
-
-            const fImovel = document.getElementById('pex-filtro-imovel')?.value || 'todos';
-
-            const pendentes = pendentesTotal.filter(p => {
-
-                const con = p.contratoIdSugerido ? contratos.find(c => c.id === p.contratoIdSugerido) : null;
-
-                const imo = con ? imoveis.find(i => i.id === con.imovelId) : null;
-
-                if (fLocatario !== 'todos' && (!con || con.locatario !== fLocatario)) return false;
-
-                if (fCompetencia !== 'todos' && normalizarCompetencia(p.referenciaSugerida) !== fCompetencia) return false;
-
-                if (fEmpreendimento !== 'todos' && (!imo || imo.empreendimento !== fEmpreendimento)) return false;
-
-                if (fImovel !== 'todos' && (!con || con.imovelId !== fImovel)) return false;
-
-                return true;
-
-            });
-
-            const resumo = document.getElementById('pex-resumo');
-
-            if (resumo) {
-
-                const somaPendentes = pendentes.reduce((acc, p) => acc + p.valor, 0);
-
-                resumo.innerText = `R$ ${somaPendentes.toLocaleString('pt-BR', {minimumFractionDigits:2})} (${pendentes.length})`;
-
-            }
-
-            // Agrupa por competência sugerida, igual à Fila de Recebimentos — cada
-
-            // grupo pode ser fechado/aberto, e mantém o estado entre ações.
-
-            const grupos = {};
-
-            pendentes.forEach(p => {
-
-                const ref = normalizarCompetencia(p.referenciaSugerida) || 'Sem competência';
-
-                if (!grupos[ref]) grupos[ref] = [];
-
-                grupos[ref].push(p);
-
-            });
-
-            const competenciasOrdenadas = Object.keys(grupos).sort((a, b) => {
-
-                const [ma, aa] = (a.split('/')[0] ? a.split('/') : ['00','0000']), [mb, ab] = (b.split('/')[0] ? b.split('/') : ['00','0000']);
-
-                return (ab + mb).localeCompare(aa + ma);
-
-            });
-
-            if (gruposPendenciasAbertos === null) {
-
-                gruposPendenciasAbertos = new Set(competenciasOrdenadas.length > 0 ? [competenciasOrdenadas[0]] : []);
-
-            }
-
-            container.innerHTML = competenciasOrdenadas.map(ref => {
-
-                const itensGrupo = grupos[ref];
-
-                const htmlItens = itensGrupo.map(p => {
-
-                    const con = p.contratoIdSugerido ? contratos.find(c => c.id === p.contratoIdSugerido) : null;
-
-                    if (p.tipo === 'confirmacao_dupla') {
-
-                        return `
-
-                            <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-purple-500">
-
-                                <p class="text-xs font-bold text-slate-900">${p.razaoSocial}</p>
-
-                                <p class="text-[13px] text-gray-500">Recebido em ${formatarDataBR(p.data)}: R$ ${fmtBR(p.valor)} — valor bate com <strong>2 mensalidades pendentes</strong> de ${con ? con.locatario : '-'}. Confirma que são os 2 meses?</p>
-
-                                <div class="flex gap-2 mt-2">
-
-                                    <button onclick="confirmarPendenciaDupla('${p.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold"><svg data-lucide="check" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Sim, são os 2 meses</button>
-
-                                    <button onclick="descartarPendenciaExtrato('${p.id}')" class="flex-1 bg-slate-100 text-slate-700 text-[13px] py-1.5 rounded font-bold border">Descartar</button>
-
-                                </div>
-
-                            </div>`;
-
-                    }
-
-                    const opcoesMensalidades = mensalidades.filter(m => m.status === 'Inadimplente').map(m => {
-
-                        const c = contratos.find(c => c.id === m.contratoId);
-
-                        const imo = c ? imoveis.find(i => i.id === c.imovelId) : null;
-
-                        const local = imo ? `${imo.empreendimento} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}` : '';
-
-                        return `<option value="${m.id}">${c ? c.locatario : '?'} — Ref ${m.referencia} — R$ ${fmtBR(m.valorConfirmado)}${local ? ' — ' + local : ''}</option>`;
-
-                    }).join('');
-
-                    return `
-
-                        <div class="bg-white p-3 rounded-xl shadow-sm border-l-4 border-amber-500">
-
-                            <p class="text-xs font-bold text-slate-900">${p.razaoSocial || '(sem nome)'}</p>
-
-                            <p class="text-[13px] text-gray-500">Recebido em ${formatarDataBR(p.data)}: <strong>R$ ${fmtBR(p.valor)}</strong> — não identificado automaticamente.</p>
-
-                            <select id="vincular-${p.id}" class="w-full border p-1.5 rounded text-[13px] mt-2 bg-gray-50">
-
-                                <option value="">-- Vincular a uma mensalidade pendente --</option>
-
-                                ${opcoesMensalidades}
-
-                            </select>
-
-                            <div class="flex gap-2 mt-2">
-
-                                <button onclick="vincularPendenciaExtrato('${p.id}')" class="flex-1 raiz-bg-pine text-white text-[13px] py-1.5 rounded font-bold">Vincular</button>
-
-                                <button onclick="descartarPendenciaExtrato('${p.id}')" class="flex-1 bg-slate-100 text-slate-700 text-[13px] py-1.5 rounded font-bold border">Descartar</button>
-
-                            </div>
-
-                        </div>`;
-
-                }).join('');
-
-                const grupoId = 'grupo-pex-' + ref.replace('/', '-');
-
-                const aberto = gruposPendenciasAbertos.has(ref);
-
-                return `
-
-                    <div class="mb-3">
-
-                        <button type="button" onclick="alternarGrupoPendencias('${ref}')" class="w-full bg-red-700 text-white p-3 rounded-xl flex justify-between items-center shadow">
-
-                            <span class="font-bold text-sm">📅 ${ref} <span id="${grupoId}-seta">${aberto ? '▲' : '▼'}</span></span>
-
-                            <span class="text-[11px] bg-red-900/40 px-2 py-0.5 rounded">${itensGrupo.length} item(ns)</span>
-
-                        </button>
-
-                        <div id="${grupoId}" class="${aberto ? '' : 'hidden'} space-y-2 mt-2">${htmlItens}</div>
-
-                    </div>
-
-                `;
-
-            }).join('');
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-
-        }
-
-        export function alternarGrupoPendencias(ref) {
-
-            const grupoId = 'grupo-pex-' + ref.replace('/', '-');
-
-            const div = document.getElementById(grupoId);
-
-            const seta = document.getElementById(`${grupoId}-seta`);
-
-            if (!div) return;
-
-            div.classList.toggle('hidden');
-
-            const aberto = !div.classList.contains('hidden');
-
-            if (seta) seta.innerText = aberto ? '▲' : '▼';
-
-            if (aberto) gruposPendenciasAbertos.add(ref); else gruposPendenciasAbertos.delete(ref);
-
-        }
-
-        export function vincularPendenciaExtrato(pendId) {
-
-            const select = document.getElementById(`vincular-${pendId}`);
-
-            const menId = select.value;
-
-            if (!menId) return alert("Escolha uma mensalidade antes de vincular.");
-
-            const pend = pendenciasExtrato.find(p => p.id === pendId);
-
-            const idxMen = mensalidades.findIndex(m => m.id === menId);
-
-            if (!pend || idxMen === -1) return;
-
-            mensalidades[idxMen].status = 'Pago';
-
-            mensalidades[idxMen].banco = 'PIX/TED (extrato)';
-
-            mensalidades[idxMen].dataPgto = formatarDataBR(pend.data);
-
-            mensalidades[idxMen].valorConfirmado = pend.valor;
-
-            mensalidades[idxMen].chaveTransacaoOrigem = `${pend.data}|${pend.valor.toFixed(2)}|${pend.razaoSocial.toUpperCase()}`;
-
-            mensalidades[idxMen].observacao = `Conciliado manualmente — pagador: ${pend.razaoSocial}`;
-
-            pend.status = 'Resolvido';
-
-            saveAll(true, "Recebimento vinculado com sucesso!", ['mensalidades', 'pendenciasExtrato'], { mensalidades: [menId], pendenciasExtrato: [pendId] });
-
-        }
-
-        export function confirmarPendenciaDupla(pendId) {
-
-            const pend = pendenciasExtrato.find(p => p.id === pendId);
-
-            if (!pend) return;
-
-            const chaveOrigem = `${pend.data}|${pend.valor.toFixed(2)}|${pend.razaoSocial.toUpperCase()}`;
-
-            pend.mensalidadeIdsSugeridas.forEach(menId => {
-
-                const idxMen = mensalidades.findIndex(m => m.id === menId);
-
-                if (idxMen !== -1 && mensalidades[idxMen].status === 'Inadimplente') {
-
-                    mensalidades[idxMen].status = 'Pago';
-
-                    mensalidades[idxMen].banco = 'PIX/TED (extrato)';
-
-                    mensalidades[idxMen].dataPgto = formatarDataBR(pend.data);
-
-                    mensalidades[idxMen].chaveTransacaoOrigem = chaveOrigem;
-
-                    mensalidades[idxMen].observacao = `Conciliado via pagamento agrupado de 2 meses — pagador: ${pend.razaoSocial}`;
-
-                }
-
-            });
-
-            pend.status = 'Resolvido';
-
-            saveAll(true, "As 2 mensalidades foram marcadas como pagas!", ['mensalidades', 'pendenciasExtrato'], { mensalidades: pend.mensalidadeIdsSugeridas || [], pendenciasExtrato: [pendId] });
-
-        }
-
-        export function descartarPendenciaExtrato(pendId) {
-
-            const pend = pendenciasExtrato.find(p => p.id === pendId);
-
-            if (!pend) return;
-
-            if (!confirm("Confirma descartar este lançamento? Ele não será mais sugerido para conciliação.")) return;
-
-            pend.status = 'Descartado';
-
-            saveAll(true, "Lançamento descartado.", ['pendenciasExtrato'], { pendenciasExtrato: [pendId] });
-
-        }
 
         // v1.177.0 — alternarPainelGerarMes() removida (Etapa 7 — painel
         // "Gerar mês" não existe mais, ver comentário em gerarMensalidades).
@@ -2615,7 +2333,6 @@ export function montarAbaFinanceiro(tabId) {
                 renderInadimplencia();
                 renderSociosDistribricao();
                 renderRelatorios();
-                renderPendenciasExtrato();
             } catch (err) {
                 esconderCarregamentoGlobal();
                 alert('⚠️ Falha ao excluir: ' + err.message);
