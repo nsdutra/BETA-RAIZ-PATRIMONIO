@@ -4,6 +4,28 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.166.0) — BUG REAL achado pelo Nicola: app travava no
+boot ("Falha ao buscar imóveis: Failed to fetch dynamically imported
+module .../js/imoveis.js") e "Editar dados do imóvel" não abria nada
+(mesma causa — a promise da import() falhando nunca é tratada).
+Causa raiz: a fatia A.8 (v1.164.0) levou carregarImoveisSupabase/
+sincronizarImovelSupabase/sincronizarImoveisSupabase/
+carregarTiposImovelSupabase pra dentro do módulo lazy — mas essas 4 são
+a camada de DADO (populam o array `imoveis` ANTES da 1ª tela), não de
+tela. Toda fatia anterior (contratos/minutas/financeiro) já seguia a
+regra de nunca mover carregar*Supabase/sincronizar*Supabase — só não
+tinha ficado escrita, e eu não conferi antes de aplicar em imóveis.
+Corrigido: as 4 voltaram pra cá (imoveis.js 1.1.0, só as 47 de tela).
+Se o manifesto do Deploy_Raiz.ps1 já tinha a linha do imoveis.js mas o
+arquivo mesmo assim não subiu antes, vale conferir se a linha foi
+adicionada de fato (ver LEIA-ME da entrega anterior).
+------------------------------------------------------------------
+Versões anteriores (v1.165.0 … v1.165.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.165.0) — BUG REAL achado pelo Nicola (prints do app):
 "Documentos arquivados" (v1.162.0) não aparecia em lugar nenhum. Causa:
 fui pro modal-menu-conta de ativos-markup.js — que está MORTO desde a

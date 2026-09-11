@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.170.0
-   LINHAS: 15283
+   VERSÃO: Beta v1.171.0
+   LINHAS: 15273
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.171.0) — BUG REAL achado pelo Nicola: "Editar dados
+   do imóvel" (a partir do Ativo) não abria nada, sem aviso. Corrida entre
+   o boot do array `imoveis` (index.html) e o boot independente do Cofre/
+   Ativos — imoveis.js 1.2.0 agora recarrega uma vez antes de desistir e
+   avisa com toast se mesmo assim não achar.
    NOVIDADES (Beta v1.170.0) — BUG REAL achado pelo Nicola com prints:
    chips da tela de conciliação nova ficavam ilegíveis (texto branco em
    fundo branco) ao trocar de filtro — cada chip agora guarda sua própria
@@ -41,23 +46,8 @@
    dias) em vez de gerar só o mês local. financeiro.js 1.1.0: botão "Gerar
    Mês" chama fn_gerar_mensalidades_competencia (banco) — fonte única entre
    botão manual, disparo automático e cron.
-   NOVIDADES (Beta v1.166.0) — BUG REAL achado pelo Nicola: app travava no
-   boot ("Falha ao buscar imóveis: Failed to fetch dynamically imported
-   module .../js/imoveis.js") e "Editar dados do imóvel" não abria nada
-   (mesma causa — a promise da import() falhando nunca é tratada).
-   Causa raiz: a fatia A.8 (v1.164.0) levou carregarImoveisSupabase/
-   sincronizarImovelSupabase/sincronizarImoveisSupabase/
-   carregarTiposImovelSupabase pra dentro do módulo lazy — mas essas 4 são
-   a camada de DADO (populam o array `imoveis` ANTES da 1ª tela), não de
-   tela. Toda fatia anterior (contratos/minutas/financeiro) já seguia a
-   regra de nunca mover carregar*Supabase/sincronizar*Supabase — só não
-   tinha ficado escrita, e eu não conferi antes de aplicar em imóveis.
-   Corrigido: as 4 voltaram pra cá (imoveis.js 1.1.0, só as 47 de tela).
-   Se o manifesto do Deploy_Raiz.ps1 já tinha a linha do imoveis.js mas o
-   arquivo mesmo assim não subiu antes, vale conferir se a linha foi
-   adicionada de fato (ver LEIA-ME da entrega anterior).
    ------------------------------------------------------------------
-   Versões anteriores (v1.165.0 … v1.165.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.166.0 … v1.166.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -81,7 +71,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.3.1","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.1.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.3.1","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.2.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3395,7 +3385,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.170.0";
+        const APP_VERSAO = "Beta v1.171.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
