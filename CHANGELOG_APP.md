@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.167.0) — Módulo Apoio ao Contador, itens 5/6 do plano
+(banco já tinha os itens 1-4 e 7 aplicados pelo conector). contratos.js
+1.2.0: ativar/renovar contrato chama fn_gerar_mensalidades_horizonte (90
+dias) em vez de gerar só o mês local. financeiro.js 1.1.0: botão "Gerar
+Mês" chama fn_gerar_mensalidades_competencia (banco) — fonte única entre
+botão manual, disparo automático e cron.
+------------------------------------------------------------------
+Versões anteriores (v1.166.0 … v1.166.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.166.0) — BUG REAL achado pelo Nicola: app travava no
 boot ("Falha ao buscar imóveis: Failed to fetch dynamically imported
 module .../js/imoveis.js") e "Editar dados do imóvel" não abria nada

@@ -1,7 +1,21 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.3.1 · 10/09/2026
+// Versão: 1.4.0 · 10/09/2026
+//
+// v1.4.0 — módulo Apoio ao Contador: conciliação virou roteador fino
+// (pedido do Nicola, 10/09/2026) — linha já conciliada abre a tela nativa
+// de sempre (abrirRecebimentoDetalhe/abrirEditarDespesa) em vez de uma
+// ficha própria; "Nova despesa" abre abrirNovaDespesa (já aceitava
+// `sugestoes`, só nunca tinha sido chamada daqui) pré-preenchida.
+// salvarDespesa() agora fecha o laço: quando a despesa nasce da
+// conciliação, marca origem_tipo='extrato' e vincula o fingerprint de
+// volta depois de criar — sem duplicar a lógica de criação.
+// fn_extrato_sugerir_recebimento (nova, banco) dá sugestão de mensalidade
+// pra vincular direto, mesmo padrão da de saída.
+// Campos de IPTU/Condomínio (Etapa 1) adicionados na tela nativa de
+// recebimento, ao lado de Multa/Taxa Adm. — informativos, não entram na
+// conta do líquido.
 //
 // v1.3.1 — BUG REAL achado pelo Nicola com prints ("chips ficando em
 // branco ao navegar"): filtrarConciliacaoChip() desativava um chip fazendo
@@ -106,7 +120,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.3.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -492,6 +506,7 @@ export function montarAbaFinanceiro(tabId) {
         export function fecharPopupDespesa() {
             document.getElementById('modal-campo-contrato')?.remove();
             despesaEmEdicaoId = null;
+            despesaOrigemFingerprintId = null;
         }
 
         export async function salvarDespesa() {
@@ -544,8 +559,27 @@ export function montarAbaFinanceiro(tabId) {
                     const { error } = await dbAuth.from('lancamentos').update(payload).eq('id', despesaEmEdicaoId);
                     if (error) throw error;
                 } else {
-                    const { error } = await dbAuth.from('lancamentos').insert({ ...payload, status: 'previsto' });
+                    // v2 — módulo Apoio ao Contador: se veio da conciliação
+                    // (despesaOrigemFingerprintId setado por "Nova despesa"),
+                    // marca origem_tipo='extrato' (mesma convenção de
+                    // fn_extrato_criar_saida — já era um valor aceito no
+                    // CHECK) e, depois de criar, vincula o fingerprint de
+                    // volta — sem duplicar a lógica de criação, só fecha o
+                    // laço com o que já existia.
+                    const { data: criado, error } = await dbAuth.from('lancamentos').insert({
+                        ...payload, status: 'previsto',
+                        origem_tipo: despesaOrigemFingerprintId ? 'extrato' : 'manual',
+                        origem_id: despesaOrigemFingerprintId || null,
+                    }).select('id').single();
                     if (error) throw error;
+                    if (despesaOrigemFingerprintId) {
+                        const { error: erroVinculo } = await dbAuth.from('extrato_fingerprints').update({
+                            status_conciliacao: 'conciliado', destino_tipo: 'lancamento', destino_id: criado.id, conciliado_em: new Date().toISOString(),
+                        }).eq('id', despesaOrigemFingerprintId);
+                        if (erroVinculo) devLog('ERRO_CONCILIACAO', 'Despesa criada, mas não consegui vincular o extrato: ' + erroVinculo.message);
+                        despesaOrigemFingerprintId = null;
+                        if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
+                    }
                 }
 
                 lancamentos = await carregarLancamentosSupabase();
@@ -740,6 +774,16 @@ export function montarAbaFinanceiro(tabId) {
                                 <label class="block text-[11px] font-bold text-slate-700">🏢 Taxa da Administradora</label>
                                 <input type="number" id="taxa-admin-${men.id}" value="${men.taxaAdmSugerida || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')" class="w-full border border-slate-300 p-1 rounded bg-white font-bold text-slate-700 text-sm">
                             </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500">IPTU (informativo)</label>
+                                    <input type="number" id="iptu-${men.id}" value="${men.valorIptu || 0}" class="w-full border border-slate-300 p-1 rounded bg-white text-slate-700 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500">Condomínio (informativo)</label>
+                                    <input type="number" id="condominio-${men.id}" value="${men.valorCondominio || 0}" class="w-full border border-slate-300 p-1 rounded bg-white text-slate-700 text-sm">
+                                </div>
+                            </div>
                             <div class="pt-1.5 border-t border-slate-300 text-xs text-slate-600">
                                 <div class="flex justify-between"><span>Multa</span><span id="resumo-multa-${men.id}">R$ 0,00</span></div>
                                 <div class="flex justify-between"><span>Taxa Adm.</span><span id="resumo-taxa-${men.id}">R$ 0,00</span></div>
@@ -911,6 +955,10 @@ export function montarAbaFinanceiro(tabId) {
             const campoTaxa = document.getElementById(`taxa-admin-${menId}`);
             const valorMulta = campoMulta ? (parseFloat(campoMulta.value) || 0) : 0;
             const valorTaxa = campoTaxa ? (parseFloat(campoTaxa.value) || 0) : 0;
+            const campoIptu = document.getElementById(`iptu-${menId}`);
+            const campoCondominio = document.getElementById(`condominio-${menId}`);
+            const valorIptuManual = campoIptu ? (parseFloat(campoIptu.value) || 0) : 0;
+            const valorCondominioManual = campoCondominio ? (parseFloat(campoCondominio.value) || 0) : 0;
 
             const resumoExtras = [];
             if (valorEnergiaManual > 0) resumoExtras.push(`Energia: R$ ${fmtBR(valorEnergiaManual)}`);
@@ -940,6 +988,8 @@ export function montarAbaFinanceiro(tabId) {
             mensalidades[idx].valorConfirmado = valorManual;
             mensalidades[idx].observacaoRecibo = obsManual;
             mensalidades[idx].valorEnergia = valorEnergiaManual;
+            mensalidades[idx].valorIptu = valorIptuManual;
+            mensalidades[idx].valorCondominio = valorCondominioManual;
 
             registrarLog('mensal.baixar', { mensalidadeId: menId, referencia: mensalidades[idx].referencia, valor: valorManual, banco: banco, via: 'manual' });
 
@@ -2054,6 +2104,7 @@ export function montarAbaFinanceiro(tabId) {
         let conciliacaoUniCache = [];
         let conciliacaoUniSegmento = 'tudo';
         let conciliacaoUniChip = 'todos';
+        let despesaOrigemFingerprintId = null; // v2 — setado quando "Nova despesa" é aberta a partir da conciliação; salvarDespesa() usa isso pra vincular o fingerprint de volta
 
         export async function carregarConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
@@ -2061,7 +2112,7 @@ export function montarAbaFinanceiro(tabId) {
             lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
             try {
                 const { data, error } = await dbAuth.from('extrato_fingerprints')
-                    .select('id, data, valor, direcao, razao_social, documento_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario')
+                    .select('id, data, valor, direcao, razao_social, documento_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario, chave')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
                     .order('data', { ascending: false })
                     .limit(200);
@@ -2143,52 +2194,81 @@ export function montarAbaFinanceiro(tabId) {
             const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const sub = `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`;
 
-            if (entrada) {
-                // Entrada continua tratada pelo painel de Pendências de sempre
-                // (não reimplementado aqui) — só aponta pra lá.
-                abrirSheetAcoes({ titulo: f.razao_social || 'Entrada', sub, acoes: [
-                    { icone: 'list', titulo: 'Ver em Pendências', sub: 'Entrada usa o painel de sempre, mais abaixo', aoTocar: () => { fecharSheet(); document.getElementById('painel-pendencias-extrato-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
-                ] });
-                return;
-            }
-
-            if (f.status_conciliacao === 'conciliado') {
-                abrirSheetAcoes({ titulo: f.razao_social || 'Saída', sub, acoes: [
-                    { icone: 'undo-2', titulo: 'Estornar', sub: 'A despesa criada some; a que já existia volta pra prevista', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
-                ] });
+            // v2 — roteador fino (pedido do Nicola, 10/09/2026): já conciliado
+            // abre a tela nativa de sempre (abrirRecebimentoDetalhe/
+            // abrirEditarDespesa) em vez de uma ficha própria — mesma tela
+            // que "Rua Dr..." já usa em Ativos, recibo/estornar/dar baixa já
+            // prontos ali. "Estornar" aqui continua sendo só o desvínculo da
+            // conciliação (fn_extrato_estornar_vinculo), não mexe na baixa.
+            if (f.status_conciliacao === 'conciliado' && f.destino_id) {
+                if (entrada) { abrirRecebimentoDetalhe(f.destino_id); }
+                else { abrirEditarDespesa(f.destino_id); }
                 return;
             }
             if (f.status_conciliacao === 'nao_controlado') {
-                abrirSheetAcoes({ titulo: f.razao_social || 'Saída', sub: sub + (f.observacao_usuario ? ' · ' + f.observacao_usuario : ''), acoes: [
+                abrirSheetAcoes({ titulo: f.razao_social || '—', sub: sub + (f.observacao_usuario ? ' · ' + f.observacao_usuario : ''), acoes: [
                     { icone: 'rotate-ccw', titulo: 'Reabrir', sub: 'Volta pra pendente', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
                 ] });
                 return;
             }
 
-            // Pendente — busca sugestão (banco) antes de montar o sheet.
+            // Pendente — busca sugestão (banco), RPC diferente por direção.
             mostrarCarregamentoGlobal('Buscando sugestão…');
             let candidatos = [];
             let categoriaSugerida = null;
             try {
-                const { data, error } = await dbAuth.rpc('fn_extrato_sugerir_destino', { p_fingerprint_id: fingerprintId });
-                if (!error) {
-                    candidatos = (data || []).filter(c => c.lancamento_id);
-                    const linhaSugestao = (data || []).find(c => c.categoria_sugerida_se_nova);
-                    if (linhaSugestao) categoriaSugerida = linhaSugestao.categoria_sugerida_se_nova;
+                if (entrada) {
+                    const { data, error } = await dbAuth.rpc('fn_extrato_sugerir_recebimento', { p_fingerprint_id: fingerprintId });
+                    if (!error) candidatos = data || [];
+                } else {
+                    const { data, error } = await dbAuth.rpc('fn_extrato_sugerir_destino', { p_fingerprint_id: fingerprintId });
+                    if (!error) {
+                        candidatos = (data || []).filter(c => c.lancamento_id);
+                        const linhaSugestao = (data || []).find(c => c.categoria_sugerida_se_nova);
+                        if (linhaSugestao) categoriaSugerida = linhaSugestao.categoria_sugerida_se_nova;
+                    }
                 }
             } catch (e) { /* segue sem sugestão, não bloqueia */ }
             esconderCarregamentoGlobal();
 
-            const acoes = candidatos.map(c => ({
-                icone: 'link', titulo: `Vincular: ${c.descricao || c.categoria || 'despesa prevista'}`,
-                sub: `R$ ${Number(c.valor).toFixed(2)} · vence ${formatarDataBR(c.vencimento)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
-                aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
-            }));
-            acoes.push({ icone: 'plus', titulo: 'Criar nova saída', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Registra uma despesa a partir deste pagamento', aoTocar: () => abrirFormCriarSaidaConciliacao(fingerprintId, f, categoriaSugerida) });
-            acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarCriarSaidaConciliacao(fingerprintId, 'repasse_socio', 'Repasse — ' + (f.razao_social || '')) });
-            acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco continua guardada, sem virar despesa', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
+            const acoes = [];
+            if (entrada) {
+                candidatos.forEach(c => acoes.push({
+                    icone: 'link', titulo: `Vincular: ${c.locatario}`,
+                    sub: `Ref ${c.referencia} · R$ ${Number(c.valor).toFixed(2)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
+                    aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
+                }));
+                if (!candidatos.length) acoes.push({ icone: 'list', titulo: 'Ver em Pendências', sub: 'Nenhuma sugestão — procure manualmente na lista de sempre', aoTocar: () => { fecharSheet(); document.getElementById('painel-pendencias-extrato-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
+            } else {
+                candidatos.forEach(c => acoes.push({
+                    icone: 'link', titulo: `Vincular: ${c.descricao || c.categoria || 'despesa prevista'}`,
+                    sub: `R$ ${Number(c.valor).toFixed(2)} · vence ${formatarDataBR(c.vencimento)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
+                    aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
+                }));
+                // "Nova despesa" abre a tela nativa já preenchida (abrirNovaDespesa
+                // já aceita `sugestoes` — não crio ficha própria).
+                acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined }); } });
+                acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarCriarSaidaConciliacao(fingerprintId, 'repasse_socio', 'Repasse — ' + (f.razao_social || '')) });
+            }
+            acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco continua guardada', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
 
-            abrirSheetAcoes({ titulo: f.razao_social || 'Saída', sub, acoes });
+            abrirSheetAcoes({ titulo: f.razao_social || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
+        }
+
+        async function confirmarVincularConciliacaoRecebimento(fingerprintId, mensalidadeId, f) {
+            fecharSheet();
+            mostrarCarregamentoGlobal('Vinculando…');
+            try {
+                const { error } = await dbAuth.rpc('fn_extrato_vincular_recebimento', {
+                    p_mensalidade_id: mensalidadeId, p_valor: f.valor, p_data: f.data,
+                    p_razao_social: f.razao_social, p_chave: f.chave || null,
+                });
+                if (error) throw error;
+                mensalidades = await carregarMensalidadesSupabase();
+                esconderCarregamentoGlobal(); mostrarToast('Vinculado!', 'success');
+                registrarLog('conciliacao.vincular_recebimento', { fingerprintId, mensalidadeId });
+                await carregarConciliacaoUnificada();
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
         }
 
         async function confirmarVincularConciliacaoSaida(fingerprintId, lancamentoId) {
@@ -2201,18 +2281,6 @@ export function montarAbaFinanceiro(tabId) {
                 registrarLog('conciliacao.vincular_saida', { fingerprintId, lancamentoId });
                 await carregarConciliacaoUnificada();
             } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
-        }
-
-        function abrirFormCriarSaidaConciliacao(fingerprintId, f, categoriaSugerida) {
-            const categorias = ['aluguel', 'iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'repasse_socio', 'tributo', 'reembolso', 'outro'];
-            const opcoes = categorias.map(c => `<option value="${c}" ${c === categoriaSugerida ? 'selected' : ''}>${c}</option>`).join('');
-            abrirSheetForm({
-                titulo: 'Criar nova saída', sub: f.razao_social || '',
-                corpo: `<div class="mb-3"><label class="block text-xs font-bold text-gray-600">Categoria</label><select id="cs-categoria" class="w-full p-2 border rounded text-sm mt-1">${opcoes}</select></div>
-                        <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Descrição</label><input type="text" id="cs-descricao" value="${escapeHtmlSaidas(f.razao_social || '')}" class="w-full p-2 border rounded text-sm mt-1"></div>`,
-                rotuloSalvar: 'Criar saída',
-                aoSalvar: () => { confirmarCriarSaidaConciliacao(fingerprintId, document.getElementById('cs-categoria').value, document.getElementById('cs-descricao').value); return false; },
-            });
         }
 
         async function confirmarCriarSaidaConciliacao(fingerprintId, categoria, descricao) {
