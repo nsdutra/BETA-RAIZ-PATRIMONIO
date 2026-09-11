@@ -6,9 +6,24 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.178.0
-   LINHAS: 15011
+   VERSÃO: Beta v1.178.2
+   LINHAS: 15032
    DATA: 11/09/2026
+   NOVIDADES (Beta v1.178.2) — mesmo achado do Nicola: pontes window[...] pra
+   3 funções novas de financeiro.js 1.6.1 (busca manual de recebimento —
+   abrirBuscarMensalidadeManual/filtrarVincularManual/selecionarMensalidadeManual).
+   Nada de HTML mudou aqui — o painel de Pendências legado (Filtrar
+   Pendências, barras vermelhas por mês) continua de pé por decisão
+   consciente: tem ~30 pendências reais da Rumo (R$ 127 mil) já carregadas
+   nele. Ver changelog de financeiro.js 1.6.1 pro raciocínio completo.
+   NOVIDADES (Beta v1.178.1) — 2 ajustes de UI direto do teste no celular do
+   Nicola (tab-conciliacao): (1) chip "Atrasados" tirado desta aba — não faz
+   sentido conceitual em Conciliação (atraso é sobre a cobrança, não sobre
+   casar linha do banco); continua em Recebimentos/Saídas, onde já fazia
+   sentido. (2) Borda esquerda verde do card "Conciliação — entradas e
+   saídas" tirada — tinha sido posta numa sessão anterior só pra separar
+   visualmente "tela nova" de "tela antiga" dividindo a mesma aba; sem
+   sentido agora que Conciliação é aba própria.
    NOVIDADES (Beta v1.178.0) — Etapa 8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md.
    (1) Chip "Automáticas" no card de conciliação. (2) banco_origem real
    gravado (achado A5) — gravarFingerprintsExtratoSupabase() não força mais
@@ -2497,9 +2512,8 @@
                 <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
                 <button onclick="switchTab('tab-conciliacao')" class="rz-on">Conciliação</button>
             </div>
-            <button onclick="switchTab('tab-inadimplencia')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-3"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</button>
 
-            <p class="text-[11px] text-gray-500 mb-3">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
+            <p class="text-[11px] text-gray-500 mb-3 mt-2">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
 
             <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3 mb-4">
 
@@ -2529,7 +2543,13 @@
 
             </div>
 
-            <div class="bg-white p-3 rounded-xl shadow-sm space-y-3 mb-4" style="border:1px solid var(--line);border-left:4px solid var(--pine)">
+            <!-- v1.178.0 — achado do Nicola (teste no celular): a borda
+                 esquerda verde tinha sido posta numa sessão anterior só pra
+                 separar visualmente "tela nova" de "tela antiga" quando as
+                 duas dividiam a mesma aba (tab-mensal). Agora que Conciliação
+                 é aba própria, não tem mais ambiguidade pra resolver — borda
+                 tirada, mesma moldura simples do card acima. -->
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3 mb-4">
 
                 <div class="flex items-center justify-between">
                     <p class="text-xs font-black text-slate-700">Conciliação — entradas e saídas</p>
@@ -8997,6 +9017,7 @@
             'dispararAcaoDoMenu', 'popularFiltrosMensal', // v1.177.0 — gerarMensalidades/alternarPainelGerarMes saíram (Gerar mês removido, Etapa 7)
             'carregarConciliacaoUnificada', 'filtrarConciliacaoSegmento', 'filtrarConciliacaoChip', 'abrirAcoesConciliacaoLinha', // v1.X — Etapa 2B
             'verSugestaoConciliacao', 'confirmarSugestaoConciliacao', 'confirmarEstornarConciliacaoSaida', // v1.177.0 — Etapa 8 (sugestão em lote + Automáticas)
+            'abrirBuscarMensalidadeManual', 'filtrarVincularManual', 'selecionarMensalidadeManual', // v1.6.1 — busca manual (substitui o painel de Pendências legado)
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         function switchTab(tabId) {

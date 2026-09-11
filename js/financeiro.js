@@ -1,7 +1,32 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.6.0 · 11/09/2026
+// Versão: 1.6.1 · 11/09/2026
+//
+// v1.6.1 — achado do Nicola testando no celular: painel de Pendências legado
+// (pendencias_extrato) ainda era alimentado em PARALELO pela importação —
+// toda linha de entrada não identificada gerava as duas coisas (fingerprint
+// pendente + pendência legada), sistema duplicado de verdade, não só UI
+// antiga. Parada a escrita nova nos 4 pontos de conciliarTransacoes() que
+// ainda empurravam pra pendenciasExtrato — daqui pra frente, entrada não
+// identificada fica só 'pendente' em extrato_fingerprints, a mesma fonte
+// única que a Conciliação já usa. GAP CONHECIDO, aceito conscientemente:
+// "confirmação dupla" (1 pagamento cobrindo 2 meses) não tem ação
+// equivalente na tela nova ainda — não achei nenhum caso real na base da
+// Rumo, registrado no código pra retomar se aparecer.
+//   - "Buscar manualmente" NOVO (abrirBuscarMensalidadeManual): sheet com
+//     busca por locatário entre os recebimentos em aberto — substitui a
+//     dependência de rolar até o painel antigo quando a IA não encontra
+//     sugestão (fn_extrato_sugerir_recebimento só olha ±5%/±7 dias).
+//   - Decisão consciente, NÃO fiz nesta rodada: o painel antigo em si
+//     (HTML + renderPendenciasExtrato + vincular/descartar/confirmarDupla)
+//     continua de pé — tem ~30 pendências reais (R$ 127 mil) da Rumo já
+//     carregadas nele, resolvíveis pela UI de sempre. Remover a tela agora
+//     esconderia dinheiro real ainda em aberto. Ela deve ficar vazia
+//     sozinha à medida que essas 30 forem resolvidas (ou descartadas) pela
+//     UI de sempre — sem pendência nova entrando, só esvazia. Remoção total
+//     do HTML/funções fica pra quando isso zerar (ou se o Nicola preferir
+//     migrar as 30 de uma vez, o que é outra frente).
 //
 // v1.6.0 — Etapa 8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md.
 //   - Sugestões em lote (fn_conciliacao_sugestoes, 1 chamada pra lista
@@ -176,7 +201,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -1506,24 +1531,13 @@ export function montarAbaFinanceiro(tabId) {
                         // é a proteção definitiva contra isso mesmo se este check falhar.
                         if (chavesJaPendentes.has(chave)) { qtdJaPendentes++; continue; }
 
-                        // Sem contrato identificado — a RPC exige contrato_id, não dá
-                        // pra chamar. Vai direto pra revisão manual, igual sempre foi.
-                        pendenciasExtrato.push({
-
-                            id: 'pex_' + Date.now() + Math.random().toString(36).substr(2, 4),
-
-                            data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento,
-
-                            tipo: 'nao_identificado', referenciaSugerida: referenciaDoMes, status: 'Pendente',
-
-                            contratoIdSugerido: null,
-
-                            mensalidadeIdsSugeridas: [], chave
-
-                        });
-
-                        idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
-
+                        // v1.6.1 — Etapa 8, resto (retirada do painel de
+                        // Pendências legado, achado do Nicola testando no
+                        // celular): sem contrato identificado, a linha só
+                        // fica 'pendente' em extrato_fingerprints (já
+                        // gravado acima) — a tela de Conciliação mostra e
+                        // "Buscar manualmente" resolve. Não duplica mais em
+                        // pendencias_extrato.
                         qtdPendencias++;
 
                         continue;
@@ -1567,16 +1581,9 @@ export function montarAbaFinanceiro(tabId) {
 
                         if (idx === -1) {
                             // Rede de segurança: RPC apontou uma mensalidade que não está
-                            // no array em memória (dessincronizado) — trata como não
-                            // identificado em vez de quebrar ou falhar silenciosamente.
-                            pendenciasExtrato.push({
-                                id: 'pex_' + Date.now() + Math.random().toString(36).substr(2, 4),
-                                data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento,
-                                tipo: 'nao_identificado', referenciaSugerida: referenciaEsperada, status: 'Pendente',
-                                contratoIdSugerido: contratoCandidato.id,
-                                mensalidadeIdsSugeridas: [], chave
-                            });
-                            idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
+                            // no array em memória (dessincronizado) — fica 'pendente' em
+                            // extrato_fingerprints (v1.6.1, não duplica mais em
+                            // pendencias_extrato) em vez de quebrar ou falhar silenciosamente.
                             qtdPendencias++;
                             continue;
                         }
@@ -1626,22 +1633,16 @@ export function montarAbaFinanceiro(tabId) {
 
                     if (cls && cls.classificacao === 'confirmacao_dupla' && Array.isArray(cls.mensalidade_ids_sugeridas) && cls.mensalidade_ids_sugeridas.length === 2) {
 
-                        pendenciasExtrato.push({
-
-                            id: 'pex_' + Date.now() + Math.random().toString(36).substr(2, 4),
-
-                            data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento,
-
-                            tipo: 'confirmacao_dupla', referenciaSugerida: referenciaEsperada, status: 'Pendente',
-
-                            contratoIdSugerido: contratoCandidato.id,
-
-                            mensalidadeIdsSugeridas: cls.mensalidade_ids_sugeridas, chave
-
-                        });
-
-                        idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
-
+                        // v1.6.1 — Etapa 8, resto: painel de Pendências legado
+                        // saiu (achado do Nicola) — a ação especial "Sim, são
+                        // os 2 meses" (confirmarPendenciaDupla) que existia só
+                        // ali não tem equivalente na tela nova ainda. GAP
+                        // CONHECIDO, registrado aqui de propósito (não
+                        // escondido): por ora a linha só fica 'pendente' —
+                        // "Buscar manualmente" vincula a 1 mensalidade só, não
+                        // divide o pagamento entre as 2. Retomar se um caso
+                        // real aparecer — não achei nenhum na base da Rumo ao
+                        // investigar isto.
                         qtdPendencias++;
 
                         continue;
@@ -1656,25 +1657,17 @@ export function montarAbaFinanceiro(tabId) {
 
                     if (chavesJaPendentes.has(chave)) { qtdJaPendentes++; continue; }
 
-                    // 'nao_identificado' (ou a RPC falhou) — nunca descarta
+                    // v1.6.1 — Etapa 8, resto: 'nao_identificado' (ou a RPC
 
-                    // silenciosamente, sempre cai em pendência pra revisão manual.
+                    // falhou) — a linha já ficou 'pendente' em
 
-                    pendenciasExtrato.push({
+                    // extrato_fingerprints (gravado acima); não duplica mais
 
-                        id: 'pex_' + Date.now() + Math.random().toString(36).substr(2, 4),
+                    // em pendencias_extrato (painel legado retirado, achado
 
-                        data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento,
+                    // do Nicola). Nunca descarta silenciosamente — só conta
 
-                        tipo: 'nao_identificado', referenciaSugerida: referenciaEsperada, status: 'Pendente',
-
-                        contratoIdSugerido: contratoCandidato.id,
-
-                        mensalidadeIdsSugeridas: [], chave
-
-                    });
-
-                    idsPendenciasAlteradas.push(pendenciasExtrato[pendenciasExtrato.length - 1].id);
+                    // pra revisão manual na tela de Conciliação.
 
                     qtdPendencias++;
 
@@ -2443,7 +2436,7 @@ export function montarAbaFinanceiro(tabId) {
                     sub: `Ref ${c.referencia} · R$ ${Number(c.valor).toFixed(2)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
                     aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
                 }));
-                if (!candidatos.length) acoes.push({ icone: 'list', titulo: 'Ver em Pendências', sub: 'Nenhuma sugestão — procure manualmente na lista de sempre', aoTocar: () => { fecharSheet(); document.getElementById('painel-pendencias-extrato-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
+                acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Ver outros recebimentos em aberto' : 'Nenhuma sugestão — escolha entre os recebimentos em aberto', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
             } else {
                 candidatos.forEach(c => acoes.push({
                     icone: 'link', titulo: `Vincular: ${c.descricao || c.categoria || 'despesa prevista'}`,
@@ -2474,6 +2467,44 @@ export function montarAbaFinanceiro(tabId) {
                 registrarLog('conciliacao.vincular_recebimento', { fingerprintId, mensalidadeId });
                 await carregarConciliacaoUnificada();
             } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
+        }
+
+        // v1.6.1 — Etapa 8, resto (retirada do painel de Pendências legado a
+        // pedido do Nicola): busca manual de verdade, substitui a dependência
+        // de "role até o painel antigo, escolha no <select> gigante". Mesmo
+        // filtro de mensalidade em aberto que o painel antigo usava
+        // (status 'Inadimplente' cobre pendente e atrasado — ver
+        // mapStatusMensalidadeSupabaseParaAntigo), agora buscável por nome.
+        export function abrirBuscarMensalidadeManual(fingerprintId) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            if (!f) return;
+            const abertas = mensalidades.filter(m => m.status === 'Inadimplente').map(m => {
+                const c = contratos.find(x => x.id === m.contratoId);
+                const imo = c ? imoveis.find(i => i.id === c.imovelId) : null;
+                const local = imo ? `${imo.empreendimento}${imo.enderecoRua ? ' - ' + imo.enderecoRua : ''}` : '';
+                return { id: m.id, nome: c ? c.locatario : '(sem contrato)', ctx: `Ref ${m.referencia}${local ? ' · ' + local : ''}`, valor: m.valorConfirmado };
+            }).sort((a, b) => a.nome.localeCompare(b.nome));
+
+            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const corpoLista = abertas.length
+                ? abertas.map(l => `<div class="rz-row rz-link" data-txt="${rzEsc(l.nome.toLowerCase())}" onclick="selecionarMensalidadeManual('${fingerprintId}','${l.id}')"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><div class="rz-tx"><b>${rzEsc(l.nome)}</b><span>${rzEsc(l.ctx)}</span></div><div class="rz-rt"><b>R$ ${Number(l.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b></div></div>`).join('')
+                : '<p style="font-size:13px;color:var(--sage);padding:8px 0">Nenhum recebimento em aberto no momento.</p>';
+
+            abrirSheet(rzSheetCabecalho('Vincular a um recebimento', `${f.razao_social || '—'} · R$ ${valorAbs} · ${formatarDataBR(f.data)}`) +
+                `<div class="rz-sh-b">
+                    <div class="rz-f"><label>Buscar locatário</label><input id="vm-busca" oninput="filtrarVincularManual(this.value)" placeholder="Nome do locatário"></div>
+                    <div class="rz-card rz-list"><div id="vm-lista">${corpoLista}</div></div>
+                </div>`);
+        }
+
+        export function filtrarVincularManual(termo) {
+            const t = (termo || '').toLowerCase();
+            document.querySelectorAll('#vm-lista .rz-row').forEach(r => r.classList.toggle('hidden', !r.dataset.txt.includes(t)));
+        }
+
+        export function selecionarMensalidadeManual(fingerprintId, mensalidadeId) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            if (f) confirmarVincularConciliacaoRecebimento(fingerprintId, mensalidadeId, f);
         }
 
         async function confirmarVincularConciliacaoSaida(fingerprintId, lancamentoId) {
