@@ -1,7 +1,21 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.1.0 · 10/09/2026
+// Versão: 1.2.0 · 10/09/2026
+//
+// v1.2.0 — módulo Apoio ao Contador, etapa 2B (investigação + fix mínimo,
+// 10/09/2026): a importação de extrato levava o documento (CPF/CNPJ) só até
+// a classificação, nunca até extrato_fingerprints (documento_original,
+// Etapa 1, ficava sempre null). Corrigido. E o resultado do match de
+// entrada passa a ser espelhado no próprio fingerprint (status_conciliacao/
+// destino_tipo/destino_id) — só isso, NADA da lógica de match em si mudou —
+// pra uma futura tela unificada (protótipo já aprovado) poder ler entrada e
+// saída pela mesma fonte. Achado no caminho: saída hoje só reconhece
+// repasse pros sócios conhecidos; todo o resto (condomínio, DARF, boleto de
+// terceiro) já virava fingerprint mas era descartado — com
+// documento_original preenchido, essas linhas já ficam prontas pra tela de
+// conciliação de saída usar (fn_extrato_sugerir_destino etc., Etapa 2A) sem
+// precisar de mais nenhuma mudança na importação.
 //
 // v1.1.0 — módulo Apoio ao Contador, item 6 do plano (10/09/2026):
 // gerarMensalidades() ("Gerar Mês") passa a chamar fn_gerar_mensalidades_
@@ -72,7 +86,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.1.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.2.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -1288,7 +1302,11 @@ export function montarAbaFinanceiro(tabId) {
 
                 const chave = `${t.dataISO}|${t.valor.toFixed(2)}|${t.razaoSocial.toUpperCase()}`;
 
-                novosFingerprints.push({ chave, data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, importadoEm: new Date().toISOString() });
+                // v1.2 — mantém a referência pra poder marcar o resultado da
+                // conciliação (match/pendência/ignorado) no próprio objeto,
+                // sem precisar re-buscar por chave depois.
+                const fpAtual = { chave, data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento, importadoEm: new Date().toISOString() };
+                novosFingerprints.push(fpAtual);
 
                 const [ano, mes] = t.dataISO.split('-');
 
@@ -1423,6 +1441,15 @@ export function montarAbaFinanceiro(tabId) {
                         mensalidades[idx].valorConfirmado = t.valor;
 
                         mensalidades[idx].chaveTransacaoOrigem = chave;
+
+                        // v1.2 — espelha em extrato_fingerprints (só o status,
+                        // não muda nada da conciliação de entrada em si) pra
+                        // tela unificada de conciliação (protótipo aprovado,
+                        // Tudo/Entradas/Saídas) enxergar entrada e saída pela
+                        // mesma fonte, sem tocar no match que já funciona.
+                        fpAtual.statusConciliacao = 'conciliado';
+                        fpAtual.destinoTipo = 'mensalidade';
+                        fpAtual.destinoId = cls.mensalidade_id;
 
                         // Sobrescreve a observação (não acumula) — evita texto duplicado
 

@@ -4,6 +4,38 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.163.0) — A.9 (transição imóveis → ativos, passo 1 de
+5 combinados com o Nicola): cofre-api.js 1.23.0, cofre-ativos.js 1.28.0.
+1) Publicação na vitrine agora é real — era um stub desde que a tela foi
+   construída (o toast avisava isso). Marcar "Publicar na vitrine" numa
+   foto do Ativo copia o arquivo do Cofre (bucket privado) pro bucket
+   público (imoveis-fotos) e sincroniza `imoveis.fotos`, que é o que a
+   vitrine pública (link sem login) lê direto. Só o que está marcado fica
+   exposto — antes, a vitrine expunha TODAS as fotos do cadastro do
+   imóvel. Despublicar reverte os dois lados.
+2) Upload de foto direto no formulário de imóvel CORTADO — era o que
+   gravava base64 dentro de `imoveis.fotos` (1 imóvel chegou a 7 fotos
+   assim, ~750 KB na linha). Fotos agora só entram pela ficha do imóvel
+   (seção "Fotos", já existia, manda pro Cofre) ou pelo Ativo.
+BUG FIX achado no meio do trabalho: `APP_VERSAO` (splash/Sobre/Dev)
+estava travada em "Beta v1.158.0" desde essa versão — 4 entregas
+desatualizada. Corrigido; `gerar_versoes.py` v1.10 agora trava essa
+divergência também (testado de propósito).
+Ainda falta (fica pra quando A.8 fragmentar imoveis.js): os 16 pontos que
+ainda leem `imo.fotos` puro pra exibição interna (lightbox da lista,
+miniatura do card) — hoje mostram só o que está publicado na vitrine, não
+todas as fotos do Cofre. E 1 imóvel ainda tem 7 fotos em base64 dentro do
+JSON — é dado de teste no tenant interno BETA-RAIZ-PATRIMONIO (endereço
+"teste, 123, Sta Lúcia", empreendimento Canaã), não cliente real; migra
+sozinho na primeira vez que alguém abrir a aba Fotos do Ativo dele, ou dá
+pra simplesmente excluir esse imóvel de teste.
+------------------------------------------------------------------
+Versões anteriores (v1.162.0 … v1.162.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.162.0) — DOCUMENTOS ARQUIVADOS (cofre-documentos.js
 2.11.0, cofre-api.js 1.22.0, cofre-app.js 1.31.0, ativos-markup.js 1.27.0).
 Pedido do Nicola: ver, restaurar, vincular ou excluir de vez os documentos
