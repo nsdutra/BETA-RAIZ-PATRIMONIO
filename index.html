@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.169.0
-   LINHAS: 15285
+   VERSÃO: Beta v1.170.0
+   LINHAS: 15283
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.170.0) — BUG REAL achado pelo Nicola com prints:
+   chips da tela de conciliação nova ficavam ilegíveis (texto branco em
+   fundo branco) ao trocar de filtro — cada chip agora guarda sua própria
+   cor e restaura certo. Ajustado também: texto do resumo pós-importação
+   não fala mais em "descartar" saída (ela vai pra tela nova); borda
+   esquerda colorida no card novo pra ficar visualmente separado do painel
+   de Pendências antigo, que fica logo abaixo.
    NOVIDADES (Beta v1.169.0) — Módulo Apoio ao Contador, Etapa 2B completa
    (financeiro.js 1.3.0): tela de conciliação unificada, o protótipo que o
    Nicola aprovou — segmento Tudo/Entradas/Saídas + chips Pendentes/
@@ -49,17 +56,8 @@
    Se o manifesto do Deploy_Raiz.ps1 já tinha a linha do imoveis.js mas o
    arquivo mesmo assim não subiu antes, vale conferir se a linha foi
    adicionada de fato (ver LEIA-ME da entrega anterior).
-   NOVIDADES (Beta v1.165.0) — BUG REAL achado pelo Nicola (prints do app):
-   "Documentos arquivados" (v1.162.0) não aparecia em lugar nenhum. Causa:
-   fui pro modal-menu-conta de ativos-markup.js — que está MORTO desde a
-   v1.115.0, quando o menu de Conta virou sheet dinâmico
-   (abrirMenuConta()/abrirMenuTiposModelos(), aqui no index). O real: "Menu
-   › Tipos e modelos › Documentos arquivados" (cofre-app.js 1.32.0 —
-   'arquivados' novo no listener cofre:abrir-configuracao).
-   Mesma causa-raiz do achado do A.8 (tab-imoveis morta desde 03/09) — este
-   projeto acumulou 2 gerações de menu de configuração; a v1.115.0 é a viva.
    ------------------------------------------------------------------
-   Versões anteriores (v1.164.0 … v1.164.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.165.0 … v1.165.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -83,7 +81,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.3.0","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.1.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.3.1","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.1.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2540,24 +2538,24 @@
                      continua com seus filtros detalhados ali), é a visão
                      nova que também cobre saída, antes praticamente sem
                      tratamento nenhum. -->
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3">
+                <div class="bg-white p-3 rounded-xl shadow-sm space-y-3" style="border:1px solid var(--line);border-left:4px solid var(--pine)">
 
                     <div class="flex items-center justify-between">
                         <p class="text-xs font-black text-slate-700">Conciliação — entradas e saídas</p>
                         <span id="conc-uni-progresso" class="text-[11px]" style="color:var(--sage)"></span>
                     </div>
 
-                    <div id="conc-uni-seg" class="flex rounded-xl p-[3px]" style="background:var(--paper);border:1px solid var(--line)">
+                    <div id="conc-uni-seg" class="flex flex-nowrap rounded-xl p-[3px]" style="background:var(--paper);border:1px solid var(--line)">
                         <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" data-seg="tudo" onclick="filtrarConciliacaoSegmento('tudo')">Tudo</button>
                         <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="entrada" onclick="filtrarConciliacaoSegmento('entrada')">Entradas</button>
                         <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="saida" onclick="filtrarConciliacaoSegmento('saida')">Saídas</button>
                     </div>
 
-                    <div id="conc-uni-chips" class="flex gap-1.5 overflow-x-auto pb-0.5">
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--pine);background:var(--pine);color:#fff" data-chip="todos" onclick="filtrarConciliacaoChip('todos')">Todos</button>
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--wine)" data-chip="pendente" onclick="filtrarConciliacaoChip('pendente')">Pendentes</button>
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:#2f6b47" data-chip="conciliado" onclick="filtrarConciliacaoChip('conciliado')">Conciliados</button>
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--sage)" data-chip="nao_controlado" onclick="filtrarConciliacaoChip('nao_controlado')">Não controlado</button>
+                    <div id="conc-uni-chips" class="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
+                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--pine);background:var(--pine);color:#fff" data-chip="todos" data-cor="var(--pine)" onclick="filtrarConciliacaoChip('todos')">Todos</button>
+                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--wine)" data-chip="pendente" data-cor="var(--wine)" onclick="filtrarConciliacaoChip('pendente')">Pendentes</button>
+                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:#2f6b47" data-chip="conciliado" data-cor="#2f6b47" onclick="filtrarConciliacaoChip('conciliado')">Conciliados</button>
+                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--sage)" data-chip="nao_controlado" data-cor="var(--sage)" onclick="filtrarConciliacaoChip('nao_controlado')">Não controlado</button>
                     </div>
 
                     <div id="conc-uni-lista" class="space-y-1.5"></div>
@@ -3397,7 +3395,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.169.0";
+        const APP_VERSAO = "Beta v1.170.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

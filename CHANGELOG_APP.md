@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.165.0) — BUG REAL achado pelo Nicola (prints do app):
+"Documentos arquivados" (v1.162.0) não aparecia em lugar nenhum. Causa:
+fui pro modal-menu-conta de ativos-markup.js — que está MORTO desde a
+v1.115.0, quando o menu de Conta virou sheet dinâmico
+(abrirMenuConta()/abrirMenuTiposModelos(), aqui no index). O real: "Menu
+› Tipos e modelos › Documentos arquivados" (cofre-app.js 1.32.0 —
+'arquivados' novo no listener cofre:abrir-configuracao).
+Mesma causa-raiz do achado do A.8 (tab-imoveis morta desde 03/09) — este
+projeto acumulou 2 gerações de menu de configuração; a v1.115.0 é a viva.
+------------------------------------------------------------------
+Versões anteriores (v1.164.0 … v1.164.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.164.0) — A.8: IMÓVEIS SAI DO INDEX (R8 fatia 5,
 caminho B, combinado com o Nicola em 10/09). 51 funções (1.786 linhas)
 viraram js/imoveis.js — mesmo método das fatias anteriores (contratos.js,

@@ -1,7 +1,19 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.3.0 · 10/09/2026
+// Versão: 1.3.1 · 10/09/2026
+//
+// v1.3.1 — BUG REAL achado pelo Nicola com prints ("chips ficando em
+// branco ao navegar"): filtrarConciliacaoChip() desativava um chip fazendo
+// `b.style.color = b.style.color` — um no-op que MANTINHA a cor branca de
+// quando o chip esteve ativo, com o fundo voltando pra branco também: texto
+// branco em fundo branco, invisível. Corrigido — cada chip agora carrega
+// sua própria cor (data-cor no HTML) e a restaura explicitamente ao
+// desativar. Também achei e corrigi, no meio do conserto, uma quebra que EU
+// tinha acabado de introduzir tentando ajustar a borda do card (título e
+// div de abertura sumiram numa edição malfeita) — pego antes de entregar,
+// conferido de novo depois. E o texto do resumo pós-importação deixou de
+// dizer "descartado" pras saídas — elas vão pra tela nova, não pro lixo.
 //
 // v1.3.0 — módulo Apoio ao Contador, Etapa 2B (tela, 10/09/2026): tela de
 // conciliação unificada (protótipo Tudo/Entradas/Saídas aprovado pelo
@@ -94,7 +106,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.3.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -1627,7 +1639,7 @@ export function montarAbaFinanceiro(tabId) {
 
                 `❓ ${qtdPendencias} item(ns) precisam da sua revisão (veja abaixo)\n` +
 
-                `🚫 ${qtdIgnorados} lançamento(s) descartado(s) (rendimentos, tarifas, pagamentos a terceiros)\n` +
+                `🚫 ${qtdIgnorados} lançamento(s) sem ação automática (rendimentos, tarifas, e saídas — essas aparecem em "Conciliação — entradas e saídas", acima)\n` +
 
                 (qtdJaProcessadas > 0 ? `♻️ ${qtdJaProcessadas} transação(ões) já estava(m) conciliada(s) antes — nada novo feito\n` : '') +
 
@@ -2075,9 +2087,10 @@ export function montarAbaFinanceiro(tabId) {
             conciliacaoUniChip = chip;
             document.querySelectorAll('#conc-uni-chips .conc-chip-btn').forEach(b => {
                 const on = b.dataset.chip === chip;
+                const corPropria = b.dataset.cor || 'var(--ink)';
                 b.style.background = on ? 'var(--pine)' : '#fff';
                 b.style.borderColor = on ? 'var(--pine)' : 'var(--line)';
-                b.style.color = on ? '#fff' : b.style.color;
+                b.style.color = on ? '#fff' : corPropria;
             });
             renderConciliacaoUnificada();
         }
