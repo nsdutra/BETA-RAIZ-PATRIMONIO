@@ -98,8 +98,10 @@
 // O QUE FICOU NO index.html, DE PROPÓSITO (relação, não fusão — §18.3 do Cofre):
 //   · Dados e sincronização: `mensalidades`, `lancamentos`, `pendenciasExtrato`,
 //     `repasses`, carregar*/sincronizar*Supabase, normalizarMensalidade,
-//     gerarMensalidadesParaCompetencia/valorVigenteEm (o contrato também
-//     gera mês), mensalidadeEmAtraso/AVencer (Alertas e Visão Geral usam).
+//     mensalidadeEmAtraso/AVencer (Alertas e Visão Geral usam). v1.177.0:
+//     gerarMensalidadesParaCompetencia/construirLinhaDoTempoValor/valorVigenteEm
+//     saíram (Etapa 7 da conciliação) — fonte única virou
+//     fn_gerar_mensalidades_competencia (banco).
 //   · Motor de PDF do recibo/relatórios (baixarArquivoPdfLocal,
 //     ejecutarCanalComunicação, activeMenId/activeConId) — compartilhado com
 //     Resultados. Este módulo só ABRE o sheet e delega.
@@ -851,60 +853,12 @@ export function montarAbaFinanceiro(tabId) {
             if (recebimentoDetalheAtualId === menId) setTimeout(() => abrirRecebimentoDetalhe(menId), 50);
         }
 
-        // v1.X — A.10/módulo contador: "Gerar Mês" agora chama a RPC
-        // fn_gerar_mensalidades_competencia (banco) em vez da função JS local
-        // gerarMensalidadesParaCompetencia — que fica só como referência
-        // histórica, não é mais chamada daqui. saveAll() não entra mais nesta
-        // rota: a RPC já grava direto, só recarrega mensalidades do banco
-        // (mesmo mapeamento de sempre, carregarMensalidadesSupabase) e
-        // redesenha.
-        export async function gerarMensalidades() {
-
-            const selectRef = document.getElementById('men-referencia');
-
-            const ref = selectRef.value;
-
-            if(!contratos || contratos.length === 0) {
-
-                alert("⚠️ Não há contratos cadastrados.");
-
-                return;
-
-            }
-
-            const [mes, ano] = ref.split('/').map(Number);
-            const referenciaISO = `${ano}-${String(mes).padStart(2, '0')}-01`;
-
-            mostrarCarregamentoGlobal('Gerando mês...');
-            try {
-                const { data, error } = await dbAuth.rpc('fn_gerar_mensalidades_competencia', {
-                    p_cliente_id: CLIENTE_ID_SUPABASE, p_referencia: referenciaISO,
-                });
-                if (error) throw error;
-
-                mensalidades = await carregarMensalidadesSupabase();
-
-                const idxAtual = arrayCompetencias.indexOf(ref);
-
-                if(idxAtual !== -1 && idxAtual + 1 < arrayCompetencias.length) {
-
-                    selectRef.value = arrayCompetencias[idxAtual + 1];
-
-                }
-
-                registrarLog('mensal.gerar', { referencia: ref, geradas: (data || []).length });
-                esconderCarregamentoGlobal();
-                mostrarToast(`${(data || []).length} mensalidade(s) gerada(s) para ${ref}.`, 'success');
-                renderMensalidades();
-                renderInadimplencia();
-                renderRelatorios();
-                renderSociosDistribricao();
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('⚠️ Falha ao gerar mensalidades: ' + (err.message || String(err)));
-            }
-
-        }
+        // v1.177.0 — Etapa 7 da conciliação (Parte G do plano): gerarMensalidades()
+        // ("Gerar Mês") saiu — o cron (diario-eventos) já gera os recebimentos dos
+        // próximos 90 dias sozinho pra todo contrato ativo com valor cadastrado, e
+        // ativar/renovar contrato chamam o mesmo horizonte na hora
+        // (fn_gerar_mensalidades_horizonte, contratos.js). mensal.gerar continua
+        // no catálogo de funcionalidades como argumento comercial (D16 do plano).
 
         // Menu extra de baixa (energia/multa/taxa) — abre um painel ao lado do
         // campo Líquido. Multa soma automaticamente ao líquido (idempotente:
@@ -1386,7 +1340,24 @@ export function montarAbaFinanceiro(tabId) {
 
             });
 
-            competenciasDoExtrato.forEach(ref => gerarMensalidadesParaCompetencia(ref, idsMensalidadesAlteradas));
+            // v1.5.0 — Etapa 7 da conciliação (Parte G do plano): sai o gerador
+            // JS local (gerarMensalidadesParaCompetencia/construirLinhaDoTempoValor/
+            // valorVigenteEm, index.html) — chama a MESMA RPC de banco que "Gerar
+            // mês" e o cron (diario-eventos) já usam, fonte única em todos os
+            // caminhos. A RPC grava direto no banco (não passa mais pelo array em
+            // memória + saveAll) — recarrega antes da conciliação usar a lista logo
+            // abaixo, senão as mensalidades recém-geradas não apareceriam como
+            // candidatas no laço de match.
+            for (const ref of competenciasDoExtrato) {
+                const [mesRef, anoRef] = ref.split('/');
+                const referenciaISO = `${anoRef}-${String(mesRef).padStart(2, '0')}-01`;
+                try {
+                    await dbAuth.rpc('fn_gerar_mensalidades_competencia', { p_cliente_id: CLIENTE_ID_SUPABASE, p_referencia: referenciaISO });
+                } catch (err) {
+                    devLog('ERRO_CONCILIACAO', `Falha ao gerar mensalidades de ${ref}: ${err.message}`);
+                }
+            }
+            mensalidades = await carregarMensalidadesSupabase();
 
             // NOVO (v1.66.2, 27/08/2026) — virou for...of (era forEach) porque
             // o bloco de crédito agora faz 1 chamada assíncrona à RPC
@@ -2086,21 +2057,8 @@ export function montarAbaFinanceiro(tabId) {
 
         }
 
-        // v1.41.0 (Fase 2) — botões "+"/"Conciliar" agora mudam de cor
-        // (liga/desliga) conforme o painel está aberto ou fechado, em vez de
-        // usar um X vermelho separado para fechar. classe .ativo definida no
-        // bloco de design tokens (CSS) no <head>.
-        export function alternarPainelGerarMes() {
-
-            const painel = document.getElementById('painel-gerar-mes');
-            const btn = document.getElementById('btn-toggle-gerar-mes');
-
-            painel.classList.toggle('hidden');
-
-            const aberto = !painel.classList.contains('hidden');
-            if (btn) { btn.classList.toggle('ativo', aberto); atualizarIconeToggle(btn, aberto); }
-
-        }
+        // v1.177.0 — alternarPainelGerarMes() removida (Etapa 7 — painel
+        // "Gerar mês" não existe mais, ver comentário em gerarMensalidades).
 
         export function alternarPainelConciliacao() {
 
@@ -2476,11 +2434,16 @@ export function montarAbaFinanceiro(tabId) {
         }
 
         // v1.114.0 (fatia 5) — sheets do lançamento de recebimento
+        // v1.177.0 — Etapa 7 da conciliação (Parte G do plano): "Gerar mês"
+        // saiu do menu — o cron (diario-eventos) já gera os recebimentos dos
+        // próximos 90 dias sozinho pra todo contrato ativo com valor; ativar/
+        // renovar contrato também chamam o horizonte na hora. mensal.gerar
+        // continua no catálogo de funcionalidades (D16 do plano), só não tem
+        // mais botão aqui.
         export function rzAcoesRecebimentos() {
-            if (typeof abrirSheetAcoes !== 'function') { alternarPainelGerarMes(); return; }
+            if (typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: 'Recebimentos', acoes: [
                 { icone: 'sparkles', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os pagamentos automaticamente', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
-                { icone: 'calendar-plus', titulo: 'Gerar mês', codigo: 'mensal.gerar', sub: 'Lançamentos de todos os contratos vigentes', aoTocar: () => { const p = document.getElementById('painel-gerar-mes'); if (p && p.classList.contains('hidden')) alternarPainelGerarMes(); p?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
                 { icone: 'refresh-cw', titulo: 'Reprocessar conciliação', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação extrato × recebimentos', aoTocar: () => reprocessarConciliacaoPendente() },
                 { icone: 'clipboard-list', titulo: 'Painel de conciliação', codigo: 'conciliacao.ver', sub: 'Pendências do último extrato', aoTocar: () => { const w = document.getElementById('painel-conciliacao-wrapper'); if (w && w.classList.contains('hidden')) alternarPainelConciliacao(); w?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
             ] });

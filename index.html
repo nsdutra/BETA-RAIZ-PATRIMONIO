@@ -2471,22 +2471,11 @@
                 <button id="btn-toggle-gerar-mes" onclick="rzAcoesRecebimentos()" title="Ações" class="rz-ico-btn rz-primary" aria-label="Novo"><svg data-lucide="plus"></svg></button>
             </div>
 
-            <!-- v1.41.0 (Fase 2) — "Gerar Mês" agora abre logo abaixo do
-                 cabeçalho (topo da aba), perto do próprio botão que o abre —
-                 antes ficava depois do bloco de pendências, exigindo rolagem. -->
-            <div id="painel-gerar-mes" class="hidden bg-white p-4 rounded-xl shadow-sm mb-4 border border-gray-200 space-y-3">
-
-                <label class="block text-xs font-bold text-gray-600">Mês de Competência</label>
-
-                <div class="flex gap-2 items-center mt-1">
-
-                    <select id="men-referencia" class="flex-1 p-2 border rounded text-sm bg-gray-50"></select>
-
-                    <button onclick="gerarMensalidades()" class="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow">Gerar Mês</button>
-
-                </div>
-
-            </div>
+            <!-- v1.177.0 — Etapa 7 da conciliação (Parte G do plano): painel
+                 "Gerar mês" removido. O cron (diario-eventos) já gera os
+                 recebimentos dos próximos 90 dias sozinho pra todo contrato
+                 ativo com valor; ativar/renovar contrato chamam o mesmo
+                 horizonte na hora (fn_gerar_mensalidades_horizonte). -->
 
             <!-- v1.41.0 (Fase 2) — NOVO: bloco "Conciliar" agrupa toda a
                  função de conciliação (que antes ficava sempre visível/solta
@@ -7825,28 +7814,6 @@
 
             if (selectInadAlvo) selectInadAlvo.value = 'todos';
 
-            const menRefSelect = document.getElementById('men-referencia');
-
-            if (menRefSelect) {
-
-                menRefSelect.innerHTML = '';
-
-                arrayCompetencias.forEach(comp => {
-
-                    menRefSelect.innerHTML += `\u003Coption value="${comp}"\u003E${comp}\u003C/option\u003E`;
-
-                });
-
-                const hoje = new Date();
-
-                const mCorrente = hoje.getMonth() + 1;
-
-                const refSugerida = `${mCorrente < 10 ? '0' + mCorrente : mCorrente}/${hoje.getFullYear()}`;
-
-                menRefSelect.value = refSugerida;
-
-            }
-
         }
 
         function aplicarRestricoesOffline() {
@@ -9021,7 +8988,7 @@
             'renderPendenciasExtrato', 'alternarGrupoPendencias', 'vincularPendenciaExtrato', 'confirmarPendenciaDupla',
             'descartarPendenciaExtrato', 'alternarPainelConciliacao', 'normalizarNomeParaComparacao', 'nomesParecem',
             'nomesIguaisSocio', 'abrirModalOpcoesRecibo', 'salvarObservacaoRecibo', 'fecharModalOpcoes',
-            'dispararAcaoDoMenu', 'gerarMensalidades', 'alternarPainelGerarMes', 'popularFiltrosMensal',
+            'dispararAcaoDoMenu', 'popularFiltrosMensal', // v1.177.0 — gerarMensalidades/alternarPainelGerarMes saíram (Gerar mês removido, Etapa 7)
             'carregarConciliacaoUnificada', 'filtrarConciliacaoSegmento', 'filtrarConciliacaoChip', 'abrirAcoesConciliacaoLinha', // v1.X — Etapa 2B
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
@@ -11902,265 +11869,13 @@
 
 
 
-        // Reconstrói a linha do tempo de valores de um contrato a partir do seu
-
-        // histórico (campo "Valor do aluguel"), permitindo saber qual era o valor
-
-        // vigente em qualquer dia específico — essencial para o rateio proporcional
-
-        // quando o valor muda no meio de uma competência.
-
-        function construirLinhaDoTempoValor(contrato) {
-
-            const historico = (contrato.historico || []).slice().sort((a, b) => new Date(a.vigenteDesde || a.data) - new Date(b.vigenteDesde || b.data));
-
-            const mudancasValor = [];
-
-            historico.forEach(h => {
-
-                (h.alteracoes || []).forEach(a => {
-
-                    if (a.campo === 'Valor do aluguel') {
-
-                        const valorPara = parseFloat(a.para);
-
-                        if (!isNaN(valorPara)) {
-
-                            mudancasValor.push({ desde: h.vigenteDesde || contrato.inicio, valor: valorPara, valorAnterior: parseFloat(a.de) });
-
-                        }
-
-                    }
-
-                });
-
-            });
-
-            if (mudancasValor.length === 0) {
-
-                // Nunca houve alteração de valor registrada no histórico: usa o valor
-
-                // atual do contrato durante toda a vigência (comportamento anterior,
-
-                // mantido para contratos sem histórico detalhado).
-
-                return [{ desde: contrato.inicio, valor: contrato.valor }];
-
-            }
-
-            const linha = [];
-
-            const primeira = mudancasValor[0];
-
-            if (contrato.inicio && new Date(contrato.inicio) < new Date(primeira.desde) && !isNaN(primeira.valorAnterior)) {
-
-                linha.push({ desde: contrato.inicio, valor: primeira.valorAnterior });
-
-            }
-
-            mudancasValor.forEach(m => linha.push({ desde: m.desde, valor: m.valor }));
-
-            return linha;
-
-        }
-
-        // Retorna o valor vigente numa data específica, de acordo com a linha do tempo.
-
-        function valorVigenteEm(linhaDoTempo, dataAlvo) {
-
-            let valor = linhaDoTempo[0].valor;
-
-            for (const seg of linhaDoTempo) {
-
-                if (new Date(seg.desde + "T00:00:00") <= dataAlvo) valor = seg.valor;
-
-                else break;
-
-            }
-
-            return valor;
-
-        }
-
-        // NOVO (30/08/2026) — 3º parâmetro opcional `contratoIdFiltro`:
-        // quando informado, processa SÓ aquele contrato (usado por
-        // salvarAlterarStatusContrato() ao ativar um contrato sem nenhum
-        // item a receber ainda — pedido explícito do Nicola: "rodar a
-        // rotina apenas para este imóvel"). Sem o parâmetro, comportamento
-        // idêntico a antes (processa todos os contratos da competência —
-        // usado por gerarMensalidades(), botão manual do Financeiro).
-        function gerarMensalidadesParaCompetencia(ref, idsGeradosOut, contratoIdFiltro) {
-
-            if(!contratos || contratos.length === 0) return 0;
-
-            let geradas = 0;
-
-            const [mesRef, anoRef] = ref.split('/').map(Number);
-
-            const dataPrimeiroDiaCompetencia = new Date(anoRef, mesRef - 1, 1);
-
-            const dataUltimoDiaCompetencia = new Date(anoRef, mesRef, 0);
-
-            const diasTotaisMes = dataUltimoDiaCompetencia.getDate();
-
-            const contratosAlvo = contratoIdFiltro ? contratos.filter(c => c.id === contratoIdFiltro) : contratos;
-
-            contratosAlvo.forEach(con => {
-
-                // CORRIGIDO (v1.58.0 — pedido explícito): contratos
-                // "Assinando" não devem gerar mensalidades — ainda não
-                // foram assinados, não há cobrança de verdade ainda.
-                if (con.status === 'Suspenso' || con.status === 'Finalizado' || con.status === 'Assinando') {
-
-                    return;
-
-                }
-
-                const dataInicioCon = new Date(con.inicio + "T00:00:00");
-
-                const dataFimCon = new Date(con.fim + "T00:00:00");
-
-                if (dataInicioCon > dataUltimoDiaCompetencia || dataFimCon < dataPrimeiroDiaCompetencia) {
-
-                    return;
-
-                }
-
-                const inicioReal = dataInicioCon > dataPrimeiroDiaCompetencia ? dataInicioCon : dataPrimeiroDiaCompetencia;
-
-                const fimReal = dataFimCon < dataUltimoDiaCompetencia ? dataFimCon : dataUltimoDiaCompetencia;
-
-                // Rateio dia a dia: para cada dia ativo da competência, soma a fração
-
-                // (valor vigente naquele dia / dias do mês). Isso cobre tanto meses
-
-                // parciais (contrato começou/terminou no meio do mês) quanto mudanças
-
-                // de valor no meio do mês (reajustes, suspensões), sem gerar cobranças
-
-                // duplicadas — sempre 1 lançamento por contrato+competência.
-
-                const linhaDoTempo = construirLinhaDoTempoValor(con);
-
-                let somaProporcional = 0;
-
-                let diasAtivosNoMes = 0;
-
-                let cursor = new Date(inicioReal);
-
-                while (cursor <= fimReal) {
-
-                    const valorDoDia = valorVigenteEm(linhaDoTempo, cursor);
-
-                    somaProporcional += valorDoDia / diasTotaisMes;
-
-                    diasAtivosNoMes++;
-
-                    cursor.setDate(cursor.getDate() + 1);
-
-                }
-
-                let valorEfetivo = parseFloat(somaProporcional.toFixed(2));
-
-                if (valorEfetivo < 0) valorEfetivo = 0;
-
-                // Se o contrato tem uma administradora terceirizada vinculada, o valor
-                // que efetivamente cai na conta é o líquido (aluguel menos taxa de
-                // administração) — é isso que deve ser esperado/conciliado, não o
-                // valor bruto do aluguel. Guarda o valor da taxa calculado à parte,
-                // para pré-preencher o campo de taxa no menu de baixa (⋯).
-                let taxaAdmCalculada = 0;
-                if (con.administradoraId) {
-                    const adm = administradoras.find(a => a.id === con.administradoraId);
-                    if (adm && adm.taxaAdm > 0) {
-                        taxaAdmCalculada = parseFloat((valorEfetivo * (adm.taxaAdm / 100)).toFixed(2));
-                        valorEfetivo = parseFloat((valorEfetivo - taxaAdmCalculada).toFixed(2));
-                    }
-                }
-
-                // Contratos sem receita nesta competência (ex: sede própria da Rumo,
-
-                // ou período de suspensão total) não geram lançamento nenhum.
-
-                if (valorEfetivo <= 0) return;
-
-                const diaPadrao = con.vencimentoDia || 15;
-
-                const diaPgoString = diaPadrao < 10 ? '0' + diaPadrao : diaPadrao;
-
-                // Aluguel "Antecipado": paga-se dentro da própria competência. Aluguel
-
-                // "em atraso" (não antecipado): paga-se no mês SEGUINTE à competência.
-
-                // Isso só afeta a data esperada de pagamento gerada aqui — a referência
-
-                // (competência) do lançamento continua sendo sempre a mesma (ref).
-
-                let mesPgto = mesRef, anoPgto = anoRef;
-
-                if (con.alugelAntecipado !== 'Sim') {
-
-                    mesPgto = mesRef + 1;
-
-                    if (mesPgto > 12) { mesPgto = 1; anoPgto = anoRef + 1; }
-
-                }
-
-                const dataDePagamentoGerada = `${diaPgoString}/${mesPgto < 10 ? '0'+mesPgto : mesPgto}/${anoPgto}`;
-
-                // Trava anti-duplicidade: nunca gera 2 lançamentos para o mesmo
-
-                // contrato na mesma competência, não importa quantas vezes o botão
-
-                // "Gerar Recebimento" seja clicado para o mesmo mês.
-
-                const existe = mensalidades.some(m => m.contratoId === con.id && m.referencia === ref);
-
-                if(!existe) {
-
-                    // NOTA (v1.63.0, 25/08/2026): status nasce 'Inadimplente'
-                    // mesmo quando dataDePagamentoGerada (abaixo) cai no
-                    // futuro — isso é intencional, não o bug que foi
-                    // corrigido nesta versão. O campo status aqui significa
-                    // só "ainda não pago", não "atrasado" — quem decide se
-                    // isso é ALERTA de atraso é mensalidadeEmAtraso(),
-                    // comparando esta mesma dataPgto com hoje, sempre que o
-                    // valor for usado em card/badge/contagem de cobrança
-                    // (Visão Geral, Cobranças, Financeiro, Relatórios). Ver
-                    // comentário completo em mensalidadeEmAtraso().
-                    mensalidades.push({
-
-                        id: 'men_' + Date.now() + Math.random().toString(36).substr(2, 4),
-
-                        contratoId: con.id,
-
-                        referencia: ref,
-
-                        status: 'Inadimplente',
-
-                        banco: '-',
-
-                        dataPgto: dataDePagamentoGerada, 
-
-                        observacao: '',
-
-                        valorConfirmado: valorEfetivo,
-
-                        taxaAdmSugerida: taxaAdmCalculada
-
-                    });
-
-                    if (idsGeradosOut) idsGeradosOut.push(mensalidades[mensalidades.length - 1].id);
-
-                    geradas++;
-
-                }
-
-            });
-
-            return geradas;
-
-        }
+        // v1.177.0 — Etapa 7 da conciliação (Parte G do plano): gerador local
+        // (construirLinhaDoTempoValor/valorVigenteEm/gerarMensalidadesParaCompetencia)
+        // saiu — fonte única agora é fn_gerar_mensalidades_competencia (banco),
+        // já chamada pelo cron, pelo botão "Gerar Mês" (financeiro.js), pela
+        // importação de extrato (financeiro.js conciliarTransacoes) e pela
+        // ativação/renovação de contrato (fn_gerar_mensalidades_horizonte,
+        // contratos.js — mesmo rateio diário + taxa de administradora, no banco).
 
 
 

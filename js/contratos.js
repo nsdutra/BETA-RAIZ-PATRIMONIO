@@ -1,7 +1,17 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.2.0 · 10/09/2026
+// Versão: 1.3.0 · 11/09/2026
+//
+// v1.3.0 — Etapa 7 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md (Parte G.2
+// item 2): ao ativar um contrato com início no passado, pergunta se quer
+// criar também os recebimentos retroativos (mês a mês, até o mês atual) —
+// fn_gerar_mensalidades_horizonte só gera pra frente, e o botão "Gerar mês"
+// que preenchia isso manualmente saiu (financeiro.js, Etapa 7). Nunca
+// decide sozinho — sempre pergunta antes (confirm()), mesmo padrão já
+// usado no resto do arquivo. fn_mensalidades_realinhar (reajuste/renovação)
+// e fn_gerar_mensalidades_horizonte (ativação/renovação) já estavam
+// wired numa sessão anterior — sem mudança nesses dois pontos.
 //
 // v1.2.0 — módulo Apoio ao Contador, itens 5/6 do plano (10/09/2026): ao
 // ativar ou renovar um contrato, chama fn_gerar_mensalidades_horizonte
@@ -96,7 +106,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.2.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -632,6 +642,21 @@ export function reabrirFichaSeFor(contratoId) {
                 }).eq('id', contratoId);
                 if (error) throw error;
 
+                // v1.177.0 — Parte G do plano de conciliação: sem isto, os
+                // recebimentos futuros já gerados (horizonte de 90 dias)
+                // ficam com o valor ANTIGO depois do reajuste — só
+                // recalcula o que ainda está em aberto, sem chave de
+                // transação, sem recibo enviado e sem documento fiscal
+                // (fn_mensalidades_realinhar já filtra isso no banco).
+                let mensalidadesRealinhadas = 0;
+                try {
+                    const { data: realinhadas, error: errRealinhar } = await dbAuth.rpc('fn_mensalidades_realinhar', { p_contrato_id: contratoId });
+                    if (errRealinhar) throw errRealinhar;
+                    mensalidadesRealinhadas = (realinhadas || []).length;
+                } catch (errRealinhar) {
+                    devLog('ERRO_REAJUSTE', 'fn_mensalidades_realinhar falhou (reajuste já salvo, não bloqueia): ' + (errRealinhar.message || errRealinhar));
+                }
+
                 let descricao = `Reajuste de aluguel: ${formatarMoedaBR(valorAntigo)} → ${formatarMoedaBR(novoValor)} (${pct >= 0 ? '+' : ''}${pct}%), vigente desde ${formatarDataBR(vigencia)}.`;
                 if (obs) descricao += ' ' + obs;
                 // v1.133 — anexo: guarda no Cofre vinculado ao contrato (motor do Cofre, sem abrir o sheet de upload)
@@ -657,8 +682,10 @@ export function reabrirFichaSeFor(contratoId) {
 
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
-                mostrarToast('Reajuste registrado!', 'success');
-                registrarLog('contratos.reajustar', { contratoId, valorAntigo, novoValor, vigencia, documentoId: docId }); // v1.133
+                mostrarToast(mensalidadesRealinhadas > 0
+                    ? `Reajuste registrado! ${mensalidadesRealinhadas} recebimento(s) futuro(s) atualizado(s).`
+                    : 'Reajuste registrado!', 'success');
+                registrarLog('contratos.reajustar', { contratoId, valorAntigo, novoValor, vigencia, documentoId: docId, mensalidadesRealinhadas });
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
             } catch (err) {
@@ -1082,16 +1109,62 @@ export function reabrirFichaSeFor(contratoId) {
                 // competência atual — mesma RPC do botão "Gerar Mês" e do
                 // cron diário. Silencioso se não gerar nada (ex.: contrato
                 // com início no futuro além do horizonte) — não é erro.
+                //
+                // v1.3.0 (11/09/2026) — Etapa 7 da conciliação (Parte G.2
+                // item 2 do plano): fn_gerar_mensalidades_horizonte só gera
+                // PRA FRENTE, a partir de hoje — contrato com início no
+                // passado nunca tinha os meses já vencidos cobertos por
+                // ela. Antes disso era o botão "Gerar mês" que completava
+                // (agora removido, Etapa 7). Pergunta antes de gerar
+                // retroativo — nunca decide sozinho.
                 if (acao === 'Ativo' && !mensalidades.some(m => m.contratoId === contratoId)) {
+                    const hoje = new Date();
+                    const primeiroDiaMesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                    const inicioContrato = con.inicio ? new Date(con.inicio + 'T00:00:00') : null;
+                    const mesesRetroativos = [];
+                    if (inicioContrato && inicioContrato < primeiroDiaMesAtual) {
+                        const cursor = new Date(inicioContrato.getFullYear(), inicioContrato.getMonth(), 1);
+                        while (cursor < primeiroDiaMesAtual) {
+                            mesesRetroativos.push(`${String(cursor.getMonth() + 1).padStart(2, '0')}/${cursor.getFullYear()}`);
+                            cursor.setMonth(cursor.getMonth() + 1);
+                        }
+                    }
+
+                    let geradasRetroativo = 0;
+                    if (mesesRetroativos.length > 0) {
+                        const primeiroMes = mesesRetroativos[0];
+                        const rotuloRange = mesesRetroativos.length === 1 ? primeiroMes : `${primeiroMes} a ${mesesRetroativos[mesesRetroativos.length - 1]}`;
+                        const querRetroativo = confirm(
+                            `Este contrato começa em ${primeiroMes}. Criar também os recebimentos retroativos de ${rotuloRange}? ` +
+                            `(${mesesRetroativos.length} ${mesesRetroativos.length === 1 ? 'mês' : 'meses'})`
+                        );
+                        if (querRetroativo) {
+                            for (const ref of mesesRetroativos) {
+                                const [mesRef, anoRef] = ref.split('/');
+                                try {
+                                    const { data: geradasRef, error: erroRetro } = await dbAuth.rpc('fn_gerar_mensalidades_competencia', {
+                                        p_cliente_id: CLIENTE_ID_SUPABASE, p_referencia: `${anoRef}-${mesRef}-01`, p_contrato_id: contratoId,
+                                    });
+                                    if (erroRetro) throw erroRetro;
+                                    geradasRetroativo += (geradasRef || []).length;
+                                } catch (errRetro) {
+                                    devLog('ERRO_ATIVACAO', `Falha ao gerar retroativo ${ref}: ${(errRetro.message || errRetro)}`);
+                                }
+                            }
+                        }
+                    }
+
                     const { data: geradas, error: erroGerar } = await dbAuth.rpc('fn_gerar_mensalidades_horizonte', {
                         p_cliente_id: CLIENTE_ID_SUPABASE, p_contrato_id: contratoId, p_dias_horizonte: 90,
                     });
                     if (erroGerar) {
                         console.warn('fn_gerar_mensalidades_horizonte falhou na ativação:', erroGerar.message);
-                    } else if ((geradas || []).length > 0) {
+                    }
+                    const totalGerado = (erroGerar ? 0 : (geradas || []).length) + geradasRetroativo;
+                    if (totalGerado > 0) {
                         mensalidades = await carregarMensalidadesSupabase();
-                        mostrarToast(geradas.length + ' item(ns) a receber gerado(s), até 90 dias.', 'success');
-                        registrarLog('mensalidades.gerar_automatico_ativacao', { contratoId, quantidade: geradas.length });
+                        mostrarToast(`${totalGerado} item(ns) a receber gerado(s)${geradasRetroativo > 0 ? ', incluindo retroativos' : ', até 90 dias'}.`, 'success');
+                        registrarLog('mensalidades.gerar_automatico_ativacao', { contratoId, quantidade: totalGerado, retroativos: geradasRetroativo });
                     }
                 }
 
@@ -1779,6 +1852,18 @@ export function reabrirFichaSeFor(contratoId) {
                 });
                 if (erroGerarRenov) console.warn('fn_gerar_mensalidades_horizonte falhou na renovação:', erroGerarRenov.message);
                 else if ((geradasRenov || []).length > 0) mensalidades = await carregarMensalidadesSupabase();
+
+                // v1.177.0 — Parte G do plano de conciliação: fn_gerar_mensalidades_horizonte
+                // é insert-only (nunca atualiza o que já existe) — se a renovação também
+                // mudou o valor, os meses já gerados por um horizonte anterior ficam com
+                // o valor velho. Só roda quando o valor de fato mudou.
+                if (!isNaN(novoValor) && novoValor !== con.valor) {
+                    try {
+                        await dbAuth.rpc('fn_mensalidades_realinhar', { p_contrato_id: contratoId });
+                    } catch (errRealinhar) {
+                        devLog('ERRO_RENOVACAO', 'fn_mensalidades_realinhar falhou (renovação já salva, não bloqueia): ' + (errRealinhar.message || errRealinhar));
+                    }
+                }
 
                 // A ocorrência de revisão/renovação que originou a ação é baixada (v2.0 §4.3)
                 if (ocorrenciaOrigemId) {
