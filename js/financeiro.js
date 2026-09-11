@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.4.0 · 10/09/2026
+// Versão: 1.4.1 · 10/09/2026
+//
+// v1.4.1 — pedido explícito do Nicola ("não dá pra deixar desta forma"):
+// estornarMensalidade/estornarPagamentoDespesa (telas nativas, fora da
+// conciliação) agora ressincronizam extrato_fingerprints de volta pra
+// pendente — reaproveitando ressincronizarFingerprintAposEstorno, testada
+// direto no banco antes de conectar. Fecha o ponto que tinha ficado em
+// aberto na entrega anterior.
 //
 // v1.4.0 — módulo Apoio ao Contador: conciliação virou roteador fino
 // (pedido do Nicola, 10/09/2026) — linha já conciliada abre a tela nativa
@@ -120,7 +127,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.4.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -627,6 +634,7 @@ export function montarAbaFinanceiro(tabId) {
                     status: 'previsto', data_pagamento: null, forma_pagamento: null
                 }).eq('id', id);
                 if (error) throw error;
+                await ressincronizarFingerprintAposEstorno('lancamento', id);
                 lancamentos = await carregarLancamentosSupabase();
                 esconderCarregamentoGlobal();
                 mostrarToast('Pagamento estornado.', 'success');
@@ -1023,7 +1031,7 @@ export function montarAbaFinanceiro(tabId) {
 
         }
 
-        export function estornarMensalidade(menId) {
+        export async function estornarMensalidade(menId) {
 
             if(!confirm("Confirmar estorno do caixa?")) return;
 
@@ -1048,6 +1056,8 @@ export function montarAbaFinanceiro(tabId) {
                 mensalidades[idx].dataPgto = `${diaPgoString}/${partesRef[0]}/${partesRef[1]}`;
 
                 registrarLog('mensal.estornar', { mensalidadeId: menId, referencia: mensalidades[idx].referencia });
+
+                await ressincronizarFingerprintAposEstorno('mensalidade', menId);
 
                 saveAll(true, "Pagamento estornado.", ['mensalidades']);
 
@@ -2105,6 +2115,25 @@ export function montarAbaFinanceiro(tabId) {
         let conciliacaoUniSegmento = 'tudo';
         let conciliacaoUniChip = 'todos';
         let despesaOrigemFingerprintId = null; // v2 — setado quando "Nova despesa" é aberta a partir da conciliação; salvarDespesa() usa isso pra vincular o fingerprint de volta
+
+        // v3 — pedido explícito do Nicola (10/09/2026, "não dá pra deixar
+        // desta forma"): estornar pelo lado NATIVO (Recebimento/Despesa,
+        // fora da tela de conciliação) tem que ressincronizar o
+        // extrato_fingerprints também — senão a linha do extrato fica
+        // "conciliado" apontando pra um pagamento que não existe mais.
+        // Reaproveitada pelos dois lados (mensalidade e lançamento) — só
+        // desfaz o vínculo (volta pendente), nunca mexe na despesa/
+        // mensalidade em si, que já foi tratada por quem chamou.
+        async function ressincronizarFingerprintAposEstorno(destinoTipo, destinoId) {
+            try {
+                await dbAuth.from('extrato_fingerprints')
+                    .update({ status_conciliacao: 'pendente', destino_tipo: null, destino_id: null, conciliado_em: null, conciliado_por: null })
+                    .eq('destino_tipo', destinoTipo).eq('destino_id', destinoId).eq('status_conciliacao', 'conciliado');
+                if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
+            } catch (err) {
+                devLog('ERRO_CONCILIACAO', 'Falha ao ressincronizar extrato após estorno nativo: ' + err.message);
+            }
+        }
 
         export async function carregarConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');

@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.168.0) — Módulo Apoio ao Contador, etapa 2B destravada
+(financeiro.js 1.2.0): a investigação que faltava (ler a importação de
+extrato inteira) achou que saída hoje só reconhece repasse pros sócios
+conhecidos — todo o resto virava fingerprint e era descartado. Fix
+mínimo: documento_original passa a ser gravado (fica pronto pra tela de
+conciliação de saída, Etapa 2A) e o match de entrada passa a espelhar o
+resultado em extrato_fingerprints — nenhuma linha da lógica de match em
+si mudou. Prepara o terreno pra tela unificada (protótipo já aprovado),
+que ainda não foi construída.
+------------------------------------------------------------------
+Versões anteriores (v1.167.0 … v1.167.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.167.0) — Módulo Apoio ao Contador, itens 5/6 do plano
 (banco já tinha os itens 1-4 e 7 aplicados pelo conector). contratos.js
 1.2.0: ativar/renovar contrato chama fn_gerar_mensalidades_horizonte (90

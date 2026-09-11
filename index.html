@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.172.0
-   LINHAS: 15278
+   VERSÃO: Beta v1.173.0
+   LINHAS: 15291
    DATA: 10/09/2026
+   NOVIDADES (Beta v1.173.0) — Dois bugs reais fechados a pedido do
+   Nicola. 1) "Editar dados do imóvel" PERSISTIA quebrado: causa real era
+   rzMoverFormImovelParaBody() (move o formulário pro body, chamada direto
+   no boot) ter ido pro módulo lazy do A.8 por engano — voltou pra cá.
+   2) Estornar pela tela nativa de Recebimento/Despesa agora ressincroniza
+   o extrato de conciliação de volta pra pendente (financeiro.js 1.4.1,
+   testado direto no banco antes de conectar) — não ficava mais "preso"
+   como conciliado.
    NOVIDADES (Beta v1.172.0) — Módulo Apoio ao Contador, conciliação
    virou roteador fino (financeiro.js 1.4.0, pedido do Nicola): linha já
    conciliada abre a tela nativa de sempre (Recebimento/Despesa), "Nova
@@ -38,17 +46,8 @@
    saída/Marcar como repasse/Não controlar; conciliada oferece Estornar.
    Entrada continua no painel de Pendências de sempre (não duplicado) — o
    toque só aponta pra lá.
-   NOVIDADES (Beta v1.168.0) — Módulo Apoio ao Contador, etapa 2B destravada
-   (financeiro.js 1.2.0): a investigação que faltava (ler a importação de
-   extrato inteira) achou que saída hoje só reconhece repasse pros sócios
-   conhecidos — todo o resto virava fingerprint e era descartado. Fix
-   mínimo: documento_original passa a ser gravado (fica pronto pra tela de
-   conciliação de saída, Etapa 2A) e o match de entrada passa a espelhar o
-   resultado em extrato_fingerprints — nenhuma linha da lógica de match em
-   si mudou. Prepara o terreno pra tela unificada (protótipo já aprovado),
-   que ainda não foi construída.
    ------------------------------------------------------------------
-   Versões anteriores (v1.167.0 … v1.167.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.168.0 … v1.168.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -72,7 +71,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.2.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.4.1","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.3.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.28.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3386,7 +3385,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.172.0";
+        const APP_VERSAO = "Beta v1.173.0";
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8963,7 +8962,7 @@
             'removerFotoImovel', 'removerFotoImovelDoCofre', 'filtrarListaSeletorImovel', 'abrirLightboxImovelSalvo',
             'abrirSeletorImovel', 'alternarMaisAcoesFotosImovel', 'avancarStepImovel',
             'obterContratoPrincipalDoImovel', 'abrirBuscaImoveis', 'filtrarImoveisPorAlertaContrato', 'obterContratosContextuaisDoImovel',
-            'rzMoverFormImovelParaBody', 'voltarStepImovel', 'limparFiltroAlertaContratoImoveis', 'imovelIsentoDeAlertas',
+            'voltarStepImovel', 'limparFiltroAlertaContratoImoveis', 'imovelIsentoDeAlertas',
             'fecharBuscaImoveis', 'fecharCadastroImovelModal', 'abrirCadastroImovelModal',
         ].forEach(nome => { window[nome] = (...args) => carregarImoveis().then(m => m[nome](...args)); });
 
@@ -15255,6 +15254,20 @@
         // (mesmo padrão de renderImoveis/renderContratos) — isso apenas garante
         // que a tela esteja atualizada caso algo tenha mudado em outra aba.
         // v1.125.0 (fatia 9a) — inicializarServicos() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
+        // v1.X — BUG REAL achado pelo Nicola: "Editar dados do imóvel" (do
+        // Ativo) parou de abrir. Causa: esta função move o formulário do
+        // imóvel pro <body> — chamada aqui embaixo, DIRETO NO BOOT, antes
+        // de qualquer interação. Na extração do A.8 ela foi pro módulo lazy
+        // (imoveis.js) por engano — mesma categoria de erro dos 4
+        // carregar/sincronizar que já tinham voltado pra cá antes, só que
+        // essa eu não tinha percebido. Sem ela rodar no boot de verdade
+        // (não via bridge assíncrona), o formulário nunca sai de dentro da
+        // aba escondida — editarImovel() populava os campos certos,
+        // mas o modal continuava invisível.
+        function rzMoverFormImovelParaBody() {
+            const w = document.getElementById('form-imovel-wrapper');
+            if (w && w.parentElement !== document.body) document.body.appendChild(w);
+        }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rzMoverFormImovelParaBody);
         else rzMoverFormImovelParaBody();
     </script>    <div id="lightbox-geral" class="hidden fixed inset-0 bg-black/95 z-[300] flex items-center justify-center p-4">
