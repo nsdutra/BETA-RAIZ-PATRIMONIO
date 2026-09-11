@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.170.0) — BUG REAL achado pelo Nicola com prints:
+chips da tela de conciliação nova ficavam ilegíveis (texto branco em
+fundo branco) ao trocar de filtro — cada chip agora guarda sua própria
+cor e restaura certo. Ajustado também: texto do resumo pós-importação
+não fala mais em "descartar" saída (ela vai pra tela nova); borda
+esquerda colorida no card novo pra ficar visualmente separado do painel
+de Pendências antigo, que fica logo abaixo.
+------------------------------------------------------------------
+Versões anteriores (v1.169.0 … v1.169.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.169.0) — Módulo Apoio ao Contador, Etapa 2B completa
 (financeiro.js 1.3.0): tela de conciliação unificada, o protótipo que o
 Nicola aprovou — segmento Tudo/Entradas/Saídas + chips Pendentes/

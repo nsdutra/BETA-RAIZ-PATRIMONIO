@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.28.0 · 10/09/2026
+// Versão: 1.29.0 · 11/09/2026
+//
+// v1.29.0 — INSTRUMENTAÇÃO: window.editarImovel é ponte assíncrona (R8/
+// A.8). A promise era ignorada, então falha de import ou da própria função
+// virava "unhandled rejection" no console e o usuário via só um clique que
+// não fazia nada. Agora o erro real vai pra tela.
 //
 // v1.28.0 — A.9: acompanha cofre-api.js 1.23.0 (publicação real na vitrine)
 // — alternarVitrineFoto passa clienteId e o toast deixou de avisar "ainda
@@ -356,7 +361,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.28.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.29.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1668,7 +1673,15 @@ export function abrirGestaoImovel() {
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
         if (estado.ativoEmFoco?.id === ativoId) abrirFichaAtivo(ativoId);
     };
-    window.editarImovel(a.entidade_origem_id);
+    // v1.29.0 — INSTRUMENTAÇÃO (10/09/2026): window.editarImovel é uma
+    // PONTE ASSÍNCRONA (import dinâmico do módulo imoveis.js, R8/A.8).
+    // Antes a promise era ignorada — se o import ou a função falhassem, o
+    // erro virava "unhandled rejection" no console e o usuário via só um
+    // clique que não fazia nada. Agora o erro real aparece na tela.
+    Promise.resolve(window.editarImovel(a.entidade_origem_id)).catch(err => {
+        console.error('[ativos] Falha ao abrir o formulário do imóvel:', err);
+        mostrarToast('Não consegui abrir o formulário: ' + (err?.message || err), 'erro');
+    });
     // v1.18.1 (fatia 3b-ii) — síndico/manutencista/sócios/fotos já vivem na
     // ficha (Partes, Propriedade, Arquivos): escondidos no formulário
     // quando aberto daqui. cancelarEdicaoImovel() reexibe ao fechar.
