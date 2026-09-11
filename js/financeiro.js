@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.2.0 · 10/09/2026
+// Versão: 1.3.0 · 10/09/2026
+//
+// v1.3.0 — módulo Apoio ao Contador, Etapa 2B (tela, 10/09/2026): tela de
+// conciliação unificada (protótipo Tudo/Entradas/Saídas aprovado pelo
+// Nicola) — lê extrato_fingerprints direto, segmento + chips filtram
+// client-side. Entrada pendente só aponta pro painel de Pendências de
+// sempre (não reimplementado); saída usa as 5 RPCs da Etapa 2A inteiras
+// (sugerir/vincular/criar/não controlar/estornar). Abre junto do painel de
+// conciliação de sempre (alternarPainelConciliacao).
 //
 // v1.2.0 — módulo Apoio ao Contador, etapa 2B (investigação + fix mínimo,
 // 10/09/2026): a importação de extrato levava o documento (CPF/CNPJ) só até
@@ -86,7 +94,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.2.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -2016,8 +2024,230 @@ export function montarAbaFinanceiro(tabId) {
 
             // Ao abrir, garante que a lista de pendências (se houver) já
             // apareça renderizada, sem esperar o próximo evento.
-            if (aberto) renderPendenciasExtrato();
+            if (aberto) { renderPendenciasExtrato(); carregarConciliacaoUnificada(); }
 
+        }
+
+        // ============================================================================
+        // v1.X — Módulo Apoio ao Contador, Etapa 2B: CONCILIAÇÃO UNIFICADA
+        // (protótipo Tudo/Entradas/Saídas aprovado pelo Nicola, 10/09/2026).
+        // Lê extrato_fingerprints direto (fonte única desde a Etapa 1/2B — a
+        // importação já espelha o resultado da entrada aqui, e a saída nasce
+        // aqui). Entrada pendente continua sendo tratada pelo painel de
+        // Pendências de sempre (não reimplementado); aqui a ação de entrada
+        // pendente só aponta pra lá. Saída usa as RPCs da Etapa 2A
+        // inteiras: fn_extrato_sugerir_destino/vincular_saida/criar_saida/
+        // marcar_nao_controlado/estornar_vinculo.
+        // ============================================================================
+        let conciliacaoUniCache = [];
+        let conciliacaoUniSegmento = 'tudo';
+        let conciliacaoUniChip = 'todos';
+
+        export async function carregarConciliacaoUnificada() {
+            const lista = document.getElementById('conc-uni-lista');
+            if (!lista) return;
+            lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
+            try {
+                const { data, error } = await dbAuth.from('extrato_fingerprints')
+                    .select('id, data, valor, direcao, razao_social, documento_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
+                    .order('data', { ascending: false })
+                    .limit(200);
+                if (error) throw error;
+                conciliacaoUniCache = data || [];
+                renderConciliacaoUnificada();
+            } catch (err) {
+                lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--wine)">Não consegui carregar: ${err.message}</p>`;
+            }
+        }
+
+        export function filtrarConciliacaoSegmento(seg) {
+            conciliacaoUniSegmento = seg;
+            document.querySelectorAll('#conc-uni-seg .conc-seg-btn').forEach(b => {
+                const on = b.dataset.seg === seg;
+                b.style.background = on ? 'var(--pine)' : 'transparent';
+                b.style.color = on ? '#fff' : 'var(--pine)';
+            });
+            renderConciliacaoUnificada();
+        }
+
+        export function filtrarConciliacaoChip(chip) {
+            conciliacaoUniChip = chip;
+            document.querySelectorAll('#conc-uni-chips .conc-chip-btn').forEach(b => {
+                const on = b.dataset.chip === chip;
+                b.style.background = on ? 'var(--pine)' : '#fff';
+                b.style.borderColor = on ? 'var(--pine)' : 'var(--line)';
+                b.style.color = on ? '#fff' : b.style.color;
+            });
+            renderConciliacaoUnificada();
+        }
+
+        function renderConciliacaoUnificada() {
+            const lista = document.getElementById('conc-uni-lista');
+            const progresso = document.getElementById('conc-uni-progresso');
+            if (!lista) return;
+            const total = conciliacaoUniCache.length;
+            const resolvidos = conciliacaoUniCache.filter(f => f.status_conciliacao !== 'pendente').length;
+            if (progresso) progresso.textContent = total ? `${resolvidos} de ${total}` : '';
+
+            const filtrados = conciliacaoUniCache.filter(f =>
+                (conciliacaoUniSegmento === 'tudo' || f.direcao === conciliacaoUniSegmento) &&
+                (conciliacaoUniChip === 'todos' || f.status_conciliacao === conciliacaoUniChip)
+            );
+
+            if (!filtrados.length) {
+                lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma linha nesse filtro.</p>`;
+                return;
+            }
+
+            const corStatus = { pendente: ['#faf3e6', '#8a5a1f', 'Pendente'], conciliado: ['#e9f3ec', '#2f6b47', 'Conciliado'], nao_controlado: ['#eef0ec', '#5f6b5f', 'Não controlado'] };
+
+            lista.innerHTML = filtrados.map(f => {
+                const entrada = f.direcao === 'entrada';
+                const [bg, tx, rotulo] = corStatus[f.status_conciliacao] || corStatus.pendente;
+                const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${entrada ? '#e9f3ec' : '#f5ece9'}">
+                        <svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}" style="width:15px;height:15px;color:${entrada ? '#2f6b47' : 'var(--wine)'}"></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(f.razao_social || '—')}</p>
+                        <p class="text-[11px] truncate" style="color:var(--sage)">${formatarDataBR(f.data)}</p>
+                    </div>
+                    <div class="text-right flex-none">
+                        <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
+                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block mt-0.5" style="background:${bg};color:${tx}">${rotulo}</span>
+                    </div>
+                </div>`;
+            }).join('');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        export async function abrirAcoesConciliacaoLinha(fingerprintId) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            if (!f) return;
+            const entrada = f.direcao === 'entrada';
+            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const sub = `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`;
+
+            if (entrada) {
+                // Entrada continua tratada pelo painel de Pendências de sempre
+                // (não reimplementado aqui) — só aponta pra lá.
+                abrirSheetAcoes({ titulo: f.razao_social || 'Entrada', sub, acoes: [
+                    { icone: 'list', titulo: 'Ver em Pendências', sub: 'Entrada usa o painel de sempre, mais abaixo', aoTocar: () => { fecharSheet(); document.getElementById('painel-pendencias-extrato-wrapper')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+                ] });
+                return;
+            }
+
+            if (f.status_conciliacao === 'conciliado') {
+                abrirSheetAcoes({ titulo: f.razao_social || 'Saída', sub, acoes: [
+                    { icone: 'undo-2', titulo: 'Estornar', sub: 'A despesa criada some; a que já existia volta pra prevista', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
+                ] });
+                return;
+            }
+            if (f.status_conciliacao === 'nao_controlado') {
+                abrirSheetAcoes({ titulo: f.razao_social || 'Saída', sub: sub + (f.observacao_usuario ? ' · ' + f.observacao_usuario : ''), acoes: [
+                    { icone: 'rotate-ccw', titulo: 'Reabrir', sub: 'Volta pra pendente', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
+                ] });
+                return;
+            }
+
+            // Pendente — busca sugestão (banco) antes de montar o sheet.
+            mostrarCarregamentoGlobal('Buscando sugestão…');
+            let candidatos = [];
+            let categoriaSugerida = null;
+            try {
+                const { data, error } = await dbAuth.rpc('fn_extrato_sugerir_destino', { p_fingerprint_id: fingerprintId });
+                if (!error) {
+                    candidatos = (data || []).filter(c => c.lancamento_id);
+                    const linhaSugestao = (data || []).find(c => c.categoria_sugerida_se_nova);
+                    if (linhaSugestao) categoriaSugerida = linhaSugestao.categoria_sugerida_se_nova;
+                }
+            } catch (e) { /* segue sem sugestão, não bloqueia */ }
+            esconderCarregamentoGlobal();
+
+            const acoes = candidatos.map(c => ({
+                icone: 'link', titulo: `Vincular: ${c.descricao || c.categoria || 'despesa prevista'}`,
+                sub: `R$ ${Number(c.valor).toFixed(2)} · vence ${formatarDataBR(c.vencimento)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
+                aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
+            }));
+            acoes.push({ icone: 'plus', titulo: 'Criar nova saída', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Registra uma despesa a partir deste pagamento', aoTocar: () => abrirFormCriarSaidaConciliacao(fingerprintId, f, categoriaSugerida) });
+            acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarCriarSaidaConciliacao(fingerprintId, 'repasse_socio', 'Repasse — ' + (f.razao_social || '')) });
+            acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco continua guardada, sem virar despesa', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
+
+            abrirSheetAcoes({ titulo: f.razao_social || 'Saída', sub, acoes });
+        }
+
+        async function confirmarVincularConciliacaoSaida(fingerprintId, lancamentoId) {
+            fecharSheet();
+            mostrarCarregamentoGlobal('Vinculando…');
+            try {
+                const { error } = await dbAuth.rpc('fn_extrato_vincular_saida', { p_fingerprint_id: fingerprintId, p_lancamento_id: lancamentoId });
+                if (error) throw error;
+                esconderCarregamentoGlobal(); mostrarToast('Vinculado!', 'success');
+                registrarLog('conciliacao.vincular_saida', { fingerprintId, lancamentoId });
+                await carregarConciliacaoUnificada();
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
+        }
+
+        function abrirFormCriarSaidaConciliacao(fingerprintId, f, categoriaSugerida) {
+            const categorias = ['aluguel', 'iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'repasse_socio', 'tributo', 'reembolso', 'outro'];
+            const opcoes = categorias.map(c => `<option value="${c}" ${c === categoriaSugerida ? 'selected' : ''}>${c}</option>`).join('');
+            abrirSheetForm({
+                titulo: 'Criar nova saída', sub: f.razao_social || '',
+                corpo: `<div class="mb-3"><label class="block text-xs font-bold text-gray-600">Categoria</label><select id="cs-categoria" class="w-full p-2 border rounded text-sm mt-1">${opcoes}</select></div>
+                        <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Descrição</label><input type="text" id="cs-descricao" value="${escapeHtmlSaidas(f.razao_social || '')}" class="w-full p-2 border rounded text-sm mt-1"></div>`,
+                rotuloSalvar: 'Criar saída',
+                aoSalvar: () => { confirmarCriarSaidaConciliacao(fingerprintId, document.getElementById('cs-categoria').value, document.getElementById('cs-descricao').value); return false; },
+            });
+        }
+
+        async function confirmarCriarSaidaConciliacao(fingerprintId, categoria, descricao) {
+            fecharSheet();
+            mostrarCarregamentoGlobal('Criando saída…');
+            try {
+                const { error } = await dbAuth.rpc('fn_extrato_criar_saida', { p_fingerprint_id: fingerprintId, p_categoria: categoria, p_descricao: descricao || null });
+                if (error) throw error;
+                esconderCarregamentoGlobal(); mostrarToast('Saída criada!', 'success');
+                registrarLog('conciliacao.criar_saida', { fingerprintId, categoria });
+                await carregarConciliacaoUnificada();
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
+        }
+
+        function abrirFormNaoControlarConciliacao(fingerprintId) {
+            abrirSheetForm({
+                titulo: 'Não controlar', sub: 'A linha do banco continua guardada',
+                corpo: `<div class="mb-1"><label class="block text-xs font-bold text-gray-600">Observação (opcional)</label><textarea id="nc-obs" rows="2" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>`,
+                rotuloSalvar: 'Confirmar',
+                aoSalvar: () => { confirmarNaoControlarConciliacao(fingerprintId, document.getElementById('nc-obs').value); return false; },
+            });
+        }
+
+        async function confirmarNaoControlarConciliacao(fingerprintId, observacao) {
+            fecharSheet();
+            mostrarCarregamentoGlobal('Salvando…');
+            try {
+                const { error } = await dbAuth.rpc('fn_extrato_marcar_nao_controlado', { p_fingerprint_id: fingerprintId, p_observacao: observacao || null });
+                if (error) throw error;
+                esconderCarregamentoGlobal(); mostrarToast('Marcado como não controlado.', 'success');
+                registrarLog('conciliacao.nao_controlado', { fingerprintId });
+                await carregarConciliacaoUnificada();
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
+        }
+
+        function confirmarEstornarConciliacaoSaida(fingerprintId) {
+            fecharSheet();
+            if (!confirm('Estornar esta linha? Se a despesa foi criada a partir dela, ela some; se já existia, volta pra prevista.')) return;
+            (async () => {
+                mostrarCarregamentoGlobal('Estornando…');
+                try {
+                    const { error } = await dbAuth.rpc('fn_extrato_estornar_vinculo', { p_fingerprint_id: fingerprintId });
+                    if (error) throw error;
+                    esconderCarregamentoGlobal(); mostrarToast('Estornado.', 'success');
+                    registrarLog('conciliacao.estornar_saida', { fingerprintId });
+                    await carregarConciliacaoUnificada();
+                } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
+            })();
         }
 
         export async function excluirLancamentoMensal(menId) {

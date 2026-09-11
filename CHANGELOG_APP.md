@@ -4,6 +4,28 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.164.0) — A.8: IMÓVEIS SAI DO INDEX (R8 fatia 5,
+caminho B, combinado com o Nicola em 10/09). 51 funções (1.786 linhas)
+viraram js/imoveis.js — mesmo método das fatias anteriores (contratos.js,
+vitrine.js, minutas.js, financeiro.js): ES module sob demanda via
+import(), pontes window[nome] pro que chama de fora, rzImoSeCarregado()
+nos ganchos de recarga (saveAll, síndico, repasse — não força o import só
+por causa de um save em outra aba).
+Nenhuma lógica mudou — extração por balanceamento de chaves, função por
+função, 0 sobreposição, 0 corte no meio (script próprio, conferido antes
+de tocar no arquivo). Os 2 pontos de "select" que sumiram da contagem de
+tags do index foram HTML dinâmico (string de filtro) que foi junto pro
+módulo novo — soma bate igual com o baseline (9), conferido.
+Lembrete pro Deploy_Raiz.ps1: linha nova no manifesto —
+'imoveis.js' → 'js/imoveis.js', módulo patrimonio (mesmo padrão de
+contratos.js/vitrine.js).
+------------------------------------------------------------------
+Versões anteriores (v1.163.0 … v1.163.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.163.0) — A.9 (transição imóveis → ativos, passo 1 de
 5 combinados com o Nicola): cofre-api.js 1.23.0, cofre-ativos.js 1.28.0.
 1) Publicação na vitrine agora é real — era um stub desde que a tela foi
