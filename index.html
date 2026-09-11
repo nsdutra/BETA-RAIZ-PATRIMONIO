@@ -6,24 +6,37 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.177.0
-   LINHAS: 15289
+   VERSÃO: Beta v1.178.0
+   LINHAS: 15011
    DATA: 11/09/2026
-   NOVIDADES (Beta v1.177.0) — Etapa 7/8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md,
-   PARCIAL (ver pendências abaixo, nada de tab-conciliacao/"Gerar mês" nesta
-   entrega ainda). (1) O comentário CSS da linha ~401 e os 2 contornos do
-   cabeçalho (#main-header .rz-hdr + forcarLayoutHeaderGlobal) já estavam
-   corrigidos/removidos neste arquivo antes desta sessão — versão do header
-   só alinhada com o que o próprio comentário já dizia (Parte I do plano).
-   (2) financeiro.js 1.5.0: removida a função ressincronizarFingerprintAposEstorno
-   (v1.4.1, mais cedo hoje) — fazia na mão o que os triggers de espelho do
-   banco (Etapa 3) já fazem sozinhos, de forma mais completa. Fica só o
-   refresh de tela (atualizarConciliacaoSeAberta), sem gravação duplicada.
-   PENDENTE (Etapa 7, resto): tab-conciliacao como 3º segmento do Financeiro;
-   tab-inadimplencia redirecionada ("Em atraso" vira chip); "Gerar mês" sai
-   (painel-gerar-mes, gerarMensalidades, alternarPainelGerarMes, pontes);
-   ativar contrato pergunta pelos meses retroativos; reajuste/edição chamam
-   fn_mensalidades_realinhar (contratos.js).
+   NOVIDADES (Beta v1.178.0) — Etapa 8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md.
+   (1) Chip "Automáticas" no card de conciliação. (2) banco_origem real
+   gravado (achado A5) — gravarFingerprintsExtratoSupabase() não força mais
+   'Itaú' pra qualquer importação, usa o banco que a linha trouxe (IA detecta
+   no PDF/foto). (3) SOCIOS_CONHECIDOS (config estática, sempre vazia — achado
+   A7) virou obterSociosConhecidos(), computada a partir de
+   contratos[].divisaoRepasse (mesmo dado que o bot já usa). Ver financeiro.js
+   1.6.0 pro resto (sugestões em lote, Confirmar inline, Desfazer, "Sempre
+   fazer assim", fn_conciliacao_aplicar no fim da importação).
+   NOVIDADES (Beta v1.177.0) — Etapa 7 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md
+   completa. (1) Comentário CSS da linha ~401 e os 2 contornos do cabeçalho
+   já estavam corrigidos/removidos antes desta sessão (Parte I) — versão só
+   alinhada. (2) "Gerar mês" saiu (painel, select, gerarMensalidades,
+   alternarPainelGerarMes, pontes) — cron + ativação/renovação de contrato já
+   geram sozinhos (fn_gerar_mensalidades_horizonte); importação de extrato
+   passou a chamar fn_gerar_mensalidades_competencia direto (saiu o gerador
+   JS local — construirLinhaDoTempoValor/valorVigenteEm/
+   gerarMensalidadesParaCompetencia). (3) NOVO — Conciliação virou aba
+   própria (tab-conciliacao), 3º segmento de Financeiro junto de
+   Recebimentos/Saídas (antes era painel escondido dentro de Recebimentos);
+   tab-inadimplencia deixou de ser segmento de peso igual — "Atrasados"
+   agora é um chip/link a partir das outras 3 abas do grupo (tela e lógica
+   de cobrança em si inalteradas, sem risco de regressão). (4) Ativação de
+   contrato com início no passado agora pergunta se quer gerar também os
+   recebimentos retroativos (contratos.js 1.3.0) — nunca decide sozinho.
+   (5) financeiro.js 1.5.0: removida ressincronizarFingerprintAposEstorno —
+   os triggers de espelho do banco (Etapa 3) já fazem o mesmo, mais
+   completo. Fica só o refresh de tela.
    NOVIDADES (Beta v1.176.0) — Pacote cumulativo de fechamento da sessão
    (nenhuma mudança de comportamento além do que já estava nas versões
    abaixo). Corrigido um deslize de versionamento: cofre-documentos.js
@@ -2431,18 +2444,18 @@
 
         <section id="tab-mensal" class="tab-content">
 
-            <!-- v1.88.0 — segmento pra Atrasados (tab-inadimplencia), que
-                 deixou de ter ícone próprio na barra — mesma lógica visual
-                 do "Lista/Atrasos" que já existiu aqui antes (removido em
-                 v1.52.0), agora reaproveitada como o vínculo entre as duas
-                 abas em vez de filtro interno. -->
-            <!-- v1.114.0 (fatia 5) — segmento do catálogo (.rz-seg, REGRAS §8):
-                 Recebimentos · Atrasados · Saídas. Mesmas 3 abas de sempre. -->
+            <!-- v1.177.0 — Etapa 7/8 da conciliação (Parte D do plano):
+                 Conciliação virou aba própria (tab-conciliacao), 3º segmento
+                 junto de Recebimentos/Saídas — antes era um painel dentro
+                 desta aba. Atrasados deixou de ser segmento de peso igual e
+                 virou um link/chip secundário (ainda tab-inadimplencia por
+                 baixo, tela e lógica de cobrança inalteradas). -->
             <div class="rz-seg">
                 <button onclick="switchTab('tab-mensal')" class="rz-on">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="">Atrasados</button>
                 <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
+                <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
             </div>
+            <button onclick="switchTab('tab-inadimplencia')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-1"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</button>
 
             <!-- v1.51.0 — "< Voltar" condicional: só aparece quando esta
                  aba foi aberta filtrada a partir da ficha do imóvel
@@ -2452,107 +2465,96 @@
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos
                  removida; título "Recebimentos" removido, virou descrição
-                 curta à esquerda dos ícones, mesmo padrão de Imóveis. Ordem
-                 dos ícones (direita→esquerda): Gerar Mês (é o "+" desta
-                 aba — não existe "criar 1 mensalidade avulsa", o
-                 equivalente real é gerar o mês), Buscar (lupa — filtros
-                 antigos foram todos pra dentro dela), Conciliar (demais
-                 funções). -->
+                 curta à esquerda dos ícones, mesmo padrão de Imóveis. -->
             <div class="flex items-center gap-2 mb-4">
 
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos, dê baixa e concilie extratos bancários.</p>
+                <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa. Importe extratos e concilie na aba Conciliação.</p>
 
-                <!-- v1.114.0 (fatia 5, REGRAS §4): ≤2 ícones — Buscar e "+". O "+"
-                     abre sheet com Gerar mês · Importar extrato (IA) · Reprocessar
-                     conciliação; os painéis inline de conciliação/gerar mês
-                     continuam existindo (conciliação de extrato fica como está,
-                     por decisão do Nicola — fora desta fatia). -->
                 <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
                 <button id="btn-toggle-gerar-mes" onclick="rzAcoesRecebimentos()" title="Ações" class="rz-ico-btn rz-primary" aria-label="Novo"><svg data-lucide="plus"></svg></button>
             </div>
 
-            <!-- v1.177.0 — Etapa 7 da conciliação (Parte G do plano): painel
-                 "Gerar mês" removido. O cron (diario-eventos) já gera os
-                 recebimentos dos próximos 90 dias sozinho pra todo contrato
-                 ativo com valor; ativar/renovar contrato chamam o mesmo
-                 horizonte na hora (fn_gerar_mensalidades_horizonte). -->
+            <!-- v1.177.0 — painel "Gerar mês" removido (cron + ativação/
+                 renovação já geram sozinhos, Etapa 7). Bloco "Conciliar"
+                 (extrato + conciliação unificada + pendências) mudou pra
+                 aba própria tab-conciliacao, logo abaixo desta section. -->
 
-            <!-- v1.41.0 (Fase 2) — NOVO: bloco "Conciliar" agrupa toda a
-                 função de conciliação (que antes ficava sempre visível/solta
-                 na tela): botão de importar extrato + pendências geradas por
-                 ele. Fica escondido por padrão; o botão-cadeado no cabeçalho
-                 liga/desliga (mesmo padrão do botão "+"). -->
-            <div id="painel-conciliacao-wrapper" class="hidden mb-4 space-y-3">
+            <div id="lista-mensalidades" class="space-y-3"></div>
 
-                <h2 class="text-lg font-bold text-slate-900"><svg data-lucide="clipboard-list" style="width:16px;height:16px;display:inline;vertical-align:-3px"></svg> Pendências do Extrato Bancário</h2>
+        </section>
 
-                <!-- v1.42.2 — "Conciliação de Extrato" e "Reprocessar
-                     Conciliação" agora dividem a MESMA moldura (2 seções
-                     dentro de um único card), em vez de duas molduras
-                     separadas — sem alterar a formatação interna de cada
-                     uma, só a moldura externa que virou uma só. -->
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3">
+        <!-- ================= ABA: CONCILIAÇÃO (Etapa 7/8 do plano de conciliação) =================
+             v1.177.0 — antes era o painel "Conciliar" dentro de tab-mensal
+             (hidden, com botão-cadeado); virou aba própria, 3º segmento de
+             Financeiro. Conteúdo movido de lá pra cá sem mudança de lógica
+             (import extrato · reprocessar · conciliação unificada Tudo/
+             Entradas/Saídas · painel de Pendências legado). -->
 
-                    <div class="flex items-center justify-between gap-3">
+        <section id="tab-conciliacao" class="tab-content">
 
-                        <div>
-                            <p class="text-xs font-black text-slate-700">Conciliação de Extrato</p>
-                            <p class="text-[11px] text-gray-400">Importe o extrato bancário para conciliar pagamentos automaticamente.</p>
-                        </div>
+            <div class="rz-seg">
+                <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
+                <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
+                <button onclick="switchTab('tab-conciliacao')" class="rz-on">Conciliação</button>
+            </div>
+            <button onclick="switchTab('tab-inadimplencia')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-3"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</button>
 
-                        <!-- v1.66.2 — accept ganhou .pdf/.jpg/.jpeg/.png (item 6 da revisão de
-                             conciliação): antes só aceitava .xlsx/.xls, então anexar PDF nem
-                             deixava escolher o arquivo no seletor do celular. PDF/foto agora vai
-                             pra extração via IA (mesma extrairTransacoesExtratoIA do bot, ver
-                             processarExtratoImportado); xlsx/xls continua 100% local (SheetJS). -->
-                        <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
+            <p class="text-[11px] text-gray-500 mb-3">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
 
-                        <button onclick="document.getElementById('extrato-file-input').click()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Importar extrato bancário (Excel do Itaú, PDF ou foto)"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><polyline points="9 14 12 17 15 14"/></svg></button>
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3 mb-4">
 
+                <div class="flex items-center justify-between gap-3">
+
+                    <div>
+                        <p class="text-xs font-black text-slate-700">Conciliação de Extrato</p>
+                        <p class="text-[11px] text-gray-400">Importe o extrato bancário para conciliar pagamentos automaticamente.</p>
                     </div>
 
-                    <div class="border-t border-gray-100 pt-3 flex items-center justify-between gap-3">
+                    <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
 
-                        <div>
-                            <p class="text-xs font-black text-slate-700">Reprocessar Conciliação</p>
-                            <p class="text-[11px] text-gray-400">Refaz a comparação entre o extrato importado e os recebimentos, caso algo tenha mudado.</p>
-                        </div>
-
-                        <button onclick="reprocessarConciliacaoPendente()" title="Reprocessar conciliação" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
-
-                    </div>
+                    <button onclick="document.getElementById('extrato-file-input').click()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Importar extrato bancário (Excel do Itaú, PDF ou foto)"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><polyline points="9 14 12 17 15 14"/></svg></button>
 
                 </div>
 
-                <!-- v1.X — módulo Apoio ao Contador: conciliação unificada
-                     (protótipo Tudo/Entradas/Saídas aprovado pelo Nicola,
-                     10/09/2026). Lê extrato_fingerprints direto — não
-                     substitui o painel de Pendências abaixo (entrada
-                     continua com seus filtros detalhados ali), é a visão
-                     nova que também cobre saída, antes praticamente sem
-                     tratamento nenhum. -->
-                <div class="bg-white p-3 rounded-xl shadow-sm space-y-3" style="border:1px solid var(--line);border-left:4px solid var(--pine)">
+                <div class="border-t border-gray-100 pt-3 flex items-center justify-between gap-3">
 
-                    <div class="flex items-center justify-between">
-                        <p class="text-xs font-black text-slate-700">Conciliação — entradas e saídas</p>
-                        <span id="conc-uni-progresso" class="text-[11px]" style="color:var(--sage)"></span>
+                    <div>
+                        <p class="text-xs font-black text-slate-700">Reprocessar Conciliação</p>
+                        <p class="text-[11px] text-gray-400">Refaz a comparação entre o extrato importado e os recebimentos, caso algo tenha mudado.</p>
                     </div>
 
-                    <div id="conc-uni-seg" class="flex flex-nowrap rounded-xl p-[3px]" style="background:var(--paper);border:1px solid var(--line)">
-                        <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" data-seg="tudo" onclick="filtrarConciliacaoSegmento('tudo')">Tudo</button>
-                        <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="entrada" onclick="filtrarConciliacaoSegmento('entrada')">Entradas</button>
-                        <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="saida" onclick="filtrarConciliacaoSegmento('saida')">Saídas</button>
-                    </div>
+                    <button onclick="reprocessarConciliacaoPendente()" title="Reprocessar conciliação" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
 
-                    <div id="conc-uni-chips" class="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--pine);background:var(--pine);color:#fff" data-chip="todos" data-cor="var(--pine)" onclick="filtrarConciliacaoChip('todos')">Todos</button>
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--wine)" data-chip="pendente" data-cor="var(--wine)" onclick="filtrarConciliacaoChip('pendente')">Pendentes</button>
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:#2f6b47" data-chip="conciliado" data-cor="#2f6b47" onclick="filtrarConciliacaoChip('conciliado')">Conciliados</button>
-                        <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--sage)" data-chip="nao_controlado" data-cor="var(--sage)" onclick="filtrarConciliacaoChip('nao_controlado')">Não controlado</button>
-                    </div>
-
-                    <div id="conc-uni-lista" class="space-y-1.5"></div>
                 </div>
+
+            </div>
+
+            <div class="bg-white p-3 rounded-xl shadow-sm space-y-3 mb-4" style="border:1px solid var(--line);border-left:4px solid var(--pine)">
+
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-black text-slate-700">Conciliação — entradas e saídas</p>
+                    <span id="conc-uni-progresso" class="text-[11px]" style="color:var(--sage)"></span>
+                </div>
+
+                <div id="conc-uni-seg" class="flex flex-nowrap rounded-xl p-[3px]" style="background:var(--paper);border:1px solid var(--line)">
+                    <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" data-seg="tudo" onclick="filtrarConciliacaoSegmento('tudo')">Tudo</button>
+                    <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="entrada" onclick="filtrarConciliacaoSegmento('entrada')">Entradas</button>
+                    <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="saida" onclick="filtrarConciliacaoSegmento('saida')">Saídas</button>
+                </div>
+
+                <div id="conc-uni-chips" class="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
+                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--pine);background:var(--pine);color:#fff" data-chip="todos" data-cor="var(--pine)" onclick="filtrarConciliacaoChip('todos')">Todos</button>
+                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--wine)" data-chip="pendente" data-cor="var(--wine)" onclick="filtrarConciliacaoChip('pendente')">Pendentes</button>
+                    <!-- v1.177.0 — Etapa 8 (Parte H do plano): "Automáticas" —
+                         tudo que o motor de regras conciliou sozinho (novo +
+                         R03/R06 do motor atual, todos gravam regra_codigo). -->
+                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--brass-deep,#8a5a1f)" data-chip="automaticas" data-cor="var(--brass-deep,#8a5a1f)" onclick="filtrarConciliacaoChip('automaticas')">Automáticas</button>
+                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:#2f6b47" data-chip="conciliado" data-cor="#2f6b47" onclick="filtrarConciliacaoChip('conciliado')">Conciliados</button>
+                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--sage)" data-chip="nao_controlado" data-cor="var(--sage)" onclick="filtrarConciliacaoChip('nao_controlado')">Não controlado</button>
+                </div>
+
+                <div id="conc-uni-lista" class="space-y-1.5"></div>
+            </div>
 
             <div id="painel-pendencias-extrato-wrapper" class="hidden mb-4">
 
@@ -2563,43 +2565,29 @@
                     <div class="grid grid-cols-2 gap-2">
 
                         <div>
-
                             <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
-
                             <select id="pex-filtro-locatario" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todos</option></select>
-
                         </div>
 
                         <div>
-
                             <label class="block text-[11px] font-bold text-gray-500">Competência</label>
-
                             <select id="pex-filtro-competencia" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todas</option></select>
-
                         </div>
 
                         <div>
-
                             <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
-
                             <select id="pex-filtro-empreendimento" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todos</option></select>
-
                         </div>
 
                         <div>
-
                             <label class="block text-[11px] font-bold text-gray-500">Imóvel</label>
-
                             <select id="pex-filtro-imovel" onchange="renderPendenciasExtrato()" class="w-full p-1.5 border rounded text-[13px] bg-gray-50"><option value="todos">Todos</option></select>
-
                         </div>
 
                     </div>
 
                     <div class="flex justify-end mt-2">
-
                         <span id="pex-resumo" class="text-[13px] font-bold text-red-700 whitespace-nowrap">R$ 0,00 (0)</span>
-
                     </div>
 
                 </div>
@@ -2608,24 +2596,22 @@
 
             </div>
 
-            </div>
-            <!-- fim painel-conciliacao-wrapper -->
-
-            <div id="lista-mensalidades" class="space-y-3"></div>
-
         </section>
 
         <!-- ================= ABA: INADIMPLÊNCIA ================= -->
 
         <section id="tab-inadimplencia" class="tab-content">
 
-            <!-- v1.114.0 (fatia 5) — segmento do catálogo (.rz-seg, REGRAS §8):
-                 Recebimentos · Atrasados · Saídas. Mesmas 3 abas de sempre. -->
+            <!-- v1.177.0 — Etapa 7/8: segmento principal virou Recebimentos ·
+                 Saídas · Conciliação; Atrasados agora é chip/link a partir
+                 de qualquer uma delas (esta aba continua existindo, só não
+                 é mais um segmento de peso igual). -->
             <div class="rz-seg">
                 <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="rz-on">Atrasados</button>
                 <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
+                <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
             </div>
+            <span class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-100 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-1"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</span>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos e
                  título "Atrasos" removidos. Descrição curta + ícone de lupa
@@ -2693,13 +2679,14 @@
 
         <section id="tab-saidas" class="tab-content">
 
-            <!-- v1.114.0 (fatia 5) — segmento do catálogo (.rz-seg, REGRAS §8):
-                 Recebimentos · Atrasados · Saídas. Mesmas 3 abas de sempre. -->
+            <!-- v1.177.0 — Etapa 7/8: Conciliação entra no segmento principal,
+                 Atrasados vira chip (mesmo padrão das outras 3 abas do grupo). -->
             <div class="rz-seg">
                 <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
-                <button onclick="switchTab('tab-inadimplencia')" class="">Atrasados</button>
                 <button onclick="switchTab('tab-saidas')" class="rz-on">Saídas</button>
+                <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
             </div>
+            <button onclick="switchTab('tab-inadimplencia')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-1"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</button>
 
             <!-- "< Voltar" condicional, mesmo padrão de btn-voltar-financeiro
                  (só aparece quando esta aba foi aberta filtrada a partir do
@@ -4162,10 +4149,22 @@
 
         let extratoFingerprints = [];
 
-        // Sócios conhecidos para identificar repasses (PIX enviado) no extrato bancário.
-        // Comparação sempre em maiúsculas/sem espaços extras. Agora vem do
-        // CONFIG_CLIENTE — instalação nova pode começar com array vazio.
-        const SOCIOS_CONHECIDOS = CONFIG_CLIENTE.sociosConhecidos || [];
+        // v1.177.0 — Etapa 8 da conciliação (achado A7): SOCIOS_CONHECIDOS
+        // vinha de CONFIG_CLIENTE.sociosConhecidos — config estática, sem
+        // tela nenhuma pra preencher (sempre [] na prática), enquanto o bot
+        // já identifica repasse pelo DADO real (divisao_repasse_contrato,
+        // ver beneficiariosRepasseDoCliente em whatsapp-webhook/_shared.ts).
+        // Unificado no dado: lista computada a partir dos contratos já
+        // carregados (con.divisaoRepasse já traz nome de sócio interno e
+        // externo, mesma junção que o bot faz), sempre atual, sem hardcode
+        // por cliente.
+        function obterSociosConhecidos() {
+            const nomes = new Set();
+            (contratos || []).forEach(function(c) {
+                (c.divisaoRepasse || []).forEach(function(d) { if (d.nome) nomes.add(d.nome); });
+            });
+            return Array.from(nomes);
+        }
 
         let isOffline = false;
 
@@ -5852,7 +5851,10 @@
             const linhas = novosFingerprints.map(function(f) {
                 const linha = {
                     cliente_id: CLIENTE_ID_SUPABASE,
-                    banco_origem: 'Itaú',
+                    // v1.177.0 — Etapa 8 (achado A5): banco real, quando a
+                    // importação sabe qual é (IA detecta no PDF/foto); 'Itaú'
+                    // continua o padrão pro caminho .xlsx (formato próprio dele).
+                    banco_origem: f.banco || 'Itaú',
                     chave: f.chave,
                     data: f.data,
                     valor: f.valor,
@@ -8766,6 +8768,10 @@
             // barra (ver comentário na v1.88.0 acima do nav); sem isso, o
             // destaque acenderia errado (ou nenhum) ao entrar nessas telas.
             'tab-inadimplencia': 'tab-mensal',
+            // v1.177.0 — Etapa 7/8 da conciliação: Conciliação entra no mesmo
+            // grupo de Financeiro (mesmo ícone da barra acende), como Atrasados
+            // e Saídas.
+            'tab-conciliacao': 'tab-mensal',
             // v1.97.0 (NOVO) — Saídas entra no mesmo grupo de Financeiro
             // (mesmo ícone da barra inferior acende), igual Atrasados.
             'tab-saidas': 'tab-mensal',
@@ -8807,7 +8813,7 @@
 
         // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
         // motivo, fica onde está. Abas sem código não são gateadas.
-        const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver',
+        const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver',
             'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar' };
         // v1.136 (A.4) — catálogo de relatórios: cada linha tem código próprio
         // (relatorios.resultados / .distribuicao) → cadeado por plano/perfil.
@@ -8986,10 +8992,11 @@
             'confirmarPagamentoDespesa', 'estornarPagamentoDespesa', 'excluirDespesa', 'arquivoEhExtratoImagemOuPdf',
             'processarExtratoViaIA', 'processarExtratoImportado', 'conciliarTransacoes', 'reprocessarConciliacaoPendente',
             'renderPendenciasExtrato', 'alternarGrupoPendencias', 'vincularPendenciaExtrato', 'confirmarPendenciaDupla',
-            'descartarPendenciaExtrato', 'alternarPainelConciliacao', 'normalizarNomeParaComparacao', 'nomesParecem',
+            'descartarPendenciaExtrato', 'normalizarNomeParaComparacao', 'nomesParecem', // v1.177.0 — alternarPainelConciliacao saiu (Etapa 7/8, painel virou aba própria)
             'nomesIguaisSocio', 'abrirModalOpcoesRecibo', 'salvarObservacaoRecibo', 'fecharModalOpcoes',
             'dispararAcaoDoMenu', 'popularFiltrosMensal', // v1.177.0 — gerarMensalidades/alternarPainelGerarMes saíram (Gerar mês removido, Etapa 7)
             'carregarConciliacaoUnificada', 'filtrarConciliacaoSegmento', 'filtrarConciliacaoChip', 'abrirAcoesConciliacaoLinha', // v1.X — Etapa 2B
+            'verSugestaoConciliacao', 'confirmarSugestaoConciliacao', 'confirmarEstornarConciliacaoSaida', // v1.177.0 — Etapa 8 (sugestão em lote + Automáticas)
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         function switchTab(tabId) {
@@ -9119,7 +9126,7 @@
                     .then(m => m.renderImoveis())
                     .catch(err => console.warn('[imoveis] Falha ao carregar módulo:', err.message));
             }
-            if (tabId === 'tab-mensal' || tabId === 'tab-inadimplencia' || tabId === 'tab-saidas') {
+            if (tabId === 'tab-mensal' || tabId === 'tab-inadimplencia' || tabId === 'tab-saidas' || tabId === 'tab-conciliacao') {
                 carregarFinanceiro()
                     .then(m => m.montarAbaFinanceiro(tabId))
                     .catch(err => console.warn('[financeiro] Falha ao carregar módulo:', err.message));

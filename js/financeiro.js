@@ -1,7 +1,41 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.5.0 · 11/09/2026
+// Versão: 1.6.0 · 11/09/2026
+//
+// v1.6.0 — Etapa 8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md.
+//   - Sugestões em lote (fn_conciliacao_sugestoes, 1 chamada pra lista
+//     inteira) — linha pendente com sugestão mostra "Parece: X" tocável
+//     (ficha completa) + Confirmar/Buscar outro direto na linha, sem
+//     precisar tocar pra buscar. Ações ambíguas (soma, valor divergente,
+//     memória sem parâmetro exposto) caem no fluxo de toque de sempre —
+//     falha fechada.
+//   - Chip "Automáticas": tudo que o motor conciliou sozinho (regra_codigo
+//     preenchido), com selo "Automático · <regra>" e Desfazer
+//     (reaproveita fn_extrato_estornar_vinculo, agora exportada).
+//   - "Sempre fazer assim" no formulário de nova despesa vinda da
+//     conciliação (fn_conciliacao_sempre_assim) — só aparece quando a
+//     linha tem documento (a RPC exige pra criar a memória).
+//   - Fim da importação chama fn_conciliacao_aplicar (motor novo trata
+//     rendimento/tarifa/repasse de administradora também pelo app).
+//   - banco_origem real (achado A5) — não mais 'Itaú' fixo pra PDF/foto.
+//   - historico/razaoSocial/documento separados (achado A3/A4) — antes só
+//     descricao, documento sempre ''.
+//   - Sócios pelo dado (achado A7) — SOCIOS_CONHECIDOS (config estática,
+//     sempre vazia) virou obterSociosConhecidos(), computada de
+//     contratos[].divisaoRepasse.
+//   - Achado ao escrever: 3 novas funções usadas via onclick="" (escopo
+//     global) precisavam de export + ponte — não bastava aoTocar (closure
+//     de módulo). Corrigido antes de entregar.
+//
+// v1.5.1 — Etapa 7 do plano, resto: Conciliação virou aba própria
+// (tab-conciliacao, index.html) em vez de painel escondido dentro de
+// Recebimentos — montarAbaFinanceiro() ganha o ramo 'tab-conciliacao'
+// (chama carregarConciliacaoUnificada()/renderPendenciasExtrato() direto,
+// sem esperar toggle manual). alternarPainelConciliacao() removida — não
+// existe mais painel pra abrir/fechar, a aba já mostra tudo ao entrar. O
+// sheet "Painel de conciliação" (rzAcoesRecebimentos) agora só chama
+// switchTab('tab-conciliacao').
 //
 // v1.5.0 — Etapa 7/8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md. Achado ao
 // revisar antes de mexer na tela: ressincronizarFingerprintAposEstorno()
@@ -129,8 +163,9 @@
 // global compartilhado): mensalidades, lancamentos, pendenciasExtrato,
 // extratoFingerprints, partesParaSelect (invalida cache), activeMenId,
 // activeConId, contratos, imoveis, repasses, dbAuth, CONFIG_CLIENTE,
-// CLIENTE_ID_SUPABASE, fichaImovelAtualId, SOCIOS_CONHECIDOS,
-// administradoras, manutencistas. Estado EXCLUSIVO do Financeiro virou
+// CLIENTE_ID_SUPABASE, fichaImovelAtualId, administradoras, manutencistas,
+// obterSociosConhecidos() (v1.177.0 — função, substitui a antiga constante
+// SOCIOS_CONHECIDOS; achado A7). Estado EXCLUSIVO do Financeiro virou
 // `let` de módulo (7 variáveis abaixo).
 //
 // INDENTAÇÃO: mantida a de origem (8 espaços) de propósito — vários
@@ -141,13 +176,17 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
-    if (tabId === 'tab-mensal') { renderMensalidades(); renderPendenciasExtrato(); }
+    if (tabId === 'tab-mensal') { renderMensalidades(); }
     else if (tabId === 'tab-inadimplencia') { renderInadimplencia(); }
     else if (tabId === 'tab-saidas') { renderSaidas(); }
+    // v1.177.0 — Etapa 7/8: Conciliação virou aba própria (tab-conciliacao),
+    // não mais painel dentro de tab-mensal — carregarConciliacaoUnificada()
+    // e renderPendenciasExtrato() (painel legado) migraram pra cá.
+    else if (tabId === 'tab-conciliacao') { carregarConciliacaoUnificada(); renderPendenciasExtrato(); }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -471,6 +510,19 @@ export function montarAbaFinanceiro(tabId) {
                             <input id="desp-reembolsavel" type="checkbox" ${d?.reembolsavel ? 'checked' : ''} style="margin-top:2px;">
                             <label for="desp-reembolsavel" style="font-size:11px;color:#475569;">Reembolsável — não entra no cálculo de líquido dos sócios</label>
                         </div>
+                        ${(() => {
+                            // v1.6.0 — Etapa 8: só mostra quando a linha do extrato tem
+                            // documento (CPF/CNPJ) — fn_conciliacao_sempre_assim exige
+                            // documento pra criar a memória (senão não tem como
+                            // reconhecer "este favorecido de novo" com segurança).
+                            if (ehEdicao || !despesaOrigemFingerprintId) return '';
+                            const fpOrigem = conciliacaoUniCache.find(x => x.id === despesaOrigemFingerprintId);
+                            if (!fpOrigem?.documento_original) return '';
+                            return `<div style="display:flex;align-items:flex-start;gap:8px;background:var(--brass-bg,#f7ecd9);border-radius:8px;padding:8px;">
+                                <input id="desp-sempre-assim" type="checkbox" style="margin-top:2px;">
+                                <label for="desp-sempre-assim" style="font-size:11px;color:var(--brass-deep,#8a5a1f);">Sempre fazer assim com este favorecido — próximas vezes a conciliação registra sozinha, nesta categoria (dá pra desfazer)</label>
+                            </div>`;
+                        })()}
                         <div>
                             <label style="font-size:11px;font-weight:bold;color:#64748b;">Observação</label>
                             <textarea id="desp-observacao" rows="2" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;resize:none;">${escapeHtmlSaidas(d?.observacao || '')}</textarea>
@@ -598,6 +650,24 @@ export function montarAbaFinanceiro(tabId) {
                             status_conciliacao: 'conciliado', destino_tipo: 'lancamento', destino_id: criado.id, conciliado_em: new Date().toISOString(),
                         }).eq('id', despesaOrigemFingerprintId);
                         if (erroVinculo) devLog('ERRO_CONCILIACAO', 'Despesa criada, mas não consegui vincular o extrato: ' + erroVinculo.message);
+
+                        // v1.6.0 — Etapa 8 (Parte B.5/R12 do plano): "Sempre
+                        // fazer assim" — cria a regra do cliente
+                        // (fn_conciliacao_sempre_assim) ANTES de zerar
+                        // despesaOrigemFingerprintId. Não bloqueia o salvamento
+                        // já feito se falhar (documento pode ter sumido, etc.).
+                        const querSempreAssim = document.getElementById('desp-sempre-assim')?.checked;
+                        if (querSempreAssim) {
+                            try {
+                                await dbAuth.rpc('fn_conciliacao_sempre_assim', {
+                                    p_fingerprint_id: despesaOrigemFingerprintId, p_acao: 'criar_saida_categoria',
+                                    p_acao_params: { categoria },
+                                });
+                            } catch (errMemoria) {
+                                devLog('ERRO_CONCILIACAO', 'fn_conciliacao_sempre_assim falhou (despesa já salva, não bloqueia): ' + (errMemoria.message || errMemoria));
+                            }
+                        }
+
                         despesaOrigemFingerprintId = null;
                         if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
                     }
@@ -1122,17 +1192,18 @@ export function montarAbaFinanceiro(tabId) {
                     return;
                 }
 
-                // Formato do extrator de IA é diferente do parser de xlsx
-                // (um "descricao" só, sem coluna de documento separada) —
-                // mapeia pro mesmo formato que conciliarTransacoes() já
-                // espera, sinal negativo pra débito (mesma convenção do
-                // parser de xlsx logo abaixo).
+                // v1.6.0 — Etapa 8 (achado A3/A4, "a alavanca nº 1"): o
+                // extrator (_shared_extrato 1.4) já separa historico/
+                // razaoSocial/documento — antes esta função ainda usava só
+                // t.descricao pra tudo e documento ficava sempre '', então
+                // nem app nem a conciliação conseguiam achar contrato por
+                // CPF/CNPJ em PDF/foto, só por nome (tolerância maior).
                 const transacoes = (data.resultado.transacoes || []).map(t => ({
                     dataISO: t.data,
                     valor: t.tipo === 'debito' ? -Math.abs(t.valor) : Math.abs(t.valor),
-                    descricao: (t.descricao || '').toUpperCase(),
-                    razaoSocial: t.descricao || '',
-                    documento: '',
+                    descricao: (t.historico || t.descricao || '').toUpperCase(),
+                    razaoSocial: t.razaoSocial || t.descricao || '',
+                    documento: t.documento || '',
                 }));
 
                 esconderCarregamentoGlobal();
@@ -1143,11 +1214,15 @@ export function montarAbaFinanceiro(tabId) {
                     return;
                 }
 
+                // v1.6.0 — banco detectado pela IA agora É gravado (achado
+                // A5), não só mostrado no toast. 'Banco (PDF/foto)' quando a
+                // IA não identifica — nunca mais 'Itaú' chutado.
+                const bancoDetectado = data.resultado.banco || 'Banco (PDF/foto)';
                 const tituloResumo = data.resultado.banco
                     ? `📥 Extrato do ${data.resultado.banco} lido via IA!`
                     : '📥 Extrato lido via IA!';
 
-                await conciliarTransacoes(transacoes, tituloResumo);
+                await conciliarTransacoes(transacoes, tituloResumo, bancoDetectado);
 
             } catch (err) {
 
@@ -1268,7 +1343,13 @@ export function montarAbaFinanceiro(tabId) {
 
         }
 
-        export async function conciliarTransacoes(transacoes, tituloResumo) {
+        // v1.6.0 — Etapa 8 do plano (achado A5): banco_origem gravado sempre
+        // como 'Itaú' fixo, mesmo quando a IA já detecta o banco real do PDF/
+        // foto (resultado.banco, já mostrado no toast mas nunca persistido).
+        // bancoOrigem agora é parâmetro — .xlsx (Itaú, formato próprio) usa o
+        // default; IA passa o banco detectado (ou 'Banco (PDF/foto)' se a IA
+        // não identificar).
+        export async function conciliarTransacoes(transacoes, tituloResumo, bancoOrigem = 'Itaú') {
 
             // IMPORTANTE: os "fingerprints" continuam sendo registrados para fins de
 
@@ -1373,7 +1454,7 @@ export function montarAbaFinanceiro(tabId) {
                 // v1.2 — mantém a referência pra poder marcar o resultado da
                 // conciliação (match/pendência/ignorado) no próprio objeto,
                 // sem precisar re-buscar por chave depois.
-                const fpAtual = { chave, data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento, importadoEm: new Date().toISOString() };
+                const fpAtual = { chave, data: t.dataISO, valor: t.valor, razaoSocial: t.razaoSocial, documento: t.documento, banco: bancoOrigem, importadoEm: new Date().toISOString() };
                 novosFingerprints.push(fpAtual);
 
                 const [ano, mes] = t.dataISO.split('-');
@@ -1388,7 +1469,7 @@ export function montarAbaFinanceiro(tabId) {
 
                     if (t.descricao.includes('RENDIMENTO')) { qtdIgnorados++; continue; }
 
-                    const nomeSocioEntrada = SOCIOS_CONHECIDOS.find(s => nomesIguaisSocio(s, t.razaoSocial));
+                    const nomeSocioEntrada = obterSociosConhecidos().find(s => nomesIguaisSocio(s, t.razaoSocial));
 
                     if (nomeSocioEntrada) { qtdIgnorados++; continue; } // entrada de sócio não é aluguel
 
@@ -1603,7 +1684,7 @@ export function montarAbaFinanceiro(tabId) {
                     // (inalterado — repasse fica fora do escopo desta unificação, que
                     // era especificamente sobre entrada/aluguel)
 
-                    const nomeSocio = SOCIOS_CONHECIDOS.find(s => nomesIguaisSocio(s, t.razaoSocial));
+                    const nomeSocio = obterSociosConhecidos().find(s => nomesIguaisSocio(s, t.razaoSocial));
 
                     if (nomeSocio) {
 
@@ -1651,6 +1732,22 @@ export function montarAbaFinanceiro(tabId) {
 
             extratoFingerprints = extratoFingerprints.concat(novosFingerprints);
 
+            // v1.6.0 — Etapa 8 do plano: fim da importação chama o motor de
+            // regras novo (fn_conciliacao_aplicar, banco) uma vez só — trata
+            // sozinho o que ficou pendente e o laço acima não resolve
+            // (rendimento, tarifa, repasse de administradora, "sempre fazer
+            // assim" do cliente). Mesma RPC que o bot chama no fim do lote
+            // (whatsapp-webhook v2.55) — fonte única dos dois canais. Erro
+            // aqui não derruba a importação já feita; "Reprocessar" resolve depois.
+            let resumoMotor = [];
+            try {
+                const { data: resumoRpc, error: erroMotor } = await dbAuth.rpc('fn_conciliacao_aplicar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ids: null });
+                if (erroMotor) throw erroMotor;
+                resumoMotor = resumoRpc || [];
+            } catch (errMotor) {
+                devLog('ERRO_CONCILIACAO', 'fn_conciliacao_aplicar falhou no fim da importação (não crítico): ' + (errMotor.message || errMotor));
+            }
+
             // CORRIGIDO (v1.66.9, 28/08/2026) — mesmo bug real já corrigido
             // nos botões pontuais de pendência (v1.66.7): saveAll(true,
             // null) sem `rotas` sincronizava as 9 rotas inteiras, mesmo essa
@@ -1685,15 +1782,19 @@ export function montarAbaFinanceiro(tabId) {
 
                 `💸 ${qtdRepasses} repasse(s) de sócio lançado(s)\n` +
 
+                (resumoMotor.length > 0 ? `🤖 ${resumoMotor.reduce((s, r) => s + (r.quantidade || 0), 0)} linha(s) tratada(s) sozinha(s) pelo motor de regras (rendimento, tarifa, repasse de administradora...)\n` : '') +
+
                 `❓ ${qtdPendencias} item(ns) precisam da sua revisão (veja abaixo)\n` +
 
-                `🚫 ${qtdIgnorados} lançamento(s) sem ação automática (rendimentos, tarifas, e saídas — essas aparecem em "Conciliação — entradas e saídas", acima)\n` +
+                `🚫 ${qtdIgnorados} lançamento(s) sem ação automática nesta importação — confira em "Conciliação", alguns podem ter sido resolvidos pelo motor logo acima\n` +
 
                 (qtdJaProcessadas > 0 ? `♻️ ${qtdJaProcessadas} transação(ões) já estava(m) conciliada(s) antes — nada novo feito\n` : '') +
 
                 (qtdJaPendentes > 0 ? `⏭️ ${qtdJaPendentes} já tinham uma pendência em aberto igual (não duplicados)` : '')
 
             );
+
+            if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
 
         }
 
@@ -2059,21 +2160,11 @@ export function montarAbaFinanceiro(tabId) {
 
         // v1.177.0 — alternarPainelGerarMes() removida (Etapa 7 — painel
         // "Gerar mês" não existe mais, ver comentário em gerarMensalidades).
-
-        export function alternarPainelConciliacao() {
-
-            const painel = document.getElementById('painel-conciliacao-wrapper');
-            const btn = document.getElementById('btn-toggle-conciliar'); // v1.114.0 — pode não existir
-            if (!painel) return;
-            painel.classList.toggle('hidden');
-            const aberto = !painel.classList.contains('hidden');
-            if (btn) { btn.classList.toggle('ativo', aberto); atualizarIconeToggle(btn, aberto); }
-
-            // Ao abrir, garante que a lista de pendências (se houver) já
-            // apareça renderizada, sem esperar o próximo evento.
-            if (aberto) { renderPendenciasExtrato(); carregarConciliacaoUnificada(); }
-
-        }
+        // alternarPainelConciliacao() também removida (Etapa 7/8) —
+        // "painel-conciliacao-wrapper" virou a aba própria tab-conciliacao,
+        // sempre visível quando a aba está ativa; montarAbaFinanceiro()
+        // já chama carregarConciliacaoUnificada()/renderPendenciasExtrato()
+        // direto ao entrar na aba.
 
         // ============================================================================
         // v1.X — Módulo Apoio ao Contador, Etapa 2B: CONCILIAÇÃO UNIFICADA
@@ -2101,18 +2192,32 @@ export function montarAbaFinanceiro(tabId) {
             if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
         }
 
+        // v1.6.0 — Etapa 8: sugestões em lote (fn_conciliacao_sugestoes, 1
+        // chamada só pra lista inteira) — antes cada linha só buscava
+        // sugestão no toque (fn_extrato_sugerir_destino/recebimento,
+        // continuam existindo, usadas no fallback de toque em
+        // abrirAcoesConciliacaoLinha). Mapa por fingerprint_id.
+        let conciliacaoUniSugestoes = {};
+
         export async function carregarConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
             if (!lista) return;
             lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
             try {
                 const { data, error } = await dbAuth.from('extrato_fingerprints')
-                    .select('id, data, valor, direcao, razao_social, documento_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario, chave')
+                    .select('id, data, valor, direcao, razao_social, documento_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario, chave, regra_codigo')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
                     .order('data', { ascending: false })
                     .limit(200);
                 if (error) throw error;
                 conciliacaoUniCache = data || [];
+
+                conciliacaoUniSugestoes = {};
+                try {
+                    const { data: sugestoes, error: erroSug } = await dbAuth.rpc('fn_conciliacao_sugestoes', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ids: null });
+                    if (!erroSug) (sugestoes || []).forEach(s => { if (s.regra_codigo) conciliacaoUniSugestoes[s.fingerprint_id] = s; });
+                } catch (eSug) { /* sem sugestão em lote — linha cai no fluxo de toque de sempre, não bloqueia a lista */ }
+
                 renderConciliacaoUnificada();
             } catch (err) {
                 lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--wine)">Não consegui carregar: ${err.message}</p>`;
@@ -2141,6 +2246,13 @@ export function montarAbaFinanceiro(tabId) {
             renderConciliacaoUnificada();
         }
 
+        // v1.6.0 — Etapa 8: chip "automaticas" é derivado (conciliado +
+        // regra_codigo preenchido), não um valor de status_conciliacao
+        // direto — cobre tanto o motor novo quanto R03/R06 (motor atual +
+        // espelho, Etapa 3), que também gravam regra_codigo.
+        const CATEGORIA_POR_REGRA_CONC = { R08: 'condominio', R09: 'tributo', R10: 'outro', R13: 'seguro', R14: 'manutencao', R15: 'taxa_adm' };
+        const NOME_REGRA_CONC = { R01: 'rendimento', R02: 'tarifa', R03: 'aluguel', R04: 'repasse de imobiliária', R05: 'valor divergente', R06: 'retirada de sócio', R07: 'saída prevista', R08: 'condomínio', R09: 'tributo', R10: 'honorários do contador', R12: 'memória do cliente', R13: 'seguro', R14: 'manutenção', R15: 'taxa de administração', CT01: 'certeza total', CT02: 'certeza total' };
+
         function renderConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
             const progresso = document.getElementById('conc-uni-progresso');
@@ -2149,10 +2261,12 @@ export function montarAbaFinanceiro(tabId) {
             const resolvidos = conciliacaoUniCache.filter(f => f.status_conciliacao !== 'pendente').length;
             if (progresso) progresso.textContent = total ? `${resolvidos} de ${total}` : '';
 
-            const filtrados = conciliacaoUniCache.filter(f =>
-                (conciliacaoUniSegmento === 'tudo' || f.direcao === conciliacaoUniSegmento) &&
-                (conciliacaoUniChip === 'todos' || f.status_conciliacao === conciliacaoUniChip)
-            );
+            const filtrados = conciliacaoUniCache.filter(f => {
+                if (conciliacaoUniSegmento !== 'tudo' && f.direcao !== conciliacaoUniSegmento) return false;
+                if (conciliacaoUniChip === 'todos') return true;
+                if (conciliacaoUniChip === 'automaticas') return f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
+                return f.status_conciliacao === conciliacaoUniChip;
+            });
 
             if (!filtrados.length) {
                 lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma linha nesse filtro.</p>`;
@@ -2163,8 +2277,57 @@ export function montarAbaFinanceiro(tabId) {
 
             lista.innerHTML = filtrados.map(f => {
                 const entrada = f.direcao === 'entrada';
-                const [bg, tx, rotulo] = corStatus[f.status_conciliacao] || corStatus.pendente;
                 const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const automatica = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
+                const sug = f.status_conciliacao === 'pendente' ? conciliacaoUniSugestoes[f.id] : null;
+
+                // v1.6.0 — Automática: mesma linha de sempre, mas com selo
+                // "Automático · <regra>" e ⋮ com Abrir/Desfazer (Parte H do
+                // plano) em vez do rótulo de status genérico.
+                if (automatica) {
+                    const nomeRegra = NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo;
+                    return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
+                        <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:var(--brass-bg,#f7ecd9)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                            <svg data-lucide="sparkles" style="width:15px;height:15px;color:var(--brass-deep,#8a5a1f)"></svg>
+                        </div>
+                        <div class="flex-1 min-w-0" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(f.razao_social || '—')}</p>
+                            <p class="text-[11px] truncate" style="color:var(--sage)">Automático · ${escapeHtmlSaidas(nomeRegra)}</p>
+                        </div>
+                        <div class="text-right flex-none" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                            <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
+                        </div>
+                        <button type="button" class="flex-none w-7 h-7 flex items-center justify-center" onclick="event.stopPropagation();confirmarEstornarConciliacaoSaida('${f.id}')" title="Desfazer"><svg data-lucide="undo-2" style="width:15px;height:15px;color:var(--sage)"></svg></button>
+                    </div>`;
+                }
+
+                // v1.6.0 — Pendente com sugestão do motor (lote): mostra a
+                // sugestão na própria linha, com Confirmar direto — sem
+                // precisar tocar pra buscar (Parte K/H do plano). O texto
+                // "Parece: ..." é tocável (verSugestaoConciliacao) pra ver a
+                // ficha completa antes de confirmar, mesmo padrão do protótipo.
+                if (sug) {
+                    const confPct = Math.round((sug.confianca || 0));
+                    return `<div class="flex flex-wrap items-start gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
+                        <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${confPct < 70 ? '#faf3e6' : 'var(--brass-bg,#f7ecd9)'}">
+                            <svg data-lucide="sparkles" style="width:15px;height:15px;color:${confPct < 70 ? '#8a5a1f' : 'var(--brass-deep,#8a5a1f)'}"></svg>
+                        </div>
+                        <div class="flex-1 min-w-0 cursor-pointer" onclick="verSugestaoConciliacao('${f.id}')">
+                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(f.razao_social || '—')}</p>
+                            <p class="text-[11px] truncate" style="color:var(--sage)">Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</p>
+                        </div>
+                        <div class="text-right flex-none">
+                            <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
+                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 mt-0.5" style="background:var(--brass-bg,#f7ecd9);color:var(--brass-deep,#8a5a1f)"><svg data-lucide="sparkles" style="width:9px;height:9px"></svg>${confPct}%</span>
+                        </div>
+                        <div class="flex-none w-full flex gap-2 mt-1" style="padding-left:42px">
+                            <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" onclick="event.stopPropagation();confirmarSugestaoConciliacao('${f.id}')">Confirmar</button>
+                            <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:transparent;border:1px solid var(--line);color:var(--ink)" onclick="event.stopPropagation();abrirAcoesConciliacaoLinha('${f.id}')">${entrada ? 'Outro recebimento' : 'Outra saída'}</button>
+                        </div>
+                    </div>`;
+                }
+
+                const [bg, tx, rotulo] = corStatus[f.status_conciliacao] || corStatus.pendente;
                 return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
                     <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${entrada ? '#e9f3ec' : '#f5ece9'}">
                         <svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}" style="width:15px;height:15px;color:${entrada ? '#2f6b47' : 'var(--wine)'}"></svg>
@@ -2180,6 +2343,53 @@ export function montarAbaFinanceiro(tabId) {
                 </div>`;
             }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.6.0 — ficha completa do item sugerido, antes de confirmar
+        // (mesmo padrão do protótipo v3.3, pedido explícito do Nicola).
+        export function verSugestaoConciliacao(fingerprintId) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            const sug = conciliacaoUniSugestoes[fingerprintId];
+            if (!f || !sug) return;
+            const entrada = f.direcao === 'entrada';
+            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            abrirSheetAcoes({
+                titulo: f.razao_social || '—',
+                sub: `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`,
+                acoes: [
+                    { icone: 'sparkles', tipo: 'ia', titulo: sug.detalhe || (NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo), sub: `Confiança: ${Math.round(sug.confianca || 0)}%`, aoTocar: () => confirmarSugestaoConciliacao(fingerprintId) },
+                    { icone: 'search', titulo: entrada ? 'Buscar outro recebimento' : 'Buscar outra saída', aoTocar: () => abrirAcoesConciliacaoLinha(fingerprintId) },
+                ],
+            });
+        }
+
+        // v1.6.0 — Confirmar inline: despacha pra RPC certa conforme a ação
+        // sugerida. Ações ambíguas (soma de 2+, valor divergente, memória do
+        // cliente sem parâmetro exposto) caem no fluxo de toque de sempre
+        // em vez de arriscar confirmar errado — falha fechada, mesmo
+        // princípio do motor no banco.
+        export async function confirmarSugestaoConciliacao(fingerprintId) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            const sug = conciliacaoUniSugestoes[fingerprintId];
+            if (!f || !sug) return;
+
+            if (sug.acao === 'nao_controlar') {
+                return confirmarNaoControlarConciliacao(fingerprintId, sug.detalhe || null);
+            }
+            if (sug.acao === 'dar_baixa' && sug.destino_tipo === 'mensalidade' && sug.destino_id) {
+                return confirmarVincularConciliacaoRecebimento(fingerprintId, sug.destino_id, f);
+            }
+            if (sug.acao === 'vincular_saida_prevista' && sug.destino_tipo === 'lancamento' && sug.destino_id) {
+                return confirmarVincularConciliacaoSaida(fingerprintId, sug.destino_id);
+            }
+            if (sug.acao === 'sugerir_categoria') {
+                const categoria = CATEGORIA_POR_REGRA_CONC[sug.regra_codigo] || 'outro';
+                return confirmarCriarSaidaConciliacao(fingerprintId, categoria, f.razao_social);
+            }
+            // R04 soma, R05 valor divergente, R12 memória sem params expostos
+            // etc. — sem ação segura pra confirmar sozinha: abre o fluxo de
+            // toque normal (mesmas RPCs de sugestão pontual).
+            return abrirAcoesConciliacaoLinha(fingerprintId);
         }
 
         export async function abrirAcoesConciliacaoLinha(fingerprintId) {
@@ -2311,7 +2521,10 @@ export function montarAbaFinanceiro(tabId) {
             } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
         }
 
-        function confirmarEstornarConciliacaoSaida(fingerprintId) {
+        // v1.6.0 — Etapa 8: exportada — agora também chamada via onclick=""
+        // (string HTML, escopo global) na linha "Automática" da lista, além
+        // do aoTocar de sempre (closure de módulo, não precisava de export).
+        export function confirmarEstornarConciliacaoSaida(fingerprintId) {
             fecharSheet();
             if (!confirm('Estornar esta linha? Se a despesa foi criada a partir dela, ela some; se já existia, volta pra prevista.')) return;
             (async () => {
@@ -2445,7 +2658,7 @@ export function montarAbaFinanceiro(tabId) {
             abrirSheetAcoes({ titulo: 'Recebimentos', acoes: [
                 { icone: 'sparkles', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os pagamentos automaticamente', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
                 { icone: 'refresh-cw', titulo: 'Reprocessar conciliação', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação extrato × recebimentos', aoTocar: () => reprocessarConciliacaoPendente() },
-                { icone: 'clipboard-list', titulo: 'Painel de conciliação', codigo: 'conciliacao.ver', sub: 'Pendências do último extrato', aoTocar: () => { const w = document.getElementById('painel-conciliacao-wrapper'); if (w && w.classList.contains('hidden')) alternarPainelConciliacao(); w?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+                { icone: 'clipboard-list', titulo: 'Painel de conciliação', codigo: 'conciliacao.ver', sub: 'Pendências do último extrato', aoTocar: () => switchTab('tab-conciliacao') },
             ] });
         }
 
