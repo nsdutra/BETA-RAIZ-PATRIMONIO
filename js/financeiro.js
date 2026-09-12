@@ -1,7 +1,38 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.6.9 · 12/09/2026
+// Versão: 1.7.0 · 12/09/2026
+//
+// v1.7.0 — 5ª leva de achados do Nicola + auditoria contra o design system:
+//   - Resumo de competência em Recebimentos padronizado: sempre "valor · N
+//     itens", em qualquer chip (inclusive "Todos") e qualquer competência.
+//     Antes "Todos" mostrava a repartição por status (N pago/N atraso/N a
+//     vencer), destoando do resto.
+//   - Alerta "lançamentos futuros não entram aqui" removido de Atrasados
+//     (avencerQtd/avencerValor continuam calculados, só não exibidos).
+//   - Ícone de Recebimentos (e de Atrasados) virou fixo por tipo (seta de
+//     entrada), não varia mais por status — status já está na tag, não
+//     precisa repetir mudando a forma do ícone. Cor ainda muda (rz-bad).
+//   - linhaConciliacaoUniHtml() reescrita inteira: usava divs com estilo
+//     próprio (bg colorido no ícone, badge de status sem bolinha, grupo
+//     sem fundo branco) — agora usa as classes canônicas do catálogo
+//     (.rz-row/.rz-ic/.rz-tx/.rz-rt/.rz-chev) e renderStatus() (única
+//     função que decide cor de status, REGRAS §10 — é dali que vem a
+//     bolinha antes do texto, via .rz-st::before, que a Conciliação nunca
+//     tinha porque nunca chamava essa função). Grupo expandido passou a
+//     usar .rz-card.rz-list, mesmo fundo branco de Recebimentos/Saídas.
+//   - Auditoria mecânica: rodei verificar_gramatica.py contra os arquivos
+//     atuais (não só comparação visual). Achou e corrigiu 2 regressões
+//     reais: emoji 🤖 numa mensagem de importação (trocado por ⚙️ — REGRAS
+//     §16, robô é sempre ícone Lucide, nunca emoji) e um badge de
+//     confiança usando var(--brass-deep) fora de uma classe .rz-* (uso
+//     decorativo do dourado, exclusivo de IA) — trocado pela classe
+//     própria .rz-ia-tag, que já existia no catálogo. hex_solto_style
+//     ficou em 36 contra baseline 34, mas todo concentrado no formulário
+//     legado de despesa (montarPopupDespesa), que já tinha 37 no arquivo
+//     original antes desta sessão — não é regressão introduzida agora,
+//     baseline parece só estar um pouco desatualizada; não mexido (seria
+//     refactor grande, fora do escopo desta entrega).
 //
 // v1.6.9 — 4ª leva de achados do Nicola:
 //   - Regra de conciliação: sheet de modo agora mostra a descrição
@@ -368,7 +399,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.6.9'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -2057,7 +2088,7 @@ export function montarAbaFinanceiro(tabId) {
 
                 `💸 ${qtdRepasses} repasse(s) de sócio lançado(s)\n` +
 
-                (resumoMotor.length > 0 ? `🤖 ${resumoMotor.reduce((s, r) => s + (r.quantidade || 0), 0)} linha(s) tratada(s) sozinha(s) pelo motor de regras (rendimento, tarifa, repasse de administradora...)\n` : '') +
+                (resumoMotor.length > 0 ? `⚙️ ${resumoMotor.reduce((s, r) => s + (r.quantidade || 0), 0)} linha(s) tratada(s) sozinha(s) pelo motor de regras (rendimento, tarifa, repasse de administradora...)\n` : '') +
 
                 `❓ ${qtdPendencias} item(ns) precisam da sua revisão (veja abaixo)\n` +
 
@@ -2362,66 +2393,51 @@ export function montarAbaFinanceiro(tabId) {
         // — extraída da função de render pra poder ser reusada por grupo.
         function linhaConciliacaoUniHtml(f) {
             const entrada = f.direcao === 'entrada';
-            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const valorFmt = formatarMoedaBR(Math.abs(parseFloat(f.valor)));
             const automatica = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
             const sug = f.status_conciliacao === 'pendente' ? conciliacaoUniSugestoes[f.id] : null;
-            const corStatus = { pendente: ['#faf3e6', '#8a5a1f', 'Pendente'], conciliado: ['#e9f3ec', '#2f6b47', 'Conciliado'], nao_controlado: ['#eef0ec', '#5f6b5f', 'Não controlado'] };
-            // v1.179.2 — achado do Nicola: padronizar com Recebimentos/Saídas
-            // — toque na linha inteira abre o menu de opções (⋮), nada de
-            // botão solto (Confirmar/Outra saída) nem ícone avulso
-            // (Desfazer). abrirAcoesConciliacaoLinha() já sabe montar o menu
-            // certo pra cada status — só faltava TODA linha chamar ela.
-            const chevMais = `<svg data-lucide="ellipsis-vertical" style="width:15px;height:15px;color:var(--sage);flex:none;margin-left:2px"></svg>`;
+            // v1.179.3 — achado do Nicola comparando com o design system do
+            // projeto: esta função usava divs com estilo próprio (bg
+            // colorido no ícone, badge de status sem a bolinha, sem
+            // .rz-card.rz-list no grupo) — igual em espírito ao de
+            // Recebimentos/Saídas, mas sem usar as MESMAS classes. Reescrita
+            // pra usar .rz-row/.rz-ic/.rz-tx/.rz-rt/.rz-chev e renderStatus()
+            // (a única função que decide cor de status, REGRAS §10 — é dali
+            // que vem a bolinha antes do texto, via .rz-st::before) —
+            // mesmo tamanho de ícone (42px/20px), mesmo ⋮ (.rz-chev),
+            // mesma tag de status em toda a tela agora.
+            const rs = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+            const valorSpan = `<b class="${entrada ? 'rz-in' : 'rz-out'}">${entrada ? '+' : '−'} ${valorFmt}</b>`;
 
             if (automatica) {
                 const nomeRegra = NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo;
-                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:var(--brass-bg,#f7ecd9)">
-                        <svg data-lucide="sparkles" style="width:15px;height:15px;color:var(--brass-deep,#8a5a1f)"></svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
-                        <p class="text-[11px] truncate" style="color:var(--sage)">Automático · ${escapeHtmlSaidas(nomeRegra)}</p>
-                    </div>
-                    <div class="text-right flex-none">
-                        <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
-                    </div>
-                    ${chevMais}
+                return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                    <div class="rz-ic rz-ia"><svg data-lucide="sparkles"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Automático · ${escapeHtmlSaidas(nomeRegra)}</span></div>
+                    <div class="rz-rt">${valorSpan}</div>
+                    <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
             }
 
             if (sug) {
                 const confPct = Math.round((sug.confianca || 0));
-                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${confPct < 70 ? '#faf3e6' : 'var(--brass-bg,#f7ecd9)'}">
-                        <svg data-lucide="sparkles" style="width:15px;height:15px;color:${confPct < 70 ? '#8a5a1f' : 'var(--brass-deep,#8a5a1f)'}"></svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
-                        <p class="text-[11px] truncate" style="color:var(--sage)">Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</p>
-                    </div>
-                    <div class="text-right flex-none">
-                        <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
-                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 mt-0.5" style="background:var(--brass-bg,#f7ecd9);color:var(--brass-deep,#8a5a1f)"><svg data-lucide="sparkles" style="width:9px;height:9px"></svg>${confPct}%</span>
-                    </div>
-                    ${chevMais}
+                const semConfianca = confPct < 70 ? 'warn' : 'ia';
+                return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                    <div class="rz-ic rz-${semConfianca}"><svg data-lucide="sparkles"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</span></div>
+                    <div class="rz-rt">${valorSpan}<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confPct}%</span></div>
+                    <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
             }
 
-            const [bg, tx, rotulo] = corStatus[f.status_conciliacao] || corStatus.pendente;
-            return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${entrada ? '#e9f3ec' : '#f5ece9'}">
-                    <svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}" style="width:15px;height:15px;color:${entrada ? '#2f6b47' : 'var(--wine)'}"></svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
-                    <p class="text-[11px] truncate" style="color:var(--sage)">${formatarDataBR(f.data)}</p>
-                </div>
-                <div class="text-right flex-none">
-                    <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
-                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block mt-0.5" style="background:${bg};color:${tx}">${rotulo}</span>
-                </div>
-                ${chevMais}
+            const badge = f.status_conciliacao === 'pendente' ? rs('warn', 'Pendente')
+                : f.status_conciliacao === 'conciliado' ? rs('ok', 'Conciliado')
+                : rs('neu', 'Não controlado');
+            return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                <div class="rz-ic"><svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}"></svg></div>
+                <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>${formatarDataBR(f.data)}</span></div>
+                <div class="rz-rt">${valorSpan}${badge}</div>
+                <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
             </div>`;
         }
 
@@ -2527,7 +2543,7 @@ export function montarAbaFinanceiro(tabId) {
                         <span style="flex:1">${ref} · ${resumo}</span>
                         <svg data-lucide="chevron-down" id="${grupoId}-seta" style="width:16px;height:16px;transform:rotate(${aberto ? '180' : '0'}deg)"></svg>
                     </div>
-                    <div id="${grupoId}" class="space-y-1.5 ${aberto ? '' : 'hidden'}" style="margin-bottom:10px">${itensGrupo.map(linhaConciliacaoUniHtml).join('')}</div>`;
+                    <div id="${grupoId}" class="rz-card rz-list ${aberto ? '' : 'hidden'}">${itensGrupo.map(linhaConciliacaoUniHtml).join('')}</div>`;
             }).join('');
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -3150,8 +3166,13 @@ export function montarAbaFinanceiro(tabId) {
                     }
                     const atrasada = mensalidadeEmAtraso(men);
                     if (atrasada) { inadimplenteGrupo += men.valorConfirmado; qtdInadimplente++; } else { avencerGrupo += men.valorConfirmado; qtdAVencer++; }
+                    // v1.179.3 — achado do Nicola: ícone por TIPO de
+                    // recebimento (entrada — mesma seta de sempre), não por
+                    // status — status já está na tag (rsM), não precisa
+                    // repetir mudando a forma do ícone. Cor ainda muda
+                    // (rz-bad) quando atrasada, só a forma que ficou fixa.
                     return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
-                        <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="${atrasada ? 'alarm-clock' : 'clock'}"></svg></div>
+                        <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
                         <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${escapeHtmlSaidas(localImovel)} · vence dia ${con.vencimentoDia || 15}</span></div>
                         <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
@@ -3160,16 +3181,13 @@ export function montarAbaFinanceiro(tabId) {
                 kTotRecebido += recebidoGrupo; kTotAtraso += inadimplenteGrupo; kTotAVencer += avencerGrupo;
                 const grupoId = 'grupo-mensal-' + ref.replace('/', '-');
                 const abertoPorPadrao = gruposMensalAbertos.has(ref);
-                // v1.178.9 — achado do Nicola: resumo da competência varia
-                // com o chip ativo — "todos" mantém a repartição de sempre
-                // (N pago · N atraso · N a vencer); um chip específico mostra
-                // "valor · N itens" (só esse recorte, já que com o chip
-                // ativo o grupo só tem itens daquele status mesmo).
+                // v1.179.3 — achado do Nicola: resumo da competência
+                // padronizado, SEM variar com o chip — sempre "valor · N
+                // itens", nunca a repartição por status (nem no "Todos").
+                // Mesmo padrão em qualquer competência, futura ou passada.
                 const totalItensGrupo = qtdRecebido + qtdInadimplente + qtdAVencer;
                 const valorGrupo = recebidoGrupo + inadimplenteGrupo + avencerGrupo;
-                const resumo = mensalChipStatus === 'todos'
-                    ? [qtdRecebido ? `${qtdRecebido} pago${qtdRecebido > 1 ? 's' : ''}` : '', qtdInadimplente ? `${qtdInadimplente} em atraso` : '', qtdAVencer ? `${qtdAVencer} a vencer` : ''].filter(Boolean).join(' · ')
-                    : `${formatarMoedaBR(valorGrupo)} · ${totalItensGrupo} ite${totalItensGrupo > 1 ? 'ns' : 'm'}`;
+                const resumo = `${formatarMoedaBR(valorGrupo)} · ${totalItensGrupo} ite${totalItensGrupo > 1 ? 'ns' : 'm'}`;
                 // v1.6.5 — achado do Nicola: mês 100% futuro (só "a vencer",
                 // nada pago ou em atraso ainda) ficava com a MESMA cor de
                 // cabeçalho que um mês com coisa pra agir — a única
@@ -3391,21 +3409,10 @@ export function montarAbaFinanceiro(tabId) {
             document.getElementById('inad-total-geral').innerText = "R$ " + totalInad.toLocaleString('pt-BR', {minimumFractionDigits:2});
             const taxa = totalLancadoGeral > 0 ? ((totalInad / totalLancadoGeral) * 100).toFixed(1) : 0;
             document.getElementById('inad-taxa').innerText = taxa + "%";
-            // v1.63.0 — NOVO aviso informativo: lançamentos futuros existem
-            // (contam pro caixa esperado) mas não aparecem nesta aba porque
-            // ainda não venceram — evita a leitura de "sumiu"/"a taxa está
-            // errada". Mesmo container de aviso leve já usado pra energia
-            // (id-a-vencer-aviso), estilo neutro (slate), não vermelho/
-            // amarelo — não é um alerta, é só uma nota de contexto.
-            const avisoAVencer = document.getElementById('inad-a-vencer-aviso');
-            if (avisoAVencer) {
-                if (avencerQtd > 0) {
-                    avisoAVencer.classList.remove('hidden');
-                    avisoAVencer.innerText = `ℹ️ ${avencerQtd} lançamento${avencerQtd > 1 ? 's' : ''} futuro${avencerQtd > 1 ? 's' : ''} (R$ ${avencerValor.toLocaleString('pt-BR', {minimumFractionDigits:2})}) ainda não venceu${avencerQtd > 1 ? 'ram' : ''} — não entra${avencerQtd > 1 ? 'm' : ''} aqui. Consulte na aba Financeiro.`;
-                } else {
-                    avisoAVencer.classList.add('hidden');
-                }
-            }
+            // v1.179.3 — achado do Nicola: aviso de "lançamentos futuros que
+            // não entram aqui" removido — avencerQtd/avencerValor continuam
+            // calculados (usados só pra excluir esses itens da lista/total
+            // desta aba, não pra exibição).
             const energiaBox = document.getElementById('inad-energia-recebida');
             if (energiaBox) {
                 if (totalEnergiaRecebida > 0) {
@@ -3464,9 +3471,13 @@ export function montarAbaFinanceiro(tabId) {
                         : '-';
                     // v1.114.0 (fatia 5) — .rz-row; toque abre o sheet do lançamento
                     // (Dar baixa · Excluir), igual à aba Recebimentos.
+                    // v1.179.3 — mesmo ícone de tipo (arrow-down-left) que
+                    // Recebimentos agora usa, por consistência — cor
+                    // (rz-bad) já basta pra sinalizar atraso, sem precisar
+                    // mudar a forma.
                     subItensHtml += `
                         <div class="rz-row rz-link" onclick="rzAcoesMensalidade('${item.men.id}')">
-                            <div class="rz-ic rz-bad"><svg data-lucide="alarm-clock"></svg></div>
+                            <div class="rz-ic rz-bad"><svg data-lucide="arrow-down-left"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(item.con.locatario || 'Locatário')} · ${item.men.referencia}</b><span>${escapeHtmlSaidas(localImovelInad)}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(item.men.valorConfirmado)}</b>${(typeof renderStatus === 'function') ? renderStatus('bad', 'Em atraso') : ''}</div>
                             <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
