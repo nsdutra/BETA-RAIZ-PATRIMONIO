@@ -1,7 +1,24 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.7.0 · 12/09/2026
+// Versão: 1.7.1 · 12/09/2026
+//
+// v1.7.1 — pedido do Nicola ("não quero evoluir o sistema e ficar deixando
+// código morto espalhado"): pendencias_extrato foi DROPADA de verdade no
+// banco (não só parou de ser usada) — limpeza de tudo que ainda tocava
+// nela aqui:
+//   - chavesJaPendentes (lia o array pendenciasExtrato) e a checagem de
+//     cls.classificacao === 'pendencia_ja_existe' (classificação que a RPC
+//     compartilhada parou de devolver, mesma limpeza do lado do banco)
+//     removidas do loop de importação — bug real corrigido junto:
+//     qtdJaPendentes ficou órfã (nunca mais incrementada) e ainda era lida
+//     na mensagem final — ReferenceError na próxima importação se não
+//     tivesse sido pega agora.
+//   - Bloco que resolvia "pendência antiga" (pendenciaAntiga, achava no
+//     array pendenciasExtrato) removido — não existe mais tabela separada
+//     pra fechar, extrato_fingerprints já reflete sozinho.
+//   - idsPendenciasAlteradas e a rota 'pendenciasExtrato' em rotasTocadas/
+//     saveAll removidas.
 //
 // v1.7.0 — 5ª leva de achados do Nicola + auditoria contra o design system:
 //   - Resumo de competência em Recebimentos padronizado: sempre "valor · N
@@ -399,7 +416,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -1701,20 +1718,10 @@ export function montarAbaFinanceiro(tabId) {
 
             //
 
-            // A proteção real contra duplicidade é rastrear, em cada mensalidade/
-
-            // repasse, qual transação exata (chave = data+valor+pagador) o gerou.
-
-            // Antes de conciliar uma transação, verificamos se ela já pagou algo que
-
-            // continua pago — se sim, essa transação já foi "usada" e não deve gerar
-
-            // outro lançamento (nem pendência), mesmo que essa mesma linha do extrato
-
-            // seja importada de novo.
-
-            const chavesJaPendentes = new Set(pendenciasExtrato.filter(p => p.status === 'Pendente').map(p => `${p.data}|${p.valor.toFixed(2)}|${p.razaoSocial.toUpperCase()}`));
-
+            // v3_15 (12/09/2026) — achado do Nicola: pendencias_extrato foi
+            // dropada de verdade (não só parou de ser usada) — chavesJaPendentes
+            // e a checagem de "pendência já existe" (que dependiam dela, direto
+            // ou via fn_classificar_pagamento_contrato) saíram junto.
             const chavesJaPagas = new Set(mensalidades.filter(m => m.status === 'Pago' && m.chaveTransacaoOrigem).map(m => m.chaveTransacaoOrigem));
 
             const chavesJaRepassadas = new Set(repasses.filter(r => r.chaveTransacaoOrigem).map(r => r.chaveTransacaoOrigem));
@@ -1727,9 +1734,8 @@ export function montarAbaFinanceiro(tabId) {
             // princípio já aplicado nos botões pontuais de pendência
             // (v1.66.7), agora estendido pro caminho de importação em lote.
             const idsMensalidadesAlteradas = [];
-            const idsPendenciasAlteradas = [];
 
-            let qtdConciliados = 0, qtdRepasses = 0, qtdPendencias = 0, qtdIgnorados = 0, qtdJaPendentes = 0, qtdJaProcessadas = 0;
+            let qtdConciliados = 0, qtdRepasses = 0, qtdPendencias = 0, qtdIgnorados = 0, qtdJaProcessadas = 0;
 
             // CORREÇÃO: antes de tentar conciliar qualquer coisa, garante que as
 
@@ -1834,15 +1840,12 @@ export function montarAbaFinanceiro(tabId) {
 
                     if (!contratoCandidato) {
 
-                        // CORRIGIDO (v1.66.3, 28/08/2026) — BUG REAL reportado: reimportar
-                        // o mesmo extrato duplicava pendências sem contrato identificado,
-                        // porque este ramo específico nunca checava chavesJaPendentes antes
-                        // de empurrar uma pendência nova (só o ramo COM contrato tinha essa
-                        // checagem, adicionada como rede de segurança depois da RPC). Também
-                        // grava `chave` agora — o banco tem um índice único parcial
-                        // (cliente_id, chave) WHERE status='Pendente' desde 28/08/2026, que
-                        // é a proteção definitiva contra isso mesmo se este check falhar.
-                        if (chavesJaPendentes.has(chave)) { qtdJaPendentes++; continue; }
+                        // v3_15 (12/09/2026) — achado do Nicola: checagem
+                        // contra pendencias_extrato (chavesJaPendentes) saiu
+                        // — a tabela foi dropada. O índice único de
+                        // extrato_fingerprints (data+valor, corrigido nesta
+                        // mesma sessão pra tolerar variação de texto da IA)
+                        // já é a proteção real contra reimportação duplicada.
 
                         // v1.6.1 — Etapa 8, resto (retirada do painel de
                         // Pendências legado, achado do Nicola testando no
@@ -1883,10 +1886,9 @@ export function montarAbaFinanceiro(tabId) {
                         continue;
                     }
 
-                    if (cls && cls.classificacao === 'pendencia_ja_existe') {
-                        qtdJaPendentes++;
-                        continue;
-                    }
+                    // v3_15 — classificação 'pendencia_ja_existe' não existe
+                    // mais (a RPC compartilhada parou de retorná-la — ver
+                    // migration dropar_pendencias_extrato_e_codigo_morto).
 
                     if (cls && cls.classificacao === 'match_unico' && cls.mensalidade_id) {
 
@@ -1932,13 +1934,12 @@ export function montarAbaFinanceiro(tabId) {
 
                         qtdConciliados++;
 
-                        // Se havia uma pendência aberta para essa mesma linha do extrato
-
-                        // (de uma importação anterior que não achou o match), resolve ela.
-
-                        const pendenciaAntiga = pendenciasExtrato.find(p => p.status === 'Pendente' && `${p.data}|${p.valor.toFixed(2)}|${p.razaoSocial.toUpperCase()}` === chave);
-
-                        if (pendenciaAntiga) { pendenciaAntiga.status = 'Resolvido'; idsPendenciasAlteradas.push(pendenciaAntiga.id); }
+                        // v3_15 (12/09/2026) — bloco que resolvia uma
+                        // pendência antiga em pendencias_extrato removido:
+                        // a tabela foi dropada, não existe mais "pendência
+                        // aberta numa tabela separada" pra fechar aqui —
+                        // extrato_fingerprints já reflete o estado certo
+                        // sozinho.
 
                         continue;
 
@@ -1962,13 +1963,9 @@ export function montarAbaFinanceiro(tabId) {
 
                     }
 
-                    // Já existe uma pendência EM ABERTO para essa exata linha do extrato
-
-                    // (checagem local, complementar — a RPC já cobre isso por
-                    // contrato+competência; isto aqui é rede de segurança extra
-                    // pro caso da RPC falhar/retornar null).
-
-                    if (chavesJaPendentes.has(chave)) { qtdJaPendentes++; continue; }
+                    // v3_15 (12/09/2026) — checagem local contra
+                    // pendencias_extrato removida (tabela dropada) — o
+                    // índice único de extrato_fingerprints já cobre isso.
 
                     // v1.6.1 — Etapa 8, resto: 'nao_identificado' (ou a RPC
 
@@ -2057,26 +2054,25 @@ export function montarAbaFinanceiro(tabId) {
             // CORRIGIDO (v1.66.9, 28/08/2026) — mesmo bug real já corrigido
             // nos botões pontuais de pendência (v1.66.7): saveAll(true,
             // null) sem `rotas` sincronizava as 9 rotas inteiras, mesmo essa
-            // importação só podendo tocar mensalidades/pendenciasExtrato/
-            // repasses — nunca imóveis, contratos, administradoras, síndicos,
-            // manutencistas ou minutas. Dentro de mensalidades/
-            // pendenciasExtrato, `itensAlterados` limita ainda mais: só os
-            // IDs realmente tocados nesta importação (gerados, conciliados,
-            // ou pendência resolvida/criada), não a carteira inteira — um
-            // extrato de 30 transações não paga mais o custo de
-            // ressincronizar centenas de mensalidades que não mudaram nada.
+            // importação só podendo tocar mensalidades/repasses — nunca
+            // imóveis, contratos, administradoras, síndicos, manutencistas
+            // ou minutas. Dentro de mensalidades, `itensAlterados` limita
+            // ainda mais: só os IDs realmente tocados nesta importação
+            // (gerados ou conciliados), não a carteira inteira — um extrato
+            // de 30 transações não paga mais o custo de ressincronizar
+            // centenas de mensalidades que não mudaram nada.
             // `rotas` só inclui o que teve pelo menos 1 item tocado nesta
             // rodada, pra não gastar uma sincronização à toa quando, por
             // exemplo, nenhum repasse foi identificado.
+            // v3_15 (12/09/2026) — rota 'pendenciasExtrato' removida
+            // (tabela dropada).
             const rotasTocadas = [];
             if (idsMensalidadesAlteradas.length > 0) rotasTocadas.push('mensalidades');
-            if (idsPendenciasAlteradas.length > 0) rotasTocadas.push('pendenciasExtrato');
             if (qtdRepasses > 0) rotasTocadas.push('repasses');
 
             if (rotasTocadas.length > 0) {
                 await saveAll(true, null, rotasTocadas, {
                     mensalidades: idsMensalidadesAlteradas,
-                    pendenciasExtrato: idsPendenciasAlteradas,
                 });
             }
 
@@ -2094,9 +2090,7 @@ export function montarAbaFinanceiro(tabId) {
 
                 `🚫 ${qtdIgnorados} lançamento(s) sem ação automática nesta importação — confira em "Conciliação", alguns podem ter sido resolvidos pelo motor logo acima\n` +
 
-                (qtdJaProcessadas > 0 ? `♻️ ${qtdJaProcessadas} transação(ões) já estava(m) conciliada(s) antes — nada novo feito\n` : '') +
-
-                (qtdJaPendentes > 0 ? `⏭️ ${qtdJaPendentes} já tinham uma pendência em aberto igual (não duplicados)` : '')
+                (qtdJaProcessadas > 0 ? `♻️ ${qtdJaProcessadas} transação(ões) já estava(m) conciliada(s) antes — nada novo feito` : '')
 
             );
 

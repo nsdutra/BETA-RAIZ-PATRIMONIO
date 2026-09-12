@@ -6,9 +6,22 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.179.2
-   LINHAS: 15376
+   VERSÃO: Beta v1.179.3
+   LINHAS: 15314
    DATA: 12/09/2026
+   NOVIDADES (Beta v1.179.3) — pedido do Nicola ("não quero evoluir o
+   sistema e ficar deixando código morto espalhado"): tabela
+   pendencias_extrato DROPADA de verdade no banco (não só parou de ser
+   usada) — fn_apagar_empresa_completa corrigida antes (tinha um DELETE
+   real nela), trigger próprio removido junto. No app: removidas as 3
+   funções de sincronização mortas, o array global pendenciasExtrato e seu
+   carregamento no boot, as entradas nas tabelas de despacho do saveAll, e
+   a tabela na lista do "Limpar sistema" — todas essas quebrariam se
+   deixadas (chamavam função/tabela que não existe mais). 2 bugs reais
+   pegos no processo antes de virarem incidente: variável órfã lida numa
+   mensagem (ReferenceError na próxima importação) e o carregamento no
+   boot chamando uma função já removida (quebraria a inicialização do app
+   inteiro). Ver changelog completo em financeiro.js 1.7.1.
    NOVIDADES (Beta v1.179.2) — 5ª leva de achados do Nicola: resumo de
    competência em Recebimentos padronizado (sempre "valor · N itens", em
    qualquer chip e competência); alerta de lançamentos futuros removido de
@@ -3634,7 +3647,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.179.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.179.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4133,7 +4146,7 @@
 
         let repasses = [];
 
-        let pendenciasExtrato = [];
+        // v3_15 (12/09/2026) — pendenciasExtrato removido (tabela dropada).
 
         // v1.97.0 (NOVO, 01/09/2026) — Saídas/despesas (public.lancamentos,
         // direcao='saida'). ativosParaSelect/partesParaSelect são caches
@@ -6036,84 +6049,15 @@
         }
 
         // ============================================================================
-        // ETAPA 3 (migração de dados) — camada de adaptação Supabase para
-        // CONCILIAÇÃO BANCÁRIA (pendências de extrato + fingerprints)
+        // v3_15 (12/09/2026) — pedido do Nicola ("não quero ficar deixando
+        // código morto espalhado"): carregarPendenciasExtratoSupabase(),
+        // sincronizarPendenciaExtratoSupabase() e
+        // sincronizarPendenciasExtratoSupabase() removidas — a tabela
+        // pendencias_extrato foi dropada de verdade (não só parou de ser
+        // usada). extrato_fingerprints é a única fonte de "isto precisa de
+        // revisão" desde a Etapa 8/migração desta sessão.
         // ============================================================================
-        // A lógica de leitura do .xlsx e de match automático (processarExtratoImportado,
-        // conciliarTransacoes) já funciona 100% em memória, sobre arrays que já são
-        // Supabase (mensalidades, contratos, repasses) — não precisou de nenhuma
-        // mudança. Só a PERSISTÊNCIA final precisava migrar.
 
-        async function carregarPendenciasExtratoSupabase() {
-            const { data, error } = await dbAuth.from('pendencias_extrato').select('*').eq('cliente_id', CLIENTE_ID_SUPABASE);
-            if (error) throw error;
-            return (data || []).map(function(row) {
-                return {
-                    id: row.id,
-                    data: row.data,
-                    valor: row.valor,
-                    razaoSocial: row.razao_social || '',
-                    documento: row.documento || '',
-                    tipo: row.tipo,
-                    referenciaSugerida: row.referencia_sugerida,
-                    status: row.status,
-                    contratoIdSugerido: row.contrato_id_sugerido,
-                    mensalidadeIdsSugeridas: row.mensalidade_ids_sugeridas || []
-                };
-            });
-        }
-
-        async function sincronizarPendenciaExtratoSupabase(pend) {
-            const linha = {
-                cliente_id: CLIENTE_ID_SUPABASE,
-                banco_origem: 'Itaú',
-                data: pend.data,
-                valor: pend.valor,
-                razao_social: pend.razaoSocial || null,
-                documento: pend.documento || null,
-                tipo: pend.tipo || null,
-                referencia_sugerida: pend.referenciaSugerida || null,
-                status: pend.status || 'Pendente',
-                contrato_id_sugerido: /^[0-9a-f]{8}-/i.test(pend.contratoIdSugerido || '') ? pend.contratoIdSugerido : null,
-                mensalidade_ids_sugeridas: pend.mensalidadeIdsSugeridas || [],
-                // NOVO (28/08/2026) — índice único parcial (cliente_id, chave) WHERE
-                // status='Pendente' no banco, criado depois de um bug real de
-                // duplicação (reimportar extrato duplicava pendência sem contrato
-                // identificado). chave é sempre recalculada aqui (não confia em
-                // pend.chave vindo de fora) pra garantir consistência com o que o
-                // banco espera.
-                chave: `${pend.data}|${Number(pend.valor).toFixed(2)}|${(pend.razaoSocial || '').toUpperCase()}`
-            };
-
-            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pend.id || '');
-
-            if (idEhUuidValido) {
-                const { error } = await dbAuth.from('pendencias_extrato').update(linha).eq('id', pend.id);
-                if (error) throw error;
-            } else {
-                const { data: inserido, error } = await dbAuth.from('pendencias_extrato').insert(linha).select('id').single();
-                if (error) {
-                    // CORRIGIDO (28/08/2026) — código 23505 aqui significa "já existe
-                    // uma pendência Pendente idêntica" (índice único parcial fez o
-                    // trabalho de dedup que o JS deveria ter feito antes). Em vez de
-                    // derrubar o saveAll() inteiro, busca a pendência existente e
-                    // adota o id dela — silenciosamente, sem duplicar.
-                    if (error.code === '23505') {
-                        const { data: existente } = await dbAuth.from('pendencias_extrato')
-                            .select('id').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('chave', linha.chave).eq('status', 'Pendente').maybeSingle();
-                        if (existente) { pend.id = existente.id; return; }
-                    }
-                    throw error;
-                }
-                pend.id = inserido.id;
-            }
-        }
-
-        async function sincronizarPendenciasExtratoSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, sincronizarPendenciaExtratoSupabase, 'pendência de extrato');
-        }
-
-        // Fingerprints são só um log de auditoria (nunca editados depois de criados)
         // — inserção direta, sem passar pelo padrão upsert-por-linha das outras rotas.
         async function gravarFingerprintsExtratoSupabase(novosFingerprints) {
             if (!novosFingerprints || novosFingerprints.length === 0) return true;
@@ -7884,14 +7828,8 @@
                 tiposImovelCadastrados = [];
             }
 
-            try {
-                logScreen("=== Buscando pendências de extrato / conciliação (Supabase) ===");
-                pendenciasExtrato = await carregarPendenciasExtratoSupabase();
-                logScreen(`Pendências de extrato carregadas do Supabase: ${pendenciasExtrato.length}.`);
-            } catch (errPend) {
-                logScreen(`Erro ao buscar pendências de extrato no Supabase: ${errPend.message || String(errPend)}`, true);
-                pendenciasExtrato = JSON.parse(localStorage.getItem(chaveLocal('pendenciasExtrato'))) || [];
-            }
+            // v3_15 (12/09/2026) — carregamento de pendências de extrato
+            // removido (tabela pendencias_extrato dropada).
 
             // v1.42.0 — Minutas de Contrato
             try {
@@ -8345,7 +8283,7 @@
 
             mostrarCarregamentoGlobal("Salvando na nuvem...");
 
-            const nomesAmigaveis = { imoveis: "Imóveis", contratos: "Contratos", mensalidades: "Mensalidades", repasses: "Repasses", pendenciasExtrato: "Pendências do Extrato", administradoras: "Administradoras", sindicos: "Síndicos", manutencistas: "Manutencistas", minutasContrato: "Minutas de Contrato" };
+            const nomesAmigaveis = { imoveis: "Imóveis", contratos: "Contratos", mensalidades: "Mensalidades", repasses: "Repasses", administradoras: "Administradoras", sindicos: "Síndicos", manutencistas: "Manutencistas", minutasContrato: "Minutas de Contrato" };
 
             // CORRIGIDO (bug real — causa do tempo de espera alto ao salvar
             // síndico/contrato/qualquer coisa): antes, TODA gravação
@@ -8377,7 +8315,6 @@
             // inteira) — nenhum chamador existente precisa mudar.
             const funcoesSincronizarItemUnico = {
                 mensalidades: sincronizarMensalidadeSupabase,
-                pendenciasExtrato: sincronizarPendenciaExtratoSupabase,
             };
 
             function sincronizarRotaOtimizada(nomeRota, listaCompleta, fnSincronizarLista) {
@@ -8395,7 +8332,6 @@
                 contratos: () => sincronizarContratosSupabase(contratos),
                 mensalidades: () => sincronizarRotaOtimizada('mensalidades', mensalidades, () => sincronizarMensalidadesSupabase(mensalidades)),
                 repasses: () => sincronizarRepassesSupabase(repasses),
-                pendenciasExtrato: () => sincronizarRotaOtimizada('pendenciasExtrato', pendenciasExtrato, () => sincronizarPendenciasExtratoSupabase(pendenciasExtrato)),
                 administradoras: () => sincronizarAdministradorasSupabase(administradoras),
                 sindicos: () => sincronizarSindicosSupabase(sindicos),
                 manutencistas: () => sincronizarManutencistasSupabase(manutencistas),
@@ -14451,7 +14387,9 @@
                 // historico_contrato, divisao_repasse_contrato e
                 // prestador_vinculo sozinhas — mas apagar as outras direto
                 // também, sem depender só da cascata, para não esquecer nada.
-                const tabelas = ['mensalidades', 'repasses', 'pendencias_extrato', 'extrato_fingerprints', 'links_vitrine', 'log_acessos', 'imoveis', 'prestadores'];
+                // v3_15 (12/09/2026) — 'pendencias_extrato' removida da lista
+                // (tabela dropada — tentar apagar dela quebraria "Limpar sistema").
+                const tabelas = ['mensalidades', 'repasses', 'extrato_fingerprints', 'links_vitrine', 'log_acessos', 'imoveis', 'prestadores'];
 
                 for (const tabela of tabelas) {
                     const { error } = await dbAuth.from(tabela).delete().eq('cliente_id', CLIENTE_ID_SUPABASE);
