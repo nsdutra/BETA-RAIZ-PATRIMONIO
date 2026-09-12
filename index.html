@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.179.3
-   LINHAS: 15314
+   VERSÃO: Beta v1.179.4
+   LINHAS: 15318
    DATA: 12/09/2026
+   NOVIDADES (Beta v1.179.4) — achado do Nicola: botões (lupa/importar) da
+   aba Conciliação estavam ABAIXO do resumo hero, único caso entre as 3
+   abas do Financeiro — Recebimentos e Saídas sempre tiveram os botões
+   ACIMA. Reordenado pra bater com o padrão das outras duas. Acompanha o
+   pedido de estender o bot pra saída (whatsapp-webhook/_shared.ts v2.59)
+   — nenhuma mudança de app associada a essa parte, é 100% Edge Function.
    NOVIDADES (Beta v1.179.3) — pedido do Nicola ("não quero evoluir o
    sistema e ficar deixando código morto espalhado"): tabela
    pendencias_extrato DROPADA de verdade no banco (não só parou de ser
@@ -2765,12 +2771,21 @@
                 <button onclick="switchTab('tab-conciliacao')" class="rz-on">Conciliação</button>
             </div>
 
-            <!-- v1.178.9 — achado do Nicola: resumo padronizado com
-                 Recebimentos/Saídas (.rz-kpi.rz-hero, verde) — antes o topo
-                 desta aba era só um parágrafo de explicação. A faixa
-                 "Conciliação de Extrato" + botão Importar + link Reprocessar
-                 viraram 1 botão só, que abre menu com as duas opções
-                 (abrirAcoesImportarConciliacao). -->
+            <!-- v1.179.0 — achado do Nicola: botão Importar virou redondo
+                 (.rz-ico-btn, mesmo padrão de Localizar/+ nas outras abas),
+                 na mesma posição — ícone de importação de sempre (file-down),
+                 mantém o selo .rz-ia. Lupa nova ao lado, à esquerda dele. -->
+            <!-- v1.179.4 — achado do Nicola: botões (busca + importar)
+                 estavam ABAIXO do resumo hero, único caso entre as 3 abas —
+                 Recebimentos e Saídas sempre tiveram os botões ACIMA.
+                 Reordenado pra bater com o padrão das outras duas. -->
+            <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
+            <div class="flex items-center gap-2 mb-4">
+                <p class="text-[11px] text-gray-500 flex-1 text-left">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
+                <button id="btn-conc-busca" onclick="abrirBuscaConciliacao()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button onclick="abrirAcoesImportarConciliacao()" class="rz-ico-btn rz-ia" title="Importar/reprocessar extrato" aria-label="Importar"><svg data-lucide="file-down"></svg></button>
+            </div>
+
             <div class="rz-kpis">
                 <div class="rz-kpi rz-hero">
                     <small>Conciliação do período</small>
@@ -2786,17 +2801,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
-            <!-- v1.179.0 — achado do Nicola: botão Importar virou redondo
-                 (.rz-ico-btn, mesmo padrão de Localizar/+ nas outras abas),
-                 na mesma posição — ícone de importação de sempre (file-down),
-                 mantém o selo .rz-ia. Lupa nova ao lado, à esquerda dele. -->
-            <div class="flex items-center gap-2 mb-4">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
-                <button id="btn-conc-busca" onclick="abrirBuscaConciliacao()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button onclick="abrirAcoesImportarConciliacao()" class="rz-ico-btn rz-ia" title="Importar/reprocessar extrato" aria-label="Importar"><svg data-lucide="file-down"></svg></button>
             </div>
 
             <!-- v1.179.0 — achado do Nicola: lista de Conciliação destoava
@@ -3647,7 +3651,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.179.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.179.4"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
