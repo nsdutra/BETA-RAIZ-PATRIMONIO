@@ -1,7 +1,26 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.7.1 · 12/09/2026
+// Versão: 1.7.2 · 12/09/2026
+//
+// v1.7.2 — pedido do Nicola após validar a extensão de saída no bot:
+//   - Novo modal "Resumo da conciliação" (abrirResumoConciliacao /
+//     abrirResumoConciliacaoPorDestino) — data/hora, origem (extrato vs
+//     comprovante avulso), modo (automático+regra ou manual) e canal
+//     (app ou bot, só quando manual) — plugado nos 4 lugares onde um item
+//     conciliado aparece: Conciliação (conciliado e não controlado),
+//     Recebimentos (mensalidade paga vinda de conciliação) e Saídas
+//     (despesa paga vinda de conciliação).
+//   - Correção real achada no caminho: confirmação MANUAL de entrada
+//     (app ou bot) sempre aparecia como "Automático · Aluguel do
+//     locatário" na lista — bug pré-existente num trigger de espelho do
+//     banco (corrigido à parte), não algo desta versão introduziu.
+//   - Menu de 3 pontinhos de item conciliado na aba Conciliação ganhou
+//     "Recibo" direto (antes só via "Ver detalhe") e "Desfazer" virou
+//     "Estornar", mesmo rótulo das outras abas.
+//   - Totalizador (hero) da aba Conciliação agora reage aos chips de
+//     status (Todos/Pendentes/Conciliados/Não controlado), igual
+//     Recebimentos e Saídas sempre fizeram — era a exceção, não o padrão.
 //
 // v1.7.1 — pedido do Nicola ("não quero evoluir o sistema e ficar deixando
 // código morto espalhado"): pendencias_extrato foi DROPADA de verdade no
@@ -416,7 +435,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.7.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -564,10 +583,18 @@ export function montarAbaFinanceiro(tabId) {
             const d = lancamentos.find(x => x.id === id); if (!d || typeof abrirSheetAcoes !== 'function') return;
             const sub = `${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}`;
             if (d.status === 'realizado') {
-                abrirSheetAcoes({ titulo: escapeHtmlSaidas(d.descricao || 'Despesa'), sub, acoes: [
+                const acoesRealizado = [
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
                     { icone: 'undo-2', titulo: 'Estornar pagamento', sub: 'Volta pra "a pagar"', tipo: 'bad', aoTocar: () => estornarPagamentoDespesa(id) },
-                ] });
+                ];
+                // v1.179.5 — mesmo critério de rzAcoesMensalidade: só
+                // aparece quando esta despesa veio de fato de uma
+                // conciliação de extrato (origem_tipo='extrato' — despesa
+                // criada pelo formulário normal não tem isso).
+                if (d.origemTipo === 'extrato') {
+                    acoesRealizado.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacaoPorDestino('lancamento', id) });
+                }
+                abrirSheetAcoes({ titulo: escapeHtmlSaidas(d.descricao || 'Despesa'), sub, acoes: acoesRealizado });
                 return;
             }
             abrirSheetAcoes({ titulo: estaAtrasadaDespesa(d) ? 'Em atraso' : 'A pagar', sub, acoes: [
@@ -2444,10 +2471,11 @@ export function montarAbaFinanceiro(tabId) {
             // empreendimento/competência; saída usa categoria/ativo/
             // fornecedor). Só valem pra linha já CONCILIADA (destino_id
             // aponta pra mensalidade/lançamento real) — pendente ainda não
-            // sabe a quem pertence, não tem o que cruzar. "Ao filtrar,
-            // atualizar a tela e seus totalizadores" — hero reflete o
-            // segmento + esses filtros (não o chip de status, que é o que o
-            // próprio hero decompõe).
+            // sabe a quem pertence, não tem o que cruzar.
+            // v1.179.5 — "não o chip de status" (nota antiga desta versão)
+            // foi revertido a pedido do Nicola: hero agora reflete o chip
+            // também, igual Recebimentos/Saídas sempre fizeram — ver bloco
+            // mais abaixo.
             const termoConc = (document.getElementById('conc-busca-texto')?.value || '').trim().toLowerCase();
             const fCompConc = document.getElementById('conc-filtro-competencia')?.value || 'todos';
             const fLocConc = document.getElementById('conc-filtro-locatario')?.value || 'todos';
@@ -2479,9 +2507,19 @@ export function montarAbaFinanceiro(tabId) {
                 return true;
             });
 
-            const total = filtradosSemChip.length;
-            const pendentes = filtradosSemChip.filter(f => f.status_conciliacao === 'pendente').length;
-            const conciliados = filtradosSemChip.filter(f => f.status_conciliacao === 'conciliado').length;
+            // v1.179.5 — achado do Nicola: totalizador do hero tinha que
+            // refletir SÓ segmento+filtros de busca, nunca o chip de status
+            // (decisão de propósito da v1.179.0, comentário acima) — mas
+            // Recebimentos/Saídas SEMPRE recalculam o hero pelo conjunto
+            // filtrado pelo chip também (conferido: filtradasComChip
+            // alimenta kTotRecebido em renderMensalidades()). Conciliação
+            // era a exceção, não o padrão — alinhado agora: filtrados (com
+            // chip) é que gera o hero, igual as outras duas abas.
+            const filtrados = conciliacaoUniChip === 'todos' ? filtradosSemChip : filtradosSemChip.filter(f => f.status_conciliacao === conciliacaoUniChip);
+
+            const total = filtrados.length;
+            const pendentes = filtrados.filter(f => f.status_conciliacao === 'pendente').length;
+            const conciliados = filtrados.filter(f => f.status_conciliacao === 'conciliado').length;
             // v1.178.9 — achado do Nicola: resumo padronizado — hero verde
             // (.rz-kpi.rz-hero) em vez do texto pequeno "X de Y" que ficava
             // ao lado do título.
@@ -2491,8 +2529,6 @@ export function montarAbaFinanceiro(tabId) {
             if (elResumo) elResumo.textContent = total ? `${conciliados} de ${total} conciliados` : '—';
             if (elPendentes) elPendentes.textContent = pendentes;
             if (elConciliados) elConciliados.textContent = conciliados;
-
-            const filtrados = conciliacaoUniChip === 'todos' ? filtradosSemChip : filtradosSemChip.filter(f => f.status_conciliacao === conciliacaoUniChip);
 
             if (!filtrados.length) {
                 lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma linha nesse filtro.</p>`;
@@ -2619,15 +2655,29 @@ export function montarAbaFinanceiro(tabId) {
             // controlado.
             if (f.status_conciliacao === 'conciliado' && f.destino_id) {
                 const nomeRegra = f.regra_codigo ? (NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo) : null;
-                abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (nomeRegra ? ' · Automático · ' + nomeRegra : ''), acoes: [
+                // v1.179.5 — achado do Nicola: item de entrada conciliado só
+                // tinha "Ver detalhe"+"Desfazer" — faltava "Recibo" direto,
+                // mesmo padrão que Recebimentos já tem (ver linha ~2957).
+                // "Desfazer" renomeado pra "Estornar", mesmo rótulo usado em
+                // Recebimentos/Saídas — era a mesma ação, nome diferente.
+                const acoesConciliado = [
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => { entrada ? abrirRecebimentoDetalhe(f.destino_id, true) : abrirEditarDespesa(f.destino_id); } },
-                    { icone: 'undo-2', titulo: 'Desfazer', sub: 'Volta pra pendente — só desvincula, não apaga o recebimento/despesa', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
-                ] });
+                ];
+                if (entrada) {
+                    const menConciliada = mensalidades.find(m => m.id === f.destino_id);
+                    if (menConciliada) {
+                        acoesConciliado.push({ icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', aoTocar: () => abrirModalOpcoesRecibo(menConciliada.id, menConciliada.contratoId) });
+                    }
+                }
+                acoesConciliado.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra pendente — só desvincula, não apaga o recebimento/despesa', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) });
+                acoesConciliado.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacao(fingerprintId) });
+                abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (nomeRegra ? ' · Automático · ' + nomeRegra : ' · Manual'), acoes: acoesConciliado });
                 return;
             }
             if (f.status_conciliacao === 'nao_controlado') {
                 abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (f.observacao_usuario ? ' · ' + f.observacao_usuario : ''), acoes: [
                     { icone: 'rotate-ccw', titulo: 'Reabrir', sub: 'Volta pra pendente', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
+                    { icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacao(fingerprintId) },
                 ] });
                 return;
             }
@@ -2673,6 +2723,77 @@ export function montarAbaFinanceiro(tabId) {
             acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco continua guardada', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
 
             abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
+        }
+
+        // NOVO (v1.179.5) — pedido explícito do Nicola: um resumo de
+        // proveniência pra qualquer item já conciliado ou não controlado —
+        // data/hora, origem (extrato bancário vs comprovante avulso), modo
+        // (automático + regra, ou manual) e canal (app ou bot, só quando
+        // manual). Chamável de qualquer lugar (Conciliação, Recebimentos,
+        // Saídas) — por isso busca o fingerprint fresco se não achar no
+        // cache da Conciliação (as outras abas não carregam esse cache).
+        async function abrirResumoConciliacao(fingerprintId) {
+            let f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            if (!f) {
+                mostrarCarregamentoGlobal('Carregando…');
+                const { data, error } = await dbAuth.from('extrato_fingerprints').select('*').eq('id', fingerprintId).maybeSingle();
+                esconderCarregamentoGlobal();
+                if (error || !data) { mostrarToast('Não achei essa conciliação.', 'danger'); return; }
+                f = data;
+            }
+
+            const entrada = f.direcao === 'entrada';
+            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            const dataHora = f.conciliado_em
+                ? new Date(f.conciliado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : 'Não registrado';
+
+            // Origem: hoje só existem 2 fontes reais (comprovante avulso via
+            // WhatsApp, ou extrato bancário importado) — "relatório de
+            // administrador" ainda não existe como fonte, aparece sozinho
+            // aqui quando existir (basta um novo valor de banco_origem).
+            const origem = !f.banco_origem ? 'Não registrado'
+                : f.banco_origem === 'WhatsApp' ? 'Comprovante avulso (enviado por WhatsApp)'
+                : `Extrato bancário — ${f.banco_origem}`;
+
+            const automatico = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
+            const modo = automatico ? `Automático · ${NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo}`
+                : (f.status_conciliacao === 'conciliado' || f.status_conciliacao === 'nao_controlado') ? 'Manual'
+                : 'Não registrado';
+
+            // Canal só faz sentido quando manual — automático é o motor de
+            // regras agindo sozinho, não um canal escolhido por alguém.
+            const canal = automatico ? '—'
+                : f.canal === 'app' ? 'App'
+                : f.canal === 'bot' ? 'Bot (WhatsApp)'
+                : 'Não registrado (item de antes desta função existir)';
+
+            const linha = (rotulo, valor) => `<div class="flex justify-between items-start gap-3 py-2" style="border-bottom:1px solid var(--line)">
+                <span class="text-xs font-bold text-gray-600">${rotulo}</span>
+                <span class="text-sm text-right" style="color:var(--pine)">${rzEsc(valor)}</span>
+            </div>`;
+
+            abrirSheet(rzSheetCabecalho('Resumo da conciliação', `${limparRotuloConciliacao(f.razao_social)} · ${entrada ? '+' : '−'} R$ ${valorAbs}`) +
+                `<div class="rz-sh-b">
+                    ${linha('Data e hora', dataHora)}
+                    ${linha('Origem', origem)}
+                    ${linha('Modo', modo)}
+                    ${linha('Canal', canal)}
+                </div>`);
+        }
+
+        // Variante por destino (recebimento/despesa) — usada em Recebimentos/
+        // Saídas, que não carregam conciliacaoUniCache nem sabem o
+        // fingerprintId de cara (só sabem a que mensalidade/lançamento
+        // pertencem). Busca o fingerprint pela ponta destino_tipo/destino_id
+        // e reaproveita o mesmo resumo.
+        async function abrirResumoConciliacaoPorDestino(destinoTipo, destinoId) {
+            mostrarCarregamentoGlobal('Carregando…');
+            const { data, error } = await dbAuth.from('extrato_fingerprints').select('id').eq('destino_tipo', destinoTipo).eq('destino_id', destinoId).maybeSingle();
+            esconderCarregamentoGlobal();
+            if (error || !data) { mostrarToast('Não achei o registro de conciliação.', 'danger'); return; }
+            return abrirResumoConciliacao(data.id);
         }
 
         // v1.179.2 — achado do Nicola: "Marcar como repasse" criava uma
@@ -2722,6 +2843,10 @@ export function montarAbaFinanceiro(tabId) {
                     p_razao_social: f.razao_social, p_chave: f.chave || null,
                 });
                 if (error) throw error;
+                // v1.179.5 — pedido do Nicola (Resumo da conciliação): marca
+                // o canal desta confirmação manual. Sem trigger disputando
+                // esse campo (diferente de regra_codigo), seguro fazer aqui.
+                await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', fingerprintId);
                 mensalidades = await carregarMensalidadesSupabase();
                 esconderCarregamentoGlobal(); mostrarToast('Vinculado!', 'success');
                 registrarLog('conciliacao.vincular_recebimento', { fingerprintId, mensalidadeId });
@@ -2773,6 +2898,7 @@ export function montarAbaFinanceiro(tabId) {
             try {
                 const { error } = await dbAuth.rpc('fn_extrato_vincular_saida', { p_fingerprint_id: fingerprintId, p_lancamento_id: lancamentoId });
                 if (error) throw error;
+                await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', fingerprintId);
                 // v1.178.8 — achado do Nicola: abrir uma despesa já
                 // conciliada caía no formulário de "nova" — abrirEditarDespesa
                 // busca em `lancamentos` (array em memória), que nunca era
@@ -2790,6 +2916,7 @@ export function montarAbaFinanceiro(tabId) {
             try {
                 const { error } = await dbAuth.rpc('fn_extrato_criar_saida', { p_fingerprint_id: fingerprintId, p_categoria: categoria, p_descricao: descricao || null });
                 if (error) throw error;
+                await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', fingerprintId);
                 lancamentos = await carregarLancamentosSupabase();
                 esconderCarregamentoGlobal(); mostrarToast('Saída criada!', 'success');
                 registrarLog('conciliacao.criar_saida', { fingerprintId, categoria });
@@ -2812,6 +2939,7 @@ export function montarAbaFinanceiro(tabId) {
             try {
                 const { error } = await dbAuth.rpc('fn_extrato_marcar_nao_controlado', { p_fingerprint_id: fingerprintId, p_observacao: observacao || null });
                 if (error) throw error;
+                await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', fingerprintId);
                 esconderCarregamentoGlobal(); mostrarToast('Marcado como não controlado.', 'success');
                 registrarLog('conciliacao.nao_controlado', { fingerprintId });
                 await carregarConciliacaoUnificada();
@@ -2953,10 +3081,20 @@ export function montarAbaFinanceiro(tabId) {
             const con = contratos.find(c => c.id === men.contratoId) || {};
             const sub = `${con.locatario || ''} · ${men.referencia}`;
             if (men.status === 'Pago') {
-                abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: [
+                const acoesPago = [
                     { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', codigo: 'recibo.gerar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
                     { icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "a receber"', tipo: 'bad', codigo: 'mensal.estornar', aoTocar: () => estornarMensalidade(men.id) },
-                ] });
+                ];
+                // v1.179.5 — pedido do Nicola: "Resumo da conciliação" em
+                // todo item conciliado, não só na aba Conciliação — só
+                // aparece quando esta mensalidade veio de fato de uma
+                // conciliação (chaveTransacaoOrigem só é setado por
+                // fn_extrato_vincular_recebimento; "Dar baixa" manual pelo
+                // formulário não passa por ali, não tem o que resumir).
+                if (men.chaveTransacaoOrigem) {
+                    acoesPago.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacaoPorDestino('mensalidade', men.id) });
+                }
+                abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: acoesPago });
                 return;
             }
             abrirSheetAcoes({ titulo: mensalidadeEmAtraso(men) ? 'Em atraso' : 'A receber', sub, acoes: [

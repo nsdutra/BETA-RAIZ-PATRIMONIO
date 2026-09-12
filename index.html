@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.179.4
-   LINHAS: 15318
+   VERSÃO: Beta v1.179.5
+   LINHAS: 15330
    DATA: 12/09/2026
+   NOVIDADES (Beta v1.179.5) — pedido do Nicola: novo modal "Resumo da
+   conciliação" (data/hora, origem, modo, canal) em todo item conciliado
+   — Conciliação, Recebimentos, Saídas. Menu de 3 pontinhos de item
+   conciliado na Conciliação ganhou "Recibo" direto e "Desfazer" virou
+   "Estornar". Totalizador da aba Conciliação agora reage aos chips de
+   status, igual Recebimentos/Saídas. Ver changelog completo em
+   financeiro.js 1.7.2.
    NOVIDADES (Beta v1.179.4) — achado do Nicola: botões (lupa/importar) da
    aba Conciliação estavam ABAIXO do resumo hero, único caso entre as 3
    abas do Financeiro — Recebimentos e Saídas sempre tiveram os botões
@@ -3651,7 +3658,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.179.4"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.179.5"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5795,7 +5802,12 @@
                     parteId: row.parte_id || null,
                     parteNome: row.partes ? row.partes.nome : '',
                     reembolsavel: !!row.reembolsavel,
-                    observacao: row.observacao || ''
+                    observacao: row.observacao || '',
+                    // v1.179.5 — pedido do Nicola (Resumo da conciliação):
+                    // sinal síncrono de "veio de uma conciliação de
+                    // extrato" — mesmo papel que chaveTransacaoOrigem já
+                    // cumpre pra mensalidades.
+                    origemTipo: row.origem_tipo || null
                 };
             });
         }
