@@ -1,7 +1,25 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.6.2 · 11/09/2026
+// Versão: 1.6.3 · 11/09/2026
+//
+// v1.6.3 — 5 achados do Nicola testando no celular (Conciliação):
+//   - Título das linhas limpo: limparRotuloConciliacao() tira o prefixo
+//     redundante que o banco grava junto ("SAÍDA BOLETO PAGO CONDOMINIO -
+//     CONDOMINIO EDIFICIO..." → "CONDOMINIO EDIFICIO..."). Padrão real do
+//     extrato Itaú: o trecho depois do ÚLTIMO " - " é o nome completo do
+//     favorecido/pagador — o resto é histórico do banco, sem valor de
+//     identificação. Tipo (boleto/PIX/TED) não aparece à parte, por
+//     decisão dele ("ou não trazer").
+//   - "Voltar" de um recebimento já conciliado, aberto a partir da
+//     Conciliação, caía sempre em Recebimentos — a função só conhecia 2
+//     origens (ficha de imóvel ou padrão). 3ª origem adicionada.
+//   - Legenda dos status (explicarStatusConciliacao) — "i" ao lado do
+//     título, pedido explícito ("o que significa pendente?").
+//   - Barra de rolagem dos chips escondida (index.html).
+//   - Botões Importar/Reprocessar viraram .rz-ico-btn do catálogo;
+//     Importar ganhou o selo IA (mesma distinção que o sheet "Ações" já
+//     fazia — Importar é tipo:'ia', Reprocessar não).
 //
 // v1.6.2 — pedido do Nicola: migração + remoção total do painel de
 // Pendências legado (v1.6.1 tinha deixado de pé por decisão consciente —
@@ -223,7 +241,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.6.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.3'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -816,7 +834,13 @@ export function montarAbaFinanceiro(tabId) {
         // ===================================================================
         let recebimentoDetalheAtualId = null;
 
-        export function abrirRecebimentoDetalhe(mensalidadeId) {
+        // v1.6.3 — Etapa 8, achado do Nicola: "Voltar" não sabia que podia
+        // ter vindo da Conciliação — sempre caía no padrão (tab-mensal),
+        // mesmo quando a tela foi aberta a partir de um item já conciliado.
+        let recebimentoDetalheVeioDaConciliacao = false;
+
+        export function abrirRecebimentoDetalhe(mensalidadeId, origemConciliacao) {
+            if (origemConciliacao !== undefined) recebimentoDetalheVeioDaConciliacao = !!origemConciliacao;
 
             recebimentoDetalheAtualId = mensalidadeId;
             const men = mensalidades.find(m => m.id === mensalidadeId);
@@ -953,6 +977,7 @@ export function montarAbaFinanceiro(tabId) {
 
         export function voltarDoRecebimentoDetalhe() {
             recebimentoDetalheAtualId = null;
+            if (recebimentoDetalheVeioDaConciliacao) { recebimentoDetalheVeioDaConciliacao = false; switchTab('tab-conciliacao'); return; }
             if (fichaImovelAtualId) { abrirFichaImovel(fichaImovelAtualId); return; }
             switchTab('tab-mensal');
         }
@@ -1957,12 +1982,46 @@ export function montarAbaFinanceiro(tabId) {
             renderConciliacaoUnificada();
         }
 
+        // v1.6.3 — Etapa 8, pedido explícito do Nicola testando no celular
+        // ("o que significa pendente?"): legenda dos 4 status/chips, num
+        // sheet em vez de texto sempre visível (economiza espaço).
+        export function explicarStatusConciliacao() {
+            const itens = [
+                ['Pendente', 'A linha do extrato ainda não foi ligada a nenhum recebimento ou despesa — precisa de confirmação (quando o sistema sugere) ou vínculo manual.'],
+                ['Automáticas', 'O sistema já concluiu sozinho, com base em regras (aluguel do locatário identificado, repasse de administradora, rendimento de aplicação, tarifa bancária...). É um subconjunto de "Conciliados" — dá pra desfazer a qualquer momento.'],
+                ['Conciliados', 'Já tem um destino definido — recebimento ou despesa —, automático ou feito à mão. Inclui as Automáticas.'],
+                ['Não controlado', 'Você (ou o sistema, numa regra automática) decidiu que essa linha não precisa de acompanhamento — ex.: rendimento pequeno, tarifa. Fica guardada, mas fora do fluxo de cobrança/despesas.'],
+            ];
+            abrirSheet(rzSheetCabecalho('O que significa cada status') +
+                `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                }</div></div></div>`);
+        }
+
         // v1.6.0 — Etapa 8: chip "automaticas" é derivado (conciliado +
         // regra_codigo preenchido), não um valor de status_conciliacao
         // direto — cobre tanto o motor novo quanto R03/R06 (motor atual +
         // espelho, Etapa 3), que também gravam regra_codigo.
         const CATEGORIA_POR_REGRA_CONC = { R08: 'condominio', R09: 'tributo', R10: 'outro', R13: 'seguro', R14: 'manutencao', R15: 'taxa_adm' };
         const NOME_REGRA_CONC = { R01: 'rendimento', R02: 'tarifa', R03: 'aluguel', R04: 'repasse de imobiliária', R05: 'valor divergente', R06: 'retirada de sócio', R07: 'saída prevista', R08: 'condomínio', R09: 'tributo', R10: 'honorários do contador', R12: 'memória do cliente', R13: 'seguro', R14: 'manutenção', R15: 'taxa de administração', CT01: 'certeza total', CT02: 'certeza total' };
+
+        // v1.6.3 — Etapa 8, achado do Nicola: razão social de saída/entrada
+        // vem do banco já com o tipo de transação embutido na frente
+        // ("SAÍDA BOLETO PAGO CONDOMINIO - CONDOMINIO EDIFICIO..."),
+        // redundante com o segmento Entradas/Saídas que já mostra a direção.
+        // Limpa só na EXIBIÇÃO (não mexe no dado gravado). Padrão real do
+        // extrato Itaú: o trecho depois do ÚLTIMO " - " é o nome completo
+        // do favorecido/pagador — o que vem antes é histórico do banco
+        // (tipo de transação), sem valor de identificação, descartado
+        // aqui. Sem "- " (rendimento/tarifa, sem contraparte de verdade),
+        // só tira o prefixo de direção. Tipo (boleto/PIX/TED) não é
+        // mostrado à parte — decisão do Nicola, "ou não trazer".
+        function limparRotuloConciliacao(razaoSocial) {
+            if (!razaoSocial) return '—';
+            const partes = razaoSocial.split(' - ');
+            if (partes.length >= 2) return partes[partes.length - 1].trim() || razaoSocial;
+            return razaoSocial.replace(/^(SAÍDA|ENTRADA)\s+/i, '').trim() || razaoSocial;
+        }
 
         function renderConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
@@ -2002,7 +2061,7 @@ export function montarAbaFinanceiro(tabId) {
                             <svg data-lucide="sparkles" style="width:15px;height:15px;color:var(--brass-deep,#8a5a1f)"></svg>
                         </div>
                         <div class="flex-1 min-w-0" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(f.razao_social || '—')}</p>
+                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
                             <p class="text-[11px] truncate" style="color:var(--sage)">Automático · ${escapeHtmlSaidas(nomeRegra)}</p>
                         </div>
                         <div class="text-right flex-none" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
@@ -2024,7 +2083,7 @@ export function montarAbaFinanceiro(tabId) {
                             <svg data-lucide="sparkles" style="width:15px;height:15px;color:${confPct < 70 ? '#8a5a1f' : 'var(--brass-deep,#8a5a1f)'}"></svg>
                         </div>
                         <div class="flex-1 min-w-0 cursor-pointer" onclick="verSugestaoConciliacao('${f.id}')">
-                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(f.razao_social || '—')}</p>
+                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
                             <p class="text-[11px] truncate" style="color:var(--sage)">Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</p>
                         </div>
                         <div class="text-right flex-none">
@@ -2044,7 +2103,7 @@ export function montarAbaFinanceiro(tabId) {
                         <svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}" style="width:15px;height:15px;color:${entrada ? '#2f6b47' : 'var(--wine)'}"></svg>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(f.razao_social || '—')}</p>
+                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
                         <p class="text-[11px] truncate" style="color:var(--sage)">${formatarDataBR(f.data)}</p>
                     </div>
                     <div class="text-right flex-none">
@@ -2065,7 +2124,7 @@ export function montarAbaFinanceiro(tabId) {
             const entrada = f.direcao === 'entrada';
             const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             abrirSheetAcoes({
-                titulo: f.razao_social || '—',
+                titulo: limparRotuloConciliacao(f.razao_social),
                 sub: `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`,
                 acoes: [
                     { icone: 'sparkles', tipo: 'ia', titulo: sug.detalhe || (NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo), sub: `Confiança: ${Math.round(sug.confianca || 0)}%`, aoTocar: () => confirmarSugestaoConciliacao(fingerprintId) },
@@ -2117,12 +2176,12 @@ export function montarAbaFinanceiro(tabId) {
             // prontos ali. "Estornar" aqui continua sendo só o desvínculo da
             // conciliação (fn_extrato_estornar_vinculo), não mexe na baixa.
             if (f.status_conciliacao === 'conciliado' && f.destino_id) {
-                if (entrada) { abrirRecebimentoDetalhe(f.destino_id); }
+                if (entrada) { abrirRecebimentoDetalhe(f.destino_id, true); }
                 else { abrirEditarDespesa(f.destino_id); }
                 return;
             }
             if (f.status_conciliacao === 'nao_controlado') {
-                abrirSheetAcoes({ titulo: f.razao_social || '—', sub: sub + (f.observacao_usuario ? ' · ' + f.observacao_usuario : ''), acoes: [
+                abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (f.observacao_usuario ? ' · ' + f.observacao_usuario : ''), acoes: [
                     { icone: 'rotate-ccw', titulo: 'Reabrir', sub: 'Volta pra pendente', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
                 ] });
                 return;
@@ -2168,7 +2227,7 @@ export function montarAbaFinanceiro(tabId) {
             }
             acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco continua guardada', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
 
-            abrirSheetAcoes({ titulo: f.razao_social || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
+            abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
         }
 
         async function confirmarVincularConciliacaoRecebimento(fingerprintId, mensalidadeId, f) {
@@ -2208,7 +2267,7 @@ export function montarAbaFinanceiro(tabId) {
                 ? abertas.map(l => `<div class="rz-row rz-link" data-txt="${rzEsc(l.nome.toLowerCase())}" onclick="selecionarMensalidadeManual('${fingerprintId}','${l.id}')"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><div class="rz-tx"><b>${rzEsc(l.nome)}</b><span>${rzEsc(l.ctx)}</span></div><div class="rz-rt"><b>R$ ${Number(l.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</b></div></div>`).join('')
                 : '<p style="font-size:13px;color:var(--sage);padding:8px 0">Nenhum recebimento em aberto no momento.</p>';
 
-            abrirSheet(rzSheetCabecalho('Vincular a um recebimento', `${f.razao_social || '—'} · R$ ${valorAbs} · ${formatarDataBR(f.data)}`) +
+            abrirSheet(rzSheetCabecalho('Vincular a um recebimento', `${limparRotuloConciliacao(f.razao_social)} · R$ ${valorAbs} · ${formatarDataBR(f.data)}`) +
                 `<div class="rz-sh-b">
                     <div class="rz-f"><label>Buscar locatário</label><input id="vm-busca" oninput="filtrarVincularManual(this.value)" placeholder="Nome do locatário"></div>
                     <div class="rz-card rz-list"><div id="vm-lista">${corpoLista}</div></div>

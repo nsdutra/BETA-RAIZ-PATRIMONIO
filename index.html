@@ -6,9 +6,36 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.178.3
-   LINHAS: 15007
+   VERSÃO: Beta v1.178.5
+   LINHAS: 15156
    DATA: 11/09/2026
+   NOVIDADES (Beta v1.178.5) — Etapa 10 do plano de conciliação, adiantada a
+   pedido do Nicola. (1) Tela nova "Regras de conciliação" no menu de Conta
+   (⚙️ › Empresa) — catálogo de regras com override por cliente
+   (fn_conciliacao_regra_cliente_modo) + memórias "Sempre fazer assim" já
+   criadas. Funcionalidade nova conciliacao.configurar (banco), liberada nos
+   4 planos e 4 perfis, mesmo padrão de conciliacao.resolver. (2) ACHADO
+   GRAVE ao construir a tela: o motor (fn_conciliacao_avaliar) tinha o modo
+   de CT01/CT02/R04/R05/R07 GRAVADO NO CÓDIGO — mudar na tela nova não teria
+   efeito nenhum pra essas 5 regras; só R01/R02/R08/R09/R10 liam a tabela, e
+   mesmo assim só o default da plataforma, nunca um override. R13/R14/R15
+   também faltavam no motor (só fn_extrato_sugerir_destino as via). Motor
+   inteiro corrigido (fn_conciliacao_modo_efetivo nova, banco) e testado:
+   override automático funciona, "desligada" faz a linha não casar com
+   nada. (3) ACHADO 2: fn_conciliacao_regra_cliente_modo escolhia o cliente
+   do usuário sem ORDER BY (mesmo padrão de bug já achado na Etapa 4 —
+   usuário com pessoa em vários clientes, como o Nicola, master em 11
+   tenants, pegava um cliente arbitrário). Corrigido: cliente agora é
+   parâmetro explícito, validado contra meus_clientes(). (4) "Reprocessar"
+   virou link pequeno (não mais card do mesmo peso que Importar) — deixou
+   de ser ação do dia a dia agora que a importação já chama o motor sozinha.
+   NOVIDADES (Beta v1.178.4) — mesma rodada de achados do Nicola testando no
+   celular: legenda "i" de status ao lado do título da Conciliação; barra de
+   rolagem dos chips escondida (#conc-uni-chips); botões Importar/Reprocessar
+   viraram .rz-ico-btn do catálogo (Importar com selo IA — .rz-ico-btn.rz-ia
+   nunca tinha regra de cor própria, corrigido, beneficia também o botão de
+   Minutização por tabela). Ver changelog de financeiro.js 1.6.3 pro resto
+   (título das linhas limpo, bug de "Voltar" corrigido).
    NOVIDADES (Beta v1.178.3) — pedido do Nicola: painel de Pendências legado
    (Filtrar Pendências, barras vermelhas por mês) removido de vez — v1.178.2
    tinha deixado de pé de propósito (30 pendências reais, R$ 127 mil);
@@ -487,6 +514,11 @@
         .rz-tabhead p{flex:1;font-size:12px;color:var(--muted);line-height:1.35;margin:0}
         .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
         .rz-ico-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none;position:relative}
+        /* v1.6.3 — achado do Nicola: .rz-ico-btn.rz-ia (já usado em
+           btn-minutizar-ia) não tinha regra própria — o selo "IA" (fundo/
+           ícone brass) só existia pra .rz-hdr/.rz-row/.rz-act. Mesma cor de
+           sempre, agora também pro botão de ícone isolado. */
+        .rz-ico-btn.rz-ia{background:var(--brass-bg);color:var(--brass-deep);border-color:var(--brass)}
         .rz-ico-btn:active{transform:scale(.92)}
         /* v1.115.0 (fatia 7) — ponto de badge no ícone de aba (sino da Visão
            Geral, REGRAS §5: badge só em Visão Geral e Financeiro). */
@@ -506,6 +538,10 @@
         /* 8. chips (1 linha, rolagem horizontal) e segmento */
         .rz-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:2px 16px}
         .rz-chips::-webkit-scrollbar{display:none}
+        /* v1.6.3 — Etapa 8, achado do Nicola: barra de rolagem aparecia nos
+           chips de status da Conciliação — mesma técnica de .rz-chips acima. */
+        #conc-uni-chips{scrollbar-width:none}
+        #conc-uni-chips::-webkit-scrollbar{display:none}
         .rz-chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--pine);white-space:nowrap}
         .rz-chip .rz-n{font-size:11px;font-weight:600;color:var(--muted);background:var(--paper);padding:1px 6px;border-radius:var(--r-pill)}
         .rz-chip.rz-on{background:var(--pine);border-color:var(--pine);color:#fff}
@@ -2524,7 +2560,7 @@
 
             <p class="text-[11px] text-gray-500 mb-3 mt-2">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
 
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3 mb-4">
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-1">
 
                 <div class="flex items-center justify-between gap-3">
 
@@ -2535,22 +2571,26 @@
 
                     <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
 
-                    <button onclick="document.getElementById('extrato-file-input').click()" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Importar extrato bancário (Excel do Itaú, PDF ou foto)"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><polyline points="9 14 12 17 15 14"/></svg></button>
-
-                </div>
-
-                <div class="border-t border-gray-100 pt-3 flex items-center justify-between gap-3">
-
-                    <div>
-                        <p class="text-xs font-black text-slate-700">Reprocessar Conciliação</p>
-                        <p class="text-[11px] text-gray-400">Refaz a comparação entre o extrato importado e os recebimentos, caso algo tenha mudado.</p>
-                    </div>
-
-                    <button onclick="reprocessarConciliacaoPendente()" title="Reprocessar conciliação" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+                    <!-- v1.6.3 — Etapa 8, achado do Nicola: botões viraram
+                         .rz-ico-btn do catálogo (44px, mesmo padrão do resto
+                         do app) em vez de classes soltas de Tailwind. Este
+                         ganha .rz-ia (selo IA) — mesma distinção que já
+                         existe no sheet "Ações" (Importar é tipo:'ia',
+                         Reprocessar não é: PDF/foto usam IA pra ler,
+                         Reprocessar só roda a mesma comparação de regras). -->
+                    <button onclick="document.getElementById('extrato-file-input').click()" class="rz-ico-btn rz-ia" title="Importar extrato bancário (Excel do Itaú, PDF ou foto)"><svg data-lucide="file-down"></svg></button>
 
                 </div>
 
             </div>
+
+            <!-- v1.178.5 — achado do Nicola: agora que a importação já chama
+                 o motor sozinha no final, Reprocessar deixou de ser ação do
+                 dia a dia — vira recurso de recuperação (contrato ativado
+                 ou reajustado DEPOIS da importação, por exemplo). Peso
+                 visual reduzido: link pequeno em vez de card igual ao de
+                 Importar. -->
+            <button type="button" onclick="reprocessarConciliacaoPendente()" class="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mb-4" style="padding:2px 0"><svg data-lucide="refresh-cw" style="width:12px;height:12px"></svg> Reprocessar (se algo mudou depois da importação)</button>
 
             <!-- v1.178.0 — achado do Nicola (teste no celular): a borda
                  esquerda verde tinha sido posta numa sessão anterior só pra
@@ -2561,7 +2601,14 @@
             <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3 mb-4">
 
                 <div class="flex items-center justify-between">
-                    <p class="text-xs font-black text-slate-700">Conciliação — entradas e saídas</p>
+                    <p class="text-xs font-black text-slate-700 flex items-center gap-1">Conciliação — entradas e saídas
+                        <!-- v1.6.3 — Etapa 8, achado do Nicola: legenda dos
+                             status, pedida explicitamente ("o que significa
+                             pendente?"). Sheet em vez de texto sempre visível
+                             pra não ocupar espaço à toa — mesmo padrão de
+                             interação do resto do app. -->
+                        <button type="button" onclick="explicarStatusConciliacao()" class="text-slate-400" title="O que significa cada status?" aria-label="O que significa cada status?" style="line-height:0"><svg data-lucide="info" style="width:13px;height:13px"></svg></button>
+                    </p>
                     <span id="conc-uni-progresso" class="text-[11px]" style="color:var(--sage)"></span>
                 </div>
 
@@ -3241,6 +3288,26 @@
              (ver dev_carregarDadosEmpresa()). -->
         <section id="tab-minha-empresa" class="tab-content hidden">
             <div id="mount-minha-empresa"></div>
+        </section>
+
+        <!-- v1.178.5 — Etapa 10 do plano de conciliação, adiantada a pedido
+             do Nicola (testou a Conciliação no celular e perguntou onde
+             configurar o que é/não é controlado). Tela nova no menu de
+             Conta: catálogo de regras (R01-R15 + certeza total, sem R00/R11
+             — não são "modo" ajustável) com override por cliente
+             (fn_conciliacao_regra_cliente_modo, banco já pronto desde a
+             Etapa 5) + as memórias "Sempre fazer assim" que o cliente já
+             criou (Etapa 8, R12). -->
+        <section id="tab-regras-conciliacao" class="tab-content hidden">
+            <div class="rz-tabhead">
+                <p>O que o sistema decide sozinho na Conciliação. "Automático" concilia sem perguntar; "Sugerir" avisa e espera você confirmar; "Desligada" não faz nada com esse tipo de linha.</p>
+            </div>
+            <h3 class="text-[11px] font-black text-slate-500 uppercase mt-1 mb-1">Catálogo de regras</h3>
+            <div class="rz-card rz-list" id="lista-regras-conciliacao"></div>
+
+            <h3 class="text-[11px] font-black text-slate-500 uppercase mt-4 mb-1">Suas regras automáticas</h3>
+            <p class="text-[11px] text-gray-400 mb-1">Criadas quando você marcou "Sempre fazer assim" numa despesa vinda da Conciliação.</p>
+            <div class="rz-card rz-list" id="lista-regras-cliente"></div>
         </section>
 
         <!-- v1.120.0 (fatia 7b-ii parte 1, regra E0 do plano de
@@ -8809,7 +8876,7 @@
 
         // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
         // motivo, fica onde está. Abas sem código não são gateadas.
-        const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver',
+        const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver', 'tab-regras-conciliacao': 'conciliacao.configurar',
             'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar' };
         // v1.136 (A.4) — catálogo de relatórios: cada linha tem código próprio
         // (relatorios.resultados / .distribuicao) → cadeado por plano/perfil.
@@ -8993,6 +9060,7 @@
             'carregarConciliacaoUnificada', 'filtrarConciliacaoSegmento', 'filtrarConciliacaoChip', 'abrirAcoesConciliacaoLinha', // v1.X — Etapa 2B
             'verSugestaoConciliacao', 'confirmarSugestaoConciliacao', 'confirmarEstornarConciliacaoSaida', // v1.177.0 — Etapa 8 (sugestão em lote + Automáticas)
             'abrirBuscarMensalidadeManual', 'filtrarVincularManual', 'selecionarMensalidadeManual', // v1.6.1 — busca manual (substitui o painel de Pendências legado)
+            'explicarStatusConciliacao', // v1.6.3 — legenda dos status (pedido do Nicola)
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         function switchTab(tabId) {
@@ -9149,6 +9217,9 @@
             if (tabId === 'tab-minha-empresa' && typeof dev_carregarDadosEmpresa === 'function') {
                 dev_carregarDadosEmpresa();
             }
+            if (tabId === 'tab-regras-conciliacao') {
+                renderRegrasConciliacao();
+            }
             // v1.120.0 (fatia 7b-ii) — telas de tipos vivem em js/cadastros.js
             if (tabId === 'tab-tipo-empreendimento' || tabId === 'tab-tipo-imovel') {
                 const chave = tabId === 'tab-tipo-imovel' ? 'tipo-imovel' : 'empreendimentos';
@@ -9232,6 +9303,83 @@
             atualizarContextoHeader();
         }
 
+        // v1.178.5 — Etapa 10 do plano de conciliação: tela de configuração
+        // das regras (catálogo da plataforma + overrides do cliente +
+        // memórias "Sempre fazer assim"). Banco pronto desde a Etapa 5
+        // (fn_conciliacao_regra_cliente_modo já existia, só faltava tela).
+        const MODO_REGRA_ROTULO = { automatico: 'Automático', sugerir: 'Sugerir', desligada: 'Desligada' };
+        const MODO_REGRA_COR = { automatico: ['#e9f3ec', '#2f6b47'], sugerir: ['#faf3e6', '#8a5a1f'], desligada: ['#eef0ec', '#5f6b5f'] };
+
+        async function renderRegrasConciliacao() {
+            const listaRegras = document.getElementById('lista-regras-conciliacao');
+            const listaCliente = document.getElementById('lista-regras-cliente');
+            if (!listaRegras || !listaCliente) return;
+            listaRegras.innerHTML = '<p class="text-xs text-center py-3 text-gray-400">Carregando…</p>';
+            listaCliente.innerHTML = '';
+
+            const { data, error } = await dbAuth.from('conciliacao_regras')
+                .select('id, codigo, cliente_id, nome, descricao_publica, modo, ativa, acao_params')
+                .or(`cliente_id.is.null,cliente_id.eq.${CLIENTE_ID_SUPABASE}`);
+
+            if (error) {
+                listaRegras.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--wine)">Não consegui carregar: ${error.message}</p>`;
+                return;
+            }
+
+            const todas = data || [];
+            // R00 (linha de saldo, ação de importação) e R11 (teto de
+            // R$20mil, invariante de segurança) não são "modo" ajustável —
+            // ficam de fora da lista pro cliente não desligar sem querer.
+            const plataforma = todas.filter(r => r.cliente_id === null && r.ativa && r.codigo !== 'R00' && r.codigo !== 'R11');
+            const overridesPorCodigo = {};
+            todas.filter(r => r.cliente_id !== null && r.codigo !== 'R12').forEach(r => { overridesPorCodigo[r.codigo] = r; });
+
+            listaRegras.innerHTML = plataforma.map(r => {
+                const over = overridesPorCodigo[r.codigo];
+                const idParaSalvar = over ? over.id : r.id;
+                const modo = over ? over.modo : r.modo;
+                const [bg, tx] = MODO_REGRA_COR[modo] || MODO_REGRA_COR.sugerir;
+                return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${idParaSalvar}','${escapeHtmlSaidas(r.nome)}')">
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(r.nome)}</b><span>${escapeHtmlSaidas(r.descricao_publica || '')}</span></div>
+                    <div class="rz-rt"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[modo] || modo}</span></div>
+                </div>`;
+            }).join('');
+
+            const memorias = todas.filter(r => r.cliente_id !== null && r.codigo === 'R12');
+            listaCliente.innerHTML = !memorias.length
+                ? '<p class="text-xs text-center py-3 text-gray-400">Nenhuma ainda.</p>'
+                : memorias.map(r => {
+                    const [bg, tx] = MODO_REGRA_COR[r.modo] || MODO_REGRA_COR.sugerir;
+                    const categoria = r.acao_params && r.acao_params.categoria ? rotuloCategoriaSaida(r.acao_params.categoria) : '';
+                    return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${r.id}','${escapeHtmlSaidas(r.nome)}')">
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(r.nome)}</b><span>${categoria ? 'Categoria: ' + escapeHtmlSaidas(categoria) : (r.descricao_publica || '')}</span></div>
+                        <div class="rz-rt"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[r.modo] || r.modo}</span></div>
+                    </div>`;
+                }).join('');
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function abrirEscolherModoRegra(regraId, nome) {
+            abrirSheetAcoes({ titulo: nome, sub: 'Como esta regra deve se comportar', acoes: [
+                { icone: 'zap', titulo: 'Automático', sub: 'Concilia sozinho, sem perguntar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'automatico') },
+                { icone: 'sparkles', titulo: 'Sugerir', sub: 'Avisa e espera você confirmar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'sugerir') },
+                { icone: 'circle-slash', titulo: 'Desligada', sub: 'Não faz nada com esse tipo de linha', aoTocar: () => salvarModoRegraConciliacao(regraId, 'desligada') },
+            ] });
+        }
+
+        async function salvarModoRegraConciliacao(regraId, modo) {
+            fecharSheet();
+            mostrarCarregamentoGlobal('Salvando…');
+            try {
+                const { error } = await dbAuth.rpc('fn_conciliacao_regra_cliente_modo', { p_regra_id: regraId, p_modo: modo, p_cliente_id: CLIENTE_ID_SUPABASE });
+                if (error) throw error;
+                esconderCarregamentoGlobal();
+                mostrarToast('Atualizado.', 'success');
+                await renderRegrasConciliacao();
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
+        }
+
         function abrirMenuConta() {
             const ir = (tab) => () => switchTab(tab);
             const plano = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo ? ('Plano ' + LICENCA_ATUAL.plano_codigo.charAt(0).toUpperCase() + LICENCA_ATUAL.plano_codigo.slice(1)) : 'Plano e consumo';
@@ -9248,6 +9396,7 @@
                     ]},
                     { titulo: 'Empresa', acoes: [
                         { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
+                        { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o sistema decide sozinho', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
                         { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
