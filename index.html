@@ -6,9 +6,24 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.178.5
-   LINHAS: 15156
+   VERSÃO: Beta v1.178.7
+   LINHAS: 15221
    DATA: 11/09/2026
+   NOVIDADES (Beta v1.178.7) — padronização Recebimentos/Saídas/Conciliação,
+   6 achados do Nicola. "+" de Recebimentos removido (abria menu redundante
+   com a aba Conciliação). Resumo do topo de Recebimentos e Saídas
+   unificado na mesma classe .rz-kpi.rz-hero do catálogo — antes cada tela
+   tinha desenho próprio. Chip "Atrasados" solto tirado das 2 abas — "Em
+   atraso"/"Atrasado" viraram parte do próprio resumo, tocáveis. Ver
+   changelog de financeiro.js 1.6.5 pro resto (agrupamento por competência
+   na Conciliação, polish nos agrupamentos de Recebimentos).
+   NOVIDADES (Beta v1.178.6) — chip "Automáticas" removido (redundante com
+   Conciliados, achado do Nicola). Ver changelog de financeiro.js 1.6.4 pro
+   resto (overload ambígua de fn_extrato_vincular_recebimento corrigida no
+   banco, nome das linhas mais limpo, limpeza de ~15 fingerprints
+   duplicados por variação de grafia da IA — 11 grupos ficaram de fora,
+   aguardando decisão do Nicola, risco de 1 pagamento ter marcado 2
+   competências como pagas).
    NOVIDADES (Beta v1.178.5) — Etapa 10 do plano de conciliação, adiantada a
    pedido do Nicola. (1) Tela nova "Regras de conciliação" no menu de Conta
    (⚙️ › Empresa) — catálogo de regras com override por cliente
@@ -2504,18 +2519,16 @@
 
         <section id="tab-mensal" class="tab-content">
 
-            <!-- v1.177.0 — Etapa 7/8 da conciliação (Parte D do plano):
-                 Conciliação virou aba própria (tab-conciliacao), 3º segmento
-                 junto de Recebimentos/Saídas — antes era um painel dentro
-                 desta aba. Atrasados deixou de ser segmento de peso igual e
-                 virou um link/chip secundário (ainda tab-inadimplencia por
-                 baixo, tela e lógica de cobrança inalteradas). -->
+            <!-- v1.6.5 — achado do Nicola: chip "Atrasados" solto abaixo do
+                 segmento tirado (redundante com o hero abaixo, cujo "Em
+                 atraso" agora é o próprio caminho pra tab-inadimplencia —
+                 mesmo destino, sem precisar de um chip fixo ocupando linha
+                 própria). -->
             <div class="rz-seg">
                 <button onclick="switchTab('tab-mensal')" class="rz-on">Recebimentos</button>
                 <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
                 <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
             </div>
-            <button onclick="switchTab('tab-inadimplencia')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-1"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</button>
 
             <!-- v1.51.0 — "< Voltar" condicional: só aparece quando esta
                  aba foi aberta filtrada a partir da ficha do imóvel
@@ -2530,8 +2543,36 @@
 
                 <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa. Importe extratos e concilie na aba Conciliação.</p>
 
+                <!-- v1.6.5 — achado do Nicola: "+" tirado — abria um menu de
+                     Importar/Reprocessar/Painel de conciliação, tudo
+                     redundante agora que Conciliação é aba própria (não
+                     existe "criar recebimento avulso" pra justificar um
+                     "+" aqui). rzAcoesRecebimentos() removida junto. -->
                 <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button id="btn-toggle-gerar-mes" onclick="rzAcoesRecebimentos()" title="Ações" class="rz-ico-btn rz-primary" aria-label="Novo"><svg data-lucide="plus"></svg></button>
+            </div>
+
+            <!-- v1.6.5 — achado do Nicola: resumo padronizado com o de
+                 Saídas (mesmo .rz-kpi.rz-hero do catálogo, que antes só
+                 existia em Visão Geral) — antes eram 3 caixas soltas com
+                 desenho diferente do de Saídas. "Em atraso" agora é o
+                 caminho pra tab-inadimplencia (substitui o chip solto que
+                 saiu do topo da tela); "A vencer" é só informativo, sem
+                 tela própria de destino. -->
+            <div class="rz-kpis">
+                <div class="rz-kpi rz-hero">
+                    <small>Recebido no período</small>
+                    <b id="mensal-resumo-recebido">R$ 0,00</b>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <button type="button" onclick="switchTab('tab-inadimplencia')" style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;text-align:left">
+                            <div style="font-size:11px;opacity:.8">Em atraso</div>
+                            <b id="mensal-resumo-atraso" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
+                        </button>
+                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
+                            <div style="font-size:11px;opacity:.8">A vencer</div>
+                            <b id="mensal-resumo-avencer" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- v1.177.0 — painel "Gerar mês" removido (cron + ativação/
@@ -2621,10 +2662,12 @@
                 <div id="conc-uni-chips" class="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
                     <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--pine);background:var(--pine);color:#fff" data-chip="todos" data-cor="var(--pine)" onclick="filtrarConciliacaoChip('todos')">Todos</button>
                     <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--wine)" data-chip="pendente" data-cor="var(--wine)" onclick="filtrarConciliacaoChip('pendente')">Pendentes</button>
-                    <!-- v1.177.0 — Etapa 8 (Parte H do plano): "Automáticas" —
-                         tudo que o motor de regras conciliou sozinho (novo +
-                         R03/R06 do motor atual, todos gravam regra_codigo). -->
-                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--brass-deep,#8a5a1f)" data-chip="automaticas" data-cor="var(--brass-deep,#8a5a1f)" onclick="filtrarConciliacaoChip('automaticas')">Automáticas</button>
+                    <!-- v1.6.4 — Etapa 8, achado do Nicola: chip "Automáticas"
+                         removido — redundante com "Conciliados" (que já
+                         inclui as automáticas, com o selo "Automático ·
+                         regra" e Desfazer na própria linha, sem precisar de
+                         um filtro à parte). O tratamento por linha continua
+                         intacto — só o atalho de filtro saiu. -->
                     <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:#2f6b47" data-chip="conciliado" data-cor="#2f6b47" onclick="filtrarConciliacaoChip('conciliado')">Conciliados</button>
                     <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--sage)" data-chip="nao_controlado" data-cor="var(--sage)" onclick="filtrarConciliacaoChip('nao_controlado')">Não controlado</button>
                 </div>
@@ -2725,14 +2768,16 @@
 
         <section id="tab-saidas" class="tab-content">
 
-            <!-- v1.177.0 — Etapa 7/8: Conciliação entra no segmento principal,
-                 Atrasados vira chip (mesmo padrão das outras 3 abas do grupo). -->
+            <!-- v1.6.5 — achado do Nicola: chip "Atrasados" solto tirado
+                 (mesmo motivo de Recebimentos — "Atrasado" agora vive
+                 dentro do hero abaixo, mas aqui filtra a própria lista de
+                 Saídas, não navega pra tab-inadimplencia, que é só de
+                 recebimento). -->
             <div class="rz-seg">
                 <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
                 <button onclick="switchTab('tab-saidas')" class="rz-on">Saídas</button>
                 <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
             </div>
-            <button onclick="switchTab('tab-inadimplencia')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-1"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</button>
 
             <!-- "< Voltar" condicional, mesmo padrão de btn-voltar-financeiro
                  (só aparece quando esta aba foi aberta filtrada a partir do
@@ -2745,13 +2790,31 @@
                 <button id="btn-nova-despesa" onclick="abrirNovaDespesa()" title="Nova despesa" class="rz-ico-btn rz-primary" aria-label="Nova despesa"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
             </div>
 
-            <div class="rounded-2xl p-4 text-white shadow mb-4" style="background:var(--sprout)">
-                <div class="text-xs opacity-80 font-semibold">Total previsto — <span id="saidas-resumo-competencia">—</span></div>
-                <div id="saidas-resumo-total" class="text-2xl font-extrabold mt-1">R$ 0,00</div>
-                <div class="grid grid-cols-3 gap-2 mt-3">
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Pago</div><div id="saidas-resumo-pago" class="text-lg font-extrabold mt-1">R$ 0</div></div>
-                    <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">A vencer</div><div id="saidas-resumo-avencer" class="text-lg font-extrabold mt-1">R$ 0</div></div>
-                    <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Atrasado</div><div id="saidas-resumo-atrasado" class="text-lg font-extrabold text-red-100 mt-1">R$ 0</div></div>
+            <!-- v1.6.5 — achado do Nicola ("padronizar o resumo — a saída é
+                 de um jeito e o recebimento de outro"): mesma classe
+                 .rz-kpi.rz-hero de Recebimentos agora, em vez do card
+                 solto com cor própria (--sprout) e caixas bg-white/10 que
+                 só esta tela usava. "Atrasado" virou botão — filtra a
+                 própria lista (mesmo <select> escondido de sempre,
+                 saidas-filtro-status), sem navegar pra outra tela. -->
+            <div class="rz-kpis">
+                <div class="rz-kpi rz-hero">
+                    <small>Total previsto — <span id="saidas-resumo-competencia">—</span></small>
+                    <b id="saidas-resumo-total">R$ 0,00</b>
+                    <div class="grid grid-cols-3 gap-2 mt-3">
+                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
+                            <div style="font-size:11px;opacity:.8">Pago</div>
+                            <b id="saidas-resumo-pago" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
+                        </div>
+                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
+                            <div style="font-size:11px;opacity:.8">A vencer</div>
+                            <b id="saidas-resumo-avencer" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
+                        </div>
+                        <button type="button" onclick="filtrarSaidasPorStatus('atrasado')" style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;text-align:left">
+                            <div style="font-size:11px;opacity:.8">Atrasado</div>
+                            <b id="saidas-resumo-atrasado" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -9042,7 +9105,7 @@
             if (__rzFinModulo && typeof __rzFinModulo[nome] === 'function') return __rzFinModulo[nome](...args);
         }
         [
-            'rzAcoesRecebimentos', 'rzAcoesMensalidade', 'rzAbrirBaixaMensalidade', 'rzAcoesGrupoMensal',
+            'rzAcoesMensalidade', 'rzAbrirBaixaMensalidade', 'rzAcoesGrupoMensal', // v1.6.5 — rzAcoesRecebimentos saiu ("+" removido de Recebimentos)
             'renderMensalidades', 'alternarGrupoMensal', 'apagarInadimplentesDoGrupo', 'liquidarMensalidade',
             'estornarMensalidade', 'alternarMenuBaixaExtra', 'recalcularTotalBaixaExtra', 'borderEstornoCheck',
             'excluirLancamentoMensal', 'abrirRecebimentoDetalhe', 'voltarDoRecebimentoDetalhe', 'liquidarMensalidadeERefletirDetalhe',
@@ -9061,6 +9124,8 @@
             'verSugestaoConciliacao', 'confirmarSugestaoConciliacao', 'confirmarEstornarConciliacaoSaida', // v1.177.0 — Etapa 8 (sugestão em lote + Automáticas)
             'abrirBuscarMensalidadeManual', 'filtrarVincularManual', 'selecionarMensalidadeManual', // v1.6.1 — busca manual (substitui o painel de Pendências legado)
             'explicarStatusConciliacao', // v1.6.3 — legenda dos status (pedido do Nicola)
+            'filtrarSaidasPorStatus', // v1.6.5 — "Atrasado" do hero de Saídas
+            'alternarGrupoConciliacao', // v1.6.5 — agrupamento por competência na Conciliação
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         function switchTab(tabId) {

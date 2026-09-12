@@ -1,7 +1,52 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.6.3 · 11/09/2026
+// Versão: 1.6.5 · 11/09/2026
+//
+// v1.6.5 — 6 achados do Nicola, padronização Recebimentos/Saídas/Conciliação:
+//   - "+" de Recebimentos removido — abria Importar/Reprocessar/Painel de
+//     conciliação, tudo redundante com a aba própria; rzAcoesRecebimentos()
+//     removida.
+//   - Resumo do topo padronizado: Recebimentos e Saídas usam agora a MESMA
+//     classe .rz-kpi.rz-hero do catálogo (antes cada um tinha desenho
+//     próprio — Recebimentos com 3 caixas .rz-kpi soltas, Saídas com um
+//     card customizado cor --sprout). Virou HTML estático em ambas as
+//     abas, preenchido por id — igual ao padrão que só Saídas já usava.
+//   - Chip "Atrasados" solto abaixo do segmento tirado de Recebimentos e
+//     Saídas (Conciliação já não tinha mais). "Em atraso" de Recebimentos
+//     e "Atrasado" de Saídas viraram parte do hero, tocáveis: Recebimentos
+//     navega pra tab-inadimplencia (mesmo destino de sempre); Saídas
+//     filtra a própria lista (filtrarSaidasPorStatus, novo — não existe
+//     inadimplência de saída como tela própria).
+//   - Conciliação ganha agrupamento por competência (mesmo padrão de
+//     Recebimentos: cabeçalho colapsável, contagem de pendentes por mês).
+//     Template de linha extraído pra linhaConciliacaoUniHtml() (reusado
+//     por grupo, antes só existia inline).
+//   - Grupo 100% futuro (só "a vencer", nada pago/atrasado ainda) em
+//     Recebimentos ganha opacidade reduzida no cabeçalho — antes a única
+//     diferença pro grupo com algo pra agir era o ⋮ sumir, sutil demais.
+//
+// v1.6.4 — mais achados do Nicola testando no celular (Conciliação):
+//   - fn_extrato_vincular_recebimento tinha 2 overloads no banco (a de 5
+//     parâmetros, que o app chama, e uma de 9 com p_multa/p_taxa/p_iptu/
+//     p_condominio — órfã, de sessão anterior, ninguém chamava) — Postgres
+//     não conseguia escolher, "Confirmar" quebrava com erro real. Overload
+//     de 9 removida (banco).
+//   - limparRotuloConciliacao() estendida: sem " - " ainda sobrava "PIX
+//     TRANSF"/"TED" e a referência numérica do banco antes do nome ("TED
+//     033.0944.HWN ENGENHARIA LTDA" virava só isso agora vira "HWN
+//     ENGENHARIA LTDA").
+//   - Chip "Automáticas" removido — redundante com "Conciliados" (acordo
+//     com o Nicola: o selo por linha + Desfazer já aparecem lá, sem
+//     precisar de filtro à parte).
+//   - ACHADO GRAVE, no banco, fora do escopo desta versão do arquivo: ~15
+//     fingerprints duplicados por variação de grafia da IA em
+//     reimportações sobrepostas (mesmo TED/PIX extraído com texto
+//     ligeiramente diferente a cada vez) — limpos os casos seguros (sem
+//     conflito de conciliação). 11 grupos ficaram de fora da limpeza
+//     automática por terem 2 mensalidades conciliadas com destinos
+//     diferentes (risco de 1 pagamento real ter marcado 2 competências
+//     como pagas) — aguardando decisão do Nicola, não é código.
 //
 // v1.6.3 — 5 achados do Nicola testando no celular (Conciliação):
 //   - Título das linhas limpo: limparRotuloConciliacao() tira o prefixo
@@ -241,7 +286,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.6.3'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.5'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -326,6 +371,18 @@ export function montarAbaFinanceiro(tabId) {
             const fornecedoresUsados = [...new Map(lancamentos.filter(d => d.parteId).map(d => [d.parteId, d.parteNome])).entries()];
             selFornecedor.innerHTML = '<option value="todos">Todos</option>' + fornecedoresUsados.map(([id, nome]) => `<option value="${id}">${escapeHtmlSaidas(nome)}</option>`).join('');
             selFornecedor.value = fornecedoresUsados.some(([id]) => id === valForn) ? valForn : 'todos';
+        }
+
+        // v1.6.5 — achado do Nicola: "Atrasado" do hero de Saídas filtra a
+        // própria lista (mesmo <select> escondido que "Buscar" já usa) em
+        // vez de navegar — Saídas não tem uma tela de inadimplência própria
+        // como Recebimentos tem (tab-inadimplencia é só de recebimento).
+        export function filtrarSaidasPorStatus(status) {
+            const sel = document.getElementById('saidas-filtro-status');
+            if (!sel) return;
+            sel.value = status;
+            renderSaidas();
+            document.getElementById('lista-saidas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         export function renderSaidas() {
@@ -2020,7 +2077,96 @@ export function montarAbaFinanceiro(tabId) {
             if (!razaoSocial) return '—';
             const partes = razaoSocial.split(' - ');
             if (partes.length >= 2) return partes[partes.length - 1].trim() || razaoSocial;
-            return razaoSocial.replace(/^(SAÍDA|ENTRADA)\s+/i, '').trim() || razaoSocial;
+            let texto = razaoSocial.replace(/^(SAÍDA|ENTRADA)\s+/i, '');
+            // v1.6.4 — Etapa 8, achado do Nicola: sem " - " ainda sobrava
+            // "PIX TRANSF"/"TED" e a referência do banco antes do nome
+            // ("TED 033.0944.HWN ENGENHARIA LTDA" continuava quase inteiro).
+            texto = texto.replace(/^(PIX\s+TRANSF\.?|PIX\s+ENVIADO|PIX\s+RECEBIDO|TED|DOC|BOLETO\s+PAGO)\s+/i, '');
+            // Referência numérica do banco ("033.0944.") ou nome truncado +
+            // data ("ADRIANO09/07 ") logo no início — tira só se sobrar algo
+            // depois, nunca esvazia o texto.
+            let semRef = texto.replace(/^[\d.]+\s*/, '');
+            semRef = semRef.replace(/^[A-Z]+\d{2}\/\d{2}\s+/i, '');
+            return (semRef.trim() || texto.trim() || razaoSocial);
+        }
+
+        // v1.6.5 — achado do Nicola: agrupamento por competência, mesmo
+        // padrão de Recebimentos (renderMensalidades) — antes a lista de
+        // Conciliação era uma faixa só, sem separação por mês.
+        let gruposConciliacaoAbertos = null;
+
+        export function alternarGrupoConciliacao(ref) {
+            const grupoId = 'grupo-conc-' + ref.replace('/', '-');
+            const el = document.getElementById(grupoId);
+            const seta = document.getElementById(grupoId + '-seta');
+            if (!el) return;
+            el.classList.toggle('hidden');
+            const aberto = !el.classList.contains('hidden');
+            if (seta) seta.style.transform = `rotate(${aberto ? 180 : 0}deg)`;
+            if (aberto) gruposConciliacaoAbertos.add(ref); else gruposConciliacaoAbertos.delete(ref);
+        }
+
+        // Uma linha (as 3 variações — automática, com sugestão, ou simples)
+        // — extraída da função de render pra poder ser reusada por grupo.
+        function linhaConciliacaoUniHtml(f) {
+            const entrada = f.direcao === 'entrada';
+            const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const automatica = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
+            const sug = f.status_conciliacao === 'pendente' ? conciliacaoUniSugestoes[f.id] : null;
+            const corStatus = { pendente: ['#faf3e6', '#8a5a1f', 'Pendente'], conciliado: ['#e9f3ec', '#2f6b47', 'Conciliado'], nao_controlado: ['#eef0ec', '#5f6b5f', 'Não controlado'] };
+
+            if (automatica) {
+                const nomeRegra = NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo;
+                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
+                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:var(--brass-bg,#f7ecd9)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                        <svg data-lucide="sparkles" style="width:15px;height:15px;color:var(--brass-deep,#8a5a1f)"></svg>
+                    </div>
+                    <div class="flex-1 min-w-0" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
+                        <p class="text-[11px] truncate" style="color:var(--sage)">Automático · ${escapeHtmlSaidas(nomeRegra)}</p>
+                    </div>
+                    <div class="text-right flex-none" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                        <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
+                    </div>
+                    <button type="button" class="flex-none w-7 h-7 flex items-center justify-center" onclick="event.stopPropagation();confirmarEstornarConciliacaoSaida('${f.id}')" title="Desfazer"><svg data-lucide="undo-2" style="width:15px;height:15px;color:var(--sage)"></svg></button>
+                </div>`;
+            }
+
+            if (sug) {
+                const confPct = Math.round((sug.confianca || 0));
+                return `<div class="flex flex-wrap items-start gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
+                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${confPct < 70 ? '#faf3e6' : 'var(--brass-bg,#f7ecd9)'}">
+                        <svg data-lucide="sparkles" style="width:15px;height:15px;color:${confPct < 70 ? '#8a5a1f' : 'var(--brass-deep,#8a5a1f)'}"></svg>
+                    </div>
+                    <div class="flex-1 min-w-0 cursor-pointer" onclick="verSugestaoConciliacao('${f.id}')">
+                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
+                        <p class="text-[11px] truncate" style="color:var(--sage)">Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</p>
+                    </div>
+                    <div class="text-right flex-none">
+                        <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
+                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 mt-0.5" style="background:var(--brass-bg,#f7ecd9);color:var(--brass-deep,#8a5a1f)"><svg data-lucide="sparkles" style="width:9px;height:9px"></svg>${confPct}%</span>
+                    </div>
+                    <div class="flex-none w-full flex gap-2 mt-1" style="padding-left:42px">
+                        <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" onclick="event.stopPropagation();confirmarSugestaoConciliacao('${f.id}')">Confirmar</button>
+                        <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:transparent;border:1px solid var(--line);color:var(--ink)" onclick="event.stopPropagation();abrirAcoesConciliacaoLinha('${f.id}')">${entrada ? 'Outro recebimento' : 'Outra saída'}</button>
+                    </div>
+                </div>`;
+            }
+
+            const [bg, tx, rotulo] = corStatus[f.status_conciliacao] || corStatus.pendente;
+            return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${entrada ? '#e9f3ec' : '#f5ece9'}">
+                    <svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}" style="width:15px;height:15px;color:${entrada ? '#2f6b47' : 'var(--wine)'}"></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
+                    <p class="text-[11px] truncate" style="color:var(--sage)">${formatarDataBR(f.data)}</p>
+                </div>
+                <div class="text-right flex-none">
+                    <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
+                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block mt-0.5" style="background:${bg};color:${tx}">${rotulo}</span>
+                </div>
+            </div>`;
         }
 
         function renderConciliacaoUnificada() {
@@ -2034,7 +2180,6 @@ export function montarAbaFinanceiro(tabId) {
             const filtrados = conciliacaoUniCache.filter(f => {
                 if (conciliacaoUniSegmento !== 'tudo' && f.direcao !== conciliacaoUniSegmento) return false;
                 if (conciliacaoUniChip === 'todos') return true;
-                if (conciliacaoUniChip === 'automaticas') return f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
                 return f.status_conciliacao === conciliacaoUniChip;
             });
 
@@ -2043,75 +2188,37 @@ export function montarAbaFinanceiro(tabId) {
                 return;
             }
 
-            const corStatus = { pendente: ['#faf3e6', '#8a5a1f', 'Pendente'], conciliado: ['#e9f3ec', '#2f6b47', 'Conciliado'], nao_controlado: ['#eef0ec', '#5f6b5f', 'Não controlado'] };
+            // Agrupa por competência (mês/ano da data do banco), mais
+            // recente primeiro — mesmo padrão de renderMensalidades().
+            const grupos = {};
+            filtrados.forEach(f => {
+                const ref = f.data ? (() => { const [ano, mes] = f.data.split('-'); return `${mes}/${ano}`; })() : 'Sem data';
+                (grupos[ref] = grupos[ref] || []).push(f);
+            });
+            const competenciasOrdenadas = Object.keys(grupos).sort((a, b) => {
+                if (a === 'Sem data') return 1; if (b === 'Sem data') return -1;
+                const [ma, aa] = a.split('/'), [mb, ab] = b.split('/');
+                return (ab + mb).localeCompare(aa + ma);
+            });
 
-            lista.innerHTML = filtrados.map(f => {
-                const entrada = f.direcao === 'entrada';
-                const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                const automatica = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
-                const sug = f.status_conciliacao === 'pendente' ? conciliacaoUniSugestoes[f.id] : null;
+            if (gruposConciliacaoAbertos === null) {
+                gruposConciliacaoAbertos = new Set(competenciasOrdenadas.length > 0 ? [competenciasOrdenadas[0]] : []);
+            }
 
-                // v1.6.0 — Automática: mesma linha de sempre, mas com selo
-                // "Automático · <regra>" e ⋮ com Abrir/Desfazer (Parte H do
-                // plano) em vez do rótulo de status genérico.
-                if (automatica) {
-                    const nomeRegra = NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo;
-                    return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
-                        <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:var(--brass-bg,#f7ecd9)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                            <svg data-lucide="sparkles" style="width:15px;height:15px;color:var(--brass-deep,#8a5a1f)"></svg>
-                        </div>
-                        <div class="flex-1 min-w-0" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
-                            <p class="text-[11px] truncate" style="color:var(--sage)">Automático · ${escapeHtmlSaidas(nomeRegra)}</p>
-                        </div>
-                        <div class="text-right flex-none" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                            <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
-                        </div>
-                        <button type="button" class="flex-none w-7 h-7 flex items-center justify-center" onclick="event.stopPropagation();confirmarEstornarConciliacaoSaida('${f.id}')" title="Desfazer"><svg data-lucide="undo-2" style="width:15px;height:15px;color:var(--sage)"></svg></button>
-                    </div>`;
-                }
-
-                // v1.6.0 — Pendente com sugestão do motor (lote): mostra a
-                // sugestão na própria linha, com Confirmar direto — sem
-                // precisar tocar pra buscar (Parte K/H do plano). O texto
-                // "Parece: ..." é tocável (verSugestaoConciliacao) pra ver a
-                // ficha completa antes de confirmar, mesmo padrão do protótipo.
-                if (sug) {
-                    const confPct = Math.round((sug.confianca || 0));
-                    return `<div class="flex flex-wrap items-start gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
-                        <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${confPct < 70 ? '#faf3e6' : 'var(--brass-bg,#f7ecd9)'}">
-                            <svg data-lucide="sparkles" style="width:15px;height:15px;color:${confPct < 70 ? '#8a5a1f' : 'var(--brass-deep,#8a5a1f)'}"></svg>
-                        </div>
-                        <div class="flex-1 min-w-0 cursor-pointer" onclick="verSugestaoConciliacao('${f.id}')">
-                            <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
-                            <p class="text-[11px] truncate" style="color:var(--sage)">Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</p>
-                        </div>
-                        <div class="text-right flex-none">
-                            <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
-                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 mt-0.5" style="background:var(--brass-bg,#f7ecd9);color:var(--brass-deep,#8a5a1f)"><svg data-lucide="sparkles" style="width:9px;height:9px"></svg>${confPct}%</span>
-                        </div>
-                        <div class="flex-none w-full flex gap-2 mt-1" style="padding-left:42px">
-                            <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" onclick="event.stopPropagation();confirmarSugestaoConciliacao('${f.id}')">Confirmar</button>
-                            <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:transparent;border:1px solid var(--line);color:var(--ink)" onclick="event.stopPropagation();abrirAcoesConciliacaoLinha('${f.id}')">${entrada ? 'Outro recebimento' : 'Outra saída'}</button>
-                        </div>
-                    </div>`;
-                }
-
-                const [bg, tx, rotulo] = corStatus[f.status_conciliacao] || corStatus.pendente;
-                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
-                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${entrada ? '#e9f3ec' : '#f5ece9'}">
-                        <svg data-lucide="${entrada ? 'arrow-down-left' : 'arrow-up-right'}" style="width:15px;height:15px;color:${entrada ? '#2f6b47' : 'var(--wine)'}"></svg>
+            lista.innerHTML = competenciasOrdenadas.map(ref => {
+                const itensGrupo = grupos[ref];
+                const qtdPendente = itensGrupo.filter(f => f.status_conciliacao === 'pendente').length;
+                const resumo = `${itensGrupo.length} ite${itensGrupo.length > 1 ? 'ns' : 'm'}${qtdPendente > 0 ? ` · ${qtdPendente} pendente${qtdPendente > 1 ? 's' : ''}` : ''}`;
+                const grupoId = 'grupo-conc-' + ref.replace('/', '-');
+                const aberto = gruposConciliacaoAbertos.has(ref);
+                return `
+                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoConciliacao('${ref}')">
+                        <span style="flex:1">${ref} · ${resumo}</span>
+                        <svg data-lucide="chevron-down" id="${grupoId}-seta" style="width:16px;height:16px;transform:rotate(${aberto ? '180' : '0'}deg)"></svg>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
-                        <p class="text-[11px] truncate" style="color:var(--sage)">${formatarDataBR(f.data)}</p>
-                    </div>
-                    <div class="text-right flex-none">
-                        <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
-                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block mt-0.5" style="background:${bg};color:${tx}">${rotulo}</span>
-                    </div>
-                </div>`;
+                    <div id="${grupoId}" class="space-y-1.5 ${aberto ? '' : 'hidden'}" style="margin-bottom:10px">${itensGrupo.map(linhaConciliacaoUniHtml).join('')}</div>`;
             }).join('');
+
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -2453,21 +2560,11 @@ export function montarAbaFinanceiro(tabId) {
 
         }
 
-        // v1.114.0 (fatia 5) — sheets do lançamento de recebimento
-        // v1.177.0 — Etapa 7 da conciliação (Parte G do plano): "Gerar mês"
-        // saiu do menu — o cron (diario-eventos) já gera os recebimentos dos
-        // próximos 90 dias sozinho pra todo contrato ativo com valor; ativar/
-        // renovar contrato também chamam o horizonte na hora. mensal.gerar
-        // continua no catálogo de funcionalidades (D16 do plano), só não tem
-        // mais botão aqui.
-        export function rzAcoesRecebimentos() {
-            if (typeof abrirSheetAcoes !== 'function') return;
-            abrirSheetAcoes({ titulo: 'Recebimentos', acoes: [
-                { icone: 'sparkles', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os pagamentos automaticamente', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
-                { icone: 'refresh-cw', titulo: 'Reprocessar conciliação', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação extrato × recebimentos', aoTocar: () => reprocessarConciliacaoPendente() },
-                { icone: 'clipboard-list', titulo: 'Painel de conciliação', codigo: 'conciliacao.ver', sub: 'Pendências do último extrato', aoTocar: () => switchTab('tab-conciliacao') },
-            ] });
-        }
+        // v1.6.5 — rzAcoesRecebimentos() removida (achado do Nicola): o "+"
+        // que a chamava saiu de Recebimentos — Importar/Reprocessar/Painel
+        // de conciliação (o menu que ela abria) ficaram redundantes com a
+        // aba própria de Conciliação. "Gerar mês" já tinha saído antes
+        // (v1.177.0, Etapa 7).
 
         export function rzAcoesMensalidade(menId) {
             const men = mensalidades.find(m => m.id === menId); if (!men || typeof abrirSheetAcoes !== 'function') return;
@@ -2666,19 +2763,33 @@ export function montarAbaFinanceiro(tabId) {
                 const grupoId = 'grupo-mensal-' + ref.replace('/', '-');
                 const abertoPorPadrao = gruposMensalAbertos.has(ref);
                 const resumo = [qtdRecebido ? `${qtdRecebido} pago${qtdRecebido > 1 ? 's' : ''}` : '', qtdInadimplente ? `${qtdInadimplente} em atraso` : '', qtdAVencer ? `${qtdAVencer} a vencer` : ''].filter(Boolean).join(' · ');
+                // v1.6.5 — achado do Nicola: mês 100% futuro (só "a vencer",
+                // nada pago ou em atraso ainda) ficava com a MESMA cor de
+                // cabeçalho que um mês com coisa pra agir — a única
+                // diferença era o ⋮ sumir, sutil demais. Futuro puro agora
+                // usa opacidade reduzida no cabeçalho inteiro — sinaliza
+                // "ainda não chegou a hora" antes mesmo de ler o resumo.
+                const soFuturo = qtdRecebido === 0 && qtdInadimplente === 0 && qtdAVencer > 0;
                 return `
-                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoMensal('${ref}')">
+                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer${soFuturo ? ';opacity:.6' : ''}" onclick="alternarGrupoMensal('${ref}')">
                         <span style="flex:1">${ref} · ${resumo}</span>
                         ${qtdInadimplente > 0 ? `<button type="button" onclick="event.stopPropagation(); rzAcoesGrupoMensal('${ref}')" class="rz-more" aria-label="Mais ações" style="margin:0"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}
                         <svg data-lucide="chevron-down" id="${grupoId}-seta" style="width:16px;height:16px;transform:rotate(${abertoPorPadrao ? '180' : '0'}deg)"></svg>
                     </div>
                     <div id="${grupoId}" class="rz-card rz-list ${abertoPorPadrao ? '' : 'hidden'}">${linhas}</div>`;
             }).join('');
-            container.innerHTML = `<div class="rz-kpis">
-                <div class="rz-kpi rz-in"><small>Recebido no período</small><b>${formatarMoedaBR(kTotRecebido)}</b></div>
-                <div class="rz-kpi rz-bad"><small>Em atraso</small><b>${formatarMoedaBR(kTotAtraso)}</b></div>
-                <div class="rz-kpi" style="grid-column:1/-1"><small>A vencer</small><b>${formatarMoedaBR(kTotAVencer)}</b></div>
-            </div>` + htmlGrupos;
+            // v1.6.5 — achado do Nicola: hero padronizado com o de Saídas
+            // (mesma classe .rz-kpi.rz-hero do catálogo) — virou HTML
+            // estático em tab-mensal (index.html), preenchido aqui por id,
+            // igual ao padrão que Saídas já usava. Não faz mais parte do
+            // innerHTML montado a cada render.
+            const elRecebido = document.getElementById('mensal-resumo-recebido');
+            const elAtraso = document.getElementById('mensal-resumo-atraso');
+            const elAVencer = document.getElementById('mensal-resumo-avencer');
+            if (elRecebido) elRecebido.textContent = formatarMoedaBR(kTotRecebido);
+            if (elAtraso) elAtraso.textContent = formatarMoedaBR(kTotAtraso);
+            if (elAVencer) elAVencer.textContent = formatarMoedaBR(kTotAVencer);
+            container.innerHTML = htmlGrupos;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
