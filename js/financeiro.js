@@ -1,7 +1,53 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.6.7 · 11/09/2026
+// Versão: 1.6.9 · 12/09/2026
+//
+// v1.6.9 — 4ª leva de achados do Nicola:
+//   - Regra de conciliação: sheet de modo agora mostra a descrição
+//     completa da regra (abrirEscolherModoRegra ganhou 3º parâmetro).
+//   - Menu (⋮) unificado nas 3 abas: Conciliação tinha botões inline
+//     (Confirmar/Outra saída) e um ícone avulso de Desfazer — viraram
+//     opções do mesmo menu que abre ao tocar a linha
+//     (abrirAcoesConciliacaoLinha, ramo "conciliado" reescrito: Ver
+//     detalhe + Desfazer em vez de pular direto pra tela nativa).
+//     Saídas ganhou o mesmo padrão (rzAcoesDespesa, novo — registrada na
+//     ponte, achado no próprio fechamento desta leva: tinha ficado de
+//     fora e o onclick teria falhado em produção).
+//   - Ícone por categoria em Saídas (ICONE_POR_CATEGORIA_SAIDA) + descrição
+//     limpa (limparRotuloConciliacao reaproveitada da Conciliação).
+//   - "Marcar como repasse" agora identifica o sócio (automático pelo nome
+//     do pagador, ou pergunta) e usa o mecanismo de repasse de verdade —
+//     antes criava uma despesa genérica sem dono (confirmarMarcarComoRepasse
+//     + criarRepasseDireto, novas).
+//   - Bug real: formulário de despesa não lia valor/vencimento de
+//     `sugestoes` — "Nova despesa"/"Outra despesa" vindo da Conciliação
+//     abria com esses campos vazios mesmo passando os dados. Corrigido nos
+//     3 pontos (o formulário em si + as 2 chamadas) — competência também
+//     ajustada pra seguir o vencimento pré-preenchido, não mais o mês
+//     corrente do calendário.
+//
+// v1.6.8 — 3ª leva de achados do Nicola testando no celular:
+//   - Bug real: seletor de imóvel (abrirSeletorImovel, usado em 5 telas)
+//     tinha o MESMO z-index do sheet "Buscar/Filtrar" de onde é aberto —
+//     como vem antes no DOM, sempre ficava atrás. z-index subido (85).
+//   - Ativo/Fornecedor "sem valores" em Saídas — conferido, não é bug: das
+//     13 despesas da Rumo, 0 têm ativo vinculado e só 1 tem fornecedor
+//     (campos opcionais no formulário, ninguém preencheu ainda).
+//   - Lista de Conciliação padronizada com Recebimentos/Saídas: card branco
+//     removido, título solto removido, chips de status neutros (.rz-chip
+//     sem cor própria por chip, igual Partes/Recebimentos/Saídas).
+//   - Botão Importar virou redondo (.rz-ico-btn, mesma posição de
+//     Localizar); lupa nova ao lado — filtra texto livre + campos
+//     condicionais por direção (entrada usa os de Recebimentos, saída os
+//     de Saídas). Hero e agrupador atualizam com o filtro; agrupador passa
+//     a mostrar "Entrada R$X (N itens) · Saída R$Y (M itens)".
+//   - Atrasados (tab-inadimplencia) padronizada: hero verde no lugar das 2
+//     caixas vermelha/âmbar, chip solto removido, "< Voltar" condicional
+//     novo, agrupamentos viraram cortinas colapsáveis de verdade
+//     (alternarGrupoInadimplencia — antes era texto fixo sempre aberto).
+//     Caminho de entrada (toque em "Em atraso" no hero de Recebimentos)
+//     ganhou seta de link e agora mostra o Voltar (abrirTelaAtrasados).
 //
 // v1.6.7 — 2ª leva da bateria grande de achados do Nicola (fecha os 9 itens
 // que tinham ficado pendentes na 1ª leva):
@@ -322,7 +368,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.6.7'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.9'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -339,9 +385,18 @@ export function montarAbaFinanceiro(tabId) {
         let gruposSaidasAbertos = null;
 
         let gruposMensalAbertos = null; // null = ainda não inicializado (abre só o mês mais recente)
+        let gruposInadimplenciaAbertos = null; // v1.179.1 — idem, cortinas de Atrasados
         let mensalChipStatus = 'todos'; // v1.178.9 — chip de status (Recebimentos): todos · pago · atrasado · a_vencer
 
         // v1.52.0 — overlay de busca da aba Cobrança, mesmo padrão.
+        // v1.179.1 — achado do Nicola: caminho pra Atrasados mais visível —
+        // toque em "Em atraso" (hero de Recebimentos) mostra o "< Voltar"
+        // condicional lá, mesmo padrão de btn-voltar-financeiro/-saidas.
+        export function abrirTelaAtrasados() {
+            switchTab('tab-inadimplencia');
+            document.getElementById('btn-voltar-inadimplencia')?.classList.remove('hidden');
+        }
+
         export function abrirBuscaInadimplencia() {
             const modal = document.getElementById('modal-busca-inadimplencia');
             modal.classList.remove('hidden');
@@ -450,6 +505,29 @@ export function montarAbaFinanceiro(tabId) {
             renderSaidas();
         }
 
+        // v1.179.2 — achado do Nicola: padroniza Saídas com Recebimentos —
+        // toque na linha abre um menu (⋮) com as opções daquele status, em
+        // vez de pular direto pro formulário completo. "Estornar pagamento"
+        // vira opção direta do menu pra quem já pagou (mesma agilidade que
+        // Recebimentos já tinha) — Ver detalhe/Dar baixa continuam abrindo
+        // o formulário de sempre (despesa não tem baixa "leve" separada
+        // como mensalidade tem).
+        export function rzAcoesDespesa(id) {
+            const d = lancamentos.find(x => x.id === id); if (!d || typeof abrirSheetAcoes !== 'function') return;
+            const sub = `${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}`;
+            if (d.status === 'realizado') {
+                abrirSheetAcoes({ titulo: escapeHtmlSaidas(d.descricao || 'Despesa'), sub, acoes: [
+                    { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
+                    { icone: 'undo-2', titulo: 'Estornar pagamento', sub: 'Volta pra "a pagar"', tipo: 'bad', aoTocar: () => estornarPagamentoDespesa(id) },
+                ] });
+                return;
+            }
+            abrirSheetAcoes({ titulo: estaAtrasadaDespesa(d) ? 'Em atraso' : 'A pagar', sub, acoes: [
+                { icone: 'check', titulo: 'Dar baixa / editar', sub: 'Abre o formulário completo', aoTocar: () => abrirEditarDespesa(id) },
+                { icone: 'trash-2', titulo: 'Excluir despesa', tipo: 'bad', aoTocar: () => excluirDespesa(id) },
+            ] });
+        }
+
         export function renderSaidas() {
             const container = document.getElementById('lista-saidas');
             if (!container) return;
@@ -532,20 +610,27 @@ export function montarAbaFinanceiro(tabId) {
                 const totalGrupo = itens.reduce((s, d) => s + d.valor, 0);
                 const aberto = gruposSaidasAbertos.has(comp);
 
-                // v1.114.0 (fatia 5) — .rz-row com status nas 5 semânticas; o
-                // toque abre a despesa (formulário existente, abrirEditarDespesa).
+                // v1.179.2 — achados do Nicola: (1) padroniza com
+                // Recebimentos — toque abre o menu (⋮) de opções do status,
+                // não pula direto pro formulário; (2) ícone por categoria
+                // (repasse, tributo, seguro etc. cada um com o seu, não só
+                // pago/atrasado/a-vencer); (3) descrição limpa — mesma
+                // função que já tira "SAÍDA BOLETO PAGO"/"PIX TRANSF"/TED
+                // etc. na Conciliação (limparRotuloConciliacao), aplicada
+                // aqui também.
                 const rsS = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
                 const cards = itens.map(d => {
                     const atrasada = estaAtrasadaDespesa(d);
                     const pago = d.status === 'realizado';
                     const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
-                    const ic = pago ? 'arrow-up-right' : atrasada ? 'alarm-clock' : 'clock';
+                    const ic = ICONE_POR_CATEGORIA_SAIDA[d.categoria] || 'circle-dollar-sign';
+                    const descricaoLimpa = limparRotuloConciliacao(d.descricao);
                     return `
-                        <div class="rz-row rz-link" onclick="abrirEditarDespesa('${d.id}')">
+                        <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
                             <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(d.descricao)}</b><span>${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ''}${d.vencimento ? ' · ' + (pago ? 'pago' : 'vence') + ' ' + formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${d.reembolsavel ? ' · reembolsável' : ''}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ''}${d.vencimento ? ' · ' + (pago ? 'pago' : 'vence') + ' ' + formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${d.reembolsavel ? ' · reembolsável' : ''}</span></div>
                             <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
-                            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                            <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                         </div>`;
                 }).join('');
                 return `
@@ -563,6 +648,16 @@ export function montarAbaFinanceiro(tabId) {
             const mapa = { iptu: 'IPTU', condominio: 'Condomínio', manutencao: 'Manutenção', seguro: 'Seguro', taxa_adm: 'Taxa administrativa', tributo: 'Tributo', repasse_socio: 'Repasse a sócio', reembolso: 'Reembolso', aluguel: 'Aluguel (repasse a terceiro)', outro: 'Outro' };
             return mapa[v] || v;
         }
+
+        // v1.179.2 — achado do Nicola: ícone por categoria na lista de
+        // Saídas (repasse, tributo, seguro etc. cada um com o seu), em vez
+        // de só variar por status pago/atrasado/a-vencer.
+        const ICONE_POR_CATEGORIA_SAIDA = {
+            iptu: 'landmark', condominio: 'building-2', manutencao: 'wrench',
+            seguro: 'shield-check', taxa_adm: 'percent', tributo: 'receipt',
+            repasse_socio: 'arrow-left-right', reembolso: 'rotate-ccw',
+            aluguel: 'key-round', outro: 'circle-dollar-sign'
+        };
 
         export function alternarGrupoSaidas(comp) {
             if (gruposSaidasAbertos.has(comp)) gruposSaidasAbertos.delete(comp); else gruposSaidasAbertos.add(comp);
@@ -655,7 +750,11 @@ export function montarAbaFinanceiro(tabId) {
             const optsFormaPagamento = ['pix', 'boleto', 'transferencia', 'dinheiro', 'outro']
                 .map(v => `<option value="${v}" ${v === d?.formaPagamento ? 'selected' : ''}>${v.charAt(0).toUpperCase() + v.slice(1)}</option>`).join('');
 
-            const competenciaPadrao = d ? dataParaCompetencia(d.competencia) : dataParaCompetencia(new Date().toISOString().slice(0, 10));
+            // v1.179.2 — achado do Nicola: vencimento agora pré-preenche a
+            // partir da sugestão (data do pagamento na Conciliação) — a
+            // competência precisa seguir junto, senão o dropdown mostra o
+            // mês corrente enquanto o vencimento mostra outro mês.
+            const competenciaPadrao = d ? dataParaCompetencia(d.competencia) : dataParaCompetencia(sugestoes?.vencimento || new Date().toISOString().slice(0, 10));
             const opcoesComp = [...new Set([competenciaPadrao, ...gerarProximasCompetencias(3)])];
             const optsCompetencia = opcoesComp.map(c => `<option value="${c}" ${c === competenciaPadrao ? 'selected' : ''}>${c}</option>`).join('');
 
@@ -680,13 +779,13 @@ export function montarAbaFinanceiro(tabId) {
                             </div>
                             <div>
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;">Valor (R$) <span style="color:var(--danger)">*</span></label>
-                                <input id="desp-valor" type="number" step="0.01" value="${d?.valor ?? ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                                <input id="desp-valor" type="number" step="0.01" value="${d?.valor ?? sugestoes?.valor ?? ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;">Vencimento <span style="color:var(--danger)">*</span></label>
-                                <input id="desp-vencimento" type="date" value="${d?.vencimento || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
+                                <input id="desp-vencimento" type="date" value="${d?.vencimento || sugestoes?.vencimento || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
                             </div>
                             <div>
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;">Competência <span style="color:var(--danger)">*</span></label>
@@ -2108,6 +2207,72 @@ export function montarAbaFinanceiro(tabId) {
             }
         }
 
+        // v1.179.0 — achado do Nicola: lupa de filtro na Conciliação.
+        export function abrirBuscaConciliacao() {
+            document.getElementById('conc-busca-tipo').value = conciliacaoUniSegmento;
+            atualizarCamposTipoConciliacao();
+            popularFiltrosConciliacao();
+            document.getElementById('modal-busca-conciliacao')?.classList.remove('hidden');
+        }
+        export function fecharBuscaConciliacao() {
+            document.getElementById('modal-busca-conciliacao')?.classList.add('hidden');
+        }
+        export function limparBuscaConciliacao() {
+            document.getElementById('conc-busca-texto').value = '';
+            document.getElementById('conc-busca-tipo').value = 'tudo';
+            document.getElementById('conc-filtro-competencia').value = 'todos';
+            document.getElementById('conc-filtro-locatario').value = 'todos';
+            document.getElementById('conc-filtro-empreendimento').value = 'todos';
+            document.getElementById('conc-filtro-categoria').value = 'todos';
+            document.getElementById('conc-filtro-ativo').value = 'todos';
+            document.getElementById('conc-filtro-fornecedor').value = 'todos';
+            filtrarConciliacaoSegmento('tudo');
+            atualizarCamposTipoConciliacao();
+        }
+        // Mostra só o grupo de campos que faz sentido pro tipo escolhido —
+        // esses filtros pressupõem já saber a direção (Entrada usa os campos
+        // de Recebimentos; Saída, os de Saídas).
+        export function atualizarCamposTipoConciliacao() {
+            const tipo = document.getElementById('conc-busca-tipo')?.value || 'tudo';
+            document.getElementById('conc-campos-entrada')?.classList.toggle('hidden', tipo !== 'entrada');
+            document.getElementById('conc-campos-saida')?.classList.toggle('hidden', tipo !== 'saida');
+        }
+        // Preenche os selects a partir dos contratos/lançamentos já
+        // carregados — mesma fonte que Recebimentos/Saídas usam.
+        function popularFiltrosConciliacao() {
+            const selComp = document.getElementById('conc-filtro-competencia');
+            const selLoc = document.getElementById('conc-filtro-locatario');
+            const selEmp = document.getElementById('conc-filtro-empreendimento');
+            const selAtivo = document.getElementById('conc-filtro-ativo');
+            const selForn = document.getElementById('conc-filtro-fornecedor');
+            if (!selComp) return;
+            const competencias = [...new Set(conciliacaoUniCache.map(f => f.data ? (() => { const [a, m] = f.data.split('-'); return `${m}/${a}`; })() : null).filter(Boolean))]
+                .sort((a, b) => { const [ma, aa] = a.split('/'); const [mb, ab] = b.split('/'); return (ab + mb).localeCompare(aa + ma); });
+            const vComp = selComp.value;
+            selComp.innerHTML = '<option value="todos">Todas</option>' + competencias.map(c => `<option value="${c}">${c}</option>`).join('');
+            selComp.value = competencias.includes(vComp) ? vComp : 'todos';
+
+            const locatarios = [...new Set(contratos.map(c => c.locatario).filter(Boolean))].sort();
+            const vLoc = selLoc.value;
+            selLoc.innerHTML = '<option value="todos">Todos</option>' + locatarios.map(l => `<option value="${escapeHtmlSaidas(l)}">${escapeHtmlSaidas(l)}</option>`).join('');
+            selLoc.value = locatarios.includes(vLoc) ? vLoc : 'todos';
+
+            const empreendimentos = [...new Set(imoveis.map(i => i.empreendimento).filter(Boolean))].sort();
+            const vEmp = selEmp.value;
+            selEmp.innerHTML = '<option value="todos">Todos</option>' + empreendimentos.map(e => `<option value="${escapeHtmlSaidas(e)}">${escapeHtmlSaidas(e)}</option>`).join('');
+            selEmp.value = empreendimentos.includes(vEmp) ? vEmp : 'todos';
+
+            const ativosUsados = [...new Map(lancamentos.filter(d => d.ativoId).map(d => [d.ativoId, d.ativoNome])).entries()];
+            const vAtivo = selAtivo.value;
+            selAtivo.innerHTML = '<option value="todos">Todos</option>' + ativosUsados.map(([id, nome]) => `<option value="${id}">${escapeHtmlSaidas(nome)}</option>`).join('');
+            selAtivo.value = ativosUsados.some(([id]) => id === vAtivo) ? vAtivo : 'todos';
+
+            const fornecedoresUsados = [...new Map(lancamentos.filter(d => d.parteId).map(d => [d.parteId, d.parteNome])).entries()];
+            const vForn = selForn.value;
+            selForn.innerHTML = '<option value="todos">Todos</option>' + fornecedoresUsados.map(([id, nome]) => `<option value="${id}">${escapeHtmlSaidas(nome)}</option>`).join('');
+            selForn.value = fornecedoresUsados.some(([id]) => id === vForn) ? vForn : 'todos';
+        }
+
         export function filtrarConciliacaoSegmento(seg) {
             conciliacaoUniSegmento = seg;
             document.querySelectorAll('#conc-uni-seg .conc-seg-btn').forEach(b => {
@@ -2120,12 +2285,8 @@ export function montarAbaFinanceiro(tabId) {
 
         export function filtrarConciliacaoChip(chip) {
             conciliacaoUniChip = chip;
-            document.querySelectorAll('#conc-uni-chips .conc-chip-btn').forEach(b => {
-                const on = b.dataset.chip === chip;
-                const corPropria = b.dataset.cor || 'var(--ink)';
-                b.style.background = on ? 'var(--pine)' : '#fff';
-                b.style.borderColor = on ? 'var(--pine)' : 'var(--line)';
-                b.style.color = on ? '#fff' : corPropria;
+            document.querySelectorAll('#conc-uni-chips .rz-chip').forEach(b => {
+                b.classList.toggle('rz-on', b.dataset.chip === chip);
             });
             renderConciliacaoUnificada();
         }
@@ -2205,31 +2366,37 @@ export function montarAbaFinanceiro(tabId) {
             const automatica = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
             const sug = f.status_conciliacao === 'pendente' ? conciliacaoUniSugestoes[f.id] : null;
             const corStatus = { pendente: ['#faf3e6', '#8a5a1f', 'Pendente'], conciliado: ['#e9f3ec', '#2f6b47', 'Conciliado'], nao_controlado: ['#eef0ec', '#5f6b5f', 'Não controlado'] };
+            // v1.179.2 — achado do Nicola: padronizar com Recebimentos/Saídas
+            // — toque na linha inteira abre o menu de opções (⋮), nada de
+            // botão solto (Confirmar/Outra saída) nem ícone avulso
+            // (Desfazer). abrirAcoesConciliacaoLinha() já sabe montar o menu
+            // certo pra cada status — só faltava TODA linha chamar ela.
+            const chevMais = `<svg data-lucide="ellipsis-vertical" style="width:15px;height:15px;color:var(--sage);flex:none;margin-left:2px"></svg>`;
 
             if (automatica) {
                 const nomeRegra = NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo;
-                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
-                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:var(--brass-bg,#f7ecd9)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                    <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:var(--brass-bg,#f7ecd9)">
                         <svg data-lucide="sparkles" style="width:15px;height:15px;color:var(--brass-deep,#8a5a1f)"></svg>
                     </div>
-                    <div class="flex-1 min-w-0" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                    <div class="flex-1 min-w-0">
                         <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
                         <p class="text-[11px] truncate" style="color:var(--sage)">Automático · ${escapeHtmlSaidas(nomeRegra)}</p>
                     </div>
-                    <div class="text-right flex-none" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
+                    <div class="text-right flex-none">
                         <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
                     </div>
-                    <button type="button" class="flex-none w-7 h-7 flex items-center justify-center" onclick="event.stopPropagation();confirmarEstornarConciliacaoSaida('${f.id}')" title="Desfazer"><svg data-lucide="undo-2" style="width:15px;height:15px;color:var(--sage)"></svg></button>
+                    ${chevMais}
                 </div>`;
             }
 
             if (sug) {
                 const confPct = Math.round((sug.confianca || 0));
-                return `<div class="flex flex-wrap items-start gap-2.5 p-2.5 rounded-xl" style="border:1px solid var(--line)">
+                return `<div class="flex items-center gap-2.5 p-2.5 rounded-xl cursor-pointer active:opacity-70" style="border:1px solid var(--line)" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
                     <div class="w-8 h-8 rounded-lg flex-none flex items-center justify-center" style="background:${confPct < 70 ? '#faf3e6' : 'var(--brass-bg,#f7ecd9)'}">
                         <svg data-lucide="sparkles" style="width:15px;height:15px;color:${confPct < 70 ? '#8a5a1f' : 'var(--brass-deep,#8a5a1f)'}"></svg>
                     </div>
-                    <div class="flex-1 min-w-0 cursor-pointer" onclick="verSugestaoConciliacao('${f.id}')">
+                    <div class="flex-1 min-w-0">
                         <p class="text-[13px] font-semibold truncate" style="color:var(--ink)">${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</p>
                         <p class="text-[11px] truncate" style="color:var(--sage)">Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</p>
                     </div>
@@ -2237,10 +2404,7 @@ export function montarAbaFinanceiro(tabId) {
                         <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
                         <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5 mt-0.5" style="background:var(--brass-bg,#f7ecd9);color:var(--brass-deep,#8a5a1f)"><svg data-lucide="sparkles" style="width:9px;height:9px"></svg>${confPct}%</span>
                     </div>
-                    <div class="flex-none w-full flex gap-2 mt-1" style="padding-left:42px">
-                        <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" onclick="event.stopPropagation();confirmarSugestaoConciliacao('${f.id}')">Confirmar</button>
-                        <button type="button" class="flex-1 text-[11.5px] font-bold py-1.5 rounded-lg" style="background:transparent;border:1px solid var(--line);color:var(--ink)" onclick="event.stopPropagation();abrirAcoesConciliacaoLinha('${f.id}')">${entrada ? 'Outro recebimento' : 'Outra saída'}</button>
-                    </div>
+                    ${chevMais}
                 </div>`;
             }
 
@@ -2257,15 +2421,57 @@ export function montarAbaFinanceiro(tabId) {
                     <p class="text-[13px] font-semibold" style="color:${entrada ? '#2f6b47' : 'var(--ink)'}">${entrada ? '+' : '−'} R$ ${valorAbs}</p>
                     <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block mt-0.5" style="background:${bg};color:${tx}">${rotulo}</span>
                 </div>
+                ${chevMais}
             </div>`;
         }
 
         function renderConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
             if (!lista) return;
-            const total = conciliacaoUniCache.length;
-            const pendentes = conciliacaoUniCache.filter(f => f.status_conciliacao === 'pendente').length;
-            const conciliados = conciliacaoUniCache.filter(f => f.status_conciliacao === 'conciliado').length;
+
+            // v1.179.0 — achado do Nicola: lupa de filtro — texto livre +
+            // campos condicionais por direção (entrada usa locatário/
+            // empreendimento/competência; saída usa categoria/ativo/
+            // fornecedor). Só valem pra linha já CONCILIADA (destino_id
+            // aponta pra mensalidade/lançamento real) — pendente ainda não
+            // sabe a quem pertence, não tem o que cruzar. "Ao filtrar,
+            // atualizar a tela e seus totalizadores" — hero reflete o
+            // segmento + esses filtros (não o chip de status, que é o que o
+            // próprio hero decompõe).
+            const termoConc = (document.getElementById('conc-busca-texto')?.value || '').trim().toLowerCase();
+            const fCompConc = document.getElementById('conc-filtro-competencia')?.value || 'todos';
+            const fLocConc = document.getElementById('conc-filtro-locatario')?.value || 'todos';
+            const fEmpConc = document.getElementById('conc-filtro-empreendimento')?.value || 'todos';
+            const fCatConc = document.getElementById('conc-filtro-categoria')?.value || 'todos';
+            const fAtivoConc = document.getElementById('conc-filtro-ativo')?.value || 'todos';
+            const fFornConc = document.getElementById('conc-filtro-fornecedor')?.value || 'todos';
+
+            const filtradosSemChip = conciliacaoUniCache.filter(f => {
+                if (conciliacaoUniSegmento !== 'tudo' && f.direcao !== conciliacaoUniSegmento) return false;
+                if (termoConc && !(f.razao_social || '').toLowerCase().includes(termoConc)) return false;
+                if (fCompConc !== 'todos') {
+                    const ref = f.data ? (() => { const [a, m] = f.data.split('-'); return `${m}/${a}`; })() : null;
+                    if (ref !== fCompConc) return false;
+                }
+                if ((fLocConc !== 'todos' || fEmpConc !== 'todos') && f.direcao === 'entrada') {
+                    const men = f.destino_tipo === 'mensalidade' ? mensalidades.find(m => m.id === f.destino_id) : null;
+                    const con = men ? contratos.find(c => c.id === men.contratoId) : null;
+                    const imo = con ? imoveis.find(i => i.id === con.imovelId) : null;
+                    if (fLocConc !== 'todos' && con?.locatario !== fLocConc) return false;
+                    if (fEmpConc !== 'todos' && imo?.empreendimento !== fEmpConc) return false;
+                }
+                if ((fCatConc !== 'todos' || fAtivoConc !== 'todos' || fFornConc !== 'todos') && f.direcao === 'saida') {
+                    const lanc = f.destino_tipo === 'lancamento' ? lancamentos.find(l => l.id === f.destino_id) : null;
+                    if (fCatConc !== 'todos' && lanc?.categoria !== fCatConc) return false;
+                    if (fAtivoConc !== 'todos' && lanc?.ativoId !== fAtivoConc) return false;
+                    if (fFornConc !== 'todos' && lanc?.parteId !== fFornConc) return false;
+                }
+                return true;
+            });
+
+            const total = filtradosSemChip.length;
+            const pendentes = filtradosSemChip.filter(f => f.status_conciliacao === 'pendente').length;
+            const conciliados = filtradosSemChip.filter(f => f.status_conciliacao === 'conciliado').length;
             // v1.178.9 — achado do Nicola: resumo padronizado — hero verde
             // (.rz-kpi.rz-hero) em vez do texto pequeno "X de Y" que ficava
             // ao lado do título.
@@ -2276,11 +2482,7 @@ export function montarAbaFinanceiro(tabId) {
             if (elPendentes) elPendentes.textContent = pendentes;
             if (elConciliados) elConciliados.textContent = conciliados;
 
-            const filtrados = conciliacaoUniCache.filter(f => {
-                if (conciliacaoUniSegmento !== 'tudo' && f.direcao !== conciliacaoUniSegmento) return false;
-                if (conciliacaoUniChip === 'todos') return true;
-                return f.status_conciliacao === conciliacaoUniChip;
-            });
+            const filtrados = conciliacaoUniChip === 'todos' ? filtradosSemChip : filtradosSemChip.filter(f => f.status_conciliacao === conciliacaoUniChip);
 
             if (!filtrados.length) {
                 lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma linha nesse filtro.</p>`;
@@ -2306,8 +2508,18 @@ export function montarAbaFinanceiro(tabId) {
 
             lista.innerHTML = competenciasOrdenadas.map(ref => {
                 const itensGrupo = grupos[ref];
-                const qtdPendente = itensGrupo.filter(f => f.status_conciliacao === 'pendente').length;
-                const resumo = `${itensGrupo.length} ite${itensGrupo.length > 1 ? 'ns' : 'm'}${qtdPendente > 0 ? ` · ${qtdPendente} pendente${qtdPendente > 1 ? 's' : ''}` : ''}`;
+                // v1.179.0 — achado do Nicola: agrupador no mesmo padrão dos
+                // outros — mas aqui com entrada e saída lado a lado (a
+                // competência mistura as duas direções), respeitando os
+                // filtros/chips já aplicados em cima de itensGrupo.
+                const entradaItens = itensGrupo.filter(f => f.direcao === 'entrada');
+                const saidaItens = itensGrupo.filter(f => f.direcao === 'saida');
+                const valorEntrada = entradaItens.reduce((s, f) => s + Math.abs(parseFloat(f.valor)), 0);
+                const valorSaida = saidaItens.reduce((s, f) => s + Math.abs(parseFloat(f.valor)), 0);
+                const partesResumo = [];
+                if (entradaItens.length) partesResumo.push(`Entrada ${formatarMoedaBR(valorEntrada)} (${entradaItens.length} ite${entradaItens.length > 1 ? 'ns' : 'm'})`);
+                if (saidaItens.length) partesResumo.push(`Saída ${formatarMoedaBR(valorSaida)} (${saidaItens.length} ite${saidaItens.length > 1 ? 'ns' : 'm'})`);
+                const resumo = partesResumo.join(' · ');
                 const grupoId = 'grupo-conc-' + ref.replace('/', '-');
                 const aberto = gruposConciliacaoAbertos.has(ref);
                 return `
@@ -2372,7 +2584,7 @@ export function montarAbaFinanceiro(tabId) {
                 if (categoria === 'tributo') {
                     fecharSheet();
                     despesaOrigemFingerprintId = fingerprintId;
-                    return abrirNovaDespesa(null, { descricao: `${f.razao_social} — especifique o tributo (IRPJ, CSLL, PIS, COFINS, DAS...)`, categoria });
+                    return abrirNovaDespesa(null, { descricao: `${f.razao_social} — especifique o tributo (IRPJ, CSLL, PIS, COFINS, DAS...)`, categoria, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data });
                 }
                 return confirmarCriarSaidaConciliacao(fingerprintId, categoria, f.razao_social);
             }
@@ -2389,15 +2601,18 @@ export function montarAbaFinanceiro(tabId) {
             const valorAbs = Math.abs(parseFloat(f.valor)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const sub = `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`;
 
-            // v2 — roteador fino (pedido do Nicola, 10/09/2026): já conciliado
-            // abre a tela nativa de sempre (abrirRecebimentoDetalhe/
-            // abrirEditarDespesa) em vez de uma ficha própria — mesma tela
-            // que "Rua Dr..." já usa em Ativos, recibo/estornar/dar baixa já
-            // prontos ali. "Estornar" aqui continua sendo só o desvínculo da
-            // conciliação (fn_extrato_estornar_vinculo), não mexe na baixa.
+            // v1.179.2 — achado do Nicola: já conciliado (automático ou não)
+            // abre um menu com "Ver detalhe" (tela nativa de sempre) e
+            // "Desfazer" (só desvincula da conciliação) em vez de pular
+            // direto pra tela nativa — Desfazer deixou de ser um ícone
+            // avulso na linha, agora é opção do menu, igual pendente/não
+            // controlado.
             if (f.status_conciliacao === 'conciliado' && f.destino_id) {
-                if (entrada) { abrirRecebimentoDetalhe(f.destino_id, true); }
-                else { abrirEditarDespesa(f.destino_id); }
+                const nomeRegra = f.regra_codigo ? (NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo) : null;
+                abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (nomeRegra ? ' · Automático · ' + nomeRegra : ''), acoes: [
+                    { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => { entrada ? abrirRecebimentoDetalhe(f.destino_id, true) : abrirEditarDespesa(f.destino_id); } },
+                    { icone: 'undo-2', titulo: 'Desfazer', sub: 'Volta pra pendente — só desvincula, não apaga o recebimento/despesa', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) },
+                ] });
                 return;
             }
             if (f.status_conciliacao === 'nao_controlado') {
@@ -2428,26 +2643,64 @@ export function montarAbaFinanceiro(tabId) {
 
             const acoes = [];
             if (entrada) {
-                candidatos.forEach(c => acoes.push({
-                    icone: 'link', titulo: `Vincular: ${c.locatario}`,
+                candidatos.forEach((c, i) => acoes.push({
+                    icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.locatario}`,
                     sub: `Ref ${c.referencia} · R$ ${Number(c.valor).toFixed(2)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
                     aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
                 }));
                 acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Ver outros recebimentos em aberto' : 'Nenhuma sugestão — escolha entre os recebimentos em aberto', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
             } else {
-                candidatos.forEach(c => acoes.push({
-                    icone: 'link', titulo: `Vincular: ${c.descricao || c.categoria || 'despesa prevista'}`,
+                candidatos.forEach((c, i) => acoes.push({
+                    icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.descricao || c.categoria || 'despesa prevista'}`,
                     sub: `R$ ${Number(c.valor).toFixed(2)} · vence ${formatarDataBR(c.vencimento)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
                     aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
                 }));
                 // "Nova despesa" abre a tela nativa já preenchida (abrirNovaDespesa
                 // já aceita `sugestoes` — não crio ficha própria).
-                acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined }); } });
-                acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarCriarSaidaConciliacao(fingerprintId, 'repasse_socio', 'Repasse — ' + (f.razao_social || '')) });
+                acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data }); } });
+                acoes.push({ icone: 'arrow-left-right', titulo: 'Marcar como repasse', sub: 'Repasse de sócio ou similar', aoTocar: () => confirmarMarcarComoRepasse(fingerprintId) });
             }
             acoes.push({ icone: 'eye-off', titulo: 'Não controlar', sub: 'A linha do banco continua guardada', aoTocar: () => abrirFormNaoControlarConciliacao(fingerprintId) });
 
             abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social) || (entrada ? 'Entrada' : 'Saída'), sub, acoes });
+        }
+
+        // v1.179.2 — achado do Nicola: "Marcar como repasse" criava uma
+        // despesa genérica (categoria repasse_socio) sem saber QUAL sócio —
+        // agora usa o mecanismo de repasse de verdade (mesma tabela que a
+        // importação usa, mesmo trigger de espelho que já concilia sozinho
+        // — corrigido nesta sessão pra casar por data+valor). Tenta
+        // identificar o sócio pelo nome do pagador; se não achar, pergunta.
+        export function confirmarMarcarComoRepasse(fingerprintId) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            if (!f) return;
+            const nomeAuto = obterSociosConhecidos().find(s => nomesIguaisSocio(s, f.razao_social));
+            if (nomeAuto) { criarRepasseDireto(fingerprintId, nomeAuto); return; }
+            const socios = obterSociosConhecidos();
+            if (!socios.length) { mostrarToast('Nenhum sócio cadastrado com cota em contrato — cadastre em Partes primeiro.', 'danger'); return; }
+            abrirSheetAcoes({ titulo: 'Qual sócio?', sub: 'Não identifiquei pelo nome do pagador — escolha', acoes: socios.map(s => ({
+                icone: 'user', titulo: s, aoTocar: () => criarRepasseDireto(fingerprintId, s)
+            })) });
+        }
+
+        async function criarRepasseDireto(fingerprintId, nomeSocioCompleto) {
+            const f = conciliacaoUniCache.find(x => x.id === fingerprintId);
+            if (!f) return;
+            fecharSheet();
+            mostrarCarregamentoGlobal('Registrando repasse…');
+            try {
+                const primeiroNome = nomeSocioCompleto.split(' ')[0];
+                const primeiroNomeFormatado = primeiroNome.charAt(0) + primeiroNome.slice(1).toLowerCase();
+                const rep = {
+                    id: 'rep_' + Date.now() + Math.random().toString(36).substr(2, 4),
+                    socio: primeiroNomeFormatado, mes: dataParaCompetencia(f.data), valor: Math.abs(f.valor),
+                    dataReal: formatarDataBR(f.data), timestamp: Date.now(), chaveTransacaoOrigem: f.chave || null
+                };
+                await sincronizarRepasseSupabase(rep);
+                esconderCarregamentoGlobal(); mostrarToast('Repasse registrado!', 'success');
+                registrarLog('conciliacao.marcar_repasse', { fingerprintId, socio: primeiroNomeFormatado });
+                await carregarConciliacaoUnificada();
+            } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
         }
 
         async function confirmarVincularConciliacaoRecebimento(fingerprintId, mensalidadeId, f) {
@@ -3188,6 +3441,12 @@ export function montarAbaFinanceiro(tabId) {
                 if(!groups[chaveGrupo]) groups[chaveGrupo] = [];
                 groups[chaveGrupo].push(item);
             });
+            // v1.179.1 — primeira vez que renderiza, abre só o 1º grupo por
+            // padrão (mesmo comportamento de gruposMensalAbertos/gruposSaidasAbertos).
+            if (gruposInadimplenciaAbertos === null) {
+                const primeiraChave = Object.keys(groups)[0];
+                gruposInadimplenciaAbertos = new Set(primeiraChave ? [primeiraChave] : []);
+            }
             for(let nomeGrupo in groups) {
                 let subItensHtml = '';
                 let totalGrupo = 0;
@@ -3228,14 +3487,31 @@ export function montarAbaFinanceiro(tabId) {
                 const rzIdGrupo = 'rz-inad-' + Math.random().toString(36).slice(2, 8);
                 window.__rzCobrancaGrupo = window.__rzCobrancaGrupo || {};
                 window.__rzCobrancaGrupo[rzIdGrupo] = { celular: locatarioCelular, titulo: nomeGrupo, itens: descConsolidada, total: totalGrupo };
+                // v1.179.1 — achado do Nicola: agrupamento virou cortina
+                // colapsável de verdade (chevron + toque no cabeçalho),
+                // mesmo padrão das outras 3 abas — antes era só texto fixo,
+                // sempre aberto, sem alternarGrupoInadimplencia().
+                const grupoIdInad = 'grupo-inad-' + rzIdGrupo;
+                const abertoInad = gruposInadimplenciaAbertos.has(nomeGrupo);
                 container.innerHTML += `
-                    <div class="rz-group" style="display:flex;align-items:center;gap:8px">
+                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoInadimplencia('${grupoIdInad}', '${nomeGrupo.replace(/'/g, "\\'")}')">
                         <span style="flex:1">${escapeHtmlSaidas(nomeGrupo)} · ${formatarMoedaBR(totalGrupo)}</span>
-                        ${tipoAgrupamento === 'locatario' ? `<button type="button" onclick="rzAcoesGrupoInadimplencia('${rzIdGrupo}')" class="rz-more" aria-label="Mais ações" style="margin:0"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}
+                        ${tipoAgrupamento === 'locatario' ? `<button type="button" onclick="event.stopPropagation(); rzAcoesGrupoInadimplencia('${rzIdGrupo}')" class="rz-more" aria-label="Mais ações" style="margin:0"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}
+                        <svg data-lucide="chevron-down" id="${grupoIdInad}-seta" style="width:16px;height:16px;transform:rotate(${abertoInad ? '180' : '0'}deg)"></svg>
                     </div>
-                    <div class="rz-card rz-list rz-critico">${subItensHtml}</div>`;
+                    <div id="${grupoIdInad}" class="rz-card rz-list rz-critico ${abertoInad ? '' : 'hidden'}">${subItensHtml}</div>`;
             }
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        export function alternarGrupoInadimplencia(grupoId, nomeGrupo) {
+            const el = document.getElementById(grupoId);
+            const seta = document.getElementById(grupoId + '-seta');
+            if (!el) return;
+            el.classList.toggle('hidden');
+            const aberto = !el.classList.contains('hidden');
+            if (seta) seta.style.transform = `rotate(${aberto ? 180 : 0}deg)`;
+            if (aberto) gruposInadimplenciaAbertos.add(nomeGrupo); else gruposInadimplenciaAbertos.delete(nomeGrupo);
         }
 
         export function rzAcoesGrupoInadimplencia(id) {

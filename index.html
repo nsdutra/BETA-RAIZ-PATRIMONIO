@@ -6,9 +6,28 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.178.9
-   LINHAS: 15266
-   DATA: 11/09/2026
+   VERSÃO: Beta v1.179.1
+   LINHAS: 15370
+   DATA: 12/09/2026
+   NOVIDADES (Beta v1.179.1) — 4ª leva de achados do Nicola: "Regras de
+   conciliação" mudou de Empresa pro menu Cadastros; ao tocar numa regra
+   agora mostra a descrição completa (não só o nome). Menu (⋮) unificado
+   nas 3 abas — Conciliação e Saídas perderam botões/ícones soltos, tudo
+   vira opção do mesmo menu ao tocar a linha. Saídas ganhou ícone por
+   categoria e descrição limpa (mesmo padrão da Conciliação). "Marcar como
+   repasse" agora identifica o sócio de verdade em vez de criar despesa
+   genérica. Bug real corrigido: formulário de despesa não lia valor/
+   vencimento vindo da Conciliação — "Nova despesa" abria com esses campos
+   vazios. Ver changelog completo em financeiro.js 1.6.9.
+   NOVIDADES (Beta v1.179.0) — 3ª leva de achados do Nicola testando no
+   celular. Bug real corrigido: seletor de imóvel abrindo atrás do sheet de
+   busca (z-index colidia com "Buscar/Filtrar" — usado em 5 telas, corrigido
+   pra todas). Conciliação padronizada com Recebimentos/Saídas (sem card
+   branco, sem título solto, chips neutros) + lupa nova (filtra texto livre
+   e campos condicionais por direção) + botão Importar virou redondo.
+   Atrasados (tab-inadimplencia) ganhou hero verde, agrupamentos viraram
+   cortinas colapsáveis de verdade, e "< Voltar" + seta de link deixam o
+   caminho até ela mais claro. Ver changelog completo em financeiro.js 1.6.8.
    NOVIDADES (Beta v1.178.9) — 2ª leva da bateria grande de achados do
    Nicola (fecha os 9 itens pendentes da leva anterior):
    Chips de status em Recebimentos e Saídas (Todos/Pagos/A vencer/
@@ -750,7 +769,7 @@
     <!-- Seletor de imóvel customizado (com busca e cards completos) — substitui
          o <select> nativo em con-imovel e filtro-imovel, porque no celular o
          select cortava o texto sem nenhuma solução real dentro dele. -->
-    <div id="modal-seletor-imovel" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
+    <div id="modal-seletor-imovel" class="hidden fixed inset-0 z-[85] bg-black/50 flex items-end sm:items-center justify-center">
         <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
             <div class="p-3 border-b flex items-center justify-between flex-none">
                 <span class="font-bold text-slate-800">Escolher Imóvel</span>
@@ -988,6 +1007,87 @@
                     </select>
                 </div>
                 <button type="button" onclick="document.getElementById('saidas-busca-texto').value=''; document.getElementById('saidas-filtro-competencia').value='todos'; document.getElementById('saidas-filtro-status').value='todos'; document.getElementById('saidas-filtro-categoria').value='todos'; document.getElementById('saidas-filtro-ativo').value='todos'; document.getElementById('saidas-filtro-ativo-select').value='todos'; document.getElementById('saidas-filtro-fornecedor').value='todos'; renderSaidas();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- v1.179.0 — achado do Nicola: lupa de filtro na Conciliação, mesmo
+         padrão de Recebimentos/Saídas. Campos condicionais por tipo — Entrada
+         reaproveita os mesmos filtros de Recebimentos (competência/locatário/
+         empreendimento/imóvel), Saída os de Saídas (categoria/ativo/
+         fornecedor). "Tudo" some os dois grupos (esses filtros pressupõem
+         saber a direção). -->
+    <div id="modal-busca-conciliacao" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
+            <div class="p-3 border-b flex items-center justify-between flex-none">
+                <span class="font-bold text-slate-800">Buscar / Filtrar</span>
+                <button type="button" onclick="fecharBuscaConciliacao()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
+            </div>
+            <div class="p-3 space-y-3 overflow-y-auto">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
+                    <input type="text" id="conc-busca-texto" placeholder="Pagador, favorecido..." oninput="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm mt-1">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-500">Tipo</label>
+                    <select id="conc-busca-tipo" onchange="filtrarConciliacaoSegmento(this.value); atualizarCamposTipoConciliacao();" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                        <option value="tudo">Tudo</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="saida">Saída</option>
+                    </select>
+                </div>
+                <div id="conc-campos-entrada" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500">Competência</label>
+                        <select id="conc-filtro-competencia" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                            <option value="todos">Todas</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
+                        <select id="conc-filtro-locatario" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
+                        <select id="conc-filtro-empreendimento" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="conc-campos-saida" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500">Categoria</label>
+                        <select id="conc-filtro-categoria" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                            <option value="todos">Todas</option>
+                            <option value="iptu">IPTU</option>
+                            <option value="condominio">Condomínio</option>
+                            <option value="manutencao">Manutenção</option>
+                            <option value="seguro">Seguro</option>
+                            <option value="taxa_adm">Taxa administrativa</option>
+                            <option value="tributo">Tributo</option>
+                            <option value="repasse_socio">Repasse a sócio</option>
+                            <option value="reembolso">Reembolso</option>
+                            <option value="aluguel">Aluguel (repasse a terceiro)</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500">Ativo vinculado</label>
+                        <select id="conc-filtro-ativo" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500">Fornecedor</label>
+                        <select id="conc-filtro-fornecedor" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-[10.5px]" style="color:var(--sage)">Competência/locatário/categoria etc. só valem pra linhas já conciliadas — uma pendente ainda não sabe a quem pertence.</p>
+                <button type="button" onclick="limparBuscaConciliacao()" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
             </div>
         </div>
     </div>
@@ -2600,8 +2700,8 @@
                     <small>Recebido no período</small>
                     <b id="mensal-resumo-recebido">R$ 0,00</b>
                     <div class="grid grid-cols-2 gap-2 mt-3">
-                        <button type="button" onclick="switchTab('tab-inadimplencia')" style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;text-align:left">
-                            <div style="font-size:11px;opacity:.8">Em atraso</div>
+                        <button type="button" onclick="abrirTelaAtrasados()" style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;text-align:left;position:relative">
+                            <div style="font-size:11px;opacity:.8;display:flex;align-items:center;justify-content:space-between">Em atraso <svg data-lucide="chevron-right" style="width:12px;height:12px;opacity:.7"></svg></div>
                             <b id="mensal-resumo-atraso" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
                         </button>
                         <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
@@ -2665,42 +2765,46 @@
             </div>
 
             <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
-            <button type="button" onclick="abrirAcoesImportarConciliacao()" class="w-full flex items-center justify-center gap-1.5 text-[12.5px] font-bold py-2.5 rounded-xl mb-4" style="background:var(--paper);border:1px solid var(--line);color:var(--pine)"><svg data-lucide="file-down" style="width:14px;height:14px"></svg> Importar / reprocessar extrato</button>
-
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3 mb-4">
-
-                <div class="flex items-center justify-between">
-                    <p class="text-xs font-black text-slate-700 flex items-center gap-1">Conciliação — entradas e saídas
-                        <!-- v1.6.3 — Etapa 8, achado do Nicola: legenda dos
-                             status, pedida explicitamente ("o que significa
-                             pendente?"). Sheet em vez de texto sempre visível
-                             pra não ocupar espaço à toa — mesmo padrão de
-                             interação do resto do app. -->
-                        <button type="button" onclick="explicarStatusConciliacao()" class="text-slate-400" title="O que significa cada status?" aria-label="O que significa cada status?" style="line-height:0"><svg data-lucide="info" style="width:13px;height:13px"></svg></button>
-                    </p>
-                </div>
-
-                <div id="conc-uni-seg" class="flex flex-nowrap rounded-xl p-[3px]" style="background:var(--paper);border:1px solid var(--line)">
-                    <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" data-seg="tudo" onclick="filtrarConciliacaoSegmento('tudo')">Tudo</button>
-                    <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="entrada" onclick="filtrarConciliacaoSegmento('entrada')">Entradas</button>
-                    <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="saida" onclick="filtrarConciliacaoSegmento('saida')">Saídas</button>
-                </div>
-
-                <div id="conc-uni-chips" class="flex flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
-                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--pine);background:var(--pine);color:#fff" data-chip="todos" data-cor="var(--pine)" onclick="filtrarConciliacaoChip('todos')">Todos</button>
-                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--wine)" data-chip="pendente" data-cor="var(--wine)" onclick="filtrarConciliacaoChip('pendente')">Pendentes</button>
-                    <!-- v1.6.4 — Etapa 8, achado do Nicola: chip "Automáticas"
-                         removido — redundante com "Conciliados" (que já
-                         inclui as automáticas, com o selo "Automático ·
-                         regra" e Desfazer na própria linha, sem precisar de
-                         um filtro à parte). O tratamento por linha continua
-                         intacto — só o atalho de filtro saiu. -->
-                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:#2f6b47" data-chip="conciliado" data-cor="#2f6b47" onclick="filtrarConciliacaoChip('conciliado')">Conciliados</button>
-                    <button type="button" class="conc-chip-btn flex-none text-[11.5px] font-semibold px-3 py-1.5 rounded-full whitespace-nowrap" style="border:1px solid var(--line);background:#fff;color:var(--sage)" data-chip="nao_controlado" data-cor="var(--sage)" onclick="filtrarConciliacaoChip('nao_controlado')">Não controlado</button>
-                </div>
-
-                <div id="conc-uni-lista" class="space-y-1.5"></div>
+            <!-- v1.179.0 — achado do Nicola: botão Importar virou redondo
+                 (.rz-ico-btn, mesmo padrão de Localizar/+ nas outras abas),
+                 na mesma posição — ícone de importação de sempre (file-down),
+                 mantém o selo .rz-ia. Lupa nova ao lado, à esquerda dele. -->
+            <div class="flex items-center gap-2 mb-4">
+                <p class="text-[11px] text-gray-500 flex-1 text-left">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
+                <button id="btn-conc-busca" onclick="abrirBuscaConciliacao()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+                <button onclick="abrirAcoesImportarConciliacao()" class="rz-ico-btn rz-ia" title="Importar/reprocessar extrato" aria-label="Importar"><svg data-lucide="file-down"></svg></button>
             </div>
+
+            <!-- v1.179.0 — achado do Nicola: lista de Conciliação destoava
+                 de Recebimentos/Saídas — tinha um card branco envolvendo
+                 tudo (elas não têm), título "Conciliação — entradas e
+                 saídas" solto (redundante com o hero + segmento acima), e
+                 os chips de status com cor própria por chip (elas usam o
+                 padrão neutro .rz-chip). Os 3 alinhados agora. -->
+            <div class="flex items-center justify-end gap-2 mb-2">
+                <button type="button" onclick="explicarStatusConciliacao()" class="text-slate-400" title="O que significa cada status?" aria-label="O que significa cada status?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button>
+            </div>
+
+            <div id="conc-uni-seg" class="flex flex-nowrap rounded-xl p-[3px] mb-2" style="background:var(--paper);border:1px solid var(--line)">
+                <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:var(--pine);color:#fff" data-seg="tudo" onclick="filtrarConciliacaoSegmento('tudo')">Tudo</button>
+                <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="entrada" onclick="filtrarConciliacaoSegmento('entrada')">Entradas</button>
+                <button type="button" class="conc-seg-btn flex-1 border-none text-[12.5px] font-semibold py-1.5 rounded-lg" style="background:transparent;color:var(--pine)" data-seg="saida" onclick="filtrarConciliacaoSegmento('saida')">Saídas</button>
+            </div>
+
+            <div class="rz-chips" id="conc-uni-chips">
+                <button type="button" class="rz-chip rz-on" data-chip="todos" onclick="filtrarConciliacaoChip('todos')">Todos</button>
+                <button type="button" class="rz-chip" data-chip="pendente" onclick="filtrarConciliacaoChip('pendente')">Pendentes</button>
+                <!-- v1.6.4 — Etapa 8, achado do Nicola: chip "Automáticas"
+                     removido — redundante com "Conciliados" (que já
+                     inclui as automáticas, com o selo "Automático ·
+                     regra" e Desfazer na própria linha, sem precisar de
+                     um filtro à parte). O tratamento por linha continua
+                     intacto — só o atalho de filtro saiu. -->
+                <button type="button" class="rz-chip" data-chip="conciliado" onclick="filtrarConciliacaoChip('conciliado')">Conciliados</button>
+                <button type="button" class="rz-chip" data-chip="nao_controlado" onclick="filtrarConciliacaoChip('nao_controlado')">Não controlado</button>
+            </div>
+
+            <div id="conc-uni-lista" class="space-y-1.5 mb-4"></div>
 
             <!-- v1.178.2 — painel de Pendências legado (pendencias_extrato)
                  removido. Migração conferida antes de tirar: as 30 pendências
@@ -2718,49 +2822,36 @@
 
         <section id="tab-inadimplencia" class="tab-content">
 
-            <!-- v1.177.0 — Etapa 7/8: segmento principal virou Recebimentos ·
-                 Saídas · Conciliação; Atrasados agora é chip/link a partir
-                 de qualquer uma delas (esta aba continua existindo, só não
-                 é mais um segmento de peso igual). -->
+            <!-- v1.179.1 — achado do Nicola: padronizada com as outras 3
+                 abas do grupo (Recebimentos/Saídas/Conciliação) — hero
+                 verde no lugar das 2 caixas vermelha/âmbar lado a lado,
+                 chip "Atrasados" solto tirado (redundante — já estamos
+                 nela), "< Voltar" condicional pro caminho mais comum de
+                 chegada (toque em "Em atraso" no hero de Recebimentos). -->
             <div class="rz-seg">
                 <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
                 <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
                 <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
             </div>
-            <span class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-red-100 text-red-700 border border-red-200 inline-flex items-center gap-1 mt-2 mb-1"><svg data-lucide="alert-circle" style="width:11px;height:11px"></svg> Atrasados</span>
 
-            <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos e
-                 título "Atrasos" removidos. Descrição curta + ícone de lupa
-                 no mesmo padrão de Imóveis/Financeiro. Filtros que estavam
-                 sempre visíveis (Agrupar por/Mês de Referência/Locatário)
-                 migraram pro overlay — IDs preservados, renderInadimplencia()
-                 não mudou. -->
-            <div class="flex items-center gap-2 mb-4">
+            <button id="btn-voltar-inadimplencia" onclick="switchTab('tab-mensal')" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3 mt-2"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
 
+            <div class="flex items-center gap-2 mb-4 mt-2">
                 <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos em atraso, agrupados por mês, locatário ou imóvel.</p>
-
                 <button id="btn-inad-busca" onclick="abrirBuscaInadimplencia()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
-
             </div>
 
-            <div class="grid grid-cols-2 gap-2 mb-4">
-
-                <div class="bg-red-50 p-3 rounded-lg border border-red-200">
-
-                    <span class="text-[13px] font-bold uppercase text-red-600">Total em Aberto</span>
-
-                    <p class="text-xl font-black text-red-700 mt-1" id="inad-total-geral">R$ 0</p>
-
+            <div class="rz-kpis">
+                <div class="rz-kpi rz-hero">
+                    <small>Total em aberto</small>
+                    <b id="inad-total-geral">R$ 0</b>
+                    <div class="grid grid-cols-1 gap-2 mt-3">
+                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
+                            <div style="font-size:11px;opacity:.8">Taxa de atraso</div>
+                            <b id="inad-taxa" style="display:block;font-size:15px;margin-top:2px">0%</b>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="bg-amber-50 p-3 rounded-lg border border-amber-200">
-
-                    <span class="text-[13px] font-bold uppercase text-amber-600">Taxa de Atraso</span>
-
-                    <p class="text-xl font-black text-amber-700 mt-1" id="inad-taxa">0%</p>
-
-                </div>
-
             </div>
 
             <div class="hidden">
@@ -3537,7 +3628,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.178.9"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.179.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9154,9 +9245,11 @@
             'excluirLancamentoMensal', 'abrirRecebimentoDetalhe', 'voltarDoRecebimentoDetalhe', 'liquidarMensalidadeERefletirDetalhe',
             'estornarMensalidadeERefletirDetalhe', 'abrirFinanceiroFiltradoImovel', 'voltarDoFinanceiroFiltrado', 'abrirBuscaInadimplencia',
             'fecharBuscaInadimplencia', 'renderInadimplencia', 'rzAcoesGrupoInadimplencia', 'dispararCobrancaWhatsAppDirect',
+            'abrirTelaAtrasados', 'alternarGrupoInadimplencia', // v1.179.1 — cortinas colapsáveis + caminho mais visível
             'estaAtrasadaDespesa', 'popularFiltrosSaidas', 'renderSaidas', 'rotuloCategoriaSaida',
             'alternarGrupoSaidas', 'abrirBuscaSaidas', 'fecharBuscaSaidas', 'abrirSaidasFiltradasPorAtivo',
             'voltarDasSaidasFiltradas', 'abrirNovaDespesa', 'abrirEditarDespesa', 'montarPopupDespesa',
+            'rzAcoesDespesa', // v1.179.2 — achado do Nicola: menu (⋮) de Saídas, mesmo padrão de rzAcoesMensalidade
             'gerarProximasCompetencias', 'alternarNovoFornecedor', 'fecharPopupDespesa', 'salvarDespesa',
             'confirmarPagamentoDespesa', 'estornarPagamentoDespesa', 'excluirDespesa', 'arquivoEhExtratoImagemOuPdf',
             'processarExtratoViaIA', 'processarExtratoImportado', 'conciliarTransacoes', 'reprocessarConciliacaoPendente',
@@ -9171,6 +9264,7 @@
             'filtrarSaidasPorChip', 'filtrarMensalPorChip', // v1.178.9 — chips de status
             'alternarGrupoConciliacao', // v1.6.5 — agrupamento por competência na Conciliação
             'abrirAcoesImportarConciliacao', // v1.178.9 — menu único Importar/Reprocessar
+            'abrirBuscaConciliacao', 'fecharBuscaConciliacao', 'limparBuscaConciliacao', 'atualizarCamposTipoConciliacao', // v1.179.0 — lupa de filtro
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         function switchTab(tabId) {
@@ -9449,7 +9543,7 @@
                 const idParaSalvar = over ? over.id : r.id;
                 const modo = over ? over.modo : r.modo;
                 const [bg, tx] = MODO_REGRA_COR[modo] || MODO_REGRA_COR.sugerir;
-                return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${idParaSalvar}','${escapeHtmlSaidas(r.nome)}')">
+                return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${idParaSalvar}','${escapeHtmlSaidas(r.nome)}','${escapeHtmlSaidas(r.descricao_publica || '')}')">
                     <div class="rz-tx"><b>${escapeHtmlSaidas(r.nome)}</b><span>${escapeHtmlSaidas(r.descricao_publica || '')}</span></div>
                     <div class="rz-rt"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[modo] || modo}</span></div>
                 </div>`;
@@ -9461,7 +9555,7 @@
                 : memorias.map(r => {
                     const [bg, tx] = MODO_REGRA_COR[r.modo] || MODO_REGRA_COR.sugerir;
                     const categoria = r.acao_params && r.acao_params.categoria ? rotuloCategoriaSaida(r.acao_params.categoria) : '';
-                    return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${r.id}','${escapeHtmlSaidas(r.nome)}')">
+                    return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${r.id}','${escapeHtmlSaidas(r.nome)}','${escapeHtmlSaidas(r.descricao_publica || '')}')">
                         <div class="rz-tx"><b>${escapeHtmlSaidas(r.nome)}</b><span>${categoria ? 'Categoria: ' + escapeHtmlSaidas(categoria) : (r.descricao_publica || '')}</span></div>
                         <div class="rz-rt"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[r.modo] || r.modo}</span></div>
                     </div>`;
@@ -9470,12 +9564,19 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        function abrirEscolherModoRegra(regraId, nome) {
-            abrirSheetAcoes({ titulo: nome, sub: 'Como esta regra deve se comportar', acoes: [
+        function abrirEscolherModoRegra(regraId, nome, descricao) {
+            const hero = descricao ? `<p style="font-size:12.5px;color:var(--sage);padding:0 2px 8px">${escapeHtmlSaidas(descricao)}</p>` : '';
+            const sheet = abrirSheetAcoes({ titulo: nome, sub: 'Como esta regra deve se comportar', acoes: [
                 { icone: 'zap', titulo: 'Automático', sub: 'Concilia sozinho, sem perguntar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'automatico') },
                 { icone: 'sparkles', titulo: 'Sugerir', sub: 'Avisa e espera você confirmar', aoTocar: () => salvarModoRegraConciliacao(regraId, 'sugerir') },
                 { icone: 'circle-slash', titulo: 'Desligada', sub: 'Não faz nada com esse tipo de linha', aoTocar: () => salvarModoRegraConciliacao(regraId, 'desligada') },
             ] });
+            // v1.179.2 — achado do Nicola: explicar melhor o que a regra faz
+            // ao tocar nela, não só o nome curto que já aparecia na lista.
+            if (hero) {
+                const corpo = sheet?.querySelector('.rz-sh-b');
+                if (corpo) corpo.insertAdjacentHTML('afterbegin', hero);
+            }
         }
 
         async function salvarModoRegraConciliacao(regraId, modo) {
@@ -9502,11 +9603,14 @@
                         { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários, prestadores', codigo: 'contratos.ver', aoTocar: () => { partesFiltroPapel = 'todos'; switchTab('tab-partes'); } },
                         // v1.124 — atalho "Prestadores" removido (pedido do Nicola, 05/09): a tela morreu na v1.117, o atalho confundia. Partes cobre.
                         { icone: 'file-signature', titulo: 'Minutas de contrato', codigo: 'minutas.gerar', aoTocar: ir('tab-minutas') },
-                        { icone: 'list-tree', titulo: 'Tipos e modelos', sub: 'Imóvel, empreendimento, documento, controle', aoTocar: abrirMenuTiposModelos }
+                        { icone: 'list-tree', titulo: 'Tipos e modelos', sub: 'Imóvel, empreendimento, documento, controle', aoTocar: abrirMenuTiposModelos },
+                        // v1.179.2 — achado do Nicola: "Regras de conciliação"
+                        // morava em Empresa — é um cadastro (o que o sistema
+                        // decide sozinho por regra), faz mais sentido aqui.
+                        { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o sistema decide sozinho', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') }
                     ]},
                     { titulo: 'Empresa', acoes: [
                         { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
-                        { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o sistema decide sozinho', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
                         { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
