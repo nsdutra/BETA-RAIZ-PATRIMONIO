@@ -6,9 +6,46 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.178.7
-   LINHAS: 15221
+   VERSÃO: Beta v1.178.9
+   LINHAS: 15266
    DATA: 11/09/2026
+   NOVIDADES (Beta v1.178.9) — 2ª leva da bateria grande de achados do
+   Nicola (fecha os 9 itens pendentes da leva anterior):
+   Chips de status em Recebimentos e Saídas (Todos/Pagos/A vencer/
+   Atrasados), resumo da competência dinâmico ("valor · N itens"). Hero
+   verde na Conciliação + botão único Importar/Reprocessar (era faixa de
+   texto + card + link separados). Resumo de Saídas virou geral, como
+   Recebimentos (não mais travado no mês corrente). DARF abre formulário
+   pra especificar o tributo em vez de criar direto. Lista de Saídas com
+   ordenação estável (não "saía da ordem" mais depois de dar baixa).
+   Avaliado e mantido: tab-inadimplencia (agrupa por locatário + WhatsApp
+   de cobrança, chips não substituem). Ver changelog completo em
+   financeiro.js 1.6.7.
+   NOVIDADES (Beta v1.178.8) — 1ª leva de uma bateria grande de achados do
+   Nicola (12 itens ao todo testando no celular; itens ainda pendentes
+   listados no fim, não escondidos). Corrigidos nesta entrega:
+   (1) APP_VERSAO — achado do próprio Nicola pela tela splash: essa
+   constante (usada no splash e na tela Versões) tinha ficado presa em
+   1.176.0, nunca era sincronizada com o comentário de cabeçalho. Corrigida
+   e comprometida a andar junto daqui pra frente.
+   (2) ACHADO GRAVE, banco: repasses de sócio nunca conciliavam sozinhos —
+   a chave do repasse (nome limpo do pagador) e a chave do fingerprint
+   (texto completo do banco) nunca batiam por igualdade exata no trigger de
+   espelho. Corrigido pra casar por data+valor (mesmo padrão já usado nas
+   correções anteriores) e conferido: 4 repasses represados (Roberta,
+   Renato, Claudia, Luciana) conciliados de verdade agora.
+   (3) "Limpar filtros" de Recebimentos não limpava a busca por texto —
+   corrigido (Saídas e Inadimplência já limpavam certo).
+   Ver changelog de financeiro.js 1.6.6 pro resto desta leva (despesa já
+   conciliada abrindo formulário errado; menu "apagar atrasados" removido).
+   PENDENTE desta bateria (9 itens, fica pra próxima entrega — são mudanças
+   de tela maiores, não bugs pontuais): DARF identificar tributo específico;
+   botões de despesa daltônicos do padrão de recebimento; ordem da lista
+   após dar baixa; chips de status nos agrupamentos de competência (as duas
+   telas) com resumo "valor · N itens" dinâmico; hero verde + botão único
+   (Importar/Reprocessar) na Conciliação; resumo de Saídas virar geral como
+   Recebimentos; avaliar se tab-inadimplencia ainda se justifica com os
+   chips de status.
    NOVIDADES (Beta v1.178.7) — padronização Recebimentos/Saídas/Conciliação,
    6 achados do Nicola. "+" de Recebimentos removido (abria menu redundante
    com a aba Conciliação). Resumo do topo de Recebimentos e Saídas
@@ -846,7 +883,7 @@
                     <input type="hidden" id="men-filtro-imovel" value="todos">
                     <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('men-filtro-imovel').value = id || 'todos'; document.getElementById('men-filtro-imovel-resumo').textContent = resumo; renderMensalidades(); }, true)" id="men-filtro-imovel-resumo" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1 text-left truncate">Todos</button>
                 </div>
-                <button type="button" onclick="document.getElementById('men-filtro-competencia').value='todos'; document.getElementById('men-filtro-locatario').value='todos'; document.getElementById('men-filtro-empreendimento').value='todos'; document.getElementById('men-filtro-imovel').value='todos'; document.getElementById('men-filtro-imovel-resumo').textContent='Todos'; renderMensalidades();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
+                <button type="button" onclick="document.getElementById('men-busca-texto').value=''; document.getElementById('men-filtro-competencia').value='todos'; document.getElementById('men-filtro-locatario').value='todos'; document.getElementById('men-filtro-empreendimento').value='todos'; document.getElementById('men-filtro-imovel').value='todos'; document.getElementById('men-filtro-imovel-resumo').textContent='Todos'; renderMensalidades();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
             </div>
         </div>
     </div>
@@ -2575,6 +2612,11 @@
                 </div>
             </div>
 
+            <!-- v1.178.9 — achado do Nicola: chips de status pra filtrar
+                 (Todos/Pagos/A vencer/Em atraso) — o resumo de cada
+                 competência passa a variar com o filtro ativo. -->
+            <div class="rz-chips" id="mensal-chips-status"></div>
+
             <!-- v1.177.0 — painel "Gerar mês" removido (cron + ativação/
                  renovação já geram sozinhos, Etapa 7). Bloco "Conciliar"
                  (extrato + conciliação unificada + pendências) mudou pra
@@ -2599,46 +2641,32 @@
                 <button onclick="switchTab('tab-conciliacao')" class="rz-on">Conciliação</button>
             </div>
 
-            <p class="text-[11px] text-gray-500 mb-3 mt-2">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
-
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mb-1">
-
-                <div class="flex items-center justify-between gap-3">
-
-                    <div>
-                        <p class="text-xs font-black text-slate-700">Conciliação de Extrato</p>
-                        <p class="text-[11px] text-gray-400">Importe o extrato bancário para conciliar pagamentos automaticamente.</p>
+            <!-- v1.178.9 — achado do Nicola: resumo padronizado com
+                 Recebimentos/Saídas (.rz-kpi.rz-hero, verde) — antes o topo
+                 desta aba era só um parágrafo de explicação. A faixa
+                 "Conciliação de Extrato" + botão Importar + link Reprocessar
+                 viraram 1 botão só, que abre menu com as duas opções
+                 (abrirAcoesImportarConciliacao). -->
+            <div class="rz-kpis">
+                <div class="rz-kpi rz-hero">
+                    <small>Conciliação do período</small>
+                    <b id="conc-hero-resumo">—</b>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
+                            <div style="font-size:11px;opacity:.8">Pendentes</div>
+                            <b id="conc-hero-pendentes" style="display:block;font-size:15px;margin-top:2px">0</b>
+                        </div>
+                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
+                            <div style="font-size:11px;opacity:.8">Conciliados</div>
+                            <b id="conc-hero-conciliados" style="display:block;font-size:15px;margin-top:2px">0</b>
+                        </div>
                     </div>
-
-                    <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
-
-                    <!-- v1.6.3 — Etapa 8, achado do Nicola: botões viraram
-                         .rz-ico-btn do catálogo (44px, mesmo padrão do resto
-                         do app) em vez de classes soltas de Tailwind. Este
-                         ganha .rz-ia (selo IA) — mesma distinção que já
-                         existe no sheet "Ações" (Importar é tipo:'ia',
-                         Reprocessar não é: PDF/foto usam IA pra ler,
-                         Reprocessar só roda a mesma comparação de regras). -->
-                    <button onclick="document.getElementById('extrato-file-input').click()" class="rz-ico-btn rz-ia" title="Importar extrato bancário (Excel do Itaú, PDF ou foto)"><svg data-lucide="file-down"></svg></button>
-
                 </div>
-
             </div>
 
-            <!-- v1.178.5 — achado do Nicola: agora que a importação já chama
-                 o motor sozinha no final, Reprocessar deixou de ser ação do
-                 dia a dia — vira recurso de recuperação (contrato ativado
-                 ou reajustado DEPOIS da importação, por exemplo). Peso
-                 visual reduzido: link pequeno em vez de card igual ao de
-                 Importar. -->
-            <button type="button" onclick="reprocessarConciliacaoPendente()" class="text-[11px] font-semibold text-slate-500 flex items-center gap-1 mb-4" style="padding:2px 0"><svg data-lucide="refresh-cw" style="width:12px;height:12px"></svg> Reprocessar (se algo mudou depois da importação)</button>
+            <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
+            <button type="button" onclick="abrirAcoesImportarConciliacao()" class="w-full flex items-center justify-center gap-1.5 text-[12.5px] font-bold py-2.5 rounded-xl mb-4" style="background:var(--paper);border:1px solid var(--line);color:var(--pine)"><svg data-lucide="file-down" style="width:14px;height:14px"></svg> Importar / reprocessar extrato</button>
 
-            <!-- v1.178.0 — achado do Nicola (teste no celular): a borda
-                 esquerda verde tinha sido posta numa sessão anterior só pra
-                 separar visualmente "tela nova" de "tela antiga" quando as
-                 duas dividiam a mesma aba (tab-mensal). Agora que Conciliação
-                 é aba própria, não tem mais ambiguidade pra resolver — borda
-                 tirada, mesma moldura simples do card acima. -->
             <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 space-y-3 mb-4">
 
                 <div class="flex items-center justify-between">
@@ -2650,7 +2678,6 @@
                              interação do resto do app. -->
                         <button type="button" onclick="explicarStatusConciliacao()" class="text-slate-400" title="O que significa cada status?" aria-label="O que significa cada status?" style="line-height:0"><svg data-lucide="info" style="width:13px;height:13px"></svg></button>
                     </p>
-                    <span id="conc-uni-progresso" class="text-[11px]" style="color:var(--sage)"></span>
                 </div>
 
                 <div id="conc-uni-seg" class="flex flex-nowrap rounded-xl p-[3px]" style="background:var(--paper);border:1px solid var(--line)">
@@ -2818,7 +2845,13 @@
                 </div>
             </div>
 
+            <!-- v1.178.9 — achado do Nicola: chips de status pra filtrar
+                 (Todas/Pagas/A vencer/Atrasadas) — reaproveita o mesmo
+                 <select> escondido que "Buscar" já usava (saidas-filtro-status). -->
+            <div class="rz-chips" id="saidas-chips-status"></div>
+
             <div id="lista-saidas" class="space-y-3"></div>
+
 
         </section>
 
@@ -3504,7 +3537,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.176.0";
+        const APP_VERSAO = "Beta v1.178.9"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5771,7 +5804,17 @@
                 pessoa_id: pessoaId,
                 competencia: competenciaParaData(rep.mes),
                 valor: rep.valor || null,
-                data_real: converterDataBRparaISO(rep.dataReal)
+                data_real: converterDataBRparaISO(rep.dataReal),
+                // v1.178.8 — achado GRAVE do Nicola (repasses de sócio nunca
+                // conciliavam sozinhos): o trigger de espelho (Etapa 3,
+                // fn_repasse_espelha_fingerprint) sempre soube conciliar via
+                // chave_transacao_origem — mas esta função nunca gravava esse
+                // campo no INSERT, só existia no objeto em memória
+                // (rep.chaveTransacaoOrigem). O dado nunca chegava no banco;
+                // o trigger sempre via NULL e nunca conciliava. Repasse
+                // lançado manualmente (sem origem de extrato) continua null,
+                // sem problema — só não teria mesmo o que conciliar sozinho.
+                chave_transacao_origem: rep.chaveTransacaoOrigem || null
             };
 
             const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rep.id || '');
@@ -9105,8 +9148,8 @@
             if (__rzFinModulo && typeof __rzFinModulo[nome] === 'function') return __rzFinModulo[nome](...args);
         }
         [
-            'rzAcoesMensalidade', 'rzAbrirBaixaMensalidade', 'rzAcoesGrupoMensal', // v1.6.5 — rzAcoesRecebimentos saiu ("+" removido de Recebimentos)
-            'renderMensalidades', 'alternarGrupoMensal', 'apagarInadimplentesDoGrupo', 'liquidarMensalidade',
+            'rzAcoesMensalidade', 'rzAbrirBaixaMensalidade', // v1.6.5 — rzAcoesRecebimentos saiu ("+" removido de Recebimentos); v1.178.8 — rzAcoesGrupoMensal saiu (achado do Nicola)
+            'renderMensalidades', 'alternarGrupoMensal', 'liquidarMensalidade',
             'estornarMensalidade', 'alternarMenuBaixaExtra', 'recalcularTotalBaixaExtra', 'borderEstornoCheck',
             'excluirLancamentoMensal', 'abrirRecebimentoDetalhe', 'voltarDoRecebimentoDetalhe', 'liquidarMensalidadeERefletirDetalhe',
             'estornarMensalidadeERefletirDetalhe', 'abrirFinanceiroFiltradoImovel', 'voltarDoFinanceiroFiltrado', 'abrirBuscaInadimplencia',
@@ -9125,7 +9168,9 @@
             'abrirBuscarMensalidadeManual', 'filtrarVincularManual', 'selecionarMensalidadeManual', // v1.6.1 — busca manual (substitui o painel de Pendências legado)
             'explicarStatusConciliacao', // v1.6.3 — legenda dos status (pedido do Nicola)
             'filtrarSaidasPorStatus', // v1.6.5 — "Atrasado" do hero de Saídas
+            'filtrarSaidasPorChip', 'filtrarMensalPorChip', // v1.178.9 — chips de status
             'alternarGrupoConciliacao', // v1.6.5 — agrupamento por competência na Conciliação
+            'abrirAcoesImportarConciliacao', // v1.178.9 — menu único Importar/Reprocessar
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         function switchTab(tabId) {

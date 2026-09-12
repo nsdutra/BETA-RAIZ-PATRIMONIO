@@ -1,7 +1,43 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.6.5 · 11/09/2026
+// Versão: 1.6.7 · 11/09/2026
+//
+// v1.6.7 — 2ª leva da bateria grande de achados do Nicola (fecha os 9 itens
+// que tinham ficado pendentes na 1ª leva):
+//   - DARF/tributo: sugestão de categoria "tributo" agora abre o formulário
+//     de despesa pré-preenchido em vez de criar direto — o texto do banco
+//     não carrega qual tributo específico (IRPJ/CSLL/PIS/COFINS...), só a
+//     guia teria isso. Outras categorias continuam criando direto.
+//   - Saídas: lista sem ordenação estável dentro do grupo — "saía da
+//     ordem" a cada recarregamento depois de dar baixa. Ordenado por
+//     vencimento (Recebimentos já fazia isso, só Saídas que faltava).
+//   - Chips de status (Todos/Pagos/A vencer/Em atraso ou Atrasadas) em
+//     Recebimentos E Saídas — mesmo padrão .rz-chip de Partes/Conciliação.
+//     Resumo da competência passa a mostrar "valor · N itens" quando um
+//     chip específico está ativo (Recebimentos) ou sempre (Saídas, que já
+//     não tinha contagem nenhuma antes).
+//   - Saídas: resumo do topo virou geral (soma tudo que bate com os
+//     filtros ativos), não mais travado no mês corrente do calendário —
+//     mesmo padrão de Recebimentos agora.
+//   - Conciliação: hero verde (.rz-kpi.rz-hero) no lugar do texto pequeno
+//     "X de Y"; Importar + Reprocessar viraram 1 botão só com menu.
+//   - "Apagar lançamentos em atraso" — já saiu na 1ª leva.
+//   - Avaliado (não mudou código): tab-inadimplencia continua fazendo
+//     sentido mesmo com os chips novos — ela agrupa por locatário (não só
+//     competência) e tem "Cobrar pelo WhatsApp" com todas as competências
+//     em atraso somadas, que os chips não replicam.
+//
+// v1.6.6 — 1ª leva de uma bateria grande de achados do Nicola (12 itens —
+// ver changelog completo em index.html 1.178.8, esta versão cobre os que
+// tocam financeiro.js):
+//   - Despesa já conciliada abrindo "Nova despesa" em vez do detalhe com
+//     Estornar: `lancamentos` nunca era recarregado depois de vincular/criar
+//     saída pela Conciliação — a busca por id falhava. Corrigido nas 2
+//     funções (confirmarVincularConciliacaoSaida, confirmarCriarSaidaConciliacao).
+//   - "Apagar lançamentos em atraso do mês" removida do menu da competência
+//     (rzAcoesGrupoMensal + apagarInadimplentesDoGrupo) — era a única opção
+//     do menu, então o ⋮ do grupo saiu junto.
 //
 // v1.6.5 — 6 achados do Nicola, padronização Recebimentos/Saídas/Conciliação:
 //   - "+" de Recebimentos removido — abria Importar/Reprocessar/Painel de
@@ -286,7 +322,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.6.5'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.7'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -303,6 +339,7 @@ export function montarAbaFinanceiro(tabId) {
         let gruposSaidasAbertos = null;
 
         let gruposMensalAbertos = null; // null = ainda não inicializado (abre só o mês mais recente)
+        let mensalChipStatus = 'todos'; // v1.178.9 — chip de status (Recebimentos): todos · pago · atrasado · a_vencer
 
         // v1.52.0 — overlay de busca da aba Cobrança, mesmo padrão.
         export function abrirBuscaInadimplencia() {
@@ -385,6 +422,34 @@ export function montarAbaFinanceiro(tabId) {
             document.getElementById('lista-saidas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
+        // v1.178.9 — achado do Nicola: chips de status em Saídas, mesmo
+        // padrão de Recebimentos — reaproveita o <select> escondido
+        // (saidas-filtro-status) que "Buscar" já usava como guarda de estado.
+        export function renderChipsSaidas(filtradas) {
+            const wrap = document.getElementById('saidas-chips-status');
+            if (!wrap) return;
+            const statusD = (d) => d.status === 'realizado' ? 'pago' : estaAtrasadaDespesa(d) ? 'atrasado' : 'a_vencer';
+            const contagem = { todos: filtradas.length, pago: 0, atrasado: 0, a_vencer: 0 };
+            filtradas.forEach(d => { contagem[statusD(d)]++; });
+            const atual = document.getElementById('saidas-filtro-status')?.value || 'todos';
+            const chips = [
+                { chave: 'todos', rotulo: 'Todas', n: contagem.todos },
+                { chave: 'pago', rotulo: 'Pagas', n: contagem.pago },
+                { chave: 'a_vencer', rotulo: 'A vencer', n: contagem.a_vencer },
+                { chave: 'atrasado', rotulo: 'Atrasadas', n: contagem.atrasado },
+            ];
+            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarSaidasPorChip('${c.chave}')" class="rz-chip ${atual === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('');
+        }
+
+        // Chip — mesmo <select> de sempre, sem o scroll do toque no hero
+        // (os chips já ficam colados na lista, não precisam rolar até ela).
+        export function filtrarSaidasPorChip(chave) {
+            const sel = document.getElementById('saidas-filtro-status');
+            if (!sel) return;
+            sel.value = chave;
+            renderSaidas();
+        }
+
         export function renderSaidas() {
             const container = document.getElementById('lista-saidas');
             if (!container) return;
@@ -398,33 +463,38 @@ export function montarAbaFinanceiro(tabId) {
             const fFornecedor = document.getElementById('saidas-filtro-fornecedor')?.value || 'todos';
             const termoBusca = (document.getElementById('saidas-busca-texto')?.value || '').trim().toLowerCase();
 
-            const filtradas = lancamentos.filter(d => {
+            // v1.178.9 — achado do Nicola: filtros sem o status (pro hero e
+            // pros chips contarem sem o próprio chip se esconder da contagem).
+            const filtradasSemStatus = lancamentos.filter(d => {
                 if (fComp !== 'todos' && dataParaCompetencia(d.competencia) !== fComp) return false;
                 if (fCategoria !== 'todos' && d.categoria !== fCategoria) return false;
                 if (fAtivo !== 'todos' && d.ativoId !== fAtivo) return false;
                 if (fFornecedor !== 'todos' && d.parteId !== fFornecedor) return false;
-                const atrasada = estaAtrasadaDespesa(d);
-                if (fStatus === 'pago' && d.status !== 'realizado') return false;
-                if (fStatus === 'atrasado' && !atrasada) return false;
-                if (fStatus === 'a_vencer' && (d.status === 'realizado' || atrasada)) return false;
                 if (termoBusca) {
                     const campos = [d.descricao, d.parteNome, d.ativoNome];
                     if (!campos.some(c => (c || '').toLowerCase().includes(termoBusca))) return false;
                 }
                 return true;
             });
+            renderChipsSaidas(filtradasSemStatus);
 
-            // ---- resumo (hero) — sempre sobre TODAS as saídas da
-            // competência mais recente do conjunto filtrado, não sobre a
-            // lista já filtrada por status (senão o resumo "sumiria"
-            // junto com o filtro que ele mesmo descreve).
-            const competenciaAtual = dataParaCompetencia(new Date().toISOString().slice(0, 10));
-            const doMes = lancamentos.filter(d => dataParaCompetencia(d.competencia) === competenciaAtual);
-            const totalMes = doMes.reduce((s, d) => s + d.valor, 0);
-            const totalPago = doMes.filter(d => d.status === 'realizado').reduce((s, d) => s + d.valor, 0);
-            const totalAtrasado = doMes.filter(d => estaAtrasadaDespesa(d)).reduce((s, d) => s + d.valor, 0);
+            const filtradas = filtradasSemStatus.filter(d => {
+                const atrasada = estaAtrasadaDespesa(d);
+                if (fStatus === 'pago' && d.status !== 'realizado') return false;
+                if (fStatus === 'atrasado' && !atrasada) return false;
+                if (fStatus === 'a_vencer' && (d.status === 'realizado' || atrasada)) return false;
+                return true;
+            });
+
+            // v1.178.9 — achado do Nicola ("o resumo de despesa está por
+            // competência, e o recebimento geral — padronize"): hero passa a
+            // somar TUDO que bate com os filtros ativos (mesmo padrão de
+            // Recebimentos), não mais travado no mês corrente do calendário.
+            const totalMes = filtradasSemStatus.reduce((s, d) => s + d.valor, 0);
+            const totalPago = filtradasSemStatus.filter(d => d.status === 'realizado').reduce((s, d) => s + d.valor, 0);
+            const totalAtrasado = filtradasSemStatus.filter(d => estaAtrasadaDespesa(d)).reduce((s, d) => s + d.valor, 0);
             const totalAVencer = totalMes - totalPago - totalAtrasado;
-            document.getElementById('saidas-resumo-competencia').textContent = competenciaAtual;
+            document.getElementById('saidas-resumo-competencia').textContent = fComp === 'todos' ? 'todo o período' : fComp;
             document.getElementById('saidas-resumo-total').textContent = formatarMoedaBR(totalMes);
             document.getElementById('saidas-resumo-pago').textContent = formatarMoedaBR(totalPago);
             document.getElementById('saidas-resumo-avencer').textContent = formatarMoedaBR(totalAVencer);
@@ -448,7 +518,17 @@ export function montarAbaFinanceiro(tabId) {
             }
 
             container.innerHTML = competenciasOrdenadas.map(comp => {
-                const itens = grupos[comp];
+                // v1.178.9 — achado do Nicola: lista "sai da ordem" depois
+                // de dar baixa — não tinha ordenação estável dentro do
+                // grupo, ficava na ordem que `lancamentos` vinha do banco
+                // (que muda a cada recarregamento, não é cronológica).
+                // Ordena por vencimento (paga usa a data de pagamento) —
+                // mesma leitura natural de sempre, estável entre renders.
+                const itens = [...grupos[comp]].sort((a, b) => {
+                    const da = (a.status === 'realizado' && a.dataPagamento) ? a.dataPagamento : a.vencimento;
+                    const db = (b.status === 'realizado' && b.dataPagamento) ? b.dataPagamento : b.vencimento;
+                    return (da || '').localeCompare(db || '');
+                });
                 const totalGrupo = itens.reduce((s, d) => s + d.valor, 0);
                 const aberto = gruposSaidasAbertos.has(comp);
 
@@ -470,7 +550,7 @@ export function montarAbaFinanceiro(tabId) {
                 }).join('');
                 return `
                     <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoSaidas('${comp}')">
-                        <span style="flex:1">${comp} · ${formatarMoedaBR(totalGrupo)}</span>
+                        <span style="flex:1">${comp} · ${formatarMoedaBR(totalGrupo)} · ${itens.length} ite${itens.length > 1 ? 'ns' : 'm'}</span>
                         <svg data-lucide="chevron-down" style="width:16px;height:16px;transform:rotate(${aberto ? '180' : '0'}deg)"></svg>
                     </div>
                     <div class="rz-card rz-list ${aberto ? '' : 'hidden'}">${cards}</div>`;
@@ -1906,6 +1986,17 @@ export function montarAbaFinanceiro(tabId) {
         // já chama fn_conciliacao_aplicar no fim (Etapa 8) — saída pendente
         // (que este reprocessamento não tenta re-casar sozinho) também ganha
         // uma chance pelo motor novo de graça.
+        // v1.178.9 — achado do Nicola: Importar + Reprocessar viraram 1
+        // botão só, que abre este menu com as duas opções (antes eram um
+        // card cheio + um link separado, ocupando 2 blocos no topo da aba).
+        export function abrirAcoesImportarConciliacao() {
+            if (typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: 'Extrato bancário', acoes: [
+                { icone: 'file-down', titulo: 'Importar extrato', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+                { icone: 'refresh-cw', titulo: 'Reprocessar', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação de regras nas pendências, se algo mudou depois da importação', aoTocar: () => reprocessarConciliacaoPendente() },
+            ] });
+        }
+
         export async function reprocessarConciliacaoPendente() {
 
             const { data: pendentesFp, error: erroFp } = await dbAuth.from('extrato_fingerprints')
@@ -2171,11 +2262,19 @@ export function montarAbaFinanceiro(tabId) {
 
         function renderConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
-            const progresso = document.getElementById('conc-uni-progresso');
             if (!lista) return;
             const total = conciliacaoUniCache.length;
-            const resolvidos = conciliacaoUniCache.filter(f => f.status_conciliacao !== 'pendente').length;
-            if (progresso) progresso.textContent = total ? `${resolvidos} de ${total}` : '';
+            const pendentes = conciliacaoUniCache.filter(f => f.status_conciliacao === 'pendente').length;
+            const conciliados = conciliacaoUniCache.filter(f => f.status_conciliacao === 'conciliado').length;
+            // v1.178.9 — achado do Nicola: resumo padronizado — hero verde
+            // (.rz-kpi.rz-hero) em vez do texto pequeno "X de Y" que ficava
+            // ao lado do título.
+            const elResumo = document.getElementById('conc-hero-resumo');
+            const elPendentes = document.getElementById('conc-hero-pendentes');
+            const elConciliados = document.getElementById('conc-hero-conciliados');
+            if (elResumo) elResumo.textContent = total ? `${conciliados} de ${total} conciliados` : '—';
+            if (elPendentes) elPendentes.textContent = pendentes;
+            if (elConciliados) elConciliados.textContent = conciliados;
 
             const filtrados = conciliacaoUniCache.filter(f => {
                 if (conciliacaoUniSegmento !== 'tudo' && f.direcao !== conciliacaoUniSegmento) return false;
@@ -2261,6 +2360,20 @@ export function montarAbaFinanceiro(tabId) {
             }
             if (sug.acao === 'sugerir_categoria') {
                 const categoria = CATEGORIA_POR_REGRA_CONC[sug.regra_codigo] || 'outro';
+                // v1.178.9 — achado do Nicola: DARF/tributo sugerido como
+                // categoria genérica "tributo" — mas o texto do banco não
+                // carrega QUAL tributo (IRPJ/CSLL/PIS/COFINS/DAS/GPS...), a
+                // guia em si é que teria isso, não a linha do extrato. Em
+                // vez de criar direto (chutando "tributo" sem detalhe), abre
+                // o formulário de despesa pré-preenchido — usuário
+                // especifica na descrição antes de salvar. Outras categorias
+                // (condomínio, seguro, manutenção, taxa adm.) continuam
+                // criando direto — não têm essa ambiguidade de subtipo.
+                if (categoria === 'tributo') {
+                    fecharSheet();
+                    despesaOrigemFingerprintId = fingerprintId;
+                    return abrirNovaDespesa(null, { descricao: `${f.razao_social} — especifique o tributo (IRPJ, CSLL, PIS, COFINS, DAS...)`, categoria });
+                }
                 return confirmarCriarSaidaConciliacao(fingerprintId, categoria, f.razao_social);
             }
             // R04 soma, R05 valor divergente, R12 memória sem params expostos
@@ -2397,6 +2510,11 @@ export function montarAbaFinanceiro(tabId) {
             try {
                 const { error } = await dbAuth.rpc('fn_extrato_vincular_saida', { p_fingerprint_id: fingerprintId, p_lancamento_id: lancamentoId });
                 if (error) throw error;
+                // v1.178.8 — achado do Nicola: abrir uma despesa já
+                // conciliada caía no formulário de "nova" — abrirEditarDespesa
+                // busca em `lancamentos` (array em memória), que nunca era
+                // recarregado depois de vincular/criar saída aqui.
+                lancamentos = await carregarLancamentosSupabase();
                 esconderCarregamentoGlobal(); mostrarToast('Vinculado!', 'success');
                 registrarLog('conciliacao.vincular_saida', { fingerprintId, lancamentoId });
                 await carregarConciliacaoUnificada();
@@ -2409,6 +2527,7 @@ export function montarAbaFinanceiro(tabId) {
             try {
                 const { error } = await dbAuth.rpc('fn_extrato_criar_saida', { p_fingerprint_id: fingerprintId, p_categoria: categoria, p_descricao: descricao || null });
                 if (error) throw error;
+                lancamentos = await carregarLancamentosSupabase();
                 esconderCarregamentoGlobal(); mostrarToast('Saída criada!', 'success');
                 registrarLog('conciliacao.criar_saida', { fingerprintId, categoria });
                 await carregarConciliacaoUnificada();
@@ -2611,11 +2730,29 @@ export function montarAbaFinanceiro(tabId) {
                 aoSalvar: async () => { await liquidarMensalidade(men.id); } });
         }
 
-        export function rzAcoesGrupoMensal(ref) {
-            if (typeof abrirSheetAcoes !== 'function') return;
-            abrirSheetAcoes({ titulo: `Competência ${ref}`, acoes: [
-                { icone: 'trash-2', titulo: 'Apagar lançamentos em atraso deste mês', codigo: 'mensal.excluir', sub: 'Só os que ainda não foram pagos e já venceram', tipo: 'bad', aoTocar: () => apagarInadimplentesDoGrupo(ref) },
-            ] });
+        // v1.178.8 — rzAcoesGrupoMensal() removida junto (achado do Nicola —
+        // era o único trigger do menu que só tinha "apagar atrasados").
+
+        // v1.178.9 — achado do Nicola: chips de status em Recebimentos,
+        // mesmo padrão .rz-chip de Partes/Conciliação.
+        export function renderChipsMensal(filtradas) {
+            const wrap = document.getElementById('mensal-chips-status');
+            if (!wrap) return;
+            const statusMen = (men) => men.status === 'Pago' ? 'pago' : mensalidadeEmAtraso(men) ? 'atrasado' : 'a_vencer';
+            const contagem = { todos: filtradas.length, pago: 0, atrasado: 0, a_vencer: 0 };
+            filtradas.forEach(men => { contagem[statusMen(men)]++; });
+            const chips = [
+                { chave: 'todos', rotulo: 'Todos', n: contagem.todos },
+                { chave: 'pago', rotulo: 'Pagos', n: contagem.pago },
+                { chave: 'a_vencer', rotulo: 'A vencer', n: contagem.a_vencer },
+                { chave: 'atrasado', rotulo: 'Em atraso', n: contagem.atrasado },
+            ];
+            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarMensalPorChip('${c.chave}')" class="rz-chip ${mensalChipStatus === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('');
+        }
+
+        export function filtrarMensalPorChip(chave) {
+            mensalChipStatus = chave;
+            renderMensalidades();
         }
 
         export function renderMensalidades() {
@@ -2667,13 +2804,21 @@ export function montarAbaFinanceiro(tabId) {
 
             });
 
+            // v1.178.9 — achado do Nicola: chips de status. Conta em cima do
+            // que já passou pelos outros filtros (competência/locatário/
+            // busca), sem o chip — senão o próprio chip escondia sua opção
+            // "vizinha" da contagem. Aplica o chip DEPOIS de contar.
+            renderChipsMensal(filtradas);
+            const statusMen = (men) => men.status === 'Pago' ? 'pago' : mensalidadeEmAtraso(men) ? 'atrasado' : 'a_vencer';
+            const filtradasComChip = mensalChipStatus === 'todos' ? filtradas : filtradas.filter(men => statusMen(men) === mensalChipStatus);
+
             // Agrupa por competência (Ref), sempre em ordem decrescente (mês mais
 
             // recente primeiro) — cada grupo pode ser expandido/recolhido.
 
             const grupos = {};
 
-            filtradas.forEach(men => {
+            filtradasComChip.forEach(men => {
 
                 if (!grupos[men.referencia]) grupos[men.referencia] = [];
 
@@ -2762,7 +2907,16 @@ export function montarAbaFinanceiro(tabId) {
                 kTotRecebido += recebidoGrupo; kTotAtraso += inadimplenteGrupo; kTotAVencer += avencerGrupo;
                 const grupoId = 'grupo-mensal-' + ref.replace('/', '-');
                 const abertoPorPadrao = gruposMensalAbertos.has(ref);
-                const resumo = [qtdRecebido ? `${qtdRecebido} pago${qtdRecebido > 1 ? 's' : ''}` : '', qtdInadimplente ? `${qtdInadimplente} em atraso` : '', qtdAVencer ? `${qtdAVencer} a vencer` : ''].filter(Boolean).join(' · ');
+                // v1.178.9 — achado do Nicola: resumo da competência varia
+                // com o chip ativo — "todos" mantém a repartição de sempre
+                // (N pago · N atraso · N a vencer); um chip específico mostra
+                // "valor · N itens" (só esse recorte, já que com o chip
+                // ativo o grupo só tem itens daquele status mesmo).
+                const totalItensGrupo = qtdRecebido + qtdInadimplente + qtdAVencer;
+                const valorGrupo = recebidoGrupo + inadimplenteGrupo + avencerGrupo;
+                const resumo = mensalChipStatus === 'todos'
+                    ? [qtdRecebido ? `${qtdRecebido} pago${qtdRecebido > 1 ? 's' : ''}` : '', qtdInadimplente ? `${qtdInadimplente} em atraso` : '', qtdAVencer ? `${qtdAVencer} a vencer` : ''].filter(Boolean).join(' · ')
+                    : `${formatarMoedaBR(valorGrupo)} · ${totalItensGrupo} ite${totalItensGrupo > 1 ? 'ns' : 'm'}`;
                 // v1.6.5 — achado do Nicola: mês 100% futuro (só "a vencer",
                 // nada pago ou em atraso ainda) ficava com a MESMA cor de
                 // cabeçalho que um mês com coisa pra agir — a única
@@ -2773,7 +2927,6 @@ export function montarAbaFinanceiro(tabId) {
                 return `
                     <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer${soFuturo ? ';opacity:.6' : ''}" onclick="alternarGrupoMensal('${ref}')">
                         <span style="flex:1">${ref} · ${resumo}</span>
-                        ${qtdInadimplente > 0 ? `<button type="button" onclick="event.stopPropagation(); rzAcoesGrupoMensal('${ref}')" class="rz-more" aria-label="Mais ações" style="margin:0"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}
                         <svg data-lucide="chevron-down" id="${grupoId}-seta" style="width:16px;height:16px;transform:rotate(${abertoPorPadrao ? '180' : '0'}deg)"></svg>
                     </div>
                     <div id="${grupoId}" class="rz-card rz-list ${abertoPorPadrao ? '' : 'hidden'}">${linhas}</div>`;
@@ -2806,28 +2959,10 @@ export function montarAbaFinanceiro(tabId) {
             if (aberto) gruposMensalAbertos.add(ref); else gruposMensalAbertos.delete(ref);
         }
 
-        export function apagarInadimplentesDoGrupo(ref) {
-
-            // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): antes
-            // apagava TODO mensalidade 'Inadimplente' da competência, sem
-            // checar vencimento — se o grupo tivesse contratos com dias de
-            // vencimento diferentes (um já vencido, outro ainda não), um
-            // lançamento "A vencer" podia ser apagado junto sem aparecer
-            // nem no botão nem na confirmação. Agora usa mensalidadeEmAtraso()
-            // pra apagar exatamente o mesmo recorte que o botão mostra.
-            const alvo = mensalidades.filter(m => m.referencia === ref && mensalidadeEmAtraso(m));
-            const qtd = alvo.length;
-
-            if (qtd === 0) return;
-
-            if (!confirm(`Confirma apagar os ${qtd} lançamento(s) atrasado(s) da competência ${ref}? Lançamentos já recebidos ou ainda a vencer NÃO são afetados.`)) return;
-
-            const idsAlvo = new Set(alvo.map(m => m.id));
-            mensalidades = mensalidades.filter(m => !idsAlvo.has(m.id));
-
-            saveAll(true, `${qtd} lançamento(s) atrasado(s) de ${ref} apagado(s).`, ['mensalidades']);
-
-        }
+        // v1.178.8 — rzAcoesGrupoMensal() e apagarInadimplentesDoGrupo()
+        // removidas (achado do Nicola: "apagar lançamentos em atraso" no
+        // menu da competência não faz sentido e atrapalha o padrão — era a
+        // ÚNICA opção desse menu, então o ⋮ do grupo saiu junto).
 
         export function abrirModalOpcoesRecibo(menId, conId) {
 
