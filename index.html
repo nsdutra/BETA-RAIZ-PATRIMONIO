@@ -10928,15 +10928,23 @@
 
         // Dispatcher único (Motor doc §8): "alerta novo = uma linha no
         // catálogo, zero código de navegação novo". destino_rota vem do
-        // banco (alerta_tipos.destino_rota); esta função só sabe abrir 3
-        // destinos hoje — os mesmos 3 que já existiam como onClick
-        // separados antes desta entrega, unificados aqui.
+        // banco (alerta_tipos.destino_rota).
+        // CORRIGIDO (12/09/2026, achado pelo Nicola em teste real — console
+        // acusando "destino_rota sem dispatcher: financeiro/atrasados"):
+        // faltava o case de financeiro/atrasados — não existia como onClick
+        // separado antes desta entrega (atraso_pagamento nunca tinha
+        // aparecido nesta tela), então não tinha de onde copiar; a Visão
+        // Geral já resolve isso exatamente assim (switchTab('tab-
+        // inadimplencia')) e eu não tinha olhado lá.
         function rzAbrirDestinoAlerta(alertaChave) {
             const row = alertasPorChave.get(alertaChave);
             if (!row || !row.destino_rota) return;
             switch (row.destino_rota) {
                 case 'contrato/ficha':
                     abrirFichaContrato(row.entidade_id);
+                    return;
+                case 'financeiro/atrasados':
+                    switchTab('tab-inadimplencia');
                     return;
                 case 'cofre/item':
                     abrirAlertaItemControle(row.entidade_id, row.detalhe?.ativo_id || '');
