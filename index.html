@@ -7,7 +7,7 @@
    preservado abaixo para referência técnica)
 
    VERSÃO: Beta v1.179.5
-   LINHAS: 15330
+   LINHAS: 15153
    DATA: 12/09/2026
    NOVIDADES (Beta v1.179.5) — pedido do Nicola: novo modal "Resumo da
    conciliação" (data/hora, origem, modo, canal) em todo item conciliado
@@ -56,185 +56,8 @@
    genérica. Bug real corrigido: formulário de despesa não lia valor/
    vencimento vindo da Conciliação — "Nova despesa" abria com esses campos
    vazios. Ver changelog completo em financeiro.js 1.6.9.
-   NOVIDADES (Beta v1.179.0) — 3ª leva de achados do Nicola testando no
-   celular. Bug real corrigido: seletor de imóvel abrindo atrás do sheet de
-   busca (z-index colidia com "Buscar/Filtrar" — usado em 5 telas, corrigido
-   pra todas). Conciliação padronizada com Recebimentos/Saídas (sem card
-   branco, sem título solto, chips neutros) + lupa nova (filtra texto livre
-   e campos condicionais por direção) + botão Importar virou redondo.
-   Atrasados (tab-inadimplencia) ganhou hero verde, agrupamentos viraram
-   cortinas colapsáveis de verdade, e "< Voltar" + seta de link deixam o
-   caminho até ela mais claro. Ver changelog completo em financeiro.js 1.6.8.
-   NOVIDADES (Beta v1.178.9) — 2ª leva da bateria grande de achados do
-   Nicola (fecha os 9 itens pendentes da leva anterior):
-   Chips de status em Recebimentos e Saídas (Todos/Pagos/A vencer/
-   Atrasados), resumo da competência dinâmico ("valor · N itens"). Hero
-   verde na Conciliação + botão único Importar/Reprocessar (era faixa de
-   texto + card + link separados). Resumo de Saídas virou geral, como
-   Recebimentos (não mais travado no mês corrente). DARF abre formulário
-   pra especificar o tributo em vez de criar direto. Lista de Saídas com
-   ordenação estável (não "saía da ordem" mais depois de dar baixa).
-   Avaliado e mantido: tab-inadimplencia (agrupa por locatário + WhatsApp
-   de cobrança, chips não substituem). Ver changelog completo em
-   financeiro.js 1.6.7.
-   NOVIDADES (Beta v1.178.8) — 1ª leva de uma bateria grande de achados do
-   Nicola (12 itens ao todo testando no celular; itens ainda pendentes
-   listados no fim, não escondidos). Corrigidos nesta entrega:
-   (1) APP_VERSAO — achado do próprio Nicola pela tela splash: essa
-   constante (usada no splash e na tela Versões) tinha ficado presa em
-   1.176.0, nunca era sincronizada com o comentário de cabeçalho. Corrigida
-   e comprometida a andar junto daqui pra frente.
-   (2) ACHADO GRAVE, banco: repasses de sócio nunca conciliavam sozinhos —
-   a chave do repasse (nome limpo do pagador) e a chave do fingerprint
-   (texto completo do banco) nunca batiam por igualdade exata no trigger de
-   espelho. Corrigido pra casar por data+valor (mesmo padrão já usado nas
-   correções anteriores) e conferido: 4 repasses represados (Roberta,
-   Renato, Claudia, Luciana) conciliados de verdade agora.
-   (3) "Limpar filtros" de Recebimentos não limpava a busca por texto —
-   corrigido (Saídas e Inadimplência já limpavam certo).
-   Ver changelog de financeiro.js 1.6.6 pro resto desta leva (despesa já
-   conciliada abrindo formulário errado; menu "apagar atrasados" removido).
-   PENDENTE desta bateria (9 itens, fica pra próxima entrega — são mudanças
-   de tela maiores, não bugs pontuais): DARF identificar tributo específico;
-   botões de despesa daltônicos do padrão de recebimento; ordem da lista
-   após dar baixa; chips de status nos agrupamentos de competência (as duas
-   telas) com resumo "valor · N itens" dinâmico; hero verde + botão único
-   (Importar/Reprocessar) na Conciliação; resumo de Saídas virar geral como
-   Recebimentos; avaliar se tab-inadimplencia ainda se justifica com os
-   chips de status.
-   NOVIDADES (Beta v1.178.7) — padronização Recebimentos/Saídas/Conciliação,
-   6 achados do Nicola. "+" de Recebimentos removido (abria menu redundante
-   com a aba Conciliação). Resumo do topo de Recebimentos e Saídas
-   unificado na mesma classe .rz-kpi.rz-hero do catálogo — antes cada tela
-   tinha desenho próprio. Chip "Atrasados" solto tirado das 2 abas — "Em
-   atraso"/"Atrasado" viraram parte do próprio resumo, tocáveis. Ver
-   changelog de financeiro.js 1.6.5 pro resto (agrupamento por competência
-   na Conciliação, polish nos agrupamentos de Recebimentos).
-   NOVIDADES (Beta v1.178.6) — chip "Automáticas" removido (redundante com
-   Conciliados, achado do Nicola). Ver changelog de financeiro.js 1.6.4 pro
-   resto (overload ambígua de fn_extrato_vincular_recebimento corrigida no
-   banco, nome das linhas mais limpo, limpeza de ~15 fingerprints
-   duplicados por variação de grafia da IA — 11 grupos ficaram de fora,
-   aguardando decisão do Nicola, risco de 1 pagamento ter marcado 2
-   competências como pagas).
-   NOVIDADES (Beta v1.178.5) — Etapa 10 do plano de conciliação, adiantada a
-   pedido do Nicola. (1) Tela nova "Regras de conciliação" no menu de Conta
-   (⚙️ › Empresa) — catálogo de regras com override por cliente
-   (fn_conciliacao_regra_cliente_modo) + memórias "Sempre fazer assim" já
-   criadas. Funcionalidade nova conciliacao.configurar (banco), liberada nos
-   4 planos e 4 perfis, mesmo padrão de conciliacao.resolver. (2) ACHADO
-   GRAVE ao construir a tela: o motor (fn_conciliacao_avaliar) tinha o modo
-   de CT01/CT02/R04/R05/R07 GRAVADO NO CÓDIGO — mudar na tela nova não teria
-   efeito nenhum pra essas 5 regras; só R01/R02/R08/R09/R10 liam a tabela, e
-   mesmo assim só o default da plataforma, nunca um override. R13/R14/R15
-   também faltavam no motor (só fn_extrato_sugerir_destino as via). Motor
-   inteiro corrigido (fn_conciliacao_modo_efetivo nova, banco) e testado:
-   override automático funciona, "desligada" faz a linha não casar com
-   nada. (3) ACHADO 2: fn_conciliacao_regra_cliente_modo escolhia o cliente
-   do usuário sem ORDER BY (mesmo padrão de bug já achado na Etapa 4 —
-   usuário com pessoa em vários clientes, como o Nicola, master em 11
-   tenants, pegava um cliente arbitrário). Corrigido: cliente agora é
-   parâmetro explícito, validado contra meus_clientes(). (4) "Reprocessar"
-   virou link pequeno (não mais card do mesmo peso que Importar) — deixou
-   de ser ação do dia a dia agora que a importação já chama o motor sozinha.
-   NOVIDADES (Beta v1.178.4) — mesma rodada de achados do Nicola testando no
-   celular: legenda "i" de status ao lado do título da Conciliação; barra de
-   rolagem dos chips escondida (#conc-uni-chips); botões Importar/Reprocessar
-   viraram .rz-ico-btn do catálogo (Importar com selo IA — .rz-ico-btn.rz-ia
-   nunca tinha regra de cor própria, corrigido, beneficia também o botão de
-   Minutização por tabela). Ver changelog de financeiro.js 1.6.3 pro resto
-   (título das linhas limpo, bug de "Voltar" corrigido).
-   NOVIDADES (Beta v1.178.3) — pedido do Nicola: painel de Pendências legado
-   (Filtrar Pendências, barras vermelhas por mês) removido de vez — v1.178.2
-   tinha deixado de pé de propósito (30 pendências reais, R$ 127 mil);
-   migração conferida no banco antes de tirar (nenhuma perdida — todas já
-   tinham fingerprint correspondente, 2 corrigidas por dessincronia). HTML
-   dos 4 selects de filtro + lista removido; pontes window[...] das 5
-   funções do painel removidas. Ver changelog de financeiro.js 1.6.2 pro
-   raciocínio completo (inclusive reprocessarConciliacaoPendente()
-   reescrita pra usar extrato_fingerprints em vez do painel legado).
-   NOVIDADES (Beta v1.178.2) — mesmo achado do Nicola: pontes window[...] pra
-   3 funções novas de financeiro.js 1.6.1 (busca manual de recebimento —
-   abrirBuscarMensalidadeManual/filtrarVincularManual/selecionarMensalidadeManual).
-   Nada de HTML mudou aqui — o painel de Pendências legado (Filtrar
-   Pendências, barras vermelhas por mês) continua de pé por decisão
-   consciente: tem ~30 pendências reais da Rumo (R$ 127 mil) já carregadas
-   nele. Ver changelog de financeiro.js 1.6.1 pro raciocínio completo.
-   NOVIDADES (Beta v1.178.1) — 2 ajustes de UI direto do teste no celular do
-   Nicola (tab-conciliacao): (1) chip "Atrasados" tirado desta aba — não faz
-   sentido conceitual em Conciliação (atraso é sobre a cobrança, não sobre
-   casar linha do banco); continua em Recebimentos/Saídas, onde já fazia
-   sentido. (2) Borda esquerda verde do card "Conciliação — entradas e
-   saídas" tirada — tinha sido posta numa sessão anterior só pra separar
-   visualmente "tela nova" de "tela antiga" dividindo a mesma aba; sem
-   sentido agora que Conciliação é aba própria.
-   NOVIDADES (Beta v1.178.0) — Etapa 8 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md.
-   (1) Chip "Automáticas" no card de conciliação. (2) banco_origem real
-   gravado (achado A5) — gravarFingerprintsExtratoSupabase() não força mais
-   'Itaú' pra qualquer importação, usa o banco que a linha trouxe (IA detecta
-   no PDF/foto). (3) SOCIOS_CONHECIDOS (config estática, sempre vazia — achado
-   A7) virou obterSociosConhecidos(), computada a partir de
-   contratos[].divisaoRepasse (mesmo dado que o bot já usa). Ver financeiro.js
-   1.6.0 pro resto (sugestões em lote, Confirmar inline, Desfazer, "Sempre
-   fazer assim", fn_conciliacao_aplicar no fim da importação).
-   NOVIDADES (Beta v1.177.0) — Etapa 7 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md
-   completa. (1) Comentário CSS da linha ~401 e os 2 contornos do cabeçalho
-   já estavam corrigidos/removidos antes desta sessão (Parte I) — versão só
-   alinhada. (2) "Gerar mês" saiu (painel, select, gerarMensalidades,
-   alternarPainelGerarMes, pontes) — cron + ativação/renovação de contrato já
-   geram sozinhos (fn_gerar_mensalidades_horizonte); importação de extrato
-   passou a chamar fn_gerar_mensalidades_competencia direto (saiu o gerador
-   JS local — construirLinhaDoTempoValor/valorVigenteEm/
-   gerarMensalidadesParaCompetencia). (3) NOVO — Conciliação virou aba
-   própria (tab-conciliacao), 3º segmento de Financeiro junto de
-   Recebimentos/Saídas (antes era painel escondido dentro de Recebimentos);
-   tab-inadimplencia deixou de ser segmento de peso igual — "Atrasados"
-   agora é um chip/link a partir das outras 3 abas do grupo (tela e lógica
-   de cobrança em si inalteradas, sem risco de regressão). (4) Ativação de
-   contrato com início no passado agora pergunta se quer gerar também os
-   recebimentos retroativos (contratos.js 1.3.0) — nunca decide sozinho.
-   (5) financeiro.js 1.5.0: removida ressincronizarFingerprintAposEstorno —
-   os triggers de espelho do banco (Etapa 3) já fazem o mesmo, mais
-   completo. Fica só o refresh de tela.
-   NOVIDADES (Beta v1.176.0) — Pacote cumulativo de fechamento da sessão
-   (nenhuma mudança de comportamento além do que já estava nas versões
-   abaixo). Corrigido um deslize de versionamento: cofre-documentos.js
-   trazia o fix dos Documentos arquivados desde 10/09 mas continuava
-   marcado como 2.11.0 — agora 2.12.0, pra Dev › Versões não mentir.
-   NOVIDADES (Beta v1.175.0) — "Editar dados do imóvel": parei de chutar.
-   Depois de 3 tentativas que corrigiram problemas reais mas não A causa,
-   o preenchimento dos campos foi isolado num try/catch (imoveis.js 1.5.0)
-   e a ponte assíncrona ganhou tratamento de erro (cofre-ativos.js 1.29.0).
-   Efeito: (1) o modal abre MESMO que algum campo falhe — campo vazio é
-   menos grave que tela que não abre; (2) se ainda houver falha, o erro
-   REAL aparece na tela, em vez do silêncio que me enganou 3 vezes.
-   NOVIDADES (Beta v1.174.0) — CAUSA RAIZ do "Editar dados do imóvel não
-   abre", enfim (3ª tentativa): renderPreviewFotosImovel() escrevia num
-   container que eu mesmo removi no A.9, e editarImovel() chama ela ANTES
-   de exibir o modal — a execução morria ali, calada. Corrigido em
-   imoveis.js 1.4.0, com varredura dos 71 ids do módulo pra achar outros
-   casos iguais.
-   Etapa 3 do módulo contador (Alertas): a tela e os 5 sinais tributários
-   já existiam desde a v1.85.0 — faltava só a categoria "movimentações".
-   Entraram 2 sinais novos (extrato parado há +15 dias, conciliação
-   pendente antiga) dentro da mesma RPC, sem mudança de app.
-   NOVIDADES (Beta v1.173.0) — Dois bugs reais fechados a pedido do
-   Nicola. 1) "Editar dados do imóvel" PERSISTIA quebrado: causa real era
-   rzMoverFormImovelParaBody() (move o formulário pro body, chamada direto
-   no boot) ter ido pro módulo lazy do A.8 por engano — voltou pra cá.
-   2) Estornar pela tela nativa de Recebimento/Despesa agora ressincroniza
-   o extrato de conciliação de volta pra pendente (financeiro.js 1.4.1,
-   testado direto no banco antes de conectar) — não ficava mais "preso"
-   como conciliado.
-   NOVIDADES (Beta v1.172.0) — Módulo Apoio ao Contador, conciliação
-   virou roteador fino (financeiro.js 1.4.0, pedido do Nicola): linha já
-   conciliada abre a tela nativa de sempre (Recebimento/Despesa), "Nova
-   despesa" abre a tela nativa já preenchida (abrirNovaDespesa já aceitava
-   sugestão, só nunca tinha sido chamada da conciliação). Campos de
-   IPTU/Condomínio (Etapa 1) somados na tela de recebimento, ao lado de
-   Multa/Taxa Adm.
    ------------------------------------------------------------------
-   Versões anteriores (v1.171.0 … v1.171.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.172.0 … v1.179.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -258,7 +81,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.4.1","./js/contratos.js":"./js/contratos.js?v=1.2.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.29.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.29.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
