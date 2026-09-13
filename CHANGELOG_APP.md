@@ -4,6 +4,26 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.179.3) — pedido do Nicola ("não quero evoluir o
+sistema e ficar deixando código morto espalhado"): tabela
+pendencias_extrato DROPADA de verdade no banco (não só parou de ser
+usada) — fn_apagar_empresa_completa corrigida antes (tinha um DELETE
+real nela), trigger próprio removido junto. No app: removidas as 3
+funções de sincronização mortas, o array global pendenciasExtrato e seu
+carregamento no boot, as entradas nas tabelas de despacho do saveAll, e
+a tabela na lista do "Limpar sistema" — todas essas quebrariam se
+deixadas (chamavam função/tabela que não existe mais). 2 bugs reais
+pegos no processo antes de virarem incidente: variável órfã lida numa
+mensagem (ReferenceError na próxima importação) e o carregamento no
+boot chamando uma função já removida (quebraria a inicialização do app
+inteiro). Ver changelog completo em financeiro.js 1.7.1.
+------------------------------------------------------------------
+Versões anteriores (v1.179.2 … v1.179.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.179.2) — 5ª leva de achados do Nicola: resumo de
 competência em Recebimentos padronizado (sempre "valor · N itens", em
 qualquer chip e competência); alerta de lançamentos futuros removido de

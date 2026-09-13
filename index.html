@@ -6,9 +6,23 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.180.1
-   LINHAS: 15297
+   VERSÃO: Beta v1.180.2
+   LINHAS: 15382
    DATA: 13/09/2026
+   NOVIDADES (Beta v1.180.2) — MOTOR CENTRAL DE ALERTAS, Fase 5, item 11:
+   "Minhas notificações" (menu Conta) unifica as preferências de alerta
+   (antes só dentro do card da própria pessoa, em Pessoas — a pessoa
+   logada tinha que se achar na lista) com as comunicações da Raiz (tela
+   que já existia, "Preferências de comunicação" — renomeada, mesmo
+   lugar). Reaproveita buscarProativasDisponiveis/buscarPreferenciasComunicacao
+   de comum-pessoas.js (v1.6.0) em vez de reimplementar a consulta.
+   Achado ao investigar (item 10 da mesma seção): pessoas.comunicacoes
+   (coluna) está morta — zero dado real nas 28 pessoas do banco, nunca
+   lida em lugar nenhum do código além do carregamento — a preocupação do
+   Motor doc sobre "mexer em consentimento comercial" não se aplica; a
+   tela de Pessoas já lê certinho de pessoa_preferencias_comunicacao
+   desde antes desta entrega. Coluna antiga mantida por enquanto (limpeza
+   é decisão separada, não apaguei sem confirmar).
    NOVIDADES (Beta v1.180.1) — MOTOR CENTRAL DE ALERTAS, Fase 3, fechamento
    (consolida 5 correções/entregas que ficaram sem versão própria por
    engano — corrigido a partir de agora, cada entrega evolui a versão).
@@ -57,21 +71,8 @@
    ACIMA. Reordenado pra bater com o padrão das outras duas. Acompanha o
    pedido de estender o bot pra saída (whatsapp-webhook/_shared.ts v2.59)
    — nenhuma mudança de app associada a essa parte, é 100% Edge Function.
-   NOVIDADES (Beta v1.179.3) — pedido do Nicola ("não quero evoluir o
-   sistema e ficar deixando código morto espalhado"): tabela
-   pendencias_extrato DROPADA de verdade no banco (não só parou de ser
-   usada) — fn_apagar_empresa_completa corrigida antes (tinha um DELETE
-   real nela), trigger próprio removido junto. No app: removidas as 3
-   funções de sincronização mortas, o array global pendenciasExtrato e seu
-   carregamento no boot, as entradas nas tabelas de despacho do saveAll, e
-   a tabela na lista do "Limpar sistema" — todas essas quebrariam se
-   deixadas (chamavam função/tabela que não existe mais). 2 bugs reais
-   pegos no processo antes de virarem incidente: variável órfã lida numa
-   mensagem (ReferenceError na próxima importação) e o carregamento no
-   boot chamando uma função já removida (quebraria a inicialização do app
-   inteiro). Ver changelog completo em financeiro.js 1.7.1.
    ------------------------------------------------------------------
-   Versões anteriores (v1.179.2 … v1.179.2): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.179.3 … v1.179.3): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -95,7 +96,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.24.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.24.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3495,7 +3496,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.180.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.180.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9414,7 +9415,7 @@
                     { titulo: 'Conta', acoes: [
                         { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
                         { icone: 'package-check', titulo: 'Versões', sub: 'O que está no ar × o que está rodando', codigo: 'dev.acessar', aoTocar: abrirVersoesDev }, // v1.132
-                        { icone: 'message-circle', titulo: 'Preferências de comunicação', aoTocar: abrirPreferenciasComunicacao },
+                        { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => window.open('https://wa.me/5511947461828', '_blank') },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
                         { icone: 'info', titulo: 'Sobre', aoTocar: ir('tab-sobre') },
@@ -9494,6 +9495,26 @@
         // fn_minhas_comunicacoes_opt_out() (permite_opt_out=false pra elas).
         // Modal criado dinamicamente (mesmo padrão do overlay da Central de
         // Comunicações) — não precisa de wrapper estático no HTML.
+        // v1.180.2 (13/09/2026) — MOTOR CENTRAL DE ALERTAS, Fase 5 (item 11 da
+        // §11 do Motor doc): "Minhas notificações" unifica duas coisas que
+        // viviam separadas — as preferências de ALERTA (antes só dentro do
+        // card da própria pessoa, na tela de Pessoas — a pessoa logada tinha
+        // que se achar na lista pra mexer nas próprias preferências) e as
+        // COMUNICAÇÕES DA RAIZ (esta tela já existia, "Preferências de
+        // comunicação" — o texto dela já dizia "avisos sobre contratos e
+        // imóveis não entram aqui", confirmando que sempre foi só a metade
+        // comercial). Renomeado o item do menu de "Preferências de
+        // comunicação" pra "Minhas notificações" (mesmo lugar, grupo Conta).
+        // Reaproveita buscarProativasDisponiveis/buscarPreferenciasComunicacao
+        // de comum-pessoas.js (mesma consulta que a tela de Pessoas já faz —
+        // v1.6.0, exportadas pra isso) em vez de reimplementar; grava com o
+        // MESMO upsert em pessoa_preferencias_comunicacao, só que pra
+        // pessoaIdLogada em vez de uma pessoa escolhida na lista.
+        // NÃO fiz: apagar comunicacaoProativaHtml() de dentro do card de
+        // Pessoas (o Motor doc pede isso — "preferências saem do cartão de
+        // Pessoas" — mas um admin editar as preferências de OUTRA pessoa
+        // ainda precisa viver em algum lugar; tirar de lá sem definir onde
+        // isso vai morar seria perda de funcionalidade, não simplificação).
         async function abrirPreferenciasComunicacao() {
             let overlay = document.getElementById('overlay-preferencias-comunicacao');
             if (!overlay) {
@@ -9504,11 +9525,75 @@
                 document.body.appendChild(overlay);
             }
             overlay.innerHTML = `<div style="width:100%;max-width:480px;background:var(--paper,#faf9f5);border-radius:18px 18px 0 0;max-height:80vh;overflow-y:auto;padding:20px">
-                <h3 style="font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--ink,#17211e);margin:0 0 4px">Preferências de comunicação</h3>
-                <p style="font-size:12px;color:var(--sage,#6b857a);margin:0 0 16px">Avisos sobre seus contratos e imóveis não entram aqui — continuam normalmente.</p>
+                <h3 style="font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--ink,#17211e);margin:0 0 4px">Minhas notificações</h3>
+                <p style="font-size:12px;color:var(--sage,#6b857a);margin:0 0 16px">O que você recebe automaticamente da Raiz — alertas do seu patrimônio e comunicações da equipe.</p>
+
+                <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 2px">Alertas e avisos automáticos</p>
+                <p style="font-size:11px;color:var(--sage,#6b857a);margin:0 0 8px">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
+                <div id="lista-preferencias-alertas" style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px">Carregando...</div>
+                <button type="button" id="btn-salvar-preferencias-alertas" style="display:none;width:100%;margin-bottom:20px;padding:8px;border-radius:10px;font-size:12px;font-weight:700;background:var(--sprout-light);color:var(--pine);border:1px solid var(--sprout)">Salvar meus avisos</button>
+
+                <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 8px;padding-top:8px;border-top:1px solid var(--line,#e6e3da)">Comunicações da Raiz</p>
                 <div id="lista-preferencias-comunicacao" style="display:flex;flex-direction:column;gap:2px">Carregando...</div>
             </div>`;
 
+            // Seção 1 — alertas (reaproveita comum-pessoas.js; pessoaIdLogada,
+            // não uma pessoa escolhida numa lista — esta tela é sempre sobre
+            // "eu mesmo").
+            try {
+                const { buscarProativasDisponiveis, buscarPreferenciasComunicacao, FREQUENCIA_OPCOES } = await import('./js/comum-pessoas.js');
+                const [proativas, preferenciasMap] = await Promise.all([
+                    buscarProativasDisponiveis(dbAuth, CLIENTE_ID_SUPABASE),
+                    buscarPreferenciasComunicacao(dbAuth, CLIENTE_ID_SUPABASE),
+                ]);
+                const listaAlertas = document.getElementById('lista-preferencias-alertas');
+                const btnSalvar = document.getElementById('btn-salvar-preferencias-alertas');
+                if (!proativas.length) {
+                    listaAlertas.innerHTML = '<p style="font-size:13px;color:var(--sage,#6b857a);padding:4px 0">Nenhum aviso automático disponível no seu plano.</p>';
+                } else {
+                    listaAlertas.innerHTML = proativas.map(f => {
+                        const pref = preferenciasMap.get(`${pessoaIdLogada}|${f.codigo}`);
+                        const habilitado = pref ? pref.habilitado : true;
+                        const frequencia = pref ? pref.frequencia : 'semanal';
+                        const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
+                        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line,#e6e3da)">
+                            <label style="display:flex;align-items:flex-start;gap:6px;flex:1;font-size:12.5px;color:var(--ink,#17211e);min-width:0">
+                                <input type="checkbox" class="pref-alerta-habilitado" data-codigo="${f.codigo}" ${habilitado ? 'checked' : ''} style="margin-top:2px">
+                                <span>${f.descricao}</span>
+                            </label>
+                            <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" style="font-size:11px;border:1px solid var(--line,#e6e3da);border-radius:6px;padding:2px 4px;flex:none">${opcoesHtml}</select>
+                        </div>`;
+                    }).join('');
+                    btnSalvar.style.display = 'block';
+                    btnSalvar.onclick = async () => {
+                        const linhas = Array.from(listaAlertas.querySelectorAll('.pref-alerta-habilitado')).map(chk => {
+                            const codigo = chk.dataset.codigo;
+                            const selectFreq = listaAlertas.querySelector(`.pref-alerta-frequencia[data-codigo="${codigo}"]`);
+                            return {
+                                cliente_id: CLIENTE_ID_SUPABASE, pessoa_id: pessoaIdLogada, funcionalidade_codigo: codigo,
+                                habilitado: chk.checked, frequencia: selectFreq ? selectFreq.value : 'semanal',
+                                atualizado_em: new Date().toISOString(),
+                            };
+                        });
+                        btnSalvar.disabled = true;
+                        try {
+                            const { error } = await dbAuth.from('pessoa_preferencias_comunicacao').upsert(linhas, { onConflict: 'pessoa_id,funcionalidade_codigo' });
+                            if (error) throw error;
+                            mostrarToast('Avisos salvos.', 'success');
+                        } catch (err) {
+                            mostrarToast('Não foi possível salvar: ' + err.message, 'danger');
+                        } finally {
+                            btnSalvar.disabled = false;
+                        }
+                    };
+                }
+            } catch (err) {
+                document.getElementById('lista-preferencias-alertas').innerHTML = '<p style="font-size:13px;color:#c1463a;padding:4px 0">Não foi possível carregar seus avisos agora.</p>';
+                console.warn('[minhas-notificacoes] falha ao carregar alertas:', err.message);
+            }
+
+            // Seção 2 — comunicações da Raiz (comportamento intacto, só o
+            // container mudou de lugar dentro da mesma folha).
             try {
                 const { data, error } = await dbAuth.rpc('fn_minhas_comunicacoes_opt_out', { p_cliente_id: CLIENTE_ID_SUPABASE });
                 if (error) throw error;

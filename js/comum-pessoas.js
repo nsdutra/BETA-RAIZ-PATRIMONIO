@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.5.1 · 06/09/2026
+// Versão: 1.6.0 · 13/09/2026
+//
+// v1.6.0 — MOTOR CENTRAL DE ALERTAS, Fase 5: buscarProativasDisponiveis(),
+// buscarPreferenciasComunicacao() e FREQUENCIA_OPCOES viram export — a
+// tela nova "Minhas notificações" (index.html, menu Conta) reaproveita a
+// MESMA consulta de licença×proativa e o MESMO mapa de preferências que
+// esta tela já usa, em vez de reimplementar. Nenhuma lógica mudou aqui,
+// só a visibilidade das 3 declarações.
 //
 // v1.5.1 — constante VERSAO sincronizada com o header (estava presa em uma
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
@@ -111,7 +118,7 @@
 // segredo, mesmo padrão já replicado nesse outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.5.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_PESSOAS_VERSAO = '1.2.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
@@ -133,7 +140,7 @@ const AREA_PARA_MODULO = {
 // (dias/horário) documentado uma vez só aqui — pedido explícito do
 // Nicola: "avise que os envios são por WhatsApp e saem durante a manhã,
 // informe que as semanais saem as segundas e as mensais saem dia 05".
-const FREQUENCIA_OPCOES = [
+export const FREQUENCIA_OPCOES = [
     { valor: 'diario', rotulo: 'Diário' },
     { valor: 'semanal', rotulo: 'Semanal (segundas)' },
     { valor: 'quinzenal', rotulo: 'Quinzenal' },
@@ -193,7 +200,7 @@ async function buscarModulosPorPerfil(dbAuth) {
 // em JS, sem RPC nova (as 3 tabelas já são legíveis por `authenticated`,
 // conferido contra o banco antes de escrever isto).
 // ----------------------------------------------------------------------------
-async function buscarProativasDisponiveis(dbAuth, clienteId) {
+export async function buscarProativasDisponiveis(dbAuth, clienteId) {
     try {
         const agora = new Date().toISOString();
         const [{ data: licencas, error: e1 }, { data: planoFunc, error: e2 }, { data: funcs, error: e3 }] = await Promise.all([
@@ -221,7 +228,7 @@ async function buscarProativasDisponiveis(dbAuth, clienteId) {
     }
 }
 
-async function buscarPreferenciasComunicacao(dbAuth, clienteId) {
+export async function buscarPreferenciasComunicacao(dbAuth, clienteId) {
     const mapa = new Map(); // chave: `${pessoaId}|${funcionalidadeCodigo}` -> { habilitado, frequencia }
     try {
         const { data, error } = await dbAuth
