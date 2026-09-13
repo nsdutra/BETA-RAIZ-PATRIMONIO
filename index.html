@@ -6,9 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.179.5
-   LINHAS: 15153
+   VERSÃO: Beta v1.180.0
+   LINHAS: 15155
    DATA: 12/09/2026
+   NOVIDADES (Beta v1.180.0) — MOTOR CENTRAL DE ALERTAS, Fase 3
+   (MOTOR_ALERTAS_RAIZ_v1_2_0.md). A Central de Alertas (aba "Alertas")
+   passa a ler fn_alertas_listar (banco) em vez de reimplementar a regra
+   em JS — antes eram 4 fontes com 4 regras próprias (cofre_ocorrencias_
+   controle cru, 3 checagens de contrato, fn_leitura_tributaria_sinais,
+   docsTriagem), cada uma um jeito diferente de decidir "isso é alerta?".
+   MUDANÇA VISÍVEL, confirmada com o Nicola: a tela passa a mostrar
+   também atraso de pagamento e extrato desatualizado (nunca apareciam
+   aqui antes, só no Financeiro/WhatsApp) — é o objetivo do Motor: app,
+   bot e banco vendo os mesmos alertas. Chips trocam 'Ativos'/'Outros'
+   por 'Financeiro'/'Fiscal'. Dispatcher único (rzAbrirDestinoAlerta)
+   substitui os onClick individuais por tipo — destino vem do catálogo
+   (alerta_tipos.destino_rota), zero código de navegação novo por tipo
+   de alerta. NÃO migrado ainda (fica pra próxima etapa): o card "Precisa
+   de atenção" da Visão Geral e o badge da lista de Contratos continuam
+   na regra antiga (contratoVencido/PrecisaRevisao/AguardandoAssinatura,
+   preservadas intactas — ainda usadas por essas 2 telas).
    NOVIDADES (Beta v1.179.5) — pedido do Nicola: novo modal "Resumo da
    conciliação" (data/hora, origem, modo, canal) em todo item conciliado
    — Conciliação, Recebimentos, Saídas. Menu de 3 pontinhos de item
@@ -46,18 +63,8 @@
    verdade contra os arquivos): achou e corrigiu emoji de robô fora do
    padrão e um uso decorativo de dourado fora de classe .rz-*. Ver
    changelog completo em financeiro.js 1.7.0.
-   NOVIDADES (Beta v1.179.1) — 4ª leva de achados do Nicola: "Regras de
-   conciliação" mudou de Empresa pro menu Cadastros; ao tocar numa regra
-   agora mostra a descrição completa (não só o nome). Menu (⋮) unificado
-   nas 3 abas — Conciliação e Saídas perderam botões/ícones soltos, tudo
-   vira opção do mesmo menu ao tocar a linha. Saídas ganhou ícone por
-   categoria e descrição limpa (mesmo padrão da Conciliação). "Marcar como
-   repasse" agora identifica o sócio de verdade em vez de criar despesa
-   genérica. Bug real corrigido: formulário de despesa não lia valor/
-   vencimento vindo da Conciliação — "Nova despesa" abria com esses campos
-   vazios. Ver changelog completo em financeiro.js 1.6.9.
    ------------------------------------------------------------------
-   Versões anteriores (v1.172.0 … v1.179.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.179.1 … v1.179.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -81,7 +88,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.29.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.11.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.23.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.29.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3481,7 +3488,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.179.5"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.180.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10834,157 +10841,149 @@
         // de alertas... deve ter ordenação do mais crítico pro menos
         // crítico") — reescrita completa da tela.
         //
-        // Modelo unificado: cada alerta vira { categoria, dias, titulo,
-        // subtitulo, onClick }. `dias` é o critério de criticidade
-        // (confirmado com o Nicola: "vencido há mais tempo, depois por
-        // dias restantes" — dias NEGATIVO = venceu há |dias| dias, mais
-        // negativo primeiro; dias POSITIVO = vence em `dias` dias,
-        // crescente; dias NULL = sem data própria, vai pro fim, nunca
-        // no meio dos itens com data real).
+        // v1.180.0 (12/09/2026) — MOTOR CENTRAL DE ALERTAS, Fase 3
+        // (MOTOR_ALERTAS_RAIZ_v1_2_0.md §11 item 1): monta a partir de
+        // fn_alertas_listar (banco) em vez de reimplementar a regra aqui.
+        // Antes, esta função consultava 4 fontes com 4 regras próprias
+        // (cofre_ocorrencias_controle cru, contratoVencido/PrecisaRevisao/
+        // AguardandoAssinatura, fn_leitura_tributaria_sinais, docsTriagem)
+        // — cada uma um jeito diferente de "isso é alerta?", igual ao App,
+        // Bot e banco tinham cada um o seu (diagnóstico do Motor doc §1).
+        // Uma leitura só agora; a regra mora no catálogo alerta_tipos +
+        // os 10 detectores, testados no banco antes desta entrega.
+        // MUDANÇA VISÍVEL, CONFIRMADA COM O NICOLA (12/09/2026): a tela
+        // passa a mostrar também atraso de pagamento e extrato
+        // desatualizado — nunca apareciam aqui antes (só no Financeiro/
+        // WhatsApp). É o objetivo do Motor: app, bot e banco vendo os
+        // mesmos alertas — decisão explícita, não efeito colateral.
+        // NÃO MIGRADO AINDA (fica pra próxima etapa, fora desta Fase 3
+        // parcial): o card "Precisa de atenção" da Visão Geral e o badge
+        // da lista de Contratos continuam lendo contratoVencido()/
+        // contratoPrecisaRevisao()/contratoAguardandoAssinatura() direto
+        // — por isso essas 2 telas ainda não bateram 100% com a Central
+        // (item 6 da §11 do Motor doc, "3 contagens paralelas → fn_
+        // alertas_resumo", pendente). As 3 funções continuam intocadas,
+        // ainda usadas por elas.
         //
-        // 4 categorias (chip): 'item_controle' (cofre_ocorrencias_
-        // controle — os únicos com "tratamento" de verdade, ver
-        // abrirAlertaItemControle), 'contrato' (vencido/precisa revisão/
-        // aguardando assinatura, calculados aqui + os sinais tributários
-        // de categoria='contrato'), 'ativo' (sinais tributários de
-        // categoria='cadastro'/'carteira' — sobre o cadastro do ativo ou
-        // a carteira, não sobre um item específico), 'outro' (sinais de
-        // categoria='proprietario' — sobre a pessoa, não o ativo/
-        // contrato/controle). Mapeamento é minha interpretação das 4
-        // categorias pedidas — Ativos/Contratos/Itens de controle/Outros
-        // não tinham definição prévia no código, avaliar se bate com o
-        // que o Nicola tinha em mente.
+        // 4 categorias de chip (rotulo novo, mesmo espírito de antes):
+        // 'item_controle' (Cofre — trata via abrirAlertaItemControle),
+        // 'contrato' (todos os 4 subtipos contratuais), 'financeiro'
+        // (atraso de pagamento + extrato desatualizado — novo),
+        // 'documento' (sem vínculo), 'fiscal' (ex-'ativo'/'outro' —
+        // sinais tributários, agora um tipo só no catálogo em vez de 2
+        // buckets calculados aqui).
         let alertasTodos = [];
+        let alertasPorChave = new Map();
         let alertasFiltroAtual = 'todos';
+
+        const ENTIDADE_PARA_CHIP_ALERTA = {
+            pendencia_financeira: 'financeiro',
+            empresa: 'financeiro',
+            contrato: 'contrato',
+            item_controle: 'item_controle',
+            carteira: 'fiscal',
+            documento: 'documento',
+        };
+
+        // Rótulos por categoria de sinal fiscal — mesmo mapa de antes
+        // (CATEGORIA_SINAL_LABEL), + 2 categorias novas da Etapa 4b da
+        // conciliação (movimentacao/recebimentos) que ainda não tinham
+        // entrado aqui.
+        const CATEGORIA_SINAL_LABEL_V2 = {
+            contrato: 'Contrato', cadastro: 'Cadastro', carteira: 'Carteira',
+            proprietario: 'Proprietário', movimentacao: 'Movimentação', recebimentos: 'Recebimentos',
+        };
+
+        // Título de exibição por tipo — o catálogo (alerta_tipos.nome) tem
+        // um nome técnico; o texto que o usuário vê continua sendo escolha
+        // de apresentação, igual sempre foi (mesmo espírito de
+        // ICONE_CATEGORIA/CATEGORIA_SINAL_LABEL, que já eram só de tela).
+        function tituloAlertaMotor(row) {
+            switch (row.tipo_alerta) {
+                case 'atraso_pagamento': return 'Pagamento em atraso';
+                case 'extrato_desatualizado': return 'Extrato desatualizado';
+                case 'reajuste_aniversario': return 'Pendente de revisão/reajuste';
+                case 'contrato_encerramento': return row.detalhe?.ja_vencido ? 'Contrato vencido' : 'Contrato vencendo';
+                case 'cofre_item_vencendo': return 'Item de controle vencendo';
+                case 'anexo_apolice_pendente': return 'Documento pendente';
+                case 'contrato_aguardando_assinatura': return 'Aguardando assinatura';
+                case 'contrato_ativo_vendido_arquivado': return `Contrato vigente em ativo ${row.detalhe?.ativo_status || ''}`;
+                case 'sinal_fiscal': {
+                    const cat = row.detalhe?.categoria;
+                    const qtd = row.detalhe?.contagem || 0;
+                    return `${CATEGORIA_SINAL_LABEL_V2[cat] || cat || 'Fiscal'} · ${qtd} ocorrência${qtd > 1 ? 's' : ''}`;
+                }
+                case 'documento_sem_vinculo': return 'Documento sem vínculo';
+                default: return row.tipo_alerta;
+            }
+        }
+
+        function subtituloAlertaMotor(row) {
+            // sinal_fiscal: a coluna `titulo` já vem com a frase completa
+            // do sinal (fn_leitura_tributaria_sinais.detalhe) — os demais
+            // usam o nome da pessoa/ativo específico daquele alerta.
+            if (row.tipo_alerta === 'sinal_fiscal') return row.titulo;
+            return row.detalhe?.locatario || row.titulo || '';
+        }
+
+        // Dispatcher único (Motor doc §8): "alerta novo = uma linha no
+        // catálogo, zero código de navegação novo". destino_rota vem do
+        // banco (alerta_tipos.destino_rota); esta função só sabe abrir 3
+        // destinos hoje — os mesmos 3 que já existiam como onClick
+        // separados antes desta entrega, unificados aqui.
+        function rzAbrirDestinoAlerta(alertaChave) {
+            const row = alertasPorChave.get(alertaChave);
+            if (!row || !row.destino_rota) return;
+            switch (row.destino_rota) {
+                case 'contrato/ficha':
+                    abrirFichaContrato(row.entidade_id);
+                    return;
+                case 'cofre/item':
+                    abrirAlertaItemControle(row.entidade_id, row.detalhe?.ativo_id || '');
+                    return;
+                case 'cofre/documento#vincular':
+                    abrirDocumentoPendente(row.entidade_id);
+                    return;
+                default:
+                    console.warn('[alertas] destino_rota sem dispatcher:', row.destino_rota);
+            }
+        }
 
         async function montarAlertasPatrimonio() {
             const mount = document.getElementById('alertas-patrimonio-mount');
-            if (!mount || !CLIENTE_ID_SUPABASE) return;
+            if (!mount || !CLIENTE_ID_SUPABASE || !pessoaIdLogada) return;
 
             mount.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Carregando...</p>';
 
-            // v1.151.0 — documentos pendentes de vínculo entram na tela de
-            // Alertas (a lista sumiu quando a home do Cofre foi apagada).
-            let docsTriagem = [];
-            try {
-                const docs = await import('./js/cofre-documentos.js');
-                const est = await import('./js/cofre-estado.js');
-                if (!est.estado.clienteId) {
-                    await new Promise(resolve => {
-                        window.addEventListener('cofre:dados-carregados', resolve, { once: true });
-                        setTimeout(resolve, 6000);
-                    });
-                }
-                docsTriagem = docs.resumoDocumentosEmTriagem();
-            } catch (err) { console.warn('[alertas] documentos em triagem:', err.message); }
-
-            const [resControles, resTributario] = await Promise.allSettled([
-                dbAuth.from('cofre_ocorrencias_controle')
-                    .select('*, cofre_itens_controle!inner(id, ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
-                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                    .eq('status_execucao', 'aberto')
-                    .eq('cofre_itens_controle.ativo', true),
-                dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE })
-            ]);
-
-            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-            const itens = [];
-            let houveErro = false;
-
-            // ---- Itens de controle ----
-            if (resControles.status === 'fulfilled' && !resControles.value.error) {
-                (resControles.value.data || []).forEach(oc => {
-                    const item = oc.cofre_itens_controle;
-                    if (!item) return;
-                    let dias = null;
-                    if (oc.data_prevista_atual) {
-                        dias = Math.round((new Date(oc.data_prevista_atual + 'T00:00:00') - hoje) / 86400000);
-                    }
-                    itens.push({
-                        categoria: 'item_controle', dias,
-                        titulo: item.titulo || 'Controle',
-                        subtitulo: item.cofre_ativos?.nome_exibicao || 'Ativo',
-                        onClick: `abrirAlertaItemControle('${item.id}', '${item.ativo_id}')`
-                    });
-                });
-            } else {
-                houveErro = true;
-            }
-
-            // ---- Contratos (vencido / precisa revisão / aguardando assinatura) ----
-            // Mesmas 3 checagens já usadas em verAlertasContrato() — não
-            // reescrevi a regra de negócio, só reaproveitei pra alimentar
-            // esta lista unificada.
-            (contratos || []).forEach(con => {
-                if (contratoVencido(con)) {
-                    const fim = new Date(con.fim + 'T00:00:00');
-                    itens.push({
-                        categoria: 'contrato', dias: Math.round((fim - hoje) / 86400000),
-                        titulo: 'Contrato vencido', subtitulo: con.locatario || 'Locatário não informado',
-                        onClick: `abrirFichaContrato('${con.id}')`
-                    });
-                }
-                if (contratoPrecisaRevisao(con)) {
-                    const ultimaVigencia = new Date(obterUltimaVigenciaValor(con) + 'T00:00:00');
-                    const prazoRevisao = new Date(ultimaVigencia); prazoRevisao.setMonth(prazoRevisao.getMonth() + 12);
-                    itens.push({
-                        categoria: 'contrato', dias: Math.round((prazoRevisao - hoje) / 86400000),
-                        titulo: 'Pendente de revisão/reajuste', subtitulo: con.locatario || 'Locatário não informado',
-                        onClick: `abrirFichaContrato('${con.id}')`
-                    });
-                }
-                if (contratoAguardandoAssinatura(con)) {
-                    itens.push({
-                        categoria: 'contrato', dias: null,
-                        titulo: 'Aguardando assinatura', subtitulo: con.locatario || 'Locatário não informado',
-                        onClick: `abrirFichaContrato('${con.id}')`
-                    });
-                }
-                // v1.114.0 (fatia 6; pendência "vendido/arquivado × contrato ativo",
-                // 02/09): contrato vigente num ativo marcado como vendido/
-                // arquivado vira alerta crítico — hoje nada impede o estado.
-                if (con.status === 'Ativo' && Array.isArray(window.__cofreAtivos)) {
-                    const at = window.__cofreAtivos.find(a => a.entidade_origem_tipo === 'imovel' && a.entidade_origem_id === con.imovelId);
-                    if (at && (at.status === 'vendido' || at.status === 'arquivado')) itens.push({
-                        categoria: 'contrato', dias: -1,
-                        titulo: `Contrato vigente em ativo ${at.status}`, subtitulo: `${con.locatario || 'Locatário'} · encerre o contrato ou reative o ativo`,
-                        onClick: `abrirFichaContrato('${con.id}')`
-                    });
-                }
+            const { data, error } = await dbAuth.rpc('fn_alertas_listar', {
+                p_cliente_id: CLIENTE_ID_SUPABASE,
+                p_pessoa_id: pessoaIdLogada,
             });
 
-            // ---- Sinais tributários (agregados — sem data própria, sem
-            // "tratamento" pontual possível, tom de notícia) ----
-            if (resTributario.status === 'fulfilled' && !resTributario.value.error) {
-                (resTributario.value.data || []).forEach(s => {
-                    const categoria = s.categoria === 'contrato' ? 'contrato' : (s.categoria === 'proprietario' ? 'outro' : 'ativo');
-                    itens.push({
-                        categoria, dias: null,
-                        titulo: `${CATEGORIA_SINAL_LABEL[s.categoria] || s.categoria} · ${s.contagem} ocorrência${s.contagem > 1 ? 's' : ''}`,
-                        subtitulo: s.detalhe,
-                        onClick: null
-                    });
-                });
-            } else {
-                houveErro = true;
-            }
-
-            // ---- Documentos pendentes de vínculo ----
-            docsTriagem.forEach(d => {
-                itens.push({
-                    categoria: 'documento', dias: null,
-                    titulo: d.titulo, subtitulo: d.subtitulo,
-                    onClick: `abrirDocumentoPendente('${d.id}')`
-                });
-            });
-
-            alertasTodos = itens;
-            if (houveErro && itens.length === 0) {
+            if (error) {
+                console.error('[alertas] fn_alertas_listar:', error.message);
                 mount.innerHTML = `<p class="text-xs text-red-500 text-center py-6">Não foi possível carregar os alertas agora.</p>`;
                 document.getElementById('alertas-chips-categoria').innerHTML = '';
                 return;
             }
 
+            alertasPorChave = new Map();
+            // Ciclo de vida do Motor (§6): dispensado nunca aparece; adiado
+            // some até a data. Hoje ninguém tem marca nenhuma ainda (a
+            // ação de adiar/dispensar na tela é uma etapa futura) — filtro
+            // já preparado, sem efeito visível até essa etapa existir.
+            const itens = (data || []).filter(r => r.visivel).map(r => {
+                alertasPorChave.set(r.alerta_chave, r);
+                return {
+                    categoria: ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro',
+                    dias: r.dias,
+                    titulo: tituloAlertaMotor(r),
+                    subtitulo: subtituloAlertaMotor(r),
+                    onClick: r.destino_rota ? `rzAbrirDestinoAlerta('${r.alerta_chave}')` : null,
+                };
+            });
+
+            alertasTodos = itens;
             renderChipsAlertas();
             renderListaAlertas();
         }
@@ -10994,11 +10993,11 @@
             if (!wrap) return;
             const grupos = [
                 { chave: 'todos', rotulo: 'Todos' },
-                { chave: 'ativo', rotulo: 'Ativos' },
+                { chave: 'financeiro', rotulo: 'Financeiro' },
                 { chave: 'item_controle', rotulo: 'Itens de controle' },
                 { chave: 'contrato', rotulo: 'Contratos' },
                 { chave: 'documento', rotulo: 'Documentos' },
-                { chave: 'outro', rotulo: 'Outros' }
+                { chave: 'fiscal', rotulo: 'Fiscal' }
             ];
             // v1.108.0 — chips no catálogo (.rz-chip, 1 linha com rolagem,
             // contador dentro; REGRAS §8) — antes eram pills Tailwind em
@@ -11043,7 +11042,10 @@
             // vira status "ponto + rótulo" nas 5 semânticas via renderStatus
             // (vencido = bad, ≤14 d = warn, demais = run), e a placa de ícone
             // segue a mesma semântica. Saem as 4 cores Tailwind por categoria.
-            const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', ativo: 'boxes', outro: 'info' };
+            // v1.180.0 — ICONE_CATEGORIA ganha 'financeiro'/'fiscal' (novas
+            // categorias do Motor); 'documento' continua caindo no fallback
+            // 'info' de sempre (nunca teve entrada própria aqui).
+            const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', financeiro: 'wallet', fiscal: 'landmark' };
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             mount.innerHTML = `<div class="rz-card rz-list">` + ordenados.map(a => {
                 let sem = 'neu', rotulo = '', classeIc = '', icone = ICONE_CATEGORIA[a.categoria] || 'info';

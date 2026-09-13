@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.179.1) — 4ª leva de achados do Nicola: "Regras de
+conciliação" mudou de Empresa pro menu Cadastros; ao tocar numa regra
+agora mostra a descrição completa (não só o nome). Menu (⋮) unificado
+nas 3 abas — Conciliação e Saídas perderam botões/ícones soltos, tudo
+vira opção do mesmo menu ao tocar a linha. Saídas ganhou ícone por
+categoria e descrição limpa (mesmo padrão da Conciliação). "Marcar como
+repasse" agora identifica o sócio de verdade em vez de criar despesa
+genérica. Bug real corrigido: formulário de despesa não lia valor/
+vencimento vindo da Conciliação — "Nova despesa" abria com esses campos
+vazios. Ver changelog completo em financeiro.js 1.6.9.
+------------------------------------------------------------------
+Versões anteriores (v1.172.0 … v1.179.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.179.0) — 3ª leva de achados do Nicola testando no
 celular. Bug real corrigido: seletor de imóvel abrindo atrás do sheet de
 busca (z-index colidia com "Buscar/Filtrar" — usado em 5 telas, corrigido
