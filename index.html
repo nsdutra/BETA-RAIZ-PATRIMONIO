@@ -7,7 +7,7 @@
    preservado abaixo para referência técnica)
 
    VERSÃO: Beta v1.180.0
-   LINHAS: 15270
+   LINHAS: 15290
    DATA: 12/09/2026
    NOVIDADES (Beta v1.180.0) — MOTOR CENTRAL DE ALERTAS, Fase 3
    (MOTOR_ALERTAS_RAIZ_v1_2_0.md). A Central de Alertas (aba "Alertas")
@@ -10875,6 +10875,12 @@
         let alertasTodos = [];
         let alertasPorChave = new Map();
         let alertasFiltroAtual = 'todos';
+        // Contagem BRUTA por categoria, calculada ANTES de agrupar — pedido
+        // explícito do Nicola (13/09/2026): "se tenho 50 itens pra
+        // conciliar, tenho 50 alertas, mesmo mostrando 1 linha só". O
+        // agrupamento reduz quantas LINHAS aparecem, nunca quanto o chip
+        // conta — as duas coisas são independentes.
+        let alertasContagemPorCategoria = new Map();
 
         const ENTIDADE_PARA_CHIP_ALERTA = {
             pendencia_financeira: 'financeiro',
@@ -11092,6 +11098,14 @@
             const visiveis = (data || []).filter(r => r.visivel);
             visiveis.forEach(r => alertasPorChave.set(r.alerta_chave, r));
 
+            // Contagem bruta ANTES do agrupamento — ver comentário na
+            // declaração de alertasContagemPorCategoria.
+            alertasContagemPorCategoria = new Map();
+            visiveis.forEach(r => {
+                const cat = ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro';
+                alertasContagemPorCategoria.set(cat, (alertasContagemPorCategoria.get(cat) || 0) + 1);
+            });
+
             alertasTodos = agruparEMapearAlertas(visiveis);
             renderChipsAlertas();
             renderListaAlertas();
@@ -11111,8 +11125,14 @@
             // v1.108.0 — chips no catálogo (.rz-chip, 1 linha com rolagem,
             // contador dentro; REGRAS §8) — antes eram pills Tailwind em
             // flex-wrap, quebrando em 2 linhas.
+            // CORRIGIDO (13/09/2026, pedido do Nicola): o contador reflete
+            // o volume REAL de alertas (alertasContagemPorCategoria,
+            // calculado antes de agrupar) — não quantas linhas aparecem na
+            // tela. 50 atrasos agrupados em 1 linha continuam contando 50.
             wrap.innerHTML = grupos.map(g => {
-                const qtd = g.chave === 'todos' ? alertasTodos.length : alertasTodos.filter(a => a.categoria === g.chave).length;
+                const qtd = g.chave === 'todos'
+                    ? Array.from(alertasContagemPorCategoria.values()).reduce((a, b) => a + b, 0)
+                    : (alertasContagemPorCategoria.get(g.chave) || 0);
                 const ativo = alertasFiltroAtual === g.chave;
                 return `<button type="button" onclick="filtrarAlertas('${g.chave}')" class="rz-chip ${ativo ? 'rz-on' : ''}">${g.rotulo} <span class="rz-n">${qtd}</span></button>`;
             }).join('');
