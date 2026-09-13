@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.11.0 · 10/09/2026
+// Versão: 2.12.0 · 11/09/2026
+//
+// v2.12.0 — BUG REAL (achado 10/09, versão só bumpada agora — tinha
+// deixado passar): abrirDocumentosArquivados() usava window.abrirModal,
+// que NUNCA existiu, e caía num aviso "Disponível só dentro do app
+// principal". O abrirModal correto já estava importado no topo deste
+// arquivo e é usado em outras 5 chamadas aqui mesmo — só esta fugia do
+// padrão. Por isso a tela de Documentos arquivados nunca abria.
 //
 // v2.11.0 — Documentos arquivados (pendência do Nicola): tela nova
 // (modal-documentos-arquivados, aberta pelo menu Conta › Cofre ›
@@ -266,7 +273,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.11.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.12.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1590,9 +1597,8 @@ export async function excluirDocumentoAtual() {
 let arquivadosCache = [];
 
 export async function abrirDocumentosArquivados() {
-    if (typeof window.abrirModal !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
     document.getElementById('doc-arq-lista').innerHTML = `<p class="text-xs" style="color:var(--sage)">Carregando...</p>`;
-    window.abrirModal('modal-documentos-arquivados');
+    abrirModal('modal-documentos-arquivados');
     try {
         arquivadosCache = await api.listarDocumentosArquivados(estado.clienteId);
         renderizarDocumentosArquivados();
