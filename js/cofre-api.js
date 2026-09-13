@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.23.0 · 10/09/2026
+// Versão: 1.24.0 · 13/09/2026
+//
+// v1.24.0 — MOTOR CENTRAL DE ALERTAS, Fase 3: nova buscarAlertasDoAtivo(),
+// ponte pra fn_alertas_do_ativo (banco) — alertas contextualizados na
+// ficha do ativo (ver cofre-ativos.js). Nenhuma função existente mudou.
 //
 // v1.23.0 — A.9 (transição imóveis → ativos, passo 1 de 5): publicação real
 // na vitrine. alternarPublicarVitrineFoto era um stub — só marcava a flag,
@@ -201,7 +205,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.23.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.24.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -612,6 +616,23 @@ export async function buscarResumoImovelOrigem(imovelId) {
         return null;
     }
 }
+
+// v1.24.0 (13/09/2026) — Motor Central de Alertas, Fase 3: "alertas
+// contextualizados na ficha do ativo". fn_alertas_do_ativo (banco)
+// resolve a pessoa internamente via auth.uid() — este módulo não tem a
+// pessoaId à mão (só clienteId, via cofre-estado.js), então plumbing pra
+// levar isso até aqui mudaria assinatura de várias funções só pra isso.
+export async function buscarAlertasDoAtivo(ativoId) {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_alertas_do_ativo', { p_ativo_id: ativoId });
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.warn('[cofre-api] buscarAlertasDoAtivo falhou:', e);
+        return [];
+    }
+}
+
 
 // NOVO (31/08/2026, pedido explícito, "evoluir a exemplo do protótipo")
 // — aba Contratos da ficha do ativo. Leitura pura da tabela contratos

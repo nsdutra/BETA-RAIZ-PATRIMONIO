@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.29.0 · 11/09/2026
+// Versão: 1.30.0 · 13/09/2026
+//
+// v1.30.0 — MOTOR CENTRAL DE ALERTAS, Fase 3: "alertas contextualizados na
+// ficha do ativo" (último item da Fase 3). Nova montarAlertasContextuaisAtivo(),
+// banner criado dinamicamente logo abaixo do cabeçalho — mostra os alertas
+// que já sabem apontar pra ESTE ativo (cofre_item_vencendo, anexo_apolice_
+// pendente). Clique troca pra aba Controles (a ficha já está aberta no
+// ativo certo). Nenhuma aba/painel existente foi tocado.
 //
 // v1.29.0 — INSTRUMENTAÇÃO: window.editarImovel é ponte assíncrona (R8/
 // A.8). A promise era ignorada, então falha de import ou da própria função
@@ -361,7 +368,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.29.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.30.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -892,9 +899,53 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
         seguro(montarFotosAtivo, 'montarFotosAtivo'),
         seguro(montarFinanceiroAtivo, 'montarFinanceiroAtivo'),
         seguro(montarPropriedadeAtivo, 'montarPropriedadeAtivo'),
+        seguro(montarAlertasContextuaisAtivo, 'montarAlertasContextuaisAtivo'),
     ]);
     if (ativoAtualId !== id) return; // outro ativo foi aberto no meio — o dele repinta
 }
+
+// v1.30.0 (13/09/2026) — MOTOR CENTRAL DE ALERTAS, Fase 3: "alertas
+// contextualizados na ficha do ativo". Mostra, dentro da própria ficha,
+// os alertas que já sabem apontar pra ESTE ativo (fn_alertas_do_ativo —
+// hoje só cofre_item_vencendo e anexo_apolice_pendente têm ativo_id no
+// detalhe; os demais tipos do Motor não são "de um ativo específico").
+// Banner criado dinamicamente (insertAdjacentElement) em vez de mexer no
+// HTML estático da ficha — algumas outras abas desta ficha não têm essa
+// necessidade antes, evita tocar em markup compartilhado por 6 abas.
+async function montarAlertasContextuaisAtivo(a) {
+    let mount = document.getElementById('fa-alertas-contextuais');
+    if (!mount) {
+        const cabecalho = document.getElementById('fa-cabecalho');
+        if (!cabecalho || !cabecalho.parentElement) return;
+        mount = document.createElement('div');
+        mount.id = 'fa-alertas-contextuais';
+        cabecalho.insertAdjacentElement('afterend', mount);
+    }
+    if (ativoAtualId !== a.id) return;
+
+    const alertas = await api.buscarAlertasDoAtivo(a.id);
+    if (ativoAtualId !== a.id) return; // trocou de ativo enquanto buscava
+
+    if (!alertas || alertas.length === 0) { mount.innerHTML = ''; return; }
+
+    const rotulo = { cofre_item_vencendo: 'Item de controle vencendo', anexo_apolice_pendente: 'Documento pendente' };
+    mount.innerHTML = `<div class="rz-card rz-list" style="margin:0 0 12px 0;border-left:3px solid var(--warning)">
+        <div class="rz-card-h"><h3>${alertas.length} alerta${alertas.length > 1 ? 's' : ''} deste ativo</h3></div>
+        ${alertas.map(al => `<div class="rz-row rz-link" onclick="rzAbrirAlertaContextual('${al.entidade_id}', '${a.id}')">
+            <div class="rz-tx"><b>${escapeHtml(rotulo[al.tipo_alerta] || al.titulo || '')}</b><span>${escapeHtml(al.titulo || '')}</span></div>
+            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+        </div>`).join('')}
+    </div>`;
+    refrescarIcones();
+}
+
+// Ponte simples pro dispatcher: os 2 tipos que aparecem aqui (cofre_item_
+// vencendo, anexo_apolice_pendente) sempre abrem o item de controle — a
+// ficha JÁ ESTÁ aberta no ativo certo, só precisa trocar de aba/painel
+// pro item específico, reaproveitando o mecanismo que a Central usa.
+window.rzAbrirAlertaContextual = function (itemControleId, ativoId) {
+    faTrocarAba('controles');
+};
 
 // v1.93.0 (pedido explícito, 31/08/2026, "evoluir a exemplo do
 // protótipo") — troca de aba dentro da ficha do ativo (Dados/
