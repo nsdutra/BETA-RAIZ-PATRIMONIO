@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.179.4) — achado do Nicola: botões (lupa/importar) da
+aba Conciliação estavam ABAIXO do resumo hero, único caso entre as 3
+abas do Financeiro — Recebimentos e Saídas sempre tiveram os botões
+ACIMA. Reordenado pra bater com o padrão das outras duas. Acompanha o
+pedido de estender o bot pra saída (whatsapp-webhook/_shared.ts v2.59)
+— nenhuma mudança de app associada a essa parte, é 100% Edge Function.
+------------------------------------------------------------------
+Versões anteriores (v1.179.3 … v1.179.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.179.3) — pedido do Nicola ("não quero evoluir o
 sistema e ficar deixando código morto espalhado"): tabela
 pendencias_extrato DROPADA de verdade no banco (não só parou de ser

@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.2.1 · 06/09/2026
+// Versão: 1.3.0 · 13/09/2026
+//
+// v1.3.0 — pedido do Nicola: sugestão/feedback enviado pelo card "Dúvidas,
+// suporte ou sugestões?" agora TAMBÉM vira uma demanda de Suporte
+// (fn_demanda_criar, subtipo='suporte'), além de continuar gravando em
+// `feedback` como sempre. Escopo deliberadamente mínimo — só essa conexão;
+// o resto do Sistema de Demandas pro cliente (SLA, jornada completa) fica
+// no backlog.
 //
 // v1.2.1 — constante VERSAO sincronizada com o header (estava presa em uma
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
@@ -63,7 +70,7 @@
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.2.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { buscarLicencaPrincipal } from './comum-licenca.js';
 
 export const COMUM_SOBRE_VERSAO = '1.1.0';
@@ -307,6 +314,26 @@ export async function montarAbaSobre(mountEl, ctx) {
                 cliente_id: clienteId, pessoa_id: pessoaId, origem: 'icone_suspenso', comentario: texto,
             });
             if (error) throw error;
+
+            // NOVO (13/09/2026, pedido do Nicola): toda sugestão/feedback
+            // também vira uma demanda de Suporte, pra aparecer na tela
+            // "Suporte & Backlog" do Gestão. Não bloqueia o envio se isso
+            // falhar — o feedback em `feedback` já foi salvo, esta é uma
+            // camada a mais (o resto do fluxo de Demandas — SLA, jornada
+            // completa no app/bot — fica no backlog, só esta conexão
+            // mínima entra agora).
+            try {
+                const { error: erroDemanda } = await dbAuth.rpc('fn_demanda_criar', {
+                    p_cliente_id: clienteId, p_subtipo: 'suporte',
+                    p_titulo: texto.length > 80 ? texto.slice(0, 77) + '...' : texto,
+                    p_descricao: texto, p_chave_idempotencia: null, p_forcar: true,
+                    p_pessoa_id: null, p_canal: null,
+                });
+                if (erroDemanda) console.warn('[comum-sobre] feedback salvo, mas não virou demanda:', erroDemanda.message);
+            } catch (errDemanda) {
+                console.warn('[comum-sobre] feedback salvo, mas não virou demanda:', errDemanda?.message || errDemanda);
+            }
+
             onToast?.('Feedback enviado, obrigado! 🙏', 'success');
             campo.value = '';
         } catch (err) {
