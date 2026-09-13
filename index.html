@@ -7,7 +7,7 @@
    preservado abaixo para referência técnica)
 
    VERSÃO: Beta v1.180.0
-   LINHAS: 15155
+   LINHAS: 15270
    DATA: 12/09/2026
    NOVIDADES (Beta v1.180.0) — MOTOR CENTRAL DE ALERTAS, Fase 3
    (MOTOR_ALERTAS_RAIZ_v1_2_0.md). A Central de Alertas (aba "Alertas")
@@ -10905,7 +10905,7 @@
                 case 'reajuste_aniversario': return 'Pendente de revisão/reajuste';
                 case 'contrato_encerramento': return row.detalhe?.ja_vencido ? 'Contrato vencido' : 'Contrato vencendo';
                 case 'cofre_item_vencendo': return 'Item de controle vencendo';
-                case 'anexo_apolice_pendente': return 'Documento pendente';
+                case 'anexo_apolice_pendente': return `Documento pendente — ${row.detalhe?.subtipo_nome || 'item de controle'}`;
                 case 'contrato_aguardando_assinatura': return 'Aguardando assinatura';
                 case 'contrato_ativo_vendido_arquivado': return `Contrato vigente em ativo ${row.detalhe?.ativo_status || ''}`;
                 case 'sinal_fiscal': {
@@ -10923,6 +10923,12 @@
             // do sinal (fn_leitura_tributaria_sinais.detalhe) — os demais
             // usam o nome da pessoa/ativo específico daquele alerta.
             if (row.tipo_alerta === 'sinal_fiscal') return row.titulo;
+            // CORRIGIDO (13/09/2026, achado pelo Nicola: "pouca informação
+            // do ativo, do item") — anexo_apolice_pendente mostrava só o
+            // título do item (ex.: "Seguro"), sem dizer de QUAL ativo.
+            if (row.tipo_alerta === 'anexo_apolice_pendente') {
+                return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${row.titulo}` : row.titulo;
+            }
             return row.detalhe?.locatario || row.titulo || '';
         }
 
@@ -10957,6 +10963,109 @@
             }
         }
 
+        // ============================================================
+        // AGRUPAMENTO (Motor doc §7.2) — "por que 250 alertas não
+        // acontecem": o mecanismo PRINCIPAL é agrupar por tipo/entidade
+        // ANTES de renderizar. alerta_tipos.agrupamento decide o modo:
+        //   'por_alerta'   — cada caso sua própria linha (padrão, maioria
+        //                    dos tipos — cada um é uma decisão própria)
+        //   'por_tipo'     — vira 1 linha resumindo todos daquele tipo
+        //                    (hoje: atraso_pagamento, documento_sem_vinculo)
+        //   'por_entidade' — vira 1 linha por ativo, quando o mesmo ativo
+        //                    tem mais de 1 alerta do mesmo tipo (hoje só
+        //                    cofre_item_vencendo usa)
+        // Só agrupa de verdade quando há MAIS DE 1 no grupo — 1 item
+        // sozinho sempre mostra normal, sem virar "resumo de 1".
+        // Clique do resumo só existe quando o destino não depende de UM
+        // item específico (DESTINO_GERAL) — abrir "o item aleatório X" pra
+        // representar 77 atrasos não faz sentido; abrir a tela de
+        // Cobranças (que já lista todos) faz.
+        // ============================================================
+        const DESTINO_GERAL = new Set(['financeiro/atrasados']);
+
+        function itemAvulso(r) {
+            return {
+                categoria: ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro',
+                tipoAlerta: r.tipo_alerta,
+                dias: r.dias,
+                titulo: tituloAlertaMotor(r),
+                subtitulo: subtituloAlertaMotor(r),
+                onClick: r.destino_rota ? `rzAbrirDestinoAlerta('${r.alerta_chave}')` : null,
+            };
+        }
+
+        function tituloResumoPorTipo(tipoAlerta, n) {
+            switch (tipoAlerta) {
+                case 'atraso_pagamento': return `${n} pagamentos em atraso`;
+                case 'documento_sem_vinculo': return `${n} documentos sem vínculo`;
+                default: return `${n} alertas`;
+            }
+        }
+
+        function subtituloResumoPorTipo(tipoAlerta, grupo) {
+            if (tipoAlerta === 'atraso_pagamento') {
+                const total = grupo.reduce((s, r) => s + (Number(r.detalhe?.valor) || 0), 0);
+                const maisAntigo = grupo.reduce((min, r) => (r.dias !== null && r.dias < min) ? r.dias : min, 0);
+                return `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total · a mais antiga venceu há ${Math.abs(maisAntigo)}d`;
+            }
+            return `Toque pra ver no app`;
+        }
+
+        function agruparEMapearAlertas(rows) {
+            const porTipo = new Map();
+            const porEntidade = new Map();
+            const avulsos = [];
+
+            rows.forEach(r => {
+                if (r.agrupamento === 'por_tipo') {
+                    if (!porTipo.has(r.tipo_alerta)) porTipo.set(r.tipo_alerta, []);
+                    porTipo.get(r.tipo_alerta).push(r);
+                } else if (r.agrupamento === 'por_entidade') {
+                    // Agrupa por ativo (hoje só cofre_item_vencendo usa este
+                    // modo — cada item já sabe seu ativo_id via detalhe).
+                    const chaveAtivo = r.detalhe?.ativo_id || r.entidade_id;
+                    const chave = `${r.tipo_alerta}:${chaveAtivo}`;
+                    if (!porEntidade.has(chave)) porEntidade.set(chave, []);
+                    porEntidade.get(chave).push(r);
+                } else {
+                    avulsos.push(r);
+                }
+            });
+
+            const itens = avulsos.map(itemAvulso);
+
+            porTipo.forEach((grupo, tipoAlerta) => {
+                if (grupo.length === 1) { itens.push(itemAvulso(grupo[0])); return; }
+                const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
+                const r0 = grupo[0];
+                const clicavel = r0.destino_rota && DESTINO_GERAL.has(r0.destino_rota);
+                itens.push({
+                    categoria: ENTIDADE_PARA_CHIP_ALERTA[r0.entidade_tipo] || 'outro',
+                    tipoAlerta,
+                    dias: maisUrgente.dias,
+                    titulo: tituloResumoPorTipo(tipoAlerta, grupo.length),
+                    subtitulo: subtituloResumoPorTipo(tipoAlerta, grupo),
+                    onClick: clicavel ? `rzAbrirDestinoAlerta('${r0.alerta_chave}')` : null,
+                });
+            });
+
+            porEntidade.forEach(grupo => {
+                if (grupo.length === 1) { itens.push(itemAvulso(grupo[0])); return; }
+                const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
+                const ativoNome = grupo[0].detalhe?.ativo_nome || grupo[0].titulo || 'Ativo';
+                itens.push({
+                    categoria: ENTIDADE_PARA_CHIP_ALERTA[grupo[0].entidade_tipo] || 'outro',
+                    tipoAlerta: grupo[0].tipo_alerta,
+                    dias: maisUrgente.dias,
+                    titulo: ativoNome,
+                    subtitulo: `${grupo.length} pendências`,
+                    onClick: `rzAbrirDestinoAlerta('${maisUrgente.alerta_chave}')`,
+                });
+            });
+
+            return itens;
+        }
+
         async function montarAlertasPatrimonio() {
             const mount = document.getElementById('alertas-patrimonio-mount');
             if (!mount || !CLIENTE_ID_SUPABASE || !pessoaIdLogada) return;
@@ -10980,18 +11089,10 @@
             // some até a data. Hoje ninguém tem marca nenhuma ainda (a
             // ação de adiar/dispensar na tela é uma etapa futura) — filtro
             // já preparado, sem efeito visível até essa etapa existir.
-            const itens = (data || []).filter(r => r.visivel).map(r => {
-                alertasPorChave.set(r.alerta_chave, r);
-                return {
-                    categoria: ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro',
-                    dias: r.dias,
-                    titulo: tituloAlertaMotor(r),
-                    subtitulo: subtituloAlertaMotor(r),
-                    onClick: r.destino_rota ? `rzAbrirDestinoAlerta('${r.alerta_chave}')` : null,
-                };
-            });
+            const visiveis = (data || []).filter(r => r.visivel);
+            visiveis.forEach(r => alertasPorChave.set(r.alerta_chave, r));
 
-            alertasTodos = itens;
+            alertasTodos = agruparEMapearAlertas(visiveis);
             renderChipsAlertas();
             renderListaAlertas();
         }
@@ -11053,10 +11154,16 @@
             // v1.180.0 — ICONE_CATEGORIA ganha 'financeiro'/'fiscal' (novas
             // categorias do Motor); 'documento' continua caindo no fallback
             // 'info' de sempre (nunca teve entrada própria aqui).
+            // CORRIGIDO (13/09/2026, achado pelo Nicola: ícone de chave de
+            // fenda genérico não distinguia "documento pendente" de "item
+            // vencendo" — os dois dividiam o ícone da categoria
+            // 'item_controle'). ICONE_TIPO_ALERTA sobrepõe por tipo quando
+            // existe, antes do fallback por categoria.
+            const ICONE_TIPO_ALERTA = { anexo_apolice_pendente: 'paperclip' };
             const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', financeiro: 'wallet', fiscal: 'landmark' };
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             mount.innerHTML = `<div class="rz-card rz-list">` + ordenados.map(a => {
-                let sem = 'neu', rotulo = '', classeIc = '', icone = ICONE_CATEGORIA[a.categoria] || 'info';
+                let sem = 'neu', rotulo = '', classeIc = '', icone = ICONE_TIPO_ALERTA[a.tipoAlerta] || ICONE_CATEGORIA[a.categoria] || 'info';
                 if (a.dias !== null) {
                     if (a.dias < 0) { sem = 'bad'; rotulo = `Venceu há ${Math.abs(a.dias)}d`; classeIc = ' rz-bad'; icone = 'alarm-clock'; }
                     else if (a.dias === 0) { sem = 'warn'; rotulo = 'Vence hoje'; classeIc = ' rz-warn'; icone = 'clock'; }
