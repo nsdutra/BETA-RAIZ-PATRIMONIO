@@ -6,9 +6,27 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.180.0
-   LINHAS: 15290
-   DATA: 12/09/2026
+   VERSÃO: Beta v1.180.1
+   LINHAS: 15297
+   DATA: 13/09/2026
+   NOVIDADES (Beta v1.180.1) — MOTOR CENTRAL DE ALERTAS, Fase 3, fechamento
+   (consolida 5 correções/entregas que ficaram sem versão própria por
+   engano — corrigido a partir de agora, cada entrega evolui a versão).
+   Achados em teste real do Nicola, todos corrigidos:
+     - dispatcher sem rota pra financeiro/atrasados (console acusava erro
+       ao clicar num atraso — corrigido, abre Cobranças);
+     - "documento pendente" sem nome do ativo/subtipo, ícone genérico
+       dividido com "item vencendo" — corrigido (ativo_nome no detector,
+       ícone de clipe próprio);
+     - agrupamento por tipo/entidade implementado (77 atrasos → 1 linha
+       resumida, "R$ X total · mais antiga há Yd" — o motivo do Motor
+       existir, §7.2 do Motor doc);
+     - contador do chip corrigido pra refletir o volume REAL de alertas,
+       não quantas linhas aparecem agrupadas (pedido explícito);
+     - "alertas contextualizados na ficha do ativo": tentativa 1 foi um
+       banner novo — Nicola não gostou visualmente; versão final reaproveita
+       a bolinha vermelha que o chip "Controles" já tinha (js/cofre-ativos.js
+       1.31.0), sem componente novo nenhum.
    NOVIDADES (Beta v1.180.0) — MOTOR CENTRAL DE ALERTAS, Fase 3
    (MOTOR_ALERTAS_RAIZ_v1_2_0.md). A Central de Alertas (aba "Alertas")
    passa a ler fn_alertas_listar (banco) em vez de reimplementar a regra
@@ -52,19 +70,8 @@
    mensagem (ReferenceError na próxima importação) e o carregamento no
    boot chamando uma função já removida (quebraria a inicialização do app
    inteiro). Ver changelog completo em financeiro.js 1.7.1.
-   NOVIDADES (Beta v1.179.2) — 5ª leva de achados do Nicola: resumo de
-   competência em Recebimentos padronizado (sempre "valor · N itens", em
-   qualquer chip e competência); alerta de lançamentos futuros removido de
-   Atrasados; ícone de Recebimentos/Atrasados virou fixo por tipo, não
-   varia mais por status. Conciliação reescrita pra usar as classes
-   canônicas do catálogo (.rz-row/.rz-ic/renderStatus) — mesmo padrão
-   visual de Recebimentos/Saídas agora, inclusive a bolinha do status que
-   nunca tinha. Auditoria mecânica (verificar_gramatica.py rodado de
-   verdade contra os arquivos): achou e corrigiu emoji de robô fora do
-   padrão e um uso decorativo de dourado fora de classe .rz-*. Ver
-   changelog completo em financeiro.js 1.7.0.
    ------------------------------------------------------------------
-   Versões anteriores (v1.179.1 … v1.179.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.179.2 … v1.179.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -88,7 +95,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.24.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.30.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.24.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.5.1","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.2.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3488,7 +3495,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.180.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.180.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

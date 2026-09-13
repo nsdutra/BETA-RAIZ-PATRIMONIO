@@ -4,6 +4,24 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.179.2) — 5ª leva de achados do Nicola: resumo de
+competência em Recebimentos padronizado (sempre "valor · N itens", em
+qualquer chip e competência); alerta de lançamentos futuros removido de
+Atrasados; ícone de Recebimentos/Atrasados virou fixo por tipo, não
+varia mais por status. Conciliação reescrita pra usar as classes
+canônicas do catálogo (.rz-row/.rz-ic/renderStatus) — mesmo padrão
+visual de Recebimentos/Saídas agora, inclusive a bolinha do status que
+nunca tinha. Auditoria mecânica (verificar_gramatica.py rodado de
+verdade contra os arquivos): achou e corrigiu emoji de robô fora do
+padrão e um uso decorativo de dourado fora de classe .rz-*. Ver
+changelog completo em financeiro.js 1.7.0.
+------------------------------------------------------------------
+Versões anteriores (v1.179.1 … v1.179.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.179.1) — 4ª leva de achados do Nicola: "Regras de
 conciliação" mudou de Empresa pro menu Cadastros; ao tocar numa regra
 agora mostra a descrição completa (não só o nome). Menu (⋮) unificado
