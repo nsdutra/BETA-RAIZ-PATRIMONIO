@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.20.3 · 15/09/2026
+// Versão: 1.21.0 · 15/09/2026
+//
+// v1.21.0 — PLANO_IMPLEMENTACAO v1.0, etapa E11 (chip do ativo com fonte
+// única). Achado pelo Nicola em teste real: ativo com bolinha vermelha e
+// contador 0, sem alerta visível na ficha. Causa: duas contas decidiam a
+// mesma bolinha. atualizarEstadoChipControles olhava só data de vencimento
+// dos itens e escrevia "Em dia"; aplicarAlertaMotorNoChipControles acendia
+// vermelho por qualquer alerta do Motor e nunca apagava. Depois da E2.3, o
+// Motor passou a enxergar também alerta de contrato e financeiro no ativo —
+// por isso a bolinha acendeu em ativo sem nenhum item de controle.
+// Agora: a conta local escreve só o número; o Motor decide cor e texto, e o
+// cabeçalho diz o MOTIVO ("1 documento pendente", "2 vencendo") em vez de só
+// uma data. A regra "só acende, nunca apaga" saiu — apagar é o objetivo.
 //
 // v1.20.3 — PLANO_IMPLEMENTACAO v1.0, etapa E1: a tela de cadastro de
 // subtipos passa a agrupar também `taxa` e `documento`, e despesa gerada a
@@ -251,7 +263,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.20.3'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.21.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -313,18 +325,75 @@ function diasProximaOcorrencia(item) {
 function statusHtml(sem, texto) {
     return typeof window.renderStatus === 'function' ? window.renderStatus(sem, texto) : `<span class="rz-st rz-${sem}">${escapeHtml(texto)}</span>`;
 }
+// v1.21.0 (E11) — esta funcao DEIXOU DE DECIDIR A COR. Antes duas contas
+// discordavam sobre a mesma bolinha: a local olhava so data de vencimento e
+// escrevia "Em dia", enquanto o Motor acendia vermelho por outro motivo (e,
+// depois da E2.3, tambem por alerta de contrato e financeiro) — dai a
+// bolinha vermelha "com 0" e sem alerta visivel. Agora a conta local escreve
+// so o NUMERO de itens; quem decide cor e texto e o Motor, em
+// aplicarMotorNoChipControles(). O texto local fica como estado provisorio
+// ate a resposta do Motor chegar, e nunca acende vermelho sozinho.
 function atualizarEstadoChipControles() {
     const ativos = itensDoAtivoAtual.filter(i => i.ativo !== false); // v1.20.0 — encerrados não contam
-    const dias = ativos.map(diasProximaOcorrencia).filter(d => d !== null);
-    const vencidos = dias.filter(d => d < 0).length;
-    const vencendo = dias.filter(d => d >= 0 && d <= 30).length;
-    if (typeof window.faAtualizarContadorFicha === 'function') window.faAtualizarContadorFicha('controles', ativos.length, vencidos + vencendo > 0);
+    if (typeof window.faAtualizarContadorFicha === 'function') window.faAtualizarContadorFicha('controles', ativos.length, false);
     const cab = document.getElementById('fa-controles-status');
     if (!cab) return;
-    if (vencidos) cab.innerHTML = statusHtml('bad', `${vencidos} vencido${vencidos === 1 ? '' : 's'}`);
-    else if (vencendo) cab.innerHTML = statusHtml('warn', `${vencendo} vencendo`);
-    else if (ativos.length) cab.innerHTML = statusHtml('ok', 'Em dia');
-    else cab.innerHTML = '';
+    if (motorDecidiuChipControles) return; // o Motor já falou; não sobrescreve
+    cab.innerHTML = ativos.length ? statusHtml('neu', `${ativos.length} ite${ativos.length === 1 ? 'm' : 'ns'}`) : '';
+}
+
+// Rótulo curto por tipo de alerta, para o cabeçalho do chip dizer o MOTIVO
+// em vez de só uma data. [singular, plural].
+const ROTULO_ALERTA_CHIP = {
+    anexo_apolice_pendente:           ['documento pendente', 'documentos pendentes'],
+    cofre_item_vencendo:              ['item de controle', 'itens de controle'],
+    atraso_pagamento:                 ['pagamento em atraso', 'pagamentos em atraso'],
+    reajuste_aniversario:             ['reajuste pendente', 'reajustes pendentes'],
+    contrato_encerramento:            ['contrato vencendo', 'contratos vencendo'],
+    contrato_aguardando_assinatura:   ['contrato aguardando assinatura', 'contratos aguardando assinatura'],
+    contrato_ativo_vendido_arquivado: ['contrato em ativo vendido', 'contratos em ativo vendido'],
+    documento_sem_vinculo:            ['documento sem vínculo', 'documentos sem vínculo'],
+};
+
+let motorDecidiuChipControles = false;
+
+export function reiniciarChipControlesDoMotor() {
+    motorDecidiuChipControles = false;
+}
+
+// v1.21.0 (E11) — FONTE ÚNICA da cor e do texto do chip "Controles".
+// Recebe o que fn_alertas_do_ativo devolveu (cofre-ativos.js busca) e pinta.
+// Pode ACENDER e também APAGAR — era justamente a regra "só acende, nunca
+// apaga" da v1.31.0 que deixava vermelho preso depois de resolver a causa.
+export function aplicarMotorNoChipControles(alertas) {
+    motorDecidiuChipControles = true;
+    const lista = Array.isArray(alertas) ? alertas : [];
+    const chip = document.getElementById('fa-chip-n-controles')?.closest('.rz-chip');
+    const cab = document.getElementById('fa-controles-status');
+    const ativos = itensDoAtivoAtual.filter(i => i.ativo !== false);
+
+    if (!lista.length) {
+        chip?.classList.remove('rz-warn');
+        if (cab) cab.innerHTML = ativos.length ? statusHtml('ok', 'Em dia') : '';
+        return;
+    }
+
+    chip?.classList.add('rz-warn');
+    if (!cab) return;
+
+    const vencidos = lista.filter(x => x.dias !== null && x.dias < 0).length;
+    if (vencidos) { cab.innerHTML = statusHtml('bad', `${vencidos} vencido${vencidos === 1 ? '' : 's'}`); return; }
+
+    const vencendo = lista.filter(x => x.dias !== null && x.dias >= 0 && x.dias <= 30).length;
+    if (vencendo) { cab.innerHTML = statusHtml('warn', `${vencendo} vencendo`); return; }
+
+    // Sem data: o motivo é o tipo mais frequente entre os alertas do ativo.
+    const contagem = {};
+    lista.forEach(x => { contagem[x.tipo_alerta] = (contagem[x.tipo_alerta] || 0) + 1; });
+    const tipo = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a])[0];
+    const n = contagem[tipo];
+    const rot = ROTULO_ALERTA_CHIP[tipo] || ['pendência', 'pendências'];
+    cab.innerHTML = statusHtml('warn', `${n} ${n === 1 ? rot[0] : rot[1]}`);
 }
 
 // v1.20.0 — chip Ativos/Encerrados (mesmo molde do chip "Encerrados" de Contratos)

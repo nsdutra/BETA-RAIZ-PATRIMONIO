@@ -6,9 +6,21 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.182.0
-   LINHAS: 15392
+   VERSÃO: Beta v1.183.0
+   LINHAS: 15363
    DATA: 13/09/2026
+   NOVIDADES (Beta v1.183.0) — PLANO_IMPLEMENTACAO v1.0, etapa E10, mais
+   dois ajustes pedidos pelo Nicola em teste real:
+   (1) carregarDadosAssincronosVisaoGeral consome fn_alertas_listar em vez
+   de reimplementar 3 regras proprias (ocorrencias de controle, sinais
+   tributarios, documentos em triagem). Era por isso que a tela de Alertas
+   mostrava 12 e a Visao Geral 10 — duas contas sobre as mesmas pendencias.
+   Agora e a mesma fonte, o mesmo agrupamento e a mesma ordenacao. Seis
+   tipos de alerta que existiam no Motor e nunca apareciam na tela inicial
+   passam a aparecer. fn_resumo_resultados continua, so para os KPIs.
+   (2) Titulo do sinal fiscal passa a comecar pela quantidade ("6
+   ocorrencias · Contrato"), como todos os outros consolidados — era o
+   unico com o numero no meio pro fim do texto.
    NOVIDADES (Beta v1.182.0) — PLANO_IMPLEMENTACAO v1.0, etapa E3:
    agruparEMapearAlertas passa a ter limiar por tipo de alerta
    (alerta_tipos.agrupar_a_partir_de, padrao 6). Antes a tela agrupava a
@@ -36,22 +48,8 @@
    demanda de Suporte (fn_demanda_criar), além de continuar gravando em
    `feedback` como sempre — aparece na tela "Suporte & Backlog" do Gestão.
    Escopo mínimo, o resto do Sistema de Demandas pro app fica no backlog.
-   NOVIDADES (Beta v1.180.2) — MOTOR CENTRAL DE ALERTAS, Fase 5, item 11:
-   "Minhas notificações" (menu Conta) unifica as preferências de alerta
-   (antes só dentro do card da própria pessoa, em Pessoas — a pessoa
-   logada tinha que se achar na lista) com as comunicações da Raiz (tela
-   que já existia, "Preferências de comunicação" — renomeada, mesmo
-   lugar). Reaproveita buscarProativasDisponiveis/buscarPreferenciasComunicacao
-   de comum-pessoas.js (v1.6.0) em vez de reimplementar a consulta.
-   Achado ao investigar (item 10 da mesma seção): pessoas.comunicacoes
-   (coluna) está morta — zero dado real nas 28 pessoas do banco, nunca
-   lida em lugar nenhum do código além do carregamento — a preocupação do
-   Motor doc sobre "mexer em consentimento comercial" não se aplica; a
-   tela de Pessoas já lê certinho de pessoa_preferencias_comunicacao
-   desde antes desta entrega. Coluna antiga mantida por enquanto (limpeza
-   é decisão separada, não apaguei sem confirmar).
    ------------------------------------------------------------------
-   Versões anteriores (v1.180.1 … v1.180.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.180.2 … v1.180.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -75,7 +73,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.3","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.2","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.21.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3475,7 +3473,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.182.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.183.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10704,21 +10702,28 @@
             return formatarMoedaBR(n);
         }
 
+        // v1.183.0 (E10) — a Visao Geral passa a CONSUMIR fn_alertas_listar em
+        // vez de reimplementar 3 regras proprias (ocorrencias de controle,
+        // sinais tributarios e documentos em triagem). Causa do desencontro
+        // que o Nicola achou em teste: a tela de Alertas mostrava 12 e a
+        // Visao Geral 10, porque eram contas diferentes sobre as mesmas
+        // pendencias. Agora e a mesma fonte, o mesmo agrupamento
+        // (agruparEMapearAlertas, com o limiar de alerta_tipos) e a mesma
+        // ordenacao da tela de Alertas. fn_resumo_resultados fica, so para os
+        // KPIs do hero. Ganham lugar aqui 6 tipos que existiam no Motor e
+        // nunca apareciam na tela inicial (contrato vencido, atraso,
+        // reajuste, documento pendente, aguardando assinatura, ativo vendido
+        // com contrato).
         async function carregarDadosAssincronosVisaoGeral() {
             if (!CLIENTE_ID_SUPABASE) return;
 
             const wrapper = document.getElementById('geral-atencao-fundidos');
 
-            const [resResumo, resControles, resTributario, resTriagem] = await Promise.allSettled([
+            const [resResumo, resAlertas] = await Promise.allSettled([
                 dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE }),
-                dbAuth.from('cofre_ocorrencias_controle')
-                    .select('*, cofre_itens_controle!inner(ativo_id, titulo, tipo, alerta_ativo, cofre_ativos(nome_exibicao, tipo_ativo))')
-                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                    .eq('status_execucao', 'aberto')
-                    .eq('cofre_itens_controle.ativo', true)
-                    .order('data_prevista_atual'),
-                dbAuth.rpc('fn_leitura_tributaria_sinais', { p_cliente_id: CLIENTE_ID_SUPABASE }),
-                dbAuth.from('cofre_documentos').select('id, cofre_documento_vinculos(entidade_tipo)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo') // v1.162.0 — BUG FIX: contava arquivados
+                pessoaIdLogada
+                    ? dbAuth.rpc('fn_alertas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada })
+                    : Promise.resolve({ data: [], error: null })
             ]);
 
             // --- KPIs do hero (Patrimônio sob gestão / Recebido / Ocupação) ---
@@ -10738,73 +10743,35 @@
 
             if (!wrapper) return;
 
+            // --- pontos de atenção: exclusivamente o Motor ---
+            // Falha aqui degrada sozinha: os KPIs acima já foram escritos.
             const itensFundidos = [];
-
-            // --- controles do Cofre (vencidos / vencendo em 14 dias) ---
-            if (resControles.status === 'fulfilled' && !resControles.value.error) {
-                const ocorrencias = resControles.value.data || [];
-                const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-                const em14dias = new Date(hoje); em14dias.setDate(em14dias.getDate() + 14);
-                const vencidos = ocorrencias.filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') < hoje);
-                const vencendo = ocorrencias.filter(o => o.data_prevista_atual && new Date(o.data_prevista_atual + 'T00:00:00') >= hoje && new Date(o.data_prevista_atual + 'T00:00:00') <= em14dias);
-                // v1.96.3 (pedido explícito, "criar uma tela especifica
-                // para o alertas sobre patrimonio... ao clicar nele,
-                // abra esta nova tela") — os 2 itens de controle e o de
-                // tributário (logo abaixo) agora abrem tab-alertas (a
-                // tela nova, com o detalhe item por item) em vez de
-                // Ativos/Resultados.
-                if (vencidos.length > 0) {
+            if (resAlertas.status === 'fulfilled' && !resAlertas.value?.error) {
+                const visiveis = (resAlertas.value.data || []).filter(r => r.visivel);
+                const ICONE_TIPO_GERAL = { anexo_apolice_pendente: 'paperclip', documento_sem_vinculo: 'inbox' };
+                const ICONE_CAT_GERAL = { item_controle: 'wrench', contrato: 'file-text', financeiro: 'wallet', fiscal: 'landmark' };
+                const ordenados = agruparEMapearAlertas(visiveis).sort((a, b) => {
+                    if (a.dias === null && b.dias === null) return 0;
+                    if (a.dias === null) return 1;
+                    if (b.dias === null) return -1;
+                    return a.dias - b.dias;
+                });
+                ordenados.forEach(a => {
+                    let icone = ICONE_TIPO_GERAL[a.tipoAlerta] || ICONE_CAT_GERAL[a.categoria] || 'info';
+                    let sem = '';
+                    if (a.dias !== null) {
+                        if (a.dias < 0) { sem = 'bad'; icone = 'alarm-clock'; }
+                        else if (a.dias <= 14) { sem = 'warn'; icone = 'clock'; }
+                    }
                     itensFundidos.push(pontoAtencaoHtml({
-                        icone: 'alarm-clock-off', corBg: 'bg-red-50', corTexto: 'text-red-700',
-                        titulo: `${vencidos.length} controle${vencidos.length > 1 ? 's' : ''} do Cofre vencido${vencidos.length > 1 ? 's' : ''}`,
-                        subtitulo: 'IPTU, seguro ou manutenção — ver Alertas',
+                        icone, sem,
+                        titulo: escapeHtmlSaidas(a.titulo),
+                        subtitulo: escapeHtmlSaidas(a.subtitulo || 'Toque pra ver em Alertas'),
                         onclick: "abrirTabAlertas()"
                     }));
-                }
-                if (vencendo.length > 0) {
-                    itensFundidos.push(pontoAtencaoHtml({
-                        icone: 'alarm-clock', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
-                        titulo: `${vencendo.length} controle${vencendo.length > 1 ? 's' : ''} vencendo nos próximos 14 dias`,
-                        subtitulo: 'IPTU, seguro ou manutenção — ver Alertas',
-                        onclick: "abrirTabAlertas()"
-                    }));
-                }
+                });
             } else {
-                console.warn('[visao-geral] Falha ao carregar controles do Cofre:', resControles.reason?.message || resControles.value?.error?.message);
-            }
-
-            // --- diagnóstico tributário ---
-            if (resTributario.status === 'fulfilled' && !resTributario.value.error) {
-                const sinais = resTributario.value.data || [];
-                if (sinais.length > 0) {
-                    const totalOcorrencias = sinais.reduce((soma, s) => soma + (s.contagem || 0), 0);
-                    itensFundidos.push(pontoAtencaoHtml({
-                        icone: 'landmark', corBg: 'bg-blue-50', corTexto: 'text-blue-700',
-                        titulo: `Diagnóstico tributário — ${sinais.length} ponto${sinais.length > 1 ? 's' : ''} pra conferir`,
-                        subtitulo: `Reforma tributária/NFS-e · ${totalOcorrencias} ocorrência${totalOcorrencias > 1 ? 's' : ''} na carteira · ver Alertas`,
-                        onclick: "abrirTabAlertas()"
-                    }));
-                }
-            } else {
-                console.warn('[visao-geral] Falha ao carregar diagnóstico tributário:', resTributario.reason?.message || resTributario.value?.error?.message);
-            }
-
-            // --- documentos em triagem ---
-            if (resTriagem.status === 'fulfilled' && !resTriagem.value.error) {
-                const emTriagem = (resTriagem.value.data || []).filter(d => !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0);
-                if (emTriagem.length > 0) {
-                    itensFundidos.push(pontoAtencaoHtml({
-                        icone: 'inbox', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
-                        titulo: `${emTriagem.length} documento${emTriagem.length > 1 ? 's' : ''} pendente${emTriagem.length > 1 ? 's' : ''} de vínculo`,
-                        subtitulo: 'Toque para vincular a um ativo, imóvel ou à empresa',
-                        // v1.151.0 — antes ia pra switchTab('tab-ativos') e caía numa
-                        // tela em branco (a home do Cofre, onde a lista morava, foi
-                        // apagada no markup v1.5.0). Agora abre Alertas já no filtro.
-                        onclick: "abrirTabAlertas('documento')"
-                    }));
-                }
-            } else {
-                console.warn('[visao-geral] Falha ao carregar documentos em triagem:', resTriagem.reason?.message || resTriagem.value?.error?.message);
+                console.warn('[visao-geral] Falha ao carregar alertas do Motor:', resAlertas.reason?.message || resAlertas.value?.error?.message);
             }
 
             wrapper.innerHTML = itensFundidos.join('');
@@ -10985,10 +10952,14 @@
                 case 'anexo_apolice_pendente': return `Documento pendente — ${row.detalhe?.subtipo_nome || 'item de controle'}`;
                 case 'contrato_aguardando_assinatura': return 'Aguardando assinatura';
                 case 'contrato_ativo_vendido_arquivado': return `Contrato vigente em ativo ${row.detalhe?.ativo_status || ''}`;
+                // v1.183.0 — quantidade vai pro INICIO do texto, igual a todos os
+                // outros titulos consolidados ("5 pagamentos em atraso", "3
+                // documentos sem vinculo"). Antes era o unico com o numero no
+                // meio pro fim, quebrando o padrao de leitura da lista.
                 case 'sinal_fiscal': {
                     const cat = row.detalhe?.categoria;
                     const qtd = row.detalhe?.contagem || 0;
-                    return `${CATEGORIA_SINAL_LABEL_V2[cat] || cat || 'Fiscal'} · ${qtd} ocorrência${qtd > 1 ? 's' : ''}`;
+                    return `${qtd} ocorrência${qtd > 1 ? 's' : ''} · ${CATEGORIA_SINAL_LABEL_V2[cat] || cat || 'Fiscal'}`;
                 }
                 case 'documento_sem_vinculo': return 'Documento sem vínculo';
                 default: return row.tipo_alerta;

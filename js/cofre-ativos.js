@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.31.1 · 15/09/2026
+// Versão: 1.31.2 · 15/09/2026
+//
+// v1.31.2 — PLANO_IMPLEMENTACAO v1.0, etapa E11: aplicarAlertaMotorNoChip
+// Controles passa a só BUSCAR (fn_alertas_do_ativo) e delegar a pintura para
+// aplicarMotorNoChipControles (cofre-controles.js v1.21.0), fonte única de
+// cor e texto do chip. Antes acendia o vermelho aqui e nunca apagava.
 //
 // v1.31.1 — PLANO_IMPLEMENTACAO v1.0, etapa E0.1 (achado A6):
 // abrirNovoContratoDoAtivo() não chama mais window.switchTab('tab-contratos')
@@ -379,7 +384,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.31.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.31.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -388,7 +393,7 @@ import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, CAMPOS_POR_TIPO_ATIVO, validarCamposAtivo,
 } from './cofre-validacoes.js';
-import { montarControlesAtivo } from './cofre-controles.js';
+import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 
 let ativoAtualId = null;
 
@@ -902,6 +907,7 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     faTrocarSegArquivos('documentos');
     mudarTela('ficha-ativo');
     montarDocumentosAtivo(a);
+    reiniciarChipControlesDoMotor(); // v1.31.2 (E11) — ficha nova, decisão do Motor ainda não chegou
     const seguro = (fn, nome) => fn(a).catch(err => console.warn(`[cofre-ativos] ${nome} falhou:`, err?.message || err));
     await Promise.all([
         seguro(montarDadosAtivo, 'montarDadosAtivo'),
@@ -915,26 +921,19 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
     if (ativoAtualId !== id) return; // outro ativo foi aberto no meio — o dele repinta
 }
 
-// v1.31.0 (13/09/2026) — TROCADO a pedido do Nicola: o banner (v1.30.0)
-// "ficou ruim" visualmente. Em vez de um componente novo, reaproveita o
-// mecanismo QUE JÁ EXISTE — o chip "Controles" já pinta de vermelho
-// (.rz-warn) quando há item vencido/vencendo (atualizarEstadoChipControles,
-// cofre-controles.js). Esta função só ESTENDE essa mesma bolinha vermelha
-// pra também acender quando há "documento pendente" (anexo_apolice_
-// pendente) — que a conta local de cofre-controles.js não conhece (ela só
-// olha data de vencimento, não vínculo de documento). Não mexe no NÚMERO
-// mostrado (continua sendo a contagem de itens ativos, papel de
-// atualizarEstadoChipControles) — só pode ACENDER o vermelho a mais,
-// nunca apagar o que já estava aceso. Clique no chip já troca de aba
-// (mecanismo nativo dos chips da ficha) — não precisa de dispatcher novo.
+// v1.31.2 (E11) — esta funcao agora so BUSCA; quem pinta e
+// aplicarMotorNoChipControles (cofre-controles.js v1.21.0), que e a fonte
+// unica de cor e texto do chip "Controles". Antes ela acendia o vermelho
+// direto e nunca apagava, e a conta local escrevia "Em dia" por cima —
+// dai a bolinha vermelha sem alerta visivel na ficha.
 async function aplicarAlertaMotorNoChipControles(a) {
     try {
         const alertas = await api.buscarAlertasDoAtivo(a.id);
         if (ativoAtualId !== a.id) return; // trocou de ativo enquanto buscava
-        if (alertas && alertas.length > 0) {
-            document.getElementById('fa-chip-n-controles')?.closest('.rz-chip')?.classList.add('rz-warn');
-        }
+        aplicarMotorNoChipControles(alertas || []);
     } catch (err) {
+        // Motor indisponível: o chip fica com o estado provisório da conta
+        // local (só o número), sem vermelho inventado.
         console.warn('[cofre-ativos] aplicarAlertaMotorNoChipControles falhou:', err?.message || err);
     }
 }

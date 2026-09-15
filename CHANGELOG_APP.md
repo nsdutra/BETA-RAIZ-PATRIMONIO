@@ -4,6 +4,27 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.180.2) — MOTOR CENTRAL DE ALERTAS, Fase 5, item 11:
+"Minhas notificações" (menu Conta) unifica as preferências de alerta
+(antes só dentro do card da própria pessoa, em Pessoas — a pessoa
+logada tinha que se achar na lista) com as comunicações da Raiz (tela
+que já existia, "Preferências de comunicação" — renomeada, mesmo
+lugar). Reaproveita buscarProativasDisponiveis/buscarPreferenciasComunicacao
+de comum-pessoas.js (v1.6.0) em vez de reimplementar a consulta.
+Achado ao investigar (item 10 da mesma seção): pessoas.comunicacoes
+(coluna) está morta — zero dado real nas 28 pessoas do banco, nunca
+lida em lugar nenhum do código além do carregamento — a preocupação do
+Motor doc sobre "mexer em consentimento comercial" não se aplica; a
+tela de Pessoas já lê certinho de pessoa_preferencias_comunicacao
+desde antes desta entrega. Coluna antiga mantida por enquanto (limpeza
+é decisão separada, não apaguei sem confirmar).
+------------------------------------------------------------------
+Versões anteriores (v1.180.1 … v1.180.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.180.1) — MOTOR CENTRAL DE ALERTAS, Fase 3, fechamento
 (consolida 5 correções/entregas que ficaram sem versão própria por
 engano — corrigido a partir de agora, cada entrega evolui a versão).
