@@ -6,9 +6,21 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.186.0
-   LINHAS: 15428
-   DATA: 13/09/2026
+   VERSÃO: Beta v1.187.0
+   LINHAS: 15508
+   DATA: 15/09/2026
+   NOVIDADES (Beta v1.187.0) — 2 pedidos do Nicola sobre a tela de Alertas:
+   (1) "Precisa de atenção" na Visão Geral deixou de ser .rz-card (moldura
+   com borda colorida) e virou título simples — o padding:14px 16px do
+   card tirava largura útil da linha do alerta, agravando o truncamento
+   já reduzido pela placa de prazo (v1.186.0). Sem conteúdo, a seção
+   inteira some (troca "mostrar que está tudo em dia" por "não mostrar
+   nada"). Borda/status coloridos saíram junto — não tinham mais o que
+   colorir.
+   (2) Seletor de severidade (Crítico/Atenção/Informativo — os 3 valores
+   de alerta_tipos.severidade) nas duas telas, usando .rz-seg (mesmo
+   controle de Financeiro/Conciliação) — pedido explícito: "não usar chip
+   para isto". Estado independente por tela.
    NOVIDADES (Beta v1.186.0) — 4 achados do Nicola em teste real
    (Albuquerque, contando manualmente 21 pendências contra os 10/12 que a
    tela mostrava):
@@ -64,16 +76,8 @@
    (2) Titulo do sinal fiscal passa a comecar pela quantidade ("6
    ocorrencias · Contrato"), como todos os outros consolidados — era o
    unico com o numero no meio pro fim do texto.
-   NOVIDADES (Beta v1.182.0) — PLANO_IMPLEMENTACAO v1.0, etapa E3:
-   agruparEMapearAlertas passa a ter limiar por tipo de alerta
-   (alerta_tipos.agrupar_a_partir_de, padrao 6). Antes a tela agrupava a
-   partir de 2 itens, o que transformava "2 documentos sem vinculo" numa
-   linha-resumo e escondia alertas isolados. Agora so vira resumo acima do
-   limiar; abaixo dele cada alerta aparece como linha propria. O contador do
-   chip (alertasContagemPorCategoria) continua no volume bruto, calculado
-   antes do agrupamento.
    ------------------------------------------------------------------
-   Versões anteriores (v1.181.1 … v1.181.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.182.0 … v1.182.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -97,7 +101,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.3","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.21.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.3","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.21.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -505,6 +509,11 @@
         .rz-card-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
         .rz-card-h h3{font-family:var(--font-title);font-size:15px;flex:1;letter-spacing:-.02em;margin:0}
         .rz-card-h .rz-sub{font-size:12px;color:var(--muted)}
+        /* v1.187.0 — título de seção SEM moldura (Precisa de atenção deixou
+           de ser .rz-card: o padding:14px 16px do card tirava largura útil
+           da linha do alerta, agravando o truncamento). Mesma tipografia de
+           .rz-card-h h3, sem caixa/borda em volta. */
+        .rz-plain-title{font-family:var(--font-title);font-size:15px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px}
         .rz-card-f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
         /* v1.112.0 — "Mais ações" vira ⋮ no cabeçalho do card (Nicola 03/09:
            "padronizar o menu 3 bolinhas no lugar de todos os mais ações";
@@ -1566,8 +1575,14 @@
             <!-- v1.114.0 (fatia 6): card "Precisa de atenção" no catálogo —
                  borda vinho (danger quando há crítico, via renderVisaoGeral),
                  rows com status; some quando não há nada (REGRAS §13). -->
-            <div class="rz-card rz-atencao" id="geral-atencao-card">
-                <div class="rz-card-h"><h3>Precisa de atenção</h3><span id="geral-atencao-status"></span></div>
+            <!-- v1.187.0 (pedido do Nicola) — era .rz-card com borda
+                 colorida (rz-critico/rz-atencao); virou título simples. O
+                 padding lateral do card encurtava a largura disponível pra
+                 linha do alerta. Sem conteúdo, a seção inteira some (troca
+                 "mostrar que está tudo em dia" por "não mostrar nada"). -->
+            <div id="geral-atencao-secao" class="hidden">
+                <h3 class="rz-plain-title">Precisa de atenção</h3>
+                <div id="alertas-seg-severidade-geral" class="rz-seg"></div>
                 <div id="geral-atencao-lista"></div>
             </div>
 
@@ -2923,6 +2938,12 @@
                  lição aprendida nesta mesma sessão: rolagem escondida
                  via CSS não é confiável em todo navegador, então nem
                  tento aqui). -->
+            <!-- v1.187.0 (pedido do Nicola: "escolher entre crítico,
+                 informação, alerta" — os 3 valores de alerta_tipos.severidade
+                 — "não usar chip pra isto") — .rz-seg (controle segmentado,
+                 já usado em Financeiro/Conciliação etc.), não .rz-chip. -->
+            <div id="alertas-seg-severidade" class="rz-seg"></div>
+
             <div id="alertas-chips-categoria" class="rz-chips"></div>
 
             <div id="alertas-patrimonio-mount">
@@ -3497,7 +3518,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.186.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.187.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10624,10 +10645,11 @@
             // repetidos desta função.
             const listaEl = document.getElementById('geral-atencao-lista');
             if (listaEl) {
-                // v1.185.0 — placeholder de vazio + o container do Motor. Se
-                // carregarDadosAssincronosVisaoGeral() achar algo, ela mesma
-                // remove #geral-atencao-vazio (já fazia isso desde a E10).
-                listaEl.innerHTML = `<div class="rz-empty" id="geral-atencao-vazio"><p>Nada pedindo atenção agora.</p></div><div id="geral-atencao-fundidos"></div>`;
+                // v1.187.0 — sem placeholder de "Nada pedindo atenção": a
+                // seção inteira (#geral-atencao-secao) começa hidden no
+                // HTML e só carregarDadosAssincronosVisaoGeral() decide se
+                // mostra, depois que sabe se há algo pra mostrar de verdade.
+                listaEl.innerHTML = `<div id="geral-atencao-fundidos"></div>`;
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -10720,53 +10742,67 @@
 
             // --- pontos de atenção: exclusivamente o Motor ---
             // Falha aqui degrada sozinha: os KPIs acima já foram escritos.
-            // v1.186.0 (achados do Nicola em teste real) — 2 mudanças:
-            // (1) linhaAlertaHtml() no lugar de pontoAtencaoHtml(): mesma
-            //     marcação da tela de Alertas (com a placa de prazo/
-            //     criticidade), não um componente mais simples só daqui —
-            //     era por isso que a mesma pendência tinha CARA diferente
-            //     conforme a tela.
-            // (2) totalPontos vira a soma PONDERADA (pesoAlerta) sobre os
-            //     alertas visíveis, não mais itensFundidos.length (nº de
-            //     CARDS depois de agrupar). "10 pontos" contava cards — um
-            //     card "8 ocorrências" valia 1 ponto. Agora o badge é o
-            //     total real de pendências, com ou sem agrupamento visual.
-            let visiveis = [];
-            const cardsHtml = [];
             if (resAlertas.status === 'fulfilled' && !resAlertas.value?.error) {
-                visiveis = (resAlertas.value.data || []).filter(r => r.visivel);
-                const ordenados = agruparEMapearAlertas(visiveis).sort((a, b) => {
-                    if (a.dias === null && b.dias === null) return 0;
-                    if (a.dias === null) return 1;
-                    if (b.dias === null) return -1;
-                    return a.dias - b.dias;
-                });
-                ordenados.forEach(a => { if (!a.onClick) a.onClick = "abrirTabAlertas()"; });
-                cardsHtml.push(...ordenados.map(linhaAlertaHtml));
+                geralVisiveisTodos = (resAlertas.value.data || []).filter(r => r.visivel);
             } else {
+                geralVisiveisTodos = [];
                 console.warn('[visao-geral] Falha ao carregar alertas do Motor:', resAlertas.reason?.message || resAlertas.value?.error?.message);
             }
+            renderizarPontosAtencaoGeral();
 
-            wrapper.innerHTML = cardsHtml.length ? `<div class="rz-card rz-list">${cardsHtml.join('')}</div>` : '';
-            if (cardsHtml.length > 0) {
-                document.getElementById('geral-atencao-vazio')?.remove();
-            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
 
-            // v1.185.0 — status do card, badge do sino: migraram de
-            // renderVisaoGeral() (cálculo local) pra cá (única fonte, Motor).
+        // v1.187.0 — separado de carregarDadosAssincronosVisaoGeral() pra
+        // rodar de novo (sem nova busca ao banco) quando o filtro de
+        // severidade mudar. Mesmo papel que recalcularAlertasTela() tem na
+        // tela de Alertas.
+        // (1) linhaAlertaHtml() no lugar de pontoAtencaoHtml(): mesma
+        //     marcação da tela de Alertas (com a placa de prazo/
+        //     criticidade), não um componente mais simples só daqui — era
+        //     por isso que a mesma pendência tinha CARA diferente conforme
+        //     a tela.
+        // (2) totalPontos é a soma PONDERADA (pesoAlerta) sobre os alertas
+        //     visíveis, não o nº de CARDS depois de agrupar. "10 pontos"
+        //     contava cards — um card "8 ocorrências" valia 1 ponto. Agora
+        //     o badge é o total real de pendências, com ou sem agrupamento.
+        // (3) seletor de severidade (mesmo padrão da tela de Alertas) e a
+        //     seção inteira some quando não há nada (raw, antes do filtro
+        //     de severidade) — sem "tudo em dia" escrito.
+        function renderizarPontosAtencaoGeral() {
+            const wrapper = document.getElementById('geral-atencao-fundidos');
+            const visiveis = geralVisiveisTodos;
+            const filtrados = filtrarPorSeveridade(visiveis, geralSeveridadeFiltro);
+            const ordenados = agruparEMapearAlertas(filtrados).sort((a, b) => {
+                if (a.dias === null && b.dias === null) return 0;
+                if (a.dias === null) return 1;
+                if (b.dias === null) return -1;
+                return a.dias - b.dias;
+            });
+            ordenados.forEach(a => { if (!a.onClick) a.onClick = "abrirTabAlertas()"; });
+            const cardsHtml = ordenados.map(linhaAlertaHtml);
+
+            const secao = document.getElementById('geral-atencao-secao');
+            if (secao) secao.classList.toggle('hidden', visiveis.length === 0);
+            const segEl = document.getElementById('alertas-seg-severidade-geral');
+            if (segEl) segEl.innerHTML = segSeveridadeHtml('alertas-seg-severidade-geral', geralSeveridadeFiltro, 'filtrarGeralPorSeveridade');
+            if (wrapper) wrapper.innerHTML = cardsHtml.length ? `<div class="rz-card rz-list">${cardsHtml.join('')}</div>`
+                : (visiveis.length ? `<p class="text-xs text-center py-6" style="color:var(--sage)">Nenhum alerta desta severidade.</p>` : '');
+
+            // v1.185.0 — badge do sino: migrou de renderVisaoGeral() (cálculo
+            // local) pra cá (única fonte, Motor). v1.187.0 — borda/status do
+            // card saíram junto com a moldura (não tem mais o que colorir).
             const criticosCount = visiveis.filter(r => r.tipo_alerta === 'atraso_pagamento').length;
             const totalPontos = visiveis.reduce((s, r) => s + pesoAlerta(r), 0); // v1.186.0
-            const card = document.getElementById('geral-atencao-card');
-            const st = document.getElementById('geral-atencao-status');
-            if (card) { card.classList.toggle('rz-critico', criticosCount > 0); card.classList.toggle('rz-atencao', criticosCount === 0 && totalPontos > 0); }
-            if (st) st.innerHTML = (typeof renderStatus === 'function')
-                ? (criticosCount > 0 ? renderStatus('bad', `${criticosCount} em atraso`)
-                   : (totalPontos ? renderStatus('warn', `${totalPontos} ${totalPontos === 1 ? 'ponto' : 'pontos'}`) : renderStatus('ok', 'Em dia')))
-                : '';
             const dot = document.getElementById('geral-sino-dot');
             if (dot) { dot.classList.toggle('hidden', totalPontos === 0); dot.classList.toggle('rz-warn', criticosCount === 0); }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function filtrarGeralPorSeveridade(severidade) {
+            geralSeveridadeFiltro = severidade;
+            renderizarPontosAtencaoGeral();
         }
 
         // ===================================================================
@@ -10901,12 +10937,16 @@
         let alertasTodos = [];
         let alertasPorChave = new Map();
         let alertasFiltroAtual = 'todos';
+        let alertasVisiveisTodos = []; // v1.187.0 — bruto, sem filtro; recalcularAlertasTela() deriva daqui
+        let alertasSeveridadeFiltro = 'todas'; // v1.187.0 — 'todas' | 'critico' | 'atencao' | 'informativo'
         // Contagem BRUTA por categoria, calculada ANTES de agrupar — pedido
         // explícito do Nicola (13/09/2026): "se tenho 50 itens pra
         // conciliar, tenho 50 alertas, mesmo mostrando 1 linha só". O
         // agrupamento reduz quantas LINHAS aparecem, nunca quanto o chip
         // conta — as duas coisas são independentes.
         let alertasContagemPorCategoria = new Map();
+        let geralVisiveisTodos = []; // v1.187.0 — bruto da Visão Geral; renderizarPontosAtencaoGeral() deriva daqui
+        let geralSeveridadeFiltro = 'todas'; // v1.187.0 — estado próprio, independente do da tela de Alertas
 
         const ENTIDADE_PARA_CHIP_ALERTA = {
             pendencia_financeira: 'financeiro',
@@ -11081,6 +11121,22 @@
             return r.tipo_alerta === 'sinal_fiscal' ? (Number(r.detalhe?.contagem) || 1) : 1;
         }
 
+        // v1.187.0 — seletor de severidade, .rz-seg (não .rz-chip, pedido
+        // explícito do Nicola), compartilhado pelas 2 telas. Cada tela tem
+        // seu próprio estado (uma pessoa pode estar filtrando "Crítico" na
+        // Visão Geral e "Todos" na tela de Alertas ao mesmo tempo).
+        const SEVERIDADE_ROTULO = { critico: 'Crítico', atencao: 'Atenção', informativo: 'Informativo' };
+        function segSeveridadeHtml(containerId, atual, onClickFn) {
+            const ordem = ['todas', 'critico', 'atencao', 'informativo'];
+            return ordem.map(s => {
+                const rot = s === 'todas' ? 'Todos' : SEVERIDADE_ROTULO[s];
+                return `<button onclick="${onClickFn}('${s}')" class="${s === atual ? 'rz-on' : ''}">${rot}</button>`;
+            }).join('');
+        }
+        function filtrarPorSeveridade(rows, severidade) {
+            return severidade === 'todas' ? rows : rows.filter(r => r.severidade === severidade);
+        }
+
         function itemAvulso(r) {
             return {
                 categoria: ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro',
@@ -11197,6 +11253,7 @@
                 console.error('[alertas] fn_alertas_listar:', error.message);
                 mount.innerHTML = `<p class="text-xs text-red-500 text-center py-6">Não foi possível carregar os alertas agora.</p>`;
                 document.getElementById('alertas-chips-categoria').innerHTML = '';
+                document.getElementById('alertas-seg-severidade').innerHTML = '';
                 return;
             }
 
@@ -11208,17 +11265,40 @@
             const visiveis = (data || []).filter(r => r.visivel);
             visiveis.forEach(r => alertasPorChave.set(r.alerta_chave, r));
 
-            // Contagem bruta ANTES do agrupamento, PONDERADA por pesoAlerta
-            // (v1.186.0) — ver comentário na declaração de pesoAlerta.
+            // v1.187.0 — guarda o bruto (sem filtro de severidade nem
+            // categoria); recalcularAlertasTela() deriva tudo daqui.
+            alertasVisiveisTodos = visiveis;
+            recalcularAlertasTela();
+        }
+
+        // v1.187.0 — separado de montarAlertasPatrimonio pra rodar de novo
+        // (sem nova busca ao banco) sempre que o filtro de severidade ou de
+        // categoria mudar. Contagem dos chips de categoria também passa a
+        // refletir só o que está dentro do filtro de severidade atual —
+        // os dois filtros combinam (E lógico), não competem.
+        function recalcularAlertasTela() {
+            const porSeveridade = filtrarPorSeveridade(alertasVisiveisTodos, alertasSeveridadeFiltro);
+
             alertasContagemPorCategoria = new Map();
-            visiveis.forEach(r => {
+            porSeveridade.forEach(r => {
                 const cat = ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro';
                 alertasContagemPorCategoria.set(cat, (alertasContagemPorCategoria.get(cat) || 0) + pesoAlerta(r));
             });
 
-            alertasTodos = agruparEMapearAlertas(visiveis);
+            alertasTodos = agruparEMapearAlertas(porSeveridade);
+            renderSegSeveridadeAlertas();
             renderChipsAlertas();
             renderListaAlertas();
+        }
+
+        function filtrarAlertasPorSeveridade(severidade) {
+            alertasSeveridadeFiltro = severidade;
+            recalcularAlertasTela();
+        }
+
+        function renderSegSeveridadeAlertas() {
+            const el = document.getElementById('alertas-seg-severidade');
+            if (el) el.innerHTML = segSeveridadeHtml('alertas-seg-severidade', alertasSeveridadeFiltro, 'filtrarAlertasPorSeveridade');
         }
 
         function renderChipsAlertas() {

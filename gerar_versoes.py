@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# gerar_versoes.py v1.12 (15/09/2026) — ARQ ganha js/comum-endereco.js
+# (E6.2 do PLANO_IMPLEMENTACAO — componente de endereço, ainda sem
+# consumidor nenhum, mas já precisa entrar no versoes.json/import map pra
+# poder ser importado quando algum form passar a usar).
 # gerar_versoes.py v1.11 (10/09/2026) — ARQ ganha js/imoveis.js (R8 fatia 5,
 # A.8 — Imóveis sai do index.html, caminho B).
 # gerar_versoes.py v1.10 (10/09/2026) — trava DIVERGÊNCIA também pro
@@ -36,7 +40,7 @@
 # deveria estar no ar) a partir dos headers dos arquivos do app. Rodado por
 # Claude a cada entrega; o Deploy_Raiz.ps1 v2.10 publica e compara com o site.
 import re, os, json, sys, datetime, io
-ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
+ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/comum-endereco.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
 out = {'app': 'patrimonio', 'gerado_em': datetime.datetime.now().isoformat(timespec='seconds'), 'arquivos': {}, 'detalhes': {}}
 for f in ARQ:
     s = io.open(f, encoding='utf-8').read()

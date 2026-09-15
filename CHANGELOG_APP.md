@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.182.0) — PLANO_IMPLEMENTACAO v1.0, etapa E3:
+agruparEMapearAlertas passa a ter limiar por tipo de alerta
+(alerta_tipos.agrupar_a_partir_de, padrao 6). Antes a tela agrupava a
+partir de 2 itens, o que transformava "2 documentos sem vinculo" numa
+linha-resumo e escondia alertas isolados. Agora so vira resumo acima do
+limiar; abaixo dele cada alerta aparece como linha propria. O contador do
+chip (alertasContagemPorCategoria) continua no volume bruto, calculado
+antes do agrupamento.
+------------------------------------------------------------------
+Versões anteriores (v1.181.1 … v1.181.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.181.1) — PLANO_IMPLEMENTACAO v1.0, etapa E1:
 rzAbrirDestinoAlerta ganha os destinos financeiro/conciliacao e
 relatorios/resultados. A migration catalogo_alertas_subtipos_v1 passou a
