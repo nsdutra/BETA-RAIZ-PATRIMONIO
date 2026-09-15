@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.21.1 · 15/09/2026
+// Versão: 1.21.2 · 15/09/2026
+//
+// v1.21.2 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (junto com
+// cofre-validacoes.js v1.4.0/cofre-ativos.js v1.32.1). TIPOS_ATIVO_ORDEM
+// nunca teve aeronave/embarcacao/colecao_bem_valor (gap pré-existente,
+// não causado por hoje) — ficavam invisíveis na tela "Modelos de item de
+// controle" (guarda `if (grupos[m.tipo_ativo])` esconde em vez de
+// quebrar). Achei o gap agora porque o modelo de TUF que acabei de criar
+// (tipo_ativo='embarcacao') ficaria invisível nessa tela. Lista completa
+// agora: os 11 valores antigos + as 4 categorias novas da fatia B.
 //
 // v1.21.1 — FIX (achado do Nicola em teste real): ROTULO_ALERTA_CHIP tinha
 // 6 entradas de tipos que não são item de controle (reajuste, contrato
@@ -269,7 +278,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.21.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.21.2'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1745,7 +1754,7 @@ function renderizarSubtiposControle() {
 // (ver ESPECIFICACAO_FLUXO_DOCUMENTO_BOT). Precisou de tabela e policy
 // novas — cofre_modelos_item_controle_v1.
 // ============================================================================
-const TIPOS_ATIVO_ORDEM = ['veiculo', 'veiculo_blindado', 'imovel', 'terreno', 'obra_arte', 'vida_protecao', 'outro'];
+const TIPOS_ATIVO_ORDEM = ['veiculo', 'veiculo_blindado', 'imovel', 'terreno', 'obra_arte', 'vida_protecao', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'imovel_predial', 'imovel_territorial', 'vida', 'bem_valor'];
 
 export async function abrirModelosControle() {
     try {

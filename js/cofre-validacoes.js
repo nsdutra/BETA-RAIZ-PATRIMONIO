@@ -1,6 +1,33 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.1 · 15/09/2026
+// Versão: 1.4.0 · 15/09/2026
+//
+// v1.4.0 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (decisão do Nicola,
+// "pode migrar conforme sugerido os ativos"). ACHADO antes de migrar:
+// rotuloTipoAtivo/iconeAtivo/CAMPOS_POR_TIPO_ATIVO só reconhecem os
+// valores ANTIGOS de tipo_ativo — se a migration rodasse sem isto, 119
+// dos 131 ativos (91%) ficariam com rótulo cru ("imovel_predial" na
+// tela), ícone genérico, E os campos estruturados (placa, matrícula,
+// artista...) sumiriam da ficha (CAMPOS_POR_TIPO_ATIVO[tipo] || []) —
+// dado continuaria no banco, só ficaria invisível/não-editável na
+// interface. Isto aqui NÃO é a E5 completa (catálogo vindo do banco,
+// bot lendo a mesma fonte) — é só o mínimo pra rótulo/ícone/campos não
+// quebrarem para os valores novos. E5 continua no backlog, como estava.
+// - rotuloTipoAtivo/iconeAtivo ganham 4 chaves novas: imovel_predial,
+//   imovel_territorial, vida, bem_valor. Chaves antigas mantidas (pedido
+//   do próprio plano: "manter os valores antigos aceitos durante a
+//   transição").
+// - CAMPOS_POR_TIPO_ATIVO ganha as mesmas 4 chaves, cada uma reaproveitando
+//   a lista de campos do tipo antigo mais próximo (imovel_predial=imovel,
+//   imovel_territorial=terreno, vida=vida_protecao, bem_valor=obra_arte) —
+//   é o que os ativos reais de hoje precisam pra não perder campo nenhum.
+//   `colecao_bem_valor` fica como está, sem ativo nenhum usando ainda —
+//   consolidar os dois num catálogo só é trabalho da E4.3/E4.4, não desta
+//   ponte.
+// - `veiculo` ganha blindagem_empresa/blindagem_nivel como campos
+//   OPCIONAIS (antes só existiam em veiculo_blindado) — os 3 ativos que
+//   migram de veiculo_blindado pra veiculo precisam continuar vendo e
+//   editando esse dado; os outros 9 veículos simplesmente não preenchem.
 //
 // v1.3.1 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2 (primeiro consumidor do
 // componente de endereço, decisão do Nicola 15/09): CAMPOS_POR_TIPO_ATIVO.
@@ -49,7 +76,7 @@
 // daqui, nunca o contrário.
 // ============================================================================
 
-export const VERSAO = '1.3.1'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -115,11 +142,19 @@ export function mascarar(valor, visiveisNoFinal = 4) {
 // (prompt corretivo §10 — nada de campo único "identificadores" genérico).
 // ============================================================================
 export function rotuloTipoAtivo(t) {
-    return { veiculo: 'Veículo', veiculo_blindado: 'Veículo blindado', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', obra_arte: 'Obra de arte', outro: 'Outro', aeronave: 'Aeronave', embarcacao: 'Embarcação', colecao_bem_valor: 'Coleção / bem de valor' }[t] || t;
+    return {
+        veiculo: 'Veículo', veiculo_blindado: 'Veículo blindado', imovel: 'Imóvel', terreno: 'Terreno', vida_protecao: 'Vida / proteção pessoal', obra_arte: 'Obra de arte', outro: 'Outro', aeronave: 'Aeronave', embarcacao: 'Embarcação', colecao_bem_valor: 'Coleção / bem de valor',
+        // v1.4.0 (E4.2 fatia B — ponte de compatibilidade) — categorias macro novas
+        imovel_predial: 'Imóvel', imovel_territorial: 'Terreno', vida: 'Vida / proteção pessoal', bem_valor: 'Obra de arte / bem de valor',
+    }[t] || t;
 }
 
 export function iconeAtivo(t) {
-    return { veiculo: 'car', veiculo_blindado: 'shield', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', obra_arte: 'image', outro: 'package', aeronave: 'plane', embarcacao: 'sailboat', colecao_bem_valor: 'gem' }[t] || 'package';
+    return {
+        veiculo: 'car', veiculo_blindado: 'shield', imovel: 'home', terreno: 'map', vida_protecao: 'heart-pulse', obra_arte: 'image', outro: 'package', aeronave: 'plane', embarcacao: 'sailboat', colecao_bem_valor: 'gem',
+        // v1.4.0 (E4.2 fatia B — ponte de compatibilidade)
+        imovel_predial: 'home', imovel_territorial: 'map', vida: 'heart-pulse', bem_valor: 'gem',
+    }[t] || 'package';
 }
 
 // Campos estruturados por tipo (convenção documentada em migration_cofre_v1_1_0.sql §3;
@@ -140,6 +175,11 @@ export const CAMPOS_POR_TIPO_ATIVO = {
         { chave: 'cor', label: 'Cor', obrigatorio: false },
         { chave: 'chassi', label: 'Chassi', obrigatorio: false, mascarar: true },
         { chave: 'renavam', label: 'RENAVAM', obrigatorio: false, mascarar: true },
+        // v1.4.0 (E4.2 fatia B) — antes só existiam em veiculo_blindado; os
+        // 3 ativos que migram de lá pra cá precisam continuar vendo/editando
+        // esse dado. Opcionais pros outros 9 veículos, que não preenchem.
+        { chave: 'blindagem_empresa', label: 'Empresa blindadora', obrigatorio: false },
+        { chave: 'blindagem_nivel', label: 'Nível de blindagem', obrigatorio: false },
         { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
     veiculo_blindado: [
@@ -222,6 +262,34 @@ export const CAMPOS_POR_TIPO_ATIVO = {
         { chave: 'descricao_item', label: 'Descrição do item', obrigatorio: false },
         { chave: 'local_armazenamento', label: 'Local de armazenamento', obrigatorio: false },
         { chave: 'ultima_avaliacao', label: 'Data da última avaliação', obrigatorio: false, tipo: 'date' },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
+    ],
+    // v1.4.0 (E4.2 fatia B — ponte de compatibilidade, NÃO é a E4.3/E4.4)
+    // — cada chave nova reaproveita a lista do tipo antigo mais próximo,
+    // só pra não perder campo de nenhum ativo real remapeado hoje.
+    // Consolidar num catálogo próprio (banco, por categoria) é a E4.3/E4.4,
+    // continua no backlog.
+    imovel_predial: [
+        { chave: 'matricula', label: 'Matrícula do imóvel', obrigatorio: false },
+        { chave: 'area_m2', label: 'Área (m²)', obrigatorio: false, tipo: 'number' },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
+    ],
+    imovel_territorial: [
+        { chave: 'matricula', label: 'Matrícula/Inscrição', obrigatorio: true },
+        { chave: 'localizacao', label: 'Localização', obrigatorio: false },
+        { chave: 'area_m2', label: 'Área (m²)', obrigatorio: false, tipo: 'number' },
+        { chave: 'inscricao_municipal', label: 'Inscrição municipal', obrigatorio: false },
+        { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
+    ],
+    vida: [
+        { chave: 'grau_parentesco', label: 'Grau de parentesco', obrigatorio: false },
+        { chave: 'numero_documento', label: 'Nº do documento (CPF/RG)', obrigatorio: false, mascarar: true },
+        { chave: 'data_nascimento', label: 'Data de nascimento', obrigatorio: false, tipo: 'date' },
+    ],
+    bem_valor: [
+        { chave: 'artista', label: 'Artista', obrigatorio: false },
+        { chave: 'titulo_obra', label: 'Título da obra', obrigatorio: false },
+        { chave: 'ano', label: 'Ano', obrigatorio: false, tipo: 'number' },
         { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],
 };

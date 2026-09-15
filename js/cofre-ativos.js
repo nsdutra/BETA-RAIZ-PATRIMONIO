@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.0 · 15/09/2026
+// Versão: 1.32.1 · 15/09/2026
+//
+// v1.32.1 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (junto com
+// cofre-validacoes.js v1.4.0 — ver changelog lá pro porquê). Achado aqui:
+// GRUPOS_CHIP_TIPO (chips Imóveis/Veículos/Outros da lista de ativos)
+// filtra por tipo_ativo cru — sem isto, o chip "Imóveis" ficaria
+// VAZIO depois da migration (os 106 imóveis passam a ser
+// imovel_predial/imovel_territorial, nenhum dos dois batia no filtro
+// antigo ['imovel','terreno']). Grupos passam a aceitar os dois
+// conjuntos de valores.
 //
 // v1.32.0 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2 (decisão do Nicola,
 // 15/09: "do endereço sim pode ser"): js/comum-endereco.js ganha seu
@@ -407,7 +416,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.32.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.1'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -596,9 +605,10 @@ function explicarListaVazia(el) {
 // ============================================================================
 const GRUPOS_CHIP_TIPO = [
     { rotulo: 'Todos', tipos: null },
-    { rotulo: 'Imóveis', tipos: ['imovel', 'terreno'] },
+    // v1.32.1 (E4.2 fatia B) — cada grupo aceita valor antigo E novo
+    { rotulo: 'Imóveis', tipos: ['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'] },
     { rotulo: 'Veículos', tipos: ['veiculo', 'veiculo_blindado'] },
-    { rotulo: 'Outros', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro'] },
+    { rotulo: 'Outros', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'vida', 'bem_valor'] },
 ];
 
 // Índice do chip ativo — 0 ("Todos") é o estado inicial. Só muda quando
