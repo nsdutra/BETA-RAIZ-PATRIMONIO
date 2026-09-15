@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.183.0
-   LINHAS: 15363
+   VERSÃO: Beta v1.184.0
+   LINHAS: 15380
    DATA: 13/09/2026
+   NOVIDADES (Beta v1.184.0) — PLANO_IMPLEMENTACAO v1.0, etapa E9: alerta
+   de cadastro incompleto entra no Motor. Novo tipo cadastro_incompleto
+   (dominio=cadastro, informativo, limiar 3), derivado dos campos
+   obrigatorios de ativo_tipos_campos (E4.4) por ativo — sem caminho
+   paralelo. Chip novo "Cadastro" na tela de Alertas; subtitulo lista os
+   campos que faltam; clique abre a ficha do ativo direto no chip Resumo,
+   onde se edita.
    NOVIDADES (Beta v1.183.0) — PLANO_IMPLEMENTACAO v1.0, etapa E10, mais
    dois ajustes pedidos pelo Nicola em teste real:
    (1) carregarDadosAssincronosVisaoGeral consome fn_alertas_listar em vez
@@ -43,13 +50,8 @@
    criarContratoParaImovel() (contratos.js v1.3.1) deixou de trocar de aba
    e de esperar setTimeout(150), e abrirNovoContratoDoAtivo()
    (cofre-ativos.js v1.31.1) deixou de chamar switchTab.
-   NOVIDADES (Beta v1.180.3) — pedido do Nicola: sugestão/feedback enviado
-   pelo card "Dúvidas, suporte ou sugestões?" (Sobre) também vira uma
-   demanda de Suporte (fn_demanda_criar), além de continuar gravando em
-   `feedback` como sempre — aparece na tela "Suporte & Backlog" do Gestão.
-   Escopo mínimo, o resto do Sistema de Demandas pro app fica no backlog.
    ------------------------------------------------------------------
-   Versões anteriores (v1.180.2 … v1.180.2): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.180.3 … v1.180.3): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3473,7 +3475,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.183.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.184.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10927,6 +10929,7 @@
             item_controle: 'item_controle',
             carteira: 'fiscal',
             documento: 'documento',
+            ativo: 'cadastro', // v1.184.0 (E9) — cadastro_incompleto
         };
 
         // Rótulos por categoria de sinal fiscal — mesmo mapa de antes
@@ -10962,6 +10965,7 @@
                     return `${qtd} ocorrência${qtd > 1 ? 's' : ''} · ${CATEGORIA_SINAL_LABEL_V2[cat] || cat || 'Fiscal'}`;
                 }
                 case 'documento_sem_vinculo': return 'Documento sem vínculo';
+                case 'cadastro_incompleto': return row.detalhe?.ativo_nome || 'Cadastro incompleto';
                 default: return row.tipo_alerta;
             }
         }
@@ -10976,6 +10980,11 @@
             // título do item (ex.: "Seguro"), sem dizer de QUAL ativo.
             if (row.tipo_alerta === 'anexo_apolice_pendente') {
                 return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${row.titulo}` : row.titulo;
+            }
+            // v1.184.0 (E9) — mostra quais campos faltam, não só que "algo falta".
+            if (row.tipo_alerta === 'cadastro_incompleto') {
+                const campos = row.detalhe?.campos_faltando || [];
+                return campos.length ? `Falta: ${campos.join(', ')}` : 'Cadastro incompleto';
             }
             return row.detalhe?.locatario || row.titulo || '';
         }
@@ -11015,6 +11024,12 @@
                     return;
                 case 'relatorios/resultados':
                     switchTab('tab-relatorios');
+                    return;
+                // v1.184.0 (E9) — destino do alerta de cadastro incompleto: abre a
+                // ficha do ativo direto no chip Resumo, onde os campos se editam.
+                case 'ativo/ficha':
+                    switchTab('tab-ativos');
+                    if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(row.entidade_id, 'resumo');
                     return;
                 default:
                     console.warn('[alertas] destino_rota sem dispatcher:', row.destino_rota);
@@ -11056,6 +11071,7 @@
             switch (tipoAlerta) {
                 case 'atraso_pagamento': return `${n} pagamentos em atraso`;
                 case 'documento_sem_vinculo': return `${n} documentos sem vínculo`;
+                case 'cadastro_incompleto': return `${n} ativos com cadastro incompleto`; // v1.184.0 (E9)
                 default: return `${n} alertas`;
             }
         }
@@ -11180,7 +11196,8 @@
                 { chave: 'item_controle', rotulo: 'Itens de controle' },
                 { chave: 'contrato', rotulo: 'Contratos' },
                 { chave: 'documento', rotulo: 'Documentos' },
-                { chave: 'fiscal', rotulo: 'Fiscal' }
+                { chave: 'fiscal', rotulo: 'Fiscal' },
+                { chave: 'cadastro', rotulo: 'Cadastro' } // v1.184.0 (E9)
             ];
             // v1.108.0 — chips no catálogo (.rz-chip, 1 linha com rolagem,
             // contador dentro; REGRAS §8) — antes eram pills Tailwind em

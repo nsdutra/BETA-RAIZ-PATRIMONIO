@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.180.3) — pedido do Nicola: sugestão/feedback enviado
+pelo card "Dúvidas, suporte ou sugestões?" (Sobre) também vira uma
+demanda de Suporte (fn_demanda_criar), além de continuar gravando em
+`feedback` como sempre — aparece na tela "Suporte & Backlog" do Gestão.
+Escopo mínimo, o resto do Sistema de Demandas pro app fica no backlog.
+------------------------------------------------------------------
+Versões anteriores (v1.180.2 … v1.180.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.180.2) — MOTOR CENTRAL DE ALERTAS, Fase 5, item 11:
 "Minhas notificações" (menu Conta) unifica as preferências de alerta
 (antes só dentro do card da própria pessoa, em Pessoas — a pessoa
