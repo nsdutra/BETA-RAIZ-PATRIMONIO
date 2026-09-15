@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.181.1) — PLANO_IMPLEMENTACAO v1.0, etapa E1:
+rzAbrirDestinoAlerta ganha os destinos financeiro/conciliacao e
+relatorios/resultados. A migration catalogo_alertas_subtipos_v1 passou a
+preencher destino_rota em extrato_desatualizado e sinal_fiscal, que antes
+eram os dois unicos alertas sem destino nenhum.
+------------------------------------------------------------------
+Versões anteriores (v1.181.0 … v1.181.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.181.0) — PLANO_IMPLEMENTACAO v1.0, etapa E0.1
 (achado A6): formulário de contrato movido para o <body> pela nova
 rzMoverFormContratoParaBody(), mesmo padrão de rzMoverFormImovelParaBody

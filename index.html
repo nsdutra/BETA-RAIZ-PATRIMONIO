@@ -6,9 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.185.0
-   LINHAS: 15354
+   VERSÃO: Beta v1.186.0
+   LINHAS: 15428
    DATA: 13/09/2026
+   NOVIDADES (Beta v1.186.0) — 4 achados do Nicola em teste real
+   (Albuquerque, contando manualmente 21 pendências contra os 10/12 que a
+   tela mostrava):
+   (1) Visão Geral e tela de Alertas agora renderizam a MESMA marcação pra
+   um alerta (linhaAlertaHtml, extraída de renderListaAlertas) — antes a
+   Visão Geral usava pontoAtencaoHtml, um componente mais simples, sem a
+   placa de prazo/criticidade, então o mesmo alerta tinha cara diferente
+   conforme a tela.
+   (2) Totais (badge "X pontos" da Visão Geral, chips da tela de Alertas)
+   passam a somar peso REAL de pendência (pesoAlerta), não nº de linhas do
+   Motor nem nº de cards depois de agrupar — sinal_fiscal é 1 linha mas
+   representa N ocorrências (detalhe.contagem, ex.: "8 ocorrências"); antes
+   contava 1. Total agora bate com o que a pessoa lê somando os títulos.
+   (3) 4 tipos de alerta de contrato (reajuste, encerramento, aguardando
+   assinatura, vendido/arquivado) passam a agrupar (agrupamento='por_tipo')
+   — "Contrato vencido" x2 virava 2 linhas idênticas sem nenhuma pista de
+   qual era qual; migration alerta_agrupamento_contratos_v1. Clique do
+   grupo abre a lista de Contratos (ACAO_GRUPO_POR_TIPO), não mais uma
+   entidade aleatória do grupo.
+   (4) Item de controle vencendo (avulso) ganha o nome do ativo no
+   subtítulo — 2 ativos diferentes com o mesmo subtipo ("Condomínio")
+   pareciam a mesma linha duplicada. E a placa de vencido encurtou de
+   "Venceu há Xd" pra "Há Xd" — em dívida antiga (258d) empurrava o título
+   pro truncamento (.rz-tx encolhe, .rz-rt não).
    NOVIDADES (Beta v1.185.0) — achados do Nicola em teste real na
    Albuquerque:
    (1) FIX off-by-one no limiar de agrupamento: "agrupar_a_partir_de = 3"
@@ -48,13 +72,8 @@
    limiar; abaixo dele cada alerta aparece como linha propria. O contador do
    chip (alertasContagemPorCategoria) continua no volume bruto, calculado
    antes do agrupamento.
-   NOVIDADES (Beta v1.181.1) — PLANO_IMPLEMENTACAO v1.0, etapa E1:
-   rzAbrirDestinoAlerta ganha os destinos financeiro/conciliacao e
-   relatorios/resultados. A migration catalogo_alertas_subtipos_v1 passou a
-   preencher destino_rota em extrato_desatualizado e sinal_fiscal, que antes
-   eram os dois unicos alertas sem destino nenhum.
    ------------------------------------------------------------------
-   Versões anteriores (v1.181.0 … v1.181.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.181.1 … v1.181.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3478,7 +3497,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.185.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.186.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10701,46 +10720,42 @@
 
             // --- pontos de atenção: exclusivamente o Motor ---
             // Falha aqui degrada sozinha: os KPIs acima já foram escritos.
-            const itensFundidos = [];
+            // v1.186.0 (achados do Nicola em teste real) — 2 mudanças:
+            // (1) linhaAlertaHtml() no lugar de pontoAtencaoHtml(): mesma
+            //     marcação da tela de Alertas (com a placa de prazo/
+            //     criticidade), não um componente mais simples só daqui —
+            //     era por isso que a mesma pendência tinha CARA diferente
+            //     conforme a tela.
+            // (2) totalPontos vira a soma PONDERADA (pesoAlerta) sobre os
+            //     alertas visíveis, não mais itensFundidos.length (nº de
+            //     CARDS depois de agrupar). "10 pontos" contava cards — um
+            //     card "8 ocorrências" valia 1 ponto. Agora o badge é o
+            //     total real de pendências, com ou sem agrupamento visual.
+            let visiveis = [];
+            const cardsHtml = [];
             if (resAlertas.status === 'fulfilled' && !resAlertas.value?.error) {
-                const visiveis = (resAlertas.value.data || []).filter(r => r.visivel);
-                const ICONE_TIPO_GERAL = { anexo_apolice_pendente: 'paperclip', documento_sem_vinculo: 'inbox' };
-                const ICONE_CAT_GERAL = { item_controle: 'wrench', contrato: 'file-text', financeiro: 'wallet', fiscal: 'landmark' };
+                visiveis = (resAlertas.value.data || []).filter(r => r.visivel);
                 const ordenados = agruparEMapearAlertas(visiveis).sort((a, b) => {
                     if (a.dias === null && b.dias === null) return 0;
                     if (a.dias === null) return 1;
                     if (b.dias === null) return -1;
                     return a.dias - b.dias;
                 });
-                ordenados.forEach(a => {
-                    let icone = ICONE_TIPO_GERAL[a.tipoAlerta] || ICONE_CAT_GERAL[a.categoria] || 'info';
-                    let sem = '';
-                    if (a.dias !== null) {
-                        if (a.dias < 0) { sem = 'bad'; icone = 'alarm-clock'; }
-                        else if (a.dias <= 14) { sem = 'warn'; icone = 'clock'; }
-                    }
-                    itensFundidos.push(pontoAtencaoHtml({
-                        icone, sem,
-                        titulo: escapeHtmlSaidas(a.titulo),
-                        subtitulo: escapeHtmlSaidas(a.subtitulo || 'Toque pra ver em Alertas'),
-                        onclick: "abrirTabAlertas()"
-                    }));
-                });
+                ordenados.forEach(a => { if (!a.onClick) a.onClick = "abrirTabAlertas()"; });
+                cardsHtml.push(...ordenados.map(linhaAlertaHtml));
             } else {
                 console.warn('[visao-geral] Falha ao carregar alertas do Motor:', resAlertas.reason?.message || resAlertas.value?.error?.message);
             }
 
-            wrapper.innerHTML = itensFundidos.join('');
-            if (itensFundidos.length > 0) {
+            wrapper.innerHTML = cardsHtml.length ? `<div class="rz-card rz-list">${cardsHtml.join('')}</div>` : '';
+            if (cardsHtml.length > 0) {
                 document.getElementById('geral-atencao-vazio')?.remove();
             }
 
             // v1.185.0 — status do card, badge do sino: migraram de
             // renderVisaoGeral() (cálculo local) pra cá (única fonte, Motor).
-            const criticosCount = resAlertas.status === 'fulfilled'
-                ? (resAlertas.value.data || []).filter(r => r.visivel && r.tipo_alerta === 'atraso_pagamento').length
-                : 0;
-            const totalPontos = itensFundidos.length;
+            const criticosCount = visiveis.filter(r => r.tipo_alerta === 'atraso_pagamento').length;
+            const totalPontos = visiveis.reduce((s, r) => s + pesoAlerta(r), 0); // v1.186.0
             const card = document.getElementById('geral-atencao-card');
             const st = document.getElementById('geral-atencao-status');
             if (card) { card.classList.toggle('rz-critico', criticosCount > 0); card.classList.toggle('rz-atencao', criticosCount === 0 && totalPontos > 0); }
@@ -10952,6 +10967,12 @@
             if (row.tipo_alerta === 'anexo_apolice_pendente') {
                 return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${row.titulo}` : row.titulo;
             }
+            // v1.186.0 (achado do Nicola) — mesmo padrão: sem o nome do
+            // ativo, duas linhas de "Item de controle vencendo" pareciam
+            // duplicadas mesmo sendo de ativos diferentes.
+            if (row.tipo_alerta === 'cofre_item_vencendo') {
+                return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${row.titulo}` : row.titulo;
+            }
             // v1.184.0 (E9) — mostra quais campos faltam, não só que "algo falta".
             if (row.tipo_alerta === 'cadastro_incompleto') {
                 const campos = row.detalhe?.campos_faltando || [];
@@ -11014,18 +11035,51 @@
         //   'por_alerta'   — cada caso sua própria linha (padrão, maioria
         //                    dos tipos — cada um é uma decisão própria)
         //   'por_tipo'     — vira 1 linha resumindo todos daquele tipo
-        //                    (hoje: atraso_pagamento, documento_sem_vinculo)
+        //                    (hoje: atraso_pagamento, documento_sem_vinculo,
+        //                    reajuste_aniversario, contrato_encerramento,
+        //                    contrato_aguardando_assinatura,
+        //                    contrato_ativo_vendido_arquivado,
+        //                    cadastro_incompleto)
         //   'por_entidade' — vira 1 linha por ativo, quando o mesmo ativo
         //                    tem mais de 1 alerta do mesmo tipo (hoje só
         //                    cofre_item_vencendo usa)
-        // Só agrupa de verdade quando há MAIS DE 1 no grupo — 1 item
-        // sozinho sempre mostra normal, sem virar "resumo de 1".
-        // Clique do resumo só existe quando o destino não depende de UM
-        // item específico (DESTINO_GERAL) — abrir "o item aleatório X" pra
-        // representar 77 atrasos não faz sentido; abrir a tela de
-        // Cobranças (que já lista todos) faz.
+        // Só agrupa de verdade quando há MAIS DE 1 no grupo (limiar em
+        // alerta_tipos.agrupar_a_partir_de) — abaixo disso mostra normal,
+        // sem virar "resumo de 1".
+        // Clique do resumo é decidido por ACAO_GRUPO_POR_TIPO (abaixo) —
+        // abrir "o item aleatório X" pra representar 77 atrasos não faz
+        // sentido; abrir a tela de Cobranças (que já lista todos) faz.
         // ============================================================
-        const DESTINO_GERAL = new Set(['financeiro/atrasados']);
+        // v1.186.0 — troca DESTINO_GERAL (que testava destino_rota) por um
+        // mapa direto tipoAlerta → ação. destino_rota de contrato/item
+        // aponta pra UMA entidade específica (entidade_id) — abrir isso a
+        // partir de um card agrupado ("3 contratos...") abriria só 1 dos 3,
+        // enganoso. As ações aqui são todas genéricas (abrem a lista/aba),
+        // certas pra representar o grupo inteiro.
+        const ACAO_GRUPO_POR_TIPO = {
+            atraso_pagamento: "switchTab('tab-inadimplencia')",
+            contrato_encerramento: "switchTab('tab-contratos')",
+            reajuste_aniversario: "switchTab('tab-contratos')",
+            contrato_aguardando_assinatura: "switchTab('tab-contratos')",
+            contrato_ativo_vendido_arquivado: "switchTab('tab-contratos')",
+            cadastro_incompleto: "switchTab('tab-ativos')",
+            // documento_sem_vinculo fica sem ação geral por enquanto — não
+            // existe uma aba/lista própria pra "documentos sem vínculo" pra
+            // abrir; mantém sem clique quando agrupado (como já era).
+        };
+
+        // v1.186.0 (achado do Nicola: "conto 21, o sistema mostra 10/12") —
+        // sinal_fiscal é uma linha só no Motor, mas representa VÁRIAS
+        // ocorrências (detalhe.contagem) — a leitura tributária já vem
+        // pré-agregada da RPC. Contar a linha como 1 faz o total mostrado
+        // (badge da Visão Geral, chips da tela de Alertas) ficar bem abaixo
+        // do que a pessoa lê somando os títulos na tela ("2 ocorrências" +
+        // "2 ocorrências" + "8 ocorrências" = 12, não 3). peso() é usado em
+        // TODO lugar que soma "quantos alertas existem" — é a fonte única
+        // do número, pros dois lugares nunca mais discordarem entre si.
+        function pesoAlerta(r) {
+            return r.tipo_alerta === 'sinal_fiscal' ? (Number(r.detalhe?.contagem) || 1) : 1;
+        }
 
         function itemAvulso(r) {
             return {
@@ -11043,6 +11097,13 @@
                 case 'atraso_pagamento': return `${n} pagamentos em atraso`;
                 case 'documento_sem_vinculo': return `${n} documentos sem vínculo`;
                 case 'cadastro_incompleto': return `${n} ativos com cadastro incompleto`; // v1.184.0 (E9)
+                // v1.186.0 (achado do Nicola: "contrato vencido... deveria
+                // estar agrupado") — estes 4 tipos passam a agrupar
+                // (alerta_tipos.agrupamento: 'por_alerta' → 'por_tipo').
+                case 'contrato_encerramento': return `${n} contratos com vigência vencendo/vencida`;
+                case 'reajuste_aniversario': return `${n} contratos com reajuste pendente`;
+                case 'contrato_aguardando_assinatura': return `${n} contratos aguardando assinatura`;
+                case 'contrato_ativo_vendido_arquivado': return `${n} contratos em ativo vendido/arquivado`;
                 default: return `${n} alertas`;
             }
         }
@@ -11092,14 +11153,13 @@
                 // < é o comparador correto — "a partir de N" inclui N.
                 if (grupo.length < limiarTipo) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
-                const clicavel = r0.destino_rota && DESTINO_GERAL.has(r0.destino_rota);
                 itens.push({
                     categoria: ENTIDADE_PARA_CHIP_ALERTA[r0.entidade_tipo] || 'outro',
                     tipoAlerta,
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorTipo(tipoAlerta, grupo.length),
                     subtitulo: subtituloResumoPorTipo(tipoAlerta, grupo),
-                    onClick: clicavel ? `rzAbrirDestinoAlerta('${r0.alerta_chave}')` : null,
+                    onClick: ACAO_GRUPO_POR_TIPO[tipoAlerta] || null,
                 });
             });
 
@@ -11148,12 +11208,12 @@
             const visiveis = (data || []).filter(r => r.visivel);
             visiveis.forEach(r => alertasPorChave.set(r.alerta_chave, r));
 
-            // Contagem bruta ANTES do agrupamento — ver comentário na
-            // declaração de alertasContagemPorCategoria.
+            // Contagem bruta ANTES do agrupamento, PONDERADA por pesoAlerta
+            // (v1.186.0) — ver comentário na declaração de pesoAlerta.
             alertasContagemPorCategoria = new Map();
             visiveis.forEach(r => {
                 const cat = ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro';
-                alertasContagemPorCategoria.set(cat, (alertasContagemPorCategoria.get(cat) || 0) + 1);
+                alertasContagemPorCategoria.set(cat, (alertasContagemPorCategoria.get(cat) || 0) + pesoAlerta(r));
             });
 
             alertasTodos = agruparEMapearAlertas(visiveis);
@@ -11230,13 +11290,29 @@
             // vencendo" — os dois dividiam o ícone da categoria
             // 'item_controle'). ICONE_TIPO_ALERTA sobrepõe por tipo quando
             // existe, antes do fallback por categoria.
-            const ICONE_TIPO_ALERTA = { anexo_apolice_pendente: 'paperclip' };
-            const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', financeiro: 'wallet', fiscal: 'landmark' };
-            const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
-            mount.innerHTML = `<div class="rz-card rz-list">` + ordenados.map(a => {
+            mount.innerHTML = `<div class="rz-card rz-list">` + ordenados.map(linhaAlertaHtml).join('') + `</div>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.186.0 — extraída de dentro de renderListaAlertas pra virar a
+        // ÚNICA fonte de markup de uma linha de alerta, usada por esta tela
+        // E pela Visão Geral (carregarDadosAssincronosVisaoGeral). Antes a
+        // Visão Geral usava pontoAtencaoHtml() — um componente mais simples,
+        // sem a placa de prazo/criticidade — então o MESMO alerta aparecia
+        // visualmente diferente conforme a tela. Agora é a mesma função, a
+        // mesma marcação, em qualquer lugar que mostre um alerta do Motor.
+        const ICONE_TIPO_ALERTA = { anexo_apolice_pendente: 'paperclip' };
+        const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', financeiro: 'wallet', fiscal: 'landmark' };
+        function linhaAlertaHtml(a) {
+                const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
                 let sem = 'neu', rotulo = '', classeIc = '', icone = ICONE_TIPO_ALERTA[a.tipoAlerta] || ICONE_CATEGORIA[a.categoria] || 'info';
                 if (a.dias !== null) {
-                    if (a.dias < 0) { sem = 'bad'; rotulo = `Venceu há ${Math.abs(a.dias)}d`; classeIc = ' rz-bad'; icone = 'alarm-clock'; }
+                    // v1.186.0 (achado do Nicola em teste real) — "Venceu há
+                    // Xd" ficava comprido em dívidas antigas (ex.: 258d) e
+                    // empurrava o título pro truncamento (.rz-rt é flex:none,
+                    // .rz-tx encolhe — ver DESIGN_SYSTEM §rz-row). Encurtado
+                    // pra "Há Xd", mesma informação, quase metade da largura.
+                    if (a.dias < 0) { sem = 'bad'; rotulo = `Há ${Math.abs(a.dias)}d`; classeIc = ' rz-bad'; icone = 'alarm-clock'; }
                     else if (a.dias === 0) { sem = 'warn'; rotulo = 'Vence hoje'; classeIc = ' rz-warn'; icone = 'clock'; }
                     else if (a.dias <= 14) { sem = 'warn'; rotulo = `${a.dias} dia${a.dias === 1 ? '' : 's'}`; classeIc = ' rz-warn'; icone = 'clock'; }
                     else { sem = 'run'; rotulo = `${a.dias} dias`; }
@@ -11248,8 +11324,6 @@
                     <div class="rz-rt">${rotulo ? st(sem, rotulo) : ''}</div>
                     ${clicavel ? '<svg data-lucide="chevron-right" class="rz-chev"></svg>' : ''}
                 </div>`;
-            }).join('') + `</div>`;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // Ponte pro módulo Ativos (Cofre) — primeira nesta direção neste
