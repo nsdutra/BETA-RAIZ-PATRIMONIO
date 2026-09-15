@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.187.0
-   LINHAS: 15508
+   VERSÃO: Beta v1.187.1
+   LINHAS: 15493
    DATA: 15/09/2026
+   NOVIDADES (Beta v1.187.1) — item #8 do HANDOFF_SESSAO_2026-09-15,
+   decisão do Nicola ("pode eliminar"): pontoAtencaoHtml() removida.
+   Órfã desde a v1.187.0 (0 chamadores, confirmado por grep antes de
+   remover) — Visão Geral e Alertas usam linhaAlertaHtml() para a mesma
+   marcação desde a v1.186.0. Só a função saiu; os 2 comentários
+   históricos que a citam noutros pontos do arquivo (v1.185.0/v1.186.0)
+   ficaram, por descreverem o que mudou naquelas versões.
    NOVIDADES (Beta v1.187.0) — 2 pedidos do Nicola sobre a tela de Alertas:
    (1) "Precisa de atenção" na Visão Geral deixou de ser .rz-card (moldura
    com borda colorida) e virou título simples — o padding:14px 16px do
@@ -3518,7 +3525,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.187.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.187.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10577,30 +10584,15 @@
             return m.status === 'Inadimplente' && !mensalidadeEmAtraso(m);
         }
 
-        // v1.95.0 (pedido explícito, 01/09/2026: "os componentes estão
-        // espaçados de forma diferente... as funções de carregamento
-        // estão unificadas? quais oportunidades de centralizar?") —
-        // template ÚNICO pra TODO ponto de atenção da Visão Geral
-        // (síncrono ou assíncrono, imóvel/contrato ou Cofre). Antes
-        // desta versão existiam 8 blocos de HTML quase idênticos,
-        // digitados à mão em sessões diferentes — a inconsistência
-        // visual que você reparou veio exatamente disso: um wrapper
-        // aninhado (#geral-atencao-fundidos) não tinha a mesma classe
-        // de espaçamento (space-y-2) do container pai, então os itens
-        // async ficavam sem gap entre si. Corrigido aqui (função única,
-        // impossível divergir por acidente) e no HTML (ver linha do
-        // #geral-atencao-fundidos, ganhou space-y-2 também).
-        // v1.114.0 (fatia 6) — item de atenção em .rz-row; corBg/corTexto
-        // (Tailwind por chamador) viraram a semântica da placa: quem passa
-        // 'bg-red-*' é crítico (rz-bad), 'bg-amber-*' é atenção (rz-warn).
-        function pontoAtencaoHtml({ icone, corBg, corTexto, titulo, subtitulo, onclick, sem }) {
-            const semantica = sem || (/red/.test(corBg || '') ? 'bad' : /amber|yellow/.test(corBg || '') ? 'warn' : '');
-            return `<div class="rz-row rz-link" onclick="${onclick}">
-                <div class="rz-ic${semantica ? ' rz-' + semantica : ''}"><svg data-lucide="${icone}"></svg></div>
-                <div class="rz-tx"><b>${titulo}</b><span>${subtitulo}</span></div>
-                <svg data-lucide="chevron-right" class="rz-chev"></svg>
-            </div>`;
-        }
+        // v1.187.1 — pontoAtencaoHtml() REMOVIDA (item #8 do handoff
+        // 2026-09-15, decisão do Nicola: "pode eliminar"). Órfã desde a
+        // v1.187.0 (0 chamadores — grep confirmado antes de remover):
+        // a Visão Geral e a tela de Alertas passaram a renderizar a MESMA
+        // marcação de alerta via linhaAlertaHtml() (ver v1.186.0), e este
+        // template mais simples (sem placa de prazo/criticidade) ficou sem
+        // uso. Os 2 comentários que citavam esta função em outros pontos
+        // do arquivo (histórico, v1.186.0/v1.185.0) foram mantidos —
+        // descrevem o que mudou naquelas versões, não o que existe hoje.
 
         function renderVisaoGeral() {
 
