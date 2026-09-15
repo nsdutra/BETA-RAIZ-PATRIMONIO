@@ -6,9 +6,21 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.184.0
-   LINHAS: 15380
+   VERSÃO: Beta v1.185.0
+   LINHAS: 15354
    DATA: 13/09/2026
+   NOVIDADES (Beta v1.185.0) — achados do Nicola em teste real na
+   Albuquerque:
+   (1) FIX off-by-one no limiar de agrupamento: "agrupar_a_partir_de = 3"
+   só agrupava com 4+ itens (comparador era <=, virou <). Confirmado com 3
+   itens de documento_sem_vinculo não agrupando.
+   (2) "3 imóveis vagos" aparecia na Visão Geral e nunca na tela de Alertas
+   porque nunca foi um alerta do Motor — renderVisaoGeral() (função local,
+   síncrona) calculava 4 categorias por conta própria (inadimplência,
+   contrato assinando, contrato com alerta, imóvel vago), 3 delas duplicando
+   o que o Motor já cobre e a 4ª (vago) sem equivalente — o plano (E10) já
+   pedia a remoção. As 4 saem; quem decide "Precisa de atenção" agora é só
+   o Motor. Status do card/badge do sino migraram junto.
    NOVIDADES (Beta v1.184.0) — PLANO_IMPLEMENTACAO v1.0, etapa E9: alerta
    de cadastro incompleto entra no Motor. Novo tipo cadastro_incompleto
    (dominio=cadastro, informativo, limiar 3), derivado dos campos
@@ -41,17 +53,8 @@
    relatorios/resultados. A migration catalogo_alertas_subtipos_v1 passou a
    preencher destino_rota em extrato_desatualizado e sinal_fiscal, que antes
    eram os dois unicos alertas sem destino nenhum.
-   NOVIDADES (Beta v1.181.0) — PLANO_IMPLEMENTACAO v1.0, etapa E0.1
-   (achado A6): formulário de contrato movido para o <body> pela nova
-   rzMoverFormContratoParaBody(), mesmo padrão de rzMoverFormImovelParaBody
-   (v1.108.0). Causa: #form-contrato-wrapper era `fixed` dentro de
-   uma section (id tab-contratos), e section com display:none nao renderiza
-   filho `fixed` — o form abria atrás da ficha do ativo. Com isso,
-   criarContratoParaImovel() (contratos.js v1.3.1) deixou de trocar de aba
-   e de esperar setTimeout(150), e abrirNovoContratoDoAtivo()
-   (cofre-ativos.js v1.31.1) deixou de chamar switchTab.
    ------------------------------------------------------------------
-   Versões anteriores (v1.180.3 … v1.180.3): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.181.0 … v1.181.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -75,7 +78,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.2","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.21.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.3","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.21.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3475,7 +3478,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.184.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.185.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10580,56 +10583,18 @@
             if (elVagos) elVagos.innerText = vagos;
             if (elInad) elInad.innerText = inadimplentes;
 
-            const itens = [];
-
-            if (inadimplentes > 0) {
-                itens.push(pontoAtencaoHtml({
-                    icone: 'badge-dollar-sign', corBg: 'bg-red-50', corTexto: 'text-red-700',
-                    titulo: `${inadimplentes} recebimento${inadimplentes > 1 ? 's' : ''} em atraso`,
-                    subtitulo: 'Abrir Cobranças',
-                    onclick: "switchTab('tab-inadimplencia')"
-                }));
-            }
-
-            const contratosAssinando = contratos.filter(c => c.status === 'Assinando' && !imovelIsentoDeAlertas(c.imovelId));
-            if (contratosAssinando.length > 0) {
-                // CORRIGIDO (v1.56.0 — pedido explícito): antes usava um
-                // filtro paralelo por contrato (filtrarImoveisPorAlertaContrato,
-                // com banner explicativo). Agora usa o filtro REAL de
-                // status do imóvel ("Assinando", existente desde v1.50.0 —
-                // sincronizado automaticamente quando um contrato nasce/
-                // muda pra esse status), sem banner nenhum — só filtra e
-                // mostra a lista.
-                itens.push(pontoAtencaoHtml({
-                    icone: 'file-signature', corBg: 'bg-blue-50', corTexto: 'text-blue-700',
-                    titulo: `${contratosAssinando.length} contrato${contratosAssinando.length > 1 ? 's' : ''} aguardando assinatura`,
-                    subtitulo: `Gerado${contratosAssinando.length > 1 ? 's' : ''} pela Vitrine, revisar e assinar`,
-                    onclick: "switchTab('tab-contratos');"
-                }));
-            }
-
-            const contratosComAlerta = contratos.filter(c => c.status !== 'Assinando' && !imovelIsentoDeAlertas(c.imovelId) && (contratoPrecisaRevisao(c) || contratoVencido(c)));
-            if (contratosComAlerta.length > 0) {
-                // CORRIGIDO (v1.57.0 — pedido explícito): ao entrar pela
-                // Visão Geral, marca o filtro real "Todos com alerta" no
-                // overlay de busca de Imóveis (não existe mais banner nem
-                // filtro paralelo).
-                itens.push(pontoAtencaoHtml({
-                    icone: 'calendar-clock', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
-                    titulo: `${contratosComAlerta.length} contrato${contratosComAlerta.length > 1 ? 's' : ''} com alerta`,
-                    subtitulo: 'Reajuste pendente ou vigência vencida',
-                    onclick: "switchTab('tab-contratos');"
-                }));
-            }
-
-            if (vagos > 0) {
-                itens.push(pontoAtencaoHtml({
-                    icone: 'house-plus', corBg: 'bg-amber-50', corTexto: 'text-amber-700',
-                    titulo: `${vagos} imóve${vagos > 1 ? 'is' : 'l'} vago${vagos > 1 ? 's' : ''}`,
-                    subtitulo: 'Potencial de receita não realizado',
-                    onclick: "if (window.rzAbrirAtivosComFiltro) window.rzAbrirAtivosComFiltro('prop:Vago'); else switchTab('tab-ativos');"
-                }));
-            }
+            // v1.185.0 (achado do Nicola em teste real) — os 4 cards que
+            // existiam aqui (inadimplência, contrato assinando, contrato com
+            // alerta, imóvel vago) saíram: os 3 primeiros duplicavam o que o
+            // Motor já cobre (atraso_pagamento, contrato_aguardando_assinatura,
+            // contrato_encerramento/reajuste_aniversario) — é a causa raiz do
+            // "imóvel vago aparece na Visão Geral mas não em Alertas": nunca
+            // foi um alerta do Motor, sempre foi cálculo local direto sobre o
+            // array `imoveis`, e o plano (E10) já pedia a remoção. Quem decide
+            // o que aparece em "Precisa de atenção" agora é só o Motor, em
+            // carregarDadosAssincronosVisaoGeral() — status do card, badge do
+            // sino e mensagem de vazio também migraram pra lá (mesma fonte,
+            // sem discordância possível entre os dois).
 
             // v1.91.0 (pedido explícito, 31/08/2026) — wrapper fixo pros
             // pontos de atenção assíncronos (controles do Cofre +
@@ -10640,21 +10605,10 @@
             // repetidos desta função.
             const listaEl = document.getElementById('geral-atencao-lista');
             if (listaEl) {
-                const baseHtml = itens.length > 0
-                    ? itens.join('')
-                    : `<div class="rz-empty" id="geral-atencao-vazio"><p>Nada pedindo atenção agora.</p></div>`;
-                listaEl.innerHTML = baseHtml + '<div id="geral-atencao-fundidos"></div>';
-                // v1.114.0 (fatia 6) — status do card: nº de itens críticos
-                // (inadimplência / contrato com alerta) em vermelho; borda
-                // danger quando há crítico, vinho quando só atenção.
-                const card = document.getElementById('geral-atencao-card');
-                const st = document.getElementById('geral-atencao-status');
-                const criticos = inadimplentes > 0 ? 1 : 0;
-                if (card) { card.classList.toggle('rz-critico', criticos > 0); card.classList.toggle('rz-atencao', criticos === 0); }
-                if (st) st.innerHTML = (typeof renderStatus === 'function') ? (inadimplentes > 0 ? renderStatus('bad', `${inadimplentes} em atraso`) : (itens.length ? renderStatus('warn', `${itens.length} pontos`) : renderStatus('ok', 'Em dia'))) : '';
-                // v1.115.0 (fatia 7) — badge do sino acompanha o card
-                const dot = document.getElementById('geral-sino-dot');
-                if (dot) { dot.classList.toggle('hidden', itens.length === 0); dot.classList.toggle('rz-warn', inadimplentes === 0); }
+                // v1.185.0 — placeholder de vazio + o container do Motor. Se
+                // carregarDadosAssincronosVisaoGeral() achar algo, ela mesma
+                // remove #geral-atencao-vazio (já fazia isso desde a E10).
+                listaEl.innerHTML = `<div class="rz-empty" id="geral-atencao-vazio"><p>Nada pedindo atenção agora.</p></div><div id="geral-atencao-fundidos"></div>`;
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -10780,6 +10734,23 @@
             if (itensFundidos.length > 0) {
                 document.getElementById('geral-atencao-vazio')?.remove();
             }
+
+            // v1.185.0 — status do card, badge do sino: migraram de
+            // renderVisaoGeral() (cálculo local) pra cá (única fonte, Motor).
+            const criticosCount = resAlertas.status === 'fulfilled'
+                ? (resAlertas.value.data || []).filter(r => r.visivel && r.tipo_alerta === 'atraso_pagamento').length
+                : 0;
+            const totalPontos = itensFundidos.length;
+            const card = document.getElementById('geral-atencao-card');
+            const st = document.getElementById('geral-atencao-status');
+            if (card) { card.classList.toggle('rz-critico', criticosCount > 0); card.classList.toggle('rz-atencao', criticosCount === 0 && totalPontos > 0); }
+            if (st) st.innerHTML = (typeof renderStatus === 'function')
+                ? (criticosCount > 0 ? renderStatus('bad', `${criticosCount} em atraso`)
+                   : (totalPontos ? renderStatus('warn', `${totalPontos} ${totalPontos === 1 ? 'ponto' : 'pontos'}`) : renderStatus('ok', 'Em dia')))
+                : '';
+            const dot = document.getElementById('geral-sino-dot');
+            if (dot) { dot.classList.toggle('hidden', totalPontos === 0); dot.classList.toggle('rz-warn', criticosCount === 0); }
+
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -11116,7 +11087,10 @@
                 // Fallback ?? 6 mantem a tela funcionando se a coluna nao vier.
                 const r0 = grupo[0];
                 const limiarTipo = r0.agrupar_a_partir_de ?? 6;
-                if (grupo.length <= limiarTipo) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
+                // FIX (achado do Nicola em teste real, 15/09/2026): era <=, então
+                // "agrupar a partir de 3" só agrupava com 4+ (3 continuava avulso).
+                // < é o comparador correto — "a partir de N" inclui N.
+                if (grupo.length < limiarTipo) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
                 const clicavel = r0.destino_rota && DESTINO_GERAL.has(r0.destino_rota);
                 itens.push({
@@ -11132,7 +11106,7 @@
             porEntidade.forEach(grupo => {
                 // v1.182.0 (E3) — mesmo limiar do bloco acima.
                 const limiarEnt = grupo[0].agrupar_a_partir_de ?? 6;
-                if (grupo.length <= limiarEnt) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
+                if (grupo.length < limiarEnt) { grupo.forEach(r => itens.push(itemAvulso(r))); return; } // mesmo FIX do bloco acima
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
                 const ativoNome = grupo[0].detalhe?.ativo_nome || grupo[0].titulo || 'Ativo';
                 itens.push({

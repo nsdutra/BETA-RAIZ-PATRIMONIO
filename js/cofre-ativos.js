@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.31.2 · 15/09/2026
+// Versão: 1.31.3 · 15/09/2026
+//
+// v1.31.3 — FIX (achado do Nicola em teste real): aplicarAlertaMotorNoChip
+// Controles filtra os alertas por tipo antes de repassar ao pintor — só
+// anexo_apolice_pendente e cofre_item_vencendo pintam o chip "Controles".
+// Alerta de contrato/financeiro do ativo (que a E2.3 passou a trazer aqui)
+// não é mais confundido com item de controle vencido.
 //
 // v1.31.2 — PLANO_IMPLEMENTACAO v1.0, etapa E11: aplicarAlertaMotorNoChip
 // Controles passa a só BUSCAR (fn_alertas_do_ativo) e delegar a pintura para
@@ -384,7 +390,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.31.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.31.3'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -926,11 +932,27 @@ export async function abrirFichaAtivo(id, chipInicial = 'resumo') {
 // unica de cor e texto do chip "Controles". Antes ela acendia o vermelho
 // direto e nunca apagava, e a conta local escrevia "Em dia" por cima —
 // dai a bolinha vermelha sem alerta visivel na ficha.
+// v1.31.3 (FIX, achado do Nicola em teste real) — fn_alertas_do_ativo(a.id)
+// devolve TODO alerta ligado a este ativo_id, e desde a E2.3 isso inclui
+// alerta de CONTRATO (reajuste, encerramento, aguardando assinatura,
+// vendido/arquivado) e de FINANCEIRO (atraso) — não só item de controle.
+// aplicarMotorNoChipControles() pinta o chip "Controles", que mostra só
+// cofre_itens_controle; pintar por alerta de contrato produzia exatamente
+// o sintoma relatado: bolinha vermelha com contador 0 (Rua Funchal, sem
+// nenhum item de controle, tinha 1 contrato vencido) e "1 reajuste
+// pendente" no cabeçalho de Controles de um ativo cujo item (IPTU) estava
+// Em dia (Av. Faria Lima — o reajuste era do CONTRATO, não do IPTU).
+// Filtro por tipo_alerta antes de pintar: só os 2 tipos que são de fato
+// item de controle. Alerta de contrato/financeiro do ativo continua
+// aparecendo — na tela de Alertas e na Visão Geral, que são o lugar certo.
+const TIPOS_ALERTA_CHIP_CONTROLES = new Set(['anexo_apolice_pendente', 'cofre_item_vencendo']);
+
 async function aplicarAlertaMotorNoChipControles(a) {
     try {
         const alertas = await api.buscarAlertasDoAtivo(a.id);
         if (ativoAtualId !== a.id) return; // trocou de ativo enquanto buscava
-        aplicarMotorNoChipControles(alertas || []);
+        const doControle = (alertas || []).filter(x => TIPOS_ALERTA_CHIP_CONTROLES.has(x.tipo_alerta));
+        aplicarMotorNoChipControles(doControle);
     } catch (err) {
         // Motor indisponível: o chip fica com o estado provisório da conta
         // local (só o número), sem vermelho inventado.

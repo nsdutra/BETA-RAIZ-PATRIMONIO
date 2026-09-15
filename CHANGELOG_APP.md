@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.181.0) — PLANO_IMPLEMENTACAO v1.0, etapa E0.1
+(achado A6): formulário de contrato movido para o <body> pela nova
+rzMoverFormContratoParaBody(), mesmo padrão de rzMoverFormImovelParaBody
+(v1.108.0). Causa: #form-contrato-wrapper era `fixed` dentro de
+uma section (id tab-contratos), e section com display:none nao renderiza
+filho `fixed` — o form abria atrás da ficha do ativo. Com isso,
+criarContratoParaImovel() (contratos.js v1.3.1) deixou de trocar de aba
+e de esperar setTimeout(150), e abrirNovoContratoDoAtivo()
+(cofre-ativos.js v1.31.1) deixou de chamar switchTab.
+------------------------------------------------------------------
+Versões anteriores (v1.180.3 … v1.180.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.180.3) — pedido do Nicola: sugestão/feedback enviado
 pelo card "Dúvidas, suporte ou sugestões?" (Sobre) também vira uma
 demanda de Suporte (fn_demanda_criar), além de continuar gravando em

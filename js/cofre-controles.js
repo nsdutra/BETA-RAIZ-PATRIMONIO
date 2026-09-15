@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.21.0 · 15/09/2026
+// Versão: 1.21.1 · 15/09/2026
+//
+// v1.21.1 — FIX (achado do Nicola em teste real): ROTULO_ALERTA_CHIP tinha
+// 6 entradas de tipos que não são item de controle (reajuste, contrato
+// encerrando/assinando/vendido, atraso, documento sem vínculo) — nunca
+// deveriam ter sido rótulo do chip "Controles". Reduzido aos 2 tipos
+// corretos, acompanhando o filtro novo em cofre-ativos.js v1.31.3.
 //
 // v1.21.0 — PLANO_IMPLEMENTACAO v1.0, etapa E11 (chip do ativo com fonte
 // única). Achado pelo Nicola em teste real: ativo com bolinha vermelha e
@@ -263,7 +269,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.21.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.21.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -344,15 +350,13 @@ function atualizarEstadoChipControles() {
 
 // Rótulo curto por tipo de alerta, para o cabeçalho do chip dizer o MOTIVO
 // em vez de só uma data. [singular, plural].
+// v1.21.1 (FIX) — só os 2 tipos que são de fato item de controle: quem
+// chama (cofre-ativos.js v1.31.3) já filtra por tipo_alerta antes de
+// chegar aqui, mas o dicionário só tinha as outras 6 entradas por engano
+// (contrato/financeiro) — nunca deveriam ter sido rótulo do chip Controles.
 const ROTULO_ALERTA_CHIP = {
-    anexo_apolice_pendente:           ['documento pendente', 'documentos pendentes'],
-    cofre_item_vencendo:              ['item de controle', 'itens de controle'],
-    atraso_pagamento:                 ['pagamento em atraso', 'pagamentos em atraso'],
-    reajuste_aniversario:             ['reajuste pendente', 'reajustes pendentes'],
-    contrato_encerramento:            ['contrato vencendo', 'contratos vencendo'],
-    contrato_aguardando_assinatura:   ['contrato aguardando assinatura', 'contratos aguardando assinatura'],
-    contrato_ativo_vendido_arquivado: ['contrato em ativo vendido', 'contratos em ativo vendido'],
-    documento_sem_vinculo:            ['documento sem vínculo', 'documentos sem vínculo'],
+    anexo_apolice_pendente: ['documento pendente', 'documentos pendentes'],
+    cofre_item_vencendo:    ['item de controle', 'itens de controle'],
 };
 
 let motorDecidiuChipControles = false;
