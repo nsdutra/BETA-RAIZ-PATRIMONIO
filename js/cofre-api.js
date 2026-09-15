@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.24.0 · 13/09/2026
+// Versão: 1.25.0 · 15/09/2026
+//
+// v1.25.0 — PLANO_IMPLEMENTACAO v1.0, etapa E0.2 (achado A8):
+// listarSubtiposControle() ganha o parâmetro opcional `tipoAtivo` e filtra
+// por cofre_controle_subtipos.tipo_ativo_aplicavel. O array já estava
+// preenchido no catálogo desde a criação e nunca era usado — o seletor de
+// subtipo mostrava os 109 subtipos em qualquer ativo. Chamada sem o
+// parâmetro mantém o catálogo completo (assinatura antiga preservada).
 //
 // v1.24.0 — MOTOR CENTRAL DE ALERTAS, Fase 3: nova buscarAlertasDoAtivo(),
 // ponte pra fn_alertas_do_ativo (banco) — alertas contextualizados na
@@ -205,7 +212,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.24.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.25.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -979,10 +986,23 @@ export async function excluirContato(id) {
 // migration_cofre_alarmes_fase1_nucleo_v1) — sem RPC dedicada nesta rodada;
 // autorização real continua no servidor (RLS), não só escondida na UI.
 // ============================================================================
-export async function listarSubtiposControle(clienteId) {
-    const { data, error } = await dbAuth.from('cofre_controle_subtipos').select('*')
-        .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true)
-        .order('tipo').order('nome');
+// v1.25.0 (E0.2 / A8) — parametro opcional `tipoAtivo`. Quando presente,
+// devolve so os subtipos aplicaveis aquele tipo de ativo
+// (cofre_controle_subtipos.tipo_ativo_aplicavel, array que ja existia no
+// catalogo desde a criacao e nunca era usado). Subtipo com o array NULO
+// continua aparecendo — nulo significa "serve pra qualquer ativo", nao
+// "nao serve pra nenhum". Sem o parametro, comportamento identico ao de
+// antes (catalogo completo) — o cadastro de subtipos e o de modelos
+// continuam chamando assim.
+// Obs.: usa .or() em vez de .contains() porque .contains() sozinho
+// excluiria os subtipos de array nulo.
+export async function listarSubtiposControle(clienteId, tipoAtivo) {
+    let q = dbAuth.from('cofre_controle_subtipos').select('*')
+        .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true);
+    if (tipoAtivo) {
+        q = q.or(`tipo_ativo_aplicavel.is.null,tipo_ativo_aplicavel.cs.{${tipoAtivo}}`);
+    }
+    const { data, error } = await q.order('tipo').order('nome');
     if (error) throw error;
     return data || [];
 }

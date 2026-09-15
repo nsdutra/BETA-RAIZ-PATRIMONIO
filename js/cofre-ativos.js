@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.31.0 · 13/09/2026
+// Versão: 1.31.1 · 15/09/2026
+//
+// v1.31.1 — PLANO_IMPLEMENTACAO v1.0, etapa E0.1 (achado A6):
+// abrirNovoContratoDoAtivo() não chama mais window.switchTab('tab-contratos')
+// antes de criarContratoParaImovel(). O formulário de contrato agora vive no
+// <body> e abre por cima da ficha do ativo, sem tirar o usuário de onde ele
+// estava. Nenhuma outra função deste arquivo mudou.
 //
 // v1.31.0 — MOTOR CENTRAL DE ALERTAS, Fase 3: "alertas contextualizados na
 // ficha do ativo" (último item da Fase 3) — versão FINAL, pedido do Nicola
@@ -373,7 +379,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.31.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.31.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1208,7 +1214,8 @@ export function abrirNovoContratoDoAtivo() {
     if (a?.entidade_origem_tipo !== 'imovel') { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
     if (typeof window.switchTab === 'function' && typeof window.criarContratoParaImovel === 'function') {
         window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
-        window.switchTab('tab-contratos');
+        // v1.31.1 (E0.1 / A6) — switchTab('tab-contratos') saiu: o formulario
+        // de contrato agora vive no <body> e abre por cima da ficha do ativo.
         window.criarContratoParaImovel(a.entidade_origem_id);
     } else mostrarToast('Contratação só abre dentro do app principal.', 'erro');
 }

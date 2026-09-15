@@ -1,6 +1,22 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.20.1 · 10/09/2026
+// Versão: 1.20.3 · 15/09/2026
+//
+// v1.20.3 — PLANO_IMPLEMENTACAO v1.0, etapa E1: a tela de cadastro de
+// subtipos passa a agrupar também `taxa` e `documento`, e despesa gerada a
+// partir de um item de `taxa` entra como tributo. Acompanha a migration
+// catalogo_alertas_subtipos_v1 (tipo `taxa` criado; Condomínio e
+// Marina/guarda movidos de `tributo` para `taxa`).
+//
+// v1.20.2 — PLANO_IMPLEMENTACAO v1.0, etapa E0.2 (achado A8): o seletor de
+// subtipo do formulário de item de controle passa a mostrar só os subtipos
+// aplicáveis ao tipo do ativo em foco (embarcação: 12, não 109), via
+// api.listarSubtiposControle(clienteId, tipoAtivo) — cofre-api.js v1.25.0.
+// Cache próprio (subtiposDoAtivoCache); subtiposCache continua sendo o
+// catálogo completo das telas de cadastro de subtipos e de modelos. Subtipo
+// com tipo_ativo_aplicavel nulo continua aparecendo, e um subtipo vindo de
+// modelo nunca some do seletor por causa do filtro. Falha na busca filtrada
+// degrada para o catálogo completo, nunca trava o formulário.
 //
 // v1.20.1 — A.10: criarItemControleDeDocumento recebe valorPrevisto/
 // parcelas/parcelaIntervaloDias (upload com IA, cofre-documentos.js 2.10.0)
@@ -235,7 +251,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.20.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.20.3'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -248,6 +264,11 @@ import {
 } from './cofre-validacoes.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
+// v1.20.2 (E0.2 / A8) — cache separado do catalogo FILTRADO pelo tipo de
+// ativo em foco, usado so pelo seletor do formulario de item de controle.
+// subtiposCache (acima) continua sendo o catalogo COMPLETO, porque as telas
+// de cadastro de subtipos e de modelos precisam ver tudo.
+let subtiposDoAtivoCache = { tipoAtivo: null, lista: null };
 let modelosCache = null; // idem, pros modelos de item de controle por tipo de ativo
 let modeloEmEdicao = null; // id do modelo sendo editado no momento, ou null (modo "criar novo")
 let itensDoAtivoAtual = [];
@@ -553,7 +574,9 @@ export async function salvarPartesItemAtual() {
 // como sugestão de fornecedor — o popup de despesa (index.html) decide
 // sozinho se pré-seleciona (1 parte só) ou mostra os chips pra escolher
 // (2+ partes, não dá pra adivinhar qual delas).
-const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manutencao', tributo: 'tributo' };
+// v1.20.3 (E1) — `taxa` cai em despesa de tributo (condomínio, marina, TUF);
+// `documento` não gera despesa e continua caindo no fallback 'outro'.
+const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manutencao', tributo: 'tributo', taxa: 'tributo' };
 
 export async function abrirNovoLancamentoDoItem() {
     const item = itemEmFoco;
@@ -1249,6 +1272,15 @@ export async function abrirFormControle() {
         try { subtiposCache = await api.listarSubtiposControle(estado.clienteId); }
         catch (err) { mostrarToast('Erro ao carregar catálogo: ' + err.message, 'erro'); return; }
     }
+    // v1.20.2 (E0.2 / A8) — catálogo do seletor filtrado pelo tipo do ativo
+    // em foco (embarcação mostra 12 subtipos, não 109). Se a busca filtrada
+    // falhar, cai no catálogo completo em vez de travar o formulário.
+    const tipoAtivoFoco = estado.ativoEmFoco?.tipo_ativo || null;
+    if (tipoAtivoFoco && subtiposDoAtivoCache.tipoAtivo !== tipoAtivoFoco) {
+        try { subtiposDoAtivoCache = { tipoAtivo: tipoAtivoFoco, lista: await api.listarSubtiposControle(estado.clienteId, tipoAtivoFoco) }; }
+        catch (err) { subtiposDoAtivoCache = { tipoAtivo: null, lista: null }; }
+    }
+    if (!tipoAtivoFoco) subtiposDoAtivoCache = { tipoAtivo: null, lista: null };
     if (!modelosCache) {
         try { modelosCache = await api.listarModelosItemControle(estado.clienteId); }
         catch (err) { modelosCache = []; /* não bloqueia a criação manual se os modelos falharem ao carregar */ }
@@ -1286,7 +1318,7 @@ export function aplicarModeloAoForm(modeloId) {
     const m = (modelosCache || []).find(x => x.id === modeloId);
     if (!m) return;
     document.getElementById('ic-tipo').value = m.tipo;
-    popularSelectSubtipoEm('ic-subtipo', m.tipo, m.subtipo_id);
+    popularSelectSubtipoEm('ic-subtipo', m.tipo, m.subtipo_id, subtiposDoAtivoCache.lista);
     document.getElementById('ic-titulo').value = m.titulo_sugerido;
     document.getElementById('ic-freq-intervalo').value = m.frequencia_intervalo || '';
     if (m.frequencia_unidade) document.getElementById('ic-freq-unidade').value = m.frequencia_unidade;
@@ -1299,13 +1331,25 @@ export function fecharFormControle() {
 }
 
 function popularSelectSubtipo(tipo) {
-    popularSelectSubtipoEm('ic-subtipo', tipo, null);
+    popularSelectSubtipoEm('ic-subtipo', tipo, null, subtiposDoAtivoCache.lista);
 }
 
-function popularSelectSubtipoEm(selectId, tipo, selecionadoId) {
+// v1.20.2 (E0.2 / A8) — 4o parametro opcional `lista`: quando vem, e o
+// catalogo ja filtrado pelo tipo do ativo; quando nao vem, e o catalogo
+// completo (cadastro de subtipos, cadastro de modelos). Assinatura de 3
+// argumentos preservada — os chamadores antigos nao mudam de comportamento.
+function popularSelectSubtipoEm(selectId, tipo, selecionadoId, lista) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
-    const opcoes = (subtiposCache || []).filter(s => s.tipo === tipo);
+    const base = lista || subtiposCache || [];
+    const opcoes = base.filter(s => s.tipo === tipo);
+    // Um subtipo escolhido explicitamente (ex.: veio de um modelo) nunca
+    // pode sumir do seletor por causa do filtro — se nao estiver na lista
+    // filtrada, entra a partir do catalogo completo.
+    if (selecionadoId && !opcoes.some(s => s.id === selecionadoId)) {
+        const extra = (subtiposCache || []).find(s => s.id === selecionadoId);
+        if (extra) opcoes.push(extra);
+    }
     sel.innerHTML = `<option value="">— sem subtipo específico —</option>` +
         opcoes.map(s => `<option value="${s.id}" ${s.id === selecionadoId ? 'selected' : ''}>${escapeHtml(s.nome)}</option>`).join('');
 }
@@ -1598,7 +1642,9 @@ export async function excluirSubtipoControle(id) {
 // possíveis, CHECK constraint no banco) em vez de lista plana, pra ficar
 // claro em qual dropdown cada subtipo novo vai aparecer.
 function renderizarSubtiposControle() {
-    const grupos = { seguro: [], manutencao: [], tributo: [] };
+    // v1.20.3 (E1) — `taxa` e `documento` passam a ter grupo próprio; antes
+    // um subtipo fora dos 3 tipos simplesmente não era listado nesta tela.
+    const grupos = { seguro: [], manutencao: [], tributo: [], taxa: [], documento: [] };
     (subtiposCache || []).forEach(s => { if (grupos[s.tipo]) grupos[s.tipo].push(s); });
     const el = document.getElementById('subtipos-lista');
     el.innerHTML = Object.keys(grupos).map(tipo => {

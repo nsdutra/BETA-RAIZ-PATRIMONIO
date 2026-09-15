@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.27.0 · 10/09/2026
+// Versão: 1.28.0 · 15/09/2026
+//
+// v1.28.0 — PLANO_IMPLEMENTACAO v1.0, etapa E1: os seletores de tipo de item
+// de controle (ic-tipo) e de subtipo (subtipo-tipo) ganham "Taxa" e
+// "Documento". A migration catalogo_alertas_subtipos_v1 criou o tipo `taxa`
+// e moveu Condomínio e Marina/guarda para ele — sem estas duas opções, um
+// subtipo em uso (Condomínio, 2 itens) sumiria da tela. `documento` já
+// existia no CHECK do banco e nunca tinha aparecido aqui.
 //
 // v1.27.0 — Documentos arquivados: entrada nova no menu Conta › Cofre
 // ("Documentos arquivados") e modal-documentos-arquivados (mesmo molde de
@@ -284,7 +291,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.27.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.28.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -757,6 +764,8 @@ export const ATIVOS_MARKUP = `<style>
                 <option value="seguro">Seguro</option>
                 <option value="manutencao">Manutenção</option>
                 <option value="tributo">Tributo</option>
+                <option value="taxa">Taxa</option>
+                <option value="documento">Documento</option>
             </select>
             <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
@@ -1439,6 +1448,8 @@ export const ATIVOS_MARKUP = `<style>
                     <option value="seguro">Seguro</option>
                     <option value="manutencao">Manutenção</option>
                     <option value="tributo">Tributo</option>
+                    <option value="taxa">Taxa</option>
+                    <option value="documento">Documento</option>
                 </select>
             </div>
             <div class="flex-1"><label class="text-xs font-semibold block mb-1">Nome</label><input type="text" id="subtipo-nome" placeholder="Ex.: Seguro contra incêndio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>

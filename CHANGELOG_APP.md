@@ -4,6 +4,69 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.180.1) — MOTOR CENTRAL DE ALERTAS, Fase 3, fechamento
+(consolida 5 correções/entregas que ficaram sem versão própria por
+engano — corrigido a partir de agora, cada entrega evolui a versão).
+Achados em teste real do Nicola, todos corrigidos:
+  - dispatcher sem rota pra financeiro/atrasados (console acusava erro
+    ao clicar num atraso — corrigido, abre Cobranças);
+  - "documento pendente" sem nome do ativo/subtipo, ícone genérico
+    dividido com "item vencendo" — corrigido (ativo_nome no detector,
+    ícone de clipe próprio);
+  - agrupamento por tipo/entidade implementado (77 atrasos → 1 linha
+    resumida, "R$ X total · mais antiga há Yd" — o motivo do Motor
+    existir, §7.2 do Motor doc);
+  - contador do chip corrigido pra refletir o volume REAL de alertas,
+    não quantas linhas aparecem agrupadas (pedido explícito);
+  - "alertas contextualizados na ficha do ativo": tentativa 1 foi um
+    banner novo — Nicola não gostou visualmente; versão final reaproveita
+    a bolinha vermelha que o chip "Controles" já tinha (js/cofre-ativos.js
+    1.31.0), sem componente novo nenhum.
+------------------------------------------------------------------
+Versões anteriores (v1.180.0 … v1.180.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.180.0) — MOTOR CENTRAL DE ALERTAS, Fase 3
+(MOTOR_ALERTAS_RAIZ_v1_2_0.md). A Central de Alertas (aba "Alertas")
+passa a ler fn_alertas_listar (banco) em vez de reimplementar a regra
+em JS — antes eram 4 fontes com 4 regras próprias (cofre_ocorrencias_
+controle cru, 3 checagens de contrato, fn_leitura_tributaria_sinais,
+docsTriagem), cada uma um jeito diferente de decidir "isso é alerta?".
+MUDANÇA VISÍVEL, confirmada com o Nicola: a tela passa a mostrar
+também atraso de pagamento e extrato desatualizado (nunca apareciam
+aqui antes, só no Financeiro/WhatsApp) — é o objetivo do Motor: app,
+bot e banco vendo os mesmos alertas. Chips trocam 'Ativos'/'Outros'
+por 'Financeiro'/'Fiscal'. Dispatcher único (rzAbrirDestinoAlerta)
+substitui os onClick individuais por tipo — destino vem do catálogo
+(alerta_tipos.destino_rota), zero código de navegação novo por tipo
+de alerta. NÃO migrado ainda (fica pra próxima etapa): o card "Precisa
+de atenção" da Visão Geral e o badge da lista de Contratos continuam
+na regra antiga (contratoVencido/PrecisaRevisao/AguardandoAssinatura,
+preservadas intactas — ainda usadas por essas 2 telas).
+------------------------------------------------------------------
+Versões anteriores (v1.179.5 … v1.179.5): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.179.5) — pedido do Nicola: novo modal "Resumo da
+conciliação" (data/hora, origem, modo, canal) em todo item conciliado
+— Conciliação, Recebimentos, Saídas. Menu de 3 pontinhos de item
+conciliado na Conciliação ganhou "Recibo" direto e "Desfazer" virou
+"Estornar". Totalizador da aba Conciliação agora reage aos chips de
+status, igual Recebimentos/Saídas. Ver changelog completo em
+financeiro.js 1.7.2.
+------------------------------------------------------------------
+Versões anteriores (v1.179.4 … v1.179.4): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.179.4) — achado do Nicola: botões (lupa/importar) da
 aba Conciliação estavam ABAIXO do resumo hero, único caso entre as 3
 abas do Financeiro — Recebimentos e Saídas sempre tiveram os botões

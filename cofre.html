@@ -10,8 +10,13 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.0
-  Data       : 30/08/2026
+  Versão     : 1.25.1
+  Data       : 15/09/2026
+  CHANGELOG v1.25.1 — PLANO_IMPLEMENTACAO v1.0, etapa E1: seletores de tipo
+               de item de controle e de subtipo ganham "Taxa" e "Documento",
+               espelhando js/ativos/ativos-markup.js v1.28.0 (o tipo `taxa`
+               passou a existir no catálogo; Condomínio e Marina/guarda
+               foram movidos para ele).
   Título     : ACEITE DE TERMOS MIGRA DE VERDADE PRO MOTOR DE COMUNICAÇÕES
   Base       : v1.24.0 (30/08/2026)
   Novidades  : cofre-navegacao.js v1.5.0 — revertido pra
@@ -2531,6 +2536,8 @@
                 <option value="seguro">Seguro</option>
                 <option value="manutencao">Manutenção</option>
                 <option value="tributo">Tributo</option>
+                <option value="taxa">Taxa</option>
+                <option value="documento">Documento</option>
             </select>
             <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
@@ -3168,6 +3175,8 @@
                     <option value="seguro">Seguro</option>
                     <option value="manutencao">Manutenção</option>
                     <option value="tributo">Tributo</option>
+                    <option value="taxa">Taxa</option>
+                    <option value="documento">Documento</option>
                 </select>
             </div>
             <div class="flex-1"><label class="text-xs font-semibold block mb-1">Nome</label><input type="text" id="subtipo-nome" placeholder="Ex.: Seguro contra incêndio" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>

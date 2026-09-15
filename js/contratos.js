@@ -1,7 +1,18 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.3.0 · 11/09/2026
+// Versão: 1.3.1 · 15/09/2026
+//
+// v1.3.1 — PLANO_IMPLEMENTACAO v1.0, etapa E0.1 (achado A6): formulário de
+// contrato sobreposto. criarContratoParaImovel() não troca mais de aba
+// (switchTab('tab-contratos')) nem espera setTimeout(150) — o wrapper
+// #form-contrato-wrapper passou a viver no <body> (rzMoverFormContratoParaBody,
+// index.html v1.181.0), mesmo padrão do formulário de imóvel desde a
+// v1.108.0. Causa do bug: o wrapper é `fixed inset-0 z-[65]` mas estava
+// dentro de <section id="tab-contratos">, e section com display:none não
+// renderiza filho `fixed` — abrindo pela ficha do ativo, o form ficava
+// atrás da ficha. A origem (window.fichaContratoOrigem) agora é preservada
+// no reset de abertura, senão o Cancelar seguinte não sabia para onde voltar.
 //
 // v1.3.0 — Etapa 7 do PLANO_CONCILIACAO_FINANCEIRO_RAIZ_v1_4.md (Parte G.2
 // item 2): ao ativar um contrato com início no passado, pergunta se quer
@@ -106,7 +117,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.3.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3076,31 +3087,36 @@ export function reabrirFichaSeFor(contratoId) {
 
             const contratoAssinandoExistente = contratos.find(c => c.imovelId === imovelId && c.status === 'Assinando');
 
-            switchTab('tab-contratos');
+            // v1.3.1 (E0.1 / A6) — switchTab('tab-contratos') e o setTimeout(150)
+            // sairam: o wrapper agora vive no <body> (rzMoverFormContratoParaBody,
+            // index.html v1.181.0), entao o formulario abre por cima de onde o
+            // usuario estiver, sem trocar de aba e sem esperar a aba aparecer.
+            // cancelarEdicaoContrato() aqui e so RESET de formulario, nao um
+            // cancelamento de verdade: a origem (ficha do ativo) e preservada,
+            // senao o reset ja consumia window.fichaContratoOrigem e o Cancelar
+            // seguinte nao sabia mais para onde voltar.
+            const origemAoAbrir = window.fichaContratoOrigem;
+            window.fichaContratoOrigem = null;
             cancelarEdicaoContrato();
+            window.fichaContratoOrigem = origemAoAbrir;
 
-            // Pequeno atraso — a troca de aba pode levar um instante para o
-            // conteúdo ficar visível de verdade; preencher e rolar direto na
-            // sequência às vezes rodava antes disso, parecendo que nada abriu.
-            setTimeout(function() {
-                document.getElementById('form-contrato-wrapper').classList.remove('hidden');
+            document.getElementById('form-contrato-wrapper').classList.remove('hidden');
 
-                sincronizarBotaoToggleContrato();
+            sincronizarBotaoToggleContrato();
 
-                if (contratoAssinandoExistente) {
-                    editarContrato(contratoAssinandoExistente.id);
-                    return;
-                }
+            if (contratoAssinandoExistente) {
+                editarContrato(contratoAssinandoExistente.id);
+                return;
+            }
 
-                document.getElementById('con-imovel').value = imovelId;
-                const resumoBtn = document.getElementById('con-imovel-resumo');
-                if (resumoBtn) resumoBtn.textContent = `[${imo.empreendimento || '-'}] ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}`;
+            document.getElementById('con-imovel').value = imovelId;
+            const resumoBtn = document.getElementById('con-imovel-resumo');
+            if (resumoBtn) resumoBtn.textContent = `[${imo.empreendimento || '-'}] ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}`;
 
-                sugerirDescontoEnergia();
-                exibirDivisaoImovelNoContrato(imovelId);
+            sugerirDescontoEnergia();
+            exibirDivisaoImovelNoContrato(imovelId);
 
-                document.getElementById('form-contrato')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 150);
+            document.getElementById('form-contrato')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         export function cancelarEdicaoContrato() {

@@ -6,9 +6,31 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.180.3
-   LINHAS: 15381
+   VERSÃO: Beta v1.182.0
+   LINHAS: 15392
    DATA: 13/09/2026
+   NOVIDADES (Beta v1.182.0) — PLANO_IMPLEMENTACAO v1.0, etapa E3:
+   agruparEMapearAlertas passa a ter limiar por tipo de alerta
+   (alerta_tipos.agrupar_a_partir_de, padrao 6). Antes a tela agrupava a
+   partir de 2 itens, o que transformava "2 documentos sem vinculo" numa
+   linha-resumo e escondia alertas isolados. Agora so vira resumo acima do
+   limiar; abaixo dele cada alerta aparece como linha propria. O contador do
+   chip (alertasContagemPorCategoria) continua no volume bruto, calculado
+   antes do agrupamento.
+   NOVIDADES (Beta v1.181.1) — PLANO_IMPLEMENTACAO v1.0, etapa E1:
+   rzAbrirDestinoAlerta ganha os destinos financeiro/conciliacao e
+   relatorios/resultados. A migration catalogo_alertas_subtipos_v1 passou a
+   preencher destino_rota em extrato_desatualizado e sinal_fiscal, que antes
+   eram os dois unicos alertas sem destino nenhum.
+   NOVIDADES (Beta v1.181.0) — PLANO_IMPLEMENTACAO v1.0, etapa E0.1
+   (achado A6): formulário de contrato movido para o <body> pela nova
+   rzMoverFormContratoParaBody(), mesmo padrão de rzMoverFormImovelParaBody
+   (v1.108.0). Causa: #form-contrato-wrapper era `fixed` dentro de
+   uma section (id tab-contratos), e section com display:none nao renderiza
+   filho `fixed` — o form abria atrás da ficha do ativo. Com isso,
+   criarContratoParaImovel() (contratos.js v1.3.1) deixou de trocar de aba
+   e de esperar setTimeout(150), e abrirNovoContratoDoAtivo()
+   (cofre-ativos.js v1.31.1) deixou de chamar switchTab.
    NOVIDADES (Beta v1.180.3) — pedido do Nicola: sugestão/feedback enviado
    pelo card "Dúvidas, suporte ou sugestões?" (Sobre) também vira uma
    demanda de Suporte (fn_demanda_criar), além de continuar gravando em
@@ -28,50 +50,8 @@
    tela de Pessoas já lê certinho de pessoa_preferencias_comunicacao
    desde antes desta entrega. Coluna antiga mantida por enquanto (limpeza
    é decisão separada, não apaguei sem confirmar).
-   NOVIDADES (Beta v1.180.1) — MOTOR CENTRAL DE ALERTAS, Fase 3, fechamento
-   (consolida 5 correções/entregas que ficaram sem versão própria por
-   engano — corrigido a partir de agora, cada entrega evolui a versão).
-   Achados em teste real do Nicola, todos corrigidos:
-     - dispatcher sem rota pra financeiro/atrasados (console acusava erro
-       ao clicar num atraso — corrigido, abre Cobranças);
-     - "documento pendente" sem nome do ativo/subtipo, ícone genérico
-       dividido com "item vencendo" — corrigido (ativo_nome no detector,
-       ícone de clipe próprio);
-     - agrupamento por tipo/entidade implementado (77 atrasos → 1 linha
-       resumida, "R$ X total · mais antiga há Yd" — o motivo do Motor
-       existir, §7.2 do Motor doc);
-     - contador do chip corrigido pra refletir o volume REAL de alertas,
-       não quantas linhas aparecem agrupadas (pedido explícito);
-     - "alertas contextualizados na ficha do ativo": tentativa 1 foi um
-       banner novo — Nicola não gostou visualmente; versão final reaproveita
-       a bolinha vermelha que o chip "Controles" já tinha (js/cofre-ativos.js
-       1.31.0), sem componente novo nenhum.
-   NOVIDADES (Beta v1.180.0) — MOTOR CENTRAL DE ALERTAS, Fase 3
-   (MOTOR_ALERTAS_RAIZ_v1_2_0.md). A Central de Alertas (aba "Alertas")
-   passa a ler fn_alertas_listar (banco) em vez de reimplementar a regra
-   em JS — antes eram 4 fontes com 4 regras próprias (cofre_ocorrencias_
-   controle cru, 3 checagens de contrato, fn_leitura_tributaria_sinais,
-   docsTriagem), cada uma um jeito diferente de decidir "isso é alerta?".
-   MUDANÇA VISÍVEL, confirmada com o Nicola: a tela passa a mostrar
-   também atraso de pagamento e extrato desatualizado (nunca apareciam
-   aqui antes, só no Financeiro/WhatsApp) — é o objetivo do Motor: app,
-   bot e banco vendo os mesmos alertas. Chips trocam 'Ativos'/'Outros'
-   por 'Financeiro'/'Fiscal'. Dispatcher único (rzAbrirDestinoAlerta)
-   substitui os onClick individuais por tipo — destino vem do catálogo
-   (alerta_tipos.destino_rota), zero código de navegação novo por tipo
-   de alerta. NÃO migrado ainda (fica pra próxima etapa): o card "Precisa
-   de atenção" da Visão Geral e o badge da lista de Contratos continuam
-   na regra antiga (contratoVencido/PrecisaRevisao/AguardandoAssinatura,
-   preservadas intactas — ainda usadas por essas 2 telas).
-   NOVIDADES (Beta v1.179.5) — pedido do Nicola: novo modal "Resumo da
-   conciliação" (data/hora, origem, modo, canal) em todo item conciliado
-   — Conciliação, Recebimentos, Saídas. Menu de 3 pontinhos de item
-   conciliado na Conciliação ganhou "Recibo" direto e "Desfazer" virou
-   "Estornar". Totalizador da aba Conciliação agora reage aos chips de
-   status, igual Recebimentos/Saídas. Ver changelog completo em
-   financeiro.js 1.7.2.
    ------------------------------------------------------------------
-   Versões anteriores (v1.179.4 … v1.179.4): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.180.1 … v1.180.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -95,7 +75,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.24.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.27.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.20.3","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3495,7 +3475,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.180.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.182.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11055,6 +11035,16 @@
                 case 'cofre/documento#vincular':
                     abrirDocumentoPendente(row.entidade_id);
                     return;
+                // v1.181.1 (E1) — destino_rota passou a existir para os dois
+                // alertas de escopo empresa (extrato_desatualizado e
+                // sinal_fiscal). Sem estes dois cases o clique caía no
+                // console.warn, mesmo sintoma do financeiro/atrasados em 12/09.
+                case 'financeiro/conciliacao':
+                    switchTab('tab-conciliacao');
+                    return;
+                case 'relatorios/resultados':
+                    switchTab('tab-relatorios');
+                    return;
                 default:
                     console.warn('[alertas] destino_rota sem dispatcher:', row.destino_rota);
             }
@@ -11132,9 +11122,15 @@
             const itens = avulsos.map(itemAvulso);
 
             porTipo.forEach((grupo, tipoAlerta) => {
-                if (grupo.length === 1) { itens.push(itemAvulso(grupo[0])); return; }
-                const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
+                // v1.182.0 (E3) — limiar por tipo (alerta_tipos.agrupar_a_partir_de,
+                // padrao 6, devolvido por fn_alertas_listar desde a migration
+                // motor_alertas_ativo_id_v1). Antes agrupava a partir de 2, o que
+                // escondia alertas isolados dentro de uma linha-resumo de 2 itens.
+                // Fallback ?? 6 mantem a tela funcionando se a coluna nao vier.
                 const r0 = grupo[0];
+                const limiarTipo = r0.agrupar_a_partir_de ?? 6;
+                if (grupo.length <= limiarTipo) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
+                const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
                 const clicavel = r0.destino_rota && DESTINO_GERAL.has(r0.destino_rota);
                 itens.push({
                     categoria: ENTIDADE_PARA_CHIP_ALERTA[r0.entidade_tipo] || 'outro',
@@ -11147,7 +11143,9 @@
             });
 
             porEntidade.forEach(grupo => {
-                if (grupo.length === 1) { itens.push(itemAvulso(grupo[0])); return; }
+                // v1.182.0 (E3) — mesmo limiar do bloco acima.
+                const limiarEnt = grupo[0].agrupar_a_partir_de ?? 6;
+                if (grupo.length <= limiarEnt) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
                 const ativoNome = grupo[0].detalhe?.ativo_nome || grupo[0].titulo || 'Ativo';
                 itens.push({
@@ -15360,6 +15358,19 @@
         }
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rzMoverFormImovelParaBody);
         else rzMoverFormImovelParaBody();
+
+        // v1.181.0 (E0.1 / A6) — mesmo padrao, agora para o formulario de
+        // CONTRATO. Causa do bug: #form-contrato-wrapper e `fixed inset-0
+        // z-[65]` mas vivia DENTRO da section id=tab-contratos, e uma
+        // section com display:none nao renderiza filho `fixed` — ao abrir o
+        // cadastro de contrato a partir da ficha do ativo (sem trocar de aba)
+        // o formulario abria ATRAS da ficha.
+        function rzMoverFormContratoParaBody() {
+            const w = document.getElementById('form-contrato-wrapper');
+            if (w && w.parentElement !== document.body) document.body.appendChild(w);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rzMoverFormContratoParaBody);
+        else rzMoverFormContratoParaBody();
     </script>    <div id="lightbox-geral" class="hidden fixed inset-0 bg-black/95 z-[300] flex items-center justify-center p-4">
 
         <button onclick="fecharLightboxGeral()" class="absolute top-4 right-4 text-white text-2xl font-bold"><svg data-lucide="x" style="width:16px;height:16px"></svg></button>
