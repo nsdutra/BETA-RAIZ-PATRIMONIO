@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.0 · 31/08/2026
+// Versão: 1.3.1 · 15/09/2026
+//
+// v1.3.1 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2 (primeiro consumidor do
+// componente de endereço, decisão do Nicola 15/09): CAMPOS_POR_TIPO_ATIVO.
+// imovel perde o campo solto `endereco` (texto livre, sem CEP/IBGE/UF
+// estruturados). Motivo: agora existe js/comum-endereco.js, que grava
+// direto nas 8 colunas de endereço de cofre_ativos (E6.1) em vez de um
+// texto dentro de dados_especificos — evita o mesmo dado em dois formatos.
+// cofre-ativos.js (E6.2) passa a renderizar o bloco estruturado no lugar
+// deste campo, só para imóvel avulso (sem vínculo com a tabela imoveis).
+// Backfill do único registro em produção com esse campo preenchido:
+// migration endereco_ativo_avulso_backfill_v1 (Family Office Karen Corp.).
 //
 // v1.3.0 — pesquisa própria do Nicola: 3 tipos de ativo novos (aeronave,
 // embarcacao, colecao_bem_valor) em rotuloTipoAtivo/iconeAtivo/
@@ -38,7 +49,7 @@
 // daqui, nunca o contrário.
 // ============================================================================
 
-export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -171,9 +182,12 @@ export const CAMPOS_POR_TIPO_ATIVO = {
     // mas quando NÃO está vinculado (ativo "imóvel" cadastrado solto no
     // Cofre, ex. imóvel fora do sistema de locação), precisa de algo
     // pra preencher.
+    // v1.3.1 (E6.2) — `endereco` (texto livre) SAIU daqui: cofre-ativos.js
+    // agora renderiza js/comum-endereco.js no lugar, gravando direto nas
+    // colunas estruturadas de cofre_ativos (endereco_rua, uf, cep, etc. —
+    // E6.1), não mais dentro de dados_especificos.
     imovel: [
         { chave: 'matricula', label: 'Matrícula do imóvel', obrigatorio: false },
-        { chave: 'endereco', label: 'Endereço completo', obrigatorio: false },
         { chave: 'area_m2', label: 'Área (m²)', obrigatorio: false, tipo: 'number' },
         { chave: 'valor_estimado', label: 'Valor estimado (R$)', obrigatorio: false, tipo: 'number' },
     ],

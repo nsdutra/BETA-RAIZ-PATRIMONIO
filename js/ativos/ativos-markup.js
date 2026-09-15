@@ -559,6 +559,12 @@ export const ATIVOS_MARKUP = `<style>
                         <button type="button" data-action="cadastrar-imovel-app" class="text-xs font-bold mt-1.5" style="color:var(--sprout)">+ Cadastrar novo imóvel</button>
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <!-- E6.2 (15/09/2026) — bloco de endereço estruturado (js/comum-
+                         endereco.js), só aparece quando o tipo é "imovel" avulso
+                         (sem "Qual imóvel?" selecionado acima) — cofre-ativos.js
+                         atualizarCamposEstruturadosAtivo() mostra/esconde e
+                         preenche o innerHTML. -->
+                    <div id="at-endereco-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <!-- v1.11.0 (NOVO, 02/09/2026, pedido explícito: "durante a
                          criação de um novo ativo, seguir a mesma regra e
                          funcionalidade de um novo imóvel antigamente") —

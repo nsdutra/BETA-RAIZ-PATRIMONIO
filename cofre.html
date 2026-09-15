@@ -10,13 +10,17 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.1
+  Versão     : 1.25.2
   Data       : 15/09/2026
-  CHANGELOG v1.25.1 — PLANO_IMPLEMENTACAO v1.0, etapa E1: seletores de tipo
-               de item de controle e de subtipo ganham "Taxa" e "Documento",
-               espelhando js/ativos/ativos-markup.js v1.28.0 (o tipo `taxa`
-               passou a existir no catálogo; Condomínio e Marina/guarda
-               foram movidos para ele).
+  CHANGELOG v1.25.2 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2 (decisão do
+               Nicola, 15/09: "do endereço sim pode ser"): #at-endereco-
+               wrapper novo no form de novo ativo, espelhando js/ativos/
+               ativos-markup.js v1.28.0 — bloco de endereço estruturado
+               (js/comum-endereco.js) pro caso "imóvel avulso". Sem
+               mudança de lógica aqui, só markup (a lógica é toda em
+               cofre-ativos.js v1.32.0).
+               [nota: linha "Linhas" abaixo estava desatualizada há
+               algumas entregas — contagem refeita nesta, não só somada]
   Título     : ACEITE DE TERMOS MIGRA DE VERDADE PRO MOTOR DE COMUNICAÇÕES
   Base       : v1.24.0 (30/08/2026)
   Novidades  : cofre-navegacao.js v1.5.0 — revertido pra
@@ -28,15 +32,11 @@
                aceite bloqueante sozinhos agora, sem precisar de wrapper.
                cofre.html perdeu 1 linha (tag de script do módulo
                consentimento-app.js, que ficou obsoleto).
-  Linhas     : cofre.html = 3246 · js/cofre-api.js = 644 · js/cofre-app.js = 575 ·
-               js/cofre-ativos.js = 500 · js/cofre-controles.js = 1311 ·
-               js/cofre-documentos.js = 740 · js/cofre-estado.js = 185 ·
-               js/cofre-navegacao.js = 289 · js/cofre-ui.js = 105 ·
-               js/cofre-validacoes.js = 337 (total js/ = 4686)
-               [nota: contagem de cofre.html corrigida pra 3206 — a v1.22.0
-               já estava nesse tamanho de verdade, o header anterior
-               declarava 3134 por engano, não recontado direito na
-               entrega passada]
+  Linhas     : cofre.html = 3258 · js/cofre-api.js = 1202 · js/cofre-app.js = 935 ·
+               js/cofre-ativos.js = 2093 · js/cofre-controles.js = 1880 ·
+               js/cofre-documentos.js = 1734 · js/cofre-estado.js = 186 ·
+               js/cofre-navegacao.js = 366 · js/cofre-ui.js = 122 ·
+               js/cofre-validacoes.js = 387 (total js/ = 8905)
 
   CHANGELOG v1.23.0 — pedido explícito do Nicola (fechar a "última milha"
   dos Planos de Comunicação): app e bot precisam chamar a MESMA função de
@@ -2414,6 +2414,8 @@
                         <p class="raiz-indicador-inline" style="color:var(--sage)">Não duplica dados — este ativo só guarda documentos/fotos/alertas específicos do Cofre; o imóvel em si continua em Imóveis.</p>
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <!-- E6.2 (15/09/2026) — espelha js/ativos/ativos-markup.js v1.28.0 -->
+                    <div id="at-endereco-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:14px;">
                     <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar ativo</button>

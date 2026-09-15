@@ -1,6 +1,23 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.31.3 · 15/09/2026
+// Versão: 1.32.0 · 15/09/2026
+//
+// v1.32.0 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2 (decisão do Nicola,
+// 15/09: "do endereço sim pode ser"): js/comum-endereco.js ganha seu
+// primeiro consumidor — a ficha do ativo "imóvel avulso" (tipo_ativo=
+// 'imovel' SEM vínculo com a tabela imoveis; ativo vinculado a imóvel de
+// verdade continua editando endereço só pelo formulário do imóvel — dois
+// caminhos de escrita pro mesmo dado não é opção, R3 do plano). Criar,
+// editar e a ficha (Resumo) passam a usar o bloco estruturado
+// (renderizarBlocoEndereco/lerBlocoEndereco) em vez do antigo campo
+// solto `dados_especificos.endereco` (removido em cofre-validacoes.js
+// v1.3.1). Escopo desta entrega, de propósito menor: sem o botão "usar
+// endereço de outro ativo" ainda (exige um seletor de ativos da empresa
+// — fica pra próxima fatia, componente já suporta via
+// botaoCopiarDeAtivo/opcoes.mostrarBotaoCopiar quando entrar). Código
+// IBGE (`codigo_ibge_municipio`) fica oculto no formulário — E6.3 ainda
+// não existe, não tem quem resolva; ViaCEP preenche quando devolve o
+// campo, senão vai nulo e fica pendente.
 //
 // v1.31.3 — FIX (achado do Nicola em teste real): aplicarAlertaMotorNoChip
 // Controles filtra os alertas por tipo antes de repassar ao pintor — só
@@ -390,7 +407,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.31.3'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -400,6 +417,17 @@ import {
     rotuloTipoAtivo, iconeAtivo, CAMPOS_POR_TIPO_ATIVO, validarCamposAtivo,
 } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
+// E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
+// (lerBlocoEndereco), por isso import estático (ver nota em technical-
+// learnings: bridge window[nome] só serve fire-and-forget).
+import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
+
+// E6.2 — único critério usado em todo o arquivo pra decidir se um ativo
+// "imóvel" é avulso (sem tabela imoveis por trás) ou vinculado. Função só
+// pra não repetir a mesma condição em 4 lugares (criar/editar/salvar/ficha).
+function ehImovelAvulso(tipo, entidadeOrigemTipo) {
+    return tipo === 'imovel' && entidadeOrigemTipo !== 'imovel';
+}
 
 let ativoAtualId = null;
 
@@ -799,6 +827,16 @@ export function atualizarCamposEstruturadosAtivo() {
     document.getElementById('at-campos-estruturados').innerHTML = semImovelVinculado
         ? renderizarCamposEstruturados(tipo, {})
         : `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Endereço, IPTU e valor de mercado já vêm de "${escapeHtml(selImovel.options[selImovel.selectedIndex]?.text || 'imóvel selecionado')}" — nada a preencher aqui.</p>`;
+
+    // v1.32.0 (E6.2) — bloco de endereço estruturado, só pro caso "imóvel
+    // avulso" (tipo=imovel, nenhum imóvel selecionado acima). Outros tipos
+    // ficam de fora desta entrega — não têm coluna de endereço preenchida
+    // hoje e o plano não pediu pra todos ainda.
+    const wrapEndereco = document.getElementById('at-endereco-wrapper');
+    if (wrapEndereco) {
+        wrapEndereco.classList.toggle('hidden', !ehImovelAvulso(tipo, null));
+        if (ehImovelAvulso(tipo, null)) wrapEndereco.innerHTML = renderizarBlocoEndereco('at-endereco', {}, { mostrarBotaoCopiar: false });
+    }
 }
 
 function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-') {
@@ -846,9 +884,20 @@ export async function salvarAtivo() {
     const payload = { cliente_id: estado.clienteId, tipo_ativo: tipo, nome_exibicao: nome, status: 'ativo', dados_especificos: dadosEspecificos, criado_por: estado.pessoa.id };
     if (tipo === 'imovel') {
         const imovelId = document.getElementById('at-origem-imovel').value;
-        if (!imovelId) { statusEl.textContent = '⚠️ Selecione o imóvel.'; statusEl.style.color = 'var(--danger)'; return; }
-        payload.entidade_origem_tipo = 'imovel';
-        payload.entidade_origem_id = imovelId;
+        if (imovelId) {
+            payload.entidade_origem_tipo = 'imovel';
+            payload.entidade_origem_id = imovelId;
+        } else {
+            // v1.32.0 (E6.2) — BUG REAL corrigido: a opção "— nenhum,
+            // cadastrar dados avulsos abaixo —" existe no seletor desde a
+            // v1.96.2, mas até aqui salvarAtivo() sempre exigia um
+            // imovelId e bloqueava o salvamento com "Selecione o imóvel"
+            // mesmo quando a pessoa escolhia essa opção de propósito — a
+            // tela mostrava os campos avulsos e depois recusava salvar.
+            // Endereço estruturado (E6.1/E6.2) entra direto nas colunas
+            // de cofre_ativos, não em dados_especificos.
+            Object.assign(payload, lerBlocoEndereco('at-endereco'));
+        }
     }
 
     try {
@@ -1514,8 +1563,18 @@ export async function salvarPropriedadeAtivoAtual() {
 async function montarDadosAtivo(a) {
     const gridWrapper = document.getElementById('fa-dados-imovel-grid');
     const ehImovelVinculado = a.entidade_origem_tipo === 'imovel';
-    gridWrapper.classList.toggle('hidden', !ehImovelVinculado);
+    // v1.32.0 (E6.2) — imóvel avulso com endereço preenchido (colunas da
+    // E6.1) reaproveita a MESMA grade de leitura do imóvel vinculado, só
+    // que sem chamar api.buscarResumoImovelOrigem (não existe tabela
+    // imoveis por trás deste ativo).
+    const ehAvulsoComEndereco = ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo) && (a.endereco_rua || a.endereco_cidade);
+    gridWrapper.classList.toggle('hidden', !ehImovelVinculado && !ehAvulsoComEndereco);
 
+    if (ehAvulsoComEndereco) {
+        const enderecoPartes = [a.endereco_rua, a.endereco_num].filter(Boolean).join(', ');
+        const enderecoCompleto = [enderecoPartes, a.endereco_bairro, [a.endereco_cidade, a.uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
+        gridWrapper.innerHTML = `<div class="rz-kv"><div class="rz-full"><small>Endereço completo</small><b>${escapeHtml(enderecoCompleto)}</b></div></div>`;
+    }
     if (ehImovelVinculado) {
         // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") —
         // grade completa 2 colunas (Inscrição imobiliária/UF-Município/
@@ -1650,11 +1709,20 @@ export function alternarEditarAtivo() {
     // abre em abrirSheetForm com os MESMOS ids de campo (fa-editar-nome,
     // fa-editar-campo-*), então salvarEdicaoAtivo não mudou. O wrapper
     // inline continua no markup só como fallback sem o App.
+    // v1.32.0 (E6.2) — imóvel avulso ganha o bloco de endereço estruturado
+    // no fim do form de edição, nos dois caminhos (sheet do App e o
+    // fallback inline). Prefixo 'fa-editar-endereco', lido de volta em
+    // salvarEdicaoAtivo(). Continua sem o botão "usar endereço de outro
+    // ativo" nesta entrega (mesmo corte de escopo do formulário de criar).
+    const blocoEndereco = ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)
+        ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
+        : '';
     if (typeof window.abrirSheetForm === 'function') {
         const campos =
             `<div class="rz-f"><label>Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
             `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
-            `<div class="rz-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-')}</div>`;
+            `<div class="rz-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-')}</div>` +
+            blocoEndereco;
         window.abrirSheetForm({ titulo: 'Editar campos do ativo', sub: a.nome_exibicao, corpo: campos, rotuloSalvar: 'Salvar',
             aoSalvar: async () => { const ok = await salvarEdicaoAtivo(); return ok !== false; } });
         return;
@@ -1671,7 +1739,8 @@ export function alternarEditarAtivo() {
     document.getElementById('fa-editar-campos').innerHTML =
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500"></div>` +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
-        renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-');
+        renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-') +
+        blocoEndereco;
     document.getElementById('fa-editar-wrapper').classList.remove('hidden');
 }
 
@@ -1680,8 +1749,13 @@ export async function salvarEdicaoAtivo() {
     const nome = document.getElementById('fa-editar-nome').value.trim();
     if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-');
+    const patch = { nome_exibicao: nome, dados_especificos: dados };
+    // v1.32.0 (E6.2) — só lê o bloco de endereço se ele foi renderizado
+    // (imóvel avulso); nos demais tipos os campos fa-editar-endereco-*
+    // não existem no DOM e lerBlocoEndereco devolveria tudo null à toa.
+    if (ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)) Object.assign(patch, lerBlocoEndereco('fa-editar-endereco'));
     try {
-        await api.atualizarAtivo(a.id, { nome_exibicao: nome, dados_especificos: dados });
+        await api.atualizarAtivo(a.id, patch);
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, acao: 'editar_ativo' });
         mostrarToast('Ativo atualizado');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
