@@ -1,6 +1,25 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.35.0 · 15/09/2026
+// Versão: 1.36.0 · 15/09/2026
+//
+// v1.36.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), conclusão
+// (decisão do Nicola: "quero desligar o form de imóveis... vamos
+// implementar o que falta"). alternarEditarAtivo()/salvarEdicaoAtivo()
+// passam a atender IMÓVEL VINCULADO também, não só avulso — blocoEndereco/
+// blocoImovel aparecem pros dois; salvarEdicaoAtivo() decide o destino:
+// vinculado escreve em `imoveis` (api.atualizarImovel — a vitrine
+// pública lê imoveis sem login, tem que continuar fonte de verdade até
+// a E15.3), avulso continua direto em cofre_ativos. Banco ganhou
+// trg_imovel_atualiza_ativo (AFTER UPDATE, só existia BEFORE INSERT) —
+// testado isolado antes de mexer no front. Os 2 botões que apontavam
+// pro formulário legado (abrirAcoesAtivo "Editar dados do imóvel" e o
+// botão da grade de dados na ficha) convergem num só, "Editar" →
+// alternarEditarAtivo(). abrirGestaoImovel()/o formulário legado em si
+// NÃO foram removidos — só ficaram sem chamador a partir daqui.
+// Achado e corrigido no caminho: 6 dos 104 ativos vinculados são
+// imovel_territorial, não só imovel_predial (comentário antigo em
+// ehImovelAvulso() estava errado nisso) — ehCategoriaImovel() nova
+// cobre as 2 categorias.
 //
 // v1.35.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), Onda 12
 // (decisão do Nicola: "pode evoluir"). Campos da DE_PARA_IMOVEIS_ATIVOS
@@ -459,7 +478,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.35.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.36.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -479,10 +498,27 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // "imóvel" é avulso (sem tabela imoveis por trás) ou vinculado. Função só
 // pra não repetir a mesma condição em 4 lugares (criar/editar/salvar/ficha).
 // v2.0.0-front (E5) — 'imovel' virou 'imovel_predial' na migração da
-// E4.2 fatia B; terreno/fazenda (imovel_territorial) nunca passaram pela
-// tabela imoveis, então nunca entram aqui mesmo.
+// E4.2 fatia B.
+// E15.2 (15/09/2026) — CORRIGIDO: o comentário antigo aqui dizia que
+// "terreno/fazenda (imovel_territorial) nunca passaram pela tabela
+// imoveis" — falso, achado ao investigar a DE_PARA_IMOVEIS_ATIVOS: 6 dos
+// 104 ativos vinculados são imovel_territorial (foram cadastrados como
+// "imóvel" genérico e a fatia A da E4.2 os reclassificou certo). As duas
+// categorias entram na checagem agora.
+function ehCategoriaImovel(tipo) {
+    return tipo === 'imovel_predial' || tipo === 'imovel_territorial';
+}
+
+// Vinculado a uma linha real de `imoveis` — write-target dos blocos de
+// endereço/imóvel vira `imoveis` (api.atualizarImovel), não cofre_ativos
+// direto: a vitrine pública lê `imoveis` sem login (RLS ativa), tem que
+// continuar a fonte de verdade até a E15.3 migrar isso.
+function ehImovelVinculado(entidadeOrigemTipo) {
+    return entidadeOrigemTipo === 'imovel';
+}
+
 function ehImovelAvulso(tipo, entidadeOrigemTipo) {
-    return tipo === 'imovel_predial' && entidadeOrigemTipo !== 'imovel';
+    return ehCategoriaImovel(tipo) && !ehImovelVinculado(entidadeOrigemTipo);
 }
 
 let ativoAtualId = null;
@@ -1328,10 +1364,16 @@ export function abrirAcoesAtivo() {
     if (!a) return;
     const ehImovel = a.entidade_origem_tipo === 'imovel';
     const acoes = [];
-    // v1.21.0 — sem rodapé: "Editar" vive aqui (imóvel → formulário do
-    // imóvel; campos específicos do ativo em seguida)
-    if (ehImovel) acoes.push({ icone: 'pencil', titulo: 'Editar dados do imóvel', codigo: 'imoveis.editar', sub: 'Endereço, valores, uso', aoTocar: () => abrirGestaoImovel() });
-    acoes.push({ icone: 'list', titulo: ehImovel ? 'Editar campos do ativo' : 'Editar dados', codigo: 'cofre.editar', sub: 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
+    // E15.2 (15/09/2026, "vamos desligar o form de imóveis") — os 2
+    // itens que existiam aqui pra imóvel ("Editar dados do imóvel" →
+    // abrirGestaoImovel/form legado, e "Editar campos do ativo" →
+    // alternarEditarAtivo) viram UM só: alternarEditarAtivo() agora
+    // cobre os dois mundos (endereço/valor/área/uso/empreendimento +
+    // campos específicos), escrevendo em `imoveis` por baixo quando
+    // vinculado (ver salvarEdicaoAtivo). abrirGestaoImovel() continua
+    // existindo (não removida) só por segurança de rollback — sem
+    // chamador neste menu a partir de agora.
+    acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehImovel ? 'Endereço, valores, uso e campos específicos' : 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // v1.22.0 (fatia 7) — "Gerar vitrine" deste imóvel (link único) —
     // reaproveita gerarVitrineDoImovel() do App (index.html v1.115.0).
@@ -1823,13 +1865,16 @@ async function montarDadosAtivo(a) {
         // grade completa 2 colunas (Inscrição imobiliária/UF-Município/
         // Uso/Tipo de locação/Valor de mercado/IPTU/Endereço completo),
         // igual ao mockup — antes era só um resumo em texto corrido
-        // (uso/valor/IPTU numa linha só). Isto é LEITURA — editar esses
-        // campos continua sendo só pelo formulário de verdade do imóvel
-        // (link "Editar →" no cabeçalho da grade), porque
-        // cofre_ativos.dados_especificos (o que "Editar dados" desta
-        // ficha edita) e imoveis (endereço/IPTU/valor de mercado) são
-        // tabelas diferentes — fundir os 2 formulários de escrita é
-        // decisão maior, fora desta entrega.
+        // (uso/valor/IPTU numa linha só). Isto é LEITURA, direto de
+        // `imoveis` (sempre fresco, sem depender de cache).
+        //
+        // E15.2 (15/09/2026) — o comentário antigo aqui dizia que fundir
+        // os 2 formulários de escrita (cofre_ativos.dados_especificos ×
+        // imoveis) era "decisão maior, fora desta entrega" — não é mais:
+        // alternarEditarAtivo() agora escreve em `imoveis` quando o
+        // ativo é vinculado (ver salvarEdicaoAtivo), então o botão
+        // "Editar dados" (rodapé desta grade) aponta pra lá também,
+        // não mais pro formulário legado.
         //
         // v1.95.0 (pedido explícito, 01/09/2026, achado com screenshot
         // real) — BUG REAL corrigido: a grade entrava como 3º filho
@@ -1873,7 +1918,11 @@ async function montarDadosAtivo(a) {
     const titulo = document.getElementById('fa-dados-titulo');
     if (titulo) titulo.textContent = ehImovelVinculado ? 'Dados do imóvel' : 'Dados do ativo';
     const btnEditar = document.getElementById('fa-btn-editar-dados');
-    if (btnEditar) btnEditar.dataset.action = ehImovelVinculado ? 'abrir-gestao-imovel' : 'alternar-editar-ativo';
+    // E15.2 (15/09/2026) — sempre 'alternar-editar-ativo' agora, os 2
+    // caminhos (vinculado/avulso) convergem pra lá (ver nota acima).
+    // 'abrir-gestao-imovel' fica sem chamador neste botão a partir de
+    // agora — action + abrirGestaoImovel() não removidos, só sem uso.
+    if (btnEditar) btnEditar.dataset.action = 'alternar-editar-ativo';
 
     // v1.95.0 — pra ativo vinculado a imóvel, a grade acima JÁ é o dado
     // de verdade — mostrar "Sem dados estruturados cadastrados ainda."
@@ -1954,6 +2003,7 @@ export async function alternarEditarAtivo() {
     // sessão), não busca de novo.
     await garantirCatalogoTiposAtivo();
     await garantirEmpreendimentos(); // E15.2
+    const vinculado = ehImovelVinculado(a.entidade_origem_tipo);
     // v1.18.0 (fatia 3b-iii, pedido do Nicola 03/09: "está abrindo
     // formulário dentro da tela e não bottom sheet como os demais") —
     // abre em abrirSheetForm com os MESMOS ids de campo (fa-editar-nome,
@@ -1964,11 +2014,15 @@ export async function alternarEditarAtivo() {
     // fallback inline). Prefixo 'fa-editar-endereco', lido de volta em
     // salvarEdicaoAtivo(). Continua sem o botão "usar endereço de outro
     // ativo" nesta entrega (mesmo corte de escopo do formulário de criar).
-    const blocoEndereco = ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)
+    // E15.2 (15/09/2026, "vamos desligar o form de imóveis") — os 2
+    // blocos agora aparecem pra QUALQUER ativo de categoria imóvel,
+    // vinculado ou avulso — não só avulso como antes. salvarEdicaoAtivo()
+    // decide pra onde escrever (imoveis × cofre_ativos) por baixo; aqui
+    // só decide SE mostra.
+    const blocoEndereco = ehCategoriaImovel(a.tipo_ativo)
         ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
         : '';
-    // E15.2 — mesmo escopo (só imóvel avulso), campos da Fase 1/2.
-    const blocoImovel = ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)
+    const blocoImovel = ehCategoriaImovel(a.tipo_ativo)
         ? `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoImovel('fa-editar-imovel-', a, _empreendimentosCache || [])}</div>`
         : '';
     // E5 — tipo específico (dentro da categoria, que continua somente-
@@ -1976,9 +2030,16 @@ export async function alternarEditarAtivo() {
     // classificado errado, ou completa um que nunca teve tipo_detalhe_id
     // (criado antes da E5). Categoria sem tipo cadastrado no catálogo:
     // tiposDetalhe fica [], o bloco não aparece — comportamento de antes.
+    // E15.2 — pra VINCULADO, fica travado (disabled): `imoveis.tipo_id`
+    // (catálogo antigo, tipos_imovel) é quem ainda manda pro que outras
+    // partes do sistema legado leem — mudar só o tipo_detalhe_id daqui
+    // divergiria dos dois catálogos sem sincronismo nenhum. Destravar
+    // isso é trabalho da E15.3 (fim de verdade do catálogo antigo).
     const tiposDetalhe = listarTiposPorCategoria(a.tipo_ativo);
     const blocoTipoDetalhe = tiposDetalhe.length
-        ? `<div class="rz-f"><label>Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>`
+        ? (vinculado
+            ? `<div class="rz-f"><label>Tipo específico</label><input type="text" value="${escapeHtml(tiposDetalhe.find(t => t.id === a.tipo_detalhe_id)?.nome || '—')}" disabled></div>`
+            : `<div class="rz-f"><label>Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>`)
         : '';
     if (typeof window.abrirSheetForm === 'function') {
         const campos =
@@ -2000,10 +2061,12 @@ export async function alternarEditarAtivo() {
     // fazer com dados_especificos já preenchidos no formato antigo —
     // fora de escopo por ora. O TIPO ESPECÍFICO (dentro da categoria) já
     // não tem esse problema — ver blocoTipoDetalhe acima, a E5 liberou
-    // esse nível.
+    // esse nível (menos pra vinculado, ver nota acima).
     document.getElementById('fa-editar-campos').innerHTML =
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500"></div>` +
-        (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>` : '') +
+        (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label>${vinculado
+            ? `<input type="text" value="${escapeHtml(tiposDetalhe.find(t => t.id === a.tipo_detalhe_id)?.nome || '—')}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500">`
+            : `<select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select>`}</div>` : '') +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
         `<div id="fa-editar-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
         blocoEndereco + blocoImovel;
@@ -2026,18 +2089,43 @@ export async function salvarEdicaoAtivo() {
     const nome = document.getElementById('fa-editar-nome').value.trim();
     if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
     const selDetalhe = document.getElementById('fa-editar-tipo-detalhe');
-    // Sem seletor no DOM (categoria sem tipo específico cadastrado):
-    // mantém o tipo_detalhe_id que o ativo já tinha, não apaga.
+    // Sem seletor no DOM (categoria sem tipo específico cadastrado, OU
+    // vinculado — ver alternarEditarAtivo, vira <input disabled> sem
+    // esse id de propósito): mantém o tipo_detalhe_id que o ativo já
+    // tinha, não apaga.
     const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId);
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
-    // v1.32.0 (E6.2) — só lê o bloco de endereço se ele foi renderizado
-    // (imóvel avulso); nos demais tipos os campos fa-editar-endereco-*
-    // não existem no DOM e lerBlocoEndereco devolveria tudo null à toa.
-    if (ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)) {
-        Object.assign(patch, lerBlocoEndereco('fa-editar-endereco'));
-        // E15.2 — idem, campos da Fase 1/2 (pode criar empreendimento novo).
-        Object.assign(patch, await lerBlocoImovel('fa-editar-imovel-', estado.clienteId));
+    // v1.32.0 (E6.2) — só lê os blocos de endereço/imóvel se foram
+    // renderizados (categoria imóvel); nos demais tipos os campos não
+    // existem no DOM.
+    // E15.2 (15/09/2026) — vinculado escreve em `imoveis`
+    // (api.atualizarImovel), não em cofre_ativos: a vitrine pública lê
+    // imoveis sem login, tem que continuar a fonte de verdade até a
+    // E15.3. trg_imovel_atualiza_ativo (banco) espelha o resultado pra
+    // cofre_ativos sozinho — nenhum 2º UPDATE precisa sair daqui.
+    if (ehCategoriaImovel(a.tipo_ativo)) {
+        const enderecoLido = lerBlocoEndereco('fa-editar-endereco');
+        const imovelLido = await lerBlocoImovel('fa-editar-imovel-', estado.clienteId);
+        if (ehImovelVinculado(a.entidade_origem_tipo)) {
+            const imoveisPatch = {
+                endereco_rua: enderecoLido.endereco_rua, endereco_num: enderecoLido.endereco_num,
+                endereco_comp: enderecoLido.endereco_comp, endereco_bairro: enderecoLido.endereco_bairro,
+                endereco_cidade: enderecoLido.endereco_cidade, uf: enderecoLido.uf, cep: enderecoLido.cep,
+                codigo_ibge_municipio: enderecoLido.codigo_ibge_municipio,
+                empreendimento_id: imovelLido.empreendimento_id,
+                valor_mercado: imovelLido.valor_referencia,
+                tamanho: imovelLido.area_m2,
+                finalidade_uso: imovelLido.finalidade_uso,
+                status: imovelLido.situacao_uso,
+                descricao: imovelLido.observacao,
+            };
+            try {
+                await api.atualizarImovel(a.entidade_origem_id, imoveisPatch);
+            } catch (err) { mostrarToast('Erro ao salvar dados do imóvel: ' + err.message, 'erro'); return false; }
+        } else {
+            Object.assign(patch, enderecoLido, imovelLido);
+        }
     }
     try {
         await api.atualizarAtivo(a.id, patch);

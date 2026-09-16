@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.29.0 · 15/09/2026
+// Versão: 1.30.0 · 15/09/2026
+//
+// v1.30.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2, conclusão.
+// atualizarImovel(id, patch) nova — write-target do formulário
+// unificado pra imóvel VINCULADO (grava em `imoveis`; trigger no banco
+// espelha pra cofre_ativos sozinho).
 //
 // v1.29.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2. listarEmpreendimentos/
 // criarEmpreendimentoRapido novas — mesmo padrão de listarPartesCliente/
@@ -242,7 +247,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.29.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.30.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -667,6 +672,16 @@ export async function buscarResumoImovelOrigem(imovelId) {
         console.warn('[cofre-api] buscarResumoImovelOrigem falhou:', e);
         return null;
     }
+}
+
+// E15.2 ("A2") — form unificado editando um ativo VINCULADO grava aqui
+// (não em cofre_ativos direto) — imoveis continua a fonte de verdade
+// até a E15.3 migrar a vitrine pública. trg_imovel_atualiza_ativo
+// (banco) espelha o resultado pra cofre_ativos sozinho, sem precisar de
+// um 2º UPDATE daqui.
+export async function atualizarImovel(imovelId, patch) {
+    const { error } = await dbAuth.from('imoveis').update(patch).eq('id', imovelId);
+    if (error) throw error;
 }
 
 // v1.24.0 (13/09/2026) — Motor Central de Alertas, Fase 3: "alertas
