@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.38.0 · 16/09/2026
+// Versão: 1.39.0 · 16/09/2026
+//
+// v1.39.0 — Onda 12, continuação. montarDadosAtivo(): "Inscrição
+// imobiliária"/"Uso"/"Tipo de locação" saíram da grade "Dados do
+// imóvel" — buscarResumoImovelOrigem (cofre-api.js 1.34.0) não devolve
+// mais esses 3 campos (achado: 100% vazios em produção, nenhum
+// formulário jamais teve campo pra editá-los — não mudava nada visível
+// pra ninguém, já não apareciam). UF/Município, Valor de mercado e IPTU
+// continuam exatamente iguais.
 //
 // v1.38.0 — Onda 12, E15.2.1 ("criar imóvel novo" no formulário
 // unificado — item 2.1 do handoff de 16/09, o último caminho que ainda
@@ -514,7 +522,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.38.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.39.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -2046,19 +2054,21 @@ async function montarDadosAtivo(a) {
         // referencia um imóvel já cadastrado" SAIU — o link de editar
         // virou parte do cabeçalho da própria grade.
         const resumoImovel = await api.buscarResumoImovelOrigem(a.entidade_origem_id);
-        const usoLabel = { residencial: 'Residencial', comercial: 'Comercial', industrial: 'Industrial', terreno: 'Terreno', rural: 'Rural' };
-        const locacaoLabel = { longa_duracao: 'Longa duração', temporada: 'Temporada', comercial: 'Comercial' };
         const campo = (rotulo, valor) => valor
             ? `<div><small>${escapeHtml(rotulo)}</small><b>${valor}</b></div>`
             : '';
         const enderecoPartes = [resumoImovel?.endereco_rua, resumoImovel?.endereco_num].filter(Boolean).join(', ');
         const enderecoCompleto = [enderecoPartes, resumoImovel?.endereco_bairro, [resumoImovel?.endereco_cidade, resumoImovel?.uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
 
+        // Onda 12 (16/09/2026) — "Inscrição imobiliária"/"Uso"/"Tipo de
+        // locação" saíram: buscarResumoImovelOrigem (cofre-api.js 1.33.0+)
+        // não devolve mais esses 3 campos — conferido no banco antes de
+        // tirar, 0 dos 104 imóveis (qualquer tenant) tinham QUALQUER um
+        // dos 3 preenchido, e nenhum formulário do app jamais teve campo
+        // pra editá-los. Não mudava nada visível pra ninguém — já não
+        // apareciam (campo() só renderiza com valor).
         const campos = [
-            campo('Inscrição imobiliária', resumoImovel?.cib ? escapeHtml(resumoImovel.cib) : ''),
             campo('UF / Município', (resumoImovel?.uf && resumoImovel?.endereco_cidade) ? escapeHtml(resumoImovel.uf) + ' · ' + escapeHtml(resumoImovel.endereco_cidade) : ''),
-            campo('Uso', resumoImovel?.uso ? (usoLabel[resumoImovel.uso] || escapeHtml(resumoImovel.uso)) : ''),
-            campo('Tipo de locação', resumoImovel?.tipo_locacao ? (locacaoLabel[resumoImovel.tipo_locacao] || escapeHtml(resumoImovel.tipo_locacao)) : ''),
             campo('Valor de mercado', resumoImovel?.valor_mercado ? 'R$ ' + Number(resumoImovel.valor_mercado).toLocaleString('pt-BR') : ''),
             campo('IPTU (anual)', resumoImovel?.iptu ? 'R$ ' + Number(resumoImovel.iptu).toLocaleString('pt-BR') : ''),
         ].filter(Boolean);

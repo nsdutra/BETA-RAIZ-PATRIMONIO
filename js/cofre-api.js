@@ -1,6 +1,38 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.0 · 16/09/2026
+// Versão: 1.34.0 · 16/09/2026
+//
+// v1.34.0 — Onda 12, continuação (pedido "continuar" — fecha o
+// bloqueio registrado na entrega anterior). buscarResumoImovelOrigem e
+// buscarResumoImoveisParaCards migradas pra `cofre_ativos`. Achado que
+// destravou tudo: uso/tipo_locacao/cib (os 3 campos sem equivalente em
+// cofre_ativos) estão 100% vazios hoje — 0 dos 104 imóveis, em qualquer
+// tenant, têm qualquer um dos 3 preenchido, e nenhum formulário do app
+// (nem o antigo nem o novo) jamais teve campo pra editá-los. Não era
+// dado represado — eram 3 colunas mortas. Saíram de vez do retorno de
+// buscarResumoImovelOrigem. IPTU usa o mesmo fallback já validado em
+// carregarImoveisSupabase (cofre_itens_controle primeiro, imoveis.iptu
+// só se o item ainda não tiver valor). Código do IPTU continua narrow-lendo
+// `imoveis` (13/104 têm valor real, sem equivalente em item de controle
+// ainda). buscarResumoImoveisParaCards: status/tipo/empreendimento
+// migraram; a foto de capa CONTINUA lendo imoveis.fotos[0] de propósito
+// (cofre_ativo_fotos grava em 3 buckets diferentes por linha — gerar
+// signed URL em lote pra uma lista inteira não é tão simples quanto os
+// outros campos, fica pra quando essa frente evoluir).
+//
+// v1.33.0 — Onda 12 (pedido explícito 16/09/2026: "troque as leituras
+// para eliminar de vez a tabela [imoveis]... não inverta a lógica... não
+// elimine ainda"). 4 funções trocaram de fonte pra `cofre_ativos`:
+// resolverNomesDeEntidades (ramo imóvel), buscarCandidatosImovel,
+// buscarImovelPorId, listarImoveisDoCliente — todas devolvem `id` como
+// entidade_origem_id (== imoveis.id, mesmo espaço de sempre; contratos.
+// imovel_id e afins têm FK pra `imoveis`, não mudou). buscarResumoImovelOrigem
+// e buscarResumoImoveisParaCards CONTINUAM em `imoveis` de propósito —
+// uso/tipo_locacao/cib não têm equivalente em cofre_ativos (uso lá é
+// coluna GERADA com outro significado, mapear direto mostraria valor
+// errado) — registrado como pendência de arquitetura. atualizarImovel
+// não mudou — escrita continua em `imoveis`, decisão explícita de não
+// inverter agora.
 //
 // v1.32.0 — Onda 12, E15.3 (pedido explícito 16/09/2026: "siga direto pra
 // apontar a vitrine pra tabela de ativos, mesmo que quebre momentaneamente
@@ -268,7 +300,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.32.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.34.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -489,8 +521,11 @@ export async function resolverNomesDeEntidades(clienteId, refs) {
     const resultado = new Map();
 
     if (porTipo.imovel) {
-        const { data } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', clienteId).in('id', [...porTipo.imovel]);
-        for (const i of (data || [])) resultado.set(`imovel:${i.id}`, { nome: `${i.endereco_rua}, ${i.endereco_num || ''}`, subtitulo: 'Imóvel' });
+        // Onda 12 (16/09/2026) — fonte trocada de `imoveis` pra
+        // `cofre_ativos` (leitura); `id` continua sendo imoveis.id
+        // (entidade_origem_id), mesmo espaço de sempre.
+        const { data } = await dbAuth.from('cofre_ativos').select('entidade_origem_id, endereco_rua, endereco_num').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel').in('entidade_origem_id', [...porTipo.imovel]);
+        for (const i of (data || [])) resultado.set(`imovel:${i.entidade_origem_id}`, { nome: `${i.endereco_rua}, ${i.endereco_num || ''}`, subtitulo: 'Imóvel' });
     }
     if (porTipo.contrato) {
         const { data } = await dbAuth.from('contratos').select('id, locatario').eq('cliente_id', clienteId).in('id', [...porTipo.contrato]);
@@ -626,10 +661,11 @@ export async function buscarCandidatosAtivo(clienteId, termo) {
     return data || [];
 }
 
+// Onda 12 (16/09/2026) — fonte trocada de `imoveis` pra `cofre_ativos`.
 export async function buscarCandidatosImovel(clienteId, termo) {
-    const { data, error } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', clienteId).ilike('endereco_rua', `%${termo}%`).limit(5);
+    const { data, error } = await dbAuth.from('cofre_ativos').select('entidade_origem_id, endereco_rua, endereco_num').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel').ilike('endereco_rua', `%${termo}%`).limit(5);
     if (error) throw error;
-    return data || [];
+    return (data || []).map(r => ({ id: r.entidade_origem_id, endereco_rua: r.endereco_rua, endereco_num: r.endereco_num }));
 }
 
 // ============================================================================
@@ -671,24 +707,52 @@ export async function buscarAtivoPorOrigemImovel(clienteId, imovelId) {
 // NOVO (31/08/2026, trem v1.85) — a ficha do ativo, pro caso de imóvel
 // vinculado ao App (entidade_origem_tipo='imovel'), até aqui só mostrava
 // um texto genérico + botão "Abrir gestão do imóvel", sem trazer o dado
-// aqui dentro. IPTU/valor de mercado/uso/tipo de locação existem em
-// imoveis desde v1.77.0 mas nunca eram buscados pela ficha do Cofre —
-// esta função fecha essa lacuna. Erro é engolido (retorna null) de
-// propósito: se o imóvel de origem não existir mais por algum motivo,
-// a ficha não deve quebrar, só não mostra o resumo extra.
-// v1.8.0 — SELECT ampliado (pedido explícito, "evoluir a exemplo do
-// protótipo"): a aba Dados da ficha do ativo passou a mostrar a grade
-// completa (Inscrição imobiliária, UF/Município, Endereço completo),
-// não só uso/valor/IPTU — precisou de cib + os campos de endereço, que
-// antes esta função não buscava.
+// aqui dentro. IPTU/valor de mercado existem em imoveis desde v1.77.0
+// mas nunca eram buscados pela ficha do Cofre — esta função fecha essa
+// lacuna. Erro é engolido (retorna null) de propósito: se o imóvel de
+// origem não existir mais por algum motivo, a ficha não deve quebrar,
+// só não mostra o resumo extra.
+//
+// Onda 12 (16/09/2026, "troque as leituras pra eliminar de vez a
+// tabela") — reescrita pra ler `cofre_ativos`. uso/tipo_locacao/cib
+// SAÍRAM de vez: conferido no banco antes de decidir — 0 dos 104
+// imóveis (em qualquer tenant) têm QUALQUER um dos 3 preenchido, e
+// nenhum formulário do app (nem o antigo, nem o novo) jamais teve campo
+// pra editá-los. Não eram um dado represado, eram 3 colunas mortas desde
+// sempre — cofre_ativos.uso existe mas é OUTRA coisa (coluna GERADA de
+// finalidade_uso, só comercial/não-comercial), por isso nunca dava pra
+// simplesmente mapear. IPTU usa o mesmo fallback de carregarImoveisSupabase
+// (index.html): cofre_itens_controle primeiro, imoveis.iptu só se o item
+// ainda não tiver valor. Código do IPTU continua narrow-lendo `imoveis`
+// (13 dos 104 têm valor real — esse sim é dado de verdade, sem
+// equivalente em cofre_itens_controle ainda).
 export async function buscarResumoImovelOrigem(imovelId) {
     try {
-        const { data, error } = await dbAuth.from('imoveis')
-            .select('uso, tipo_locacao, iptu, valor_mercado, codigo_iptu, cib, endereco_rua, endereco_num, endereco_bairro, endereco_cidade, uf')
-            .eq('id', imovelId)
+        const { data: ativo, error } = await dbAuth.from('cofre_ativos')
+            .select('id, endereco_rua, endereco_num, endereco_bairro, endereco_cidade, uf, valor_referencia')
+            .eq('entidade_origem_tipo', 'imovel')
+            .eq('entidade_origem_id', imovelId)
             .maybeSingle();
         if (error) throw error;
-        return data;
+        if (!ativo) return null;
+
+        const [{ data: itemIptu }, { data: imovelResidual }] = await Promise.all([
+            dbAuth.from('cofre_itens_controle')
+                .select('valor_previsto, cofre_controle_subtipos!inner(nome)')
+                .eq('ativo_id', ativo.id).eq('ativo', true).eq('cofre_controle_subtipos.nome', 'IPTU').maybeSingle(),
+            dbAuth.from('imoveis').select('codigo_iptu, iptu').eq('id', imovelId).maybeSingle(),
+        ]);
+
+        return {
+            endereco_rua: ativo.endereco_rua,
+            endereco_num: ativo.endereco_num,
+            endereco_bairro: ativo.endereco_bairro,
+            endereco_cidade: ativo.endereco_cidade,
+            uf: ativo.uf,
+            valor_mercado: ativo.valor_referencia,
+            iptu: (itemIptu && itemIptu.valor_previsto != null) ? itemIptu.valor_previsto : (imovelResidual?.iptu ?? null),
+            codigo_iptu: imovelResidual?.codigo_iptu ?? null,
+        };
     } catch (e) {
         console.warn('[cofre-api] buscarResumoImovelOrigem falhou:', e);
         return null;
@@ -919,26 +983,42 @@ const PRIORIDADE_STATUS_CONTRATO_CARD = { Ativo: 1, Assinando: 2, Suspenso: 3, F
 const STATUS_IMOVEL_SUPABASE_PARA_ROTULO = { disponivel: 'Vago', alugado: 'Alugado', assinando: 'Assinando', manutencao: 'Vago', reservado: 'Vago', em_uso: 'Em uso', em_breve: 'Em Breve' };
 
 export async function buscarResumoImoveisParaCards(clienteId) {
+    // Onda 12 (16/09/2026) — fonte trocada pra `cofre_ativos` (status,
+    // finalidade_uso, tipo, empreendimento) — mesmos campos que
+    // carregarImoveisSupabase (index.html) já usa dessa fonte. A foto de
+    // capa CONTINUA lendo `imoveis.fotos[0]` de propósito, leitura
+    // estreita de 1 campo: cofre_ativo_fotos guarda arquivo em 3 buckets
+    // diferentes por linha (imoveis-fotos/externo/cofre-documentos),
+    // então gerar signed URL em lote pra até 100+ cards não é tão
+    // simples quanto os outros campos — fica pra quando essa frente
+    // evoluir. Fotos publicadas ANTES da E15.3 continuam aparecendo
+    // aqui; publicadas depois, só na vitrine (efeito colateral já
+    // registrado na entrega anterior).
     const resumo = new Map();
     try {
         // v1.17.0 — as 2 consultas em paralelo (eram em fila; 1 ida a menos no 4G)
-        const [{ data: imoveisRows, error: e1 }, { data: contratosRows, error: e2 }] = await Promise.all([
-            dbAuth.from('imoveis').select('id, status, finalidade_uso, fotos, tipos_imovel(nome), empreendimentos(nome)').eq('cliente_id', clienteId),
+        const [{ data: ativosRows, error: e1 }, { data: contratosRows, error: e2 }, { data: fotosRows, error: e3 }] = await Promise.all([
+            dbAuth.from('cofre_ativos').select('entidade_origem_id, situacao_uso, finalidade_uso, ativo_tipos(nome), empreendimentos(nome)').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel'),
             dbAuth.from('contratos').select('imovel_id, status, locatario, valor').eq('cliente_id', clienteId),
+            dbAuth.from('imoveis').select('id, fotos').eq('cliente_id', clienteId),
         ]);
         if (e1) throw e1;
         if (e2) throw e2;
+        if (e3) throw e3;
+        const fotosPorImovel = new Map((fotosRows || []).map(r => [r.id, r.fotos]));
 
-        (imoveisRows || []).forEach(imo => {
+        (ativosRows || []).forEach(imo => {
+            const imovelId = imo.entidade_origem_id;
             const contratosDoImovel = (contratosRows || [])
-                .filter(c => c.imovel_id === imo.id)
+                .filter(c => c.imovel_id === imovelId)
                 .sort((a, b) => (PRIORIDADE_STATUS_CONTRATO_CARD[a.status] || 9) - (PRIORIDADE_STATUS_CONTRATO_CARD[b.status] || 9));
-            const foto = (Array.isArray(imo.fotos) && imo.fotos.length > 0 && typeof imo.fotos[0] === 'string' && imo.fotos[0].length > 5) ? imo.fotos[0] : null;
-            resumo.set(imo.id, {
+            const fotosImo = fotosPorImovel.get(imovelId);
+            const foto = (Array.isArray(fotosImo) && fotosImo.length > 0 && typeof fotosImo[0] === 'string' && fotosImo[0].length > 5) ? fotosImo[0] : null;
+            resumo.set(imovelId, {
                 empreendimento: imo.empreendimentos?.nome || '',
-                tipo: imo.tipos_imovel?.nome || '',
+                tipo: imo.ativo_tipos?.nome || '',
                 finalidadeUso: imo.finalidade_uso || '',
-                status: STATUS_IMOVEL_SUPABASE_PARA_ROTULO[imo.status] || 'Vago',
+                status: STATUS_IMOVEL_SUPABASE_PARA_ROTULO[imo.situacao_uso] || 'Vago',
                 foto,
                 contratoPrincipal: contratosDoImovel[0] || null
             });
@@ -1007,16 +1087,19 @@ export async function marcarAtivoVendido(id) {
     if (erroItens) throw erroItens;
 }
 
+// Onda 12 (16/09/2026) — fonte trocada de `imoveis` pra `cofre_ativos`.
 export async function buscarImovelPorId(id) {
-    const { data, error } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num, endereco_bairro, endereco_cidade').eq('id', id).maybeSingle();
+    const { data, error } = await dbAuth.from('cofre_ativos').select('entidade_origem_id, endereco_rua, endereco_num, endereco_bairro, endereco_cidade').eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', id).maybeSingle();
     if (error) throw error;
-    return data;
+    if (!data) return null;
+    return { id: data.entidade_origem_id, endereco_rua: data.endereco_rua, endereco_num: data.endereco_num, endereco_bairro: data.endereco_bairro, endereco_cidade: data.endereco_cidade };
 }
 
+// Onda 12 (16/09/2026) — fonte trocada de `imoveis` pra `cofre_ativos`.
 export async function listarImoveisDoCliente(clienteId) {
-    const { data, error } = await dbAuth.from('imoveis').select('id, endereco_rua, endereco_num').eq('cliente_id', clienteId).order('endereco_rua');
+    const { data, error } = await dbAuth.from('cofre_ativos').select('entidade_origem_id, endereco_rua, endereco_num').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel').order('endereco_rua');
     if (error) throw error;
-    return data || [];
+    return (data || []).map(r => ({ id: r.entidade_origem_id, endereco_rua: r.endereco_rua, endereco_num: r.endereco_num }));
 }
 
 // ============================================================================
