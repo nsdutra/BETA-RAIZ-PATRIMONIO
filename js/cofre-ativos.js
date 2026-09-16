@@ -1,6 +1,37 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.40.0 · 16/09/2026
+// Versão: 1.42.0 · 16/09/2026
+//
+// v1.42.0 — 3 achados do teste real (Nicola, prints Albuquerque Silva):
+// (1) chip Financeiro sem contador/warn — faAtualizarContador() nunca
+// era chamada pra esse chip (elemento nem existia no markup); agora
+// mostra itens em aberto e fica warn quando algum está atrasado. (2)
+// BUG REAL nas 2 pontes de "iniciar contratação"/"novo contrato" da
+// ficha do ativo — passavam a.entidade_origem_id (sempre undefined pra
+// imóvel nativo) em vez de a.id pras funções de vitrine.js/contratos.js,
+// que fazem imoveis.find(i => i.id === ...) contra um array que usa o
+// id do próprio ativo desde a Onda 12. As pontes em si sempre existiram
+// (lazy-load em index.html) — corrige a demanda ba64b8cb, que tinha
+// premissa errada (achava que não existiam). (3) achado no caminho:
+// fn_fluxo_financeiro_ativo (banco) tinha a mesma restrição legada de
+// outras funções desta sessão (entidade_origem_tipo/imovel_id) —
+// corrigida separadamente, direto no banco.
+//
+// v1.41.0 — 4 achados reais de teste (Nicola, prints), mesma rodada:
+// (1) seletor "Qual imóvel?" removido do form de criar ativo — criar
+// sempre nasce nativo desde o único caminho de escrita da Onda 12,
+// vincular a um legado não tinha mais ganho nenhum. (2) BUG REAL: aba
+// Contratos da ficha do ativo mostrava "só existem pra imóveis" pra um
+// imóvel NATIVO de verdade — 13 pontos usavam entidade_origem_tipo
+// ==='imovel' como proxy de "é imóvel" (só reconhece os 104 legados);
+// 9 corrigidos pra ehCategoriaImovel(tipo_ativo) (os outros 4 ficam
+// como estavam de propósito — vitrine e foto legada realmente exigem
+// um imoveis.id, e abrirGestaoImovel já não tem chamador). (3) mesma
+// causa raiz do "cai em Outros ativos" — grouping/card rico corrigidos
+// junto. (4) campos do form de criar ativo convertidos pra gramática
+// .rz-f (DS §6) — usavam border-slate-300, classe Tailwind de cor
+// proibida no Design System; só o bloco de endereço já seguia o padrão
+// certo. Ver cofre-api.js v1.36.0 e ativos-markup.js v1.36.0 pro resto.
 //
 // v1.40.0 — Onda 12 (pedido explícito: "único caminho de escrita, na
 // tabela de ativos"). salvarEdicaoAtivo(): vinculado e avulso convergem
@@ -53,7 +84,7 @@
 // desde que ela nasceu, e ninguém tinha desligado o antigo ainda. Achado
 // pela pergunta do Nicola "quais dos 2 campos de valor é qual".
 //
-// v1.36.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), conclusão
+// v1.41.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), conclusão
 // (decisão do Nicola: "quero desligar o form de imóveis... vamos
 // implementar o que falta"). alternarEditarAtivo()/salvarEdicaoAtivo()
 // passam a atender IMÓVEL VINCULADO também, não só avulso — blocoEndereco/
@@ -529,7 +560,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.40.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.42.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -658,18 +689,18 @@ const SITUACOES_USO_ATIVO = [
 // Universal — qualquer tipo de ativo.
 function renderizarBlocoEmpreendimentoValor(prefixo, v = {}, empreendimentos = []) {
     return `
-        <div>
-            <label class="text-xs font-semibold block mb-1">Empreendimento</label>
-            <select id="${prefixo}empreendimento-id" onchange="window.__ativoMudarEmpreendimento('${prefixo}')" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <div class="rz-f">
+            <label>Empreendimento</label>
+            <select id="${prefixo}empreendimento-id" onchange="window.__ativoMudarEmpreendimento('${prefixo}')">
                 <option value="">— nenhum —</option>
                 ${empreendimentos.map(e => `<option value="${e.id}"${e.id === v.empreendimento_id ? ' selected' : ''}>${escapeHtml(e.nome)}</option>`).join('')}
                 <option value="__novo__">+ Novo empreendimento</option>
             </select>
-            <input type="text" id="${prefixo}empreendimento-novo-nome" placeholder="Nome do empreendimento" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs mt-1 hidden">
+            <input type="text" id="${prefixo}empreendimento-novo-nome" placeholder="Nome do empreendimento" class="hidden" style="margin-top:6px">
         </div>
-        <div>
-            <label class="text-xs font-semibold block mb-1">Valor de referência (R$)</label>
-            <input type="number" step="0.01" id="${prefixo}valor-referencia" value="${v.valor_referencia ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <div class="rz-f">
+            <label>Valor de referência (R$)</label>
+            <input type="number" step="0.01" id="${prefixo}valor-referencia" value="${v.valor_referencia ?? ''}">
         </div>
     `;
 }
@@ -710,31 +741,31 @@ function renderizarBlocoImovel(prefixo, v = {}) {
     const finalidadeInfo = FINALIDADES_USO_ATIVO.find(f => f.v === (v.finalidade_uso || ''));
     const aluguelVisivel = finalidadeInfo?.comercial ? '' : ' hidden';
     return `
-        <div>
-            <label class="text-xs font-semibold block mb-1">Área (m²)</label>
-            <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <div class="rz-f">
+            <label>Área (m²)</label>
+            <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}">
         </div>
-        <div>
-            <label class="text-xs font-semibold block mb-1">Finalidade de uso</label>
-            <select id="${prefixo}finalidade-uso" onchange="window.__ativoMudarFinalidadeUso('${prefixo}')" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <div class="rz-f">
+            <label>Finalidade de uso</label>
+            <select id="${prefixo}finalidade-uso" onchange="window.__ativoMudarFinalidadeUso('${prefixo}')">
                 <option value=""${optSel('', 'finalidade_uso')}>— não informado —</option>
                 ${FINALIDADES_USO_ATIVO.map(f => `<option value="${f.v}"${optSel(f.v, 'finalidade_uso')}>${f.l}</option>`).join('')}
             </select>
         </div>
-        <div>
-            <label class="text-xs font-semibold block mb-1">Situação de uso</label>
-            <select id="${prefixo}situacao-uso" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <div class="rz-f">
+            <label>Situação de uso</label>
+            <select id="${prefixo}situacao-uso">
                 <option value=""${optSel('', 'situacao_uso')}>— não informado —</option>
                 ${SITUACOES_USO_ATIVO.map(s => `<option value="${s.v}"${optSel(s.v, 'situacao_uso')}>${s.l}</option>`).join('')}
             </select>
         </div>
-        <div id="${prefixo}aluguel-wrapper" class="${aluguelVisivel}">
-            <label class="text-xs font-semibold block mb-1">Aluguel esperado (R$)</label>
-            <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        <div id="${prefixo}aluguel-wrapper" class="rz-f${aluguelVisivel}">
+            <label>Aluguel esperado (R$)</label>
+            <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}">
         </div>
-        <div class="sm:col-span-2">
-            <label class="text-xs font-semibold block mb-1">Observação</label>
-            <textarea id="${prefixo}observacao" rows="2" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">${escapeHtml(v.observacao || '')}</textarea>
+        <div class="rz-f sm:col-span-2">
+            <label>Observação</label>
+            <textarea id="${prefixo}observacao" rows="2">${escapeHtml(v.observacao || '')}</textarea>
         </div>
     `;
 }
@@ -841,7 +872,12 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
 
     const lista = estado.ativos.filter(a => {
         if (tiposFiltro && !tiposFiltro.includes(a.tipo_ativo)) return false;
-        const resumo = a.entidade_origem_tipo === 'imovel' ? resumoImoveisPorId.get(a.entidade_origem_id) : null;
+        // v1.41.0 (16/09/2026, achado no teste real — "Casa de Campo cai
+        // em Outros ativos") — ehCategoriaImovel(a.tipo_ativo) no lugar
+        // de entidade_origem_tipo==='imovel': cobre imóvel nativo (Onda
+        // 12) também, não só os 104 legados. resumoImoveisPorId agora é
+        // chaveado por a.id (buscarResumoImoveisParaCards, cofre-api.js).
+        const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
         if (!ativoBateComBusca(a, resumo)) return false;
         if (!ativoBateComStatus(a, resumo)) return false;
         if (!ativoBateComAlerta(a)) return false;
@@ -859,13 +895,13 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     // (sem empreendimento) caem em "(Outros ativos)", sempre por último
     // — hoje (Rumo) isso nunca acontece, mas o critério já vem pronto
     // pra quando existirem veículos/outros tipos na carteira.
-    const totalImoveisNaCarteira = estado.ativos.filter(a => a.entidade_origem_tipo === 'imovel').length;
+    const totalImoveisNaCarteira = estado.ativos.filter(a => ehCategoriaImovel(a.tipo_ativo)).length;
 
     if (totalImoveisNaCarteira > 10) {
         const grupos = {};
         lista.forEach(a => {
-            const resumo = a.entidade_origem_tipo === 'imovel' ? resumoImoveisPorId.get(a.entidade_origem_id) : null;
-            const chave = resumo?.empreendimento || (a.entidade_origem_tipo === 'imovel' ? '(Sem empreendimento)' : '(Outros ativos)');
+            const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
+            const chave = resumo?.empreendimento || (ehCategoriaImovel(a.tipo_ativo) ? '(Sem empreendimento)' : '(Outros ativos)');
             (grupos[chave] = grupos[chave] || []).push(a);
         });
         const nomesGrupos = Object.keys(grupos).sort((x, y) => {
@@ -1012,7 +1048,7 @@ function ativoCardHtml(a) {
     // colorido (Vago=âmbar/Assinando=azul/Alugado=verde/demais=cinza).
     // Sem resumo ainda carregado (1ª renderização, antes do bulk fetch
     // resolver) ou ativo de outro tipo: cai no card genérico de sempre.
-    const resumoImovel = a.entidade_origem_tipo === 'imovel' ? resumoImoveisPorId.get(a.entidade_origem_id) : null;
+    const resumoImovel = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
 
     if (resumoImovel) {
         const finalidadeLabel = { long_stay: 'Long Stay', uso_proprio: 'Uso Pessoal', temporada: 'Temporada', comercial: 'Comercial', outro: 'Outro' };
@@ -1116,29 +1152,15 @@ export function fecharFormAtivo() {
 
 export async function aoMudarTipoAtivo() {
     const tipo = document.getElementById('at-tipo').value;
-    // Onda 12 (E15.2.1, achado no caminho) — este seletor só aparecia pra
-    // 'imovel_predial'; 'imovel_territorial' (terreno/fazenda/sítio) ia
-    // direto pro avulso, sem nunca poder vincular a um imóvel existente
-    // nem, agora, criar um novo — mesmo bug de origem do resto desta
-    // etapa, mesma correção: ehCategoriaImovel() cobre as duas.
-    document.getElementById('at-origem-imovel-wrapper').classList.toggle('hidden', !ehCategoriaImovel(tipo));
-    if (ehCategoriaImovel(tipo)) {
-        const imoveisCliente = await api.listarImoveisDoCliente(estado.clienteId);
-        // v1.96.2 — opção "nenhum" explícita no topo, valor vazio de
-        // propósito (atualizarCamposEstruturadosAtivo() usa pra decidir
-        // se mostra os campos avulsos ou não — ver comentário lá).
-        // v1.38.0 (E15.2.1) — 3ª opção "+ Cadastrar um imóvel novo"
-        // (valor sentinela '__novo__'): fecha o item 2.1 do handoff —
-        // até aqui só dava pra vincular a um imóvel JÁ existente ou
-        // criar ativo avulso (sem linha em `imoveis`); criar um imóvel
-        // de verdade só existia pelo wizard antigo (imoveis.js). Mesmos
-        // blocos de endereço/valor/tipo do avulso, só muda o destino no
-        // salvarAtivo() — ver ali e criarImovelEAtivo (cofre-api.js).
-        document.getElementById('at-origem-imovel').innerHTML =
-            '<option value="">— nenhum, cadastrar dados avulsos abaixo —</option>' +
-            '<option value="__novo__">+ Cadastrar um imóvel novo</option>' +
-            imoveisCliente.map(i => `<option value="${i.id}">${escapeHtml(i.endereco_rua)}, ${escapeHtml(i.endereco_num || '')}</option>`).join('');
-    }
+    // v1.41.0 (16/09/2026, pedido explícito do Nicola, achado no teste
+    // real) — seletor "Qual imóvel?" (vincular a um imóvel já existente)
+    // removido do form de CRIAR ativo. Desde o único caminho de escrita
+    // da Onda 12, criar sempre nasce ativo nativo em cofre_ativos direto
+    // — não existe mais ganho em "vincular" a um dos 104 legados em vez
+    // de só criar; a opção só confundia (e tinha um texto de rodapé,
+    // "vinculado a um imóvel existente: não duplica dados", que não
+    // fazia mais sentido nenhum). Ver atualizarCamposEstruturadosAtivo()
+    // e salvarAtivo() logo abaixo — os 2 perderam o branch "vinculado".
     // E5 — 2º seletor (tipo específico) troca de opções a cada mudança
     // de categoria; sem valor pré-selecionado (form de criar sempre
     // parte zerado).
@@ -1166,15 +1188,8 @@ export async function aoMudarTipoAtivo() {
 // tela errada. Agora só aparecem quando NÃO há imóvel selecionado.
 export function atualizarCamposEstruturadosAtivo() {
     const tipo = document.getElementById('at-tipo').value;
-    const selImovel = document.getElementById('at-origem-imovel');
-    // v1.38.0 (E15.2.1) — 3 estados agora, não 2: vazio (avulso) e
-    // '__novo__' (imóvel novo) mostram os MESMOS blocos de endereço/
-    // valor/tipo abaixo (o dado ainda não existe em `imoveis` nos dois
-    // casos); só um UUID real (imóvel JÁ existente) esconde e delega —
-    // dados já vêm de lá.
-    const valorOrigem = selImovel ? selImovel.value : '';
-    const vinculadoAExistente = ehCategoriaImovel(tipo) && valorOrigem && valorOrigem !== '__novo__';
-    const semImovelVinculado = !vinculadoAExistente;
+    // v1.41.0 (16/09/2026) — sem branch "vinculado a existente" mais: o
+    // form de criar sempre gera ativo nativo (ver aoMudarTipoAtivo()).
     // E5 — tipo_detalhe_id (uuid) do 2º seletor, quando existir; some
     // pra undefined se o seletor não existir ou estiver escondido (sem
     // tipo específico cadastrado pra essa categoria) — obterCamposPorTipo
@@ -1182,23 +1197,15 @@ export function atualizarCamposEstruturadosAtivo() {
     // antes da E5.
     const selDetalhe = document.getElementById('at-tipo-detalhe');
     const tipoDetalheId = selDetalhe && selDetalhe.value ? selDetalhe.value : null;
-    document.getElementById('at-campos-estruturados').innerHTML = semImovelVinculado
-        ? renderizarCamposEstruturados(tipo, {}, 'at-campo-', tipoDetalheId)
-        : `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Endereço, IPTU e valor de mercado já vêm de "${escapeHtml(selImovel.options[selImovel.selectedIndex]?.text || 'imóvel selecionado')}" — nada a preencher aqui.</p>`;
+    document.getElementById('at-campos-estruturados').innerHTML = renderizarCamposEstruturados(tipo, {}, 'at-campo-', tipoDetalheId);
 
     // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
-    // referência valem pra QUALQUER tipo de ativo, não só imóvel. Mesma
-    // regra de "sem vínculo" que os campos específicos acima usam
-    // (semImovelVinculado): se já tem imóvel selecionado, esses dados já
-    // existem nele, nada a duplicar aqui.
+    // referência valem pra QUALQUER tipo de ativo, não só imóvel.
     const wrapEmpVal = document.getElementById('at-empreendimento-valor-wrapper');
-    if (wrapEmpVal) wrapEmpVal.innerHTML = semImovelVinculado ? renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || []) : '';
+    if (wrapEmpVal) wrapEmpVal.innerHTML = renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || []);
 
-    // v1.32.0 (E6.2) — bloco de endereço estruturado, categoria imóvel
-    // sem vínculo a um EXISTENTE (avulso OU '__novo__' — v1.38.0/E15.2.1
-    // ampliou de "só avulso" pra "sem imóvel selecionado", mesmo critério
-    // de semImovelVinculado acima).
-    const mostrarBlocosImovel = ehCategoriaImovel(tipo) && semImovelVinculado;
+    // v1.32.0 (E6.2) — bloco de endereço estruturado, categoria imóvel.
+    const mostrarBlocosImovel = ehCategoriaImovel(tipo);
     const wrapEndereco = document.getElementById('at-endereco-wrapper');
     if (wrapEndereco) {
         wrapEndereco.classList.toggle('hidden', !mostrarBlocosImovel);
@@ -1207,9 +1214,7 @@ export function atualizarCamposEstruturadosAtivo() {
 
     // E15.2 ("A2") — bloco (área, finalidade/situação de uso, aluguel
     // esperado, observação) — Fase 1/2 da DE_PARA_IMOVEIS_ATIVOS.
-    // v1.38.0 (E15.2.1) — mesmo critério de mostrarBlocosImovel acima
-    // (avulso OU '__novo__'; empreendimento/valor saíram pro bloco
-    // universal). _empreendimentosCache já foi carregado em abrirFormAtivo.
+    // _empreendimentosCache já foi carregado em abrirFormAtivo.
     const wrapImovel = document.getElementById('at-imovel-wrapper');
     if (wrapImovel) {
         wrapImovel.classList.toggle('hidden', !mostrarBlocosImovel);
@@ -1227,9 +1232,9 @@ export function aoMudarTipoDetalheAtivo() {
 function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-', tipoDetalheId = null) {
     const campos = obterCamposPorTipo(tipo, tipoDetalheId);
     return campos.map(c => `
-        <div>
-            <label class="text-xs font-semibold block mb-1">${escapeHtml(c.label)} ${c.obrigatorio ? '<span style="color:var(--danger)">*</span>' : ''}</label>
-            <input type="${c.tipo === 'number' ? 'number' : c.tipo === 'date' ? 'date' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(valores[c.chave] || '')}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">
+        <div class="rz-f">
+            <label>${escapeHtml(c.label)} ${c.obrigatorio ? '<i>*</i>' : ''}</label>
+            <input type="${c.tipo === 'number' ? 'number' : c.tipo === 'date' ? 'date' : 'text'}" id="${prefixoId}${c.chave}" value="${escapeHtml(valores[c.chave] || '')}">
         </div>`).join('') || `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Sem campos estruturados adicionais para este tipo.</p>`;
 }
 
@@ -1272,60 +1277,31 @@ export async function salvarAtivo() {
         if (!temNome) { statusEl.textContent = '⚠️ Preencha o sócio/nome de todas as linhas da divisão societária.'; statusEl.style.color = 'var(--danger)'; return; }
     }
 
-    // v1.38.0 (E15.2.1) — 3 modos agora, não 2: vinculado (UUID real em
-    // "Qual imóvel?"), novo ('__novo__', sentinela do seletor — cria
-    // linha em `imoveis` de verdade) e avulso (vazio, só cofre_ativos).
-    // ehCategoriaImovel() no lugar do antigo "=== 'imovel_predial'":
-    // territorial ganhou o mesmo seletor nesta etapa (ver aoMudarTipoAtivo).
-    const origemImovelValor = ehCategoriaImovel(tipo) ? (document.getElementById('at-origem-imovel')?.value || '') : '';
-    const vinculadoAExistente = !!origemImovelValor && origemImovelValor !== '__novo__';
-    const criandoImovelNovo = origemImovelValor === '__novo__';
+    // v1.41.0 (16/09/2026, pedido explícito) — sem "Qual imóvel?" mais:
+    // categoria imóvel sempre cria nativo, direto em cofre_ativos, via
+    // criarImovelEAtivo(). Não existe mais o modo "vinculado a um
+    // existente" no form de CRIAR (a ficha de EDITAR de um imóvel legado
+    // continua funcionando igual, isto é só o formulário de criação).
+    const ehImovel = ehCategoriaImovel(tipo);
 
     const payload = { cliente_id: estado.clienteId, tipo_ativo: tipo, tipo_detalhe_id: tipoDetalheId, nome_exibicao: nome, status: 'ativo', dados_especificos: dadosEspecificos, criado_por: estado.pessoa.id };
-    if (vinculadoAExistente) {
-        payload.entidade_origem_tipo = 'imovel';
-        payload.entidade_origem_id = origemImovelValor;
-    }
-    // v1.32.0 (E6.2) — BUG REAL corrigido: a opção "— nenhum, cadastrar
-    // dados avulsos abaixo —" existe no seletor desde a v1.96.2, mas até
-    // aqui salvarAtivo() sempre exigia um imovelId e bloqueava o
-    // salvamento com "Selecione o imóvel" mesmo quando a pessoa escolhia
-    // essa opção de propósito. Endereço estruturado (E6.1/E6.2) entra
-    // direto nas colunas de cofre_ativos (avulso) ou de `imoveis` (novo
-    // — v1.38.0), não em dados_especificos.
-    //
+
     // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
-    // referência agora são universais (qualquer tipo de ativo sem vínculo
-    // com imóvel real); área/finalidade/situação/aluguel/observação
-    // continuam só categoria imóvel. Aluguel esperado vai pra
-    // dados_especificos SEMPRE, nos 3 modos (decisão do documento
-    // DE_PARA) — pra "novo", vai TAMBÉM em imoveis.valor logo abaixo,
-    // porque a vitrine pública ainda lê isso direto de `imoveis`
-    // (E15.3 não migrou — sem isto, imóvel novo nasceria já divergente,
-    // mesma classe de achado de "marcar como vendido").
-    let empvalLido = null, enderecoLido = null, camposImovelLido = null, aluguelDesejado = null;
-    if (!vinculadoAExistente) {
-        empvalLido = await lerBlocoEmpreendimentoValor('at-empval-', estado.clienteId);
-        if (ehCategoriaImovel(tipo)) {
-            enderecoLido = lerBlocoEndereco('at-endereco');
-            const lidoImovel = lerBlocoImovel('at-imovel-');
-            camposImovelLido = lidoImovel.camposImovel;
-            aluguelDesejado = lidoImovel.aluguelDesejado;
-            if (aluguelDesejado !== null) payload.dados_especificos.aluguel_desejado = aluguelDesejado;
-        }
+    // referência valem pra QUALQUER tipo de ativo; área/finalidade/
+    // situação/aluguel/observação só categoria imóvel.
+    const empvalLido = await lerBlocoEmpreendimentoValor('at-empval-', estado.clienteId);
+    let enderecoLido = null, camposImovelLido = null, aluguelDesejado = null;
+    if (ehImovel) {
+        enderecoLido = lerBlocoEndereco('at-endereco');
+        const lidoImovel = lerBlocoImovel('at-imovel-');
+        camposImovelLido = lidoImovel.camposImovel;
+        aluguelDesejado = lidoImovel.aluguelDesejado;
+        if (aluguelDesejado !== null) payload.dados_especificos.aluguel_desejado = aluguelDesejado;
     }
 
     try {
         let novoAtivo;
-        if (criandoImovelNovo) {
-            // v1.38.0 (E15.2.1) — fecha o item 2.1 do handoff: cria a
-            // linha em `imoveis` de verdade (criarImovelEAtivo →
-            // fn_criar_ativo) em vez de só cofre_ativos avulso. Sem isso
-            // o imóvel novo não podia nunca virar contrato de locação
-            // (contratos.js inteiro gira em torno de `imoveis`/imovelId)
-            // nem aparecer na vitrine pública (lê `imoveis` sem login,
-            // E15.3 ainda não migrou) — exatamente o que mantinha o
-            // wizard antigo (imoveis.js) vivo.
+        if (ehImovel) {
             const imovelDados = {
                 ...(enderecoLido || {}),
                 empreendimento_id: empvalLido?.empreendimento_id ?? null,
@@ -1338,9 +1314,7 @@ export async function salvarAtivo() {
             };
             novoAtivo = await api.criarImovelEAtivo(estado.clienteId, nome, tipo, imovelDados, tipoDetalheId, payload.dados_especificos);
         } else {
-            if (empvalLido) Object.assign(payload, empvalLido);
-            if (enderecoLido) Object.assign(payload, enderecoLido);
-            if (camposImovelLido) Object.assign(payload, camposImovelLido);
+            Object.assign(payload, empvalLido);
             novoAtivo = await api.criarAtivo(payload);
         }
         // Divisão societária gravada logo em seguida, já com o id do
@@ -1356,7 +1330,7 @@ export async function salvarAtivo() {
         }));
         await api.salvarPropriedadeAtivo(novoAtivo.ativo_id || novoAtivo.id, linhasParaApi);
 
-        mostrarToast(criandoImovelNovo ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
+        mostrarToast(ehImovel ? 'Imóvel cadastrado ✅' : 'Ativo cadastrado ✅');
         document.getElementById('at-nome').value = '';
         fecharFormAtivo();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
@@ -1536,7 +1510,14 @@ export function fecharFichaAtivo() {
 export function abrirAcoesAtivo() {
     const a = estado.ativoEmFoco;
     if (!a) return;
-    const ehImovel = a.entidade_origem_tipo === 'imovel';
+    // v1.41.0 (16/09/2026) — 2 checagens agora, não 1: o rótulo do
+    // "Editar" vale pra QUALQUER imóvel (legado ou nativo, cobre os
+    // mesmos campos nos dois); "Gerar vitrine" continua exigindo um
+    // imoveis.id de verdade (links_vitrine ainda não migrou pra
+    // cofre_ativos.id — vitrine de imóvel nativo é frente própria,
+    // registrada como pendência).
+    const ehCategoriaImovelAtivo = ehCategoriaImovel(a.tipo_ativo);
+    const ehImovelComVitrineDisponivel = a.entidade_origem_tipo === 'imovel';
     const acoes = [];
     // E15.2 (15/09/2026, "vamos desligar o form de imóveis") — os 2
     // itens que existiam aqui pra imóvel ("Editar dados do imóvel" →
@@ -1547,11 +1528,11 @@ export function abrirAcoesAtivo() {
     // vinculado (ver salvarEdicaoAtivo). abrirGestaoImovel() continua
     // existindo (não removida) só por segurança de rollback — sem
     // chamador neste menu a partir de agora.
-    acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehImovel ? 'Endereço, valores, uso e campos específicos' : 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
+    acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehCategoriaImovelAtivo ? 'Endereço, valores, uso e campos específicos' : 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
     // v1.22.0 (fatia 7) — "Gerar vitrine" deste imóvel (link único) —
     // reaproveita gerarVitrineDoImovel() do App (index.html v1.115.0).
-    if (ehImovel && a.status !== 'vendido' && typeof window.gerarVitrineDoImovel === 'function') acoes.push({ icone: 'image', titulo: 'Gerar vitrine', codigo: 'vitrine.gerar', sub: 'Link deste imóvel pra compartilhar', aoTocar: () => window.gerarVitrineDoImovel(a.entidade_origem_id) });
+    if (ehImovelComVitrineDisponivel && a.status !== 'vendido' && typeof window.gerarVitrineDoImovel === 'function') acoes.push({ icone: 'image', titulo: 'Gerar vitrine', codigo: 'vitrine.gerar', sub: 'Link deste imóvel pra compartilhar', aoTocar: () => window.gerarVitrineDoImovel(a.entidade_origem_id) });
     if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
     acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), acoes });
@@ -1573,7 +1554,13 @@ async function montarContratosAtivo(a) {
     faAtualizarContador('contratos', 0);
     if (sub) sub.textContent = '';
 
-    if (a.entidade_origem_tipo !== 'imovel') {
+    // v1.41.0 (16/09/2026, BUG REAL do teste real — print "Casa de Campo,
+    // tipo Imóvel, Ativo" mostrando a msg vermelha) — ehCategoriaImovel()
+    // no lugar de entidade_origem_tipo==='imovel': a checagem antiga só
+    // reconhecia os 104 imóveis legados vinculados; um imóvel NATIVO
+    // (criado após a Onda 12, sem esse vínculo) caía sempre aqui, mesmo
+    // sendo genuinamente do tipo imóvel.
+    if (!ehCategoriaImovel(a.tipo_ativo)) {
         painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Contratos de locação só existem pra ativos do tipo imóvel.</p></div>`;
         refrescarIcones();
         return;
@@ -1584,7 +1571,11 @@ async function montarContratosAtivo(a) {
         // a linha "Ativo". contratos.status é MINÚSCULO no banco ('ativo',
         // 'assinando', 'finalizado'); a comparação com 'Ativo' (capitalizado,
         // herdada do texto do v1.5.0) nunca batia. Normalizado uma vez aqui.
-        const lista = (await api.buscarContratosDoImovel(a.entidade_origem_id)).map(c => ({ ...c, st: String(c.status || '').toLowerCase() }));
+        // v1.41.0 — buscarContratosDoAtivo(a.id) no lugar de
+        // buscarContratosDoImovel(a.entidade_origem_id): filtra por
+        // ativo_id agora, não imovel_id — sem isto, contrato NOVO de
+        // imóvel LEGADO também sumiria daqui (achado no mesmo teste).
+        const lista = (await api.buscarContratosDoAtivo(a.id)).map(c => ({ ...c, st: String(c.status || '').toLowerCase() }));
         const vigentes = lista.filter(c => c.st === 'ativo' || c.st === 'assinando');
         faAtualizarContador('contratos', vigentes.length);
         if (sub) sub.textContent = lista.length ? `${vigentes.length} vigente${vigentes.length === 1 ? '' : 's'} · ${lista.length - vigentes.length} encerrado${lista.length - vigentes.length === 1 ? '' : 's'}` : '';
@@ -1643,6 +1634,18 @@ async function montarFinanceiroAtivo(a) {
     const fmtData = (iso) => iso ? formatarDataBR(iso) : '—';
 
     const fluxo = await api.buscarFluxoFinanceiroAtivo(a.id);
+
+    // v1.41.0 (16/09/2026, BUG REAL reportado pelo Nicola — "chip
+    // financeiro não fica vermelho pelo atraso") — faAtualizarContador()
+    // pro chip Financeiro nunca tinha sido chamada (só Contratos e
+    // Anexos tinham). O elemento #fa-chip-n-financeiro nem existia no
+    // markup (ativos-markup.js). Contador = itens em aberto (não pago/
+    // isento); warn quando algum está atrasado — mesmo critério de
+    // "atrasado" usado na lista abaixo (status OU vencimento < hoje).
+    const hojeContador = new Date().toISOString().slice(0, 10);
+    const itensEmAberto = fluxo.itens.filter(it => it.status !== 'realizado' && it.status !== 'isento');
+    const temAtrasado = itensEmAberto.some(it => it.status === 'atrasado' || (it.vencimento && it.vencimento < hojeContador));
+    faAtualizarContador('financeiro', itensEmAberto.length, temAtrasado);
 
     // v1.17.0 (fatia 3) — KPIs no formato único (.rz-kpi, REGRAS §9) e
     // lista em .rz-row com status nas 5 semânticas via renderStatus().
@@ -1727,15 +1730,25 @@ export function abrirContratoNoApp(contratoId) {
 }
 
 // v1.19.0 — contratação e sheet de ações do chip Contratos (ponte pro App:
-// abrirNovoContratoParaImovel já pré-seleciona o imóvel e abre o formulário).
 export function abrirNovoContratoDoAtivo() {
     const a = estado.ativoEmFoco;
-    if (a?.entidade_origem_tipo !== 'imovel') { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    // v1.41.0 — ehCategoriaImovel() no lugar de entidade_origem_tipo,
+    // mesma correção do resto desta rodada (consistência; ver nota em
+    // montarContratosAtivo acima).
+    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
     if (typeof window.switchTab === 'function' && typeof window.criarContratoParaImovel === 'function') {
         window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
         // v1.31.1 (E0.1 / A6) — switchTab('tab-contratos') saiu: o formulario
         // de contrato agora vive no <body> e abre por cima da ficha do ativo.
-        window.criarContratoParaImovel(a.entidade_origem_id);
+        // v1.41.0 (16/09/2026, BUG REAL) — a.id no lugar de
+        // a.entidade_origem_id: criarContratoParaImovel() faz
+        // imoveis.find(i => i.id === imovelId), e o array `imoveis` usa o
+        // id do próprio ativo desde o único caminho de escrita (Onda 12) —
+        // pra imóvel nativo, entidade_origem_id é sempre undefined, o find
+        // sempre falhava (if (!imo) return — sem toast, sem erro, nada
+        // acontecia). A ponte em si sempre existiu (lazy-load em
+        // index.html); só o parâmetro estava errado.
+        window.criarContratoParaImovel(a.id);
     } else mostrarToast('Contratação só abre dentro do app principal.', 'erro');
 }
 // v1.20.0 (Nicola: "faltaram gerar minuta, compartilhar link e as outras
@@ -1745,10 +1758,11 @@ export function abrirNovoContratoDoAtivo() {
 // Tipo B antigo — vira sheet na fatia 9.
 export function iniciarContratacaoDoAtivo() {
     const a = estado.ativoEmFoco;
-    if (a?.entidade_origem_tipo !== 'imovel') { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
     if (typeof window.iniciarProcessoContratacao !== 'function') { abrirNovoContratoDoAtivo(); return; }
     window.fichaContratoOrigem = { tipo: 'ativo', id: a.id };
-    window.iniciarProcessoContratacao(a.entidade_origem_id);
+    // v1.41.0 — mesma correção acima: a.id, não a.entidade_origem_id.
+    window.iniciarProcessoContratacao(a.id);
 }
 export function abrirAcoesPropriedade() {
     const a = estado.ativoEmFoco; if (!a) return;
@@ -2335,8 +2349,14 @@ window.rzAbrirAtivosComFiltro = function (status = '', alerta = '') {
     mudarTela('ativos');
     renderAtivosLista('', document.getElementById('filtro-ativo-busca')?.value || '');
 };
+// v1.41.0 (16/09/2026) — o único chamador (contratos.js, "Abrir o
+// imóvel" na ficha do contrato) passa con.imovelId, que desde o único
+// caminho de escrita da Onda 12 É o id do próprio ativo (cofre_ativos.id
+// — carregarContratosSupabase lê row.ativo_id → imovelId), não mais
+// entidade_origem_id. Busca direta por x.id resolve os 2 mundos (legado
+// e nativo) com a mesma linha — nem precisa mais checar entidade_origem_tipo.
 window.rzAbrirAtivoDoImovel = function (imovelId) {
-    const a = (estado.ativos || []).find(x => x.entidade_origem_tipo === 'imovel' && x.entidade_origem_id === imovelId);
+    const a = (estado.ativos || []).find(x => x.id === imovelId);
     if (typeof window.switchTab === 'function') window.switchTab('tab-ativos');
     if (a) abrirFichaAtivo(a.id); else { mudarTela('ativos'); mostrarToast('Ativo deste imóvel não encontrado.', 'erro'); }
 };
@@ -2551,8 +2571,14 @@ async function montarFotosAtivo(a) {
 }
 
 function fotosLegadasDoImovel(a) {
+    // v1.41.0 (16/09/2026) — window.imoveis (array ponte do App,
+    // carregarImoveisSupabase em cofre-api.js) tem .id = id do próprio
+    // ativo desde o único caminho de escrita da Onda 12, não mais
+    // entidade_origem_id — o lookup antigo nunca mais batia, nem pra
+    // imóvel legado. entidade_origem_tipo continua o gate certo aqui
+    // (só imóvel legado pode ter foto base64 velha; nativo nunca teve).
     if (a?.entidade_origem_tipo !== 'imovel' || !Array.isArray(window.imoveis)) return [];
-    const imo = window.imoveis.find(i => i.id === a.entidade_origem_id);
+    const imo = window.imoveis.find(i => i.id === a.id);
     return (imo?.fotos || []).filter(u => typeof u === 'string' && u.startsWith('data:image/'));
 }
 async function migrarFotosBase64(a, dataUris) {

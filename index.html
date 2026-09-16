@@ -6,9 +6,24 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.191.0
-   LINHAS: 15620
+   VERSÃO: Beta v1.192.0
+   LINHAS: 15659
    DATA: 16/09/2026
+   NOVIDADES (Beta v1.192.0) — 3 achados reais de teste (Nicola, print
+   Albuquerque Silva Participações): mensalidade vencida sem alerta em
+   lugar nenhum, "Em atraso: 0" na Visão Geral pra qualquer tenant.
+   Causa raiz nº1 (banco, não é sintoma da Onda 12): nada transicionava
+   mensalidades.status de 'pendente' pra 'atrasado' com o tempo — só a
+   criação decidia isso, uma vez. 16 mensalidades de vários tenants
+   presas vencidas; nova fn_atualizar_mensalidades_vencidas() já rodada
+   como backfill (falta ainda encaixar no cron diário — pendência
+   05bfb6e9). Causa raiz nº2 (JS, também pré-existente): mensalidade
+   IsentaDeAlertas() chamava uma função de módulo lazy que sempre
+   devolve Promise (sempre truthy) em vez de boolean — toda mensalidade
+   com contrato virava "isenta", zerando "Em atraso" sempre. Corrigida
+   sem o módulo lazy. Achado colateral: fn_fluxo_financeiro_ativo tinha
+   a mesma restrição legada (entidade_origem_tipo/imovel_id) de outras
+   funções desta rodada — corrigida.
    NOVIDADES (Beta v1.191.0) — Onda 12 (pedido explícito 16/09/2026:
    "pode evoluir mas não queria inverter [o gatilho de segurança]. Queria
    que exista já definitivamente apenas um caminho de escrita que seja
@@ -3596,7 +3611,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.191.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.192.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10664,9 +10679,33 @@
         // que agregue "contratos/mensalidades com alerta" — ver §21 do
         // Design System pra lista de onde essa condicional foi aplicada.
 
+        // v1.192.0 (16/09/2026) — BUG REAL GRAVE achado no teste real do
+        // Nicola (Albuquerque Silva: mensalidade vencida há dias, "Em
+        // atraso" mostrando 0, nenhum alerta em lugar nenhum). Causa raiz:
+        // imovelIsentoDeAlertas() vive no módulo lazy-load js/imoveis.js —
+        // TODA função lazy é embrulhada em `(...args) =>
+        // carregarImoveis().then(m => m[nome](...args))` (ver a lista
+        // grande logo acima desta seção), que SEMPRE devolve uma Promise,
+        // nunca o boolean de verdade, não importa quantas vezes já tenha
+        // carregado antes — `.then()` sempre devolve uma Promise nova.
+        // `!!con && imovelIsentoDeAlertas(...)` virava `!!con && <Promise>`
+        // = a própria Promise (truthy) sempre que existia contrato
+        // vinculado — ou seja, TODA mensalidade com contrato real (a
+        // esmagadora maioria) era considerada isenta, sempre, silenciosamente,
+        // desde que esse wrapper lazy existe. Não é sintoma da Onda 12 —
+        // pré-existente, só nunca tinha sido percebido porque "Em atraso: 0"
+        // não levanta suspeita sozinho (parece bom demais, não parece bug).
+        // Corrigido: a MESMA regra de imovelIsentoDeAlertas (js/imoveis.js
+        // v — uso_proprio/temporada são isentos) reimplementada aqui direto
+        // contra o array `imoveis` já carregado em memória (mesmo dado,
+        // finalidadeUso já vem populado por carregarImoveisSupabase — ver
+        // cofre-api.js) — sem depender do módulo lazy, sem Promise, síncrona
+        // de verdade.
         function mensalidadeIsentaDeAlertas(m) {
             const con = contratos.find(c => c.id === m.contratoId);
-            return !!con && imovelIsentoDeAlertas(con.imovelId);
+            if (!con) return false;
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            return !!imo && (imo.finalidadeUso === 'uso_proprio' || imo.finalidadeUso === 'temporada');
         }
 
         // v1.63.0 — NOVO conceito, pedido explícito (25/08/2026): "não pago"

@@ -1,6 +1,9 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.35.0 · 16/09/2026
+// Versão: 1.37.0 · 16/09/2026
+//
+// v1.37.0 — contador que faltava no chip Financeiro (acompanha
+// cofre-ativos.js v1.42.0).
 //
 // v1.35.0 — Onda 12, E15.2.1 ("criar imóvel novo" no formulário
 // unificado, item 2.1 do handoff). Botão "+ Cadastrar novo imóvel"
@@ -335,7 +338,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.35.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.37.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -577,18 +580,18 @@ export const ATIVOS_MARKUP = `<style>
                     <button type="button" data-action="fechar-form-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-xs font-semibold block mb-1">Tipo de ativo <span style="color:var(--danger)">*</span></label>
-                        <select id="at-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-mudou"></select>
+                    <div class="rz-f">
+                        <label>Tipo de ativo <i>*</i></label>
+                        <select id="at-tipo" data-action-change="ativo-tipo-mudou"></select>
                     </div>
                     <!-- E5 (15/09/2026) — 2º seletor, tipo específico dentro
                          da categoria escolhida acima (ex.: categoria Veículo
                          → Carro/Carro blindado/Moto...). Escondido quando o
                          catálogo não tem tipo cadastrado pra categoria (ver
                          atualizarSelectTipoDetalhe em cofre-ativos.js). -->
-                    <div id="at-tipo-detalhe-wrapper" class="hidden">
-                        <label class="text-xs font-semibold block mb-1">Tipo específico</label>
-                        <select id="at-tipo-detalhe" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-detalhe-mudou"></select>
+                    <div id="at-tipo-detalhe-wrapper" class="rz-f hidden">
+                        <label>Tipo específico</label>
+                        <select id="at-tipo-detalhe" data-action-change="ativo-tipo-detalhe-mudou"></select>
                     </div>
                     <!-- E15.2 (achado no teste real, 15/09/2026: "deve aparecer
                          para os demais ativos também e não apenas imóvel") —
@@ -599,29 +602,18 @@ export const ATIVOS_MARKUP = `<style>
                          por pedido explícito (antes ficava lá embaixo,
                          depois do endereço). -->
                     <div id="at-empreendimento-valor-wrapper" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-                    <div>
-                        <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="at-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: Honda Civic 2022">
+                    <div class="rz-f">
+                        <label>Nome de exibição <i>*</i></label>
+                        <input type="text" id="at-nome" placeholder="ex.: Honda Civic 2022">
                     </div>
-                    <div id="at-origem-imovel-wrapper" class="hidden sm:col-span-2">
-                        <label class="text-xs font-semibold block mb-1">Qual imóvel?</label>
-                        <select id="at-origem-imovel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-imovel-origem-mudou"></select>
-                        <p class="raiz-indicador-inline" style="color:var(--sage)">Vinculado a um imóvel existente: não duplica dados, este ativo só guarda documentos/fotos/alertas específicos do Cofre. "Cadastrar um imóvel novo": endereço e valor abaixo.</p>
-                        <!-- v1.35.0 (Onda 12, E15.2.1) — botão "+ Cadastrar
-                             novo imóvel" (data-action="cadastrar-imovel-app",
-                             ponte pro wizard antigo em imoveis.js) SAIU: virou
-                             a 3ª opção do próprio seletor acima
-                             ('__novo__', ver aoMudarTipoAtivo em
-                             cofre-ativos.js) — mesmos blocos de endereço/
-                             valor que o avulso já mostra logo abaixo, sem
-                             precisar sair pro formulário legado. Fecha o
-                             item 2.1 do handoff de 16/09: criar imóvel novo
-                             era o último caminho que ainda dependia de
-                             imoveis.js inteiro. cadastrar-imovel-app
-                             continua definido em cofre-app.js (não
-                             removido — só ficou sem chamador, mesmo padrão
-                             já usado pra abrirGestaoImovel). -->
-                    </div>
+                    <!-- v1.36.0 (16/09/2026, pedido explícito, achado no
+                         teste real) — seletor "Qual imóvel?" (vincular a
+                         um dos imóveis já existentes) REMOVIDO. Desde o
+                         único caminho de escrita da Onda 12, criar sempre
+                         nasce ativo nativo — a opção só confundia e o
+                         texto de rodapé não fazia mais sentido nenhum.
+                         Ver aoMudarTipoAtivo()/salvarAtivo() em
+                         cofre-ativos.js. -->
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <!-- E6.2 (15/09/2026) — bloco de endereço estruturado (js/comum-
                          endereco.js), só aparece quando o tipo é categoria imóvel
@@ -735,7 +727,7 @@ export const ATIVOS_MARKUP = `<style>
         <button data-action="fa-trocar-aba" data-fa-aba="resumo" class="fa-subtab rz-chip rz-on">Resumo</button>
         <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab rz-chip">Contratos <span class="rz-n" id="fa-chip-n-contratos">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab rz-chip">Controles <span class="rz-n" id="fa-chip-n-controles">0</span></button>
-        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Financeiro</button>
+        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Financeiro <span class="rz-n" id="fa-chip-n-financeiro">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="arquivos" class="fa-subtab rz-chip">Anexos <span class="rz-n" id="fa-chip-n-arquivos">0</span></button>
     </div>
 
