@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.29.0 · 15/09/2026
+// Versão: 1.30.0 · 15/09/2026
+//
+// v1.30.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.1 ("A4"), Onda 12.
+// Checkbox "Gerar também as ocorrências passadas" no form de criar item
+// de controle (cofre-controles.js v1.23.0 lê o valor).
 //
 // v1.29.0 — duas mudanças acumuladas nesta sessão, ambas no form de
 // ativo: (1) #at-endereco-wrapper (E6.2, bloco de endereço estruturado
@@ -304,7 +308,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.29.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.30.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -812,6 +816,14 @@ export const ATIVOS_MARKUP = `<style>
                     <option value="fim">Fim (retroativo)</option>
                 </select>
             </div>
+            <!-- E14.1 ("A4", 15/09/2026) — só faz sentido quando a data
+                 início já é do passado (obrigação antiga sendo cadastrada
+                 agora); com data início no futuro não muda nada, então
+                 fica sempre visível mas só importa nesse caso. -->
+            <label class="col-span-2 flex items-center gap-2 text-xs" style="color:var(--ink)">
+                <input type="checkbox" id="ic-gerar-desde-inicio" checked>
+                Gerar também as ocorrências passadas (desde a data início) — desmarque pra só gerar a partir de hoje
+            </label>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
                 <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">

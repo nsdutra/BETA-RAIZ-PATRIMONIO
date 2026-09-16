@@ -10,8 +10,12 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.3
+  Versão     : 1.25.4
   Data       : 15/09/2026
+  CHANGELOG v1.25.4 — PLANO_IMPLEMENTACAO v1.0, etapa E14.1 ("A4"), Onda
+               12: checkbox "Gerar também as ocorrências passadas" no
+               form de item de controle — espelha js/ativos/
+               ativos-markup.js v1.30.0.
   CHANGELOG v1.25.3 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão
                do Nicola, "pode evoluir"): #at-tipo-detalhe-wrapper novo
                (2º seletor, tipo específico dentro da categoria) e
@@ -38,11 +42,11 @@
                aceite bloqueante sozinhos agora, sem precisar de wrapper.
                cofre.html perdeu 1 linha (tag de script do módulo
                consentimento-app.js, que ficou obsoleto).
-  Linhas     : cofre.html = 3269 · js/cofre-api.js = 1227 · js/cofre-app.js = 945 ·
-               js/cofre-ativos.js = 2218 · js/cofre-controles.js = 1889 ·
+  Linhas     : cofre.html = 3284 · js/cofre-api.js = 1272 · js/cofre-app.js = 945 ·
+               js/cofre-ativos.js = 2228 · js/cofre-controles.js = 1978 ·
                js/cofre-documentos.js = 1734 · js/cofre-estado.js = 186 ·
                js/cofre-navegacao.js = 366 · js/cofre-ui.js = 122 ·
-               js/cofre-validacoes.js = 521 (total js/ = 9208)
+               js/cofre-validacoes.js = 521 (total js/ = 9352)
 
   CHANGELOG v1.23.0 — pedido explícito do Nicola (fechar a "última milha"
   dos Planos de Comunicação): app e bot precisam chamar a MESMA função de
@@ -2569,6 +2573,11 @@
                     <option value="fim">Fim (retroativo)</option>
                 </select>
             </div>
+            <!-- E14.1 — espelha js/ativos/ativos-markup.js -->
+            <label class="col-span-2 flex items-center gap-2 text-xs" style="color:var(--ink)">
+                <input type="checkbox" id="ic-gerar-desde-inicio" checked>
+                Gerar também as ocorrências passadas (desde a data início) — desmarque pra só gerar a partir de hoje
+            </label>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
                 <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">

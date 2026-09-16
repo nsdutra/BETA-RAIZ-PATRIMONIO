@@ -1,6 +1,36 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.21.2 · 15/09/2026
+// Versão: 1.23.0 · 15/09/2026
+//
+// v1.23.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.1 ("A4"), Onda 12.
+// Checkbox novo no form de criar item de controle: "Gerar também as
+// ocorrências passadas". Achado ao investigar: o mecanismo que realmente
+// gera ocorrência retroativa não é o cron do banco
+// (fn_cofre_gerar_proximas_ocorrencias, ajustado à parte) — é
+// gerarOcorrenciasHorizonte() aqui mesmo, chamado na hora de criar o
+// item. Quando data início está no passado (obrigação antiga sendo
+// cadastrada agora) e a pessoa desmarca a caixa, a geração pula direto
+// pra 1ª ocorrência >= hoje, mantendo a fase do ciclo (ex.: sempre dia
+// 15). Coluna nova gerar_desde_inicio (migration e14_1_gerar_desde_
+// inicio_v1) — default true preserva o comportamento de sempre pra todo
+// item existente.
+//
+// v1.22.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.3 ("A15"), Onda 12
+// (decisão do Nicola: parte padrão vale pra TODAS as empresas —
+// prefeitura, órgão recolhedor — cadastrada uma vez na Raiz Matriz,
+// materializada por tenant no primeiro uso). abrirEditarPartesItem()
+// sugere a parte padrão do subtipo (quando existe pro município/UF do
+// ativo) só se o item ainda não tem nenhuma parte — botão "Usar"
+// materializa (cofre-api.js) e adiciona como linha, mesmo fluxo de
+// salvar de sempre. PAPEIS_PARTE_ITEM ganha 'orgao_recolhedor' (CHECK do
+// banco estendido — nenhum dos 12 valores antigos encaixava).
+// REGRAS §19 — desvio justificado: botão "Usar" reaproveita a classe do
+// "Adicionar parte" logo abaixo (bg-slate-100/text-slate-600/border-
+// slate-300/rounded-full), que o verificador já sinaliza como padrão
+// "Mais ações" aposentado (§6) — city §6 é sobre menu de mais ações
+// virar sheet, não sobre chip pequeno; usei a mesma classe do botão
+// vizinho de propósito (2 chips pequenos no mesmo modal, mesma
+// hierarquia visual) em vez de inventar um 3º estilo.
 //
 // v1.21.2 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (junto com
 // cofre-validacoes.js v1.4.0/cofre-ativos.js v1.32.1). TIPOS_ATIVO_ORDEM
@@ -278,7 +308,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.21.2'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.23.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -532,6 +562,7 @@ const PAPEIS_PARTE_ITEM = [
     { v: 'manutencista', l: 'Manutencista' },
     { v: 'corretor', l: 'Corretor' },
     { v: 'contato_seguradora', l: 'Contato na seguradora' },
+    { v: 'orgao_recolhedor', l: 'Órgão recolhedor (prefeitura, Detran...)' }, // E14.3
     { v: 'prestador', l: 'Outro prestador' },
 ];
 function rotuloPapelParteItem(v) {
@@ -603,7 +634,24 @@ export async function abrirEditarPartesItem() {
     const atuais = await api.buscarPartesDoItemControle(item.id);
     partesItemLinhasEmEdicao = atuais.map(l => ({ parte_id: l.parte_id, papel: l.papel, nomeNovo: '' }));
 
+    // E14.3 ("A15", 15/09/2026, decisão do Nicola: parte padrão é padrão
+    // pra TODAS as empresas — prefeitura, órgão recolhedor, materializado
+    // por tenant no primeiro uso) — só sugere quando o item ainda não tem
+    // NENHUMA parte (não empurra em cima de quem já preencheu à mão).
+    let sugestaoPadraoHtml = '';
+    if (atuais.length === 0 && item.subtipo_id) {
+        const padrao = await api.resolverPartePadrao(item.subtipo_id, item.cofre_ativos?.codigo_ibge_municipio, item.cofre_ativos?.uf);
+        if (padrao) {
+            sugestaoPadraoHtml = `
+                <div class="rz-row" style="background:var(--cream);border-radius:10px;padding:10px;margin-bottom:10px;">
+                    <div class="rz-tx"><b>Usar parte padrão?</b><span>${escapeHtml(padrao.nome)}</span></div>
+                    <button onclick="window.__piUsarPartePadrao('${padrao.id}','${escapeHtml(padrao.nome).replace(/'/g, "\\'")}')" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300">Usar</button>
+                </div>`;
+        }
+    }
+
     modalGenerico('Editar partes do item', `
+        ${sugestaoPadraoHtml}
         <div id="pi-linhas" class="space-y-2 mb-2"></div>
         <button onclick="window.__piAdicionarLinha()" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1 mb-3">
             <i data-lucide="plus" style="width:11px;height:11px"></i> Adicionar parte
@@ -615,6 +663,24 @@ export async function abrirEditarPartesItem() {
     `);
     renderPartesItemEditor();
 }
+
+// E14.3 — clique em "Usar" na sugestão: materializa (ou reaproveita) a
+// parte na empresa atual e adiciona como linha, igual "Adicionar parte"
+// faria manualmente — o "Salvar" do modal continua sendo o que grava de
+// verdade (fluxo intacto, só ganhou um atalho pra não digitar).
+window.__piUsarPartePadrao = async function (partePadraoId, nome) {
+    try {
+        const parteId = await api.materializarPartePadrao(estado.clienteId, partePadraoId);
+        partesClienteCache = null; // invalida — a parte materializada é nova pro cache
+        partesItemLinhasEmEdicao.push({ parte_id: parteId, papel: 'orgao_recolhedor', nomeNovo: '' });
+        renderPartesItemEditor();
+        // some com a sugestão depois de usada, pra não oferecer 2x
+        const sugestao = document.querySelector('#modal-generico .rz-row');
+        if (sugestao) sugestao.remove();
+    } catch (err) {
+        mostrarToast('Erro ao usar parte padrão: ' + (err.message || String(err)), 'erro');
+    }
+};
 
 export async function salvarPartesItemAtual() {
     const item = itemEmFoco;
@@ -1454,6 +1520,9 @@ export async function salvarItemControle() {
     const valorPrevisto = parseFloat(document.getElementById('ic-valor-previsto')?.value) || null; // v1.20.0
     const parcelas = Math.max(1, parseInt(document.getElementById('ic-parcelas')?.value, 10) || 1);
     const parcelaIntervalo = Math.max(1, parseInt(document.getElementById('ic-parcela-intervalo')?.value, 10) || 30);
+    // E14.1 ("A4") — checkbox some do DOM em telas antigas de cache; default
+    // true (comportamento de sempre) se por algum motivo não existir.
+    const gerarDesdeInicio = document.getElementById('ic-gerar-desde-inicio') ? document.getElementById('ic-gerar-desde-inicio').checked : true;
 
     if (!titulo) { mostrarToast('Informe um título para o item de controle.', 'erro'); return; }
     if (!dataBase) { mostrarToast('Informe a data início.', 'erro'); return; }
@@ -1469,6 +1538,7 @@ export async function salvarItemControle() {
             data_base: dataBase, data_fim: dataFim, direcao_alerta: direcaoAlerta,
             alerta_ativo: true, antecedencia_alerta_dias: antecedencia,
             valor_previsto: valorPrevisto, parcelas, parcela_intervalo_dias: parcelaIntervalo, // v1.20.0
+            gerar_desde_inicio: gerarDesdeInicio, // E14.1
             origem: 'manual', criado_por: estado.pessoa.id,
         });
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'criar', antes: null, depois: item, pessoa_id: estado.pessoa.id, origem: 'app' });
@@ -1480,9 +1550,13 @@ export async function salvarItemControle() {
         // Revisão 25/08/2026 — direção de geração escolhida pelo usuário:
         // "inicio" mantém a lógica de sempre (pra frente a partir da data
         // início); "fim" gera retroativamente a partir da data fim.
+        // E14.1 (15/09/2026) — gerarDesdeInicio só se aplica à direção
+        // "inicio": achado ao construir, "fim" já é inerentemente
+        // retroativo por definição (conta pra trás a partir de uma data
+        // fim conhecida) — o checkbox não muda nada nesse modo.
         const payloads = direcaoAlerta === 'fim'
             ? gerarOcorrenciasHorizonteRetroativo(item, dataFim, freqIntervalo, freqUnidade)
-            : gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade);
+            : gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade, gerarDesdeInicio);
         await api.criarOcorrenciasControleBatch(payloads);
 
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: a.id, itemId: item.id, ocorrenciasGeradas: payloads.length });
@@ -1536,9 +1610,15 @@ export async function criarItemControleDeDocumento(p) {
 const HORIZONTE_DIAS = 120;
 const MAX_OCORRENCIAS_GERADAS = 60; // guarda contra frequência muito curta (ex.: diária) gerar demais
 
-function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade) {
+// E14.1 ("A4", 15/09/2026) — gerarDesdeInicio=false pula toda ocorrência
+// anterior a hoje: avança dataBase (mantendo a fase do ciclo — ex. sempre
+// dia 15 de cada mês) até a 1ª data >= hoje, e só a partir daí gera.
+// Default true preserva o comportamento de sempre (item não-recorrente
+// não usa isto — só tem 1 ocorrência, sempre na data_base literal).
+function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade, gerarDesdeInicio = true) {
     const camposComuns = { cliente_id: estado.clienteId, item_controle_id: item.id, alerta_habilitado: !!item.alerta_ativo, status_execucao: 'aberto' };
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const hojeISO = hoje.toISOString().slice(0, 10);
     const horizonte = new Date(hoje); horizonte.setDate(horizonte.getDate() + HORIZONTE_DIAS);
     const horizonteISO = horizonte.toISOString().slice(0, 10);
 
@@ -1546,8 +1626,17 @@ function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade) {
         return [{ ...camposComuns, competencia: primeiroDiaDoMes(dataBase), data_prevista_original: dataBase, data_prevista_atual: dataBase }];
     }
 
+    let dataInicioGeracao = dataBase;
+    if (!gerarDesdeInicio) {
+        let guardaAvanco = 0;
+        while (dataInicioGeracao < hojeISO && guardaAvanco < MAX_OCORRENCIAS_GERADAS) {
+            dataInicioGeracao = proximaData(dataInicioGeracao, freqUnidade, freqIntervalo);
+            guardaAvanco++;
+        }
+    }
+
     const payloads = [];
-    let dataAtual = dataBase;
+    let dataAtual = dataInicioGeracao;
     let guarda = 0;
     while (dataAtual <= horizonteISO && guarda < MAX_OCORRENCIAS_GERADAS) {
         payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataAtual), data_prevista_original: dataAtual, data_prevista_atual: dataAtual });
@@ -1557,7 +1646,7 @@ function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade) {
     // Se a 1ª data já nasce depois do horizonte (ex.: vence daqui 200 dias),
     // ainda assim garante pelo menos essa 1ª ocorrência.
     if (!payloads.length) {
-        payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataBase), data_prevista_original: dataBase, data_prevista_atual: dataBase });
+        payloads.push({ ...camposComuns, competencia: primeiroDiaDoMes(dataInicioGeracao), data_prevista_original: dataInicioGeracao, data_prevista_atual: dataInicioGeracao });
     }
     return payloads;
 }
