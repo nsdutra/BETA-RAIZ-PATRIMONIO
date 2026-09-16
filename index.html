@@ -6,9 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.188.0
-   LINHAS: 15543
+   VERSÃO: Beta v1.189.0
+   LINHAS: 15587
    DATA: 16/09/2026
+   NOVIDADES (Beta v1.189.0) — Onda 12, E15.3 (pedido explícito 16/09/2026:
+   "avance para retirar as dependências que faltam para podermos eliminar
+   a tabela imóvel... siga direto pra apontar a vitrine pra tabela de
+   ativos, mesmo que precise quebrar na produção momentaneamente pois não
+   há consumo real de cliente hoje no produto pra vitrine"):
+   resolverVitrinePublicaSupabase() reescrita — lê `cofre_ativos` em vez
+   de `imoveis`, com RLS pública nova (migration
+   e15_3_vitrine_publica_cofre_ativos_v1) espelhando a mesma regra de
+   sempre via `links_vitrine`, mais GRANT SELECT pra `anon` em
+   cofre_ativos/empreendimentos (faltava de origem, achado ao testar).
+   Campos condomínio/IPTU/código IPTU saíram (já viraram item de controle
+   automático, E8); manutenção/energia idem, energia migrou pra
+   dados_especificos; aluguel pedido já vinha de dados_especificos.
+   aluguel_desejado desde a E15.2.1; tipo vem de ativo_tipos; fotos vêm de
+   cofre_ativo_fotos (publicar_vitrine=true) — ver changelog de vitrine.js
+   1.1.0 e cofre-api.js 1.32.0. Achado no caminho: a regra antiga não
+   tinha como excluir um imóvel vendido da vitrine (status_imovel_enum
+   nunca teve o valor 'vendido') — a RLS nova já resolve isso, filtrando
+   cofre_ativos.status='ativo'.
+   IMPORTANTE — escopo: só a leitura pública (vitrine) migrou. Contratos,
+   a ficha do imóvel e o formulário de criar/editar continuam lendo e
+   gravando em `imoveis` como sempre — decisão explícita de não inverter
+   o sentido da escrita nesta rodada. `imoveis` continua viva e
+   necessária por causa desses três.
    NOVIDADES (Beta v1.188.0) — Onda 12, 4 pedidos explícitos do Nicola
    (16/09/2026) sobre telas já existentes, junto com a E15.2.1 (ver
    changelog de cofre-ativos.js/cofre-api.js/ativos-markup.js/
@@ -77,20 +101,8 @@
    pareciam a mesma linha duplicada. E a placa de vencido encurtou de
    "Venceu há Xd" pra "Há Xd" — em dívida antiga (258d) empurrava o título
    pro truncamento (.rz-tx encolhe, .rz-rt não).
-   NOVIDADES (Beta v1.185.0) — achados do Nicola em teste real na
-   Albuquerque:
-   (1) FIX off-by-one no limiar de agrupamento: "agrupar_a_partir_de = 3"
-   só agrupava com 4+ itens (comparador era <=, virou <). Confirmado com 3
-   itens de documento_sem_vinculo não agrupando.
-   (2) "3 imóveis vagos" aparecia na Visão Geral e nunca na tela de Alertas
-   porque nunca foi um alerta do Motor — renderVisaoGeral() (função local,
-   síncrona) calculava 4 categorias por conta própria (inadimplência,
-   contrato assinando, contrato com alerta, imóvel vago), 3 delas duplicando
-   o que o Motor já cobre e a 4ª (vago) sem equivalente — o plano (E10) já
-   pedia a remoção. As 4 saem; quem decide "Precisa de atenção" agora é só
-   o Motor. Status do card/badge do sino migraram junto.
    ------------------------------------------------------------------
-   Versões anteriores (v1.183.0 … v1.184.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.185.0 … v1.185.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -114,7 +126,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.4.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.31.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.38.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.35.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.4.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.1.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.32.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.38.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.35.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3553,7 +3565,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.188.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.189.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5899,6 +5911,27 @@
         // visitante nunca recebe o portfólio inteiro, só os imóveis daquele link
         // específico. Substitui as DUAS chamadas antigas ao Apps Script (resolver
         // token + buscar todos os imóveis para filtrar no navegador).
+        //
+        // v1.188.1 (Onda 12, E15.3 — pedido explícito 16/09/2026: "siga direto
+        // pra apontar a vitrine pra tabela de ativos, mesmo que quebre
+        // momentaneamente, não há consumo real de cliente hoje pra vitrine")
+        // — fonte trocada de `imoveis` pra `cofre_ativos`. RLS pública nova
+        // (migration e15_3_vitrine_publica_cofre_ativos_v1) + GRANT SELECT
+        // pra anon (e15_3_grants_anon_cofre_ativos_empreendimentos, faltava
+        // de origem — RLS sozinha não basta, tabela nunca tinha GRANT pra
+        // anon). idsDoLink continua sendo o MESMO uuid de sempre — é
+        // literalmente imoveis.id, que é também cofre_ativos.entidade_
+        // origem_id; links_vitrine não mudou nada. Campos que só existiam em
+        // `imoveis` e não têm mais consumidor de verdade (condominio/iptu —
+        // viraram item de controle automático; tipo — vem de ativo_tipos
+        // agora) saíram do retorno; energia_disponivel/aluguel vêm de
+        // dados_especificos (mesmo lugar que o formulário unificado já
+        // grava, E15.2.1); fotos vêm de cofre_ativo_fotos (publicar_vitrine),
+        // não mais de imoveis.fotos — alternarPublicarVitrineFoto()
+        // (cofre-api.js) simplificada junto, parou de escrever em `imoveis`.
+        // Achado no caminho: `status_imovel_enum` nem tem o valor 'vendido' —
+        // a regra antiga não tinha como excluir um imóvel vendido da
+        // vitrine; a nova filtra cofre_ativos.status='ativo' na própria RLS.
         async function resolverVitrinePublicaSupabase(token) {
             const { data: linkRows, error: errLink } = await dbAuth.from('links_vitrine').select('imovel_ids').eq('token', token).limit(1);
             if (errLink) throw errLink;
@@ -5907,15 +5940,28 @@
             const idsDoLink = linkRows[0].imovel_ids || [];
             if (idsDoLink.length === 0) return [];
 
-            const { data: imoveisRows, error: errImo } = await dbAuth
-                .from('imoveis')
-                .select('*, tipos_imovel(nome), empreendimentos(nome)')
-                .in('id', idsDoLink);
-            if (errImo) throw errImo;
+            const { data: ativosRows, error: errAtivo } = await dbAuth
+                .from('cofre_ativos')
+                .select('*, empreendimentos(nome), ativo_tipos(nome), cofre_ativo_fotos(id, nome_arquivo, ordem, publicar_vitrine, status)')
+                .eq('entidade_origem_tipo', 'imovel')
+                .in('entidade_origem_id', idsDoLink);
+            if (errAtivo) throw errAtivo;
 
-            return (imoveisRows || []).map(function(row) {
+            return (ativosRows || []).map(function(row) {
+                const dados = row.dados_especificos || {};
+                const fotosPublicadas = (row.cofre_ativo_fotos || [])
+                    .filter(function(f) { return f.publicar_vitrine && f.status === 'ativo'; })
+                    .sort(function(a, b) { return (a.ordem || 0) - (b.ordem || 0); })
+                    .map(function(f) {
+                        // Mesma convenção de caminho de alternarPublicarVitrineFoto
+                        // (cofre-api.js) — bucket público "imoveis-fotos",
+                        // <cliente_id>/<imovel_id>/<foto_id>.<ext>.
+                        const ext = (f.nome_arquivo ? f.nome_arquivo.split('.').pop() : 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+                        const caminhoPublico = row.cliente_id + '/' + row.entidade_origem_id + '/' + f.id + '.' + ext;
+                        return dbAuth.storage.from('imoveis-fotos').getPublicUrl(caminhoPublico).data.publicUrl;
+                    });
                 return {
-                    id: row.id,
+                    id: row.entidade_origem_id, // continua sendo imoveis.id — abrirLightboxImovelSalvo etc não mudam
                     empreendimento: row.empreendimentos ? row.empreendimentos.nome : '',
                     enderecoRua: row.endereco_rua || '',
                     enderecoNum: row.endereco_num || '',
@@ -5923,15 +5969,13 @@
                     enderecoBairro: row.endereco_bairro || '',
                     enderecoCidade: row.endereco_cidade || '',
                     finalidadeUso: row.finalidade_uso || 'long_stay',
-                    tipo: row.tipos_imovel ? row.tipos_imovel.nome : '',
-                    tamanho: row.tamanho || 0,
-                    condominio: row.condominio || 0,
-                    iptu: row.iptu || 0,
-                    descricao: row.descricao || '',
-                    energiaRumo: row.energia_disponivel ? 'Sim' : 'Não',
-                    valor: row.valor || 0,
-                    fotos: row.fotos || [],
-                    status: mapStatusSupabaseParaAntigo(row.status)
+                    tipo: row.ativo_tipos ? row.ativo_tipos.nome : '',
+                    tamanho: row.area_m2 || 0,
+                    descricao: row.observacao || '',
+                    energiaRumo: dados.energia_disponivel ? 'Sim' : 'Não',
+                    valor: Number(dados.aluguel_desejado) || 0,
+                    fotos: fotosPublicadas,
+                    status: mapStatusSupabaseParaAntigo(row.situacao_uso)
                 };
             });
         }

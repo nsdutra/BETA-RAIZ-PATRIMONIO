@@ -4,6 +4,25 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.185.0) — achados do Nicola em teste real na
+Albuquerque:
+(1) FIX off-by-one no limiar de agrupamento: "agrupar_a_partir_de = 3"
+só agrupava com 4+ itens (comparador era <=, virou <). Confirmado com 3
+itens de documento_sem_vinculo não agrupando.
+(2) "3 imóveis vagos" aparecia na Visão Geral e nunca na tela de Alertas
+porque nunca foi um alerta do Motor — renderVisaoGeral() (função local,
+síncrona) calculava 4 categorias por conta própria (inadimplência,
+contrato assinando, contrato com alerta, imóvel vago), 3 delas duplicando
+o que o Motor já cobre e a 4ª (vago) sem equivalente — o plano (E10) já
+pedia a remoção. As 4 saem; quem decide "Precisa de atenção" agora é só
+o Motor. Status do card/badge do sino migraram junto.
+------------------------------------------------------------------
+Versões anteriores (v1.183.0 … v1.184.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.184.0) — PLANO_IMPLEMENTACAO v1.0, etapa E9: alerta
 de cadastro incompleto entra no Motor. Novo tipo cadastro_incompleto
 (dominio=cadastro, informativo, limiar 3), derivado dos campos

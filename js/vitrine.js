@@ -1,7 +1,16 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.0.0 · 06/09/2026
+// Versão: 1.1.0 · 16/09/2026
+//
+// v1.1.0 — Onda 12, E15.3 (pedido explícito, 16/09/2026: "siga direto pra
+// apontar a vitrine pra tabela de ativos"). Linha "Condomínio: R$ X | IPTU:
+// R$ Y" removida dos 2 cards (renderVitrine — aba interna — e
+// verificarFiltroVitrineExterna — página pública): os dois campos já
+// viraram item de controle automático (E8), não são mais dado do imóvel.
+// A fonte de dados da página pública em si mudou em index.html
+// (resolverVitrinePublicaSupabase, v1.188.1) — este arquivo não fala com o
+// banco diretamente, só recebe o objeto pronto; nenhuma query aqui mudou.
 //
 // R8 — FRAGMENTAÇÃO, FATIA 4 (A.8). Quarto corte do index.html (Beta
 // v1.143.0), mesmo método das fatias 1–3: ES module SOB DEMANDA, pontes
@@ -37,7 +46,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.0.0'; // v-check: manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -133,8 +142,6 @@ export function montarAbaVitrine() {
 
                                 <p class="text-[11px] text-gray-500">Tamanho: ${imo.tamanho}m² | Suítes: ${imo.suites} | WC: ${imo.banheiros}</p>
 
-                                <p class="text-[11px] text-gray-500">Condomínio: R$ ${imo.condominio} | IPTU: R$ ${imo.iptu}</p>
-
                                 ${imo.descricao ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${imo.descricao}</p>` : ''}
 
                                 <p class="text-[13px] font-black raiz-text-pine mt-1">Aluguel: R$ ${imo.valor.toLocaleString('pt-BR')}</p>
@@ -145,7 +152,15 @@ export function montarAbaVitrine() {
                                  card da Vitrine (pedido explícito) — o
                                  fluxo continua existindo, só que agora só
                                  pela ficha do imóvel (box Contrato → Mais
-                                 ações → Iniciar contratação). -->
+                                 ações → Iniciar contratação).
+                                 v1.1.0 (Onda 12, E15.3) — linha "Condomínio/
+                                 IPTU" saiu do card (pedido explícito: os dois
+                                 já viraram item de controle automático, não
+                                 são mais dado do imóvel) — copyResumo()
+                                 continua recebendo o parâmetro condomínio
+                                 por compatibilidade de assinatura, agora
+                                 sempre 0 (imo.condominio não existe mais no
+                                 retorno de resolverVitrinePublicaSupabase). -->
                             <button onclick="event.stopPropagation(); copyResumo('${(imo.enderecoRua || '') + ', ' + (imo.enderecoNum || '')}', '${imo.tipo}', ${imo.valor || 0}, ${imo.suites || 0}, ${imo.condominio || 0})" title="Copiar resumo para WhatsApp" class="w-8 h-8 flex-none flex items-center justify-center bg-slate-100 text-slate-700 rounded-full border border-slate-300"><svg data-lucide="copy" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg></button>
 
                         </div>
@@ -649,8 +664,6 @@ export function montarAbaVitrine() {
                             <p class="text-xs text-slate-400">📍 ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}, ${imo.enderecoCidade || ''}</p>
 
                             <p class="text-[11px] text-slate-500 mt-1">Tamanho: ${imo.tamanho}m²</p>
-
-                            <p class="text-[11px] text-slate-500">Condomínio: R$ ${imo.condominio} | IPTU: R$ ${imo.iptu}</p>
 
                             ${imo.descricao ? `<p class="text-[11px] text-slate-300 mt-2 italic">${imo.descricao}</p>` : ''}
 
