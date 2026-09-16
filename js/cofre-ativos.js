@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.34.0 · 15/09/2026
+// Versão: 1.35.0 · 15/09/2026
+//
+// v1.35.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), Onda 12
+// (decisão do Nicola: "pode evoluir"). Campos da DE_PARA_IMOVEIS_ATIVOS
+// Fase 1/2 (valor_referencia, area_m2, finalidade_uso, situacao_uso,
+// observacao) + empreendimento_id ganham formulário — mesmo escopo do
+// endereço (E6.2): só imóvel avulso. renderizarBlocoImovel/lerBlocoImovel
+// novas (mesmo padrão do bloco de endereço), seletor de empreendimento
+// com find-or-create (criarEmpreendimentoRapido, cofre-api.js).
+// Investigação antes de codar: propriedade societária e fotos JÁ
+// funcionam pro imóvel avulso sem mudança nenhuma — salvarDivisaoImovelPopup
+// (form legado) chama a MESMA RPC substituir_propriedade_ativo que o
+// ativo genérico usa, e montarFotosAtivo já lê cofre_ativo_fotos com
+// fallback pro legado — não eram gap, só pareciam.
 //
 // v1.34.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.1 ("A3"), Onda 12
 // (decisão do Nicola, "começar a onda 12"). montarDadosAtivo(): os campos
@@ -446,7 +459,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.34.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.35.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -474,6 +487,7 @@ function ehImovelAvulso(tipo, entidadeOrigemTipo) {
 
 let ativoAtualId = null;
 let _catalogoTiposAtivoCarregado = false;
+let _empreendimentosCache = null; // E15.2 — lista pro seletor, invalidada ao criar um novo
 
 // E5 — busca o catálogo (ativo_tipos + ativo_tipos_campos) uma vez por
 // sessão. Falha não trava nada: obterCamposPorTipo/listarTiposPorCategoria
@@ -488,6 +502,19 @@ async function garantirCatalogoTiposAtivo() {
     } catch (e) {
         console.error('Catálogo de tipos de ativo indisponível — usando os campos padrão.', e);
     }
+}
+
+// E15.2 — mesma ideia, pro seletor de empreendimento. Falha = lista
+// vazia (só "— nenhum —" / "+ Novo"), não trava o form.
+async function garantirEmpreendimentos() {
+    if (_empreendimentosCache !== null) return _empreendimentosCache;
+    try {
+        _empreendimentosCache = await api.listarEmpreendimentos(estado.clienteId);
+    } catch (e) {
+        console.error('Lista de empreendimentos indisponível.', e);
+        _empreendimentosCache = [];
+    }
+    return _empreendimentosCache;
 }
 
 // ============================================================================
@@ -515,6 +542,94 @@ function atualizarSelectTipoDetalhe(categoria, prefixoId, valorAtualId = null) {
     const tipos = listarTiposPorCategoria(categoria);
     wrap.classList.toggle('hidden', tipos.length === 0);
     sel.innerHTML = tipos.map(t => `<option value="${t.id}"${t.id === valorAtualId ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('');
+}
+
+// E15.2 ("A2") — campos que a DE_PARA_IMOVEIS_ATIVOS Fase 1/2 promoveu
+// pra coluna própria de cofre_ativos (valor_referencia, area_m2,
+// finalidade_uso, situacao_uso, observacao) + empreendimento_id — NÃO
+// são campo de dados_especificos, por isso não passam por
+// obterCamposPorTipo; têm renderização própria, mesmo espírito do bloco
+// de endereço (comum-endereco.js). Só pro imóvel avulso, mesmo escopo
+// de sempre — imóvel vinculado a `imoveis` continua editando por lá até
+// o form legado ser desligado de vez (ainda não é o caso).
+const FINALIDADES_USO_ATIVO = [
+    { v: 'uso_proprio', l: 'Uso próprio' }, { v: 'long_stay', l: 'Locação longa (long stay)' },
+    { v: 'short_stay', l: 'Locação curta (short stay)' }, { v: 'comodato', l: 'Comodato' },
+    { v: 'arrendamento', l: 'Arrendamento' }, { v: 'revenda', l: 'Revenda' }, { v: 'ocioso', l: 'Ocioso' },
+];
+const SITUACOES_USO_ATIVO = [
+    { v: 'disponivel', l: 'Disponível' }, { v: 'alugado', l: 'Alugado' }, { v: 'em_uso', l: 'Em uso' },
+    { v: 'reservado', l: 'Reservado' }, { v: 'assinando', l: 'Assinando' }, { v: 'manutencao', l: 'Manutenção' }, { v: 'em_breve', l: 'Em breve' },
+];
+
+function renderizarBlocoImovel(prefixo, v = {}, empreendimentos = []) {
+    const optSel = (val, campo) => val === (v[campo] || '') ? ' selected' : '';
+    return `
+        <div class="sm:col-span-2">
+            <label class="text-xs font-semibold block mb-1">Empreendimento</label>
+            <select id="${prefixo}empreendimento-id" onchange="window.__ativoMudarEmpreendimento('${prefixo}')" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                <option value="">— nenhum —</option>
+                ${empreendimentos.map(e => `<option value="${e.id}"${e.id === v.empreendimento_id ? ' selected' : ''}>${escapeHtml(e.nome)}</option>`).join('')}
+                <option value="__novo__">+ Novo empreendimento</option>
+            </select>
+            <input type="text" id="${prefixo}empreendimento-novo-nome" placeholder="Nome do empreendimento" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs mt-1 hidden">
+        </div>
+        <div>
+            <label class="text-xs font-semibold block mb-1">Valor de referência (R$)</label>
+            <input type="number" step="0.01" id="${prefixo}valor-referencia" value="${v.valor_referencia ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        </div>
+        <div>
+            <label class="text-xs font-semibold block mb-1">Área (m²)</label>
+            <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        </div>
+        <div>
+            <label class="text-xs font-semibold block mb-1">Finalidade de uso</label>
+            <select id="${prefixo}finalidade-uso" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                <option value=""${optSel('', 'finalidade_uso')}>— não informado —</option>
+                ${FINALIDADES_USO_ATIVO.map(f => `<option value="${f.v}"${optSel(f.v, 'finalidade_uso')}>${f.l}</option>`).join('')}
+            </select>
+        </div>
+        <div>
+            <label class="text-xs font-semibold block mb-1">Situação de uso</label>
+            <select id="${prefixo}situacao-uso" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                <option value=""${optSel('', 'situacao_uso')}>— não informado —</option>
+                ${SITUACOES_USO_ATIVO.map(s => `<option value="${s.v}"${optSel(s.v, 'situacao_uso')}>${s.l}</option>`).join('')}
+            </select>
+        </div>
+        <div class="sm:col-span-2">
+            <label class="text-xs font-semibold block mb-1">Observação</label>
+            <textarea id="${prefixo}observacao" rows="2" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">${escapeHtml(v.observacao || '')}</textarea>
+        </div>
+    `;
+}
+
+window.__ativoMudarEmpreendimento = function (prefixo) {
+    const sel = document.getElementById(prefixo + 'empreendimento-id');
+    const input = document.getElementById(prefixo + 'empreendimento-novo-nome');
+    if (input) input.classList.toggle('hidden', sel?.value !== '__novo__');
+};
+
+// find-or-create do empreendimento "novo" (se escolhido) + leitura dos
+// outros 5 campos. Async por causa do criarEmpreendimentoRapido.
+async function lerBlocoImovel(prefixo, clienteId) {
+    const selEmp = document.getElementById(prefixo + 'empreendimento-id');
+    let empreendimentoId = selEmp ? selEmp.value : '';
+    if (empreendimentoId === '__novo__') {
+        const nomeNovo = document.getElementById(prefixo + 'empreendimento-novo-nome')?.value.trim();
+        empreendimentoId = nomeNovo ? (await api.criarEmpreendimentoRapido(clienteId, nomeNovo)).id : '';
+    }
+    const num = (id) => { const v = document.getElementById(prefixo + id)?.value?.trim(); return v ? parseFloat(v) : null; };
+    const txt = (id) => { const v = document.getElementById(prefixo + id)?.value?.trim(); return v || null; };
+    const valorReferencia = num('valor-referencia');
+    return {
+        empreendimento_id: empreendimentoId || null,
+        valor_referencia: valorReferencia,
+        valor_referencia_em: valorReferencia !== null ? new Date().toISOString().slice(0, 10) : null,
+        area_m2: num('area-m2'),
+        finalidade_uso: txt('finalidade-uso'),
+        situacao_uso: txt('situacao-uso'),
+        observacao: txt('observacao'),
+    };
 }
 
 export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
@@ -838,6 +953,7 @@ function ativoCardHtml(a) {
 export async function abrirFormAtivo() {
     document.getElementById('at-status').textContent = '';
     await garantirCatalogoTiposAtivo();
+    await garantirEmpreendimentos(); // E15.2 — pro seletor no bloco imóvel
     abrirModal('form-ativo-wrapper');
     aoMudarTipoAtivo();
 
@@ -926,6 +1042,16 @@ export function atualizarCamposEstruturadosAtivo() {
         wrapEndereco.classList.toggle('hidden', !ehImovelAvulso(tipo, null));
         if (ehImovelAvulso(tipo, null)) wrapEndereco.innerHTML = renderizarBlocoEndereco('at-endereco', {}, { mostrarBotaoCopiar: false });
     }
+
+    // E15.2 ("A2") — bloco novo (empreendimento, valor de referência,
+    // área, finalidade/situação de uso, observação) — Fase 1/2 da
+    // DE_PARA_IMOVEIS_ATIVOS, mesmo escopo do endereço acima (só imóvel
+    // avulso). _empreendimentosCache já foi carregado em abrirFormAtivo.
+    const wrapImovel = document.getElementById('at-imovel-wrapper');
+    if (wrapImovel) {
+        wrapImovel.classList.toggle('hidden', !ehImovelAvulso(tipo, null));
+        if (ehImovelAvulso(tipo, null)) wrapImovel.innerHTML = renderizarBlocoImovel('at-imovel-', {}, _empreendimentosCache || []);
+    }
 }
 
 // E5 — chamado pelo data-action-change do #at-tipo-detalhe: só precisa
@@ -999,6 +1125,11 @@ export async function salvarAtivo() {
             // Endereço estruturado (E6.1/E6.2) entra direto nas colunas
             // de cofre_ativos, não em dados_especificos.
             Object.assign(payload, lerBlocoEndereco('at-endereco'));
+            // E15.2 — mesmo raciocínio, pros campos da Fase 1/2 (valor_
+            // referencia, area_m2, finalidade_uso, situacao_uso,
+            // observacao, empreendimento_id). Pode criar empreendimento
+            // novo (find-or-create), por isso await aqui dentro.
+            Object.assign(payload, await lerBlocoImovel('at-imovel-', estado.clienteId));
         }
     }
 
@@ -1675,7 +1806,17 @@ async function montarDadosAtivo(a) {
     if (ehAvulsoComEndereco) {
         const enderecoPartes = [a.endereco_rua, a.endereco_num].filter(Boolean).join(', ');
         const enderecoCompleto = [enderecoPartes, a.endereco_bairro, [a.endereco_cidade, a.uf].filter(Boolean).join('/')].filter(Boolean).join(' — ');
-        gridWrapper.innerHTML = `<div class="rz-kv"><div class="rz-full"><small>Endereço completo</small><b>${escapeHtml(enderecoCompleto)}</b></div></div>`;
+        // E15.2 — mesma grade, ganha os campos da Fase 1/2 quando
+        // preenchidos (rótulo amigável pra finalidade/situação de uso,
+        // reaproveitando as listas do formulário — não duplica tradução).
+        const kvExtra = [
+            a.valor_referencia != null ? `<div><small>Valor de referência</small><b>${Number(a.valor_referencia).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</b></div>` : '',
+            a.area_m2 != null ? `<div><small>Área</small><b>${a.area_m2} m²</b></div>` : '',
+            a.finalidade_uso ? `<div><small>Finalidade de uso</small><b>${escapeHtml(FINALIDADES_USO_ATIVO.find(f => f.v === a.finalidade_uso)?.l || a.finalidade_uso)}</b></div>` : '',
+            a.situacao_uso ? `<div><small>Situação de uso</small><b>${escapeHtml(SITUACOES_USO_ATIVO.find(s => s.v === a.situacao_uso)?.l || a.situacao_uso)}</b></div>` : '',
+            a.observacao ? `<div class="rz-full"><small>Observação</small><b>${escapeHtml(a.observacao)}</b></div>` : '',
+        ].join('');
+        gridWrapper.innerHTML = `<div class="rz-kv"><div class="rz-full"><small>Endereço completo</small><b>${escapeHtml(enderecoCompleto)}</b></div>${kvExtra}</div>`;
     }
     if (ehImovelVinculado) {
         // v1.93.0 (pedido explícito, "evoluir a exemplo do protótipo") —
@@ -1812,6 +1953,7 @@ export async function alternarEditarAtivo() {
     // específico); se já carregou (abriu o form de criar antes, na mesma
     // sessão), não busca de novo.
     await garantirCatalogoTiposAtivo();
+    await garantirEmpreendimentos(); // E15.2
     // v1.18.0 (fatia 3b-iii, pedido do Nicola 03/09: "está abrindo
     // formulário dentro da tela e não bottom sheet como os demais") —
     // abre em abrirSheetForm com os MESMOS ids de campo (fa-editar-nome,
@@ -1824,6 +1966,10 @@ export async function alternarEditarAtivo() {
     // ativo" nesta entrega (mesmo corte de escopo do formulário de criar).
     const blocoEndereco = ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)
         ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
+        : '';
+    // E15.2 — mesmo escopo (só imóvel avulso), campos da Fase 1/2.
+    const blocoImovel = ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)
+        ? `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoImovel('fa-editar-imovel-', a, _empreendimentosCache || [])}</div>`
         : '';
     // E5 — tipo específico (dentro da categoria, que continua somente-
     // leitura — ver nota abaixo) passa a ser editável: corrige um ativo
@@ -1840,7 +1986,7 @@ export async function alternarEditarAtivo() {
             blocoTipoDetalhe +
             `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
             `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
-            blocoEndereco;
+            blocoEndereco + blocoImovel;
         window.abrirSheetForm({ titulo: 'Editar campos do ativo', sub: a.nome_exibicao, corpo: campos, rotuloSalvar: 'Salvar',
             aoSalvar: async () => { const ok = await salvarEdicaoAtivo(); return ok !== false; } });
         return;
@@ -1860,7 +2006,7 @@ export async function alternarEditarAtivo() {
         (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>` : '') +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
         `<div id="fa-editar-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
-        blocoEndereco;
+        blocoEndereco + blocoImovel;
     document.getElementById('fa-editar-wrapper').classList.remove('hidden');
 }
 
@@ -1888,7 +2034,11 @@ export async function salvarEdicaoAtivo() {
     // v1.32.0 (E6.2) — só lê o bloco de endereço se ele foi renderizado
     // (imóvel avulso); nos demais tipos os campos fa-editar-endereco-*
     // não existem no DOM e lerBlocoEndereco devolveria tudo null à toa.
-    if (ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)) Object.assign(patch, lerBlocoEndereco('fa-editar-endereco'));
+    if (ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)) {
+        Object.assign(patch, lerBlocoEndereco('fa-editar-endereco'));
+        // E15.2 — idem, campos da Fase 1/2 (pode criar empreendimento novo).
+        Object.assign(patch, await lerBlocoImovel('fa-editar-imovel-', estado.clienteId));
+    }
     try {
         await api.atualizarAtivo(a.id, patch);
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, acao: 'editar_ativo' });

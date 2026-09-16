@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.28.0 · 15/09/2026
+// Versão: 1.29.0 · 15/09/2026
+//
+// v1.29.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2. listarEmpreendimentos/
+// criarEmpreendimentoRapido novas — mesmo padrão de listarPartesCliente/
+// criarParteRapida, pro seletor de empreendimento no form de ativo.
 //
 // v1.28.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4. listarContatos/
 // criarContato/atualizarContato/excluirContato saíram (só operavam
@@ -238,7 +242,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.28.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.29.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -844,6 +848,20 @@ export async function materializarPartePadrao(clienteId, partePadraoId) {
 // Partes do item de controle quando a parte ainda não existe.
 export async function criarParteRapida(clienteId, nome) {
     return await dbAuth.from('partes').insert({ cliente_id: clienteId, nome }).select('id, nome').single();
+}
+
+// E15.2 ("A2") — mesmo padrão de listarPartesCliente/criarParteRapida,
+// pro seletor de empreendimento no form de ativo (imóvel avulso).
+export async function listarEmpreendimentos(clienteId) {
+    const { data, error } = await dbAuth.from('empreendimentos').select('id, nome').eq('cliente_id', clienteId).order('nome');
+    if (error) throw error;
+    return data || [];
+}
+
+export async function criarEmpreendimentoRapido(clienteId, nome) {
+    const { data, error } = await dbAuth.from('empreendimentos').insert({ cliente_id: clienteId, nome }).select('id, nome').single();
+    if (error) throw error;
+    return data;
 }
 
 

@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.32.0 · 15/09/2026
+// Versão: 1.33.0 · 15/09/2026
+//
+// v1.33.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"). #at-imovel-
+// wrapper novo, ao lado do #at-endereco-wrapper — campos da Fase 1/2
+// (empreendimento, valor de referência, área, finalidade/situação de
+// uso, observação), mesmo escopo (só imóvel avulso).
 //
 // v1.32.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4 ("A5"). modal-editar-
 // contato-item e o card "Contatos" da ficha do item removidos —
@@ -316,7 +321,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.32.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.33.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -599,6 +604,11 @@ export const ATIVOS_MARKUP = `<style>
                          atualizarCamposEstruturadosAtivo() mostra/esconde e
                          preenche o innerHTML. -->
                     <div id="at-endereco-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <!-- E15.2 ("A2", 15/09/2026) — Fase 1/2 da DE_PARA_
+                         IMOVEIS_ATIVOS (empreendimento, valor de referência,
+                         área, finalidade/situação de uso, observação) —
+                         mesmo escopo do endereço acima (só imóvel avulso). -->
+                    <div id="at-imovel-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <!-- v1.11.0 (NOVO, 02/09/2026, pedido explícito: "durante a
                          criação de um novo ativo, seguir a mesma regra e
                          funcionalidade de um novo imóvel antigamente") —

@@ -10,8 +10,11 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.6
+  Versão     : 1.25.7
   Data       : 15/09/2026
+  CHANGELOG v1.25.7 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), Onda
+               12: #at-imovel-wrapper novo — espelha js/ativos/
+               ativos-markup.js v1.33.0.
   CHANGELOG v1.25.6 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4 ("A5"), Onda
                12: modal-editar-contato-item e o box "Contatos
                vinculados" removidos. ACHADO fora do escopo desta
@@ -58,11 +61,11 @@
                aceite bloqueante sozinhos agora, sem precisar de wrapper.
                cofre.html perdeu 1 linha (tag de script do módulo
                consentimento-app.js, que ficou obsoleto).
-  Linhas     : cofre.html = 3232 · js/cofre-api.js = 1278 · js/cofre-app.js = 951 ·
-               js/cofre-ativos.js = 2228 · js/cofre-controles.js = 1915 ·
+  Linhas     : cofre.html = 3237 · js/cofre-api.js = 1296 · js/cofre-app.js = 951 ·
+               js/cofre-ativos.js = 2378 · js/cofre-controles.js = 1915 ·
                js/cofre-documentos.js = 1760 · js/cofre-estado.js = 186 ·
                js/cofre-navegacao.js = 372 · js/cofre-ui.js = 122 ·
-               js/cofre-validacoes.js = 521 (total js/ = 9333)
+               js/cofre-validacoes.js = 521 (total js/ = 9501)
 
   CHANGELOG v1.23.0 — pedido explícito do Nicola (fechar a "última milha"
   dos Planos de Comunicação): app e bot precisam chamar a MESMA função de
@@ -2447,6 +2450,8 @@
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <!-- E6.2 (15/09/2026) — espelha js/ativos/ativos-markup.js v1.28.0 -->
                     <div id="at-endereco-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <!-- E15.2 — espelha js/ativos/ativos-markup.js -->
+                    <div id="at-imovel-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:14px;">
                     <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar ativo</button>
