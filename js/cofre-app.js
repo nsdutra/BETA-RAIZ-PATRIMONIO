@@ -1,6 +1,9 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.1 · 15/09/2026
+// Versão: 1.32.2 · 15/09/2026
+//
+// v1.32.2 — PLANO_IMPLEMENTACAO v1.0, etapa E14.2: case novo
+// 'ic-freq-mudou' → controles.aoMudarFrequenciaItemControle().
 //
 // v1.32.1 — PLANO_IMPLEMENTACAO v1.0, etapa E5: 2 cases novos no
 // despachante de data-action-change, pro 2º seletor (tipo específico)
@@ -269,7 +272,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.32.1'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.2'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -629,6 +632,7 @@ document.addEventListener('change', async (ev) => {
         // campo diferentes, ver cofre-ativos.js).
         case 'ativo-tipo-detalhe-mudou': ativos.aoMudarTipoDetalheAtivo(); break;
         case 'ativo-tipo-detalhe-editar-mudou': ativos.aoMudarTipoDetalheEditarAtivo(); break;
+        case 'ic-freq-mudou': controles.aoMudarFrequenciaItemControle(); break; // E14.2
         case 'upload-vinculo-tipo-mudou': await docs.aoMudarTipoVinculoUpload(); break;
         case 'uc-categoria-mudou': docs.aplicarPadroesCategoriaUpload(); break;
         case 'uc-tipo-doc-mudou': docs.aoMudarTipoDocUpload(); break; // v1.27.0

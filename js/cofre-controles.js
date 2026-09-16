@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.23.0 · 15/09/2026
+// Versão: 1.24.0 · 15/09/2026
+//
+// v1.24.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.2 ("A16"), Onda 12.
+// Parcelas (Parcelas/Dias entre parcelas) e recorrência são conceitos
+// que não deviam se misturar — parcelamento é de evento ÚNICO (ex.:
+// IPVA 3x); item recorrente sem fim usa "Repetir a cada". Até aqui nada
+// impedia marcar os dois juntos (0 itens reais nesse estado hoje,
+// conferido antes de mexer — é prevenção, não limpeza de dado). Campo
+// de parcelas some quando "Repetir a cada" está preenchido
+// (aoMudarFrequenciaItemControle, novo), resetando pro padrão (1/30)
+// pra nunca submeter parcela escondida.
 //
 // v1.23.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.1 ("A4"), Onda 12.
 // Checkbox novo no form de criar item de controle: "Gerar também as
@@ -308,7 +318,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.23.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.24.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1442,8 +1452,28 @@ export async function abrirFormControle() {
     document.getElementById('ic-freq-intervalo').value = '';
     document.getElementById('ic-freq-unidade').value = 'mes';
     document.getElementById('ic-antecedencia').value = '7';
+    aoMudarFrequenciaItemControle(); // E14.2 — form abre com parcelas visível (recorrente vazio)
     renderizarModelosSugeridosForm();
     abrirModal('modal-criar-item-controle');
+}
+
+// E14.2 ("A16", 15/09/2026) — parcelamento (Parcelas/Dias entre parcelas)
+// só faz sentido pra evento ÚNICO; item recorrente usa "Repetir a cada"
+// pra isso. defensivo: se #ic-parcelas-wrapper não existir no DOM (ainda
+// não publicado em algum canal), não faz nada — nunca quebra o form.
+export function aoMudarFrequenciaItemControle() {
+    const freq = document.getElementById('ic-freq-intervalo')?.value;
+    const wrapper = document.getElementById('ic-parcelas-wrapper');
+    if (!wrapper) return;
+    const recorrente = !!freq;
+    wrapper.classList.toggle('hidden', recorrente);
+    if (recorrente) {
+        // some da tela = some do payload: reseta pro padrão de "sem
+        // parcelamento", nunca deixa um valor antigo escondido ser
+        // submetido por engano.
+        document.getElementById('ic-parcelas').value = '1';
+        document.getElementById('ic-parcela-intervalo').value = '30';
+    }
 }
 
 // Modelos sugeridos (pedido explícito, 25/08/2026) — pills clicáveis no

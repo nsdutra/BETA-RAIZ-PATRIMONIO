@@ -10,8 +10,15 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.4
+  Versão     : 1.25.5
   Data       : 15/09/2026
+  CHANGELOG v1.25.5 — PLANO_IMPLEMENTACAO v1.0, etapa E14.2 ("A16"), Onda
+               12: data-action-change="ic-freq-mudou" no campo "Repetir a
+               cada" — espelha js/ativos/ativos-markup.js v1.31.0. NOTA:
+               cofre.html não tem os campos Valor previsto/Parcelas (já
+               divergia de ativos-markup.js antes desta sessão) — o
+               toggle fica sem efeito aqui até essa divergência antiga
+               ser fechada, não é regressão desta entrega.
   CHANGELOG v1.25.4 — PLANO_IMPLEMENTACAO v1.0, etapa E14.1 ("A4"), Onda
                12: checkbox "Gerar também as ocorrências passadas" no
                form de item de controle — espelha js/ativos/
@@ -42,11 +49,11 @@
                aceite bloqueante sozinhos agora, sem precisar de wrapper.
                cofre.html perdeu 1 linha (tag de script do módulo
                consentimento-app.js, que ficou obsoleto).
-  Linhas     : cofre.html = 3284 · js/cofre-api.js = 1272 · js/cofre-app.js = 945 ·
-               js/cofre-ativos.js = 2228 · js/cofre-controles.js = 1978 ·
+  Linhas     : cofre.html = 3291 · js/cofre-api.js = 1272 · js/cofre-app.js = 949 ·
+               js/cofre-ativos.js = 2228 · js/cofre-controles.js = 2008 ·
                js/cofre-documentos.js = 1734 · js/cofre-estado.js = 186 ·
                js/cofre-navegacao.js = 366 · js/cofre-ui.js = 122 ·
-               js/cofre-validacoes.js = 521 (total js/ = 9352)
+               js/cofre-validacoes.js = 521 (total js/ = 9386)
 
   CHANGELOG v1.23.0 — pedido explícito do Nicola (fechar a "última milha"
   dos Planos de Comunicação): app e bot precisam chamar a MESMA função de
@@ -2580,7 +2587,7 @@
             </label>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
-                <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs" data-action-change="ic-freq-mudou">
             </div>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Unidade</label>

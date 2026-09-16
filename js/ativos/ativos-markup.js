@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.30.0 · 15/09/2026
+// Versão: 1.31.0 · 15/09/2026
+//
+// v1.31.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.2 ("A16"), Onda 12.
+// #ic-parcelas-wrapper novo (Parcelas/Dias entre parcelas escondem
+// quando "Repetir a cada" está preenchido — cofre-controles.js v1.24.0).
 //
 // v1.30.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.1 ("A4"), Onda 12.
 // Checkbox "Gerar também as ocorrências passadas" no form de criar item
@@ -308,7 +312,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.30.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.31.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -826,7 +830,7 @@ export const ATIVOS_MARKUP = `<style>
             </label>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
-                <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                <input type="number" min="1" id="ic-freq-intervalo" placeholder="Ex.: 3" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs" data-action-change="ic-freq-mudou">
             </div>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Unidade</label>
@@ -846,17 +850,27 @@ export const ATIVOS_MARKUP = `<style>
                     <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Valor previsto (R$)</label>
                     <input type="number" min="0" step="0.01" id="ic-valor-previsto" placeholder="opcional" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
                 </div>
-                <div>
-                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Parcelas</label>
-                    <input type="number" min="1" step="1" id="ic-parcelas" value="1" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                </div>
-                <div>
-                    <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Dias entre parcelas</label>
-                    <input type="number" min="1" step="1" id="ic-parcela-intervalo" value="30" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                <!-- E14.2 ("A16", 15/09/2026) — parcelamento é conceito de
+                     evento ÚNICO (ex.: IPVA em 3x); item recorrente sem
+                     fim usa "Repetir a cada" pra isso, não parcelas —
+                     misturar os dois divide o valor errado (achado ao
+                     investigar: nada impedia marcar os dois juntos até
+                     aqui, mesmo o banco só tratando parcela na 1ª
+                     ocorrência). Escondido quando recorrente, valor
+                     volta a 1/30 pra nunca submeter parcela escondida. -->
+                <div id="ic-parcelas-wrapper" class="col-span-2 grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Parcelas</label>
+                        <input type="number" min="1" step="1" id="ic-parcelas" value="1" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Dias entre parcelas</label>
+                        <input type="number" min="1" step="1" id="ic-parcela-intervalo" value="30" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+                    </div>
                 </div>
             </div>
         </div>
-        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único). Sem data fim = sem fim de vigência (só pode gerar a partir do início). Escolhendo "Fim (retroativo)", as ocorrências são contadas pra trás a partir da data fim, na frequência escolhida. Ao salvar, as ocorrências já são geradas automaticamente. Com valor previsto, cada ocorrência já nasce com a despesa prevista no Financeiro (dividida pelas parcelas).</p>
+        <p class="raiz-indicador-inline mt-2" style="color:var(--sage)">Deixe "Repetir a cada" em branco para um item não recorrente (evento único — aí "Parcelas" pode dividir o valor). Preenchido = recorrente; sem data fim = sem fim de vigência. Escolhendo "Fim (retroativo)", as ocorrências são contadas pra trás a partir da data fim, na frequência escolhida. Ao salvar, as ocorrências já são geradas automaticamente.</p>
         <div class="flex gap-2 mt-3">
             <button type="button" data-action="fechar-form-controle" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
             <button data-action="salvar-item-controle" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar item de controle</button>
