@@ -15,9 +15,15 @@
 // window.__raizClienteId (global que o hospedeiro define e não depende de
 // tempo); a URL continua funcionando como antes pro cofre.html standalone.
 //
-// Versão: 1.7.0 · 09/09/2026
+// Versão: 1.7.1 · 15/09/2026
 //
-// Versão anterior: 1.6.2 · 04/09/2026
+// (16/09/2026 — achado pelo gate gerar_versoes.py ao entregar a Onda 12:
+// esta linha "Versão:" tinha ficado presa em 1.7.0 quando a v1.7.1 foi
+// escrita acima, 15/09 — corrigida agora, nenhuma mudança de código
+// neste arquivo. Versão anterior corrigida junto, de 1.6.2 pra 1.7.0 —
+// estava pulando a própria v1.7.0.)
+//
+// Versão anterior: 1.7.0 · 09/09/2026
 //
 // v1.6.2 — "Ativos está demorando pra aparecer": a checagem de
 // cofre.categorias (que só esconde um ícone) deixou de bloquear

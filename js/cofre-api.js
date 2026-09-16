@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.30.0 · 15/09/2026
+// Versão: 1.31.0 · 16/09/2026
+//
+// v1.31.0 — Onda 12, E15.2.1 ("criar imóvel novo" dentro do formulário
+// unificado, fechando o item 2.1 do handoff — o que ainda mantinha
+// imoveis.js vivo). criarImovelEAtivo(clienteId, nomeExibicao,
+// imovelDados, tipoDetalheId, dadosEspecificos) nova — chama
+// fn_criar_ativo (RPC estendida na mesma sessão, migration
+// e15_2_1_fn_criar_ativo_completa_imovel_v1) em vez de inserir direto em
+// `imoveis`: reaproveita o "motor único" que já existia pro wizard
+// antigo (checagem de limite de plano incluída), agora completo com
+// tipo_detalhe_id/dados_especificos, que ele nunca soube preencher.
 //
 // v1.30.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2, conclusão.
 // atualizarImovel(id, patch) nova — write-target do formulário
@@ -247,7 +257,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.30.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.31.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -932,6 +942,32 @@ export async function criarAtivo(payload) {
     const { data, error } = await dbAuth.from('cofre_ativos').insert(payload).select().single();
     if (error) throw error;
     return data;
+}
+
+// v1.31.0 (Onda 12, E15.2.1 — "criar imóvel novo" dentro do formulário
+// unificado) — chama fn_criar_ativo (o mesmo RPC que index.html:
+// sincronizarImovelSupabase já usa pro wizard antigo, "motor único" de
+// criação de imóvel: insere em `imoveis`, a trigger
+// trg_criar_ativo_para_imovel cria o cofre_ativos vinculado na mesma
+// transação, com checagem de limite de plano incluída). RPC ganhou 2
+// parâmetros novos nesta mesma sessão (migration
+// e15_2_1_fn_criar_ativo_completa_imovel_v1) só pra isto: sem eles, o
+// ativo nascia sempre sem tipo específico (achado real, ver handoff).
+// imovelDados usa nomes de COLUNA de `imoveis` (endereco_rua, uf,
+// valor_mercado, valor, finalidade_uso, status...) — é o mesmo formato
+// que lerBlocoEndereco/lerBlocoEmpreendimentoValor/lerBlocoImovel já
+// devolvem, sem tradução extra.
+export async function criarImovelEAtivo(clienteId, nomeExibicao, imovelDados, tipoDetalheId, dadosEspecificos) {
+    const { data, error } = await dbAuth.rpc('fn_criar_ativo', {
+        p_cliente_id: clienteId,
+        p_tipo_ativo: 'imovel',
+        p_nome_exibicao: nomeExibicao,
+        p_dados: imovelDados,
+        p_tipo_detalhe_id: tipoDetalheId || null,
+        p_dados_especificos: dadosEspecificos || null,
+    }).single();
+    if (error) throw error;
+    return data; // { ativo_id, imovel_id }
 }
 
 export async function atualizarAtivo(id, patch) {

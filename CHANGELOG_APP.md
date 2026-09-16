@@ -4,6 +4,32 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.184.0) — PLANO_IMPLEMENTACAO v1.0, etapa E9: alerta
+de cadastro incompleto entra no Motor. Novo tipo cadastro_incompleto
+(dominio=cadastro, informativo, limiar 3), derivado dos campos
+obrigatorios de ativo_tipos_campos (E4.4) por ativo — sem caminho
+paralelo. Chip novo "Cadastro" na tela de Alertas; subtitulo lista os
+campos que faltam; clique abre a ficha do ativo direto no chip Resumo,
+onde se edita.
+NOVIDADES (Beta v1.183.0) — PLANO_IMPLEMENTACAO v1.0, etapa E10, mais
+dois ajustes pedidos pelo Nicola em teste real:
+(1) carregarDadosAssincronosVisaoGeral consome fn_alertas_listar em vez
+de reimplementar 3 regras proprias (ocorrencias de controle, sinais
+tributarios, documentos em triagem). Era por isso que a tela de Alertas
+mostrava 12 e a Visao Geral 10 — duas contas sobre as mesmas pendencias.
+Agora e a mesma fonte, o mesmo agrupamento e a mesma ordenacao. Seis
+tipos de alerta que existiam no Motor e nunca apareciam na tela inicial
+passam a aparecer. fn_resumo_resultados continua, so para os KPIs.
+(2) Titulo do sinal fiscal passa a comecar pela quantidade ("6
+ocorrencias · Contrato"), como todos os outros consolidados — era o
+unico com o numero no meio pro fim do texto.
+------------------------------------------------------------------
+Versões anteriores (v1.182.0 … v1.182.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.182.0) — PLANO_IMPLEMENTACAO v1.0, etapa E3:
 agruparEMapearAlertas passa a ter limiar por tipo de alerta
 (alerta_tipos.agrupar_a_partir_de, padrao 6). Antes a tela agrupava a

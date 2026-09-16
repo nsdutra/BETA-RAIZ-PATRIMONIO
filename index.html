@@ -6,9 +6,34 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.187.1
-   LINHAS: 15493
-   DATA: 15/09/2026
+   VERSÃO: Beta v1.188.0
+   LINHAS: 15543
+   DATA: 16/09/2026
+   NOVIDADES (Beta v1.188.0) — Onda 12, 4 pedidos explícitos do Nicola
+   (16/09/2026) sobre telas já existentes, junto com a E15.2.1 (ver
+   changelog de cofre-ativos.js/cofre-api.js/ativos-markup.js/
+   contratos.js pro item principal da sessão — criar imóvel novo dentro
+   do formulário unificado):
+   (1) "retirar a faixa de aviso no topo da tela de contratos" —
+   banner-revisao-contratos removido (elemento e lógica em
+   contratos.js v1.4.0); resíduo pré-Motor de Alertas, redundante com o
+   status por linha de cada contrato.
+   (2) "retirar o link para relatórios da tela visão geral" — card
+   "Relatórios" removido do tab-geral; "Resultados" continua acessível
+   pela barra inferior (btn-tab-relatorios), não isola a tela.
+   (3) "o sino de alertas deve ir para o topo, no cabeçalho, ao lado do
+   ícone de IA" — sino saiu de dentro da aba Visão Geral (rz-tabhead) e
+   foi pro #main-header/.rz-hdr, ao lado de Raiz IA; mesmo #geral-sino-dot,
+   mesmo onclick, nenhuma lógica de alerta mudou, só o endereço no DOM.
+   CSS novo (.rz-hdr .rz-ico-btn) pra bater 40px com os ícones vizinhos.
+   (4) "corrigir o count de ativos no cabeçalho está errado" — causa raiz
+   achada: atualizarContextoHeader() caía pro array `imoveis` (104)
+   quando window.__cofreAtivos ainda não tinha carregado (janela de
+   alguns segundos logo após o login, antes do prefetch do Cofre
+   terminar) — mostrando um número ERRADO (imóvel não é sinônimo de
+   ativo; hoje 104 × 132). Fallback errado removido: sem a contagem
+   real ainda, o cabeçalho fica sem número por alguns segundos em vez
+   de mentir, e corrige sozinho quando cofre:dados-carregados dispara.
    NOVIDADES (Beta v1.187.1) — item #8 do HANDOFF_SESSAO_2026-09-15,
    decisão do Nicola ("pode eliminar"): pontoAtencaoHtml() removida.
    Órfã desde a v1.187.0 (0 chamadores, confirmado por grep antes de
@@ -64,27 +89,8 @@
    o que o Motor já cobre e a 4ª (vago) sem equivalente — o plano (E10) já
    pedia a remoção. As 4 saem; quem decide "Precisa de atenção" agora é só
    o Motor. Status do card/badge do sino migraram junto.
-   NOVIDADES (Beta v1.184.0) — PLANO_IMPLEMENTACAO v1.0, etapa E9: alerta
-   de cadastro incompleto entra no Motor. Novo tipo cadastro_incompleto
-   (dominio=cadastro, informativo, limiar 3), derivado dos campos
-   obrigatorios de ativo_tipos_campos (E4.4) por ativo — sem caminho
-   paralelo. Chip novo "Cadastro" na tela de Alertas; subtitulo lista os
-   campos que faltam; clique abre a ficha do ativo direto no chip Resumo,
-   onde se edita.
-   NOVIDADES (Beta v1.183.0) — PLANO_IMPLEMENTACAO v1.0, etapa E10, mais
-   dois ajustes pedidos pelo Nicola em teste real:
-   (1) carregarDadosAssincronosVisaoGeral consome fn_alertas_listar em vez
-   de reimplementar 3 regras proprias (ocorrencias de controle, sinais
-   tributarios, documentos em triagem). Era por isso que a tela de Alertas
-   mostrava 12 e a Visao Geral 10 — duas contas sobre as mesmas pendencias.
-   Agora e a mesma fonte, o mesmo agrupamento e a mesma ordenacao. Seis
-   tipos de alerta que existiam no Motor e nunca apareciam na tela inicial
-   passam a aparecer. fn_resumo_resultados continua, so para os KPIs.
-   (2) Titulo do sinal fiscal passa a comecar pela quantidade ("6
-   ocorrencias · Contrato"), como todos os outros consolidados — era o
-   unico com o numero no meio pro fim do texto.
    ------------------------------------------------------------------
-   Versões anteriores (v1.182.0 … v1.182.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.183.0 … v1.184.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -108,7 +114,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.3.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.25.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.31.3","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.21.1","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.12.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=1.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.28.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.4.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.0.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.31.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.38.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.35.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -468,6 +474,12 @@
            necessários e escondiam a causa real. */
         @keyframes rz-pulse{0%,100%{opacity:1}50%{opacity:.45}}
         .rz-hdr .rz-avatar{width:40px;height:40px;border-radius:50%;background:var(--pine-light);border:1px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+        /* Onda 12 (pedido explícito, 16/09/2026: "o sino de alertas deve
+           ir pro topo, no cabeçalho, ao lado do ícone de IA") — mesmo
+           .rz-ico-btn/.rz-dot de sempre (semântica danger/warning já
+           pronta), só 40px em vez de 44px aqui pra bater com .rz-ia/
+           .rz-avatar ao lado. */
+        .rz-hdr .rz-ico-btn{width:40px;height:40px;flex:none}
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
         .rz-tabhead p{flex:1;font-size:12px;color:var(--muted);line-height:1.35;margin:0}
         .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
@@ -1349,9 +1361,11 @@
              mesmo #logo-header que aplicarBrandingCliente() sempre
              preencheu — texto ou <img> da logo) + linha de contexto 11 px
              ("Plano Patrimônio · 49 ativos", atualizarContextoHeader());
-             direita, nesta ordem, Raiz IA (círculo brass, sparkles, anel
-             28 %, ponto branco quando há sugestão) e avatar (iniciais).
-             Nada mais entra aqui — sino, busca e "+" moram nas abas.
+             direita, nesta ordem, sino de alertas (v1.188.0, movido de
+             dentro da aba Visão Geral — pedido explícito), Raiz IA
+             (círculo brass, sparkles, anel 28 %, ponto branco quando há
+             sugestão) e avatar (iniciais). Busca e "+" continuam
+             morando nas abas — só o sino subiu pro cabeçalho global.
              O toque/duplo-toque na marca continuam (recarregar / DEV).
              O botão do Robô (btn-falar-bot-header, v1.40.1) SAIU do
              cabeçalho: o Robô WhatsApp vive no menu ⚙️ › Empresa e dentro
@@ -1363,6 +1377,16 @@
                 <h1 id="logo-header">RAIZ</h1>
                 <small><span id="header-contexto">Raiz Patrimônio</span><span id="header-offline-tag" class="rz-off hidden">Offline</span></small>
             </div>
+            <!-- Onda 12 (pedido explícito, 16/09/2026: "o sino de alertas
+                 deve ir para o topo, no cabeçalho, ao lado do ícone de IA
+                 documentos") — saiu do rz-tabhead da Visão Geral
+                 (tab-geral), mora só aqui agora: mesmo botão, mesmo
+                 onclick, mesmo #geral-sino-dot (renderizarPontosAtencao-
+                 Geral continua escrevendo nele, nada mudou no JS). -->
+            <button type="button" class="rz-ico-btn" onclick="abrirTabAlertas()" title="Alertas" aria-label="Alertas">
+                <svg data-lucide="bell"></svg>
+                <span id="geral-sino-dot" class="rz-dot hidden"></span>
+            </button>
             <button type="button" id="btn-raiz-ia-header" class="rz-ia" onclick="abrirSheetRaizIA()" title="Raiz IA" aria-label="Raiz IA">
                 <svg data-lucide="sparkles"></svg>
                 <span id="raiz-ia-dot" class="rz-dot hidden"></span>
@@ -1556,11 +1580,14 @@
                  tela) + 3 KPIs no catálogo; ids mantidos (renderVisaoGeral
                  continua escrevendo neles). -->
             <!-- v1.115.0 (fatia 7, REGRAS §4/§5) — cabeçalho da aba: descrição
-                 + sino (único ícone; badge em --danger quando há atraso,
-                 --warning quando só há pontos de atenção — renderVisaoGeral). -->
+                 (badge em --danger quando há atraso, --warning quando só há
+                 pontos de atenção — renderVisaoGeral).
+                 v1.188.0 (Onda 12) — o sino que vivia aqui subiu pro
+                 cabeçalho global (#main-header), pedido explícito: "o sino
+                 de alertas deve ir para o topo". rz-tabhead sem o 2º filho
+                 continua válido (era flex, sobra só o parágrafo). -->
             <div class="rz-tabhead">
                 <p>Seu patrimônio hoje: o que entrou, o que atrasou e o que pede atenção.</p>
-                <button type="button" onclick="abrirTabAlertas()" class="rz-ico-btn" title="Alertas" aria-label="Alertas"><svg data-lucide="bell"></svg><span id="geral-sino-dot" class="rz-dot hidden"></span></button>
             </div>
             <div class="rz-kpis">
                 <div class="rz-kpi rz-hero"><small>Patrimônio sob gestão</small><b id="geral-patrimonio-total">—</b></div>
@@ -1593,13 +1620,12 @@
                 <div id="geral-atencao-lista"></div>
             </div>
 
-            <div class="rz-card rz-list">
-                <div class="rz-row rz-link" onclick="switchTab('tab-relatorios')">
-                    <div class="rz-ic"><svg data-lucide="bar-chart-3"></svg></div>
-                    <div class="rz-tx"><b>Relatórios</b><span>Ocupação e receita em detalhe</span></div>
-                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
-                </div>
-            </div>
+            <!-- Onda 12 (pedido explícito, 16/09/2026: "retirar o link
+                 para relatórios da tela visão geral") — o card/link
+                 "Relatórios" removido; "Resultados" já é um dos 5 ícones
+                 da barra inferior (btn-tab-relatorios → tab-relatorios-
+                 catalogo), então não isola a tela — só era uma 2ª porta
+                 de entrada redundante. -->
 
         </section>
 
@@ -2525,8 +2551,10 @@
 
             </div>
 
-            <p id="banner-revisao-contratos" class="hidden bg-red-50 border border-red-200 text-red-700 text-[13px] font-bold p-2 rounded-lg mb-3"></p>
-
+            <!-- Onda 12 (pedido explícito, 16/09/2026: "retirar a faixa de
+                 aviso no topo da tela de contratos") — banner-revisao-
+                 contratos removido; lógica correspondente saiu de
+                 contratos.js (v1.4.0, renderContratos()). -->
             <h2 class="text-lg font-bold raiz-text-pine mb-4">Contratos de Locação Ativos</h2>
 
             <div id="contratos-chips" class="rz-chips"></div>
@@ -3525,7 +3553,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.187.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.188.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9503,8 +9531,23 @@
             const partes = [];
             const codigo = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo;
             if (codigo) partes.push('Plano ' + codigo.charAt(0).toUpperCase() + codigo.slice(1));
-            const lista = Array.isArray(window.__cofreAtivos) ? window.__cofreAtivos.filter(a => (a.status || '').toLowerCase() !== 'arquivado') : (Array.isArray(imoveis) ? imoveis : []);
-            if (lista.length) partes.push(lista.length + (lista.length === 1 ? ' ativo' : ' ativos'));
+            // Onda 12 (pedido explícito, 16/09/2026: "corrigir o count de
+            // ativos no cabeçalho está errado") — CAUSA RAIZ: esta função
+            // roda 1x logo no login (atualizarMenuContaHeader(), linha
+            // ~7383) e de novo quando o Cofre termina de carregar
+            // (evento cofre:dados-carregados) — mas prefetchModuloAtivos()
+            // só dispara o boot do Cofre depois do login (requestIdleCallback/
+            // setTimeout, linha ~7446), então na 1ª chamada
+            // window.__cofreAtivos ainda não existe. O fallback antigo
+            // (`imoveis.length`) mostrava um número ERRADO em vez de
+            // nenhum — imóvel é só uma fatia de ativo, não sinônimo (104
+            // imóveis × 132 ativos hoje). Removido: sem __cofreAtivos
+            // ainda, o cabeçalho fica sem a contagem por alguns segundos
+            // (em vez de mentir) até o evento chegar e corrigir sozinho.
+            if (Array.isArray(window.__cofreAtivos)) {
+                const ativos = window.__cofreAtivos.filter(a => (a.status || '').toLowerCase() !== 'arquivado');
+                if (ativos.length) partes.push(ativos.length + (ativos.length === 1 ? ' ativo' : ' ativos'));
+            }
             el.textContent = partes.length ? partes.join(' · ') : 'Raiz Patrimônio';
         }
         window.addEventListener('cofre:dados-carregados', atualizarContextoHeader);

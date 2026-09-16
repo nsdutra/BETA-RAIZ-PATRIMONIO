@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.34.0 · 16/09/2026
+// Versão: 1.35.0 · 16/09/2026
+//
+// v1.35.0 — Onda 12, E15.2.1 ("criar imóvel novo" no formulário
+// unificado, item 2.1 do handoff). Botão "+ Cadastrar novo imóvel"
+// (cadastrar-imovel-app → wizard antigo, imoveis.js) removido do markup
+// — vira a 3ª opção do próprio seletor #at-origem-imovel
+// ('__novo__', ver cofre-ativos.js v1.38.0). Texto de ajuda ajustado pra
+// explicar os 2 caminhos (vincular existente × cadastrar novo).
 //
 // v1.34.0 — feedback do teste real (16/09/2026): #at-empreendimento-
 // valor-wrapper novo, posicionado logo depois de #at-tipo-detalhe-
@@ -328,7 +335,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.34.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.35.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -599,19 +606,21 @@ export const ATIVOS_MARKUP = `<style>
                     <div id="at-origem-imovel-wrapper" class="hidden sm:col-span-2">
                         <label class="text-xs font-semibold block mb-1">Qual imóvel?</label>
                         <select id="at-origem-imovel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-imovel-origem-mudou"></select>
-                        <p class="raiz-indicador-inline" style="color:var(--sage)">Não duplica dados — este ativo só guarda documentos/fotos/alertas específicos do Cofre; o imóvel em si continua em Imóveis.</p>
-                        <!-- v1.94.1 (31/08/2026, pedido explícito) — substitui
-                             o botão "Cadastrar imóvel" separado na barra da
-                             lista (removido, estava quebrado e virou
-                             confuso ter 2 portas pra Novo Ativo). O
-                             cadastro de imóvel novo agora mora AQUI dentro,
-                             junto de "Qual imóvel?" — faz mais sentido:
-                             quem tá escolhendo um imóvel existente e não
-                             acha o que precisa, cadastra ali mesmo, sem
-                             sair do formulário. Ponte pra
-                             abrirCadastroImovelModal() nativa do App (mesmo
-                             data-action="cadastrar-imovel-app" de sempre). -->
-                        <button type="button" data-action="cadastrar-imovel-app" class="text-xs font-bold mt-1.5" style="color:var(--sprout)">+ Cadastrar novo imóvel</button>
+                        <p class="raiz-indicador-inline" style="color:var(--sage)">Vinculado a um imóvel existente: não duplica dados, este ativo só guarda documentos/fotos/alertas específicos do Cofre. "Cadastrar um imóvel novo": endereço e valor abaixo.</p>
+                        <!-- v1.35.0 (Onda 12, E15.2.1) — botão "+ Cadastrar
+                             novo imóvel" (data-action="cadastrar-imovel-app",
+                             ponte pro wizard antigo em imoveis.js) SAIU: virou
+                             a 3ª opção do próprio seletor acima
+                             ('__novo__', ver aoMudarTipoAtivo em
+                             cofre-ativos.js) — mesmos blocos de endereço/
+                             valor que o avulso já mostra logo abaixo, sem
+                             precisar sair pro formulário legado. Fecha o
+                             item 2.1 do handoff de 16/09: criar imóvel novo
+                             era o último caminho que ainda dependia de
+                             imoveis.js inteiro. cadastrar-imovel-app
+                             continua definido em cofre-app.js (não
+                             removido — só ficou sem chamador, mesmo padrão
+                             já usado pra abrirGestaoImovel). -->
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <!-- E6.2 (15/09/2026) — bloco de endereço estruturado (js/comum-

@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.3.1 · 15/09/2026
+// Versão: 1.4.0 · 16/09/2026
+//
+// v1.4.0 — Onda 12 (pedido explícito, 16/09/2026: "retirar a faixa de
+// aviso no topo da tela de contratos"). banner-revisao-contratos
+// ("⚠️ Você tem alertas em contratos!") removido de renderContratos() —
+// resíduo pré-Motor de Alertas, redundante com o status por linha
+// (statusContratoHtml). Variáveis pendentesRevisao/vencidos saíram
+// junto, só existiam pra alimentar o banner. Elemento correspondente
+// removido de index.html (Beta v1.188.0).
 //
 // v1.3.1 — PLANO_IMPLEMENTACAO v1.0, etapa E0.1 (achado A6): formulário de
 // contrato sobreposto. criarContratoParaImovel() não troca mais de aba
@@ -117,7 +125,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.3.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3272,19 +3280,17 @@ export function reabrirFichaSeFor(contratoId) {
             // "não tem o resumo de contratos no topo" — nenhuma outra aba
             // primária tinha essa caixa) não são mais exibidos, mas o
             // filtro em si continua igual.
-            const pendentesRevisao = contratos.filter(contratoPrecisaRevisao).length;
-
-            const vencidos = contratos.filter(contratoVencido).length;
-
-            const bannerRevisao = document.getElementById('banner-revisao-contratos');
-
-            if (bannerRevisao) {
-
-                bannerRevisao.classList.toggle('hidden', (pendentesRevisao + vencidos) === 0);
-
-                bannerRevisao.innerText = (pendentesRevisao + vencidos) > 0 ? "⚠️ Você tem alertas em contratos!" : '';
-
-            }
+            //
+            // Onda 12 (16/09/2026, pedido explícito: "retirar a faixa de
+            // aviso no topo da tela de contratos") — banner-revisao-
+            // contratos ("⚠️ Você tem alertas em contratos!") removido
+            // daqui e do index.html: resíduo de antes do Motor de
+            // Alertas, redundante desde a v1.110.0 — cada contrato já
+            // mostra o motivo certo no próprio status da linha
+            // (statusContratoHtml logo abaixo: Vencido/Reajustar/
+            // Assinando), então um aviso genérico no topo só duplicava a
+            // informação sem dizer qual contrato. pendentesRevisao/
+            // vencidos saíram junto — só existiam pra alimentar o banner.
 
             // v1.110.0 (fatia 4 da gramática única, REGRAS §8/§9/§10) — lista
             // em .rz-row agrupada por empreendimento (.rz-group) dentro de
