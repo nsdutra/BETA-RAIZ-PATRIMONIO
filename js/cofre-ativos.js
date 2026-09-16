@@ -1,6 +1,28 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.1 · 15/09/2026
+// Versão: 1.33.0 · 15/09/2026
+//
+// v1.33.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão do
+// Nicola, "pode evoluir"). CAMPOS_POR_TIPO_ATIVO (objeto) some da
+// importação — os 4 call sites (renderizar/lerCamposEstruturados,
+// montarDadosAtivo) passam a chamar obterCamposPorTipo(categoria,
+// tipoDetalheId), do catálogo do banco (cofre-validacoes.js v2.0.0).
+// Form de criar ganha 2º seletor (#at-tipo-detalhe, categoria → tipo
+// específico, ex. Veículo → Carro blindado) — popularSelectTipoAtivo()
+// oferece as 8 categorias macro, não mais os 10 valores específicos
+// antigos. Form de editar ganha o mesmo 2º seletor, mas EDITÁVEL (a
+// categoria continua somente-leitura, pelo motivo já documentado; o
+// tipo específico não tinha esse problema, a E5 liberou). salvarAtivo/
+// salvarEdicaoAtivo passam a gravar tipo_detalhe_id — ativo novo já
+// nasce com o dado que a E4.2 só conseguiu estampar retroativamente.
+// ehImovelAvulso/aoMudarTipoAtivo: 'imovel' → 'imovel_predial' (valor
+// mudou na fatia B; 'imovel_territorial' nunca passou pela tabela
+// imoveis mesmo, então esse ramo não muda). Catálogo carregado 1x por
+// sessão (garantirCatalogoTiposAtivo), com fallback se falhar — mesmo
+// padrão de obterCamposPorTipo.
+// Bot (_shared.ts) continua fora desta entrega — fatia separada, já
+// avisada; o catálogo tem fallback idêntico ao comportamento de hoje,
+// nada quebra no app publicando sozinho.
 //
 // v1.32.1 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (junto com
 // cofre-validacoes.js v1.4.0 — ver changelog lá pro porquê). Achado aqui:
@@ -416,14 +438,15 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.32.1'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.33.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
-    rotuloTipoAtivo, iconeAtivo, CAMPOS_POR_TIPO_ATIVO, validarCamposAtivo,
+    rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
+    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo,
 } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
@@ -434,11 +457,30 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // E6.2 — único critério usado em todo o arquivo pra decidir se um ativo
 // "imóvel" é avulso (sem tabela imoveis por trás) ou vinculado. Função só
 // pra não repetir a mesma condição em 4 lugares (criar/editar/salvar/ficha).
+// v2.0.0-front (E5) — 'imovel' virou 'imovel_predial' na migração da
+// E4.2 fatia B; terreno/fazenda (imovel_territorial) nunca passaram pela
+// tabela imoveis, então nunca entram aqui mesmo.
 function ehImovelAvulso(tipo, entidadeOrigemTipo) {
-    return tipo === 'imovel' && entidadeOrigemTipo !== 'imovel';
+    return tipo === 'imovel_predial' && entidadeOrigemTipo !== 'imovel';
 }
 
 let ativoAtualId = null;
+let _catalogoTiposAtivoCarregado = false;
+
+// E5 — busca o catálogo (ativo_tipos + ativo_tipos_campos) uma vez por
+// sessão. Falha não trava nada: obterCamposPorTipo/listarTiposPorCategoria
+// já degradam sozinhas (fallback hardcoded / seletor de tipo específico
+// vazio) — só loga e tenta de novo na próxima chamada.
+async function garantirCatalogoTiposAtivo() {
+    if (_catalogoTiposAtivoCarregado) return;
+    try {
+        const catalogo = await api.listarTiposAtivo(estado.clienteId);
+        inicializarCatalogoTiposAtivo(catalogo);
+        _catalogoTiposAtivoCarregado = true;
+    } catch (e) {
+        console.error('Catálogo de tipos de ativo indisponível — usando os campos padrão.', e);
+    }
+}
 
 // ============================================================================
 // LISTA (tela Ativos)
@@ -446,8 +488,25 @@ let ativoAtualId = null;
 export function popularSelectTipoAtivo() {
     const sel = document.getElementById('at-tipo');
     if (!sel || sel.options.length) return;
-    sel.innerHTML = ['veiculo', 'veiculo_blindado', 'imovel', 'terreno', 'vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro']
+    // v2.0.0-front (E5) — as 8 categorias macro (E4.1), não mais os 10
+    // valores específicos antigos. O tipo específico (Apartamento, Carro
+    // blindado...) vira o 2º seletor, #at-tipo-detalhe, populado por
+    // categoria via atualizarSelectTipoDetalhe().
+    sel.innerHTML = ['imovel_predial', 'imovel_territorial', 'veiculo', 'embarcacao', 'aeronave', 'vida', 'bem_valor', 'outro']
         .map(t => `<option value="${t}">${rotuloTipoAtivo(t)}</option>`).join('');
+}
+
+// E5 — popula o 2º seletor (tipo específico dentro da categoria
+// escolhida) a partir do catálogo. Sem catálogo carregado ainda, ou
+// categoria sem tipo cadastrado: esconde o seletor — form funciona igual
+// a antes da E5, sem esse nível de detalhe.
+function atualizarSelectTipoDetalhe(categoria, prefixoId, valorAtualId = null) {
+    const sel = document.getElementById(`${prefixoId}tipo-detalhe`);
+    const wrap = document.getElementById(`${prefixoId}tipo-detalhe-wrapper`);
+    if (!sel || !wrap) return;
+    const tipos = listarTiposPorCategoria(categoria);
+    wrap.classList.toggle('hidden', tipos.length === 0);
+    sel.innerHTML = tipos.map(t => `<option value="${t.id}"${t.id === valorAtualId ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('');
 }
 
 export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
@@ -770,6 +829,7 @@ function ativoCardHtml(a) {
 // inline, ex.: formulário de Contrato/Síndico no App).
 export async function abrirFormAtivo() {
     document.getElementById('at-status').textContent = '';
+    await garantirCatalogoTiposAtivo();
     abrirModal('form-ativo-wrapper');
     aoMudarTipoAtivo();
 
@@ -797,8 +857,8 @@ export function fecharFormAtivo() {
 
 export async function aoMudarTipoAtivo() {
     const tipo = document.getElementById('at-tipo').value;
-    document.getElementById('at-origem-imovel-wrapper').classList.toggle('hidden', tipo !== 'imovel');
-    if (tipo === 'imovel') {
+    document.getElementById('at-origem-imovel-wrapper').classList.toggle('hidden', tipo !== 'imovel_predial');
+    if (tipo === 'imovel_predial') {
         const imoveisCliente = await api.listarImoveisDoCliente(estado.clienteId);
         // v1.96.2 (pedido explícito, achado real: "nao traz os campos...
         // nao todos os campos de imovel que tinhamos antes") — opção
@@ -809,6 +869,10 @@ export async function aoMudarTipoAtivo() {
             '<option value="">— nenhum, cadastrar dados avulsos abaixo —</option>' +
             imoveisCliente.map(i => `<option value="${i.id}">${escapeHtml(i.endereco_rua)}, ${escapeHtml(i.endereco_num || '')}</option>`).join('');
     }
+    // E5 — 2º seletor (tipo específico) troca de opções a cada mudança
+    // de categoria; sem valor pré-selecionado (form de criar sempre
+    // parte zerado).
+    atualizarSelectTipoDetalhe(tipo, 'at-');
     atualizarCamposEstruturadosAtivo();
 }
 
@@ -833,15 +897,22 @@ export async function aoMudarTipoAtivo() {
 export function atualizarCamposEstruturadosAtivo() {
     const tipo = document.getElementById('at-tipo').value;
     const selImovel = document.getElementById('at-origem-imovel');
-    const semImovelVinculado = tipo !== 'imovel' || !selImovel || !selImovel.value;
+    const semImovelVinculado = tipo !== 'imovel_predial' || !selImovel || !selImovel.value;
+    // E5 — tipo_detalhe_id (uuid) do 2º seletor, quando existir; some
+    // pra undefined se o seletor não existir ou estiver escondido (sem
+    // tipo específico cadastrado pra essa categoria) — obterCamposPorTipo
+    // trata null igual a "só os campos de categoria", comportamento de
+    // antes da E5.
+    const selDetalhe = document.getElementById('at-tipo-detalhe');
+    const tipoDetalheId = selDetalhe && selDetalhe.value ? selDetalhe.value : null;
     document.getElementById('at-campos-estruturados').innerHTML = semImovelVinculado
-        ? renderizarCamposEstruturados(tipo, {})
+        ? renderizarCamposEstruturados(tipo, {}, 'at-campo-', tipoDetalheId)
         : `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Endereço, IPTU e valor de mercado já vêm de "${escapeHtml(selImovel.options[selImovel.selectedIndex]?.text || 'imóvel selecionado')}" — nada a preencher aqui.</p>`;
 
     // v1.32.0 (E6.2) — bloco de endereço estruturado, só pro caso "imóvel
-    // avulso" (tipo=imovel, nenhum imóvel selecionado acima). Outros tipos
-    // ficam de fora desta entrega — não têm coluna de endereço preenchida
-    // hoje e o plano não pediu pra todos ainda.
+    // avulso" (tipo=imovel_predial, nenhum imóvel selecionado acima).
+    // Outros tipos ficam de fora desta entrega — não têm coluna de
+    // endereço preenchida hoje e o plano não pediu pra todos ainda.
     const wrapEndereco = document.getElementById('at-endereco-wrapper');
     if (wrapEndereco) {
         wrapEndereco.classList.toggle('hidden', !ehImovelAvulso(tipo, null));
@@ -849,8 +920,15 @@ export function atualizarCamposEstruturadosAtivo() {
     }
 }
 
-function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-') {
-    const campos = CAMPOS_POR_TIPO_ATIVO[tipo] || [];
+// E5 — chamado pelo data-action-change do #at-tipo-detalhe: só precisa
+// re-renderizar os campos (o tipo/categoria não mudou), não o resto do
+// form inteiro.
+export function aoMudarTipoDetalheAtivo() {
+    atualizarCamposEstruturadosAtivo();
+}
+
+function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-', tipoDetalheId = null) {
+    const campos = obterCamposPorTipo(tipo, tipoDetalheId);
     return campos.map(c => `
         <div>
             <label class="text-xs font-semibold block mb-1">${escapeHtml(c.label)} ${c.obrigatorio ? '<span style="color:var(--danger)">*</span>' : ''}</label>
@@ -858,8 +936,8 @@ function renderizarCamposEstruturados(tipo, valores, prefixoId = 'at-campo-') {
         </div>`).join('') || `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Sem campos estruturados adicionais para este tipo.</p>`;
 }
 
-function lerCamposEstruturados(tipo, prefixoId = 'at-campo-') {
-    const campos = CAMPOS_POR_TIPO_ATIVO[tipo] || [];
+function lerCamposEstruturados(tipo, prefixoId = 'at-campo-', tipoDetalheId = null) {
+    const campos = obterCamposPorTipo(tipo, tipoDetalheId);
     const dados = {};
     for (const c of campos) {
         const el = document.getElementById(`${prefixoId}${c.chave}`);
@@ -872,9 +950,15 @@ export async function salvarAtivo() {
     const tipo = document.getElementById('at-tipo').value;
     const nome = document.getElementById('at-nome').value.trim();
     const statusEl = document.getElementById('at-status');
-    const dadosEspecificos = lerCamposEstruturados(tipo);
+    // E5 — tipo_detalhe_id (uuid do tipo específico, ex. "Carro blindado")
+    // vem do 2º seletor quando ele existir; completa o que a fatia B da
+    // E4.2 só conseguiu fazer retroativamente pros 131 ativos que já
+    // existiam — ativo novo já nasce com o dado certo.
+    const selDetalhe = document.getElementById('at-tipo-detalhe');
+    const tipoDetalheId = selDetalhe && selDetalhe.value ? selDetalhe.value : null;
+    const dadosEspecificos = lerCamposEstruturados(tipo, 'at-campo-', tipoDetalheId);
 
-    const erros = validarCamposAtivo(tipo, nome, dadosEspecificos);
+    const erros = validarCamposAtivo(tipo, nome, dadosEspecificos, tipoDetalheId);
     if (erros.length) { statusEl.textContent = '⚠️ ' + erros[0]; statusEl.style.color = 'var(--danger)'; return; }
 
     // v1.11.0 (NOVO, 02/09/2026) — mesma validação de soma=100% que o
@@ -891,8 +975,8 @@ export async function salvarAtivo() {
         if (!temNome) { statusEl.textContent = '⚠️ Preencha o sócio/nome de todas as linhas da divisão societária.'; statusEl.style.color = 'var(--danger)'; return; }
     }
 
-    const payload = { cliente_id: estado.clienteId, tipo_ativo: tipo, nome_exibicao: nome, status: 'ativo', dados_especificos: dadosEspecificos, criado_por: estado.pessoa.id };
-    if (tipo === 'imovel') {
+    const payload = { cliente_id: estado.clienteId, tipo_ativo: tipo, tipo_detalhe_id: tipoDetalheId, nome_exibicao: nome, status: 'ativo', dados_especificos: dadosEspecificos, criado_por: estado.pessoa.id };
+    if (tipo === 'imovel_predial') {
         const imovelId = document.getElementById('at-origem-imovel').value;
         if (imovelId) {
             payload.entidade_origem_tipo = 'imovel';
@@ -1650,7 +1734,7 @@ async function montarDadosAtivo(a) {
     // grade acima já tinha tudo (achado direto, pedido explícito: "veja
     // como aparece, ruim, precisa já aparecer os dados do imóvel").
     // Pra ativo SEM imóvel vinculado, comportamento intacto.
-    const camposDefinidos = CAMPOS_POR_TIPO_ATIVO[a.tipo_ativo] || [];
+    const camposDefinidos = obterCamposPorTipo(a.tipo_ativo, a.tipo_detalhe_id);
     const dados = a.dados_especificos || {};
     const valoresPreenchidos = camposDefinidos
         .filter(c => dados[c.chave])
@@ -1712,8 +1796,12 @@ export async function marcarAtivoVendidoAtual() {
 }
 
 // ---- Editar (secundário, dentro do Resumo — Adendo §7.2/§9.2)
-export function alternarEditarAtivo() {
+export async function alternarEditarAtivo() {
     const a = estado.ativoEmFoco;
+    // E5 — garante o catálogo antes de montar o 2º seletor (tipo
+    // específico); se já carregou (abriu o form de criar antes, na mesma
+    // sessão), não busca de novo.
+    await garantirCatalogoTiposAtivo();
     // v1.18.0 (fatia 3b-iii, pedido do Nicola 03/09: "está abrindo
     // formulário dentro da tela e não bottom sheet como os demais") —
     // abre em abrirSheetForm com os MESMOS ids de campo (fa-editar-nome,
@@ -1727,11 +1815,21 @@ export function alternarEditarAtivo() {
     const blocoEndereco = ehImovelAvulso(a.tipo_ativo, a.entidade_origem_tipo)
         ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
         : '';
+    // E5 — tipo específico (dentro da categoria, que continua somente-
+    // leitura — ver nota abaixo) passa a ser editável: corrige um ativo
+    // classificado errado, ou completa um que nunca teve tipo_detalhe_id
+    // (criado antes da E5). Categoria sem tipo cadastrado no catálogo:
+    // tiposDetalhe fica [], o bloco não aparece — comportamento de antes.
+    const tiposDetalhe = listarTiposPorCategoria(a.tipo_ativo);
+    const blocoTipoDetalhe = tiposDetalhe.length
+        ? `<div class="rz-f"><label>Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>`
+        : '';
     if (typeof window.abrirSheetForm === 'function') {
         const campos =
             `<div class="rz-f"><label>Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
+            blocoTipoDetalhe +
             `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
-            `<div class="rz-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-')}</div>` +
+            `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
             blocoEndereco;
         window.abrirSheetForm({ titulo: 'Editar campos do ativo', sub: a.nome_exibicao, corpo: campos, rotuloSalvar: 'Salvar',
             aoSalvar: async () => { const ok = await salvarEdicaoAtivo(); return ok !== false; } });
@@ -1739,27 +1837,44 @@ export function alternarEditarAtivo() {
     }
     const aberto = !document.getElementById('fa-editar-wrapper').classList.contains('hidden');
     if (aberto) { document.getElementById('fa-editar-wrapper').classList.add('hidden'); return; }
-    // Tipo exibido como somente-leitura (pedido explícito, 25/08/2026) —
-    // não é um <select> editável de propósito: mudar o tipo_ativo depois
-    // de criado trocaria todo o conjunto de campos estruturados
-    // (CAMPOS_POR_TIPO_ATIVO), o que exigiria decidir o que fazer com
-    // dados_especificos já preenchidos no formato antigo — fora de
-    // escopo por ora, mas o tipo pelo menos fica visível no formulário
-    // (antes só aparecia no cabeçalho da ficha, fora do form de editar).
+    // Tipo (categoria) exibido como somente-leitura (pedido explícito,
+    // 25/08/2026) — não é um <select> editável de propósito: mudar a
+    // categoria depois de criado trocaria todo o conjunto de campos
+    // estruturados (obterCamposPorTipo), o que exigiria decidir o que
+    // fazer com dados_especificos já preenchidos no formato antigo —
+    // fora de escopo por ora. O TIPO ESPECÍFICO (dentro da categoria) já
+    // não tem esse problema — ver blocoTipoDetalhe acima, a E5 liberou
+    // esse nível.
     document.getElementById('fa-editar-campos').innerHTML =
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500"></div>` +
+        (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>` : '') +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
-        renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-') +
+        `<div id="fa-editar-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
         blocoEndereco;
     document.getElementById('fa-editar-wrapper').classList.remove('hidden');
+}
+
+// E5 — troca do 2º seletor no form de EDITAR: só precisa re-renderizar
+// os campos estruturados com o novo tipo_detalhe (mesmo padrão de
+// aoMudarTipoDetalheAtivo, mas contra o wrapper de edição).
+export function aoMudarTipoDetalheEditarAtivo() {
+    const a = estado.ativoEmFoco;
+    const sel = document.getElementById('fa-editar-tipo-detalhe');
+    const tipoDetalheId = sel && sel.value ? sel.value : null;
+    const wrap = document.getElementById('fa-editar-campos-estruturados');
+    if (wrap) wrap.innerHTML = renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', tipoDetalheId);
 }
 
 export async function salvarEdicaoAtivo() {
     const a = estado.ativoEmFoco;
     const nome = document.getElementById('fa-editar-nome').value.trim();
     if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
-    const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-');
-    const patch = { nome_exibicao: nome, dados_especificos: dados };
+    const selDetalhe = document.getElementById('fa-editar-tipo-detalhe');
+    // Sem seletor no DOM (categoria sem tipo específico cadastrado):
+    // mantém o tipo_detalhe_id que o ativo já tinha, não apaga.
+    const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
+    const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId);
+    const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
     // v1.32.0 (E6.2) — só lê o bloco de endereço se ele foi renderizado
     // (imóvel avulso); nos demais tipos os campos fa-editar-endereco-*
     // não existem no DOM e lerBlocoEndereco devolveria tudo null à toa.

@@ -1,6 +1,19 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.28.0 · 15/09/2026
+// Versão: 1.29.0 · 15/09/2026
+//
+// v1.29.0 — duas mudanças acumuladas nesta sessão, ambas no form de
+// ativo: (1) #at-endereco-wrapper (E6.2, bloco de endereço estruturado
+// pro imóvel avulso) — inserido mais cedo na sessão sem bump de versão
+// aqui, corrigindo agora (achado ao voltar neste arquivo pra E5 — regra
+// é toda entrega evoluir versão em todo arquivo tocado, sem exceção).
+// (2) #at-tipo-detalhe-wrapper (E5, Onda 6, decisão do Nicola "pode
+// evoluir") — 2º seletor, tipo específico dentro da categoria; e
+// filtro-ativo-tipo (modal Buscar/Filtrar) trocou os 8 valores
+// específicos antigos pelas 8 categorias macro (E4.1) — sem isto o
+// filtro "Veículos blindados"/"Vida / proteção" voltaria zero depois da
+// E4.2 fatia B, mesmo problema que GRUPOS_CHIP_TIPO teve e já foi
+// corrigido em cofre-ativos.js v1.32.1.
 //
 // v1.28.0 — PLANO_IMPLEMENTACAO v1.0, etapa E1: os seletores de tipo de item
 // de controle (ic-tipo) e de subtipo (subtipo-tipo) ganham "Taxa" e
@@ -291,7 +304,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.28.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.29.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -536,6 +549,15 @@ export const ATIVOS_MARKUP = `<style>
                     <div>
                         <label class="text-xs font-semibold block mb-1">Tipo de ativo <span style="color:var(--danger)">*</span></label>
                         <select id="at-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-mudou"></select>
+                    </div>
+                    <!-- E5 (15/09/2026) — 2º seletor, tipo específico dentro
+                         da categoria escolhida acima (ex.: categoria Veículo
+                         → Carro/Carro blindado/Moto...). Escondido quando o
+                         catálogo não tem tipo cadastrado pra categoria (ver
+                         atualizarSelectTipoDetalhe em cofre-ativos.js). -->
+                    <div id="at-tipo-detalhe-wrapper" class="hidden">
+                        <label class="text-xs font-semibold block mb-1">Tipo específico</label>
+                        <select id="at-tipo-detalhe" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-detalhe-mudou"></select>
                     </div>
                     <div>
                         <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
@@ -1096,12 +1118,14 @@ export const ATIVOS_MARKUP = `<style>
             <input id="filtro-ativo-busca" type="text" placeholder="Buscar por nome, locatário ou item de controle…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
             <select id="filtro-ativo-tipo" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
                 <option value="">Todos os tipos</option>
+                <!-- E5 (15/09/2026) — categorias macro (E4.1), espelha cofre.html -->
+                <option value="imovel_predial">Imóveis</option>
+                <option value="imovel_territorial">Terrenos</option>
                 <option value="veiculo">Veículos</option>
-                <option value="veiculo_blindado">Veículos blindados</option>
-                <option value="imovel">Imóveis</option>
-                <option value="terreno">Terrenos</option>
-                <option value="vida_protecao">Vida / proteção</option>
-                <option value="obra_arte">Obras de arte</option>
+                <option value="embarcacao">Embarcações</option>
+                <option value="aeronave">Aeronaves</option>
+                <option value="vida">Vida / proteção</option>
+                <option value="bem_valor">Obras de arte / bens de valor</option>
                 <option value="outro">Outros</option>
             </select>
             <select id="filtro-ativo-status" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">

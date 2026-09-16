@@ -10,8 +10,14 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.2
+  Versão     : 1.25.3
   Data       : 15/09/2026
+  CHANGELOG v1.25.3 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão
+               do Nicola, "pode evoluir"): #at-tipo-detalhe-wrapper novo
+               (2º seletor, tipo específico dentro da categoria) e
+               filtro-ativo-tipo trocou os 8 valores antigos pelas 8
+               categorias macro — espelha js/ativos/ativos-markup.js
+               v1.29.0. Sem mudança de lógica aqui, só markup.
   CHANGELOG v1.25.2 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2 (decisão do
                Nicola, 15/09: "do endereço sim pode ser"): #at-endereco-
                wrapper novo no form de novo ativo, espelhando js/ativos/
@@ -32,11 +38,11 @@
                aceite bloqueante sozinhos agora, sem precisar de wrapper.
                cofre.html perdeu 1 linha (tag de script do módulo
                consentimento-app.js, que ficou obsoleto).
-  Linhas     : cofre.html = 3258 · js/cofre-api.js = 1202 · js/cofre-app.js = 935 ·
-               js/cofre-ativos.js = 2093 · js/cofre-controles.js = 1880 ·
+  Linhas     : cofre.html = 3269 · js/cofre-api.js = 1227 · js/cofre-app.js = 945 ·
+               js/cofre-ativos.js = 2218 · js/cofre-controles.js = 1889 ·
                js/cofre-documentos.js = 1734 · js/cofre-estado.js = 186 ·
                js/cofre-navegacao.js = 366 · js/cofre-ui.js = 122 ·
-               js/cofre-validacoes.js = 387 (total js/ = 8905)
+               js/cofre-validacoes.js = 521 (total js/ = 9208)
 
   CHANGELOG v1.23.0 — pedido explícito do Nicola (fechar a "última milha"
   dos Planos de Comunicação): app e bot precisam chamar a MESMA função de
@@ -2404,6 +2410,11 @@
                         <label class="text-xs font-semibold block mb-1">Tipo de ativo <span style="color:var(--danger)">*</span></label>
                         <select id="at-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-mudou"></select>
                     </div>
+                    <!-- E5 (15/09/2026) — espelha js/ativos/ativos-markup.js -->
+                    <div id="at-tipo-detalhe-wrapper" class="hidden">
+                        <label class="text-xs font-semibold block mb-1">Tipo específico</label>
+                        <select id="at-tipo-detalhe" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-detalhe-mudou"></select>
+                    </div>
                     <div>
                         <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
                         <input type="text" id="at-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: Honda Civic 2022">
@@ -2865,12 +2876,18 @@
             <input id="filtro-ativo-busca" type="text" placeholder="Buscar por nome do ativo…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
             <select id="filtro-ativo-tipo" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
                 <option value="">Todos os tipos</option>
+                <!-- E5 (15/09/2026) — categorias macro (E4.1), não mais os
+                     valores específicos antigos (achado: filtro ia ficar
+                     com "Veículos blindados"/"Vida / proteção" retornando
+                     zero depois da E4.2 fatia B, igual GRUPOS_CHIP_TIPO
+                     ficaria sem o fix da v1.32.1). -->
+                <option value="imovel_predial">Imóveis</option>
+                <option value="imovel_territorial">Terrenos</option>
                 <option value="veiculo">Veículos</option>
-                <option value="veiculo_blindado">Veículos blindados</option>
-                <option value="imovel">Imóveis</option>
-                <option value="terreno">Terrenos</option>
-                <option value="vida_protecao">Vida / proteção</option>
-                <option value="obra_arte">Obras de arte</option>
+                <option value="embarcacao">Embarcações</option>
+                <option value="aeronave">Aeronaves</option>
+                <option value="vida">Vida / proteção</option>
+                <option value="bem_valor">Obras de arte / bens de valor</option>
                 <option value="outro">Outros</option>
             </select>
             <button type="button" data-action="limpar-filtro-ativos" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>

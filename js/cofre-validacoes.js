@@ -1,6 +1,26 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 15/09/2026
+// Versão: 2.0.0 · 15/09/2026
+//
+// v2.0.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão do Nicola,
+// "pode evoluir"). QUEBRA DE CONTRATO: `CAMPOS_POR_TIPO_ATIVO` deixou de
+// ser objeto exportado — virou `obterCamposPorTipo(categoria,
+// tipoDetalheId)`, lendo de `ativo_tipos_campos` (catálogo da E4.4, 45
+// campos, nunca tinha consumidor até agora) em vez do objeto hardcoded
+// (que virou `CAMPOS_POR_TIPO_ATIVO_FALLBACK`, não exportado, só usado
+// se o catálogo não carregou). Ganho real sobre a ponte de compatibilidade
+// da v1.4.0: campos por TIPO ESPECÍFICO, não só por categoria —
+// blindagem_empresa/nivel agora só aparecem pra "Carro blindado" de
+// verdade (achado ao construir isto: a ponte v1.4.0 mostrava esses 2
+// campos em TODO veículo, sem necessidade). `listarTiposPorCategoria()`
+// nova, alimenta o 2º seletor (categoria → tipo específico) que
+// cofre-ativos.js v1.33.0 acrescenta ao form. `rotuloTipoAtivo`/
+// `iconeAtivo` NÃO mudaram — ver nota no bloco do catálogo, escopo
+// deliberadamente menor que "catalogar tudo".
+// Ainda não entra nesta entrega: o bot (`_shared.ts`) continua com
+// `TIPOS_ATIVO_VALIDOS`/`SINONIMOS_TIPO_ATIVO` hardcoded — fatia
+// separada, avisada no fim da sessão, não bloqueia esta (catálogo tem
+// fallback idêntico ao comportamento de hoje, nada quebra sem o bot).
 //
 // v1.4.0 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (decisão do Nicola,
 // "pode migrar conforme sugerido os ativos"). ACHADO antes de migrar:
@@ -76,7 +96,7 @@
 // daqui, nunca o contrário.
 // ============================================================================
 
-export const VERSAO = '1.4.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.0.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -166,7 +186,7 @@ export function iconeAtivo(t) {
 // `valor_estimado` adicionado a TODOS os tipos (antes só obra_arte tinha, como
 // `avaliacao_valor` — renomeado/padronizado para permitir somatório de portfólio
 // sem precisar de switch por tipo).
-export const CAMPOS_POR_TIPO_ATIVO = {
+export const CAMPOS_POR_TIPO_ATIVO_FALLBACK = {
     veiculo: [
         { chave: 'placa', label: 'Placa', obrigatorio: true },
         { chave: 'marca', label: 'Marca', obrigatorio: false },
@@ -294,13 +314,59 @@ export const CAMPOS_POR_TIPO_ATIVO = {
     ],
 };
 
+// ============================================================================
+// v2.0.0 (E5) — CATÁLOGO DINÂMICO. cofre-ativos.js chama
+// inicializarCatalogoTiposAtivo() uma vez, cedo (com o retorno de
+// api.listarTiposAtivo(clienteId)), e obterCamposPorTipo/
+// listarTiposPorCategoria passam a ler dali. Enquanto não carregou (ou se
+// falhar — try/catch é responsabilidade de quem chama a API, não daqui),
+// obterCamposPorTipo cai no FALLBACK acima — nenhum comportamento muda
+// pra quem nunca chamar inicializarCatalogoTiposAtivo(). rotuloTipoAtivo/
+// iconeAtivo NÃO entraram nesta troca — catálogo não guarda ícone, e
+// rótulo de categoria (8 valores) já é estável desde a v1.4.0; catalogar
+// isso também seria superfície extra sem ganho real.
+let _catalogoAtivoTipos = null;
+let _catalogoAtivoCampos = null;
+
+export function inicializarCatalogoTiposAtivo({ tipos, campos } = {}) {
+    _catalogoAtivoTipos = Array.isArray(tipos) && tipos.length ? tipos : null;
+    _catalogoAtivoCampos = Array.isArray(campos) && campos.length ? campos : null;
+}
+
+// Tipos específicos (Apartamento, Carro blindado, Pet...) dentro de uma
+// categoria — alimenta o 2º seletor (categoria → tipo específico) do
+// form de ativo. Catálogo vazio/não carregado = lista vazia (o form
+// simplesmente não mostra o 2º seletor, degrada pro comportamento
+// pré-E5, não quebra).
+export function listarTiposPorCategoria(categoria) {
+    if (!_catalogoAtivoTipos) return [];
+    return _catalogoAtivoTipos.filter(t => t.categoria === categoria).map(t => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
+}
+
+// Campos estruturados: categoria sempre, + os específicos do tipo_detalhe
+// escolhido (ex.: blindagem_empresa só aparece com tipoDetalheId = "Carro
+// blindado"). tipoDetalheId omitido = só os campos de categoria (mesmo
+// comportamento de antes de existir o 2º seletor).
+export function obterCamposPorTipo(categoria, tipoDetalheId = null) {
+    if (!_catalogoAtivoCampos) return CAMPOS_POR_TIPO_ATIVO_FALLBACK[categoria] || [];
+    const campos = _catalogoAtivoCampos
+        .filter(c => c.categoria === categoria && (c.tipo_detalhe_id === null || c.tipo_detalhe_id === tipoDetalheId))
+        .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+        .map(c => ({ chave: c.chave, label: c.label, obrigatorio: !!c.obrigatorio, ...(c.tipo_dado && c.tipo_dado !== 'text' ? { tipo: c.tipo_dado } : {}), ...(c.mascarar ? { mascarar: true } : {}) }));
+    // Categoria existe no catálogo mas não tem NENHUM campo cadastrado
+    // (não deveria acontecer — as 8 têm campo hoje) cai no fallback em
+    // vez de mostrar form vazio.
+    return campos.length ? campos : (CAMPOS_POR_TIPO_ATIVO_FALLBACK[categoria] || []);
+}
+
+
 // Retorna lista de mensagens de erro (vazia = válido). Não lança exceção —
 // quem chama decide como mostrar (mesmo padrão dos indicadores inline do
 // Design System).
-export function validarCamposAtivo(tipoAtivo, nomeExibicao, dadosEspecificos) {
+export function validarCamposAtivo(tipoAtivo, nomeExibicao, dadosEspecificos, tipoDetalheId = null) {
     const erros = [];
     if (!nomeExibicao || !nomeExibicao.trim()) erros.push('Nome de exibição é obrigatório.');
-    const campos = CAMPOS_POR_TIPO_ATIVO[tipoAtivo] || [];
+    const campos = obterCamposPorTipo(tipoAtivo, tipoDetalheId);
     for (const campo of campos) {
         if (campo.obrigatorio && !(dadosEspecificos && dadosEspecificos[campo.chave])) {
             erros.push(`${campo.label} é obrigatório para este tipo de ativo.`);

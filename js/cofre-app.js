@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.0 · 10/09/2026
+// Versão: 1.32.1 · 15/09/2026
+//
+// v1.32.1 — PLANO_IMPLEMENTACAO v1.0, etapa E5: 2 cases novos no
+// despachante de data-action-change, pro 2º seletor (tipo específico)
+// que cofre-ativos.js v1.33.0 acrescenta ao form de ativo — um pro form
+// de criar, outro pro de editar (prefixos de campo diferentes).
 //
 // v1.32.0 — BUG REAL achado pelo Nicola (10/09): "Documentos arquivados"
 // (v1.31.0) tinha ido pro modal-menu-conta de ativos-markup.js — morto
@@ -264,7 +269,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.32.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.1'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -619,6 +624,11 @@ document.addEventListener('change', async (ev) => {
         // de "Qual imóvel?", não só à troca de tipo (ver
         // atualizarCamposEstruturadosAtivo() em cofre-ativos.js).
         case 'ativo-imovel-origem-mudou': ativos.atualizarCamposEstruturadosAtivo(); break;
+        // E5 — 2º seletor (tipo específico dentro da categoria), um case
+        // pro form de criar e outro pro de editar (wrappers/prefixos de
+        // campo diferentes, ver cofre-ativos.js).
+        case 'ativo-tipo-detalhe-mudou': ativos.aoMudarTipoDetalheAtivo(); break;
+        case 'ativo-tipo-detalhe-editar-mudou': ativos.aoMudarTipoDetalheEditarAtivo(); break;
         case 'upload-vinculo-tipo-mudou': await docs.aoMudarTipoVinculoUpload(); break;
         case 'uc-categoria-mudou': docs.aplicarPadroesCategoriaUpload(); break;
         case 'uc-tipo-doc-mudou': docs.aoMudarTipoDocUpload(); break; // v1.27.0

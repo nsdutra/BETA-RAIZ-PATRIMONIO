@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.25.0 · 15/09/2026
+// Versão: 1.26.0 · 15/09/2026
+//
+// v1.26.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5 (decisão do Nicola,
+// "pode evoluir" — Onda 6 do plano). Nova listarTiposAtivo(clienteId):
+// busca ativo_tipos + ativo_tipos_campos (catálogo criado na E4.1/E4.4,
+// até aqui só usado pra estampar tipo_detalhe_id retroativamente — nunca
+// tinha um consumidor no front). cofre-validacoes.js v2.0.0 usa isto pra
+// alimentar o cache que passa a decidir rótulo/ícone/campos por tipo de
+// ativo, com fallback pras constantes hardcoded se a busca falhar (R1 do
+// plano). Uma chamada só, 2 tabelas pequenas (36+45 linhas) — cache de
+// sessão, não precisa buscar de novo a cada tela.
 //
 // v1.25.0 — PLANO_IMPLEMENTACAO v1.0, etapa E0.2 (achado A8):
 // listarSubtiposControle() ganha o parâmetro opcional `tipoAtivo` e filtra
@@ -212,7 +222,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.25.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.26.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -579,6 +589,21 @@ export async function buscarCandidatosImovel(clienteId, termo) {
 // ============================================================================
 // ATIVOS
 // ============================================================================
+// v1.26.0 (E5) — catálogo dinâmico de tipos de ativo (ativo_tipos +
+// ativo_tipos_campos), pra substituir as listas hardcoded de
+// cofre-validacoes.js. cliente_id filtra tipos globais (cliente_id null)
+// + eventuais tipos próprios do tenant (nenhum hoje, mas a coluna existe
+// pra isso). Sem paginação — 36 tipos + 45 campos, cabe numa chamada.
+export async function listarTiposAtivo(clienteId) {
+    const [tipos, campos] = await Promise.all([
+        dbAuth.from('ativo_tipos').select('*').or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true).order('categoria', { ascending: true }).order('ordem', { ascending: true }),
+        dbAuth.from('ativo_tipos_campos').select('*').eq('ativo', true).order('categoria', { ascending: true }).order('ordem', { ascending: true }),
+    ]);
+    if (tipos.error) throw tipos.error;
+    if (campos.error) throw campos.error;
+    return { tipos: tipos.data || [], campos: campos.data || [] };
+}
+
 export async function listarAtivos(clienteId) {
     const { data, error } = await dbAuth.from('cofre_ativos').select('*').eq('cliente_id', clienteId).eq('status', 'ativo').order('criado_em', { ascending: false });
     if (error) throw error;
