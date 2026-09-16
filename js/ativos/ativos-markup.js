@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.33.0 · 15/09/2026
+// Versão: 1.34.0 · 16/09/2026
+//
+// v1.34.0 — feedback do teste real (16/09/2026): #at-empreendimento-
+// valor-wrapper novo, posicionado logo depois de #at-tipo-detalhe-
+// wrapper (antes do bloco de campos específicos) — empreendimento saiu
+// do #at-imovel-wrapper, é universal agora. #at-endereco-wrapper e
+// #at-imovel-wrapper com espaçamento mais compacto (gap-3 → gap-2/sem
+// grid próprio, o de dentro já define).
 //
 // v1.33.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"). #at-imovel-
 // wrapper novo, ao lado do #at-endereco-wrapper — campos da Fase 1/2
@@ -321,7 +328,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.33.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.34.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -576,6 +583,15 @@ export const ATIVOS_MARKUP = `<style>
                         <label class="text-xs font-semibold block mb-1">Tipo específico</label>
                         <select id="at-tipo-detalhe" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-detalhe-mudou"></select>
                     </div>
+                    <!-- E15.2 (achado no teste real, 15/09/2026: "deve aparecer
+                         para os demais ativos também e não apenas imóvel") —
+                         empreendimento/valor de referência valem pra
+                         QUALQUER tipo de ativo (Fase 1 sempre foi desenhada
+                         assim — só a UI que tinha ficado presa dentro do
+                         bloco só-imóvel). Logo abaixo de Tipo específico,
+                         por pedido explícito (antes ficava lá embaixo,
+                         depois do endereço). -->
+                    <div id="at-empreendimento-valor-wrapper" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <div>
                         <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
                         <input type="text" id="at-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: Honda Civic 2022">
@@ -599,16 +615,24 @@ export const ATIVOS_MARKUP = `<style>
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <!-- E6.2 (15/09/2026) — bloco de endereço estruturado (js/comum-
-                         endereco.js), só aparece quando o tipo é "imovel" avulso
-                         (sem "Qual imóvel?" selecionado acima) — cofre-ativos.js
-                         atualizarCamposEstruturadosAtivo() mostra/esconde e
-                         preenche o innerHTML. -->
-                    <div id="at-endereco-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                         endereco.js), só aparece quando o tipo é categoria imóvel
+                         (E15.2: predial OU territorial, avulso ou vinculado) —
+                         cofre-ativos.js atualizarCamposEstruturadosAtivo()
+                         mostra/esconde e preenche o innerHTML.
+                         E15.2 (achado no teste real: espaçamento estranho) —
+                         SEM grid aqui: os campos deste bloco (.rz-f, ver
+                         comum-endereco.js) já se organizam sozinhos (cada um
+                         é uma linha cheia, com os agrupamentos número+
+                         complemento e cidade+UF em flex row PRÓPRIO) — forçar
+                         grid-cols-2 por fora quebrava esse desenho, espalhando
+                         os campos em células que não foram pensadas pra isso. -->
+                    <div id="at-endereco-wrapper" class="hidden sm:col-span-2"></div>
                     <!-- E15.2 ("A2", 15/09/2026) — Fase 1/2 da DE_PARA_
-                         IMOVEIS_ATIVOS (empreendimento, valor de referência,
-                         área, finalidade/situação de uso, observação) —
-                         mesmo escopo do endereço acima (só imóvel avulso). -->
-                    <div id="at-imovel-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                         IMOVEIS_ATIVOS (área, finalidade/situação de uso,
+                         aluguel esperado quando comercial, observação) — só
+                         categoria imóvel (empreendimento/valor saíram daqui,
+                         ver wrapper universal acima). -->
+                    <div id="at-imovel-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                     <!-- v1.11.0 (NOVO, 02/09/2026, pedido explícito: "durante a
                          criação de um novo ativo, seguir a mesma regra e
                          funcionalidade de um novo imóvel antigamente") —

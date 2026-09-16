@@ -10,8 +10,11 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.7
-  Data       : 15/09/2026
+  Versão     : 1.25.8
+  Data       : 16/09/2026
+  CHANGELOG v1.25.8 — feedback do teste real (16/09/2026): #at-
+               empreendimento-valor-wrapper novo, reposicionado — espelha
+               js/ativos/ativos-markup.js v1.34.0.
   CHANGELOG v1.25.7 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), Onda
                12: #at-imovel-wrapper novo — espelha js/ativos/
                ativos-markup.js v1.33.0.
@@ -61,11 +64,11 @@
                aceite bloqueante sozinhos agora, sem precisar de wrapper.
                cofre.html perdeu 1 linha (tag de script do módulo
                consentimento-app.js, que ficou obsoleto).
-  Linhas     : cofre.html = 3237 · js/cofre-api.js = 1296 · js/cofre-app.js = 951 ·
-               js/cofre-ativos.js = 2378 · js/cofre-controles.js = 1915 ·
+  Linhas     : cofre.html = 3244 · js/cofre-api.js = 1296 · js/cofre-app.js = 951 ·
+               js/cofre-ativos.js = 2544 · js/cofre-controles.js = 1915 ·
                js/cofre-documentos.js = 1760 · js/cofre-estado.js = 186 ·
                js/cofre-navegacao.js = 372 · js/cofre-ui.js = 122 ·
-               js/cofre-validacoes.js = 521 (total js/ = 9501)
+               js/cofre-validacoes.js = 521 (total js/ = 9667)
 
   CHANGELOG v1.23.0 — pedido explícito do Nicola (fechar a "última milha"
   dos Planos de Comunicação): app e bot precisam chamar a MESMA função de
@@ -2438,6 +2441,8 @@
                         <label class="text-xs font-semibold block mb-1">Tipo específico</label>
                         <select id="at-tipo-detalhe" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-detalhe-mudou"></select>
                     </div>
+                    <!-- E15.2 — espelha js/ativos/ativos-markup.js -->
+                    <div id="at-empreendimento-valor-wrapper" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <div>
                         <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
                         <input type="text" id="at-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: Honda Civic 2022">
@@ -2448,10 +2453,12 @@
                         <p class="raiz-indicador-inline" style="color:var(--sage)">Não duplica dados — este ativo só guarda documentos/fotos/alertas específicos do Cofre; o imóvel em si continua em Imóveis.</p>
                     </div>
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-                    <!-- E6.2 (15/09/2026) — espelha js/ativos/ativos-markup.js v1.28.0 -->
-                    <div id="at-endereco-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <!-- E6.2 — espelha js/ativos/ativos-markup.js. E15.2: sem
+                         grid forçado (achado no teste real — ver comentário
+                         lá, os campos deste bloco já se organizam sozinhos). -->
+                    <div id="at-endereco-wrapper" class="hidden sm:col-span-2"></div>
                     <!-- E15.2 — espelha js/ativos/ativos-markup.js -->
-                    <div id="at-imovel-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    <div id="at-imovel-wrapper" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:14px;">
                     <button data-action="salvar-ativo" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar ativo</button>

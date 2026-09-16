@@ -1,6 +1,24 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.36.0 · 15/09/2026
+// Versão: 1.37.0 · 16/09/2026
+//
+// v1.37.0 — feedback do teste real (Rumo, "Rua Outono, 998", 16/09/2026):
+// (1) Empreendimento virou bloco PRÓPRIO, universal (qualquer tipo de
+// ativo sem vínculo com imóvel real, não só categoria imóvel) —
+// renderizarBlocoEmpreendimentoValor(), reposicionado logo abaixo de
+// "Tipo específico" (antes vinha depois de todo o bloco de endereço).
+// (2) Espaçamento dos blocos de endereço/imóvel reduzido (gap-3 → gap-2).
+// (3) "Aluguel esperado (R$)" novo — só aparece quando finalidade de uso
+// é comercial (FINALIDADES_USO_ATIVO ganhou a flag `comercial`); pergunta
+// direta do Nicola no teste ("qual campo é isso?") — resposta: não
+// existia. Grava em dados_especificos.aluguel_desejado SEMPRE (avulso e
+// vinculado) — não sincroniza com `imoveis`, decisão do documento
+// DE_PARA (é conceito diferente de valor_referencia/valor_mercado).
+// (4) `valor_estimado` (dados_especificos, campo antigo de
+// CAMPOS_POR_TIPO_ATIVO) desativado no catálogo pra imovel_predial/
+// imovel_territorial — ficava redundante com valor_referencia (Fase 1)
+// desde que ela nasceu, e ninguém tinha desligado o antigo ainda. Achado
+// pela pergunta do Nicola "quais dos 2 campos de valor é qual".
 //
 // v1.36.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.2 ("A2"), conclusão
 // (decisão do Nicola: "quero desligar o form de imóveis... vamos
@@ -478,7 +496,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.36.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.37.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -581,27 +599,33 @@ function atualizarSelectTipoDetalhe(categoria, prefixoId, valorAtualId = null) {
 }
 
 // E15.2 ("A2") — campos que a DE_PARA_IMOVEIS_ATIVOS Fase 1/2 promoveu
-// pra coluna própria de cofre_ativos (valor_referencia, area_m2,
-// finalidade_uso, situacao_uso, observacao) + empreendimento_id — NÃO
-// são campo de dados_especificos, por isso não passam por
-// obterCamposPorTipo; têm renderização própria, mesmo espírito do bloco
-// de endereço (comum-endereco.js). Só pro imóvel avulso, mesmo escopo
-// de sempre — imóvel vinculado a `imoveis` continua editando por lá até
-// o form legado ser desligado de vez (ainda não é o caso).
+// pra coluna própria de cofre_ativos + empreendimento_id — NÃO são campo
+// de dados_especificos, por isso não passam por obterCamposPorTipo; têm
+// renderização própria, mesmo espírito do bloco de endereço.
+//
+// Achado no teste real do Nicola (16/09/2026): empreendimento e valor de
+// referência valem pra QUALQUER ativo (Fase 1 sempre foi desenhada
+// assim), não só imóvel — viraram bloco PRÓPRIO, universal, separado do
+// resto (área/finalidade/situação/observação — esses sim continuam só
+// categoria imóvel, não fazem sentido pra um carro).
 const FINALIDADES_USO_ATIVO = [
-    { v: 'uso_proprio', l: 'Uso próprio' }, { v: 'long_stay', l: 'Locação longa (long stay)' },
-    { v: 'short_stay', l: 'Locação curta (short stay)' }, { v: 'comodato', l: 'Comodato' },
-    { v: 'arrendamento', l: 'Arrendamento' }, { v: 'revenda', l: 'Revenda' }, { v: 'ocioso', l: 'Ocioso' },
+    { v: 'uso_proprio', l: 'Uso próprio', comercial: false },
+    { v: 'long_stay', l: 'Locação longa (long stay)', comercial: true },
+    { v: 'short_stay', l: 'Locação curta (short stay)', comercial: true },
+    { v: 'comodato', l: 'Comodato', comercial: false },
+    { v: 'arrendamento', l: 'Arrendamento', comercial: true },
+    { v: 'revenda', l: 'Revenda', comercial: true },
+    { v: 'ocioso', l: 'Ocioso', comercial: false },
 ];
 const SITUACOES_USO_ATIVO = [
     { v: 'disponivel', l: 'Disponível' }, { v: 'alugado', l: 'Alugado' }, { v: 'em_uso', l: 'Em uso' },
     { v: 'reservado', l: 'Reservado' }, { v: 'assinando', l: 'Assinando' }, { v: 'manutencao', l: 'Manutenção' }, { v: 'em_breve', l: 'Em breve' },
 ];
 
-function renderizarBlocoImovel(prefixo, v = {}, empreendimentos = []) {
-    const optSel = (val, campo) => val === (v[campo] || '') ? ' selected' : '';
+// Universal — qualquer tipo de ativo.
+function renderizarBlocoEmpreendimentoValor(prefixo, v = {}, empreendimentos = []) {
     return `
-        <div class="sm:col-span-2">
+        <div>
             <label class="text-xs font-semibold block mb-1">Empreendimento</label>
             <select id="${prefixo}empreendimento-id" onchange="window.__ativoMudarEmpreendimento('${prefixo}')" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
                 <option value="">— nenhum —</option>
@@ -614,13 +638,52 @@ function renderizarBlocoImovel(prefixo, v = {}, empreendimentos = []) {
             <label class="text-xs font-semibold block mb-1">Valor de referência (R$)</label>
             <input type="number" step="0.01" id="${prefixo}valor-referencia" value="${v.valor_referencia ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
         </div>
+    `;
+}
+
+window.__ativoMudarEmpreendimento = function (prefixo) {
+    const sel = document.getElementById(prefixo + 'empreendimento-id');
+    const input = document.getElementById(prefixo + 'empreendimento-novo-nome');
+    if (input) input.classList.toggle('hidden', sel?.value !== '__novo__');
+};
+
+// find-or-create do empreendimento "novo" (se escolhido) + leitura do
+// valor. Async por causa do criarEmpreendimentoRapido.
+async function lerBlocoEmpreendimentoValor(prefixo, clienteId) {
+    const selEmp = document.getElementById(prefixo + 'empreendimento-id');
+    let empreendimentoId = selEmp ? selEmp.value : '';
+    if (empreendimentoId === '__novo__') {
+        const nomeNovo = document.getElementById(prefixo + 'empreendimento-novo-nome')?.value.trim();
+        empreendimentoId = nomeNovo ? (await api.criarEmpreendimentoRapido(clienteId, nomeNovo)).id : '';
+    }
+    const valorEl = document.getElementById(prefixo + 'valor-referencia');
+    const valorReferencia = valorEl?.value?.trim() ? parseFloat(valorEl.value.trim()) : null;
+    return {
+        empreendimento_id: empreendimentoId || null,
+        valor_referencia: valorReferencia,
+        valor_referencia_em: valorReferencia !== null ? new Date().toISOString().slice(0, 10) : null,
+    };
+}
+
+// Só categoria imóvel. Aluguel esperado (achado no teste real: pergunta
+// direta do Nicola — "qual campo é o aluguel esperado?" — resposta:
+// nenhum, ele não existia) só aparece quando a finalidade de uso é
+// comercial (documento DE_PARA §5: valor de aluguel é
+// dados_especificos.aluguel_desejado, NUNCA imoveis.valor_mercado/
+// cofre_ativos.valor_referencia — são conceitos diferentes: um é o que
+// se pede pra alugar, o outro é quanto o bem vale).
+function renderizarBlocoImovel(prefixo, v = {}) {
+    const optSel = (val, campo) => val === (v[campo] || '') ? ' selected' : '';
+    const finalidadeInfo = FINALIDADES_USO_ATIVO.find(f => f.v === (v.finalidade_uso || ''));
+    const aluguelVisivel = finalidadeInfo?.comercial ? '' : ' hidden';
+    return `
         <div>
             <label class="text-xs font-semibold block mb-1">Área (m²)</label>
             <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
         </div>
         <div>
             <label class="text-xs font-semibold block mb-1">Finalidade de uso</label>
-            <select id="${prefixo}finalidade-uso" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+            <select id="${prefixo}finalidade-uso" onchange="window.__ativoMudarFinalidadeUso('${prefixo}')" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
                 <option value=""${optSel('', 'finalidade_uso')}>— não informado —</option>
                 ${FINALIDADES_USO_ATIVO.map(f => `<option value="${f.v}"${optSel(f.v, 'finalidade_uso')}>${f.l}</option>`).join('')}
             </select>
@@ -632,6 +695,10 @@ function renderizarBlocoImovel(prefixo, v = {}, empreendimentos = []) {
                 ${SITUACOES_USO_ATIVO.map(s => `<option value="${s.v}"${optSel(s.v, 'situacao_uso')}>${s.l}</option>`).join('')}
             </select>
         </div>
+        <div id="${prefixo}aluguel-wrapper" class="${aluguelVisivel}">
+            <label class="text-xs font-semibold block mb-1">Aluguel esperado (R$)</label>
+            <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
+        </div>
         <div class="sm:col-span-2">
             <label class="text-xs font-semibold block mb-1">Observação</label>
             <textarea id="${prefixo}observacao" rows="2" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">${escapeHtml(v.observacao || '')}</textarea>
@@ -639,32 +706,31 @@ function renderizarBlocoImovel(prefixo, v = {}, empreendimentos = []) {
     `;
 }
 
-window.__ativoMudarEmpreendimento = function (prefixo) {
-    const sel = document.getElementById(prefixo + 'empreendimento-id');
-    const input = document.getElementById(prefixo + 'empreendimento-novo-nome');
-    if (input) input.classList.toggle('hidden', sel?.value !== '__novo__');
+window.__ativoMudarFinalidadeUso = function (prefixo) {
+    const sel = document.getElementById(prefixo + 'finalidade-uso');
+    const wrap = document.getElementById(prefixo + 'aluguel-wrapper');
+    if (!wrap) return;
+    const f = FINALIDADES_USO_ATIVO.find(x => x.v === sel?.value);
+    wrap.classList.toggle('hidden', !f?.comercial);
 };
 
-// find-or-create do empreendimento "novo" (se escolhido) + leitura dos
-// outros 5 campos. Async por causa do criarEmpreendimentoRapido.
-async function lerBlocoImovel(prefixo, clienteId) {
-    const selEmp = document.getElementById(prefixo + 'empreendimento-id');
-    let empreendimentoId = selEmp ? selEmp.value : '';
-    if (empreendimentoId === '__novo__') {
-        const nomeNovo = document.getElementById(prefixo + 'empreendimento-novo-nome')?.value.trim();
-        empreendimentoId = nomeNovo ? (await api.criarEmpreendimentoRapido(clienteId, nomeNovo)).id : '';
-    }
+// Só categoria imóvel. Devolve { camposImovel, aluguelDesejado } —
+// camposImovel segue o destino de sempre (imoveis × cofre_ativos, ver
+// salvarEdicaoAtivo/salvarAtivo); aluguelDesejado é SEMPRE
+// dados_especificos, nos 2 casos (não precisa do sincronismo com
+// `imoveis` que o resto do bloco tem — decisão do documento DE_PARA).
+// Síncrona agora (empreendimento saiu pra lerBlocoEmpreendimentoValor).
+function lerBlocoImovel(prefixo) {
     const num = (id) => { const v = document.getElementById(prefixo + id)?.value?.trim(); return v ? parseFloat(v) : null; };
     const txt = (id) => { const v = document.getElementById(prefixo + id)?.value?.trim(); return v || null; };
-    const valorReferencia = num('valor-referencia');
     return {
-        empreendimento_id: empreendimentoId || null,
-        valor_referencia: valorReferencia,
-        valor_referencia_em: valorReferencia !== null ? new Date().toISOString().slice(0, 10) : null,
-        area_m2: num('area-m2'),
-        finalidade_uso: txt('finalidade-uso'),
-        situacao_uso: txt('situacao-uso'),
-        observacao: txt('observacao'),
+        camposImovel: {
+            area_m2: num('area-m2'),
+            finalidade_uso: txt('finalidade-uso'),
+            situacao_uso: txt('situacao-uso'),
+            observacao: txt('observacao'),
+        },
+        aluguelDesejado: num('aluguel-desejado'),
     };
 }
 
@@ -1069,24 +1135,30 @@ export function atualizarCamposEstruturadosAtivo() {
         ? renderizarCamposEstruturados(tipo, {}, 'at-campo-', tipoDetalheId)
         : `<p class="text-xs sm:col-span-2" style="color:var(--sage)">Endereço, IPTU e valor de mercado já vêm de "${escapeHtml(selImovel.options[selImovel.selectedIndex]?.text || 'imóvel selecionado')}" — nada a preencher aqui.</p>`;
 
+    // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
+    // referência valem pra QUALQUER tipo de ativo, não só imóvel. Mesma
+    // regra de "sem vínculo" que os campos específicos acima usam
+    // (semImovelVinculado): se já tem imóvel selecionado, esses dados já
+    // existem nele, nada a duplicar aqui.
+    const wrapEmpVal = document.getElementById('at-empreendimento-valor-wrapper');
+    if (wrapEmpVal) wrapEmpVal.innerHTML = semImovelVinculado ? renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || []) : '';
+
     // v1.32.0 (E6.2) — bloco de endereço estruturado, só pro caso "imóvel
-    // avulso" (tipo=imovel_predial, nenhum imóvel selecionado acima).
-    // Outros tipos ficam de fora desta entrega — não têm coluna de
-    // endereço preenchida hoje e o plano não pediu pra todos ainda.
+    // avulso" (categoria imóvel, nenhum imóvel selecionado acima).
     const wrapEndereco = document.getElementById('at-endereco-wrapper');
     if (wrapEndereco) {
         wrapEndereco.classList.toggle('hidden', !ehImovelAvulso(tipo, null));
         if (ehImovelAvulso(tipo, null)) wrapEndereco.innerHTML = renderizarBlocoEndereco('at-endereco', {}, { mostrarBotaoCopiar: false });
     }
 
-    // E15.2 ("A2") — bloco novo (empreendimento, valor de referência,
-    // área, finalidade/situação de uso, observação) — Fase 1/2 da
-    // DE_PARA_IMOVEIS_ATIVOS, mesmo escopo do endereço acima (só imóvel
-    // avulso). _empreendimentosCache já foi carregado em abrirFormAtivo.
+    // E15.2 ("A2") — bloco (área, finalidade/situação de uso, aluguel
+    // esperado, observação) — Fase 1/2 da DE_PARA_IMOVEIS_ATIVOS, só
+    // imóvel avulso (empreendimento/valor saíram pro bloco universal
+    // acima). _empreendimentosCache já foi carregado em abrirFormAtivo.
     const wrapImovel = document.getElementById('at-imovel-wrapper');
     if (wrapImovel) {
         wrapImovel.classList.toggle('hidden', !ehImovelAvulso(tipo, null));
-        if (ehImovelAvulso(tipo, null)) wrapImovel.innerHTML = renderizarBlocoImovel('at-imovel-', {}, _empreendimentosCache || []);
+        if (ehImovelAvulso(tipo, null)) wrapImovel.innerHTML = renderizarBlocoImovel('at-imovel-', {});
     }
 }
 
@@ -1151,21 +1223,28 @@ export async function salvarAtivo() {
         if (imovelId) {
             payload.entidade_origem_tipo = 'imovel';
             payload.entidade_origem_id = imovelId;
-        } else {
-            // v1.32.0 (E6.2) — BUG REAL corrigido: a opção "— nenhum,
-            // cadastrar dados avulsos abaixo —" existe no seletor desde a
-            // v1.96.2, mas até aqui salvarAtivo() sempre exigia um
-            // imovelId e bloqueava o salvamento com "Selecione o imóvel"
-            // mesmo quando a pessoa escolhia essa opção de propósito — a
-            // tela mostrava os campos avulsos e depois recusava salvar.
-            // Endereço estruturado (E6.1/E6.2) entra direto nas colunas
-            // de cofre_ativos, não em dados_especificos.
+        }
+    }
+    // v1.32.0 (E6.2) — BUG REAL corrigido: a opção "— nenhum, cadastrar
+    // dados avulsos abaixo —" existe no seletor desde a v1.96.2, mas até
+    // aqui salvarAtivo() sempre exigia um imovelId e bloqueava o
+    // salvamento com "Selecione o imóvel" mesmo quando a pessoa escolhia
+    // essa opção de propósito. Endereço estruturado (E6.1/E6.2) entra
+    // direto nas colunas de cofre_ativos, não em dados_especificos.
+    //
+    // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
+    // referência agora são universais (qualquer tipo de ativo sem vínculo
+    // com imóvel real); área/finalidade/situação/aluguel/observação
+    // continuam só categoria imóvel. Aluguel esperado vai pra
+    // dados_especificos SEMPRE (não é campo que sincroniza com `imoveis`
+    // — decisão do documento DE_PARA, diferente do resto do bloco).
+    if (payload.entidade_origem_tipo !== 'imovel') {
+        Object.assign(payload, await lerBlocoEmpreendimentoValor('at-empval-', estado.clienteId));
+        if (ehCategoriaImovel(tipo)) {
             Object.assign(payload, lerBlocoEndereco('at-endereco'));
-            // E15.2 — mesmo raciocínio, pros campos da Fase 1/2 (valor_
-            // referencia, area_m2, finalidade_uso, situacao_uso,
-            // observacao, empreendimento_id). Pode criar empreendimento
-            // novo (find-or-create), por isso await aqui dentro.
-            Object.assign(payload, await lerBlocoImovel('at-imovel-', estado.clienteId));
+            const { camposImovel, aluguelDesejado } = lerBlocoImovel('at-imovel-');
+            Object.assign(payload, camposImovel);
+            if (aluguelDesejado !== null) payload.dados_especificos.aluguel_desejado = aluguelDesejado;
         }
     }
 
@@ -2019,11 +2098,15 @@ export async function alternarEditarAtivo() {
     // vinculado ou avulso — não só avulso como antes. salvarEdicaoAtivo()
     // decide pra onde escrever (imoveis × cofre_ativos) por baixo; aqui
     // só decide SE mostra.
+    // Achado no teste real, 16/09/2026: empreendimento/valor de
+    // referência viraram bloco PRÓPRIO, universal (qualquer tipo de
+    // ativo, não só imóvel) — ver renderizarBlocoEmpreendimentoValor.
+    const blocoEmpreendimentoValor = `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoEmpreendimentoValor('fa-editar-empval-', a, _empreendimentosCache || [])}</div>`;
     const blocoEndereco = ehCategoriaImovel(a.tipo_ativo)
         ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
         : '';
     const blocoImovel = ehCategoriaImovel(a.tipo_ativo)
-        ? `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoImovel('fa-editar-imovel-', a, _empreendimentosCache || [])}</div>`
+        ? `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-2">${renderizarBlocoImovel('fa-editar-imovel-', a)}</div>`
         : '';
     // E5 — tipo específico (dentro da categoria, que continua somente-
     // leitura — ver nota abaixo) passa a ser editável: corrige um ativo
@@ -2044,7 +2127,7 @@ export async function alternarEditarAtivo() {
     if (typeof window.abrirSheetForm === 'function') {
         const campos =
             `<div class="rz-f"><label>Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled></div>` +
-            blocoTipoDetalhe +
+            blocoTipoDetalhe + blocoEmpreendimentoValor +
             `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}"></div>` +
             `<div class="rz-campos-estruturados" id="fa-editar-campos-estruturados">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
             blocoEndereco + blocoImovel;
@@ -2067,6 +2150,7 @@ export async function alternarEditarAtivo() {
         (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label>${vinculado
             ? `<input type="text" value="${escapeHtml(tiposDetalhe.find(t => t.id === a.tipo_detalhe_id)?.nome || '—')}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500">`
             : `<select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select>`}</div>` : '') +
+        blocoEmpreendimentoValor +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
         `<div id="fa-editar-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
         blocoEndereco + blocoImovel;
@@ -2096,6 +2180,11 @@ export async function salvarEdicaoAtivo() {
     const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId);
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
+    // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
+    // referência são universais agora (qualquer tipo de ativo); pra
+    // vinculado, entram no MESMO imoveisPatch abaixo (não em
+    // cofre_ativos direto) — o gatilho espelha de volta sozinho.
+    const empValLido = await lerBlocoEmpreendimentoValor('fa-editar-empval-', estado.clienteId);
     // v1.32.0 (E6.2) — só lê os blocos de endereço/imóvel se foram
     // renderizados (categoria imóvel); nos demais tipos os campos não
     // existem no DOM.
@@ -2104,28 +2193,34 @@ export async function salvarEdicaoAtivo() {
     // imoveis sem login, tem que continuar a fonte de verdade até a
     // E15.3. trg_imovel_atualiza_ativo (banco) espelha o resultado pra
     // cofre_ativos sozinho — nenhum 2º UPDATE precisa sair daqui.
+    // Aluguel esperado é SEMPRE dados_especificos, nos 2 casos — não
+    // sincroniza com `imoveis` (decisão do documento DE_PARA).
     if (ehCategoriaImovel(a.tipo_ativo)) {
         const enderecoLido = lerBlocoEndereco('fa-editar-endereco');
-        const imovelLido = await lerBlocoImovel('fa-editar-imovel-', estado.clienteId);
+        const { camposImovel, aluguelDesejado } = lerBlocoImovel('fa-editar-imovel-');
+        if (aluguelDesejado !== null) dados.aluguel_desejado = aluguelDesejado;
         if (ehImovelVinculado(a.entidade_origem_tipo)) {
             const imoveisPatch = {
                 endereco_rua: enderecoLido.endereco_rua, endereco_num: enderecoLido.endereco_num,
                 endereco_comp: enderecoLido.endereco_comp, endereco_bairro: enderecoLido.endereco_bairro,
                 endereco_cidade: enderecoLido.endereco_cidade, uf: enderecoLido.uf, cep: enderecoLido.cep,
                 codigo_ibge_municipio: enderecoLido.codigo_ibge_municipio,
-                empreendimento_id: imovelLido.empreendimento_id,
-                valor_mercado: imovelLido.valor_referencia,
-                tamanho: imovelLido.area_m2,
-                finalidade_uso: imovelLido.finalidade_uso,
-                status: imovelLido.situacao_uso,
-                descricao: imovelLido.observacao,
+                empreendimento_id: empValLido.empreendimento_id,
+                valor_mercado: empValLido.valor_referencia,
+                tamanho: camposImovel.area_m2,
+                finalidade_uso: camposImovel.finalidade_uso,
+                status: camposImovel.situacao_uso,
+                descricao: camposImovel.observacao,
             };
             try {
                 await api.atualizarImovel(a.entidade_origem_id, imoveisPatch);
             } catch (err) { mostrarToast('Erro ao salvar dados do imóvel: ' + err.message, 'erro'); return false; }
         } else {
-            Object.assign(patch, enderecoLido, imovelLido);
+            Object.assign(patch, enderecoLido, camposImovel, empValLido);
         }
+    } else {
+        // não-imóvel: só empreendimento/valor, direto em cofre_ativos
+        Object.assign(patch, empValLido);
     }
     try {
         await api.atualizarAtivo(a.id, patch);
