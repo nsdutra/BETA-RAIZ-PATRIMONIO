@@ -1,7 +1,13 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.1.0 · 16/09/2026
+// Versão: 1.2.0 · 16/09/2026
+//
+// v1.2.0 — pendência 46dc7300: iniciarProcessoContratacao() grava
+// ativo_id em processos_contratacao (coluna nova), não mais imovel_id
+// (FK real pra imoveis.id, que não batia mais com o id que este array
+// carrega desde o único caminho de escrita da Onda 12 — quebrava pra
+// qualquer imóvel). Testado ponta a ponta no banco antes de entregar.
 //
 // v1.1.0 — Onda 12, E15.3 (pedido explícito, 16/09/2026: "siga direto pra
 // apontar a vitrine pra tabela de ativos"). Linha "Condomínio: R$ X | IPTU:
@@ -46,7 +52,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.1.0'; // v-check: manter igual ao header
+export const VERSAO = '1.2.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -197,9 +203,20 @@ export function montarAbaVitrine() {
             try {
                 const token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2))).replace(/-/g, '');
 
+                // v1.41.0 (16/09/2026, pendência 46dc7300) — ativo_id no
+                // lugar de imovel_id: `imovelId` aqui é sempre
+                // cofre_ativos.id (o array `imoveis` usa esse espaço de id
+                // desde o único caminho de escrita da Onda 12), e
+                // processos_contratacao.imovel_id tem FK real pra
+                // imoveis.id — gravar o id do ativo ali quebrava (ou
+                // quebraria) pra QUALQUER imóvel, legado ou nativo. Coluna
+                // ativo_id nova (migration processos_contratacao_ativo_id),
+                // testada ponta a ponta antes de entregar (criar processo
+                // → fn_processo_publico_obter → fn_processo_publico_
+                // preencher → contrato criado com ativo_id certo).
                 const linha = {
                     cliente_id: CLIENTE_ID_SUPABASE,
-                    imovel_id: imovelId,
+                    ativo_id: imovelId,
                     token: token,
                     status: 'aguardando_preenchimento',
                     origem: null // definido no clique de "Gerar Link" ou "Abrir WhatsApp"

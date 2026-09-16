@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.42.0 · 16/09/2026
+// Versão: 1.43.0 · 16/09/2026
+//
+// v1.43.0 — pendência 6c2e9b1e (parcial): bloco "Divisão societária" do
+// form de criar ativo — hex solto em style="" (#cbd5e1/#f8fafc) e
+// classes Tailwind de cor (bg-slate-100 etc.) trocados por tokens do
+// Design System. Não usa a classe .rz-f (layout em linha horizontal,
+// não cabe no padrão vertical dela) — estilo replicado nos mesmos
+// tokens. Item de controle e form de EDITAR ativo continuam pendentes
+// (mesma demanda, escopo maior — fica pra próxima rodada).
 //
 // v1.42.0 — 3 achados do teste real (Nicola, prints Albuquerque Silva):
 // (1) chip Financeiro sem contador/warn — faAtualizarContador() nunca
@@ -560,7 +568,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.42.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.43.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1887,18 +1895,26 @@ function propriedadeLinhaHtml(l, idx) {
     const ehInterno = l.tipo_proprietario === 'socio_interno';
     const optsPessoas = (propriedadePessoasCache || []).map(p =>
         `<option value="${p.id}" ${ehInterno && l.pessoa_id === p.id ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`).join('');
+    // v1.42.0 (16/09/2026) — hex solto em style="" (#cbd5e1, #f8fafc)
+    // trocado por tokens (var(--line), var(--r-ctl)) — achado no mesmo
+    // teste real que pediu a conversão pra .rz-f do resto do form
+    // (DS §6: "nunca hex em style=''"). Layout continua em LINHA
+    // horizontal (3 controles + botão remover) — não cabe na gramática
+    // .rz-f (vertical, label acima do campo), por isso o estilo é
+    // replicado nos tokens em vez de usar a classe.
+    const estiloCampo = 'width:100%;height:38px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font-size:12px;background:#fff;color:var(--ink)';
     return `
         <div class="flex gap-2 items-start" data-propriedade-linha="${idx}">
             <div class="flex-1 space-y-1">
-                <select onchange="window.__peMudarTipo(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;">
+                <select onchange="window.__peMudarTipo(${idx}, this.value)" style="${estiloCampo}">
                     <option value="socio_interno" ${ehInterno ? 'selected' : ''}>Sócio interno</option>
                     <option value="terceiro_externo" ${!ehInterno ? 'selected' : ''}>Outro (nome livre)</option>
                 </select>
                 ${ehInterno
-                    ? `<select onchange="window.__peMudarPessoa(${idx}, this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc;"><option value="">— selecionar —</option>${optsPessoas}</select>`
-                    : `<input type="text" value="${escapeHtml(l.nome_externo || '')}" oninput="window.__peMudarNomeExterno(${idx}, this.value)" placeholder="Nome" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">`}
+                    ? `<select onchange="window.__peMudarPessoa(${idx}, this.value)" style="${estiloCampo}"><option value="">— selecionar —</option>${optsPessoas}</select>`
+                    : `<input type="text" value="${escapeHtml(l.nome_externo || '')}" oninput="window.__peMudarNomeExterno(${idx}, this.value)" placeholder="Nome" style="${estiloCampo}">`}
             </div>
-            <input type="number" step="0.01" value="${l.percentual ?? ''}" oninput="window.__peMudarPercentual(${idx}, this.value)" style="width:70px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;" placeholder="%">
+            <input type="number" step="0.01" value="${l.percentual ?? ''}" oninput="window.__peMudarPercentual(${idx}, this.value)" style="${estiloCampo};width:70px" placeholder="%">
             <button onclick="window.__peRemoverLinha(${idx})" style="background:transparent;border:none;color:var(--danger);flex:none;padding:6px 0;"><i data-lucide="x" style="width:16px;height:16px"></i></button>
         </div>`;
 }
@@ -1963,7 +1979,7 @@ export async function abrirEditarPropriedadeAtivo() {
 
     modalGenerico('Editar divisão de propriedade', `
         <div id="pe-linhas" class="space-y-2 mb-2"></div>
-        <button onclick="window.__peAdicionarLinha()" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1 mb-3">
+        <button onclick="window.__peAdicionarLinha()" class="text-xs font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1 mb-3" style="background:var(--tile);color:var(--ink);border:1px solid var(--line)">
             <i data-lucide="plus" style="width:11px;height:11px"></i> Adicionar sócio
         </button>
         <div class="flex items-center justify-between text-xs font-bold border-t border-slate-100 pt-2 mb-3">
