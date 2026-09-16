@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.24.0 · 15/09/2026
+// Versão: 1.25.0 · 15/09/2026
+//
+// v1.25.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4 ("A5"), Onda 12
+// (decisão do Nicola: "vamos fazer a 15.2 e a migração dos dados").
+// Contatos unificado com Partes — não existiam 2 conceitos, existiam 2
+// TABELAS pro mesmo conceito. Removidos: modal-editar-contato-item e as
+// 6 funções que o operavam (abrir/fechar/salvar/excluir/criar-novo),
+// estado contatosDoItemAtual/contatoEmEdicaoId, o card "Contatos" da
+// ficha. montarPartesItemControle() ganhou o atalho de WhatsApp que só
+// Contatos tinha (fn_partes_do_item_controle agora devolve whatsapp/
+// email). acionarParteItemDireto substitui acionarContatoItemDireto.
+// 12 registros reais (2 clientes) já migrados pra partes/partes_papeis
+// em migration própria — cofre_contatos_acionamento não foi apagada
+// (histórico), só parou de ser lida/escrita.
 //
 // v1.24.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.2 ("A16"), Onda 12.
 // Parcelas (Parcelas/Dias entre parcelas) e recorrência são conceitos
@@ -318,7 +331,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.24.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.25.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -326,8 +339,8 @@ import { mudarTela } from './cofre-navegacao.js';
 import { abrirUploadContextual } from './cofre-documentos.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
-    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo, rotuloPapelContato,
-    aplicarMascaraTelefoneCofre, validarTelefoneBRCofre, validarEmailFormatoCofre, aplicarIndicadorValidacaoCofre, numeroWhatsAppComDDI,
+    rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo,
+    numeroWhatsAppComDDI,
 } from './cofre-validacoes.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
@@ -351,8 +364,8 @@ function moedaBR(v) { return (typeof window.formatarMoedaBR === 'function') ? wi
 // (fichaImovelOrigemTab, index.html v1.61.5).
 let itemControleOrigemTela = null;
 let ocorrenciaEmAcao = null; // { ocorrenciaId, modo: 'tratar'|'reagendar'|'estornar' }
-let contatosDoItemAtual = [];
-let contatoEmEdicaoId = null; // id do contato sendo editado, ou null (modo "criar novo") — pedido explícito 25/08/2026
+// E14.4 — contatosDoItemAtual/contatoEmEdicaoId removidas (Contatos
+// unificado com Partes, ver comentário mais abaixo).
 
 // ============================================================================
 // BOX "CONTROLES" na ficha do ativo — lista-resumo clicável
@@ -596,11 +609,14 @@ async function montarPartesItemControle(item) {
         refrescarIcones();
         return;
     }
+    // E14.4 ("A5") — atalho de WhatsApp por parte, migrado da seção
+    // Contatos (removida — unificada aqui). Só aparece se a parte tiver
+    // whatsapp cadastrado, mesmo critério de antes.
     mount.innerHTML = linhas.map(l => `
-        <div class="rz-row rz-link" data-action="abrir-acoes-partes-linha">
-            <div class="rz-ic"><i data-lucide="briefcase"></i></div>
-            <div class="rz-tx"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}</span></div>
-            <i data-lucide="ellipsis-vertical" class="rz-chev"></i>
+        <div class="rz-row">
+            <div class="rz-ic rz-link" data-action="abrir-acoes-partes-linha"><i data-lucide="briefcase"></i></div>
+            <div class="rz-tx rz-link" data-action="abrir-acoes-partes-linha"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}${l.whatsapp ? ' · ' + escapeHtml(l.whatsapp) : ''}</span></div>
+            ${l.whatsapp ? `<button type="button" data-action="acionar-parte-item-direto" data-whatsapp="${escapeHtml(l.whatsapp)}" title="Chamar no WhatsApp" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="message-circle" style="width:18px;height:18px;color:var(--success)"></i></button>` : ''}
         </div>`).join('');
     refrescarIcones();
 }
@@ -762,7 +778,6 @@ export async function abrirFichaItemControle(itemId) {
     if (telaAntes && telaAntes !== 'ficha-item-controle') itemControleOrigemTela = telaAntes;
     try {
         itemEmFoco = await api.buscarItemControlePorId(itemId);
-        contatosDoItemAtual = await api.listarContatosPorItemControle(itemId);
     } catch (err) {
         mostrarToast('Erro ao abrir item de controle: ' + err.message, 'erro');
         return;
@@ -794,7 +809,6 @@ export async function recarregarFichaItemControle() {
     if (!itemEmFoco) return;
     try {
         itemEmFoco = await api.buscarItemControlePorId(itemEmFoco.id);
-        contatosDoItemAtual = await api.listarContatosPorItemControle(itemEmFoco.id);
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); return; }
     renderizarFichaItemControle();
 }
@@ -896,26 +910,8 @@ function renderizarFichaItemControle() {
 
     // ---- Box Alertas vinculados: REMOVIDO (v6) — a própria ocorrência
     // (acima) já É o alerta; não existe mais cadastro de alerta avulso.
-
-    // ---- Box Contatos vinculados — revisão DS 25/08/2026 (pedido
-    // explícito): linhas agora CLICÁVEIS (abrem bottom-sheet de editar/
-    // excluir — abrirEditarContatoItem), rótulo de papel amigável
-    // (rotuloPapelContato, antes mostrava o código bruto tipo
-    // "seguradora"), e atalho de WhatsApp por contato (só aparece se o
-    // contato tiver whatsapp cadastrado) — mesma mensagem padrão já
-    // usada no atalho "Acionar" da Visão Geral (acionarContatoAlerta em
-    // cofre-documentos.js), pedindo cotação de renovação.
-    const elContatos = document.getElementById('fic-contatos');
-    // v1.13.0 (fatia 3b-i) — .rz-row; toque na linha edita, ícone do
-    // WhatsApp à direita chama direto (mantido: é ação de 1 toque, não menu).
-    const listaContatos = contatosDoItemAtual.length
-        ? contatosDoItemAtual.map(c => `<div class="rz-row">
-            <div class="rz-ic"><i data-lucide="user"></i></div>
-            <div class="rz-tx rz-link" data-action="abrir-editar-contato-item" data-id="${c.id}"><b>${escapeHtml(c.nome)}</b><span>${escapeHtml(rotuloPapelContato(c.papel))}${c.whatsapp ? ' · ' + escapeHtml(c.whatsapp) : ''}</span></div>
-            ${c.whatsapp ? `<button type="button" data-action="acionar-contato-item-direto" data-id="${c.id}" title="Chamar no WhatsApp" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="message-circle" style="width:18px;height:18px;color:var(--success)"></i></button>` : ''}
-        </div>`).join('')
-        : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Nenhum contato ainda. Contatos com WhatsApp viram atalho de 1 toque nos alertas.</p></div>`;
-    elContatos.innerHTML = listaContatos;
+    // ---- Box Contatos vinculados: REMOVIDO (E14.4, "A5") — unificado
+    // com Partes, ver comentário em montarPartesItemControle().
 
     refrescarIcones();
 }
@@ -952,12 +948,9 @@ export function abrirAcoesDocsItem() {
         { icone: 'upload', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'Apólice, guia, laudo — com leitura por IA', tipo: 'ia', aoTocar: () => carregarNovoDocumentoItem() },
     ] });
 }
-export function abrirAcoesContatosItem() {
-    sheetAcoes({ titulo: 'Contatos do item', sub: itemEmFoco?.titulo || '', acoes: [
-        { icone: 'user-plus', titulo: 'Adicionar contato', codigo: 'cofre.controles.editar', sub: 'Com WhatsApp vira atalho no alerta', aoTocar: () => abrirNovoContatoItem() },
-    ] });
-}
-export const alternarMaisAcoesContatosItem = () => abrirNovoContatoItem();
+// E14.4 — abrirAcoesContatosItem/alternarMaisAcoesContatosItem
+// removidas (Contatos unificado com Partes; "Adicionar parte" já existe
+// dentro de "Editar partes", abrirAcoesPartesItem acima).
 export const alternarMaisAcoesDadosItem = () => abrirAcoesDadosItem();
 export const alternarMaisAcoesDocItem = () => carregarNovoDocumentoItem();
 
@@ -1311,114 +1304,28 @@ export async function excluirItemControleAtual() {
 // ---- Alertas vinculados: REMOVIDO (v6) — não existe mais cadastro de
 // alerta avulso; a ocorrência (box "Ocorrências" acima) já é o alerta.
 
-// ---- Contatos vinculados ao item (revisão DS 25/08/2026, pedido
-// explícito) — formulário inline (raiz-form-borda) virou bottom-sheet
-// Tipo B de verdade (modal-editar-contato-item, DS §9), reaproveitado
-// tanto pra criar quanto editar (contatoEmEdicaoId decide qual). Ganhou
-// "todos os campos" da tabela (empresa/telefone/observação, antes
-// ausentes da interface) + opção de excluir.
-// Liga a máscara/validação nos 3 campos (telefone/whatsapp/e-mail) —
-// chamada pelas 2 funções de abrir modal abaixo, tanto faz criar ou
-// editar (reatribuir .oninput toda vez é inofensivo). Reaplica a
-// validação imediatamente após preencher o campo, pra um valor já
-// salvo (modo editar) já nascer mostrando ✅ se for válido, sem
-// precisar o usuário digitar algo primeiro.
-function ligarMascaraEValidacaoContato() {
-    const telInput = document.getElementById('ct-ed-telefone');
-    const waInput = document.getElementById('ct-ed-whatsapp');
-    const emailInput = document.getElementById('ct-ed-email');
-    telInput.oninput = () => { aplicarMascaraTelefoneCofre(telInput); aplicarIndicadorValidacaoCofre('ct-ed-telefone-indicador', validarTelefoneBRCofre(telInput.value), 'Telefone válido'); };
-    waInput.oninput = () => { aplicarMascaraTelefoneCofre(waInput); aplicarIndicadorValidacaoCofre('ct-ed-whatsapp-indicador', validarTelefoneBRCofre(waInput.value), 'WhatsApp válido'); };
-    emailInput.oninput = () => { aplicarIndicadorValidacaoCofre('ct-ed-email-indicador', validarEmailFormatoCofre(emailInput.value), 'E-mail válido'); };
-    aplicarIndicadorValidacaoCofre('ct-ed-telefone-indicador', validarTelefoneBRCofre(telInput.value), 'Telefone válido');
-    aplicarIndicadorValidacaoCofre('ct-ed-whatsapp-indicador', validarTelefoneBRCofre(waInput.value), 'WhatsApp válido');
-    aplicarIndicadorValidacaoCofre('ct-ed-email-indicador', validarEmailFormatoCofre(emailInput.value), 'E-mail válido');
-}
-
-export function abrirNovoContatoItem() {
-    contatoEmEdicaoId = null;
-    document.getElementById('ct-ed-papel').value = 'seguradora';
-    document.getElementById('ct-ed-nome').value = '';
-    document.getElementById('ct-ed-empresa').value = '';
-    document.getElementById('ct-ed-telefone').value = '';
-    document.getElementById('ct-ed-whatsapp').value = '';
-    document.getElementById('ct-ed-email').value = '';
-    document.getElementById('ct-ed-observacao').value = '';
-    document.getElementById('modal-editar-contato-item-titulo').textContent = 'Novo contato';
-    document.getElementById('ct-ed-excluir-wrapper').classList.add('hidden');
-    ligarMascaraEValidacaoContato();
-    abrirModal('modal-editar-contato-item');
-}
-
-export function abrirEditarContatoItem(contatoId) {
-    const c = contatosDoItemAtual.find(x => x.id === contatoId);
-    if (!c) return;
-    contatoEmEdicaoId = contatoId;
-    document.getElementById('ct-ed-papel').value = c.papel;
-    document.getElementById('ct-ed-nome').value = c.nome;
-    document.getElementById('ct-ed-empresa').value = c.empresa || '';
-    document.getElementById('ct-ed-telefone').value = c.telefone || '';
-    document.getElementById('ct-ed-whatsapp').value = c.whatsapp || '';
-    document.getElementById('ct-ed-email').value = c.email || '';
-    document.getElementById('ct-ed-observacao').value = c.observacao || '';
-    document.getElementById('modal-editar-contato-item-titulo').textContent = 'Editar contato';
-    document.getElementById('ct-ed-excluir-wrapper').classList.remove('hidden');
-    ligarMascaraEValidacaoContato();
-    abrirModal('modal-editar-contato-item');
-}
-
-export function fecharEditarContatoItem() {
-    fecharModal('modal-editar-contato-item');
-}
-
-export async function salvarContatoItemModal() {
-    const nome = document.getElementById('ct-ed-nome').value.trim();
-    if (!nome) { mostrarToast('Informe o nome do contato.', 'erro'); return; }
-    const payload = {
-        papel: document.getElementById('ct-ed-papel').value, nome,
-        empresa: document.getElementById('ct-ed-empresa').value.trim() || null,
-        telefone: document.getElementById('ct-ed-telefone').value.trim() || null,
-        whatsapp: document.getElementById('ct-ed-whatsapp').value.trim() || null,
-        email: document.getElementById('ct-ed-email').value.trim() || null,
-        observacao: document.getElementById('ct-ed-observacao').value.trim() || null,
-    };
-    try {
-        if (contatoEmEdicaoId) {
-            await api.atualizarContato(contatoEmEdicaoId, payload);
-            mostrarToast('Contato atualizado ✅');
-        } else {
-            await api.criarContato({ cliente_id: estado.clienteId, item_controle_id: itemEmFoco.id, ...payload });
-            mostrarToast('Contato salvo ✅');
-        }
-        fecharModal('modal-editar-contato-item');
-        await recarregarFichaItemControle();
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
-}
-
-export async function excluirContatoItemModal() {
-    if (!contatoEmEdicaoId) return;
-    if (!confirm('Excluir este contato?')) return;
-    try {
-        await api.excluirContato(contatoEmEdicaoId);
-        mostrarToast('Contato excluído.');
-        fecharModal('modal-editar-contato-item');
-        await recarregarFichaItemControle();
-    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
-}
-
-// Atalho de WhatsApp direto na lista (pedido explícito) — mesma
-// mensagem padrão já usada em acionarContatoAlerta() (cofre-documentos.js,
-// Visão Geral), pra manter consistência entre os 2 pontos de contato.
-export function acionarContatoItemDireto(contatoId) {
-    const c = contatosDoItemAtual.find(x => x.id === contatoId);
-    if (!c || !c.whatsapp) { mostrarToast('Este contato não tem WhatsApp cadastrado.', 'erro'); return; }
+// ---- Contatos vinculados ao item: REMOVIDO (E14.4 "A5", 15/09/2026,
+// decisão do Nicola: "vamos fazer a 15.2 e a migração dos dados") —
+// unificado com Partes (que já cobre o mesmo papel — vínculo com
+// item_controle, nome, telefone/whatsapp/e-mail — só faltava o atalho
+// de WhatsApp de 1 toque, que montarPartesItemControle() ganhou acima).
+// modal-editar-contato-item, ligarMascaraEValidacaoContato,
+// abrirNovoContatoItem, abrirEditarContatoItem, fecharEditarContatoItem,
+// salvarContatoItemModal, excluirContatoItemModal saíram — Partes já
+// tem seu próprio editor (abrirEditarPartesItem, com sugestão de parte
+// padrão desde a E14.3). 12 registros reais migrados pra `partes` +
+// `partes_papeis` em migration própria (e14_4_migrar_contatos_para_
+// partes_v1) — cofre_contatos_acionamento não foi apagada (histórico),
+// só parou de ser lida/escrita pelo app.
+export function acionarParteItemDireto(whatsapp) {
+    if (!whatsapp) { mostrarToast('Esta parte não tem WhatsApp cadastrado.', 'erro'); return; }
     const item = itemEmFoco;
     const descricaoItem = item.tipo ? `${item.titulo} (${rotuloTipoControle(item.tipo)})` : item.titulo;
     const mensagem = `Olá! Poderia nos enviar uma cotação atualizada para a renovação do item de controle "${descricaoItem}"? Obrigado!`;
-    // BUG FIX (25/08/2026, achado pelo usuário) — link não ia corretamente
-    // pro WhatsApp quando o contato foi salvo só com DDD+número, sem o
-    // DDI (55) na frente. numeroWhatsAppComDDI() garante o prefixo.
-    const numero = numeroWhatsAppComDDI(c.whatsapp);
+    // BUG FIX (25/08/2026, achado pelo usuário, herdado da função antiga
+    // de Contatos) — numeroWhatsAppComDDI() garante o prefixo 55 quando
+    // só DDD+número foi salvo.
+    const numero = numeroWhatsAppComDDI(whatsapp);
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
 }
 

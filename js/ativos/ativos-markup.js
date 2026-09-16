@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.31.0 · 15/09/2026
+// Versão: 1.32.0 · 15/09/2026
+//
+// v1.32.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4 ("A5"). modal-editar-
+// contato-item e o card "Contatos" da ficha do item removidos —
+// unificado com o card "Partes" (ganhou o mesmo atalho de WhatsApp).
 //
 // v1.31.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.2 ("A16"), Onda 12.
 // #ic-parcelas-wrapper novo (Parcelas/Dias entre parcelas escondem
@@ -312,7 +316,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.31.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -963,69 +967,9 @@ export const ATIVOS_MARKUP = `<style>
     </div>
 </div>
 
-<!-- ===================== MODAL — CONTATO DO ITEM DE CONTROLE =====================
-     Pedido explícito, 25/08/2026 — bottom-sheet Tipo B (DS §9), mesmo
-     gabarito do modal-editar-item-controle acima. Reaproveitado pra
-     criar E editar (abrirNovoContatoItem()/abrirEditarContatoItem() só
-     mudam o que preenchem antes de abrir) — substitui o formulário
-     inline (raiz-form-borda) que existia antes. "Excluir" só aparece
-     no modo editar (ct-ed-excluir-wrapper). -->
-<div id="modal-editar-contato-item" class="modal-overlay hidden">
-    <div class="modal-box p-5">
-        <div class="flex items-start justify-between mb-3">
-            <h3 id="modal-editar-contato-item-titulo" class="text-base font-bold">Novo contato</h3>
-            <button type="button" data-action="fechar-editar-contato-item" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-            <div>
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Papel <span style="color:var(--danger)">*</span></label>
-                <select id="ct-ed-papel" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                    <option value="seguradora">Seguradora</option>
-                    <option value="corretor">Corretor(a) de seguro</option>
-                    <option value="oficina">Oficina</option>
-                    <option value="assistencia">Assistência técnica</option>
-                    <option value="administradora">Administradora</option>
-                    <option value="advogado">Advogado(a)</option>
-                    <option value="outro">Outro</option>
-                </select>
-            </div>
-            <div>
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Nome <span style="color:var(--danger)">*</span></label>
-                <input id="ct-ed-nome" placeholder="Nome" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-            </div>
-            <div class="col-span-2">
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Empresa <span style="font-weight:400">(opcional)</span></label>
-                <input id="ct-ed-empresa" placeholder="Empresa" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-            </div>
-            <div>
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Telefone <span style="font-weight:400">(opcional)</span></label>
-                <input type="tel" id="ct-ed-telefone" placeholder="(11) 91234-5678" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                <p id="ct-ed-telefone-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-            </div>
-            <div>
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">WhatsApp <span style="font-weight:400">(opcional)</span></label>
-                <input type="tel" id="ct-ed-whatsapp" placeholder="(11) 91234-5678" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                <p id="ct-ed-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-            </div>
-            <div class="col-span-2">
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">E-mail <span style="font-weight:400">(opcional)</span></label>
-                <input type="email" id="ct-ed-email" placeholder="E-mail" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs">
-                <p id="ct-ed-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-            </div>
-            <div class="col-span-2">
-                <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Observação <span style="font-weight:400">(opcional)</span></label>
-                <textarea id="ct-ed-observacao" placeholder="Observação" rows="2" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs"></textarea>
-            </div>
-        </div>
-        <div id="ct-ed-excluir-wrapper" class="hidden mt-2 pt-2 border-t border-slate-100 flex justify-end">
-            <button data-action="excluir-contato-item-modal" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><i data-lucide="trash-2" style="width:11px;height:11px"></i> Excluir contato</button>
-        </div>
-        <div class="flex gap-2 mt-3">
-            <button type="button" data-action="fechar-editar-contato-item" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
-            <button data-action="salvar-contato-item-modal" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
-        </div>
-    </div>
-</div>
+<!-- E14.4 ("A5", 15/09/2026) — modal-editar-contato-item removido: Contatos
+     unificado com Partes (mesma tabela, mesmo editor — abrirEditarPartesItem,
+     ver cofre-controles.js). Os 12 registros reais já migraram. -->
 
 <!-- ===================== SOBRE / LICENÇA / PESSOAS / MINHA EMPRESA =====================
      MERGE (pedido explícito, 26/08/2026) — telas de administração do CLIENTE
@@ -1083,7 +1027,7 @@ export const ATIVOS_MARKUP = `<style>
     </div>
 
     <div class="rz-card">
-        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Quem responde por este item</span><button data-action="abrir-acoes-partes-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
+        <div class="rz-card-h"><h3>Partes</h3><span class="rz-sub">Quem responde por este item — e quem você chama no WhatsApp</span><button data-action="abrir-acoes-partes-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
         <div id="fic-partes"></div>
     </div>
 
@@ -1091,11 +1035,8 @@ export const ATIVOS_MARKUP = `<style>
         <div class="rz-card-h"><h3>Documentos</h3><button data-action="abrir-acoes-docs-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
         <div id="fic-documentos"></div>
     </div>
-
-    <div class="rz-card">
-        <div class="rz-card-h"><h3>Contatos</h3><span class="rz-sub">Quem você chama no WhatsApp</span><button data-action="abrir-acoes-contatos-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
-        <div id="fic-contatos"></div>
-    </div>
+    <!-- E14.4 ("A5") — card "Contatos" (fic-contatos) removido: unificado
+         com o card "Partes" acima, que ganhou o mesmo atalho de WhatsApp. -->
 </section>
 
     </main>

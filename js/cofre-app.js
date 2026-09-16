@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.2 · 15/09/2026
+// Versão: 1.32.3 · 15/09/2026
+//
+// v1.32.3 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4: 7 cases de contato-
+// item saíram do despachante, 1 novo (acionar-parte-item-direto) no
+// lugar. Listener 'cofre:recarregar-contatos' removido — só reatribuía
+// estado.contatos, que nada no app lê (achado ao investigar).
 //
 // v1.32.2 — PLANO_IMPLEMENTACAO v1.0, etapa E14.2: case novo
 // 'ic-freq-mudou' → controles.aoMudarFrequenciaItemControle().
@@ -272,7 +277,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.32.2'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.3'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -530,7 +535,6 @@ document.addEventListener('click', async (ev) => {
         case 'fa-acoes-financeiro': ativos.abrirAcoesFinanceiroAtivo(); break;
         case 'fa-acoes-anexos': ativos.abrirAcoesAnexos(); break;
         case 'abrir-acoes-docs-item': controles.abrirAcoesDocsItem(); break;
-        case 'abrir-acoes-contatos-item': controles.abrirAcoesContatosItem(); break;
         case 'abrir-acoes-partes-linha': controles.abrirAcoesPartesItem(); break;
         case 'categorizar-documento-atual': await docs.categorizarDocumentoAtual(); break;
         case 'fa-acoes-contratos': ativos.abrirAcoesContratosAtivo(); break;
@@ -594,17 +598,14 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-editar-partes-item': await controles.abrirEditarPartesItem(); break;
         case 'fi-salvar-partes-item': await controles.salvarPartesItemAtual(); break;
         case 'fi-gerar-despesa-item': await controles.abrirNovoLancamentoDoItem(); break;
-        case 'alternar-mais-acoes-contatos-item': controles.alternarMaisAcoesContatosItem(); break;
         case 'alternar-mais-acoes-dados-item': controles.alternarMaisAcoesDadosItem(); break;
         case 'alternar-mais-acoes-doc-item': controles.alternarMaisAcoesDocItem(); break;
         case 'carregar-novo-documento-item': controles.carregarNovoDocumentoItem(); break;
         case 'excluir-documento-do-item': await controles.excluirDocumentoDoItem(alvo.dataset.vinculoId); break;
-        case 'abrir-novo-contato-item': controles.abrirNovoContatoItem(); break;
-        case 'abrir-editar-contato-item': controles.abrirEditarContatoItem(alvo.dataset.id); break;
-        case 'fechar-editar-contato-item': controles.fecharEditarContatoItem(); break;
-        case 'salvar-contato-item-modal': await controles.salvarContatoItemModal(); break;
-        case 'excluir-contato-item-modal': await controles.excluirContatoItemModal(); break;
-        case 'acionar-contato-item-direto': controles.acionarContatoItemDireto(alvo.dataset.id); break;
+        // E14.4 ("A5") — Contatos unificado com Partes; os 6 cases de
+        // contato-item saíram, 1 novo no lugar (atalho de WhatsApp, que
+        // migrou pra dentro da lista de Partes).
+        case 'acionar-parte-item-direto': controles.acionarParteItemDireto(alvo.dataset.whatsapp); break;
 
         // ---- criação assistida (deep link contexto=imovel sem ativo ainda)
         case 'fechar-criacao-assistida': fecharModal('modal-criacao-assistida'); break;
@@ -827,9 +828,10 @@ window.addEventListener('cofre:recarregar-ativos', async () => {
     ativos.renderAtivosLista();
     docs.montarHome();
 });
-window.addEventListener('cofre:recarregar-contatos', async () => {
-    estado.contatos = await api.listarContatos(estado.clienteId);
-});
+// E14.4 — 'cofre:recarregar-contatos' removido: só reatribuía
+// estado.contatos, que nada no app lê (achado ao investigar — cache
+// morto desde antes desta sessão). listarContatos() saiu de
+// cofre-api.js junto.
 window.addEventListener('cofre:recarregar-eventos', async () => {
     estado.ocorrenciasAbertas = await api.listarOcorrenciasAbertasComItem(estado.clienteId);
     docs.montarHome();

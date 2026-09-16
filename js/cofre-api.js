@@ -1,6 +1,22 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.26.0 · 15/09/2026
+// Versão: 1.28.0 · 15/09/2026
+//
+// v1.28.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4. listarContatos/
+// criarContato/atualizarContato/excluirContato saíram (só operavam
+// cofre_contatos_acionamento). listarContatosPorItemControle manteve o
+// nome, trocou de fonte (RPC fn_partes_do_item_controle). encontrarOuCriarParte
+// nova — find-or-create por nome, usada pelo fluxo de sugestão de
+// contato por IA (cofre-documentos.js) pra não duplicar parte a cada
+// documento novo da mesma seguradora/corretora.
+//
+// v1.27.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.3, Onda 12. 2 funções
+// novas: resolverPartePadrao (lê cofre_partes_padrao direto, com a nome
+// junto, pra achar a parte padrão certa pro subtipo+município/UF do
+// ativo) e materializarPartePadrao (RPC fn_parte_padrao_materializar —
+// find-or-create idempotente por tenant). buscarItemControlePorId ganha
+// codigo_ibge_municipio/uf no join com cofre_ativos — precisava disso
+// pra resolver a parte padrão certa.
 //
 // v1.26.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5 (decisão do Nicola,
 // "pode evoluir" — Onda 6 do plano). Nova listarTiposAtivo(clienteId):
@@ -222,7 +238,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.26.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.28.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -786,6 +802,43 @@ export async function salvarPartesItemControle(itemControleId, linhas) {
     if (error) throw error;
 }
 
+// E14.3 ("A15") — parte padrão (prefeitura, órgão recolhedor) por
+// subtipo, opcionalmente restrita a município/UF (ex.: Prefeitura de
+// Nova Lima só pra ativos em Nova Lima). Lê direto da tabela (não pela
+// RPC fn_parte_padrao_resolver) pra trazer o nome junto, sem 2ª chamada
+// — mesma ordem de precedência da função (município mais específico que
+// UF, UF mais específico que nenhum dos dois). Falha silenciosa (`null`)
+// de propósito: sem parte padrão cadastrada pro subtipo é o caminho
+// normal (a maioria não tem), não um erro.
+export async function resolverPartePadrao(subtipoId, municipioIbge, uf) {
+    try {
+        let q = dbAuth.from('cofre_partes_padrao').select('id, nome').eq('subtipo_id', subtipoId).eq('ativo', true);
+        q = municipioIbge ? q.or(`municipio_ibge.is.null,municipio_ibge.eq.${municipioIbge}`) : q.is('municipio_ibge', null);
+        q = uf ? q.or(`uf.is.null,uf.eq.${uf}`) : q.is('uf', null);
+        const { data, error } = await q;
+        if (error || !data || !data.length) return null;
+        // mais específico primeiro: com município > com UF > genérico
+        const ordenado = [...data].sort((a, b) => {
+            const pesoA = (a.municipio_ibge ? 2 : 0) + (a.uf ? 1 : 0);
+            const pesoB = (b.municipio_ibge ? 2 : 0) + (b.uf ? 1 : 0);
+            return pesoB - pesoA;
+        });
+        return ordenado[0];
+    } catch (e) {
+        console.warn('[cofre-api] resolverPartePadrao falhou:', e);
+        return null;
+    }
+}
+
+// Materializa (copia, ou reaproveita se já existir — idempotente por
+// origem_padrao_id) a parte padrão na empresa do cliente. Devolve o
+// parte_id pronto pra usar em salvarPartesItemControle.
+export async function materializarPartePadrao(clienteId, partePadraoId) {
+    const { data, error } = await dbAuth.rpc('fn_parte_padrao_materializar', { p_cliente_id: clienteId, p_parte_padrao_id: partePadraoId });
+    if (error) throw error;
+    return data;
+}
+
 // Criação rápida de parte (nome só, mesmo espírito do fornecedor "+
 // Novo" do popup de despesa em index.html) — usada pelo editor de
 // Partes do item de controle quando a parte ainda não existe.
@@ -977,32 +1030,33 @@ export async function listarOcorrenciasAbertasComItem(clienteId) {
 }
 
 // ============================================================================
-// CONTATOS
-// ============================================================================
-export async function listarContatos(clienteId) {
-    const { data, error } = await dbAuth.from('cofre_contatos_acionamento').select('*').eq('cliente_id', clienteId).order('nome');
+// CONTATOS — E14.4 ("A5"): unificado com Partes. listarContatos/
+// criarContato/atualizarContato/excluirContato saíram (só liam/escreviam
+// cofre_contatos_acionamento, tabela que parou de ser usada pelo app —
+// 12 registros reais já migrados pra `partes`/`partes_papeis`, ver
+// migration e14_4_migrar_contatos_para_partes_v1). listarContatosPorItemControle
+// continua com o MESMO NOME (2 chamadores fora deste refactor:
+// acionarContatoAlerta em cofre-documentos.js, e o antigo render de
+// Contatos que já saiu) — só a implementação trocou de fonte.
+export async function listarContatosPorItemControle(itemControleId) {
+    const { data, error } = await dbAuth.rpc('fn_partes_do_item_controle', { p_item_controle_id: itemControleId });
     if (error) throw error;
     return data || [];
 }
 
-export async function criarContato(payload) {
-    const { error } = await dbAuth.from('cofre_contatos_acionamento').insert(payload);
+// Find-or-create por nome (case-insensitive, dentro do cliente) — usado
+// pelo fluxo de sugestão de contato por IA no upload de documento
+// (cofre-documentos.js), que antes ia direto pra cofre_contatos_
+// acionamento sem checar duplicata nenhuma.
+export async function encontrarOuCriarParte(clienteId, nome, extras = {}) {
+    const nomeLimpo = (nome || '').trim();
+    if (!nomeLimpo) throw new Error('Nome da parte é obrigatório.');
+    const { data: existente, error: erroBusca } = await dbAuth.from('partes').select('id').eq('cliente_id', clienteId).ilike('nome', nomeLimpo).maybeSingle();
+    if (erroBusca) throw erroBusca;
+    if (existente) return existente.id;
+    const { data: nova, error } = await dbAuth.from('partes').insert({ cliente_id: clienteId, nome: nomeLimpo, ...extras }).select('id').single();
     if (error) throw error;
-}
-
-export async function atualizarContato(id, patch) {
-    const { error } = await dbAuth.from('cofre_contatos_acionamento').update(patch).eq('id', id);
-    if (error) throw error;
-}
-
-// DELETE de verdade (não soft-delete) — cofre_contatos_acionamento não
-// tem coluna status/ativo, diferente do resto do Cofre. Dado de baixo
-// risco (nome/telefone/e-mail), nenhuma outra tabela referencia um
-// contato excluído, então não há necessidade de preservar histórico
-// aqui como acontece com item/ativo/documento.
-export async function excluirContato(id) {
-    const { error } = await dbAuth.from('cofre_contatos_acionamento').delete().eq('id', id);
-    if (error) throw error;
+    return nova.id;
 }
 
 // ============================================================================
@@ -1138,17 +1192,14 @@ export async function excluirItemControleDeVez(id) {
 
 export async function buscarItemControlePorId(id) {
     const { data, error } = await dbAuth.from('cofre_itens_controle')
-        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome), cofre_ativos(nome_exibicao, tipo_ativo)')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome), cofre_ativos(nome_exibicao, tipo_ativo, codigo_ibge_municipio, uf)')
         .eq('id', id).single();
     if (error) throw error;
     return data;
 }
 
-export async function listarContatosPorItemControle(itemControleId) {
-    const { data, error } = await dbAuth.from('cofre_contatos_acionamento').select('*').eq('item_controle_id', itemControleId).order('nome');
-    if (error) throw error;
-    return data || [];
-}
+// E14.4 — listarContatosPorItemControle (a versão que lê de Partes) já
+// está definida mais acima, junto com encontrarOuCriarParte.
 
 export async function criarOcorrenciasControleBatch(payloads) {
     const { error } = await dbAuth.from('cofre_ocorrencias_controle').insert(payloads);

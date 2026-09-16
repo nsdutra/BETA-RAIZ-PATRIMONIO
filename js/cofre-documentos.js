@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.12.0 · 11/09/2026
+// Versão: 2.13.0 · 15/09/2026
+//
+// v2.13.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4 ("A5"). O upload de
+// documento com sugestão de contato por IA gravava direto em
+// cofre_contatos_acionamento, ANTES do item de controle existir (então
+// nunca vinculava por item_controle_id de verdade — achado ao mexer
+// aqui). Agora: contato marcado vira parte (find-or-create por nome,
+// api.encontrarOuCriarParte) na hora, e o vínculo com o item
+// (partes_papeis) só é gravado DEPOIS que o item nasce, reordenado pra
+// isso. acionarContatoAlerta não mudou uma linha — listarContatosPorItemControle
+// trocou de fonte por baixo, ela só lê nome/whatsapp/email, que
+// continuam existindo.
 //
 // v2.12.0 — BUG REAL (achado 10/09, versão só bumpada agora — tinha
 // deixado passar): abrirDocumentosArquivados() usava window.abrirModal,
@@ -273,7 +284,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.12.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.13.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -456,7 +467,7 @@ export async function acionarContatoAlerta(itemControleId, titulo, tipo) {
     } catch (err) { mostrarToast('Erro ao buscar contato: ' + err.message, 'erro'); return; }
 
     if (!contatos.length) {
-        mostrarToast('Nenhum contato vinculado a este item ainda. Adicione um na ficha do item (Mais ações → Adicionar contato).', 'aviso');
+        mostrarToast('Nenhuma parte vinculada a este item ainda. Adicione uma na ficha do item (chip Partes → Editar partes).', 'aviso');
         return;
     }
     const contato = contatos.find(c => c.whatsapp) || contatos.find(c => c.email) || contatos[0];
@@ -464,7 +475,7 @@ export async function acionarContatoAlerta(itemControleId, titulo, tipo) {
     const mensagem = `Olá! Poderia nos enviar uma cotação atualizada para a renovação do item de controle "${descricaoItem}"? Obrigado!`;
 
     if (contato.whatsapp) {
-        // BUG FIX (25/08/2026) — ver mesma correção em acionarContatoItemDireto
+        // BUG FIX (25/08/2026) — ver mesma correção em acionarParteItemDireto
         // (cofre-controles.js): garante DDI (55) no número antes do wa.me.
         const numero = numeroWhatsAppComDDI(contato.whatsapp);
         window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
@@ -1320,11 +1331,21 @@ export async function salvarConfirmacaoUpload() {
         if (Object.keys(idn).length) { try { await api.mesclarIdentificadoresAtivo(up.vinculo.id, idn); } catch (err) { console.warn('identificadores do ativo:', err.message); } }
     }
 
-    // Contatos marcados → cofre_contatos_acionamento (mesmo insert do antigo modal de sugestões)
+    // E14.4 ("A5", 15/09/2026) — contatos marcados viram partes (find-or-
+    // create por nome, cofre-api.js), não mais cofre_contatos_acionamento.
+    // O vínculo com o item de controle só é gravado MAIS ABAIXO, depois
+    // que itemCriado existe — achado ao mexer aqui: o bloco antigo rodava
+    // ANTES do item nascer, então nunca vinculava por item_controle_id
+    // mesmo (só por documento_id) — o vínculo de verdade ficava pra uma
+    // consulta manual. Agora fica explícito e funciona.
+    const PAPEL_CONTATO_PARA_PARTE = { seguradora: 'contato_seguradora', corretor: 'corretor', oficina: 'prestador', assistencia: 'prestador', administradora: 'administradora', advogado: 'advogado', outro: 'prestador' };
     const marcados = [...document.querySelectorAll('.uc-contato:checked')].map(el => up.contatosSugeridos?.[parseInt(el.value, 10)]).filter(Boolean);
+    const partesParaVincular = []; // { parte_id, papel } — vira partes_papeis quando o item nascer
     for (const c of marcados) {
-        try { await api.criarContato({ cliente_id: estado.clienteId, documento_id: up.documentoId, papel: c.papel || 'outro', nome: c.nome, telefone: c.telefone || null, email: c.email || null }); }
-        catch (err) { avisos.push('contato ' + c.nome + ': ' + err.message); }
+        try {
+            const parteId = await api.encontrarOuCriarParte(estado.clienteId, c.nome, { whatsapp: c.telefone || null, email: c.email || null });
+            partesParaVincular.push({ parte_id: parteId, papel: PAPEL_CONTATO_PARA_PARTE[c.papel] || 'prestador' });
+        } catch (err) { avisos.push('contato ' + c.nome + ': ' + err.message); }
     }
 
     // Item de controle — mesmo caminho da tela Controles (cofre-controles.js).
@@ -1349,6 +1370,12 @@ export async function salvarConfirmacaoUpload() {
                 documentoId: up.documentoId,
             });
             await api.inserirVinculo(estado.clienteId, up.documentoId, 'item_controle', itemCriado.id, false, estado.pessoa.id);
+            // E14.4 — só agora o item existe; vincula as partes coletadas
+            // acima (find-or-create já rodou antes de precisar do item_id).
+            if (partesParaVincular.length) {
+                try { await api.salvarPartesItemControle(itemCriado.id, partesParaVincular); }
+                catch (err) { avisos.push('vincular contato ao item: ' + err.message); }
+            }
         } catch (err) { avisos.push('controle: ' + err.message); }
     }
 
@@ -1376,7 +1403,6 @@ export async function salvarConfirmacaoUpload() {
     up = null;
     window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
     if (itemCriado) window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
-    if (marcados.length) window.dispatchEvent(new CustomEvent('cofre:recarregar-contatos'));
 }
 
 function marcarErroConfirmacao(msg) {
