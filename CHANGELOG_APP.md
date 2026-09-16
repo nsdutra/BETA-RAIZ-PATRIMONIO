@@ -4,6 +4,56 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.187.0) — 2 pedidos do Nicola sobre a tela de Alertas:
+(1) "Precisa de atenção" na Visão Geral deixou de ser .rz-card (moldura
+com borda colorida) e virou título simples — o padding:14px 16px do
+card tirava largura útil da linha do alerta, agravando o truncamento
+já reduzido pela placa de prazo (v1.186.0). Sem conteúdo, a seção
+inteira some (troca "mostrar que está tudo em dia" por "não mostrar
+nada"). Borda/status coloridos saíram junto — não tinham mais o que
+colorir.
+(2) Seletor de severidade (Crítico/Atenção/Informativo — os 3 valores
+de alerta_tipos.severidade) nas duas telas, usando .rz-seg (mesmo
+controle de Financeiro/Conciliação) — pedido explícito: "não usar chip
+para isto". Estado independente por tela.
+------------------------------------------------------------------
+Versões anteriores (v1.186.0 … v1.186.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.186.0) — 4 achados do Nicola em teste real
+(Albuquerque, contando manualmente 21 pendências contra os 10/12 que a
+tela mostrava):
+(1) Visão Geral e tela de Alertas agora renderizam a MESMA marcação pra
+um alerta (linhaAlertaHtml, extraída de renderListaAlertas) — antes a
+Visão Geral usava pontoAtencaoHtml, um componente mais simples, sem a
+placa de prazo/criticidade, então o mesmo alerta tinha cara diferente
+conforme a tela.
+(2) Totais (badge "X pontos" da Visão Geral, chips da tela de Alertas)
+passam a somar peso REAL de pendência (pesoAlerta), não nº de linhas do
+Motor nem nº de cards depois de agrupar — sinal_fiscal é 1 linha mas
+representa N ocorrências (detalhe.contagem, ex.: "8 ocorrências"); antes
+contava 1. Total agora bate com o que a pessoa lê somando os títulos.
+(3) 4 tipos de alerta de contrato (reajuste, encerramento, aguardando
+assinatura, vendido/arquivado) passam a agrupar (agrupamento='por_tipo')
+— "Contrato vencido" x2 virava 2 linhas idênticas sem nenhuma pista de
+qual era qual; migration alerta_agrupamento_contratos_v1. Clique do
+grupo abre a lista de Contratos (ACAO_GRUPO_POR_TIPO), não mais uma
+entidade aleatória do grupo.
+(4) Item de controle vencendo (avulso) ganha o nome do ativo no
+subtítulo — 2 ativos diferentes com o mesmo subtipo ("Condomínio")
+pareciam a mesma linha duplicada. E a placa de vencido encurtou de
+"Venceu há Xd" pra "Há Xd" — em dívida antiga (258d) empurrava o título
+pro truncamento (.rz-tx encolhe, .rz-rt não).
+------------------------------------------------------------------
+Versões anteriores (v1.185.0 … v1.185.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.185.0) — achados do Nicola em teste real na
 Albuquerque:
 (1) FIX off-by-one no limiar de agrupamento: "agrupar_a_partir_de = 3"

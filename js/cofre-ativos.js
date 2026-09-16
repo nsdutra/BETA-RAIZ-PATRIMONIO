@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.39.0 · 16/09/2026
+// Versão: 1.40.0 · 16/09/2026
+//
+// v1.40.0 — Onda 12 (pedido explícito: "único caminho de escrita, na
+// tabela de ativos"). salvarEdicaoAtivo(): vinculado e avulso convergem
+// — os dois gravam em cofre_ativos direto agora, no mesmo `patch`.
+// api.atualizarImovel() (escrevia em `imoveis`) não é mais chamada
+// daqui. criarImovelEAtivo() ganhou o parâmetro tipoAtivo (bug real
+// evitado — ver changelog de cofre-api.js 1.35.0).
 //
 // v1.39.0 — Onda 12, continuação. montarDadosAtivo(): "Inscrição
 // imobiliária"/"Uso"/"Tipo de locação" saíram da grade "Dados do
@@ -522,7 +529,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.39.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.40.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1329,7 +1336,7 @@ export async function salvarAtivo() {
                 status: camposImovelLido?.situacao_uso || null,
                 descricao: camposImovelLido?.observacao || null,
             };
-            novoAtivo = await api.criarImovelEAtivo(estado.clienteId, nome, imovelDados, tipoDetalheId, payload.dados_especificos);
+            novoAtivo = await api.criarImovelEAtivo(estado.clienteId, nome, tipo, imovelDados, tipoDetalheId, payload.dados_especificos);
         } else {
             if (empvalLido) Object.assign(payload, empvalLido);
             if (enderecoLido) Object.assign(payload, enderecoLido);
@@ -2270,44 +2277,37 @@ export async function salvarEdicaoAtivo() {
     const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId);
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
-    // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
-    // referência são universais agora (qualquer tipo de ativo); pra
-    // vinculado, entram no MESMO imoveisPatch abaixo (não em
-    // cofre_ativos direto) — o gatilho espelha de volta sozinho.
+    // Onda 12 (16/09/2026) — empreendimento/valor de referência são
+    // universais (qualquer tipo de ativo); entram no mesmo `patch` pra
+    // TODOS os casos agora — cofre_ativos é o único destino de escrita.
     const empValLido = await lerBlocoEmpreendimentoValor('fa-editar-empval-', estado.clienteId);
     // v1.32.0 (E6.2) — só lê os blocos de endereço/imóvel se foram
     // renderizados (categoria imóvel); nos demais tipos os campos não
     // existem no DOM.
-    // E15.2 (15/09/2026) — vinculado escreve em `imoveis`
-    // (api.atualizarImovel), não em cofre_ativos: a vitrine pública lê
-    // imoveis sem login, tem que continuar a fonte de verdade até a
-    // E15.3. trg_imovel_atualiza_ativo (banco) espelha o resultado pra
-    // cofre_ativos sozinho — nenhum 2º UPDATE precisa sair daqui.
-    // Aluguel esperado é SEMPRE dados_especificos, nos 2 casos — não
-    // sincroniza com `imoveis` (decisão do documento DE_PARA).
+    // Onda 12 (16/09/2026, pedido explícito: "único caminho de escrita,
+    // na tabela de ativos... imoveis totalmente isolada") — vinculado
+    // PAROU de escrever em `imoveis` (api.atualizarImovel retirada
+    // daqui). trg_imovel_atualiza_ativo (banco) só espelhava imoveis→
+    // cofre_ativos; sem escrita em imoveis, ele nunca mais dispara —
+    // fica dormente, não precisa ser removido. Aluguel esperado é
+    // SEMPRE dados_especificos.
     if (ehCategoriaImovel(a.tipo_ativo)) {
         const enderecoLido = lerBlocoEndereco('fa-editar-endereco');
         const { camposImovel, aluguelDesejado } = lerBlocoImovel('fa-editar-imovel-');
         if (aluguelDesejado !== null) dados.aluguel_desejado = aluguelDesejado;
-        if (ehImovelVinculado(a.entidade_origem_tipo)) {
-            const imoveisPatch = {
-                endereco_rua: enderecoLido.endereco_rua, endereco_num: enderecoLido.endereco_num,
-                endereco_comp: enderecoLido.endereco_comp, endereco_bairro: enderecoLido.endereco_bairro,
-                endereco_cidade: enderecoLido.endereco_cidade, uf: enderecoLido.uf, cep: enderecoLido.cep,
-                codigo_ibge_municipio: enderecoLido.codigo_ibge_municipio,
-                empreendimento_id: empValLido.empreendimento_id,
-                valor_mercado: empValLido.valor_referencia,
-                tamanho: camposImovel.area_m2,
-                finalidade_uso: camposImovel.finalidade_uso,
-                status: camposImovel.situacao_uso,
-                descricao: camposImovel.observacao,
-            };
-            try {
-                await api.atualizarImovel(a.entidade_origem_id, imoveisPatch);
-            } catch (err) { mostrarToast('Erro ao salvar dados do imóvel: ' + err.message, 'erro'); return false; }
-        } else {
-            Object.assign(patch, enderecoLido, camposImovel, empValLido);
-        }
+        // Onda 12 (16/09/2026, pedido explícito: "único caminho de
+        // escrita, na tabela de ativos") — vinculado e avulso convergem:
+        // os dois gravam em cofre_ativos direto agora, no mesmo `patch`
+        // que desce pra api.atualizarAtivo() logo abaixo.
+        // api.atualizarImovel() (escrevia em `imoveis`, retirada) não é
+        // mais chamada daqui — imóvel vinculado ou não, edição de ativo
+        // só toca cofre_ativos. `imoveis` fica intocada, isolada.
+        Object.assign(patch, enderecoLido, empValLido, {
+            area_m2: camposImovel.area_m2,
+            finalidade_uso: camposImovel.finalidade_uso,
+            situacao_uso: camposImovel.situacao_uso,
+            observacao: camposImovel.observacao,
+        });
     } else {
         // não-imóvel: só empreendimento/valor, direto em cofre_ativos
         Object.assign(patch, empValLido);

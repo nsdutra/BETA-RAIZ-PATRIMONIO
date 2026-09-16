@@ -6,9 +6,42 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.190.0
-   LINHAS: 15614
+   VERSÃO: Beta v1.191.0
+   LINHAS: 15620
    DATA: 16/09/2026
+   NOVIDADES (Beta v1.191.0) — Onda 12 (pedido explícito 16/09/2026:
+   "pode evoluir mas não queria inverter [o gatilho de segurança]. Queria
+   que exista já definitivamente apenas um caminho de escrita que seja
+   na tabela de ativos. Quero deixar a tabela de imóveis totalmente
+   isolada por um tempo até finalizar de rever todo o sistema. Se
+   possível, alterar o nome dela para ficar aguardando ser deletada"):
+   carregarImoveisSupabase() — mudança de fundo: passou a buscar por
+   CATEGORIA (tipo_ativo IN imovel_predial/imovel_territorial), não mais
+   por vínculo com `imoveis`. Cobre os 104 imóveis legados E qualquer
+   imóvel novo (nativo, sem `imoveis` por trás) — é isso que faz um
+   imóvel novo virar elegível pra contrato, o problema real por trás de
+   toda essa frente. `id` deste array mudou de significado: agora é
+   SEMPRE cofre_ativos.id (antes era imoveis.id) — nome do campo não
+   mudou, só o espaço de id que ele carrega, então ~140 pontos que só
+   fazem imoveis.find(i => i.id === con.imovelId) continuam funcionando
+   sem tocar neles.
+   sincronizarContratoSupabase() grava ativo_id agora, nunca mais
+   imovel_id — contrato novo nasce com imovel_id permanentemente nulo;
+   contrato antigo mantém o que já tinha (68/68 já tinham ativo_id
+   derivado desde a fatia A.8, conferido antes de trocar — zero risco de
+   perder vínculo). carregarContratosSupabase() lê ativo_id de volta,
+   pros dois casos. sincronizarImovelSupabase() grava em cofre_ativos
+   direto — bem mais simples, sem precisar mais resolver o ativo por uma
+   busca à parte (imo.id já é o id do ativo).
+   BLOQUEIO REAL encontrado — não fiz o rename da tabela ainda: varredura
+   completa no banco achou 11 funções/triggers vivos que ainda leem/
+   escrevem `imoveis` por nome, 2 delas críticas — fn_resumo_resultados
+   (KPIs de Resultados/Visão Geral, todo tenant) e
+   fn_diario_contratos_aniversario_reajuste (geração diária de alertas de
+   reajuste). Renomear agora quebraria as duas pra todo cliente. Isso já
+   era esperado — é literalmente as etapas E7/E2.1 do PLANO_IMPLEMENTACAO
+   v1.0, nunca executadas. Lista completa e proposta de sequência na
+   entrega.
    NOVIDADES (Beta v1.190.0) — Onda 12 (pedido explícito 16/09/2026:
    "vamos seguir em frente. Não inverta a lógica, troque as leituras para
    eliminar de vez a tabela. Não elimine ainda"): carregarImoveisSupabase()
@@ -99,20 +132,8 @@
    marcação desde a v1.186.0. Só a função saiu; os 2 comentários
    históricos que a citam noutros pontos do arquivo (v1.185.0/v1.186.0)
    ficaram, por descreverem o que mudou naquelas versões.
-   NOVIDADES (Beta v1.187.0) — 2 pedidos do Nicola sobre a tela de Alertas:
-   (1) "Precisa de atenção" na Visão Geral deixou de ser .rz-card (moldura
-   com borda colorida) e virou título simples — o padding:14px 16px do
-   card tirava largura útil da linha do alerta, agravando o truncamento
-   já reduzido pela placa de prazo (v1.186.0). Sem conteúdo, a seção
-   inteira some (troca "mostrar que está tudo em dia" por "não mostrar
-   nada"). Borda/status coloridos saíram junto — não tinham mais o que
-   colorir.
-   (2) Seletor de severidade (Crítico/Atenção/Informativo — os 3 valores
-   de alerta_tipos.severidade) nas duas telas, usando .rz-seg (mesmo
-   controle de Financeiro/Conciliação) — pedido explícito: "não usar chip
-   para isto". Estado independente por tela.
    ------------------------------------------------------------------
-   Versões anteriores (v1.186.0 … v1.186.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.187.0 … v1.187.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -136,7 +157,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.4.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.1.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.34.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.39.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.35.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.5.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.1.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.35.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.40.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.35.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3575,7 +3596,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.190.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.191.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5098,42 +5119,42 @@
         // carregarContratosSupabase logo abaixo, nunca saiu daqui.
 
 
-        // Onda 12 (pedido explícito, 16/09/2026: "troque as leituras para
-        // eliminar de vez a tabela [imoveis]... não inverta a lógica... não
-        // elimine ainda") — fonte trocada de `imoveis` pra `cofre_ativos`
-        // (só vinculado, entidade_origem_tipo='imovel' — mesmo universo de
-        // sempre; avulso continua de fora, como hoje). A ESCRITA não mudou:
-        // atualizarImovel/criarImovelEAtivo/sincronizarImovelSupabase
-        // continuam gravando em `imoveis`, e a trigger
-        // trg_imovel_atualiza_ativo espelha pra cofre_ativos na MESMA
-        // transação — então esta leitura nunca fica desatualizada.
-        // `id` continua sendo imoveis.id (== entidade_origem_id), não o id
-        // do ativo — contratos.imovel_id, minutas, divisão de repasse etc.
-        // têm FK pra `imoveis`, não pra `cofre_ativos`; trocar isso é
-        // inverter a escrita, explicitamente fora do escopo desta etapa.
-        //
-        // Condomínio/IPTU: já viram item de controle automático (E8) — a
-        // fonte primária agora é `cofre_itens_controle` (mesmo valor,
-        // conferido campo a campo nos 104 imóveis antes de trocar: 102
-        // batem 100%). ACHADO no caminho: 5 imóveis (tenants e991a903.../
-        // 15e318a6...) têm item de IPTU automático SEM valor preenchido —
-        // `imoveis.iptu` continua com o número real, o item de controle não.
-        // Fallback pra `imoveis` cobre esses casos até você decidir como
-        // evoluir (backlog já registrado). Código do IPTU não tem
-        // equivalente nenhum no item de controle ainda — continua vindo só
-        // de `imoveis`, leitura estreita de 1 campo.
+        // Onda 12 (pedido explícito, 16/09/2026: "quero que exista já
+        // definitivamente apenas um caminho de escrita, na tabela de
+        // ativos... imoveis totalmente isolada, aguardando ser deletada")
+        // — fonte agora é só `cofre_ativos`, filtrando por CATEGORIA
+        // (tipo_ativo), não mais por vínculo com `imoveis`: cobre os 104
+        // imóveis LEGADOS (entidade_origem_tipo='imovel') e qualquer
+        // imóvel NOVO criado depois de hoje (nativo, sem vínculo nenhum
+        // — é assim que ele vira elegível pra contrato, que era o
+        // problema real por trás de toda essa frente).
+        // MUDANÇA DE SIGNIFICADO IMPORTANTE: `id` deste array deixou de
+        // ser imoveis.id — agora é SEMPRE cofre_ativos.id (o id do
+        // ativo), pros 2 casos. O nome do campo continua "id" (não
+        // renomeado — evita reescrever ~140 pontos que só fazem
+        // imoveis.find(i => i.id === con.imovelId), que continuam
+        // funcionando idênticos, contanto que os dois lados usem o
+        // mesmo espaço de id — e agora usam). Quem grava (sincronizarContratoSupabase,
+        // sincronizarImovelSupabase) já foi ajustado pra gravar ativo_id,
+        // nunca mais imovel_id — ver changelog de cada um.
+        // Condomínio/IPTU vêm de cofre_itens_controle (item de controle
+        // automático, E8 — dispara em QUALQUER insert de ativo, legado ou
+        // novo). Código do IPTU/foto de capa vêm de dados_especificos
+        // (backfill de 1x pros 104 legados; imóvel novo começa sem, até
+        // ganhar uma tela própria pra isso). `imoveis` não é mais
+        // consultada por esta função.
         async function carregarImoveisSupabase() {
 
             const { data: ativosRows, error: errAtivos } = await dbAuth
                 .from('cofre_ativos')
                 .select('*, empreendimentos(nome), ativo_tipos(nome)')
                 .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                .eq('entidade_origem_tipo', 'imovel');
+                .eq('status', 'ativo')
+                .in('tipo_ativo', ['imovel_predial', 'imovel_territorial']);
 
             if (errAtivos) throw errAtivos;
 
             const idsAtivos = (ativosRows || []).map(function(r) { return r.id; });
-            const idsImoveis = (ativosRows || []).map(function(r) { return r.entidade_origem_id; });
 
             let propriedades = [];
             if (idsAtivos.length > 0) {
@@ -5167,18 +5188,6 @@
                 itensIptuCondominio = itensRows || [];
             }
 
-            // Fallback estreito — só os 3 campos sem equivalente confiável
-            // ainda em cofre_ativos/cofre_itens_controle (ver nota acima).
-            let residuaisImoveis = {};
-            if (idsImoveis.length > 0) {
-                const { data: resRows, error: errRes } = await dbAuth
-                    .from('imoveis')
-                    .select('id, codigo_iptu, condominio, iptu')
-                    .in('id', idsImoveis);
-                if (errRes) throw errRes;
-                (resRows || []).forEach(function(r) { residuaisImoveis[r.id] = r; });
-            }
-
             return (ativosRows || []).map(function(row) {
 
                 const divisao = {};
@@ -5200,13 +5209,12 @@
                 const itensDoAtivo = itensIptuCondominio.filter(function(i) { return i.ativo_id === row.id; });
                 const itemIptu = itensDoAtivo.find(function(i) { return i.cofre_controle_subtipos && i.cofre_controle_subtipos.nome === 'IPTU'; });
                 const itemCondominio = itensDoAtivo.find(function(i) { return i.cofre_controle_subtipos && i.cofre_controle_subtipos.nome === 'Condomínio (boleto)'; });
-                const residual = residuaisImoveis[row.entidade_origem_id] || {};
 
                 const dados = row.dados_especificos || {};
 
                 return {
-                    id: row.entidade_origem_id,
-                    ativoId: row.id, // novo — pra quem precisar do id do ativo direto
+                    id: row.id,
+                    ativoId: row.id, // mesmo valor de id agora — mantido pelo nome, pra quem já espera esse campo
                     empreendimento: row.empreendimentos ? row.empreendimentos.nome : '',
                     empreendimentoId: row.empreendimento_id || null,
                     enderecoRua: row.endereco_rua || '',
@@ -5220,14 +5228,14 @@
                     tamanho: row.area_m2 || 0,
                     suites: 0,
                     banheiros: 0,
-                    condominio: (itemCondominio && itemCondominio.valor_previsto != null) ? Number(itemCondominio.valor_previsto) : (Number(residual.condominio) || 0),
-                    iptu: (itemIptu && itemIptu.valor_previsto != null) ? Number(itemIptu.valor_previsto) : (Number(residual.iptu) || 0),
-                    codigoIPTU: residual.codigo_iptu || '',
+                    condominio: (itemCondominio && itemCondominio.valor_previsto != null) ? Number(itemCondominio.valor_previsto) : 0,
+                    iptu: (itemIptu && itemIptu.valor_previsto != null) ? Number(itemIptu.valor_previsto) : 0,
+                    codigoIPTU: dados.codigo_iptu || '',
                     descricao: row.observacao || '',
                     energiaRumo: dados.energia_disponivel ? 'Sim' : 'Não',
                     valorMercado: row.valor_referencia || 0,
                     valor: Number(dados.aluguel_desejado) || 0,
-                    fotos: [], // único leitor (renderFiltroDocumentosFicha) está órfão, sem chamador — não vale a query extra
+                    fotos: dados.foto_capa_url ? [dados.foto_capa_url] : [], // único leitor (renderFiltroDocumentosFicha) está órfão, sem chamador — mantido só por compat de formato
                     divisao: divisao,
                     parteRumo: { [CONFIG_CLIENTE.nomeEmpresa || SOCIO_PADRAO]: 100 }, // ver nota de simplificação acima
                     status: mapStatusSupabaseParaAntigo(row.situacao_uso),
@@ -5240,26 +5248,13 @@
         }
 
 
-        // Onda 12 (achado ao trocar a leitura pra cofre_ativos, 16/09/2026)
-        // — BUG REAL evitado antes de acontecer: esta função fazia UPDATE
-        // de TODAS as colunas de `imoveis` de uma vez, sempre, mesmo
-        // quando só o status mudou (único propósito real do único
-        // chamador vivo hoje — salvarContratoIndividual, linha ~5587).
-        // Com a leitura nova, `imo.manutencaoNome`/`imo.manutencaoZap` não
-        // existem mais no objeto em memória — gravar `linha` inteira do
-        // jeito antigo teria ZERADO esses 2 campos em `imoveis` toda vez
-        // que um contrato fosse salvo, mesmo quando têm valor real
-        // cadastrado há tempos. Reduzida ao que o chamador de verdade
-        // precisa: status + os campos "core" que já vêm limpos de
-        // cofre_ativos (útil como round-trip, não faz mal reescrever o
-        // que já é a mesma fonte). tipo_id/condomínio/IPTU/código IPTU
-        // saíram do UPDATE — não são mais escritos por aqui (tipos_imovel
-        // sendo eliminado; os outros 3 têm fonte derivada agora, ver
-        // carregarImoveisSupabase — escrever valor derivado de volta não
-        // faz sentido). O ramo de CRIAÇÃO (fn_criar_ativo quando id não é
-        // um uuid válido) também saiu: o único chamador vivo sempre passa
-        // um imóvel já existente; criar imóvel novo é o formulário
-        // unificado (criarImovelEAtivo, cofre-api.js) desde a E15.2.1.
+        // Onda 12 (16/09/2026, pedido explícito: "quero que exista já
+        // definitivamente apenas um caminho de escrita, na tabela de
+        // ativos... imoveis totalmente isolada") — grava em cofre_ativos
+        // agora, não mais em `imoveis`. `imo.id` já É o id do ativo desde
+        // que carregarImoveisSupabase() trocou de fonte — não precisa
+        // mais resolver ativo_id por uma busca à parte, simplifica o
+        // resto da função também.
         async function sincronizarImovelSupabase(imo) {
 
             if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(imo.id || '')) {
@@ -5273,15 +5268,15 @@
                 endereco_bairro: imo.enderecoBairro,
                 endereco_cidade: imo.enderecoCidade,
                 finalidade_uso: imo.finalidadeUso || 'long_stay',
-                tamanho: imo.tamanho || null,
-                status: mapStatusAntigoParaSupabase(imo.status),
-                descricao: imo.descricao || null,
-                valor_mercado: imo.valorMercado || null
+                area_m2: imo.tamanho || null,
+                situacao_uso: mapStatusAntigoParaSupabase(imo.status),
+                observacao: imo.descricao || null,
+                valor_referencia: imo.valorMercado || null
             };
 
-            const { error } = await dbAuth.from('imoveis').update(linha).eq('id', imo.id);
+            const { error } = await dbAuth.from('cofre_ativos').update(linha).eq('id', imo.id);
             if (error) throw error;
-            const imovelId = imo.id;
+            const ativoId = imo.id;
 
             const nomesDivisao = Object.keys(imo.divisao || {});
             let linhasPropriedade = [];
@@ -5301,23 +5296,17 @@
                 });
             }
 
-            // v1.101.0 (02/09/2026, pedido explícito: "vasculha tudo pra
-            // ver quem lê a tabela de propriedades hoje pra trocar pra
-            // esta de ativo também") — trocado substituir_propriedade_imovel
-            // por substituir_propriedade_ativo: resolve o ativo_id deste
-            // imóvel e grava lá — mesma RPC que o chip Propriedade (Ativos)
-            // e o popup "Divisão Societária" usam agora, fonte única.
-            const { data: ativoDoImovel, error: errAtivoDoImovel } = await dbAuth.from('cofre_ativos')
-                .select('id').eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId).single();
-            if (errAtivoDoImovel || !ativoDoImovel) throw new Error('Não achei o ativo correspondente a este imóvel (cofre_ativos) pra gravar a divisão societária.');
-
+            // v1.101.0 (02/09/2026) — substituir_propriedade_ativo, mesma
+            // RPC que o chip Propriedade (Ativos) e o popup "Divisão
+            // Societária" usam, fonte única. ativoId já é o id certo —
+            // Onda 12 tirou a busca extra que existia aqui antes.
             const { error: errProp } = await dbAuth.rpc('substituir_propriedade_ativo', {
-                p_ativo_id: ativoDoImovel.id,
+                p_ativo_id: ativoId,
                 p_linhas: linhasPropriedade
             });
             if (errProp) throw errProp;
 
-            return imovelId;
+            return ativoId;
         }
 
 
@@ -5366,7 +5355,14 @@
             return (contratosRows || []).map(function(row) {
                 return {
                     id: row.id,
-                    imovelId: row.imovel_id || '',
+                    // Onda 12 (16/09/2026) — lê ativo_id agora, não mais
+                    // imovel_id. Os 68 contratos existentes já têm os
+                    // dois preenchidos (ativo_id foi derivado automatico
+                    // desde a fatia A.8, "passo 4a"); contrato novo nasce
+                    // só com ativo_id. imovelId (nome do campo, não
+                    // renomeado) passa a carregar um id de ativo — ver
+                    // carregarImoveisSupabase, mesmo espaço de id agora.
+                    imovelId: row.ativo_id || '',
                     status: mapStatusContratoSupabaseParaAntigo(row.status),
                     locatario: row.locatario || '',
                     docTipo: row.doc_tipo || 'CPF',
@@ -5464,11 +5460,21 @@
 
         }
 
+        // Onda 12 (16/09/2026, pedido explícito: "quero que exista já
+        // definitivamente apenas um caminho de escrita, na tabela de
+        // ativos") — grava ativo_id agora, não mais imovel_id.
+        // con.imovelId já É o id do ativo (mesmo campo de sempre — não
+        // renomeado — mas carregarImoveisSupabase()/"Qual imóvel?" no
+        // formulário de contrato agora populam com cofre_ativos.id, não
+        // mais imoveis.id, desde que a leitura trocou de fonte). Contrato
+        // novo nasce com imovel_id null pra sempre; contrato antigo (pré-
+        // Onda 12) mantém o imovel_id que já tinha — não é tocado aqui,
+        // só não recebe mais escrita nova.
         async function sincronizarContratoSupabase(con) {
 
             const linha = {
                 cliente_id: CLIENTE_ID_SUPABASE,
-                imovel_id: /^[0-9a-f]{8}-/i.test(con.imovelId || '') ? con.imovelId : null,
+                ativo_id: /^[0-9a-f]{8}-/i.test(con.imovelId || '') ? con.imovelId : null,
                 status: mapStatusContratoAntigoParaSupabase(con.status),
                 locatario: con.locatario,
                 doc_tipo: con.docTipo || null,

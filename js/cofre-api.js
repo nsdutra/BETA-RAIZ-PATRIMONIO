@@ -1,6 +1,23 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.34.0 · 16/09/2026
+// Versão: 1.35.0 · 16/09/2026
+//
+// v1.35.0 — Onda 12 (pedido explícito 16/09/2026: "quero que exista já
+// definitivamente apenas um caminho de escrita, que seja na tabela de
+// ativos... quero deixar a tabela de imóveis totalmente isolada por um
+// tempo... se possível, alterar o nome dela pra ficar aguardando ser
+// deletada"). criarImovelEAtivo() parou de chamar fn_criar_ativo/inserir
+// em `imoveis` — grava direto em cofre_ativos, sem vínculo nenhum com
+// `imoveis` (imóvel novo nasce nativo). BUG REAL evitado: fn_criar_ativo
+// sempre gravava tipo_ativo='imovel' (nem predial nem territorial) —
+// tipoAtivo agora é parâmetro explícito. atualizarImovel() aposentada
+// (sem chamador — salvarEdicaoAtivo grava tudo em cofre_ativos agora,
+// vinculado ou não). buscarResumoImovelOrigem/buscarResumoImoveisParaCards
+// simplificadas — sem fallback pra `imoveis` (backfill de 1x já fechou
+// os gaps, ver migration onda12_backfill_dados_especificos_pre_isolamento).
+// `imoveis` não é mais escrita nem lida por nenhuma função viva deste
+// arquivo (as 2 que ainda mencionam a tabela, atualizarImovel e o delete
+// em imoveis.js, estão sem chamador).
 //
 // v1.34.0 — Onda 12, continuação (pedido "continuar" — fecha o
 // bloqueio registrado na entrega anterior). buscarResumoImovelOrigem e
@@ -300,7 +317,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.34.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.35.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -707,42 +724,38 @@ export async function buscarAtivoPorOrigemImovel(clienteId, imovelId) {
 // NOVO (31/08/2026, trem v1.85) — a ficha do ativo, pro caso de imóvel
 // vinculado ao App (entidade_origem_tipo='imovel'), até aqui só mostrava
 // um texto genérico + botão "Abrir gestão do imóvel", sem trazer o dado
-// aqui dentro. IPTU/valor de mercado existem em imoveis desde v1.77.0
-// mas nunca eram buscados pela ficha do Cofre — esta função fecha essa
-// lacuna. Erro é engolido (retorna null) de propósito: se o imóvel de
-// origem não existir mais por algum motivo, a ficha não deve quebrar,
-// só não mostra o resumo extra.
+// aqui dentro. Esta função fecha essa lacuna, só pros 104 imóveis
+// LEGADOS que ainda têm entidade_origem_id (histórico da era `imoveis`
+// — imóvel novo, criado depois da Onda 12, nunca tem esse vínculo e usa
+// o ramo "avulso" de montarDadosAtivo, que já lê cofre_ativos direto,
+// sem passar por aqui). Erro é engolido (retorna null) de propósito: se
+// o imóvel de origem não existir mais por algum motivo, a ficha não
+// deve quebrar, só não mostra o resumo extra.
 //
-// Onda 12 (16/09/2026, "troque as leituras pra eliminar de vez a
-// tabela") — reescrita pra ler `cofre_ativos`. uso/tipo_locacao/cib
-// SAÍRAM de vez: conferido no banco antes de decidir — 0 dos 104
-// imóveis (em qualquer tenant) têm QUALQUER um dos 3 preenchido, e
-// nenhum formulário do app (nem o antigo, nem o novo) jamais teve campo
-// pra editá-los. Não eram um dado represado, eram 3 colunas mortas desde
-// sempre — cofre_ativos.uso existe mas é OUTRA coisa (coluna GERADA de
-// finalidade_uso, só comercial/não-comercial), por isso nunca dava pra
-// simplesmente mapear. IPTU usa o mesmo fallback de carregarImoveisSupabase
-// (index.html): cofre_itens_controle primeiro, imoveis.iptu só se o item
-// ainda não tiver valor. Código do IPTU continua narrow-lendo `imoveis`
-// (13 dos 104 têm valor real — esse sim é dado de verdade, sem
-// equivalente em cofre_itens_controle ainda).
+// Onda 12 (16/09/2026) — reescrita pra ler só `cofre_ativos` +
+// `cofre_itens_controle`, `imoveis` isolada de vez: uso/tipo_locacao/cib
+// saíram (100% vazios em produção, nenhum formulário jamais teve campo
+// pra editá-los — não eram dado represado). Código do IPTU e a foto de
+// capa migraram pra dados_especificos (backfill de 1x, migration
+// onda12_backfill_dados_especificos_pre_isolamento). Os 5 itens de
+// controle de IPTU sem valor foram corrigidos na origem — o fallback
+// pra `imoveis` que existia até a entrega anterior não é mais
+// necessário, saiu.
 export async function buscarResumoImovelOrigem(imovelId) {
     try {
         const { data: ativo, error } = await dbAuth.from('cofre_ativos')
-            .select('id, endereco_rua, endereco_num, endereco_bairro, endereco_cidade, uf, valor_referencia')
+            .select('id, endereco_rua, endereco_num, endereco_bairro, endereco_cidade, uf, valor_referencia, dados_especificos')
             .eq('entidade_origem_tipo', 'imovel')
             .eq('entidade_origem_id', imovelId)
             .maybeSingle();
         if (error) throw error;
         if (!ativo) return null;
 
-        const [{ data: itemIptu }, { data: imovelResidual }] = await Promise.all([
-            dbAuth.from('cofre_itens_controle')
-                .select('valor_previsto, cofre_controle_subtipos!inner(nome)')
-                .eq('ativo_id', ativo.id).eq('ativo', true).eq('cofre_controle_subtipos.nome', 'IPTU').maybeSingle(),
-            dbAuth.from('imoveis').select('codigo_iptu, iptu').eq('id', imovelId).maybeSingle(),
-        ]);
+        const { data: itemIptu } = await dbAuth.from('cofre_itens_controle')
+            .select('valor_previsto, cofre_controle_subtipos!inner(nome)')
+            .eq('ativo_id', ativo.id).eq('ativo', true).eq('cofre_controle_subtipos.nome', 'IPTU').maybeSingle();
 
+        const dados = ativo.dados_especificos || {};
         return {
             endereco_rua: ativo.endereco_rua,
             endereco_num: ativo.endereco_num,
@@ -750,8 +763,8 @@ export async function buscarResumoImovelOrigem(imovelId) {
             endereco_cidade: ativo.endereco_cidade,
             uf: ativo.uf,
             valor_mercado: ativo.valor_referencia,
-            iptu: (itemIptu && itemIptu.valor_previsto != null) ? itemIptu.valor_previsto : (imovelResidual?.iptu ?? null),
-            codigo_iptu: imovelResidual?.codigo_iptu ?? null,
+            iptu: itemIptu?.valor_previsto ?? null,
+            codigo_iptu: dados.codigo_iptu ?? null,
         };
     } catch (e) {
         console.warn('[cofre-api] buscarResumoImovelOrigem falhou:', e);
@@ -759,11 +772,10 @@ export async function buscarResumoImovelOrigem(imovelId) {
     }
 }
 
-// E15.2 ("A2") — form unificado editando um ativo VINCULADO grava aqui
-// (não em cofre_ativos direto) — imoveis continua a fonte de verdade
-// até a E15.3 migrar a vitrine pública. trg_imovel_atualiza_ativo
-// (banco) espelha o resultado pra cofre_ativos sozinho, sem precisar de
-// um 2º UPDATE daqui.
+// Onda 12 (16/09/2026) — SEM CHAMADOR desde que salvarEdicaoAtivo()
+// (cofre-ativos.js) parou de escrever em `imoveis` ("único caminho de
+// escrita, na tabela de ativos" — pedido explícito). Não removida, só
+// ficou sem uso — mesmo padrão já usado com abrirGestaoImovel().
 export async function atualizarImovel(imovelId, patch) {
     const { error } = await dbAuth.from('imoveis').update(patch).eq('id', imovelId);
     if (error) throw error;
@@ -983,37 +995,37 @@ const PRIORIDADE_STATUS_CONTRATO_CARD = { Ativo: 1, Assinando: 2, Suspenso: 3, F
 const STATUS_IMOVEL_SUPABASE_PARA_ROTULO = { disponivel: 'Vago', alugado: 'Alugado', assinando: 'Assinando', manutencao: 'Vago', reservado: 'Vago', em_uso: 'Em uso', em_breve: 'Em Breve' };
 
 export async function buscarResumoImoveisParaCards(clienteId) {
-    // Onda 12 (16/09/2026) — fonte trocada pra `cofre_ativos` (status,
-    // finalidade_uso, tipo, empreendimento) — mesmos campos que
-    // carregarImoveisSupabase (index.html) já usa dessa fonte. A foto de
-    // capa CONTINUA lendo `imoveis.fotos[0]` de propósito, leitura
-    // estreita de 1 campo: cofre_ativo_fotos guarda arquivo em 3 buckets
-    // diferentes por linha (imoveis-fotos/externo/cofre-documentos),
-    // então gerar signed URL em lote pra até 100+ cards não é tão
-    // simples quanto os outros campos — fica pra quando essa frente
-    // evoluir. Fotos publicadas ANTES da E15.3 continuam aparecendo
-    // aqui; publicadas depois, só na vitrine (efeito colateral já
-    // registrado na entrega anterior).
+    // Onda 12 (16/09/2026) — fonte trocada pra `cofre_ativos` por
+    // completo. Foto de capa agora vem de dados_especificos.foto_capa_url
+    // (backfill de 1x da URL pública que já existia em imoveis.fotos[0] —
+    // migration onda12_backfill_dados_especificos_pre_isolamento; URL
+    // pública do bucket imoveis-fotos não expira, continua válida). `imoveis`
+    // não é mais consultada por esta função.
+    //
+    // Escopo mantido igual ao de antes (só entidade_origem_tipo='imovel'
+    // — os 104 imóveis LEGADOS): imóvel NOVO, criado depois da Onda 12,
+    // não tem esse vínculo e cai no card genérico, sem o tratamento rico
+    // (empreendimento/status/foto) — mesmo comportamento de "(Outros
+    // ativos)" que outros pontos de cofre-ativos.js já dão pra ativo sem
+    // entidade_origem_id (ex. renderAtivosLista, totalImoveisNaCarteira).
+    // Estender esse tratamento rico pra imóvel nativo é frente própria,
+    // maior — fica registrado como pendência, não differentiated aqui.
     const resumo = new Map();
     try {
         // v1.17.0 — as 2 consultas em paralelo (eram em fila; 1 ida a menos no 4G)
-        const [{ data: ativosRows, error: e1 }, { data: contratosRows, error: e2 }, { data: fotosRows, error: e3 }] = await Promise.all([
-            dbAuth.from('cofre_ativos').select('entidade_origem_id, situacao_uso, finalidade_uso, ativo_tipos(nome), empreendimentos(nome)').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel'),
+        const [{ data: ativosRows, error: e1 }, { data: contratosRows, error: e2 }] = await Promise.all([
+            dbAuth.from('cofre_ativos').select('entidade_origem_id, situacao_uso, finalidade_uso, dados_especificos, ativo_tipos(nome), empreendimentos(nome)').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel'),
             dbAuth.from('contratos').select('imovel_id, status, locatario, valor').eq('cliente_id', clienteId),
-            dbAuth.from('imoveis').select('id, fotos').eq('cliente_id', clienteId),
         ]);
         if (e1) throw e1;
         if (e2) throw e2;
-        if (e3) throw e3;
-        const fotosPorImovel = new Map((fotosRows || []).map(r => [r.id, r.fotos]));
 
         (ativosRows || []).forEach(imo => {
             const imovelId = imo.entidade_origem_id;
             const contratosDoImovel = (contratosRows || [])
                 .filter(c => c.imovel_id === imovelId)
                 .sort((a, b) => (PRIORIDADE_STATUS_CONTRATO_CARD[a.status] || 9) - (PRIORIDADE_STATUS_CONTRATO_CARD[b.status] || 9));
-            const fotosImo = fotosPorImovel.get(imovelId);
-            const foto = (Array.isArray(fotosImo) && fotosImo.length > 0 && typeof fotosImo[0] === 'string' && fotosImo[0].length > 5) ? fotosImo[0] : null;
+            const foto = imo.dados_especificos?.foto_capa_url || null;
             resumo.set(imovelId, {
                 empreendimento: imo.empreendimentos?.nome || '',
                 tipo: imo.ativo_tipos?.nome || '',
@@ -1035,30 +1047,52 @@ export async function criarAtivo(payload) {
     return data;
 }
 
-// v1.31.0 (Onda 12, E15.2.1 — "criar imóvel novo" dentro do formulário
-// unificado) — chama fn_criar_ativo (o mesmo RPC que index.html:
-// sincronizarImovelSupabase já usa pro wizard antigo, "motor único" de
-// criação de imóvel: insere em `imoveis`, a trigger
-// trg_criar_ativo_para_imovel cria o cofre_ativos vinculado na mesma
-// transação, com checagem de limite de plano incluída). RPC ganhou 2
-// parâmetros novos nesta mesma sessão (migration
-// e15_2_1_fn_criar_ativo_completa_imovel_v1) só pra isto: sem eles, o
-// ativo nascia sempre sem tipo específico (achado real, ver handoff).
-// imovelDados usa nomes de COLUNA de `imoveis` (endereco_rua, uf,
-// valor_mercado, valor, finalidade_uso, status...) — é o mesmo formato
-// que lerBlocoEndereco/lerBlocoEmpreendimentoValor/lerBlocoImovel já
-// devolvem, sem tradução extra.
-export async function criarImovelEAtivo(clienteId, nomeExibicao, imovelDados, tipoDetalheId, dadosEspecificos) {
-    const { data, error } = await dbAuth.rpc('fn_criar_ativo', {
-        p_cliente_id: clienteId,
-        p_tipo_ativo: 'imovel',
-        p_nome_exibicao: nomeExibicao,
-        p_dados: imovelDados,
-        p_tipo_detalhe_id: tipoDetalheId || null,
-        p_dados_especificos: dadosEspecificos || null,
-    }).single();
+// Onda 12 (16/09/2026, pedido explícito: "único caminho de escrita,
+// que seja na tabela de ativos... quero deixar a tabela de imóveis
+// totalmente isolada") — parou de chamar fn_criar_ativo/inserir em
+// `imoveis`: grava direto em cofre_ativos, sem vínculo nenhum com
+// `imoveis` (entidade_origem_tipo/entidade_origem_id ficam nulos — não
+// nasce mais uma linha em `imoveis` pra apontar). Limite de plano
+// continua garantido: trg_limite_ativos (BEFORE INSERT em cofre_ativos)
+// já dispara em insert direto, testado na sessão da E15.2.1.
+// imovelDados continua no formato de nome de coluna de `imoveis`
+// (retrocompat com quem monta o payload em salvarAtivo, cofre-ativos.js)
+// — mapeado aqui pro nome de coluna de cofre_ativos (valor_mercado→
+// valor_referencia, tamanho→area_m2, status→situacao_uso, descricao→
+// observacao). BUG REAL evitado antes de virar dado de produção:
+// fn_criar_ativo (agora aposentada aqui) sempre gravava tipo_ativo=
+// 'imovel' — um valor genérico que nem é 'imovel_predial' nem
+// 'imovel_territorial' (a E4.2 corrigiu isso retroativamente nos 104
+// imóveis existentes, mas a trigger de criação nunca foi atualizada
+// pra acompanhar). tipoAtivo agora é parâmetro explícito, gravado certo
+// desde o nascimento.
+export async function criarImovelEAtivo(clienteId, nomeExibicao, tipoAtivo, imovelDados, tipoDetalheId, dadosEspecificos) {
+    const payload = {
+        cliente_id: clienteId,
+        tipo_ativo: tipoAtivo,
+        tipo_detalhe_id: tipoDetalheId || null,
+        nome_exibicao: nomeExibicao,
+        status: 'ativo',
+        dados_especificos: dadosEspecificos || {},
+        endereco_rua: imovelDados.endereco_rua || null,
+        endereco_num: imovelDados.endereco_num || null,
+        endereco_comp: imovelDados.endereco_comp || null,
+        endereco_bairro: imovelDados.endereco_bairro || null,
+        endereco_cidade: imovelDados.endereco_cidade || null,
+        uf: imovelDados.uf || null,
+        cep: imovelDados.cep || null,
+        codigo_ibge_municipio: imovelDados.codigo_ibge_municipio || null,
+        empreendimento_id: imovelDados.empreendimento_id || null,
+        valor_referencia: imovelDados.valor_mercado ?? null,
+        valor_referencia_em: imovelDados.valor_mercado != null ? new Date().toISOString().slice(0, 10) : null,
+        area_m2: imovelDados.tamanho ?? null,
+        finalidade_uso: imovelDados.finalidade_uso || 'long_stay',
+        situacao_uso: imovelDados.status || null,
+        observacao: imovelDados.descricao || null,
+    };
+    const { data, error } = await dbAuth.from('cofre_ativos').insert(payload).select().single();
     if (error) throw error;
-    return data; // { ativo_id, imovel_id }
+    return { ativo_id: data.id, imovel_id: null, ...data };
 }
 
 export async function atualizarAtivo(id, patch) {

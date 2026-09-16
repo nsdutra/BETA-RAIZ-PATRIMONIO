@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.4.0 · 16/09/2026
+// Versão: 1.5.0 · 16/09/2026
+//
+// v1.5.0 — Onda 12 (pedido explícito: "único caminho de escrita, na
+// tabela de ativos"). Write direto de imoveis.status (sincronização de
+// status ao mudar ação do contrato) trocado pra cofre_ativos.situacao_uso
+// — imo.id já é o id do ativo desde que carregarImoveisSupabase()
+// (index.html) trocou de fonte.
 //
 // v1.4.0 — Onda 12 (pedido explícito, 16/09/2026: "retirar a faixa de
 // aviso no topo da tela de contratos"). banner-revisao-contratos
@@ -125,7 +131,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1110,7 +1116,10 @@ export function reabrirFichaSeFor(contratoId) {
                     }
                     if (novoStatusImovel !== imo.status) {
                         imo.status = novoStatusImovel;
-                        await dbAuth.from('imoveis').update({ status: mapStatusAntigoParaSupabase(novoStatusImovel) }).eq('id', imo.id);
+                        // Onda 12 (16/09/2026) — grava em cofre_ativos
+                        // agora (situacao_uso), não mais em `imoveis`.
+                        // imo.id já é o id do ativo.
+                        await dbAuth.from('cofre_ativos').update({ situacao_uso: mapStatusAntigoParaSupabase(novoStatusImovel) }).eq('id', imo.id);
                     }
                 }
 
