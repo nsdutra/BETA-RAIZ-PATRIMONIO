@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.33.0 · 15/09/2026
+// Versão: 1.34.0 · 15/09/2026
+//
+// v1.34.0 — PLANO_IMPLEMENTACAO v1.0, etapa E15.1 ("A3"), Onda 12
+// (decisão do Nicola, "começar a onda 12"). montarDadosAtivo(): os campos
+// específicos do ativo (dados_especificos) apareciam como uma STRING de
+// valores separados por "·", sem rótulo — dava pra ver quantos campos
+// tinham valor, não qual era qual. Vira grade .rz-kv (rótulo + valor),
+// 3º lugar nesta mesma função a usar o componente (os outros 2: imóvel
+// vinculado, endereço do avulso na E6.2) — nenhum padrão novo.
 //
 // v1.33.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão do
 // Nicola, "pode evoluir"). CAMPOS_POR_TIPO_ATIVO (objeto) some da
@@ -438,7 +446,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.33.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.34.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1734,23 +1742,25 @@ async function montarDadosAtivo(a) {
     // grade acima já tinha tudo (achado direto, pedido explícito: "veja
     // como aparece, ruim, precisa já aparecer os dados do imóvel").
     // Pra ativo SEM imóvel vinculado, comportamento intacto.
+    // v1.34.0 (E15.1 / "A3", 15/09/2026) — achado ao reler a tela: os
+    // campos específicos apareciam como uma STRING de valores separados
+    // por "·" ("ABC1D23 · Honda · Civic · 2022"), sem rótulo nenhum —
+    // dava pra ver O QUE tinha, não O QUE CADA VALOR ERA. Vira .rz-kv
+    // (rótulo + valor), mesmo componente já usado 2x nesta função pro
+    // imóvel vinculado e pro endereço do avulso (E6.2) — não é padrão
+    // novo, só o 3º lugar que usa o mesmo.
     const camposDefinidos = obterCamposPorTipo(a.tipo_ativo, a.tipo_detalhe_id);
     const dados = a.dados_especificos || {};
-    const valoresPreenchidos = camposDefinidos
-        .filter(c => dados[c.chave])
-        .map(c => c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dados[c.chave]));
+    const camposPreenchidos = camposDefinidos.filter(c => dados[c.chave]);
 
-    // NOVO (29/08/2026) — 3º estado 'vendido', mesma cor neutra já usada
-    // pra "Suspenso"/"Finalizado" no resto do sistema (DS §14, "demais
-    // estados" → slate) — não é sucesso (verde) nem erro (vermelho), é
-    // só um encerramento normal do ciclo de vida do ativo.
-    // v1.17.0 — status saiu daqui: vive no cabeçalho de entidade
-    // (statusAtivoHtml, abrirFichaAtivo). Aqui fica só o dado.
     const resumo = document.getElementById('fa-resumo-dados');
-    if (ehImovelVinculado && valoresPreenchidos.length === 0) {
+    if (ehImovelVinculado && camposPreenchidos.length === 0) {
         resumo.innerHTML = '';
+    } else if (camposPreenchidos.length === 0) {
+        resumo.innerHTML = `<p class="rz-desc${ehImovelVinculado ? ' mt-2' : ''}">Sem campos específicos preenchidos ainda.</p>`;
     } else {
-        resumo.innerHTML = `<p class="rz-desc${ehImovelVinculado ? ' mt-2' : ''}">${valoresPreenchidos.length ? valoresPreenchidos.join(' · ') : 'Sem campos específicos preenchidos ainda.'}</p>`;
+        const kv = camposPreenchidos.map(c => `<div><small>${escapeHtml(c.label)}</small><b>${c.mascarar ? mascarar(dados[c.chave]) : escapeHtml(dados[c.chave])}</b></div>`).join('');
+        resumo.innerHTML = `<div class="rz-kv${ehImovelVinculado ? ' mt-2' : ''}">${kv}</div>`;
     }
 
     refrescarIcones();
