@@ -6,9 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.192.0
+   VERSÃO: Beta v1.193.0
    LINHAS: 15659
    DATA: 16/09/2026
+   NOVIDADES (Beta v1.193.0) — 2 bugs reportados pelo Nicola em teste
+   real (16/09/2026, tenant "Rumo Empreendimentos" e "Albuquerque Silva
+   Participações"): (1) aba Contrato de um ativo imóvel quebrada
+   ("Não foi possível carregar os contratos agora.") — causa raiz em
+   js/cofre-api.js: a função buscarContratosDoAtivo() (filtro por
+   ativo_id) tinha sido PROMETIDA como pronta na entrega de hoje mais
+   cedo (v1.36.0 no changelog/versoes.json), mas nunca foi de fato
+   salva no arquivo — cofre-api.js continuava em v1.35.0 com a função
+   antiga buscarContratosDoImovel(imovel_id), que não existe mais pra
+   ativo nativo. Corrigido em js/cofre-api.js v1.36.1 (ver changelog
+   lá). (2) card "Em atraso" da Visão Geral mostrava uma CONTAGEM de
+   mensalidades vencidas, mas o card é visualmente um KPI monetário
+   (R$) como os outros dois do hero — confundia quantidade com valor.
+   renderVisaoGeral() parou de escrever nesse card; quem escreve agora
+   é carregarDadosAssincronosVisaoGeral(), usando
+   resumo.inadimplencia_valor (fn_resumo_resultados já retornava esse
+   campo — zero migração nova).
    NOVIDADES (Beta v1.192.0) — 3 achados reais de teste (Nicola, print
    Albuquerque Silva Participações): mensalidade vencida sem alerta em
    lugar nenhum, "Em atraso: 0" na Visão Geral pra qualquer tenant.
@@ -3611,7 +3628,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.192.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.193.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10758,21 +10775,22 @@
             const totalImoveis = imoveis.length;
             const alugados = imoveis.filter(i => i.status === 'Alugado').length;
             const vagos = imoveis.filter(i => i.status === 'Vago').length;
-            // CORRIGIDO (v1.63.0 — pedido explícito, 25/08/2026): antes
-            // contava QUALQUER mensalidade não paga, inclusive lançamentos
-            // futuros gerados com antecedência (ex.: setembro lançado em
-            // 25/08 já entrava aqui como "em atraso"). Agora usa
-            // mensalidadeEmAtraso(), que exige vencimento já chegado.
-            const inadimplentes = mensalidades.filter(m => mensalidadeEmAtraso(m) && !mensalidadeIsentaDeAlertas(m)).length;
+            // REMOVIDO (v1.193.0 — bug reportado pelo Nicola, 16/09/2026):
+            // "Em atraso" aqui era uma CONTAGEM local (quantas mensalidades
+            // vencidas), enquanto o card mostra "Em atraso" como se fosse
+            // valor monetário — inconsistente com os outros 2 KPIs do hero
+            // (Patrimônio, Recebido), que já são R$. O card passou a ser
+            // escrito por carregarDadosAssincronosVisaoGeral() usando
+            // resumo.inadimplencia_valor (fn_resumo_resultados), que já
+            // retorna o valor em R$ em atraso — sem precisar de nova
+            // migração. Cálculo local de contagem removido daqui.
 
             const elTotal = document.getElementById('geral-total-imoveis');
             const elAlugados = document.getElementById('geral-alugados');
             const elVagos = document.getElementById('geral-vagos');
-            const elInad = document.getElementById('geral-inadimplentes');
             if (elTotal) elTotal.innerText = totalImoveis;
             if (elAlugados) elAlugados.innerText = alugados;
             if (elVagos) elVagos.innerText = vagos;
-            if (elInad) elInad.innerText = inadimplentes;
 
             // v1.185.0 (achado do Nicola em teste real) — os 4 cards que
             // existiam aqui (inadimplência, contrato assinando, contrato com
@@ -10884,6 +10902,11 @@
                     if (elRecebidoMes) elRecebidoMes.textContent = formatarValorCompacto(resumo.recebido_mes_atual);
                     const elOcupacao = document.getElementById('geral-ocupacao-pct');
                     if (elOcupacao) elOcupacao.textContent = resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—';
+                    // v1.193.0 — "Em atraso" agora mostra o VALOR em R$
+                    // (resumo.inadimplencia_valor), não mais a contagem
+                    // local que existia em renderVisaoGeral().
+                    const elInad = document.getElementById('geral-inadimplentes');
+                    if (elInad) elInad.textContent = formatarValorCompacto(resumo.inadimplencia_valor);
                 }
             } else {
                 console.warn('[visao-geral] Falha ao carregar KPIs do hero:', resResumo.reason?.message || resResumo.value?.error?.message);

@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.35.0 · 16/09/2026
+// Versão: 1.36.1 · 16/09/2026
+//
+// v1.36.1 — ver changelog junto de buscarContratosDoAtivo() abaixo: função
+// renomeada de verdade (estava só no nome, causava TypeError na aba
+// Contratos da ficha do ativo — achado real do Nicola).
 //
 // v1.35.0 — Onda 12 (pedido explícito 16/09/2026: "quero que exista já
 // definitivamente apenas um caminho de escrita, que seja na tabela de
@@ -317,7 +321,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.35.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.36.1'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -806,16 +810,28 @@ export async function buscarAlertasDoAtivo(ativoId) {
 // engolido (retorna array vazio) de propósito, mesmo padrão de
 // buscarResumoImovelOrigem: a ficha do ativo não deve quebrar por causa
 // de uma busca acessória.
-export async function buscarContratosDoImovel(imovelId) {
+//
+// v1.36.1 (16/09/2026, achado real do Nicola — print "Não foi possível
+// carregar os contratos agora" na aba Contratos de um imóvel) — CAUSA:
+// esta função continuava com o nome/filtro antigos (buscarContratosDoImovel,
+// filtro por imovel_id) enquanto cofre-ativos.js v1.41.0 já chamava
+// api.buscarContratosDoAtivo(a.id) — a entrega onda12-bugfix-ativos desta
+// mesma sessão (mais cedo hoje) registrou esta função como renomeada e
+// versoes.json já foi gravado como 1.36.0, mas o conteúdo real do arquivo
+// nunca mudou (divergência entre o que foi relatado e o que foi de fato
+// salvo — a checar na origem, não só aqui). api.buscarContratosDoAtivo
+// era undefined, TypeError virava a mensagem de erro genérica no catch de
+// montarContratosAtivo(). Renomeada de verdade agora, filtro por ativo_id.
+export async function buscarContratosDoAtivo(ativoId) {
     try {
         const { data, error } = await dbAuth.from('contratos')
             .select('id, status, locatario, valor, inicio, fim')
-            .eq('imovel_id', imovelId)
+            .eq('ativo_id', ativoId)
             .order('inicio', { ascending: false });
         if (error) throw error;
         return data || [];
     } catch (e) {
-        console.warn('[cofre-api] buscarContratosDoImovel falhou:', e);
+        console.warn('[cofre-api] buscarContratosDoAtivo falhou:', e);
         return [];
     }
 }
