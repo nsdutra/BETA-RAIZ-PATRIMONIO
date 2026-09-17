@@ -6,9 +6,27 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.195.0
-   LINHAS: 15883
+   VERSÃO: Beta v1.196.0
+   LINHAS: 15937
    DATA: 17/09/2026
+   NOVIDADES (Beta v1.196.0) — feedback do Nicola em cima da v1.195.0
+   (mesmo dia, mesma rodada de testes): (1) seção "Patrimônio por tipo de
+   ativo" só aparece com 2+ tipos na carteira (1 tipo só é redundante com
+   o hero); grid deixou de ser fixa em 3 colunas — até 3 grupos = 1
+   linha, 4+ = 2 linhas balanceadas (4→2x2, 5→3 em cima/2 embaixo).
+   (2) BUG REAL achado a partir de uma pergunta ("por que o alerta de
+   extrato aparece azul?"): linhaAlertaHtml() tratava TODO a.dias como
+   contagem regressiva até um vencimento (>14 dias = "folgado" = azul);
+   extrato_desatualizado é o único tipo cujo `dias` conta pra FRENTE
+   (dias desde que ficou desatualizado, não dias até vencer) — corrigido,
+   este tipo agora é sempre laranja (severidade 'atencao'), nunca azul.
+   (3) card de imóvel na lista de Ativos: linha "Empreendimento · Tipo"
+   saiu de dentro da caixa (redundante com o agrupador da lista); nova
+   ordem — nome do imóvel, valor do bem, locatário, aluguel, cada um na
+   própria linha; ícone centralizado na altura da caixa; toda caixa de
+   ativo (rica ou genérica) com a mesma altura mínima padrão. Detalhe
+   completo: js/cofre-ativos.js v1.45.0, js/ativos/ativos-markup.js
+   v1.39.0.
    NOVIDADES (Beta v1.195.0) — pedidos explícitos do Nicola (17/09/2026,
    testes ao vivo em "Rumo Empreendimentos" e "Albuquerque Silva
    Participações"): (1) BUG REAL DE VERDADE nos alertas da Visão Geral —
@@ -249,7 +267,7 @@
          arquivos do cache, mesmo depois do deploy — candidato real pra
          "por que o fix não aparece" em mais de uma rodada. Corrigido pra
          bater 1:1 com versoes.json; nenhuma outra mudança nesta linha. -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.36.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.44.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.38.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.36.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.39.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -735,12 +753,14 @@
         .rz-kpi.rz-in b{color:var(--success)} .rz-kpi.rz-bad b{color:var(--danger)}
         .rz-kpi.rz-hero{grid-column:1/-1;background:var(--pine);border-color:var(--pine);color:#fff}
         .rz-kpi.rz-hero small{color:rgba(255,255,255,.75)} .rz-kpi.rz-hero b{font-size:26px}
-        /* v1.195.0 (17/09/2026, pedido explícito: "quebra executiva do
-           patrimônio por tipo de ativo... em sintonia com o board no
-           topo") — MESMO .rz-kpi de sempre, só a grade muda pra 3
-           colunas (Imóveis/Veículos/Outros, 3 grupos fixos, nunca mais
-           que isso de uma vez — .rz-kpis normal é pra 2/4 tiles). */
-        .rz-kpis-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+        /* v1.195.0 (17/09/2026) — MESMO .rz-kpi de sempre, pra "quebra
+           executiva do patrimônio por tipo de ativo".
+           v1.196.0 (17/09/2026, pedido explícito) — número de colunas
+           deixou de ser fixo em 3: renderizarQuebraTipoGeral() calcula
+           e escreve grid-template-columns inline (até 3 grupos = 1
+           linha; 4+ = 2 linhas balanceadas) — esta classe só define o
+           grid em si (gap/margem), sem colunas fixas. */
+        .rz-kpis-3{display:grid;gap:8px;margin-bottom:12px}
         .rz-prog{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
         .rz-prog i{display:block;height:100%;background:var(--sprout)}
         .rz-empty{text-align:center;padding:18px 8px 8px}
@@ -3716,7 +3736,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.195.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.196.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11065,8 +11085,19 @@
         // critério) é o que garante "em sintonia": tipo por tipo, os 3
         // grupos aqui somam exatamente o soma_valor_mercado do hero.
         // Grupo com 0 ativos não aparece (mesmo princípio de "some
-        // quando não há nada" da seção Precisa de atenção); se os 3
-        // vierem vazios, a seção inteira some.
+        // quando não há nada" da seção Precisa de atenção).
+        // v1.196.0 (17/09/2026, pedido explícito) — 2 ajustes: (1) com só
+        // 1 tipo de ativo na carteira a seção inteira some — comparar
+        // "Imóveis · 49 / R$ 42,8 mi" sozinho contra o hero logo acima
+        // (que já mostra a mesma soma) é redundante, só vale a pena
+        // como comparação quando há 2+ tipos pra comparar. (2) grid
+        // dinâmica em vez de sempre 3 colunas: até 3 grupos cabe numa
+        // linha só (colunas = nº de grupos); a partir de 4, 2 linhas
+        // balanceadas (colunas = ceil(n/2) — 4 grupos = 2x2, 5 grupos =
+        // 3 em cima/2 embaixo, regra que o Nicola descreveu). Hoje só
+        // existem 3 grupos possíveis (Imóveis/Veículos/Outros), mas a
+        // regra já nasce genérica pra aguentar um 4º/5º grupo futuro
+        // sem precisar mexer aqui de novo.
         function renderizarQuebraTipoGeral(rows) {
             const secao = document.getElementById('geral-quebra-tipo-secao');
             const wrap = document.getElementById('geral-quebra-tipo');
@@ -11080,10 +11111,15 @@
                 const doGrupo = (rows || []).filter(r => g.tipos.includes(r.tipo_ativo));
                 return { rotulo: g.rotulo, qtd: doGrupo.length, valor: doGrupo.reduce((s, r) => s + (Number(r.valor_referencia) || 0), 0) };
             }).filter(g => g.qtd > 0);
-            if (!grupos.length) {
+            // <= 1 grupo: nada pra comparar, some (mesmo com 1 grupo tendo
+            // ativos) — pedido explícito do Nicola.
+            if (grupos.length <= 1) {
                 secao.classList.add('hidden');
                 return;
             }
+            const n = grupos.length;
+            const colunas = n <= 3 ? n : Math.ceil(n / 2);
+            wrap.style.gridTemplateColumns = `repeat(${colunas}, 1fr)`;
             // rotulo vem só dos 3 literais fixos acima (nunca de dado do
             // banco/usuário) — sem risco de injeção, e este arquivo (index.html,
             // script clássico, não ES module) não tem um escapeHtml() global
@@ -11734,7 +11770,25 @@
         function linhaAlertaHtml(a) {
                 const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
                 let sem = 'neu', rotulo = '', classeIc = '', icone = ICONE_TIPO_ALERTA[a.tipoAlerta] || ICONE_CATEGORIA[a.categoria] || 'info';
-                if (a.dias !== null) {
+                // v1.196.0 (17/09/2026) — BUG REAL achado a partir da pergunta
+                // do Nicola ("por que o alerta de extrato aparece azul?").
+                // a.dias, pra praticamente todo tipo de alerta, é uma
+                // CONTAGEM REGRESSIVA até um vencimento futuro (negativo =
+                // já venceu, >14 = ainda folgado → run/azul, "em andamento,
+                // sem pressa"). extrato_desatualizado é o único tipo que foge
+                // disso: seu `dias` (fn_alertas_listar, e.dias_desde_ultima_
+                // conciliacao) conta pra FRENTE — dias desde que o extrato
+                // ficou pra trás, não dias até vencer. A régua abaixo estava
+                // aplicando a MESMA lógica de "quanto mais dias, mais
+                // tranquilo" nos dois casos — por isso 23 dias desatualizado
+                // pintava de azul, como se fosse um prazo folgado, quando na
+                // verdade é um problema que só cresce. alerta_tipos.severidade
+                // já classifica este tipo como 'atencao' — uso isso direto:
+                // sempre laranja (warn), nunca azul, não importa há quantos
+                // dias.
+                if (a.tipoAlerta === 'extrato_desatualizado') {
+                    sem = 'warn'; rotulo = a.dias != null ? `Há ${a.dias}d` : 'Desatualizado'; classeIc = ' rz-warn';
+                } else if (a.dias !== null) {
                     // v1.186.0 (achado do Nicola em teste real) — "Venceu há
                     // Xd" ficava comprido em dívidas antigas (ex.: 258d) e
                     // empurrava o título pro truncamento (.rz-rt é flex:none,

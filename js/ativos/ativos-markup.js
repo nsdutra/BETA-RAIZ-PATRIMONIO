@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.38.0 · 17/09/2026
+// Versão: 1.39.0 · 17/09/2026
+//
+// v1.39.0 — pedido explícito: "toda caixa de ativo deve ter a mesma
+// altura padrão" — .card-ativo ganhou min-height (ver comentário junto
+// da regra, mais abaixo no <style>). Acompanha cofre-ativos.js v1.45.0
+// (reordenação de linhas do card + ícone centralizado).
 //
 // v1.38.0 — pedido explícito/achado em teste real: #ativos-chips-tipo usava
 // "flex flex-wrap" (Tailwind cru, gramática legada) e quebrava a fileira de
@@ -343,7 +348,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.38.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.39.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -401,6 +406,16 @@ export const ATIVOS_MARKUP = `<style>
        fundo branco) — não inventei um novo, só migrei o que já existia. */
     .card-doc, .card-ativo { border: 2px solid #e2e8f0; border-radius: 14px; background: #fff; transition: border-color .15s; }
     .card-doc:hover, .card-ativo:hover { border-color: var(--pine-light); }
+    /* v1.39.0 (17/09/2026, pedido explícito: "toda caixa de ativo deve
+       ter a mesma altura padrão") — card rico de imóvel (cofre-ativos.js,
+       ativoCardHtml) ganhou até 4 linhas de texto (nome/valor/locatário/
+       aluguel) e o card genérico continua com 2-3; sem uma altura mínima
+       comum as caixas da mesma lista ficavam com alturas diferentes lado
+       a lado. min-height (não height fixo) cobre o caso comum sem cortar
+       o texto mais longo (ex. locatário com nome grande, que já não
+       trunca desde a v1.44.0) — ele só cresce além do mínimo nesse caso
+       raro, em vez de cortar informação. */
+    .card-ativo { min-height: 92px; }
 
 </style><div id="tela-bootstrap" class="hidden"></div>
 <div id="tela-erro-acesso" class="hidden"></div>

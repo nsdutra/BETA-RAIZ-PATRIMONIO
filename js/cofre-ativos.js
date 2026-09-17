@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.44.0 · 16/09/2026
+// Versão: 1.45.0 · 17/09/2026
+//
+// v1.45.0 — feedback do Nicola em teste real sobre o card de imóvel da
+// v1.44.0: (1) linha "Empreendimento · Tipo" saiu de dentro da caixa
+// (redundante — já dá pra ver pelo agrupador .rz-group da lista); (2)
+// nova ordem das linhas: nome do imóvel → valor do bem → locatário →
+// aluguel, cada um na sua própria linha (antes valor+aluguel vinham
+// juntos numa linha só); (3) ícone/avatar passou de items-start pra
+// items-center (agora centraliza na altura da caixa, não só na 1ª
+// linha do texto); (4) removido finalidadeLabel — variável morta, nunca
+// foi usada em lugar nenhum da função. Altura padrão do card em si é
+// CSS (.card-ativo min-height, ativos-markup.js v1.39.0).
 //
 // v1.44.0 — pedido explícito (inspiração: lista de e-mail do Outlook
 // mobile, anexada): renderAtivosLista/ativoCardHtml — card de imóvel
@@ -575,7 +586,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.44.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.45.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1071,7 +1082,6 @@ function ativoCardHtml(a) {
     const resumoImovel = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
 
     if (resumoImovel) {
-        const finalidadeLabel = { long_stay: 'Long Stay', uso_proprio: 'Uso Pessoal', temporada: 'Temporada', comercial: 'Comercial', outro: 'Outro' };
         const principal = resumoImovel.contratoPrincipal;
         // v1.20.0 (Nicola 03/09): "sem contrato mostrando Alugado" — o status
         // do imóvel legado (imoveis.status) fica desatualizado; a TAG passa a
@@ -1088,32 +1098,39 @@ function ativoCardHtml(a) {
         const alugado = situacao === 'Alugado';
         const rsSem = { Alugado: 'ok', Assinando: 'run', 'Em uso': 'neu', Vago: 'warn' }[situacao];
         const badgeHtml = (typeof window.renderStatus === 'function') ? window.renderStatus(rsSem, situacao) : `<span class="rz-st rz-${rsSem}">${situacao}</span>`;
-        const titulo = [resumoImovel.empreendimento || 'Sem empreendimento', resumoImovel.tipo].filter(Boolean).join(' · ');
 
-        // v1.44.0 (pedido explícito, 16/09/2026 — anexo de inspiração: lista
-        // do Outlook mobile) — "nome inteiro sem (...)": locatário não
-        // trunca mais (quebra pra 2ª linha se precisar, em vez de cortar
-        // com reticências); "2 linhas adicionais de detalhe": locatário (ou
-        // status de ocupação) + valor do bem/aluguel, sempre visíveis, não
-        // só quando cabe.
+        // v1.45.0 (17/09/2026, pedido explícito) — a linha "Empreendimento ·
+        // Tipo" (titulo) SAIU de dentro da caixa: o agrupador da lista
+        // (.rz-group, "CANAÃ (6)") já mostra o empreendimento, e o Nicola
+        // pediu explicitamente pra tirar essa redundância. O endereço
+        // (a.nome_exibicao) vira a linha de título do card (única linha
+        // que identifica QUAL imóvel é, agora que "Canaã · Casa" saiu).
+        // Nova ordem pedida: nome do imóvel → valor do imóvel → locatário
+        // → aluguel — cada um na sua própria linha (antes valor e aluguel
+        // vinham juntos numa linha só, "Bem X · Aluguel Y").
         const linhaLocatario = alugado
             ? (principal.locatario || 'Locatário não informado')
             : principal && principal.status !== 'Finalizado' ? `${principal.status} — ${principal.locatario || '-'}`
             : usoProprio ? 'Uso próprio' : 'Sem contrato cadastrado';
-        const linhaValores = [
-            a.valor_referencia != null ? `Bem ${fmtMoeda(a.valor_referencia)}` : null,
-            alugado && principal.valor != null ? `Aluguel ${fmtMoeda(principal.valor)}/mês` : null,
-        ].filter(Boolean).join(' · ');
+        const linhaValor = a.valor_referencia != null ? `Bem ${fmtMoeda(a.valor_referencia)}` : null;
+        const linhaAluguel = alugado && principal.valor != null ? `Aluguel ${fmtMoeda(principal.valor)}/mês` : null;
 
-        return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-start">
+        // v1.45.0 — ícone/avatar centralizado na ALTURA da caixa (era
+        // items-start, alinhava só com a 1ª linha do texto — esquisito
+        // agora que o bloco de texto tem até 4 linhas). "items-start" no
+        // <button> virou "items-center" (ver classe do <button> abaixo);
+        // .card-ativo ganhou min-height padrão em ativos-markup.js pra
+        // toda caixa (rica ou genérica) ter a MESMA altura, não importa
+        // quantas linhas o conteúdo dela realmente usa.
+        return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-center">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
                 ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
             </div>
             <div class="flex-1 min-w-0">
-                <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(titulo)}</h3>
-                <div class="text-xs text-slate-500 truncate">${escapeHtml(a.nome_exibicao)}</div>
+                <h3 class="text-xs font-extrabold" style="color:var(--pine)">${escapeHtml(a.nome_exibicao)}</h3>
+                ${linhaValor ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(linhaValor)}</div>` : ''}
                 <div class="text-xs text-slate-700 mt-1">${escapeHtml(linhaLocatario)}</div>
-                ${linhaValores ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(linhaValores)}</div>` : ''}
+                ${linhaAluguel ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(linhaAluguel)}</div>` : ''}
             </div>
             <div class="flex flex-col items-end gap-1 flex-none">
                 ${badgeHtml}
@@ -1124,7 +1141,9 @@ function ativoCardHtml(a) {
 
     // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
     // ainda carregado) — mesmo formato de sempre, + valor do bem (v1.44.0,
-    // pedido explícito, 16/09) quando cadastrado.
+    // pedido explícito, 16/09) quando cadastrado. Já usava items-center
+    // (ícone já nascia centralizado aqui); min-height padrão vem de
+    // .card-ativo (ativos-markup.js), igual ao card rico acima.
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
         <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--tile);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">
