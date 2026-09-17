@@ -1,6 +1,20 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.39.0 · 17/09/2026
+// Versão: 1.40.0 · 17/09/2026
+//
+// v1.40.0 — achado real do Nicola (relato + print, 17/09/2026): no seletor
+// "Vincular a" do upload/ficha de documento (#up-vinculo-tipo, #fd-va-tipo)
+// ainda aparecia a opção "Imóvel" — nomenclatura legada, tema desta sessão
+// é justamente imóvel ter virado extensão do ativo, não deveria mais
+// aparecer como opção separada pro usuário (buscar por "Ativo controlado"
+// já cobre imóvel — cofre_ativos.nome_exibicao tem o endereço pra imóvel
+// igual tem o nome pra qualquer outro ativo) — E faltava "Contrato", que
+// já é um tipo de vínculo válido no banco (cofre_documento_vinculos,
+// vinculoPermiteControle() em cofre-documentos.js já reconhece 'contrato'
+// há tempos) mas nunca tinha entrado nesses dois selects. Trocado: opção
+// "Imóvel" removida, opção "Contrato" adicionada (busca por locatário —
+// ver buscarCandidatosContrato em cofre-api.js v1.37.0 e o novo branch em
+// aoMudarTipoVinculoUpload/aoMudarTipoVinculoAgora, cofre-documentos.js).
 //
 // v1.39.0 — pedido explícito: "toda caixa de ativo deve ter a mesma
 // altura padrão" — .card-ativo ganhou min-height (ver comentário junto
@@ -348,7 +362,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.39.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.40.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -1257,7 +1271,7 @@ export const ATIVOS_MARKUP = `<style>
                         <option value="triagem">Ainda não sei — deixar em triagem</option>
                         <option value="empresa">Empresa (geral)</option>
                         <option value="ativo">Ativo controlado</option>
-                        <option value="imovel">Imóvel</option>
+                        <option value="contrato">Contrato</option>
                     </select>
                     <input id="up-vinculo-busca" type="text" class="hidden w-full border-2 border-slate-300 rounded-xl p-2 text-sm mb-1" placeholder="Digite para buscar…">
                     <div id="up-vinculo-candidatos" class="space-y-1"></div>
@@ -1333,7 +1347,7 @@ export const ATIVOS_MARKUP = `<style>
                     <select id="fd-va-tipo" class="w-full border-2 border-slate-300 rounded-lg p-2 text-xs mb-2" data-action-change="fd-vincular-tipo-mudou">
                         <option value="empresa">Empresa (geral)</option>
                         <option value="ativo">Ativo controlado</option>
-                        <option value="imovel">Imóvel</option>
+                        <option value="contrato">Contrato</option>
                     </select>
                     <input id="fd-va-busca" type="text" class="hidden w-full border-2 border-slate-300 rounded-lg p-2 text-xs mb-1" placeholder="Digite para buscar…">
                     <div id="fd-va-candidatos" class="space-y-1"></div>

@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.36.2 · 17/09/2026
+// Versão: 1.37.0 · 17/09/2026
+//
+// v1.37.0 — buscarCandidatosContrato() nova (ver changelog junto da função,
+// mais abaixo): "Vincular a" um documento nunca teve busca por Contrato,
+// só Ativo/Imóvel — achado no relato do Nicola sobre o seletor de vínculo.
 //
 // v1.36.2 — bug real achado ao investigar print do Nicola: o Map de
 // buscarResumoImoveisParaCards() usava `entidade_origem_id` como chave,
@@ -328,7 +332,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.36.2'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.37.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -694,6 +698,23 @@ export async function buscarCandidatosImovel(clienteId, termo) {
     const { data, error } = await dbAuth.from('cofre_ativos').select('entidade_origem_id, endereco_rua, endereco_num').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel').ilike('endereco_rua', `%${termo}%`).limit(5);
     if (error) throw error;
     return (data || []).map(r => ({ id: r.entidade_origem_id, endereco_rua: r.endereco_rua, endereco_num: r.endereco_num }));
+}
+
+// v1.37.0 — achado real (Nicola, 17/09/2026): "Vincular a" um documento não
+// tinha opção de busca por Contrato (só Ativo/Imóvel) — 'contrato' já é um
+// tipo de vínculo válido (cofre_documento_vinculos.entidade_tipo,
+// vinculoPermiteControle() já reconhecia), só faltava a busca de candidato.
+// Busca por locatário (nome/razão social); embed do ativo junto (nome_
+// exibicao) só pra desambiguar na lista quando o mesmo locatário tem mais
+// de um contrato — não filtra por status (documento pode ser de um
+// contrato já finalizado, ex. termo de rescisão).
+export async function buscarCandidatosContrato(clienteId, termo) {
+    const { data, error } = await dbAuth.from('contratos')
+        .select('id, locatario, status, cofre_ativos(nome_exibicao)')
+        .eq('cliente_id', clienteId).ilike('locatario', `%${termo}%`)
+        .order('criado_em', { ascending: false }).limit(5);
+    if (error) throw error;
+    return (data || []).map(c => ({ id: c.id, locatario: c.locatario, status: c.status, ativoNome: c.cofre_ativos?.nome_exibicao || null }));
 }
 
 // ============================================================================

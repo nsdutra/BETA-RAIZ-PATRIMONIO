@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.14.0 · 17/09/2026
+// Versão: 2.15.0 · 17/09/2026
+//
+// v2.15.0 — item 5 do mesmo relato do Nicola (v2.14.0, abaixo): "Vincular a"
+// (upload livre e "Vincular agora" da ficha) mostrava "Imóvel" — nomenclatura
+// legada, buscar por "Ativo controlado" já cobre imóvel — e não tinha
+// "Contrato", que já é um vínculo válido no banco (cofre_documento_vinculos,
+// vinculoPermiteControle() já reconhecia 'contrato') mas nunca teve busca de
+// candidato na UI. aoMudarTipoVinculoUpload/aoMudarTipoVinculoAgora e
+// buscarCandidatosUpload trocam 'imovel' por 'contrato' (busca por
+// locatário, api.buscarCandidatosContrato — cofre-api.js v1.37.0);
+// rotuloCandidatoVinculo() nova, fatora a montagem do texto do candidato
+// (antes duplicada nos 2 fluxos). Acompanha ativos-markup.js v1.40.0 (troca
+// das opções nos 2 <select>).
 //
 // v2.14.0 — 3 achados reais do Nicola (relato + prints, 17/09/2026), todos
 // no fluxo de documentos:
@@ -314,7 +326,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.14.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.15.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1257,10 +1269,13 @@ export async function aoMudarTipoVinculoUpload() {
     const candidatosEl = document.getElementById('up-vinculo-candidatos');
     up.vinculo = tipo === 'triagem' ? null : (tipo === 'empresa' ? { tipo: 'empresa', id: null, nome: 'Empresa (geral)' } : null);
     candidatosEl.innerHTML = '';
-    if (tipo === 'ativo' || tipo === 'imovel') {
+    // FIX 17/09/2026 — "imovel" saiu do <select> (ativos-markup.js v1.40.0):
+    // buscar por "Ativo controlado" já cobre imóvel (cofre_ativos.nome_exibicao
+    // tem o endereço). "contrato" entrou — busca por locatário.
+    if (tipo === 'ativo' || tipo === 'contrato') {
         buscaEl.classList.remove('hidden');
         buscaEl.value = '';
-        buscaEl.placeholder = tipo === 'ativo' ? 'Digite o nome do ativo…' : 'Digite o endereço…';
+        buscaEl.placeholder = tipo === 'ativo' ? 'Digite o nome do ativo…' : 'Digite o nome do locatário…';
         buscaEl.oninput = debounce(() => buscarCandidatosUpload(tipo, buscaEl.value), 250);
     } else {
         buscaEl.classList.add('hidden');
@@ -1270,13 +1285,21 @@ export async function aoMudarTipoVinculoUpload() {
 
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
+// Rótulo de exibição de um candidato de vínculo, por tipo — usado tanto no
+// upload quanto no "Vincular agora" pós-triagem (mesmo catálogo de tipos).
+function rotuloCandidatoVinculo(tipo, c) {
+    if (tipo === 'ativo') return c.nome_exibicao;
+    if (tipo === 'contrato') return c.locatario + (c.ativoNome ? ` · ${c.ativoNome}` : '') + (c.status && c.status !== 'ativo' ? ` (${c.status})` : '');
+    return `${c.endereco_rua}, ${c.endereco_num || ''}`; // imovel — só chega aqui via candidato sugerido pela IA, não pelo select manual
+}
+
 async function buscarCandidatosUpload(tipo, termo) {
     const el = document.getElementById('up-vinculo-candidatos');
     if (!termo || termo.trim().length < 2) { el.innerHTML = ''; return; }
-    const candidatos = tipo === 'ativo' ? await api.buscarCandidatosAtivo(estado.clienteId, termo) : await api.buscarCandidatosImovel(estado.clienteId, termo);
+    const candidatos = tipo === 'ativo' ? await api.buscarCandidatosAtivo(estado.clienteId, termo) : await api.buscarCandidatosContrato(estado.clienteId, termo);
     if (candidatos.length === 0) { el.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nada encontrado. Você pode salvar em triagem e resolver depois.</p>`; return; }
     el.innerHTML = candidatos.map(c => {
-        const nome = tipo === 'ativo' ? c.nome_exibicao : `${c.endereco_rua}, ${c.endereco_num || ''}`;
+        const nome = rotuloCandidatoVinculo(tipo, c);
         return `<button type="button" data-action="escolher-candidato-upload" data-tipo="${tipo}" data-id="${c.id}" data-nome="${escapeHtml(nome)}" data-tipo-ativo="${escapeHtml(c.tipo_ativo || '')}" class="w-full text-left text-xs border-2 border-slate-200 rounded-lg p-2 hover:border-emerald-700">${escapeHtml(nome)}</button>`;
     }).join('');
 }
@@ -1514,15 +1537,18 @@ export async function aoMudarTipoVinculoAgora() {
     const buscaEl = document.getElementById('fd-va-busca');
     vinculoAgoraEscolhido = tipo === 'empresa' ? { tipo: 'empresa', id: null, nome: 'Empresa (geral)' } : null;
     document.getElementById('fd-va-candidatos').innerHTML = '';
-    if (tipo === 'ativo' || tipo === 'imovel') {
+    // FIX 17/09/2026 — mesma troca do upload (ver aoMudarTipoVinculoUpload):
+    // "imovel" saiu do select, "contrato" entrou.
+    if (tipo === 'ativo' || tipo === 'contrato') {
         buscaEl.classList.remove('hidden');
         buscaEl.value = '';
+        buscaEl.placeholder = tipo === 'ativo' ? 'Digite o nome do ativo…' : 'Digite o nome do locatário…';
         buscaEl.oninput = debounce(async () => {
             const termo = buscaEl.value;
             if (termo.trim().length < 2) { document.getElementById('fd-va-candidatos').innerHTML = ''; return; }
-            const candidatos = tipo === 'ativo' ? await api.buscarCandidatosAtivo(estado.clienteId, termo) : await api.buscarCandidatosImovel(estado.clienteId, termo);
+            const candidatos = tipo === 'ativo' ? await api.buscarCandidatosAtivo(estado.clienteId, termo) : await api.buscarCandidatosContrato(estado.clienteId, termo);
             document.getElementById('fd-va-candidatos').innerHTML = candidatos.map(c => {
-                const nome = tipo === 'ativo' ? c.nome_exibicao : `${c.endereco_rua}, ${c.endereco_num || ''}`;
+                const nome = rotuloCandidatoVinculo(tipo, c);
                 return `<button type="button" data-action="escolher-candidato-vincular-agora" data-tipo="${tipo}" data-id="${c.id}" data-nome="${escapeHtml(nome)}" class="w-full text-left text-xs border-2 border-slate-200 rounded-lg p-2">${escapeHtml(nome)}</button>`;
             }).join('') || `<p class="text-xs" style="color:var(--sage)">Nada encontrado.</p>`;
         }, 250);
