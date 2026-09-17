@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.43.0 · 16/09/2026
+// Versão: 1.44.0 · 16/09/2026
+//
+// v1.44.0 — pedido explícito (inspiração: lista de e-mail do Outlook
+// mobile, anexada): renderAtivosLista/ativoCardHtml — card de imóvel
+// ganha 2 linhas novas (locatário completo, sem truncar; valor do bem e,
+// se alugado, valor do aluguel/mês), card genérico ganha o valor do bem;
+// componente de alarme (chip de vencimento) reduzido — "Em dia" saiu, só
+// aparece quando há urgência real (vencido ou ≤30 dias).
 //
 // v1.43.0 — pendência 6c2e9b1e (parcial): bloco "Divisão societária" do
 // form de criar ativo — hex solto em style="" (#cbd5e1/#f8fafc) e
@@ -568,7 +575,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.43.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.44.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1043,10 +1050,15 @@ function ativoCardHtml(a) {
     // v1.21.0 — alerta de vencimento na MESMA linguagem do status (Nicola:
     // "tags diferentes ficou ruim"): ponto + rótulo via renderStatus.
     const rsA = (sem, t) => (typeof window.renderStatus === 'function') ? window.renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
-    const chip = proximo === undefined || proximo === null ? null
+    // v1.44.0 (pedido explícito, 16/09) — "reduza o componente que mostra
+    // o alarme": "Em dia" saiu (não é alarme, é ausência de um — repetia
+    // o card inteiro sem alerta nenhum); só ocupa a extrema direita quando
+    // há de fato algo a tratar (vencido ou vencendo em ≤30d), curto, como
+    // o sinal de quantidade do Outlook.
+    const chip = proximo === undefined || proximo === null || proximo > 30 ? null
         : proximo < 0 ? { html: rsA('bad', `Vencido há ${Math.abs(proximo)}d`) }
-        : proximo <= 30 ? { html: rsA('warn', proximo === 0 ? 'Vence hoje' : `${proximo} dia${proximo === 1 ? '' : 's'}`) }
-        : { html: rsA('ok', 'Em dia') };
+        : { html: rsA('warn', proximo === 0 ? 'Vence hoje' : `${proximo} dia${proximo === 1 ? '' : 's'}`) };
+    const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     // v1.7.0 — ativo do tipo imóvel COM resumo carregado: mesma "cara"
     // exata da lista antiga de Imóveis (montarCabecalhoImovelHtml, no
@@ -1061,17 +1073,6 @@ function ativoCardHtml(a) {
     if (resumoImovel) {
         const finalidadeLabel = { long_stay: 'Long Stay', uso_proprio: 'Uso Pessoal', temporada: 'Temporada', comercial: 'Comercial', outro: 'Outro' };
         const principal = resumoImovel.contratoPrincipal;
-        let situacaoEsquerda, situacaoDireita;
-        if (!principal) {
-            situacaoEsquerda = 'Sem contrato cadastrado';
-            situacaoDireita = '';
-        } else if (principal.status === 'Finalizado') {
-            situacaoEsquerda = 'Sem contrato em andamento';
-            situacaoDireita = '';
-        } else {
-            situacaoEsquerda = (principal.locatario || '-') + (principal.status !== 'Ativo' ? ` · ${principal.status}` : '');
-            situacaoDireita = 'R$ ' + Number(principal.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
         // v1.20.0 (Nicola 03/09): "sem contrato mostrando Alugado" — o status
         // do imóvel legado (imoveis.status) fica desatualizado; a TAG passa a
         // ser derivada do contrato principal: vigente → Alugado, assinando →
@@ -1084,9 +1085,25 @@ function ativoCardHtml(a) {
         const situacao = (stPrincipal === 'ativo') ? 'Alugado'
             : (stPrincipal === 'assinando') ? 'Assinando'
             : usoProprio ? 'Em uso' : 'Vago';
+        const alugado = situacao === 'Alugado';
         const rsSem = { Alugado: 'ok', Assinando: 'run', 'Em uso': 'neu', Vago: 'warn' }[situacao];
         const badgeHtml = (typeof window.renderStatus === 'function') ? window.renderStatus(rsSem, situacao) : `<span class="rz-st rz-${rsSem}">${situacao}</span>`;
         const titulo = [resumoImovel.empreendimento || 'Sem empreendimento', resumoImovel.tipo].filter(Boolean).join(' · ');
+
+        // v1.44.0 (pedido explícito, 16/09/2026 — anexo de inspiração: lista
+        // do Outlook mobile) — "nome inteiro sem (...)": locatário não
+        // trunca mais (quebra pra 2ª linha se precisar, em vez de cortar
+        // com reticências); "2 linhas adicionais de detalhe": locatário (ou
+        // status de ocupação) + valor do bem/aluguel, sempre visíveis, não
+        // só quando cabe.
+        const linhaLocatario = alugado
+            ? (principal.locatario || 'Locatário não informado')
+            : principal && principal.status !== 'Finalizado' ? `${principal.status} — ${principal.locatario || '-'}`
+            : usoProprio ? 'Uso próprio' : 'Sem contrato cadastrado';
+        const linhaValores = [
+            a.valor_referencia != null ? `Bem ${fmtMoeda(a.valor_referencia)}` : null,
+            alugado && principal.valor != null ? `Aluguel ${fmtMoeda(principal.valor)}/mês` : null,
+        ].filter(Boolean).join(' · ');
 
         return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-start">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
@@ -1095,10 +1112,8 @@ function ativoCardHtml(a) {
             <div class="flex-1 min-w-0">
                 <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(titulo)}</h3>
                 <div class="text-xs text-slate-500 truncate">${escapeHtml(a.nome_exibicao)}</div>
-                <div class="flex items-center justify-between gap-2 mt-1">
-                    <span class="text-xs text-slate-700 truncate">${escapeHtml(situacaoEsquerda)}</span>
-                    ${situacaoDireita ? `<span class="text-xs text-slate-700 flex-none">${situacaoDireita}</span>` : ''}
-                </div>
+                <div class="text-xs text-slate-700 mt-1">${escapeHtml(linhaLocatario)}</div>
+                ${linhaValores ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(linhaValores)}</div>` : ''}
             </div>
             <div class="flex flex-col items-end gap-1 flex-none">
                 ${badgeHtml}
@@ -1108,12 +1123,14 @@ function ativoCardHtml(a) {
     }
 
     // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
-    // ainda carregado) — mesmo formato de sempre.
+    // ainda carregado) — mesmo formato de sempre, + valor do bem (v1.44.0,
+    // pedido explícito, 16/09) quando cadastrado.
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
         <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--tile);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
             <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
+            ${a.valor_referencia != null ? `<p class="text-xs text-slate-500 mt-0.5">${fmtMoeda(a.valor_referencia)}</p>` : ''}
         </div>
         ${chip ? chip.html : ''}
     </button>`;

@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.5.0 · 16/09/2026
+// Versão: 1.6.0 · 16/09/2026
+//
+// v1.6.0 — pedido explícito: (1) card "Ocorrências" da ficha — chip
+// colorido saiu (padrão reservado a alertas/status; urgência virou parte
+// do subtítulo), TODA linha ficou clicável (fechada/cancelada abre
+// abrirDetalheOcorrenciaContrato, resumo só-leitura, antes não fazia
+// nada), data não trunca mais (.rz-row-oc, CSS no index.html); (2)
+// "Histórico" saiu do ⋮ da ficha (redundante — a ocorrência já é o
+// histórico).
 //
 // v1.5.0 — Onda 12 (pedido explícito: "único caminho de escrita, na
 // tabela de ativos"). Write direto de imoveis.status (sincronização de
@@ -131,7 +139,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1728,35 +1736,71 @@ export function reabrirFichaSeFor(contratoId) {
                 if (!todas.length) {
                     el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-check"></svg></div><p>Nada registrado ainda. Reajustes, renovações e alterações aparecem aqui.</p></div>`;
                 } else {
-                    const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+                    // v1.6.0 (pedido explícito, 16/09/2026) — 3 mudanças neste card:
+                    // (1) o chip colorido (rz-rt/renderStatus) saiu — esse padrão é
+                    //     de alertas/status, e aqui só repetia o rótulo que já está
+                    //     no texto+ícone; urgência (vencido/vence em Xd) virou parte
+                    //     do subtítulo, não desaparece; (2) TODA linha ficou clicável
+                    //     (antes só as abertas) — fechada/cancelada abre um resumo
+                    //     só-leitura em vez de nada; (3) "Ver tudo"/Histórico saiu —
+                    //     a ocorrência já É o histórico, o link duplicava.
                     const linhas = [...abertas, ...fechadas].slice(0, LIMITE_OCORRENCIAS_CARD).map(oc => {
                         const aberta = oc.status_execucao === 'aberto';
                         const rot = OC_CONTRATO_ROTULO[oc.tipo] || rzEsc(oc.tipo || 'Ocorrência');
                         const ic = OC_CONTRATO_ICONE[oc.tipo] || 'circle-dot';
-                        let sem = 'ok', st = rot, cls = '';
+                        let cls = '', urgencia = '';
                         if (aberta) {
                             const dias = Math.round((new Date(oc.data_prevista_atual + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
-                            if (dias < 0) { sem = 'bad'; st = `Vencido há ${Math.abs(dias)}d`; cls = ' rz-bad'; }
-                            else if (dias <= 30) { sem = 'warn'; st = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; cls = ' rz-warn'; }
-                            else { st = 'Em dia'; }
-                        } else if (oc.status_execucao === 'cancelado') { sem = 'neu'; st = 'Cancelada'; cls = ' rz-neu'; }
+                            if (dias < 0) { urgencia = `Vencido há ${Math.abs(dias)}d`; cls = ' rz-bad'; }
+                            else if (dias <= 30) { urgencia = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; cls = ' rz-warn'; }
+                        } else if (oc.status_execucao === 'cancelado') { urgencia = 'Cancelada'; cls = ' rz-neu'; }
                         const titulo = aberta ? `${rot} · vence ${formatarDataBR(oc.data_prevista_atual)}` : `${rot} · ${formatarDataBR(oc.data_prevista_atual)}`;
-                        const desc = oc.tratamento_descricao ? rzEsc(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : '');
-                        return `<div class="rz-row ${aberta ? 'rz-link' : ''}" ${aberta ? `onclick="abrirAcoesOcorrenciaContrato('${oc.id}')"` : ''}>
+                        const desc = [urgencia, oc.tratamento_descricao ? rzEsc(oc.tratamento_descricao) : ''].filter(Boolean).join(' · ')
+                            || (aberta ? 'Toque pra tratar ou reagendar' : '');
+                        return `<div class="rz-row rz-row-oc rz-link" onclick="abrirOcorrenciaContrato('${oc.id}')">
                             <div class="rz-ic${cls}"><svg data-lucide="${ic}"></svg></div>
                             <div class="rz-tx"><b>${titulo}</b><span>${desc}</span></div>
-                            <div class="rz-rt">${rs(sem, st)}</div>
-                            ${aberta ? '<svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>' : ''}
+                            <svg data-lucide="${aberta ? 'ellipsis-vertical' : 'chevron-right'}" class="rz-chev"></svg>
                         </div>`;
                     }).join('');
-                    const maisHtml = todas.length > LIMITE_OCORRENCIAS_CARD
-                        ? `<div class="rz-card-f"><button type="button" onclick="verHistoricoContrato('${contratoId}')" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="history"></svg> Ver tudo (${todas.length})</button></div>` : '';
-                    el.innerHTML = linhas + maisHtml;
+                    el.innerHTML = linhas;
                 }
             } catch (err) {
                 el.innerHTML = `<p class="rz-desc">Não consegui carregar as ocorrências: ${rzEsc(err.message || String(err))}</p>`;
             }
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.6.0 (pedido explícito, 16/09/2026) — despacha o clique de
+        // qualquer linha de ocorrência: aberta continua abrindo o menu de
+        // ações (Dar baixa/Reagendar/Renovar); fechada/cancelada abre um
+        // resumo só-leitura (abrirDetalheOcorrenciaContrato) — antes não
+        // fazia nada ao tocar.
+        export function abrirOcorrenciaContrato(ocorrenciaId) {
+            const oc = ocorrenciasContratoAtual.find(o => o.id === ocorrenciaId);
+            if (!oc) return;
+            if (oc.status_execucao === 'aberto') { abrirAcoesOcorrenciaContrato(ocorrenciaId); return; }
+            abrirDetalheOcorrenciaContrato(ocorrenciaId);
+        }
+
+        export function abrirDetalheOcorrenciaContrato(ocorrenciaId) {
+            const oc = ocorrenciasContratoAtual.find(o => o.id === ocorrenciaId);
+            if (!oc) return;
+            const con = contratos.find(c => c.id === fichaContratoAtualId);
+            const rot = OC_CONTRATO_ROTULO[oc.tipo] || oc.tipo;
+            const statusLabel = oc.status_execucao === 'cancelado' ? 'Cancelada' : 'Concluída';
+            const linhas = [
+                ['Tipo', rot],
+                ['Status', statusLabel],
+                ['Data prevista', formatarDataBR(oc.data_prevista_atual)],
+                ['Registrada em', formatarDataBR((oc.criado_em || '').slice(0, 10))],
+                oc.valor_a_receber ? ['Valor', formatarMoedaBR(oc.valor_a_receber)] : null,
+                oc.percentual_reajuste ? ['% de reajuste', `${oc.percentual_reajuste}%`] : null,
+                oc.receber_ate ? ['A receber até', formatarDataBR(oc.receber_ate)] : null,
+                oc.tratamento_descricao ? ['Descrição', oc.tratamento_descricao] : null,
+            ].filter(Boolean);
+            const corpo = `<div class="rz-kv">${linhas.map(([r, v]) => `<div><small>${rzEsc(r)}</small><b>${rzEsc(String(v))}</b></div>`).join('')}</div>`;
+            abrirSheetForm({ titulo: rot, sub: con?.locatario || '', corpo, semRodape: true });
         }
 
         export function abrirAcoesOcorrenciaContrato(ocorrenciaId) {
@@ -2051,7 +2095,11 @@ export function reabrirFichaSeFor(contratoId) {
             const acoes = [
                 { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor, vigência e documento', aoTocar: () => lancarReajusteContrato(con.id) },
                 { icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim de vigência, valor e documento', aoTocar: () => renovarContrato(con.id) }, // v1.1.0 — A.10
-                    { icone: 'history', titulo: 'Histórico', codigo: 'contratos.historico.ver', sub: 'Assinatura, reajustes e alterações', aoTocar: () => verHistoricoContrato(con.id) },
+                // v1.6.0 (pedido explícito, 16/09) — "Histórico" saiu daqui:
+                // o card "Ocorrências" da própria ficha (Resumo) já é o
+                // histórico — cada linha agora abre (aberta = ações, fechada =
+                // resumo), o link redundante só confundia com 2 caminhos pro
+                // mesmo lugar.
             ];
             if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
             if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', codigo: 'cofre.ver', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });

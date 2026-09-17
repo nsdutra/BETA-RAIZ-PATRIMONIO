@@ -6,9 +6,31 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.193.0
+   VERSÃO: Beta v1.194.0
    LINHAS: 15659
    DATA: 16/09/2026
+   NOVIDADES (Beta v1.194.0) — pedidos explícitos do Nicola (16/09/2026,
+   tenant "Albuquerque Silva Participações"): (1) alerta de reajuste
+   pendente disparava mesmo com Renovação/Reajuste registrado há menos de
+   12 meses — obterUltimaVigenciaValor() só reconhecia o diff de edição
+   legado (alteracoes[].campo==='Valor do aluguel'), que carregarContratosSupabase()
+   regenera de forma genérica a cada reload (perde o campo específico);
+   passou a olhar h.tipo==='reajuste'|'renovacao' também, que sobrevive
+   ao reload. (2) alertas da Visão Geral que não navegavam a lugar nenhum
+   ao clicar: achado 1 caso real — documento_sem_vinculo era o único tipo
+   agrupável sem ação de grupo (ACAO_GRUPO_POR_TIPO), corrigido; e todo
+   onClick de alerta (linhaAlertaHtml) ganhou try/catch com toast — nunca
+   mais falha em silêncio, mesmo pra causas não identificadas nesta
+   rodada. (3) lista de Ativos — inspirada no padrão de lista do Outlook
+   mobile (nome completo sem truncar, detalhes extras, sinal de urgência
+   curto na direita): card do imóvel ganhou locatário completo + valor do
+   bem + valor do aluguel; card genérico ganhou valor do bem; chip de
+   vencimento perdeu o estado "Em dia" (só aparece quando há urgência).
+   (4) ficha do contrato — Ocorrências: chip colorido saiu (redundante
+   com texto+ícone), toda linha ficou clicável (fechada abre resumo
+   só-leitura), data parou de truncar; "Histórico" (redundante) saiu do
+   ⋮. Detalhe completo: js/cofre-ativos.js v1.44.0, js/contratos.js
+   v1.6.0.
    NOVIDADES (Beta v1.193.0) — 2 bugs reportados pelo Nicola em teste
    real (16/09/2026, tenant "Rumo Empreendimentos" e "Albuquerque Silva
    Participações"): (1) aba Contrato de um ativo imóvel quebrada
@@ -658,6 +680,10 @@
         .rz-row .rz-tx b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .rz-row .rz-tx span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
         .rz-row .rz-rt{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+        /* v1.194.0 (pedido explícito, 16/09) — Ocorrências do contrato: a data
+           não pode cortar com "...". Override só desta linha (não mexe no
+           .rz-row nowrap padrão usado no resto do app). */
+        .rz-row-oc .rz-tx b{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
         .rz-row .rz-rt b{font-size:14px;font-weight:600}
         .rz-row .rz-rt b.rz-in{color:var(--success)}
         .rz-row .rz-rt b.rz-out{color:var(--ink)}
@@ -3628,7 +3654,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.193.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.194.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9139,6 +9165,7 @@
             'abrirOutrosContratosImovel', 'salvarDivisaoContratoPopup', 'excluirContrato', 'compartilharIptuContrato',
             'abrirSeletorContratoParaAcao', 'criarContratoParaImovel', 'abrirEdicaoContratoContextual', 'processarMultiplosDocumentos',
             'montarOcorrenciasContrato', 'abrirAcoesOcorrenciaContrato', 'salvarBaixaOcorrenciaContrato', 'salvarReagendarOcorrenciaContrato', // v1.159.0 — A.10
+            'abrirOcorrenciaContrato', 'abrirDetalheOcorrenciaContrato', // v1.194.0 — linha fechada/cancelada agora também abre (resumo só-leitura)
             'renovarContrato', 'calcularPctRenovacaoPopup', 'calcularValorRenovacaoPopup', 'salvarRenovacaoContratoPopup'
         ].forEach(nome => { window[nome] = (...args) => carregarContratos().then(m => m[nome](...args)); });
 
@@ -11277,9 +11304,16 @@
             contrato_aguardando_assinatura: "switchTab('tab-contratos')",
             contrato_ativo_vendido_arquivado: "switchTab('tab-contratos')",
             cadastro_incompleto: "switchTab('tab-ativos')",
-            // documento_sem_vinculo fica sem ação geral por enquanto — não
-            // existe uma aba/lista própria pra "documentos sem vínculo" pra
-            // abrir; mantém sem clique quando agrupado (como já era).
+            // v1.194.0 (16/09/2026) — ACHADO investigando "alerta não navega
+            // ao clicar" (pedido explícito do Nicola): este era o único tipo
+            // agrupável (agrupamento='por_tipo') SEM ação de grupo — com 2+
+            // documentos sem vínculo abertos ao mesmo tempo, o card
+            // resultante nascia sem onClick (chip.onClick = null), logo sem
+            // `rz-link`/chevron — clicável só quando havia exatamente 1 (não
+            // agrupava, ia pro individual via destino_rota). abrirTabAlertas
+            // já aceita filtro de categoria ('documento') — mesmo padrão
+            // usado pela Visão Geral (ver comentário em abrirTabAlertas).
+            documento_sem_vinculo: "abrirTabAlertas('documento')",
         };
 
         // v1.186.0 (achado do Nicola: "conto 21, o sistema mostra 10/12") —
@@ -11572,7 +11606,17 @@
                     else { sem = 'run'; rotulo = `${a.dias} dias`; }
                 }
                 const clicavel = !!a.onClick;
-                return `<div class="rz-row ${clicavel ? 'rz-link' : ''}" ${clicavel ? `onclick="${a.onClick}"` : ''}>
+                // v1.194.0 (16/09/2026, pedido explícito — "os alertas ao
+                // clicar não vão pra nenhuma tela de tratamento") — qualquer
+                // exceção dentro do onClick (switchTab/rzAbrirDestinoAlerta/
+                // abrirTabAlertas, conforme o caso) antes só falhava
+                // silenciosamente (erro só no console, invisível pro
+                // Nicola). Agora sempre dá algum retorno visível — navega OU
+                // avisa por toast — nunca mais "nada acontece".
+                const onClickSeguro = clicavel
+                    ? `try{ ${a.onClick} }catch(erroClique){ console.error('[alertas] onClick falhou:', erroClique); if (typeof mostrarToast === 'function') mostrarToast('Não consegui abrir esse alerta agora.', 'danger'); }`
+                    : '';
+                return `<div class="rz-row ${clicavel ? 'rz-link' : ''}" ${clicavel ? `onclick="${onClickSeguro}"` : ''}>
                     <div class="rz-ic${classeIc}"><svg data-lucide="${icone}"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(a.titulo)}</b><span>${escapeHtmlSaidas(a.subtitulo)}</span></div>
                     <div class="rz-rt">${rotulo ? st(sem, rotulo) : ''}</div>
@@ -12476,6 +12520,23 @@
                 if (temMudancaValor && h.vigenteDesde && new Date(h.vigenteDesde) > new Date(ultima)) {
 
                     ultima = h.vigenteDesde;
+
+                }
+
+                // v1.194.0 (16/09/2026, pedido explícito — "Renovação deve avaliar
+                // se houve Renovação ou Reajuste nos últimos 12 meses"): os fluxos
+                // dedicados (lancarReajusteContrato/renovarContrato) gravam h.tipo
+                // 'reajuste'/'renovacao', mas carregarContratosSupabase() regenera
+                // `alteracoes` de forma GENÉRICA ("Alteração") pra toda linha vinda
+                // do banco — o check acima (campo === 'Valor do aluguel') só batia
+                // na MESMA sessão em que a edição foi feita, nunca depois de
+                // recarregar a página (causa raiz do alerta de reajuste aparecendo
+                // em contratos recém-renovados). h.tipo sobrevive ao reload — é o
+                // sinal confiável. Conta mesmo quando a renovação não mudou o valor
+                // (só estendeu a vigência): renovar também é revisar.
+                if ((h.tipo === 'reajuste' || h.tipo === 'renovacao') && h.data && new Date(h.data) > new Date(ultima)) {
+
+                    ultima = h.data;
 
                 }
 
