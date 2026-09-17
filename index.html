@@ -6,9 +6,21 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.196.0
+   VERSÃO: Beta v1.197.0
    LINHAS: 15937
    DATA: 17/09/2026
+   NOVIDADES (Beta v1.197.0) — Caminho B (migração imóveis→cofre_ativos),
+   fechamento: minutas_contrato ganhou coluna ativo_id (a coluna antiga
+   imovel_id tinha FK pra imoveis, mas o app já gravava ali o id do
+   ativo desde a Onda 12 — bug de FK latente, nunca tinha estourado
+   porque não existe hoje minuta ativa com escopo='imovel'); leitura e
+   escrita de minuta (sincronizarMinutaContratoSupabase / carga) agora
+   usam ativo_id. No banco: tabela imoveis renomeada pra
+   imoveis_legado_aguardando_exclusao (só 104 linhas congeladas, nada no
+   app escreve nela desde a Onda 12) + view de compatibilidade
+   `imoveis` criada pra não quebrar o bot (leitura direta, pendência à
+   parte) nem cofre-api.js::buscarResumoImovelOrigem. Detalhe completo
+   e migrations aplicadas: memória do projeto, área "Caminho B".
    NOVIDADES (Beta v1.196.0) — feedback do Nicola em cima da v1.195.0
    (mesmo dia, mesma rodada de testes): (1) seção "Patrimônio por tipo de
    ativo" só aparece com 2+ tipos na carteira (1 tipo só é redundante com
@@ -3736,7 +3748,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.196.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.197.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5180,7 +5192,7 @@
                     escopo: row.escopo,
                     empreendimentoId: row.empreendimento_id || null,
                     tipoImovelId: row.tipo_imovel_id || null,
-                    imovelId: row.imovel_id || null,
+                    imovelId: row.ativo_id || row.imovel_id || null,
                     arquivoUrl: row.arquivo_url || null,
                     arquivoNome: row.arquivo_nome || null,
                     arquivoVersao: row.arquivo_versao || 1,
@@ -5198,7 +5210,7 @@
                 escopo: item.escopo || 'geral',
                 empreendimento_id: item.empreendimentoId || null,
                 tipo_imovel_id: item.tipoImovelId || null,
-                imovel_id: item.imovelId || null,
+                ativo_id: item.imovelId || null,
                 arquivo_url: item.arquivoUrl || null,
                 arquivo_nome: item.arquivoNome || null,
                 arquivo_versao: item.arquivoVersao || 1,
