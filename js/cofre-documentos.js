@@ -1,6 +1,36 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.13.0 · 15/09/2026
+// Versão: 2.14.0 · 17/09/2026
+//
+// v2.14.0 — 3 achados reais do Nicola (relato + prints, 17/09/2026), todos
+// no fluxo de documentos:
+// (1) "Controlar vencimento" ficava travado sem poder marcar mesmo depois
+//     de vincular a um ativo/contrato. Causa: aplicarPadroesCategoriaUpload()
+//     só recalculava o disabled do checkbox dentro do ramo "nenhum subtipo
+//     selecionado ainda" (via aplicarSubtipoUpload) — no caso comum (IA já
+//     classifica o tipo do documento antes do usuário escolher o vínculo),
+//     esse ramo nunca era tocado e o disabled ficava congelado no estado de
+//     quando o vínculo ainda era nulo/triagem. Lógica extraída pra
+//     atualizarDisponibilidadeControleUpload() (nova), chamada dos dois
+//     lugares agora.
+// (2) Ficha de um documento já existente, aberta pela aba Ativos > Anexos
+//     (sem passar antes pelo upload nem pela navegação do módulo Cofre —
+//     os 2 únicos lugares que garantiam estado.categorias carregado):
+//     mostrava "Sem categoria" mesmo em documento COM categoria salva no
+//     banco (confirmado direto no banco — categoria_id correto,
+//     estado.categorias é que estava vazio nessa tela). Mesma causa
+//     quebrava o sheet "Categorizar" (abria sem nenhuma opção — parecia
+//     "muito pequeno", na real é lista vazia). abrirFichaDocumento() e
+//     categorizarDocumentoAtual() ganham o mesmo guard de carregamento que
+//     o fluxo de upload já tinha (carregarApoioUpload()).
+// (3) NÃO é bug de código, é gap de catálogo (achado, não corrigido aqui):
+//     "Minuta" e "Matrícula" existem como CATEGORIA (cofre_categorias:
+//     contrato.minuta, imovel.matricula — por isso aparecem no seletor
+//     manual de categoria), mas não têm nenhum SUBTIPO em
+//     cofre_controle_subtipos — o classificador de IA só escolhe entre
+//     subtipos, nunca entre categorias direto, então esses 2 documentos
+//     nunca saem de "Não classificado"/categoria "Outros" sozinhos. Ver
+//     ENTREGA desta rodada, seção do catálogo.
 //
 // v2.13.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4 ("A5"). O upload de
 // documento com sugestão de contato por IA gravava direto em
@@ -284,7 +314,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.13.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.14.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -951,6 +981,30 @@ function subtipoSelecionado() {
     return (subtiposControle || []).find(s => s.codigo === codigo) || null;
 }
 
+// v2.14.0 — extraído de aplicarSubtipoUpload pra também rodar quando só o
+// VÍNCULO muda (subtipo de documento já selecionado — o caso comum, IA
+// classifica antes do usuário escolher o vínculo): antes, esta checagem só
+// era refeita dentro de aplicarSubtipoUpload, e aplicarPadroesCategoriaUpload
+// só chamava aplicarSubtipoUpload quando NENHUM subtipo estava selecionado
+// ainda — nesse caso comum, "Controlar vencimento" ficava travado com o
+// disabled calculado antes do vínculo existir (achado real, relato Nicola
+// 17/09/2026: vinculou a um ativo, "Controlar vencimento" continuava sem
+// poder marcar).
+function atualizarDisponibilidadeControleUpload() {
+    if (!up) return false;
+    const g = id => document.getElementById(id);
+    const vencido = !!g('uc-validade').value && g('uc-validade').value < new Date().toISOString().slice(0, 10);
+    const permite = vinculoPermiteControle() && podeControlar() && !vencido;
+    const chk = g('uc-controlar');
+    chk.disabled = !permite;
+    if (!permite && chk.checked) { chk.checked = false; g('uc-controle-bloco').classList.add('hidden'); }
+    g('uc-controlar-hint').textContent = !podeControlar() ? 'Controle de vencimento indisponível no seu plano.'
+        : vencido ? 'Documento vencido não gera controle (D10). Suba o documento novo pra controlar.'
+        : !vinculoPermiteControle() ? 'Vincule a um ativo ou contrato pra controlar o vencimento.'
+        : 'Cria um item de controle com alerta no WhatsApp.';
+    return permite;
+}
+
 // Troca do tipo de documento (com ou sem IA): tudo abaixo segue o catálogo.
 export function aplicarSubtipoUpload(primeira = false) {
     if (!up) return;
@@ -977,14 +1031,8 @@ export function aplicarSubtipoUpload(primeira = false) {
     }
 
     // controle
-    const vencido = !!g('uc-validade').value && g('uc-validade').value < new Date().toISOString().slice(0, 10);
-    const permite = vinculoPermiteControle() && podeControlar() && !vencido;
+    const permite = atualizarDisponibilidadeControleUpload();
     const chk = g('uc-controlar');
-    chk.disabled = !permite;
-    g('uc-controlar-hint').textContent = !podeControlar() ? 'Controle de vencimento indisponível no seu plano.'
-        : vencido ? 'Documento vencido não gera controle (D10). Suba o documento novo pra controlar.'
-        : !vinculoPermiteControle() ? 'Vincule a um ativo ou contrato pra controlar o vencimento.'
-        : 'Cria um item de controle com alerta no WhatsApp.';
     const geraPadrao = s ? !!s.gera_controle_padrao : !!up.padroes.controleTipo;
     const bloqueadoPorValidacao = mesmoDaIA && m.gera_controle === false && !vencido;
     chk.checked = permite && geraPadrao && !!g('uc-validade').value && !bloqueadoPorValidacao;
@@ -1149,6 +1197,10 @@ export function aplicarPadroesCategoriaUpload(primeira = false) {
     if (!subtipoSelecionado()) { aplicarSubtipoUpload(primeira); return; }
     up.padroes = { ...(up.padroes || {}), manterArquivo: padroesDaCategoria(g('uc-categoria').value).manterArquivo };
     g('uc-manter-arquivo').checked = !!up.padroes.manterArquivo;
+    // FIX 17/09/2026 — era o único ramo que nunca recomputava "Controlar
+    // vencimento" depois de trocar o vínculo (ver nota em
+    // atualizarDisponibilidadeControleUpload).
+    atualizarDisponibilidadeControleUpload();
 }
 
 export function aoMudarControlarUpload() {
@@ -1506,10 +1558,21 @@ export async function abrirFichaDocumento(id) {
     if (!d) { mostrarToast('Documento não encontrado.', 'erro'); return; }
     docAtualId = id;
 
+    // FIX 17/09/2026 — mesma causa do bug do sheet "Categorizar" vazio
+    // (achado real, Nicola): abrindo a ficha pela aba Ativos > Anexos, sem
+    // passar antes pelo fluxo de upload ou pela navegação do módulo Cofre
+    // (os 2 únicos lugares que garantiam estado.categorias carregado),
+    // "Sem categoria" aparecia aqui mesmo quando o documento TINHA
+    // categoria salva no banco — o .find() abaixo batia num array vazio.
+    if (!estado.categorias?.length) {
+        try { estado.categorias = await api.listarCategorias(estado.clienteId); }
+        catch (e) { console.warn('categorias (ficha do documento):', e.message); }
+    }
+
     document.getElementById('fd-nome').textContent = d.nome_exibicao;
 
     const statusVinculo = classificarStatusVinculo(d.cofre_documento_vinculos);
-    const cat = estado.categorias.find(c => c.id === d.categoria_id);
+    const cat = (estado.categorias || []).find(c => c.id === d.categoria_id);
     document.getElementById('fd-contexto-label').textContent = cat ? cat.nome : 'Sem categoria';
 
     const dias = diasAte(d.validade_em);
@@ -1588,6 +1651,16 @@ export async function baixarDocumentoAtual() {
 export async function categorizarDocumentoAtual() {
     if (!docAtualId) return;
     if (typeof window.abrirSheetAcoes !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
+    // FIX 17/09/2026 — achado real (Nicola): abrindo a ficha de um documento
+    // já existente direto pela aba Ativos > Anexos (sem passar pelo fluxo de
+    // upload antes, que é quem chama carregarApoioUpload() e popula
+    // estado.categorias), o sheet "Categorizar" abria com a lista de ações
+    // vazia (nenhuma categoria carregada ainda) — visualmente um sheet
+    // minúsculo, só cabeçalho, sem nada pra tocar.
+    if (!estado.categorias?.length) {
+        try { estado.categorias = await api.listarCategorias(estado.clienteId); }
+        catch (e) { mostrarToast('Erro ao carregar categorias: ' + e.message, 'erro'); return; }
+    }
     const d = estado.documentos.find(x => x.id === docAtualId);
     window.abrirSheetAcoes({ titulo: 'Categorizar', sub: d?.nome_exibicao || '', acoes: (estado.categorias || []).map(c => ({
         icone: c.id === d?.categoria_id ? 'check' : 'tag', titulo: c.nome, sub: c.id === d?.categoria_id ? 'Categoria atual' : '',

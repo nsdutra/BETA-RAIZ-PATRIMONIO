@@ -4,6 +4,168 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.193.0) — 2 bugs reportados pelo Nicola em teste
+real (16/09/2026, tenant "Rumo Empreendimentos" e "Albuquerque Silva
+Participações"): (1) aba Contrato de um ativo imóvel quebrada
+("Não foi possível carregar os contratos agora.") — causa raiz em
+js/cofre-api.js: a função buscarContratosDoAtivo() (filtro por
+ativo_id) tinha sido PROMETIDA como pronta na entrega de hoje mais
+cedo (v1.36.0 no changelog/versoes.json), mas nunca foi de fato
+salva no arquivo — cofre-api.js continuava em v1.35.0 com a função
+antiga buscarContratosDoImovel(imovel_id), que não existe mais pra
+ativo nativo. Corrigido em js/cofre-api.js v1.36.1 (ver changelog
+lá). (2) card "Em atraso" da Visão Geral mostrava uma CONTAGEM de
+mensalidades vencidas, mas o card é visualmente um KPI monetário
+(R$) como os outros dois do hero — confundia quantidade com valor.
+renderVisaoGeral() parou de escrever nesse card; quem escreve agora
+é carregarDadosAssincronosVisaoGeral(), usando
+resumo.inadimplencia_valor (fn_resumo_resultados já retornava esse
+campo — zero migração nova).
+NOVIDADES (Beta v1.192.0) — 3 achados reais de teste (Nicola, print
+Albuquerque Silva Participações): mensalidade vencida sem alerta em
+lugar nenhum, "Em atraso: 0" na Visão Geral pra qualquer tenant.
+Causa raiz nº1 (banco, não é sintoma da Onda 12): nada transicionava
+mensalidades.status de 'pendente' pra 'atrasado' com o tempo — só a
+criação decidia isso, uma vez. 16 mensalidades de vários tenants
+presas vencidas; nova fn_atualizar_mensalidades_vencidas() já rodada
+como backfill (falta ainda encaixar no cron diário — pendência
+05bfb6e9). Causa raiz nº2 (JS, também pré-existente): mensalidade
+IsentaDeAlertas() chamava uma função de módulo lazy que sempre
+devolve Promise (sempre truthy) em vez de boolean — toda mensalidade
+com contrato virava "isenta", zerando "Em atraso" sempre. Corrigida
+sem o módulo lazy. Achado colateral: fn_fluxo_financeiro_ativo tinha
+a mesma restrição legada (entidade_origem_tipo/imovel_id) de outras
+funções desta rodada — corrigida.
+NOVIDADES (Beta v1.191.0) — Onda 12 (pedido explícito 16/09/2026:
+"pode evoluir mas não queria inverter [o gatilho de segurança]. Queria
+que exista já definitivamente apenas um caminho de escrita que seja
+na tabela de ativos. Quero deixar a tabela de imóveis totalmente
+isolada por um tempo até finalizar de rever todo o sistema. Se
+possível, alterar o nome dela para ficar aguardando ser deletada"):
+carregarImoveisSupabase() — mudança de fundo: passou a buscar por
+CATEGORIA (tipo_ativo IN imovel_predial/imovel_territorial), não mais
+por vínculo com `imoveis`. Cobre os 104 imóveis legados E qualquer
+imóvel novo (nativo, sem `imoveis` por trás) — é isso que faz um
+imóvel novo virar elegível pra contrato, o problema real por trás de
+toda essa frente. `id` deste array mudou de significado: agora é
+SEMPRE cofre_ativos.id (antes era imoveis.id) — nome do campo não
+mudou, só o espaço de id que ele carrega, então ~140 pontos que só
+fazem imoveis.find(i => i.id === con.imovelId) continuam funcionando
+sem tocar neles.
+sincronizarContratoSupabase() grava ativo_id agora, nunca mais
+imovel_id — contrato novo nasce com imovel_id permanentemente nulo;
+contrato antigo mantém o que já tinha (68/68 já tinham ativo_id
+derivado desde a fatia A.8, conferido antes de trocar — zero risco de
+perder vínculo). carregarContratosSupabase() lê ativo_id de volta,
+pros dois casos. sincronizarImovelSupabase() grava em cofre_ativos
+direto — bem mais simples, sem precisar mais resolver o ativo por uma
+busca à parte (imo.id já é o id do ativo).
+BLOQUEIO REAL encontrado — não fiz o rename da tabela ainda: varredura
+completa no banco achou 11 funções/triggers vivos que ainda leem/
+escrevem `imoveis` por nome, 2 delas críticas — fn_resumo_resultados
+(KPIs de Resultados/Visão Geral, todo tenant) e
+fn_diario_contratos_aniversario_reajuste (geração diária de alertas de
+reajuste). Renomear agora quebraria as duas pra todo cliente. Isso já
+era esperado — é literalmente as etapas E7/E2.1 do PLANO_IMPLEMENTACAO
+v1.0, nunca executadas. Lista completa e proposta de sequência na
+entrega.
+NOVIDADES (Beta v1.190.0) — Onda 12 (pedido explícito 16/09/2026:
+"vamos seguir em frente. Não inverta a lógica, troque as leituras para
+eliminar de vez a tabela. Não elimine ainda"): carregarImoveisSupabase()
+— a função que alimenta TODO o array `imoveis` em memória, usado por
+Contratos, Financeiro, minutas e o resto do app autenticado — trocou de
+fonte: lia `imoveis`, agora lê `cofre_ativos` (só vinculado, mesmo
+universo de sempre). `id` continua sendo imoveis.id (não o id do
+ativo) — contratos.imovel_id, divisão de repasse e afins têm FK pra
+`imoveis`, isso não mudou (essa é a próxima frente: inverter a
+escrita, ainda não feita, por decisão explícita).
+Condomínio/IPTU agora vêm de cofre_itens_controle (item de controle
+automático, E8) com fallback pra `imoveis` nos casos em que o item
+ainda não tem valor preenchido — ACHADO no caminho: 5 dos 104 imóveis
+têm o item de IPTU sem valor, `imoveis.iptu` seguia com o número real;
+sem o fallback, esses 5 mostrariam R$ 0 no formulário de contrato.
+Código do IPTU não tem equivalente no item de controle ainda —
+continua vindo só de `imoveis`.
+BUG REAL evitado antes de ir pro ar: sincronizarImovelSupabase()
+(chamada toda vez que um contrato muda o status do imóvel) fazia
+UPDATE de TODAS as colunas de `imoveis` de uma vez — com a leitura
+nova, isso teria ZERADO manutenção nome/zap (não existem mais no
+objeto em memória) a cada contrato salvo. Reduzida pro que o único
+chamador vivo precisa de verdade: status + os campos core.
+BLOQUEIO encontrado, registrado como pendência: uso/tipo_locacao/cib
+(inscrição imobiliária) — mostrados na aba "Dados do imóvel" da ficha
+do ativo — não têm equivalente em `cofre_ativos` (o `uso` de lá é
+coluna GERADA com outro significado: comercial/não-comercial, não
+residencial/comercial/industrial/terreno/rural). buscarResumoImovelOrigem
+e buscarResumoImoveisParaCards (cofre-api.js) continuam lendo
+`imoveis` por causa disso — ver changelog de cofre-api.js 1.33.0.
+Efeito colateral observado da E15.3 (sessão anterior): a foto de capa
+do card de Ativos para de receber URL nova (lia imoveis.fotos, que
+parou de ser escrito) — fotos publicadas antes continuam aparecendo,
+as de agora em diante só na vitrine.
+NOVIDADES (Beta v1.189.0) — Onda 12, E15.3 (pedido explícito 16/09/2026:
+"avance para retirar as dependências que faltam para podermos eliminar
+a tabela imóvel... siga direto pra apontar a vitrine pra tabela de
+ativos, mesmo que precise quebrar na produção momentaneamente pois não
+há consumo real de cliente hoje no produto pra vitrine"):
+resolverVitrinePublicaSupabase() reescrita — lê `cofre_ativos` em vez
+de `imoveis`, com RLS pública nova (migration
+e15_3_vitrine_publica_cofre_ativos_v1) espelhando a mesma regra de
+sempre via `links_vitrine`, mais GRANT SELECT pra `anon` em
+cofre_ativos/empreendimentos (faltava de origem, achado ao testar).
+Campos condomínio/IPTU/código IPTU saíram (já viraram item de controle
+automático, E8); manutenção/energia idem, energia migrou pra
+dados_especificos; aluguel pedido já vinha de dados_especificos.
+aluguel_desejado desde a E15.2.1; tipo vem de ativo_tipos; fotos vêm de
+cofre_ativo_fotos (publicar_vitrine=true) — ver changelog de vitrine.js
+1.1.0 e cofre-api.js 1.32.0. Achado no caminho: a regra antiga não
+tinha como excluir um imóvel vendido da vitrine (status_imovel_enum
+nunca teve o valor 'vendido') — a RLS nova já resolve isso, filtrando
+cofre_ativos.status='ativo'.
+IMPORTANTE — escopo: só a leitura pública (vitrine) migrou. Contratos,
+a ficha do imóvel e o formulário de criar/editar continuam lendo e
+gravando em `imoveis` como sempre — decisão explícita de não inverter
+o sentido da escrita nesta rodada. `imoveis` continua viva e
+necessária por causa desses três.
+NOVIDADES (Beta v1.188.0) — Onda 12, 4 pedidos explícitos do Nicola
+(16/09/2026) sobre telas já existentes, junto com a E15.2.1 (ver
+changelog de cofre-ativos.js/cofre-api.js/ativos-markup.js/
+contratos.js pro item principal da sessão — criar imóvel novo dentro
+do formulário unificado):
+(1) "retirar a faixa de aviso no topo da tela de contratos" —
+banner-revisao-contratos removido (elemento e lógica em
+contratos.js v1.4.0); resíduo pré-Motor de Alertas, redundante com o
+status por linha de cada contrato.
+(2) "retirar o link para relatórios da tela visão geral" — card
+"Relatórios" removido do tab-geral; "Resultados" continua acessível
+pela barra inferior (btn-tab-relatorios), não isola a tela.
+(3) "o sino de alertas deve ir para o topo, no cabeçalho, ao lado do
+ícone de IA" — sino saiu de dentro da aba Visão Geral (rz-tabhead) e
+foi pro #main-header/.rz-hdr, ao lado de Raiz IA; mesmo #geral-sino-dot,
+mesmo onclick, nenhuma lógica de alerta mudou, só o endereço no DOM.
+CSS novo (.rz-hdr .rz-ico-btn) pra bater 40px com os ícones vizinhos.
+(4) "corrigir o count de ativos no cabeçalho está errado" — causa raiz
+achada: atualizarContextoHeader() caía pro array `imoveis` (104)
+quando window.__cofreAtivos ainda não tinha carregado (janela de
+alguns segundos logo após o login, antes do prefetch do Cofre
+terminar) — mostrando um número ERRADO (imóvel não é sinônimo de
+ativo; hoje 104 × 132). Fallback errado removido: sem a contagem
+real ainda, o cabeçalho fica sem número por alguns segundos em vez
+de mentir, e corrige sozinho quando cofre:dados-carregados dispara.
+NOVIDADES (Beta v1.187.1) — item #8 do HANDOFF_SESSAO_2026-09-15,
+decisão do Nicola ("pode eliminar"): pontoAtencaoHtml() removida.
+Órfã desde a v1.187.0 (0 chamadores, confirmado por grep antes de
+remover) — Visão Geral e Alertas usam linhaAlertaHtml() para a mesma
+marcação desde a v1.186.0. Só a função saiu; os 2 comentários
+históricos que a citam noutros pontos do arquivo (v1.185.0/v1.186.0)
+ficaram, por descreverem o que mudou naquelas versões.
+------------------------------------------------------------------
+Versões anteriores (v1.187.0 … v1.187.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.187.0) — 2 pedidos do Nicola sobre a tela de Alertas:
 (1) "Precisa de atenção" na Visão Geral deixou de ser .rz-card (moldura
 com borda colorida) e virou título simples — o padding:14px 16px do
