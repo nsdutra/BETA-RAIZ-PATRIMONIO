@@ -10,8 +10,18 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.8
+  Versão     : 1.25.9
   Data       : 16/09/2026
+  CHANGELOG v1.25.9 — Onda 12, pendências avançadas (16/09/2026): seletor
+               "Qual imóvel?" removido do form de novo ativo (linha ~2450)
+               — espelha js/cofre-ativos.js v1.41.0/js/ativos/
+               ativos-markup.js v1.36.0. ACHADO DE GOVERNANÇA (registrado
+               como pendência, não corrigido nesta entrega): a conversão
+               de gramática .rz-f feita em cofre-ativos.js/ativos-
+               markup.js NÃO foi replicada aqui — cofre.html ainda tem
+               75 ocorrências de classes border-slate-300 (Tailwind),
+               only 3 rz-f (pré-existentes). Ver demanda de gramática
+               .rz-f (extensão de 6c2e9b1e) no handoff desta sessão.
   CHANGELOG v1.25.8 — feedback do teste real (16/09/2026): #at-
                empreendimento-valor-wrapper novo, reposicionado — espelha
                js/ativos/ativos-markup.js v1.34.0.
@@ -2432,26 +2442,22 @@
                     <button type="button" data-action="fechar-form-ativo" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-xs font-semibold block mb-1">Tipo de ativo <span style="color:var(--danger)">*</span></label>
-                        <select id="at-tipo" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-mudou"></select>
+                    <div class="rz-f">
+                        <label>Tipo de ativo <i>*</i></label>
+                        <select id="at-tipo" data-action-change="ativo-tipo-mudou"></select>
                     </div>
                     <!-- E5 (15/09/2026) — espelha js/ativos/ativos-markup.js -->
-                    <div id="at-tipo-detalhe-wrapper" class="hidden">
-                        <label class="text-xs font-semibold block mb-1">Tipo específico</label>
-                        <select id="at-tipo-detalhe" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="ativo-tipo-detalhe-mudou"></select>
+                    <div id="at-tipo-detalhe-wrapper" class="rz-f hidden">
+                        <label>Tipo específico</label>
+                        <select id="at-tipo-detalhe" data-action-change="ativo-tipo-detalhe-mudou"></select>
                     </div>
                     <!-- E15.2 — espelha js/ativos/ativos-markup.js -->
                     <div id="at-empreendimento-valor-wrapper" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-                    <div>
-                        <label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="at-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" placeholder="ex.: Honda Civic 2022">
+                    <div class="rz-f">
+                        <label>Nome de exibição <i>*</i></label>
+                        <input type="text" id="at-nome" placeholder="ex.: Honda Civic 2022">
                     </div>
-                    <div id="at-origem-imovel-wrapper" class="hidden sm:col-span-2">
-                        <label class="text-xs font-semibold block mb-1">Qual imóvel?</label>
-                        <select id="at-origem-imovel" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></select>
-                        <p class="raiz-indicador-inline" style="color:var(--sage)">Não duplica dados — este ativo só guarda documentos/fotos/alertas específicos do Cofre; o imóvel em si continua em Imóveis.</p>
-                    </div>
+                    <!-- v1.27.0 (COFRE_VERSAO, 16/09/2026) — seletor "Qual imóvel?" removido, espelha ativos-markup.js v1.36.0 -->
                     <div id="at-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                     <!-- E6.2 — espelha js/ativos/ativos-markup.js. E15.2: sem
                          grid forçado (achado no teste real — ver comentário
