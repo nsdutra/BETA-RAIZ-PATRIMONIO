@@ -6,9 +6,35 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.194.0
-   LINHAS: 15659
-   DATA: 16/09/2026
+   VERSÃO: Beta v1.195.0
+   LINHAS: 15883
+   DATA: 17/09/2026
+   NOVIDADES (Beta v1.195.0) — pedidos explícitos do Nicola (17/09/2026,
+   testes ao vivo em "Rumo Empreendimentos" e "Albuquerque Silva
+   Participações"): (1) BUG REAL DE VERDADE nos alertas da Visão Geral —
+   a v1.194.0 tinha corrigido 1 causa (documento_sem_vinculo sem ação de
+   grupo), mas o relato "só o de recebimentos pendentes clica; na aba
+   Alertas todos clicam; ao voltar pra Visão Geral, aí sim todos passam a
+   clicar" apontou a causa de verdade: alertasPorChave (Map usado por
+   rzAbrirDestinoAlerta) só era populado pela aba Alertas
+   (montarAlertasPatrimonio); a Visão Geral tinha sua própria cópia dos
+   dados e nunca escrevia nesse Map — corrigido, carregarDadosAssincronosVisaoGeral()
+   agora também popula. (2) chips de filtro da aba Ativos (Todos/Imóveis/
+   Veículos/Outros) quebravam pra 2ª linha — trocado "flex flex-wrap"
+   (Tailwind cru) por .rz-chips (padrão único do app, 1 linha com scroll),
+   ver js/ativos/ativos-markup.js v1.38.0. (3) BUG REAL na lista de
+   Ativos: locatário/valor/status prometidos na v1.194.0 nunca apareciam
+   pra NENHUM imóvel — buscarResumoImoveisParaCards() (js/cofre-api.js)
+   montava o Map de apoio com a chave errada (entidade_origem_id, e não
+   id — os dois nunca são o mesmo UUID, confirmado direto no banco);
+   corrigido em cofre-api.js v1.36.2, e de brinde passou a cobrir também
+   imóvel NATIVO (pós-Onda-12, não só os 104 legados) via contratos.ativo_id.
+   (4) nova seção "Patrimônio por tipo de ativo" na Visão Geral — quebra
+   executiva (Imóveis/Veículos/Outros, qtde + valor), mesmo escopo e
+   mesma soma do hero acima (soma_valor_mercado). (5) achado à parte
+   durante a investigação do item 3: o importmap (linha ~214) estava
+   dessincronizado de versoes.json em 5 módulos — corrigido, ver nota
+   junto do próprio importmap.
    NOVIDADES (Beta v1.194.0) — pedidos explícitos do Nicola (16/09/2026,
    tenant "Albuquerque Silva Participações"): (1) alerta de reajuste
    pendente disparava mesmo com Renovação/Reajuste registrado há menos de
@@ -211,7 +237,19 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.5.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.1.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.36.1","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.40.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.35.0"}}</script>
+    <!-- v1.195.0 (17/09/2026) — ACHADO REAL ao investigar o print do
+         Nicola: este importmap (a fonte do "?v=" que evita módulo JS
+         velho em cache do navegador, ver comentário de ativos-app.js
+         mais abaixo) estava DESSINCRONIZADO de versoes.json em 5 dos 23
+         módulos — contratos.js (1.5.0, real 1.6.0), vitrine.js (1.1.0,
+         real 1.2.0), cofre-api.js (1.36.1), cofre-ativos.js (1.40.0,
+         real 1.44.0) e ativos-markup.js (1.35.0). Ou seja: o navegador de
+         qualquer pessoa que já tivesse aberto o app antes de uma entrega
+         anterior podia continuar servindo a versão VELHA desses 5
+         arquivos do cache, mesmo depois do deploy — candidato real pra
+         "por que o fix não aparece" em mais de uma rodada. Corrigido pra
+         bater 1:1 com versoes.json; nenhuma outra mudança nesta linha. -->
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.36.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.44.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.13.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.38.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -697,6 +735,12 @@
         .rz-kpi.rz-in b{color:var(--success)} .rz-kpi.rz-bad b{color:var(--danger)}
         .rz-kpi.rz-hero{grid-column:1/-1;background:var(--pine);border-color:var(--pine);color:#fff}
         .rz-kpi.rz-hero small{color:rgba(255,255,255,.75)} .rz-kpi.rz-hero b{font-size:26px}
+        /* v1.195.0 (17/09/2026, pedido explícito: "quebra executiva do
+           patrimônio por tipo de ativo... em sintonia com o board no
+           topo") — MESMO .rz-kpi de sempre, só a grade muda pra 3
+           colunas (Imóveis/Veículos/Outros, 3 grupos fixos, nunca mais
+           que isso de uma vez — .rz-kpis normal é pra 2/4 tiles). */
+        .rz-kpis-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
         .rz-prog{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
         .rz-prog i{display:block;height:100%;background:var(--sprout)}
         .rz-empty{text-align:center;padding:18px 8px 8px}
@@ -1695,6 +1739,24 @@
                 <div class="rz-kpi rz-in"><small>Recebido no mês</small><b id="geral-recebido-mes">—</b></div>
                 <div class="rz-kpi rz-bad"><small>Em atraso</small><b id="geral-inadimplentes">0</b></div>
                 <div class="rz-kpi" style="grid-column:1/-1"><small>Ocupação</small><b id="geral-ocupacao-pct">—</b></div>
+            </div>
+
+            <!-- v1.195.0 (17/09/2026, pedido explícito: "apresente uma
+                 quebra executiva do patrimônio por tipo de ativo com qtde
+                 e valor. Em sintonia com o board no topo") — MESMO grupo
+                 de 3 tipos que a aba Ativos usa (Imóveis/Veículos/Outros,
+                 GRUPOS_CHIP_TIPO em cofre-ativos.js) e MESMO escopo do
+                 hero acima (cofre_ativos.status='ativo', valor_referencia
+                 — o mesmo cálculo que soma "Patrimônio sob gestão" na
+                 fn_resumo_resultados): a soma dos 3 tiles bate com o
+                 hero, nunca outro número. Preenchido por
+                 carregarDadosAssincronosVisaoGeral()/renderizarQuebraTipoGeral()
+                 logo abaixo; seção inteira some se não houver ativo com
+                 valor (mesmo princípio de "não mostrar o que não existe"
+                 já usado em Precisa de atenção). -->
+            <div id="geral-quebra-tipo-secao" class="hidden">
+                <h3 class="rz-plain-title">Patrimônio por tipo de ativo</h3>
+                <div class="rz-kpis-3" id="geral-quebra-tipo"></div>
             </div>
 
             <!-- Contadores antigos (Imóveis/Alugados/Vagos) preservados,
@@ -3654,7 +3716,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.194.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.195.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10912,11 +10974,18 @@
 
             const wrapper = document.getElementById('geral-atencao-fundidos');
 
-            const [resResumo, resAlertas] = await Promise.allSettled([
+            const [resResumo, resAlertas, resPorTipo] = await Promise.allSettled([
                 dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE }),
                 pessoaIdLogada
                     ? dbAuth.rpc('fn_alertas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada })
-                    : Promise.resolve({ data: [], error: null })
+                    : Promise.resolve({ data: [], error: null }),
+                // v1.195.0 (17/09/2026) — quebra executiva por tipo de
+                // ativo (pedido explícito, ver markup #geral-quebra-tipo-
+                // secao acima). MESMO filtro que fn_resumo_resultados usa
+                // pra somar soma_valor_mercado (status='ativo'), nunca
+                // outro escopo — é o que faz o texto "em sintonia com o
+                // board no topo" ser verdade, não só visual.
+                dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo')
             ]);
 
             // --- KPIs do hero (Patrimônio sob gestão / Recebido / Ocupação) ---
@@ -10939,12 +11008,40 @@
                 console.warn('[visao-geral] Falha ao carregar KPIs do hero:', resResumo.reason?.message || resResumo.value?.error?.message);
             }
 
+            // --- quebra executiva por tipo de ativo (v1.195.0) ---
+            if (resPorTipo.status === 'fulfilled' && !resPorTipo.value.error) {
+                renderizarQuebraTipoGeral(resPorTipo.value.data || []);
+            } else {
+                console.warn('[visao-geral] Falha ao carregar quebra por tipo:', resPorTipo.reason?.message || resPorTipo.value?.error?.message);
+                document.getElementById('geral-quebra-tipo-secao')?.classList.add('hidden');
+            }
+
             if (!wrapper) return;
 
             // --- pontos de atenção: exclusivamente o Motor ---
             // Falha aqui degrada sozinha: os KPIs acima já foram escritos.
             if (resAlertas.status === 'fulfilled' && !resAlertas.value?.error) {
                 geralVisiveisTodos = (resAlertas.value.data || []).filter(r => r.visivel);
+                // v1.195.0 (17/09/2026) — ACHADO REAL (Nicola, teste ao vivo):
+                // "só o alerta de recebimentos pendentes deixa clicar; na tela
+                // de Alertas todos clicam; ao voltar pra Visão Geral, aí sim
+                // todos passam a clicar". Causa raiz: rzAbrirDestinoAlerta()
+                // resolve a linha por alertasPorChave.get(alertaChave) — um Map
+                // module-level que só era populado dentro de
+                // montarAlertasPatrimonio() (a aba Alertas). A Visão Geral
+                // sempre teve sua PRÓPRIA cópia dos dados (geralVisiveisTodos),
+                // nunca escrevia em alertasPorChave — então antes de visitar a
+                // aba Alertas ao menos 1 vez, o Map ficava vazio e
+                // rzAbrirDestinoAlerta() só achava `row` undefined e retornava
+                // sem fazer nada (nem lança erro — não tem o que o try/catch de
+                // linhaAlertaHtml pegasse). Só os tipos cujo onClick agrupado é
+                // um switchTab() estático (ACAO_GRUPO_POR_TIPO) funcionavam de
+                // cara, por nunca precisarem do Map. Fix: a Visão Geral agora
+                // também popula alertasPorChave com os mesmos dados desta
+                // busca — mesmo Map que montarAlertasPatrimonio usa, sincroniza
+                // não importa qual aba carrega primeiro.
+                alertasPorChave = new Map();
+                geralVisiveisTodos.forEach(r => alertasPorChave.set(r.alerta_chave, r));
             } else {
                 geralVisiveisTodos = [];
                 console.warn('[visao-geral] Falha ao carregar alertas do Motor:', resAlertas.reason?.message || resAlertas.value?.error?.message);
@@ -10952,6 +11049,49 @@
             renderizarPontosAtencaoGeral();
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.195.0 (17/09/2026, pedido explícito) — quebra executiva do
+        // patrimônio por tipo de ativo, pro card #geral-quebra-tipo-secao
+        // (markup logo abaixo do hero). Recebe as linhas cruas de
+        // cofre_ativos (tipo_ativo + valor_referencia, já filtradas por
+        // status='ativo' na própria query) e agrupa nos MESMOS 3 grupos
+        // que a aba Ativos usa (GRUPOS_CHIP_TIPO, cofre-ativos.js) — não
+        // duplico o nome do array por preguiça, é porque a Visão Geral
+        // aqui no App é um escopo de script separado do módulo do Cofre
+        // (cofre-ativos.js é ES module, não dá pra importar direto sem
+        // reestruturar o boot dos dois) e reaproveitar exatamente a
+        // mesma lista de tipo_ativo por grupo (sem inventar um 4º
+        // critério) é o que garante "em sintonia": tipo por tipo, os 3
+        // grupos aqui somam exatamente o soma_valor_mercado do hero.
+        // Grupo com 0 ativos não aparece (mesmo princípio de "some
+        // quando não há nada" da seção Precisa de atenção); se os 3
+        // vierem vazios, a seção inteira some.
+        function renderizarQuebraTipoGeral(rows) {
+            const secao = document.getElementById('geral-quebra-tipo-secao');
+            const wrap = document.getElementById('geral-quebra-tipo');
+            if (!secao || !wrap) return;
+            const GRUPOS_TIPO_GERAL = [
+                { rotulo: 'Imóveis', tipos: ['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'] },
+                { rotulo: 'Veículos', tipos: ['veiculo', 'veiculo_blindado'] },
+                { rotulo: 'Outros', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'vida', 'bem_valor'] },
+            ];
+            const grupos = GRUPOS_TIPO_GERAL.map(g => {
+                const doGrupo = (rows || []).filter(r => g.tipos.includes(r.tipo_ativo));
+                return { rotulo: g.rotulo, qtd: doGrupo.length, valor: doGrupo.reduce((s, r) => s + (Number(r.valor_referencia) || 0), 0) };
+            }).filter(g => g.qtd > 0);
+            if (!grupos.length) {
+                secao.classList.add('hidden');
+                return;
+            }
+            // rotulo vem só dos 3 literais fixos acima (nunca de dado do
+            // banco/usuário) — sem risco de injeção, e este arquivo (index.html,
+            // script clássico, não ES module) não tem um escapeHtml() global
+            // como cofre-ativos.js tem; nada aqui precisa de um.
+            wrap.innerHTML = grupos.map(g =>
+                `<div class="rz-kpi"><small>${g.rotulo} · ${g.qtd}</small><b>${formatarValorCompacto(g.valor)}</b></div>`
+            ).join('');
+            secao.classList.remove('hidden');
         }
 
         // v1.187.0 — separado de carregarDadosAssincronosVisaoGeral() pra

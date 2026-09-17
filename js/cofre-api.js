@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.36.1 · 16/09/2026
+// Versão: 1.36.2 · 17/09/2026
+//
+// v1.36.2 — bug real achado ao investigar print do Nicola: o Map de
+// buscarResumoImoveisParaCards() usava `entidade_origem_id` como chave,
+// mas ativoCardHtml() (cofre-ativos.js) sempre leu por `a.id` — nunca
+// batia, pra NENHUM imóvel. Chave trocada pra `id`, vínculo de contrato
+// trocado pra `contratos.ativo_id` (cobre legado + nativo). Ver
+// changelog completo dentro da própria função.
 //
 // v1.36.1 — ver changelog junto de buscarContratosDoAtivo() abaixo: função
 // renomeada de verdade (estava só no nome, causava TypeError na aba
@@ -321,7 +328,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.36.1'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.36.2'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1018,31 +1025,46 @@ export async function buscarResumoImoveisParaCards(clienteId) {
     // pública do bucket imoveis-fotos não expira, continua válida). `imoveis`
     // não é mais consultada por esta função.
     //
-    // Escopo mantido igual ao de antes (só entidade_origem_tipo='imovel'
-    // — os 104 imóveis LEGADOS): imóvel NOVO, criado depois da Onda 12,
-    // não tem esse vínculo e cai no card genérico, sem o tratamento rico
-    // (empreendimento/status/foto) — mesmo comportamento de "(Outros
-    // ativos)" que outros pontos de cofre-ativos.js já dão pra ativo sem
-    // entidade_origem_id (ex. renderAtivosLista, totalImoveisNaCarteira).
-    // Estender esse tratamento rico pra imóvel nativo é frente própria,
-    // maior — fica registrado como pendência, não differentiated aqui.
+    // v1.36.2 (17/09/2026) — BUG REAL achado ao investigar o print do
+    // Nicola (49 imóveis da Rumo Empreendimentos, TODOS legados
+    // entidade_origem_tipo='imovel', mas TODOS caindo no card genérico
+    // sem locatário/valor/status): o Map aqui era montado com chave
+    // `entidade_origem_id` (id da linha antiga em `imoveis`), mas
+    // ativoCardHtml() em cofre-ativos.js sempre leu com
+    // `resumoImoveisPorId.get(a.id)` — o id da PRÓPRIA linha de
+    // cofre_ativos. Os dois nunca foram o mesmo UUID (confirmado ao
+    // vivo no banco: id≠entidade_origem_id em 100% das linhas) — ou
+    // seja, o Map nunca bateu com NADA, pra NENHUM imóvel, legado ou
+    // não; todo imóvel sempre caiu no card genérico desde a Onda 12.
+    // Fix: a chave do Map passa a ser `id` (o mesmo que ativoCardHtml já
+    // usa) e o vínculo com `contratos` passa a ser por `contratos.ativo_id`
+    // (FK nova, já populada 1:1 pra tudo — 68/68 contratos no banco —
+    // em vez de `contratos.imovel_id`, que só existe pros legados).
+    // Efeito colateral bom: como `ativo_id` cobre TODO contrato (legado
+    // ou de imóvel nativo pós-Onda-12), o escopo da consulta deixou de
+    // depender de `entidade_origem_tipo='imovel'` — passa a cobrir
+    // QUALQUER ativo de categoria imóvel (`ehCategoriaImovel()`, mesmo
+    // critério do front), legado ou nativo. Pedido do Nicola (17/09):
+    // "para os imoveis com contratos, na lista aparecer o nome do
+    // locatário também" — resolvido pra todos de uma vez, não só os 104
+    // legados.
     const resumo = new Map();
     try {
         // v1.17.0 — as 2 consultas em paralelo (eram em fila; 1 ida a menos no 4G)
         const [{ data: ativosRows, error: e1 }, { data: contratosRows, error: e2 }] = await Promise.all([
-            dbAuth.from('cofre_ativos').select('entidade_origem_id, situacao_uso, finalidade_uso, dados_especificos, ativo_tipos(nome), empreendimentos(nome)').eq('cliente_id', clienteId).eq('entidade_origem_tipo', 'imovel'),
-            dbAuth.from('contratos').select('imovel_id, status, locatario, valor').eq('cliente_id', clienteId),
+            dbAuth.from('cofre_ativos').select('id, situacao_uso, finalidade_uso, dados_especificos, ativo_tipos(nome), empreendimentos(nome)').eq('cliente_id', clienteId).in('tipo_ativo', ['imovel_predial', 'imovel_territorial']),
+            dbAuth.from('contratos').select('ativo_id, status, locatario, valor').eq('cliente_id', clienteId),
         ]);
         if (e1) throw e1;
         if (e2) throw e2;
 
         (ativosRows || []).forEach(imo => {
-            const imovelId = imo.entidade_origem_id;
+            const ativoId = imo.id;
             const contratosDoImovel = (contratosRows || [])
-                .filter(c => c.imovel_id === imovelId)
+                .filter(c => c.ativo_id === ativoId)
                 .sort((a, b) => (PRIORIDADE_STATUS_CONTRATO_CARD[a.status] || 9) - (PRIORIDADE_STATUS_CONTRATO_CARD[b.status] || 9));
             const foto = imo.dados_especificos?.foto_capa_url || null;
-            resumo.set(imovelId, {
+            resumo.set(ativoId, {
                 empreendimento: imo.empreendimentos?.nome || '',
                 tipo: imo.ativo_tipos?.nome || '',
                 finalidadeUso: imo.finalidade_uso || '',

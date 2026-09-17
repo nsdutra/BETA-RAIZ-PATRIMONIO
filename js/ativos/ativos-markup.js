@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.37.0 · 16/09/2026
+// Versão: 1.38.0 · 17/09/2026
+//
+// v1.38.0 — pedido explícito/achado em teste real: #ativos-chips-tipo usava
+// "flex flex-wrap" (Tailwind cru, gramática legada) e quebrava a fileira de
+// chips (Todos/Imóveis/Veículos/Outros) pra 2ª linha; trocado pra .rz-chips
+// (padrão único de chip do app, 1 linha com scroll horizontal).
 //
 // v1.37.0 — contador que faltava no chip Financeiro (acompanha
 // cofre-ativos.js v1.42.0).
@@ -338,7 +343,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.37.0'; // v-check (16/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.38.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -555,7 +560,13 @@ export const ATIVOS_MARKUP = `<style>
                  nenhuma, então nem falta o "cabe numa linha só" que
                  justificaria manter rolagem como no caso dos 7 chips da
                  ficha do ativo. -->
-            <div id="ativos-chips-tipo" class="flex flex-wrap gap-2 mb-3"></div>
+            <!-- v1.38.0 (17/09/2026, achado do Nicola em teste real, print) —
+                 "flex flex-wrap" (Tailwind cru) deixava a fileira de chips
+                 quebrar pra 2ª linha assim que passava de 3-4 chips; REGRAS_
+                 EXPERIENCIA §7 pede 1 linha com overflow-x:auto sem scrollbar,
+                 que é exatamente o que .rz-chips já faz em todo o resto do
+                 app — trocado pra ele em vez de reinventar CSS aqui. -->
+            <div id="ativos-chips-tipo" class="rz-chips"></div>
 
             <div id="ativos-lista" class="space-y-2"></div>
             <div id="ativos-estado-vazio" class="hidden text-center py-14">
