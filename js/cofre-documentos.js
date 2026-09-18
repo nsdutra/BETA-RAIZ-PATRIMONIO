@@ -1,6 +1,34 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.15.0 · 17/09/2026
+// Versão: 2.16.0 · 18/09/2026 (rodada 5)
+//
+// v2.16.0 — 2 achados reais do Nicola (relato + 3 prints do sheet de upload,
+// 18/09/2026):
+// (1) "lista grande e estranha" no seletor Tipo de documento (uc-tipo-doc) —
+//     causa: montarSelectTipoDoc() e preencherSubtiposControleUpload()
+//     filtravam "Deste tipo de ativo" pelo campo antigo e quase sempre vazio
+//     cofre_controle_subtipos.tipo_ativo_aplicavel (texto livre, "lista
+//     curta e antiga" — nota já existente no form de Subtipos do Gestão);
+//     vazio era tratado como "serve pra qualquer ativo", então o filtro não
+//     filtrava nada de fato. Os 2 agora usam a fonte real,
+//     cofre_subtipo_aplicabilidade (mesma tabela da aba Aplicabilidade do
+//     Gestão), via api.listarAplicabilidadeSubtipos() nova (cofre-api.js
+//     v1.38.0) + helper subtipoAplicaAoTipoAtivo(). Efeito colateral
+//     esperado: subtipo ainda sem nenhum vínculo cadastrado na aba
+//     Aplicabilidade passa a cair em "Outros" (antes entrava errado em
+//     "Deste tipo de ativo") — a lista tende a encolher e ficar correta à
+//     medida que a aba Aplicabilidade for preenchida, não é regressão.
+//     Escopo por tipo de ativo específico (escopo_tipo='codigo') continua
+//     fora — são raros e exigiriam também o tipo_detalhe_id do ativo, que
+//     este fluxo não carrega; registrado como pendência (ver ENTREGA).
+// (2) "categoria › subtipo, qualquer item que escolho ele trava no outro" —
+//     causa: aplicarPadroesCategoriaUpload(), quando nenhum subtipo estava
+//     selecionado, delegava pra aplicarSubtipoUpload(primeira), que
+//     recalcula uc-categoria a partir do subtipo/IA e SOBRESCREVE o select —
+//     mesmo quando quem tinha acabado de mudar era a própria Categoria, à
+//     mão. A categoria escolhida "voltava" sozinha pro valor anterior.
+//     Corrigido: sem subtipo selecionado, só reaplica os padrões da
+//     categoria atual — não mexe mais no valor do select.
 //
 // v2.15.0 — item 5 do mesmo relato do Nicola (v2.14.0, abaixo): "Vincular a"
 // (upload livre e "Vincular agora" da ficha) mostrava "Imóvel" — nomenclatura
@@ -326,7 +354,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.15.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.16.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -555,6 +583,7 @@ const MIMES_IA = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'im
 let up = null;                // upload em curso: { contexto, vinculo, comIA, arquivo, hash, documentoId, storagePath, ia, padroes }
 let gabaritoCategorias = null; // linhas globais de cofre_categorias (padrões)
 let subtiposControle = null;   // v2.1.0 — catálogo global (cofre_controle_subtipos, cliente_id null, ativo)
+let aplicabilidadeSubtipos = null; // v2.16.0 — cofre_subtipo_aplicabilidade (ativo=true) — fonte real de "este subtipo serve pra este tipo de ativo"
 const LIMIAR_CONFIRA = 0.75;
 
 function podeIA() { return window.podeUsar ? window.podeUsar('cofre.analisar_ia').ok : true; }
@@ -771,6 +800,24 @@ async function carregarApoioUpload() {
     if (!estado.categorias?.length) estado.categorias = await api.listarCategorias(estado.clienteId);
     if (!gabaritoCategorias) gabaritoCategorias = await api.listarCategoriasGabarito();
     if (!subtiposControle) subtiposControle = await api.listarCatalogoSubtipos(); // v2.1.0 — global
+    if (!aplicabilidadeSubtipos) aplicabilidadeSubtipos = await api.listarAplicabilidadeSubtipos(); // v2.16.0 — global
+}
+
+// v2.16.0 — s "serve" pro tipoAtivo quando existe vínculo ATIVO em
+// cofre_subtipo_aplicabilidade (subtipo × categoria macro do ativo) — a
+// mesma fonte que a aba Aplicabilidade do Gestão edita. Sem tipoAtivo (nada
+// vinculado ainda), não filtra nada. Escopo por tipo de ativo específico
+// (escopo_tipo='codigo', ex.: "carro blindado") não é resolvido aqui — são
+// raros (nota já em catalogo-patrimonio.js) e exigiriam também o
+// tipo_detalhe_id do ativo, que este fluxo de upload não carrega; ficam de
+// fora do grupo "Deste tipo de ativo" (caem em "Outros"), nunca somem do
+// catálogo. Subtipo sem NENHUM vínculo ativo (ainda não configurado na aba
+// Aplicabilidade) também cai em "Outros" — antes, sem vínculo no campo
+// antigo era tratado como "serve pra tudo", que era exatamente a causa da
+// lista grande e sem filtro real (achado, relato Nicola 18/09/2026).
+function subtipoAplicaAoTipoAtivo(s, tipoAtivo) {
+    if (!tipoAtivo) return true;
+    return (aplicabilidadeSubtipos || []).some(a => a.subtipo_id === s.id && a.escopo_tipo === 'categoria' && a.escopo_valor === tipoAtivo);
 }
 
 // Padrão efetivo da categoria: gabarito global (por codigo) → linha do
@@ -978,7 +1025,7 @@ function montarSelectTipoDoc(codigoAtual) {
     const sel = document.getElementById('uc-tipo-doc');
     const tipoAtivo = up?.tipoAtivo || null;
     const lista = (subtiposControle || []).filter(s => s.ia_reconhece !== false || s.codigo === codigoAtual);
-    const aplic = tipoAtivo ? lista.filter(s => !s.tipo_ativo_aplicavel?.length || s.tipo_ativo_aplicavel.includes(tipoAtivo)) : lista;
+    const aplic = tipoAtivo ? lista.filter(s => subtipoAplicaAoTipoAtivo(s, tipoAtivo)) : lista;
     const outros = lista.filter(s => !aplic.includes(s));
     const opt = s => `<option value="${s.codigo}">${escapeHtml(s.nome)}</option>`;
     sel.innerHTML = `<option value="">— escolher o tipo —</option>` +
@@ -1206,7 +1253,22 @@ export function aplicarPadroesCategoriaUpload(primeira = false) {
     // v2.1.0 — o tipo de documento manda; troca manual de categoria só reaplica "manter arquivo".
     if (!up) return;
     const g = id => document.getElementById(id);
-    if (!subtipoSelecionado()) { aplicarSubtipoUpload(primeira); return; }
+    if (!subtipoSelecionado()) {
+        // FIX 18/09/2026 (achado real, relato Nicola — "categoria › subtipo,
+        // qq item que escolho ele trava no outro"): este ramo delegava pra
+        // aplicarSubtipoUpload(primeira), que RECALCULA uc-categoria a partir
+        // do subtipo/IA (catId) e SOBRESCREVE o <select> — inclusive quando
+        // quem acabou de mudar foi exatamente a Categoria, à mão, sem
+        // subtipo nenhum selecionado. Resultado: a categoria escolhida
+        // "voltava" sozinha pro valor anterior (sugestão da IA, ou "Outros").
+        // Sem subtipo selecionado não há nada que justifique reescrever a
+        // categoria — só reaplica os padrões da categoria que o usuário
+        // efetivamente escolheu.
+        up.padroes = padroesDaCategoria(g('uc-categoria').value);
+        g('uc-manter-arquivo').checked = !!up.padroes.manterArquivo;
+        atualizarDisponibilidadeControleUpload();
+        return;
+    }
     up.padroes = { ...(up.padroes || {}), manterArquivo: padroesDaCategoria(g('uc-categoria').value).manterArquivo };
     g('uc-manter-arquivo').checked = !!up.padroes.manterArquivo;
     // FIX 17/09/2026 — era o único ramo que nunca recomputava "Controlar
@@ -1228,7 +1290,7 @@ function preencherSubtiposControleUpload(subtipoIdPreferido) {
     const tipoAtivo = up?.tipoAtivo || null;
     let lista = (subtiposControle || []).filter(s => s.tipo === tipo);
     if (tipoAtivo) {
-        const compat = lista.filter(s => !s.tipo_ativo_aplicavel?.length || s.tipo_ativo_aplicavel.includes(tipoAtivo));
+        const compat = lista.filter(s => subtipoAplicaAoTipoAtivo(s, tipoAtivo));
         if (compat.length) lista = compat;
     }
     // Dica da IA: subtipo cujo nome aparece no tipo detectado (ex.: "CNH")

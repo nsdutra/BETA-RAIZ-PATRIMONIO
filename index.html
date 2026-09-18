@@ -6,9 +6,41 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.207.0
+   VERSÃO: Beta v1.208.0
    LINHAS: 14879
-   DATA: 18/09/2026 (rodada 4)
+   DATA: 18/09/2026 (rodada 5)
+   NOVIDADES (Beta v1.208.0) — MERGE: você fez deploy direto da v1.207.0
+   (rodada 4, item 12/paridade — reajuste/contratos, ver bloco logo abaixo)
+   antes de eu terminar esta rodada; as 2 sessões incrementaram
+   Beta v1.206.0 → v1.207.0 em paralelo, sem se ver. Peguei sua v1.207.0
+   já deployada (index.html + contratos.js v1.7.0, sem alteração minha) como
+   base e apliquei por cima só o que era meu, agora como v1.208.0 — nada da
+   sua v1.207.0 foi perdido ou sobrescrito. Corrigido de passagem: a
+   const APP_VERSAO (usada na splash/Sobre) tinha ficado em "Beta v1.206.0"
+   na v1.207.0 — o cabeçalho já estava certo, só o v-check não tinha
+   acompanhado (mesmo tipo de deslize que corrigi em cofre-api.js nesta
+   rodada — ver changelog do arquivo). Mais importante: o IMPORTMAP da
+   v1.207.0 tinha ficado com "./js/contratos.js?v=1.6.0" — contratos.js em
+   si já estava em 1.7.0 (o conteúdo novo foi deployado), mas a URL
+   versionada que estoura cache não mudou junto. Corrigido pra ?v=1.7.0
+   nesta v1.208.0 — sem isso, quem já tinha o app aberto/cacheado podia
+   continuar rodando o contratos.js ANTIGO mesmo depois do seu deploy.
+   O que é meu, de fato (2 achados reais do Nicola testando o upload de
+   documento, relato + prints, 18/09/2026): (1) o seletor "Tipo de
+   documento" no sheet de confirmação mostrava uma lista grande e sem
+   filtro real — cofre-documentos.js v2.16.0 achou a causa: o agrupamento
+   "Deste tipo de ativo" usava o campo antigo e quase sempre vazio
+   cofre_controle_subtipos.tipo_ativo_aplicavel (vazio = "serve pra tudo",
+   então não filtrava nada) em vez da aba Aplicabilidade do Gestão
+   (cofre_subtipo_aplicabilidade, a fonte real) — trocado, junto do mesmo
+   filtro no seletor de subtipo do bloco "Controlar vencimento"
+   (api.listarAplicabilidadeSubtipos() nova, cofre-api.js v1.38.0). (2) o
+   campo Categoria › Subcategoria "travava" de volta no valor anterior
+   sempre que trocado à mão sem um Tipo de documento escolhido —
+   aplicarPadroesCategoriaUpload() delegava pra uma função que recalculava
+   e sobrescrevia a categoria a partir do subtipo/IA, ignorando a escolha
+   manual; corrigido.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.207.0, demanda item 12/paridade) — corrigido o
    descompasso entre o alerta de "contrato precisa de revisão" do App e o
    detector do bot (fn_diario_contratos_aniversario_reajuste): uma edição
@@ -245,7 +277,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.46.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.26.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.41.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.7.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.46.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.26.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.16.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.41.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3619,7 +3651,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.206.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.208.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

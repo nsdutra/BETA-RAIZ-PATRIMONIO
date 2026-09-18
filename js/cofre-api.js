@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.37.2 · 18/09/2026 (rodada 3)
+// Versão: 1.38.0 · 18/09/2026 (rodada 5)
+//
+// v1.38.0 — listarAplicabilidadeSubtipos() nova (cofre_subtipo_aplicabilidade,
+// só linhas ativas): fonte real de aplicabilidade por tipo de ativo, pro
+// upload de documento (cofre-documentos.js v2.16.0) parar de ler o campo
+// antigo tipo_ativo_aplicavel. Corrigido também o VERSAO (const) que tinha
+// ficado em 1.37.1 na rodada anterior — o header já estava em 1.37.2, o
+// v-check é que não tinha acompanhado.
 //
 // v1.37.2 — listarModelosItemControle(): order() trocou tipo_ativo (campo
 // deprecated, formulário de Modelos de controle parou de gravar nele — ver
@@ -344,7 +351,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.37.1'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.38.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -649,6 +656,20 @@ export async function listarCatalogoSubtipos() {
     const { data, error } = await dbAuth.from('cofre_controle_subtipos')
         .select('id, codigo, nome, tipo, tipo_ativo_aplicavel, sinonimos, titular_escopo, categoria_codigo, gera_controle_padrao, ia_reconhece, campos, regra_vencimento, complexidade, manter_arquivo_padrao, antecedencia_padrao_dias, repeticao_padrao_dias, recorrencia_padrao_intervalo, recorrencia_padrao_unidade, ordem')
         .is('cliente_id', null).eq('ativo', true).order('ordem', { nullsFirst: false }).order('nome');
+    if (error) throw error;
+    return data || [];
+}
+
+// v1.38.0 — fonte REAL de aplicabilidade por tipo de ativo (cofre_subtipo_aplicabilidade,
+// a mesma tabela da aba Aplicabilidade do Gestão), pro upload de documento
+// parar de filtrar pelo campo antigo tipo_ativo_aplicavel (achado real,
+// relato Nicola 18/09/2026 — ver changelog de cofre-documentos.js v2.16.0).
+// Tabela global (sem cliente_id), leitura liberada pra qualquer autenticado
+// (RLS cofre_subtipo_aplicabilidade_select); só linhas ativas interessam
+// aqui — vínculo removido na aba Aplicabilidade não deve voltar a filtrar.
+export async function listarAplicabilidadeSubtipos() {
+    const { data, error } = await dbAuth.from('cofre_subtipo_aplicabilidade')
+        .select('subtipo_id, escopo_tipo, escopo_valor, ativo').eq('ativo', true);
     if (error) throw error;
     return data || [];
 }
