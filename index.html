@@ -6,18 +6,27 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.204.0
-   LINHAS: 14861
+   VERSÃO: Beta v1.205.0
+   LINHAS: 14879
    DATA: 18/09/2026
+   NOVIDADES (Beta v1.205.0) — E15.3 fechada na mesma sessão (demanda
+   abd1a73f): levantamento mostrou que o receio que travava essa migração
+   (imoveis.tipo_id "ainda lido por outras partes do sistema legado") não
+   procede mais — 0 função SQL ativa lê esse campo, cofre_ativos.
+   tipo_detalhe_id já bate 100% (104/104) com ele, e o form de editar
+   ativo já não escreve em `imoveis` desde a Onda 12. "Tipo de imóvel"
+   saiu do menu "Tipos e modelos" (catálogo virou global master-only, aba
+   "Tipos de ativo" do Raiz Gestão). js/cofre-ativos.js v1.46.0: campo
+   "Tipo específico" destravado também pra ativo vinculado na edição
+   (antes só avulso podia). imoveis.tipo_id/tipos_imovel ficam congelados
+   no banco (COMMENT ON), não apagados.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.204.0) — feedback do Nicola na rodada 2 da Onda 2 do
    catálogo (item 6): removidos do menu "Tipos e modelos" os itens
    "Categoria de documento" e "Sub-tipos de item de controle" —
    abrirConfiguracaoCofre('categorias'/'subtipos') não é mais a fonte de
    verdade, virou catálogo global na aba Subtipos do Catálogo do patrimônio
-   (Raiz Gestão) desde a Onda 2. "Tipo de imóvel" e "Modelos de controle"
-   ficam por ora (ver nota em abrirMenuTiposModelos): a migração deles é
-   mais entrelaçada com dado legado (imoveis.tipo_id) e fica pra rodada
-   própria. Ver ENTREGA_20260918_catalogo-r2b.md.
+   (Raiz Gestão) desde a Onda 2. Ver ENTREGA_20260918_catalogo-r2b.md.
    ------------------------------------------------------------------
    NOVIDADES (Beta v1.203.0) — execução da demanda f60fe32e (achados
    deixados em aberto na entrega da v1.202.0) + 1 bug real achado pelo
@@ -207,7 +216,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.1","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.1","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.46.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3581,7 +3590,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.204.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.205.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9197,17 +9206,26 @@
         // direto pra Partes com o chip Prestadores (fusão da fatia 7b-i).
         function abrirMenuTiposModelos() {
             const ir = (tab) => () => switchTab(tab);
+            // v1.205.0 — "Tipo de imóvel" saiu também (E15.3, demanda
+            // abd1a73f): levantamento em 18/09/2026 mostrou que o receio que
+            // segurava essa remoção (imoveis.tipo_id "ainda lido por outras
+            // partes do sistema legado") não procede mais — 0 função SQL
+            // ativa lê esse campo, cofre_ativos.tipo_detalhe_id já bate
+            // 100% com ele em todo imóvel existente, e o form de editar
+            // ativo já não escreve em `imoveis` desde a Onda 12. Catálogo de
+            // tipo de imóvel virou global master-only — gerenciado na aba
+            // "Tipos de ativo" do Catálogo do patrimônio (Raiz Gestão),
+            // categorias imovel_predial/imovel_territorial. tab-tipo-imovel
+            // e tipos_imovel ficam no código/banco como histórico congelado
+            // (ver COMMENT ON no banco), não foram apagados.
             // v1.204.0 — "Categoria de documento" e "Sub-tipos de item de controle"
             // saíram daqui: as duas viraram catálogo GLOBAL (aba Subtipos do
             // Catálogo do patrimônio, Raiz Gestão) desde a Onda 2 da
             // PROPOSTA_CATALOGO_GESTAO, e essas telas locais do App há muito
-            // não são a fonte de verdade. "Tipo de imóvel" e "Modelos de
-            // controle" ficam por ora — a migração deles pro catálogo global
-            // (E15.3 / demanda 7e6f4027) tem mais dependência de dado legado
-            // (imoveis.tipo_id ainda é lido por outras partes do sistema; ver
-            // js/cofre-ativos.js ~L2280) e fica pra uma rodada própria.
+            // não são a fonte de verdade. "Modelos de controle" fica por ora
+            // — a tela ainda grava no campo antigo (tipo_ativo, hoje
+            // deprecated); ajustar o formulário fica pra rodada própria.
             abrirSheetAcoes({ titulo: 'Tipos e modelos', sub: 'Listas que alimentam os cadastros', acoes: [
-                { icone: 'home', titulo: 'Tipo de imóvel', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-imovel') },
                 { icone: 'landmark', titulo: 'Tipo de empreendimento', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
                 { icone: 'clipboard-list', titulo: 'Modelos de controle', codigo: 'cofre.controles.editar', aoTocar: () => abrirConfiguracaoCofre('modelos') },
                 { icone: 'archive', titulo: 'Documentos arquivados', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') } // v1.165.0 — corrige o menu que o Nicola realmente vê (a versão anterior foi pro modal-menu-conta antigo, morto desde v1.115.0)

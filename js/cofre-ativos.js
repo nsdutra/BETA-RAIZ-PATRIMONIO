@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.45.0 · 17/09/2026
+// Versão: 1.46.0 · 18/09/2026
+//
+// v1.46.0 — E15.3 (demanda abd1a73f): destravado o campo "Tipo específico"
+// na edição de ativo VINCULADO (imóvel legado ligado a `imoveis`) — antes
+// só avulso podia editar, vinculado ficava com <input disabled> porque
+// `imoveis.tipo_id` (catálogo antigo) era temido como fonte de verdade pra
+// "outras partes do sistema legado". Levantamento confirmou: 0 função SQL
+// ativa lê imoveis.tipo_id hoje, salvarEdicaoAtivo() já tinha parado de
+// escrever em `imoveis` desde a Onda 12, e cofre_ativos.tipo_detalhe_id
+// bate 100% (104/104) com o tipo legado em todo imóvel existente. Risco de
+// descasamento que motivava o lock não existe mais — vinculado e avulso
+// convergem pro mesmo <select>. `imoveis.tipo_id`/`tipos_imovel` ficam
+// congelados no banco (COMMENT ON, não apagados) — ver ENTREGA da rodada.
 //
 // v1.45.0 — feedback do Nicola em teste real sobre o card de imóvel da
 // v1.44.0: (1) linha "Empreendimento · Tipo" saiu de dentro da caixa
@@ -2245,7 +2257,6 @@ export async function alternarEditarAtivo() {
     // sessão), não busca de novo.
     await garantirCatalogoTiposAtivo();
     await garantirEmpreendimentos(); // E15.2
-    const vinculado = ehImovelVinculado(a.entidade_origem_tipo);
     // v1.18.0 (fatia 3b-iii, pedido do Nicola 03/09: "está abrindo
     // formulário dentro da tela e não bottom sheet como os demais") —
     // abre em abrirSheetForm com os MESMOS ids de campo (fa-editar-nome,
@@ -2272,20 +2283,21 @@ export async function alternarEditarAtivo() {
         ? `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-2">${renderizarBlocoImovel('fa-editar-imovel-', a)}</div>`
         : '';
     // E5 — tipo específico (dentro da categoria, que continua somente-
-    // leitura — ver nota abaixo) passa a ser editável: corrige um ativo
-    // classificado errado, ou completa um que nunca teve tipo_detalhe_id
-    // (criado antes da E5). Categoria sem tipo cadastrado no catálogo:
-    // tiposDetalhe fica [], o bloco não aparece — comportamento de antes.
-    // E15.2 — pra VINCULADO, fica travado (disabled): `imoveis.tipo_id`
-    // (catálogo antigo, tipos_imovel) é quem ainda manda pro que outras
-    // partes do sistema legado leem — mudar só o tipo_detalhe_id daqui
-    // divergiria dos dois catálogos sem sincronismo nenhum. Destravar
-    // isso é trabalho da E15.3 (fim de verdade do catálogo antigo).
+    // leitura — ver nota abaixo) é editável: corrige um ativo classificado
+    // errado, ou completa um que nunca teve tipo_detalhe_id (criado antes
+    // da E5). Categoria sem tipo cadastrado no catálogo: tiposDetalhe fica
+    // [], o bloco não aparece — comportamento de antes.
+    // E15.3 (demanda abd1a73f, 18/09/2026) — destravado pra VINCULADO
+    // também: o receio de E15.2 (mudar só o tipo_detalhe_id descasaria de
+    // `imoveis.tipo_id`, que "outras partes do sistema legado" liam) não
+    // se aplica mais — Onda 12 (16/09/2026, comentário logo abaixo em
+    // salvarEdicaoAtivo) já tinha parado de escrever em `imoveis` daqui, e
+    // levantamento confirmou 0 função/tela ativa lendo imoveis.tipo_id
+    // hoje (fica só como histórico congelado). vinculado e avulso
+    // convergem: mesmo <select>, mesmo salvarEdicaoAtivo() de sempre.
     const tiposDetalhe = listarTiposPorCategoria(a.tipo_ativo);
     const blocoTipoDetalhe = tiposDetalhe.length
-        ? (vinculado
-            ? `<div class="rz-f"><label>Tipo específico</label><input type="text" value="${escapeHtml(tiposDetalhe.find(t => t.id === a.tipo_detalhe_id)?.nome || '—')}" disabled></div>`
-            : `<div class="rz-f"><label>Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>`)
+        ? `<div class="rz-f"><label>Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>`
         : '';
     if (typeof window.abrirSheetForm === 'function') {
         const campos =
@@ -2307,12 +2319,10 @@ export async function alternarEditarAtivo() {
     // fazer com dados_especificos já preenchidos no formato antigo —
     // fora de escopo por ora. O TIPO ESPECÍFICO (dentro da categoria) já
     // não tem esse problema — ver blocoTipoDetalhe acima, a E5 liberou
-    // esse nível (menos pra vinculado, ver nota acima).
+    // esse nível pra todo mundo (vinculado incluso desde a E15.3).
     document.getElementById('fa-editar-campos').innerHTML =
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Tipo</label><input type="text" value="${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500"></div>` +
-        (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label>${vinculado
-            ? `<input type="text" value="${escapeHtml(tiposDetalhe.find(t => t.id === a.tipo_detalhe_id)?.nome || '—')}" disabled class="w-full border-2 border-slate-200 rounded-xl p-2 text-sm bg-slate-50 text-slate-500">`
-            : `<select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select>`}</div>` : '') +
+        (tiposDetalhe.length ? `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Tipo específico</label><select id="fa-editar-tipo-detalhe" data-action-change="ativo-tipo-detalhe-editar-mudou" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm">${tiposDetalhe.map(t => `<option value="${t.id}"${t.id === a.tipo_detalhe_id ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('')}</select></div>` : '') +
         blocoEmpreendimentoValor +
         `<div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição</label><input type="text" id="fa-editar-nome" value="${escapeHtml(a.nome_exibicao)}" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>` +
         `<div id="fa-editar-campos-estruturados" class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarCamposEstruturados(a.tipo_ativo, a.dados_especificos || {}, 'fa-editar-campo-', a.tipo_detalhe_id)}</div>` +
@@ -2336,10 +2346,9 @@ export async function salvarEdicaoAtivo() {
     const nome = document.getElementById('fa-editar-nome').value.trim();
     if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
     const selDetalhe = document.getElementById('fa-editar-tipo-detalhe');
-    // Sem seletor no DOM (categoria sem tipo específico cadastrado, OU
-    // vinculado — ver alternarEditarAtivo, vira <input disabled> sem
-    // esse id de propósito): mantém o tipo_detalhe_id que o ativo já
-    // tinha, não apaga.
+    // Sem seletor no DOM (categoria sem tipo específico cadastrado no
+    // catálogo — ver alternarEditarAtivo, blocoTipoDetalhe fica vazio):
+    // mantém o tipo_detalhe_id que o ativo já tinha, não apaga.
     const tipoDetalheId = selDetalhe ? (selDetalhe.value || null) : a.tipo_detalhe_id;
     const dados = lerCamposEstruturados(a.tipo_ativo, 'fa-editar-campo-', tipoDetalheId);
     const patch = { nome_exibicao: nome, tipo_detalhe_id: tipoDetalheId, dados_especificos: dados };
