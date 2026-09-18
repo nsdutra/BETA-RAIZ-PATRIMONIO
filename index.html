@@ -6,9 +6,61 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.202.0
-   LINHAS: 14746
+   VERSÃO: Beta v1.203.0
+   LINHAS: 14844
    DATA: 18/09/2026
+   NOVIDADES (Beta v1.203.0) — execução da demanda f60fe32e (achados
+   deixados em aberto na entrega da v1.202.0) + 1 bug real achado pelo
+   Nicola em print: (1) manifest.json: background_color/theme_color
+   ("#0f172a"/"#1e40af", sobra de paleta antiga, não batiam com nenhum
+   token do Design System) trocados pra "#1e3a32" (--pine, a mesma cor
+   de fundo real da splash/header — --color-emerald-900 já é um alias
+   de --pine). (2) botão de IA da splash ganhou o chip de convite "Fale
+   com a Raiz IA" do protótipo aprovado (#splash-ia-tooltip): aparece só
+   na 1ª vez que a pessoa vê a splash NESTE aparelho (chaveLocal, mesmo
+   padrão de outras flags por instalação), some sozinho depois de ~6s ou
+   ao tocar em qualquer lugar da tela; sem localStorage (aba anônima),
+   simplesmente não aparece — não quebra o botão. Demanda f60fe32e
+   encerrada (fn_demanda_encerrar) com os 2 itens resolvidos. (3) BUG
+   REAL, achado root-cause (print do Nicola: ficha do ativo "Av. Faria
+   Lima, 3000" mostrando 2 chips "Documento" idênticos na aba Anexos em
+   vez do nome de cada categoria) — js/cofre-api.js listarCategorias()
+   filtrava só `cliente_id = clienteId`, que no Postgres NUNCA bate com
+   `cliente_id IS NULL`; as 34 categorias hoje cadastradas são TODAS
+   globais (catálogo padrão Raiz, nenhum cliente ainda tem categoria
+   própria), então estado.categorias vinha SEMPRE vazio pra QUALQUER
+   tenant — todo documento caía no fallback genérico "Documento"
+   (afetava também o sheet "Categorizar", que abria com a lista de
+   ações vazia). Corrigido pro mesmo `.or('cliente_id.is.null,cliente_id.eq.…')`
+   já usado em ativo_tipos/cofre_controle_subtipos/cofre_modelos_item_controle
+   — ver changelog completo em cofre-api.js v1.37.1. QUA-01: procurado o
+   mesmo padrão (`.eq('cliente_id'` sem `.or()`) no resto do arquivo —
+   nenhuma outra ocorrência do mesmo bug encontrada. (4) ÍCONE MASKABLE
+   v2 — Nicola testou a v1.202.0 no aparelho real e reportou que o
+   selo interno ainda aparecia como um "quadrado com cantos
+   arredondados" visível por cima do verde (a v1.202.0 só tinha
+   encolhido o selo pra 66,7% do canvas, mas não removeu a borda do
+   próprio selo). icon-maskable-192.png/512.png recompostos: máscara
+   geométrica "manter" (retângulo arredondado calculado a partir do
+   raio real de corte da máscara adaptativa do Android) preserva 100%
+   dos pixels internos (texto "RAIZ/PATRIMÔNIO", skyline, fita "BETA"
+   intactos) e substitui só o anel/cantos da borda por extrapolação do
+   próprio verde vizinho (nearest-neighbor + suavização), sem branco/
+   transparência residual — resultado é uma superfície verde uniforme
+   sem nenhuma borda interna visível, testado sob máscara circular e
+   squircle. (5) TELA "escolha qual entrar" (multi-empresa) — Nicola
+   reportou (print) o botão dourado de IA sobrepondo o título "GESTÃO
+   PATRIMONIAL INTELIGENTE" quando a lista de empresas era longa: o
+   botão é `position:absolute` fixo na tela, mas a splash inteira (foto+
+   título+lista) rolava por baixo dele como uma coluna só, então o
+   header acabava passando por trás do botão. Corrigido sem redesenhar
+   o botão: nova classe `.splash-lista-ativa` (aplicada só quando a
+   seleção de empresa está visível) transforma o layout em cabeçalho
+   fixo + rodapé fixo + só `#lista-selecao-empresa` rola internamente
+   (flex `min-height:0`), com `scrollbar-width:none`/`::-webkit-
+   scrollbar{display:none}` pra não mostrar barra de rolagem; removida
+   também a borda visível do `<select>` de filtro de planos. Validado
+   via Playwright com lista de 12 empresas simulando rolagem no meio.
    NOVIDADES (Beta v1.202.0) — 3 ajustes explícitos do Nicola na tela de
    abertura (splash/login), proposta+protótipo aprovados em sessão
    separada de UX antes desta entrega: (1) ícone do app (icon-maskable-
@@ -120,18 +172,8 @@
    (retomada em ccd04ad4). Achado incidental (QUA): dev_carregarAcessos/
    dev_limparAcessos eram código morto (array `acessos` permanentemente
    vazio desde a aposentadoria do Apps Script) — removidos junto.
-   NOVIDADES (Beta v1.198.0) — Caminho B, fechamento do escopo "tipo de
-   imóvel" das minutas: tipo_ativo (categoria macro) é grosso demais pra
-   isso (só 2 valores pra imóvel), o nível certo é tipo_detalhe_id — mesma
-   granularidade fina do tipos_imovel legado (Casa, Loja, Sala...), catálogo
-   novo (ativo_tipos) deduplicado. minutas_contrato ganhou tipo_detalhe_id;
-   as 3 minutas ativas com escopo='tipo_imovel' foram remapeadas por nome
-   (Sala Comercial→Sala, consolidado no catálogo novo); fn_resolver_minuta_id
-   ajustada; leitura/escrita de minuta (index.html) e o seletor/casamento em
-   js/minutas.js (v1.1.0) passam a usar o catálogo novo. Detalhe: memória do
-   projeto, área "Caminho B".
    ------------------------------------------------------------------
-   Versões anteriores (v1.197.0 … v1.197.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.198.0 … v1.198.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -155,7 +197,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.1","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -440,6 +482,26 @@
             0%   { transform:scale(1); opacity:.5; }
             100% { transform:scale(1.9); opacity:0; }
         }
+
+        /* v1.203.0 — BUG REAL achado pelo Nicola em print: com a lista de
+           "escolha a empresa" longa (9+ itens), a splash inteira rolava
+           (era 1 coluna só, centralizada) e o botão de IA — position:
+           absolute relativo à splash, não ao conteúdo — ficava PARADO na
+           tela enquanto o cabeçalho/foto rolavam por baixo dele,
+           sobrepondo o texto. Pedido explícito: cabeçalho + foto + rodapé
+           + filtro fixos, só a LISTA de empresas rola, sem borda de
+           componente nem barra de rolagem visível. Classe aplicada só
+           durante mostrarSelecaoEmpresa() (removida ao sair dela); login
+           e "definir senha" continuam exatamente como sempre foram —
+           coluna curta, centralizada, sem essa divisão em 3 regiões. */
+        #splash-screen.splash-lista-ativa{ overflow:hidden; justify-content:flex-start; }
+        #splash-screen.splash-lista-ativa #splash-conteudo{ flex:1; min-height:0; display:flex; flex-direction:column; }
+        #splash-screen.splash-lista-ativa #area-selecao-empresa{ flex:1; min-height:0; display:flex; flex-direction:column; }
+        #splash-screen.splash-lista-ativa #lista-selecao-empresa{
+            flex:1; min-height:0; overflow-y:auto;
+            scrollbar-width:none; -ms-overflow-style:none; /* Firefox/IE — sem barra visível */
+        }
+        #splash-screen.splash-lista-ativa #lista-selecao-empresa::-webkit-scrollbar{ display:none; } /* Chrome/Safari/WebView */
 
 
         /* Barra inferior (v1.39.8) — indicador do item ativo: barrinha fina no
@@ -1326,12 +1388,21 @@
              brass + sparkles do .rz-hdr .rz-ia pós-login (REGRAS §15/16) —
              ver CSS de #btn-falar-bot-splash acima ("v1.202.0") pra
              posição/animação. Handler e telemetria (abrirBotWhatsapp,
-             eventos_landing) intocados — só visual e posição mudaram. -->
+             eventos_landing) intocados — só visual e posição mudaram.
+             v1.203.0 — chip de convite (#splash-ia-tooltip) some/aparece
+             via JS em window.onload (chaveLocal, 1ª vez só neste
+             aparelho); some sozinho depois de alguns segundos ou ao tocar
+             no botão. Sem JS/localStorage, fica oculto pra sempre — nunca
+             atrapalha o botão em si. -->
+        <div id="splash-ia-tooltip" class="hidden" style="position:absolute; top:20px; right:118px; z-index:10; background:#fff; color:#17211e; font-size:12px; font-weight:600; border-radius:999px; padding:8px 14px; box-shadow:0 1px 2px rgba(23,33,30,.06), 0 4px 14px rgba(23,33,30,.05); white-space:nowrap;">
+            Fale com a Raiz IA
+            <div style="position:absolute; right:-5px; top:50%; transform:translateY(-50%) rotate(45deg); width:10px; height:10px; background:#fff;"></div>
+        </div>
         <button id="btn-falar-bot-splash" onclick="abrirBotWhatsapp()" title="Falar com o R.AI.Z no WhatsApp" aria-label="Falar com o R.AI.Z no WhatsApp">
             <svg data-lucide="sparkles" style="width:20px;height:20px" aria-hidden="true"></svg>
         </button>
 
-        <div class="w-full max-w-sm text-center space-y-5 py-8">
+        <div id="splash-conteudo" class="w-full max-w-sm text-center space-y-5 py-8">
 
             <div class="w-full h-36 rounded-2xl bg-cover bg-center shadow-2xl border border-emerald-700" style="background-image: url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80');"></div>
 
@@ -1376,7 +1447,7 @@
                 <p class="text-emerald-100 text-sm text-center px-2 mb-2">Você tem acesso a mais de uma empresa. Escolha qual entrar:</p>
 
                 <!-- FASE 1A (v1.39.0) — filtro por plano, útil quando a lista crescer -->
-                <select id="filtro-plano-selecao-empresa" onchange="renderizarListaSelecaoEmpresa()" class="w-full bg-emerald-950 text-emerald-100 text-xs font-semibold rounded-lg px-3 py-2 border border-emerald-800 mb-1">
+                <select id="filtro-plano-selecao-empresa" onchange="renderizarListaSelecaoEmpresa()" class="w-full bg-emerald-950 text-emerald-100 text-xs font-semibold rounded-lg px-3 py-2 mb-1">
                     <option value="todos">Todos os planos</option>
                     <option value="trial">Trial</option>
                     <option value="standard">Standard</option>
@@ -3500,7 +3571,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.202.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.203.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -7137,6 +7208,7 @@
             document.getElementById('area-login-supabase').classList.add('hidden');
             const areaSelecao = document.getElementById('area-selecao-empresa');
             if (areaSelecao) areaSelecao.classList.add('hidden');
+            document.getElementById('splash-screen')?.classList.remove('splash-lista-ativa'); // v1.203.0
             statusEl.textContent = '';
 
             registrarLog('login', { nome: socioLogado, perfil: perfilLogado, empresa: CONFIG_CLIENTE.nomeEmpresa });
@@ -7259,6 +7331,12 @@
 
             const area = document.getElementById('area-selecao-empresa');
             area.classList.remove('hidden');
+            // v1.203.0 — cabeçalho/foto/filtro/rodapé fixos, só a lista rola
+            // (ver CSS #splash-screen.splash-lista-ativa) — bug real achado
+            // pelo Nicola: botão de IA ficava sobreposto ao texto do
+            // cabeçalho quando a lista era longa o bastante pra rolar a
+            // splash inteira.
+            document.getElementById('splash-screen')?.classList.add('splash-lista-ativa');
 
         }
 
@@ -7727,7 +7805,7 @@
 
         function voltarParaSplash() {
 
-            document.getElementById('splash-screen').classList.remove('hidden', 'opacity-0');
+            document.getElementById('splash-screen').classList.remove('hidden', 'opacity-0', 'splash-lista-ativa'); // v1.203.0 — defensivo, ver CSS splash-lista-ativa
 
             document.getElementById('main-header').classList.add('hidden');
 
@@ -13444,6 +13522,26 @@
 
             // Design System (Sprint 1) — inicializa ícones Lucide da splash/login.
             if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            // v1.203.0 — chip "Fale com a Raiz IA" (#splash-ia-tooltip) some
+            // só na 1ª vez que a splash aparece NESTE aparelho (chaveLocal,
+            // mesmo padrão de outras flags por instalação — ver comentário
+            // de chaveLocal() acima). Nunca mais reaparece sozinho depois
+            // disso; some antes também se a pessoa tocar no botão ou em
+            // qualquer lugar da tela. try/catch porque localStorage pode
+            // não existir (aba anônima/modo restrito) — nesse caso o chip
+            // simplesmente não aparece, o botão continua funcionando normal.
+            try {
+                const tooltipIA = document.getElementById('splash-ia-tooltip');
+                const chaveTooltipIA = chaveLocal('splash_ia_tooltip_visto');
+                if (tooltipIA && !localStorage.getItem(chaveTooltipIA)) {
+                    tooltipIA.classList.remove('hidden');
+                    localStorage.setItem(chaveTooltipIA, '1');
+                    const esconderTooltipIA = () => tooltipIA.classList.add('hidden');
+                    setTimeout(esconderTooltipIA, 6000);
+                    document.getElementById('splash-screen')?.addEventListener('click', esconderTooltipIA, { once: true });
+                }
+            } catch (e) { /* localStorage indisponível — chip fica oculto, sem quebrar nada */ }
 
             // v1.42.0 — MODO PÚBLICO: ?contratar=<token> pula TODO o fluxo de
             // login/app normal e mostra só a tela de preenchimento de dados

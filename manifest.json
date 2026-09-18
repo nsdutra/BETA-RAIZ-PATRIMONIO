@@ -4,8 +4,8 @@
   "description": "RAIZ Patrimônio — Software de Gestão de Imóveis e Patrimônio",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#1e40af",
+  "background_color": "#1e3a32",
+  "theme_color": "#1e3a32",
   "orientation": "portrait",
   "icons": [
     {
