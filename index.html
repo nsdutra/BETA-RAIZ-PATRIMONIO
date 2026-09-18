@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.203.0
-   LINHAS: 14844
+   VERSÃO: Beta v1.204.0
+   LINHAS: 14861
    DATA: 18/09/2026
+   NOVIDADES (Beta v1.204.0) — feedback do Nicola na rodada 2 da Onda 2 do
+   catálogo (item 6): removidos do menu "Tipos e modelos" os itens
+   "Categoria de documento" e "Sub-tipos de item de controle" —
+   abrirConfiguracaoCofre('categorias'/'subtipos') não é mais a fonte de
+   verdade, virou catálogo global na aba Subtipos do Catálogo do patrimônio
+   (Raiz Gestão) desde a Onda 2. "Tipo de imóvel" e "Modelos de controle"
+   ficam por ora (ver nota em abrirMenuTiposModelos): a migração deles é
+   mais entrelaçada com dado legado (imoveis.tipo_id) e fica pra rodada
+   própria. Ver ENTREGA_20260918_catalogo-r2b.md.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.203.0) — execução da demanda f60fe32e (achados
    deixados em aberto na entrega da v1.202.0) + 1 bug real achado pelo
    Nicola em print: (1) manifest.json: background_color/theme_color
@@ -3571,7 +3581,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.203.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.204.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9187,11 +9197,18 @@
         // direto pra Partes com o chip Prestadores (fusão da fatia 7b-i).
         function abrirMenuTiposModelos() {
             const ir = (tab) => () => switchTab(tab);
+            // v1.204.0 — "Categoria de documento" e "Sub-tipos de item de controle"
+            // saíram daqui: as duas viraram catálogo GLOBAL (aba Subtipos do
+            // Catálogo do patrimônio, Raiz Gestão) desde a Onda 2 da
+            // PROPOSTA_CATALOGO_GESTAO, e essas telas locais do App há muito
+            // não são a fonte de verdade. "Tipo de imóvel" e "Modelos de
+            // controle" ficam por ora — a migração deles pro catálogo global
+            // (E15.3 / demanda 7e6f4027) tem mais dependência de dado legado
+            // (imoveis.tipo_id ainda é lido por outras partes do sistema; ver
+            // js/cofre-ativos.js ~L2280) e fica pra uma rodada própria.
             abrirSheetAcoes({ titulo: 'Tipos e modelos', sub: 'Listas que alimentam os cadastros', acoes: [
                 { icone: 'home', titulo: 'Tipo de imóvel', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-imovel') },
                 { icone: 'landmark', titulo: 'Tipo de empreendimento', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
-                { icone: 'tags', titulo: 'Categoria de documento', codigo: 'cofre.categorias', aoTocar: () => abrirConfiguracaoCofre('categorias') },
-                { icone: 'list-tree', titulo: 'Sub-tipos de item de controle', codigo: 'cofre.controles.editar', aoTocar: () => abrirConfiguracaoCofre('subtipos') },
                 { icone: 'clipboard-list', titulo: 'Modelos de controle', codigo: 'cofre.controles.editar', aoTocar: () => abrirConfiguracaoCofre('modelos') },
                 { icone: 'archive', titulo: 'Documentos arquivados', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') } // v1.165.0 — corrige o menu que o Nicola realmente vê (a versão anterior foi pro modal-menu-conta antigo, morto desde v1.115.0)
             ]});
