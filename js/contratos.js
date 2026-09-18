@@ -1,7 +1,27 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.6.0 · 16/09/2026
+// Versão: 1.7.0 · 18/09/2026
+//
+// v1.7.0 — demanda 53ca281b (print do Nicola: aba Cobranças da ficha do
+// contrato mostrando competências de 11/2026 e 12/2026 como "Em atraso"/
+// "Vencido" em vermelho, sem terem vencido ainda). Causa raiz: o render
+// usava `m.status === 'Inadimplente'` cru — esse rótulo (mapStatusMensalidade
+// SupabaseParaAntigo, index.html) junta 'pendente' (ainda não venceu) e
+// 'atrasado' (venceu de verdade) no MESMO valor, de propósito, porque outro
+// consumidor (abrirAlterarStatusContrato, linha ~748) só precisa saber "tem
+// mensalidade não paga" sem se importar com a data. Pra EXIBIÇÃO, isso é
+// bug: financeiro.js já resolvia certo há tempo com mensalidadeEmAtraso()/
+// mensalidadeAVencer() (index.html), comparando o vencimento de verdade —
+// só a ficha do contrato (`atrasadas`, `statusMensal`, `iconeMensal`,
+// `classeMensal`, e o texto "Vencido"/"A vencer" de cada linha) não usava
+// esse helper. Trocado pra reaproveitar mensalidadeEmAtraso() — mesmo
+// padrão, zero lógica nova, contador de "Cobranças" no chip e o total "em
+// atraso" no card também corrigem sozinhos (dependem da mesma `atrasadas`).
+// NÃO mexido (é a leitura certa pro caso deles): as 2 checagens de
+// "pendências financeiras" em abrirAlterarStatusContrato/handleAlterarStatus
+// (linhas ~748/~1044) — ali "Inadimplente" = "não pago", vencido ou não, é
+// a pergunta certa (trata a pendência ao mudar o status do contrato).
 //
 // v1.6.0 — pedido explícito: (1) card "Ocorrências" da ficha — chip
 // colorido saiu (padrão reservado a alertas/status; urgência virou parte
@@ -139,7 +159,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1603,12 +1623,23 @@ export function reabrirFichaSeFor(contratoId) {
                 : con.status === 'Suspenso' ? rs('warn', 'Suspenso')
                 : rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
             const enderecoCurto = imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '—';
-            const atrasadas = mensalidadesDoContrato.filter(m => m.status === 'Inadimplente');
+            // CORRIGIDO (v1.7.0 — demanda 53ca281b, print do Nicola: 11/2026
+            // e 12/2026 "Em atraso" sem terem vencido ainda): m.status ===
+            // 'Inadimplente' cobre TANTO "pendente" (ainda não venceu)
+            // QUANTO "atrasado" de verdade — mapStatusMensalidadeSupabaseParaAntigo()
+            // (index.html) junta os dois no mesmo rótulo antigo de propósito
+            // (é usado em outro lugar, tela de "Alterar status", pra decidir
+            // se há pendência financeira nenhuma — aí "não pago" é a
+            // pergunta certa). AQUI, pra exibição, o certo é a mesma
+            // checagem de data que financeiro.js já usa (mensalidadeEmAtraso/
+            // mensalidadeAVencer, index.html) — nunca reimplementada, só
+            // reaproveitada.
+            const atrasadas = mensalidadesDoContrato.filter(m => mensalidadeEmAtraso(m));
             const totalAtrasado = atrasadas.reduce((t, m) => t + (Number(m.valorConfirmado) || 0), 0);
             const ultimasSeis = mensalidadesDoContrato.slice(0, 6);
-            const statusMensal = (m) => m.status === 'Pago' ? rs('ok', 'Pago') : m.status === 'Inadimplente' ? rs('bad', 'Em atraso') : rs('run', 'A receber');
-            const iconeMensal = (m) => m.status === 'Pago' ? 'arrow-down-left' : m.status === 'Inadimplente' ? 'alarm-clock' : 'clock';
-            const classeMensal = (m) => m.status === 'Inadimplente' ? ' rz-bad' : '';
+            const statusMensal = (m) => m.status === 'Pago' ? rs('ok', 'Pago') : mensalidadeEmAtraso(m) ? rs('bad', 'Em atraso') : rs('run', 'A receber');
+            const iconeMensal = (m) => m.status === 'Pago' ? 'arrow-down-left' : mensalidadeEmAtraso(m) ? 'alarm-clock' : 'clock';
+            const classeMensal = (m) => mensalidadeEmAtraso(m) ? ' rz-bad' : '';
             const abreArquivos = (con.status === 'Ativo' || con.status === 'Assinando');
             const irFinanceiro = `document.getElementById('men-filtro-imovel').value='${con.imovelId}'; document.getElementById('men-filtro-imovel-resumo').textContent='${(imo ? imo.empreendimento : '-').replace(/'/g, "")}'; switchTab('tab-mensal'); renderMensalidades();`;
             const kv = (r, v) => `<div><small>${r}</small><b>${v}</b></div>`;
@@ -1661,7 +1692,7 @@ export function reabrirFichaSeFor(contratoId) {
                         ${ultimasSeis.length ? ultimasSeis.map(m => `
                         <div class="rz-row">
                             <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (m.status === 'Inadimplente' ? 'Vencido' : 'A vencer')}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (mensalidadeEmAtraso(m) ? 'Vencido' : 'A vencer')}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
                             <button type="button" onclick="rzAcoesMensalidade('${m.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}

@@ -6,9 +6,28 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.206.0
+   VERSÃO: Beta v1.207.0
    LINHAS: 14879
-   DATA: 18/09/2026 (rodada 3)
+   DATA: 18/09/2026 (rodada 4)
+   NOVIDADES (Beta v1.207.0, demanda item 12/paridade) — corrigido o
+   descompasso entre o alerta de "contrato precisa de revisão" do App e o
+   detector do bot (fn_diario_contratos_aniversario_reajuste): uma edição
+   GENÉRICA de contrato que só muda o "Valor do aluguel" (fora do fluxo
+   dedicado "Lançar reajuste") gravava a entrada de histórico com
+   tipo='alteracao' em sincronizarContratoSupabase() — e como
+   carregarContratosSupabase() reconstrói `alteracoes` de forma genérica a
+   partir de h.tipo depois de qualquer reload (não guarda mais o rótulo
+   "Valor do aluguel"), NEM o próprio App nem o bot reconheciam essa edição
+   como um reajuste depois de recarregar a página: o contrato voltava a
+   contar os 12 meses a partir do início/última revisão anterior, mesmo
+   tendo sido reajustado. Agora a entrada nasce com tipo='reajuste' sempre
+   que a lista de alterações inclui "Valor do aluguel", igual ao fluxo
+   dedicado. Também alinhados com o SQL do bot: contratoPrecisaRevisao()
+   passou a usar "<=" (não mais "<") na comparação dos 12 meses, e
+   obterUltimaVigenciaValor() ganhou o 3º nível de fallback (tipo=
+   'assinatura') que o bot já tinha, pro caso de um contrato ser reassinado
+   sem passar pelos fluxos dedicados de reajuste/renovação.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.206.0) — pedido explícito do Nicola: menu "Tipos e
    modelos" desagrupado — "Modelos de controle" saiu do menu (a tela não
    foi apagada, só perdeu o ponto de entrada — ver nota em
@@ -5302,7 +5321,20 @@
             // do primeiro save) — evita duplicar entradas antigas a cada edição.
             const entradasNovas = (con.historico || []).filter(function(h) { return !h._salvo; });
             for (const entrada of entradasNovas) {
-                const tipo = (entrada.alteracoes || []).some(function(a) { return a.campo === 'Contrato criado'; }) ? 'assinatura' : 'alteracao';
+                // CORRIGIDO v1.207.0 (demanda item 12/paridade) — uma edição
+                // genérica que muda "Valor do aluguel" é, na prática, um
+                // reajuste: precisa nascer com tipo='reajuste' (não
+                // 'alteracao') pra sobreviver ao reload (carregarContratosSupabase
+                // reconstrói `alteracoes` a partir só de h.tipo) e pro bot
+                // (fn_diario_contratos_aniversario_reajuste) reconhecer a
+                // revisão. Sem isso, tanto o App quanto o bot voltavam a
+                // contar os 12 meses do zero depois de qualquer reload.
+                const mudouValorAluguel = (entrada.alteracoes || []).some(function(a) { return a.campo === 'Valor do aluguel'; });
+                const tipo = (entrada.alteracoes || []).some(function(a) { return a.campo === 'Contrato criado'; })
+                    ? 'assinatura'
+                    : mudouValorAluguel
+                        ? 'reajuste'
+                        : 'alteracao';
                 const descricaoTexto = (entrada.alteracoes || [])
                     .map(function(a) { return `${a.campo}: ${a.de} → ${a.para}`; })
                     .join('; ');
@@ -12283,6 +12315,21 @@
 
             });
 
+            // v1.207.0 (demanda item 12/paridade) — 3º nível de fallback,
+            // igual ao SQL do bot (fn_diario_contratos_aniversario_reajuste,
+            // coalesce reajuste/renovacao → assinatura → con.inicio): se não
+            // há nenhuma entrada reajuste/renovacao mas existe uma entrada
+            // 'assinatura' mais recente que con.inicio (contrato reassinado
+            // sem passar pelos fluxos dedicados), conta a partir dela.
+            const temReajusteOuRenovacao = historico.some(h => h.tipo === 'reajuste' || h.tipo === 'renovacao');
+            if (!temReajusteOuRenovacao) {
+                historico.forEach(h => {
+                    if (h.tipo === 'assinatura' && h.data && new Date(h.data) > new Date(ultima)) {
+                        ultima = h.data;
+                    }
+                });
+            }
+
             return ultima;
 
         }
@@ -12303,7 +12350,10 @@
 
             if (isNaN(ultimaVigencia)) return false;
 
-            return ultimaVigencia < dozeMesesAtras;
+            // v1.207.0 (demanda item 12/paridade) — "<=" pra bater com o SQL
+            // do bot (que usa <=), não "<": no limite exato de 12 meses os
+            // dois canais precisam concordar no mesmo dia.
+            return ultimaVigencia <= dozeMesesAtras;
 
         }
 
