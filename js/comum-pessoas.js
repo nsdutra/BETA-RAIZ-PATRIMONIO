@@ -1,6 +1,74 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.199.0 · 17/09/2026
+// Versão: 1.200.0 · 18/09/2026
+//
+// v2.0.0 (COMUM_PESSOAS_VERSAO) / v1.200.0 (VERSAO, header) — pedido
+// explícito do Nicola (18/09/2026): "A tela de pessoas ficou no formato
+// antigo de leiaute, fora do padrão. Deve ser totalmente reescrita."
+// REESCRITA TOTAL da camada de apresentação (render + interação). A
+// camada de dados NÃO mudou — listarPessoas/buscarModulosPorPerfil/
+// buscarProativasDisponiveis/buscarPreferenciasComunicacao/
+// FREQUENCIA_OPCOES continuam com a mesma consulta e o mesmo formato de
+// retorno (index.html "Minhas notificações", linha ~9219, importa 3
+// delas direto — contrato preservado).
+//
+//   SAIU (gramática antiga, herdada do app-dev original, Tipo A):
+//   - Cartão com expansão inline (toggle .hidden) + <input> nativos
+//     sempre no DOM → virou Sheet de formulário (abrirFormPessoaSheet),
+//     mesmo padrão do módulo Partes (index.html, abrirFormParteSheet).
+//   - Botão único "Salvar pessoas" salvando TODOS os cartões de uma vez
+//     (já apontado como frágil no changelog do v1.2.0 desta mesma
+//     versão anterior — um re-render externo podia descartar edição não
+//     salva) → cada pessoa salva por si, ao tocar "Salvar"/"Cadastrar"
+//     no próprio Sheet. Sem "linha fantasma" pra pessoa nova: o "+"
+//     abre o Sheet de nova pessoa direto — só existe 1 tipo de cadastro
+//     aqui, mesmo padrão do "+" de Partes (não precisa de Sheet de
+//     ações antes, só faz sentido pra "+" com mais de 1 opção, como em
+//     Financeiro).
+//   - Lápis/lixeira redondos (v1.4.0) e ⋮ solto → toda ação mora agora
+//     no ⋮ único da linha (abrirAcoesPessoa · Sheet de ações), incluindo
+//     Editar — "não existe terceiro ícone" (REGRAS_EXPERIENCIA §8).
+//   - Badges de módulo (Imóveis/Cofre/Gestão) em cor Tailwind crua
+//     (bg-blue-50 etc., achado antigo de UI/cor) saíram da linha (linha
+//     não tem espaço pra chip por design, §8) e viraram texto dentro da
+//     Ficha (.rz-kv "Acesso a módulos").
+//   - Seção "Comunicações (avisos automáticos)" inline + botão de salvar
+//     próprio (v1.1.0/v1.2.0) → Sheet de formulário dedicado
+//     (abrirComunicacoesPessoaSheet), aberto pelo ⋮. Mesma consulta e
+//     mesma gravação em pessoa_preferencias_comunicacao, zero mudança
+//     de dado.
+//   - "Acessos recentes" (div colapsável, v1.7.0) → Sheet de leitura
+//     dedicado (abrirAcessosPessoaSheet), mesmo carregarAcessosDaPessoa
+//     lazy de sempre (LGPD — minimização, só busca ao abrir).
+//   - alert()/confirm()/prompt() nativos saíram de quase todo fluxo —
+//     ficaram só os confirm() dos 2 DELETEs irreversíveis (excluir
+//     pessoa, remover acesso), mesmo padrão aceito em excluirParte()
+//     (index.html) pra ação destrutiva real.
+//
+//   NOVO — linha da lista (.rz-row), igual ao padrão de Partes: ícone
+//   (user · shield-check se master) · nome · "Perfil · função" (1 fato +
+//   1 contexto, §8) · toque na linha abre a Ficha (abrirFichaPessoa,
+//   Sheet de leitura com .rz-card/.rz-kv), ⋮ abre o Sheet de ações.
+//
+//   ACHADO DE GOVERNANÇA (registrado, não corrigido nesta entrega —
+//   fora do escopo de "reescrever a tela de Pessoas do App"):
+//   cofre.html é página HTML separada (não carrega o <script> do
+//   index.html) e NÃO define abrirSheet/abrirSheetAcoes/abrirSheetForm/
+//   podeUsar/renderStatus — mesma lacuna já documentada no próprio
+//   changelog de cofre.html v1.25.9 pra outras classes .rz-*. Este
+//   módulo é compartilhado (montarPessoasCofre() em js/cofre-app.js
+//   também o monta): dentro do Cofre standalone, toda ação que dependa
+//   de Sheet (editar dados, perfil, comunicações, acessos recentes,
+//   criar/vincular/remover acesso, e a própria Ficha de leitura) mostra
+//   o mesmo aviso "Ações disponíveis só dentro do app principal." que
+//   cofre-controles.js/cofre-ativos.js/cofre-documentos.js já usam pras
+//   próprias ações Sheet-dependentes — NÃO é regressão desta entrega, é
+//   o mesmo padrão de degradação já aceito no resto do Cofre (ver
+//   demanda nova registrada nesta entrega). A lista de pessoas continua
+//   visível lá. ctx continua 100% retrocompatível: nenhum campo novo
+//   obrigatório, o call site do Cofre não muda.
+//
+// Versão anterior: 1.199.0 · 17/09/2026
 //
 // v1.7.0 (COMUM_PESSOAS_VERSAO) / v1.199.0 (VERSAO, header) — bc9df144,
 // item 2 (17/09/2026): "aba Pessoas" ganha auto-filtro. ctx novo e todo
@@ -37,8 +105,6 @@
 // versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
 // acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
 // trava a entrega se header ≠ VERSAO.
-//
-// Versão anterior: 1.5.0 · 06/09/2026
 //
 // v1.5.0 (A.5) — perfil escolhido em sheet a partir da tabela perfis (protegido só pra master);
 // os 2 prompt() de perfil saíram. Nenhum nome de perfil chumbado no fluxo.
@@ -113,46 +179,33 @@
 // Ou seja, toda pessoa com o mesmo perfil (ex.: "operador") tem
 // EXATAMENTE o mesmo acesso a módulos — não existe hoje um jeito de dar
 // Cofre pra uma pessoa "operador" e negar pra outra "operador" da mesma
-// empresa. Confirmado contra o banco ao vivo (26/08/2026): 'imoveis.ver'
-// e 'cofre.ver' estão liberados pra TODOS os 5 perfis (admin, consulta,
-// master, master_plataforma, operador) — ou seja, hoje não há NENHUMA
-// diferenciação de acesso a módulo entre perfis.
-//
-// O que este módulo faz: mostra, por pessoa, quais módulos o PERFIL dela
-// libera (badge "Acessos" — calculado ao vivo a partir de
-// perfil_funcionalidade + funcionalidades.area, nunca hardcoded — se um
-// perfil for restringido no futuro, o badge reflete sozinho, sem
-// precisar tocar neste arquivo). É visibilidade nova que não existia
-// antes nesta tela — não é controle NOVO por pessoa (isso exigiria uma
-// decisão de produto/schema à parte: um override por pessoa além do
-// perfil, ou popular perfil_funcionalidade de forma diferente por
-// perfil). Editar o "Perfil de acesso" de uma pessoa (dropdown já
-// existente, mantido) continua sendo o único jeito de mudar o acesso
-// dela — exatamente como já funcionava.
+// empresa. O badge/campo "Acesso a módulos" mostra, por pessoa, quais
+// módulos o PERFIL dela libera — calculado ao vivo a partir de
+// perfil_funcionalidade + funcionalidades.area, nunca hardcoded. Editar
+// o "Perfil de acesso" de uma pessoa continua sendo o único jeito de
+// mudar o acesso dela.
 //
 // Diretriz Arquitetural: não cria seu próprio cliente Supabase pra
 // leitura/escrita de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js). Exceção pontual:
-// dev_criarAcessoParaPessoa() precisa de um 2º client TEMPORÁRIO,
-// isolado (persistSession:false), pra criar o login de outra pessoa sem
-// sobrescrever a sessão de quem está usando a tela — mesma proteção já
-// existente na versão original (era o bug real de "perda de sessão"
-// documentado lá). Usa a mesma URL/anon key pública já hardcoded em
-// cofre-api.js (é chave pública, protegida por RLS no banco — não é
-// segredo, mesmo padrão já replicado nesse outro arquivo).
+// criarAcessoPessoa() precisa de um 2º client TEMPORÁRIO, isolado
+// (persistSession:false), pra criar o login de outra pessoa sem
+// sobrescrever a sessão de quem está usando a tela. Usa a mesma URL/anon
+// key pública já hardcoded em cofre-api.js (é chave pública, protegida
+// por RLS no banco — não é segredo, mesmo padrão já replicado nesse
+// outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.199.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
-export const COMUM_PESSOAS_VERSAO = '1.7.0';
+export const VERSAO = '1.200.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const COMUM_PESSOAS_VERSAO = '2.0.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
 // area (funcionalidades.area) → módulo de exibição. Áreas ausentes deste
 // mapa (ex.: "pessoas", "dev", "plataforma", "autenticar", "prestadores",
-// "ia_whatsapp") são transversais/internas, não aparecem como badge de
-// módulo — não é omissão, é proposital (não são "um módulo" pro
-// usuário final).
+// "ia_whatsapp") são transversais/internas, não aparecem como módulo —
+// não é omissão, é proposital (não são "um módulo" pro usuário final).
 const AREA_PARA_MODULO = {
     imoveis: 'Imóveis', contratos: 'Imóveis', mensal: 'Imóveis', repasses: 'Imóveis',
     vitrine: 'Imóveis', conciliacao: 'Imóveis', tributos_custos: 'Imóveis', relatorios: 'Imóveis',
@@ -173,7 +226,7 @@ export const FREQUENCIA_OPCOES = [
 ];
 
 // ----------------------------------------------------------------------------
-// CAMADA DE DADOS
+// CAMADA DE DADOS — intocada nesta reescrita (só a apresentação mudou).
 // ----------------------------------------------------------------------------
 export async function listarPessoas(dbAuth, clienteId) {
     const { data, error } = await dbAuth.from('pessoas').select('*').eq('cliente_id', clienteId);
@@ -206,23 +259,15 @@ async function buscarModulosPorPerfil(dbAuth) {
             mapa.get(v.perfil_codigo).add(modulo);
         });
     } catch (err) {
-        console.warn('[comum-pessoas] Falha ao calcular acessos por perfil (badges de módulo ficam ocultos):', err.message);
+        console.warn('[comum-pessoas] Falha ao calcular acessos por perfil (campo "Acesso a módulos" fica oculto):', err.message);
     }
     return mapa;
 }
 
 // ----------------------------------------------------------------------------
-// COMUNICAÇÕES PROATIVAS (v1.1, 28/08/2026) — pedido explícito do Nicola:
-// habilitar/desabilitar por pessoa quais avisos automáticos (via WhatsApp,
-// diario-eventos) ela quer receber, e em qual frequência.
-//
-// Escopo = funcionalidades.tipo='proativa' AND ativo=true, filtradas pela
-// LICENÇA do cliente (plano_funcionalidade × licencas — mesmo raciocínio
-// de clienteTemFuncionalidadeLicenca() no bot, portado pra cá em JS: só
-// aparece pra configurar o que a empresa realmente contratou). Mesmo
-// estilo de buscarModulosPorPerfil logo acima — 3 consultas simples + join
-// em JS, sem RPC nova (as 3 tabelas já são legíveis por `authenticated`,
-// conferido contra o banco antes de escrever isto).
+// COMUNICAÇÕES PROATIVAS — intocado nesta reescrita (só a apresentação,
+// dentro do Sheet, mudou). Ver changelog v1.1.0 acima pro histórico
+// completo da funcionalidade.
 // ----------------------------------------------------------------------------
 export async function buscarProativasDisponiveis(dbAuth, clienteId) {
     try {
@@ -269,155 +314,32 @@ export async function buscarPreferenciasComunicacao(dbAuth, clienteId) {
     return mapa;
 }
 
+// ----------------------------------------------------------------------------
+// CAMADA DE APRESENTAÇÃO — reescrita total (v2.0.0). Gramática igual ao
+// módulo Partes (index.html): .rz-row na lista, Sheets pra tudo o mais.
+// Os helpers abrirSheet/abrirSheetAcoes/abrirSheetForm/podeUsar/
+// renderStatus são globais do App (window.*, expostos por Object.assign
+// em index.html) — indisponíveis no Cofre standalone (cofre.html não
+// carrega aquele <script>). Toda chamada é defensiva
+// (typeof window.X === 'function') com o MESMO aviso de fallback já
+// usado em cofre-controles.js/cofre-ativos.js/cofre-documentos.js pras
+// próprias ações Sheet-dependentes: "Ações disponíveis só dentro do app
+// principal." — ver ACHADO DE GOVERNANÇA no changelog do topo.
+// ----------------------------------------------------------------------------
 
-
-function escapeAttr(s) { return (s || '').toString().replace(/"/g, '&quot;'); }
-
-function badgesAcessoHtml(modulosPorPerfil, perfil) {
-    if (!perfil) return '';
-    const set = modulosPorPerfil.get(perfil);
-    if (!set || set.size === 0) return '';
-    const cores = { 'Imóveis': 'bg-blue-50 text-blue-700', 'Cofre': 'bg-amber-50 text-amber-700', 'Gestão': 'bg-slate-100 text-slate-600' };
-    return `<div class="flex flex-wrap gap-1 mt-1">${Array.from(set).sort().map(m =>
-        `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${cores[m] || 'bg-slate-100 text-slate-600'}">${m}</span>`
-    ).join('')}</div>`;
+function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// v1.1 — seção de comunicações proativas dentro do card da pessoa. Só
-// aparece pra pessoa já salva (precisa de pessoa_id de verdade, é FK) —
-// mesma trava já usada pra "criar acesso" logo abaixo, mesmo motivo.
-function comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap) {
-    if (!p.id) {
-        return `<div class="mt-3 pt-3 border-t border-gray-100">
-            <p class="text-[11px] font-bold text-gray-500">Comunicações (avisos automáticos)</p>
-            <p class="text-[10px] text-gray-400 mt-1">Salve esta pessoa antes de configurar os avisos que ela recebe.</p>
-        </div>`;
-    }
-    if (proativasDisponiveis.length === 0) {
-        return ''; // empresa sem nenhuma proativa liberada na licença — seção some (componente vazio não aparece)
-    }
-    const semWhatsapp = !p.whatsapp;
-    const linhas = proativasDisponiveis.map(f => {
-        const pref = preferenciasMap.get(`${p.id}|${f.codigo}`);
-        // Sem linha salva ainda = padrão do sistema: habilitado, semanal.
-        const habilitado = pref ? pref.habilitado : true;
-        const frequencia = pref ? pref.frequencia : 'semanal';
-        const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
-        return `
-            <div class="flex items-start justify-between gap-2 py-1.5 border-t border-gray-50">
-                <label class="flex items-start gap-1.5 text-[11px] text-slate-700 flex-1 min-w-0">
-                    <input type="checkbox" class="pref-comunicacao-habilitado mt-0.5" data-codigo="${f.codigo}" ${habilitado ? 'checked' : ''}>
-                    <span>${f.descricao}</span>
-                </label>
-                <select class="pref-comunicacao-frequencia text-[10px] border rounded px-1 py-1 flex-none" data-codigo="${f.codigo}">
-                    ${opcoesHtml}
-                </select>
-            </div>`;
-    }).join('');
-
-    return `
-        <div class="mt-3 pt-3 border-t border-gray-100" data-comunicacoes-pessoa="${p.id}">
-            <p class="text-[11px] font-bold text-gray-500">Comunicações (avisos automáticos)</p>
-            <p class="text-[10px] text-gray-400 mt-0.5">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
-            ${semWhatsapp ? '<p class="text-[10px] mt-1" style="color:var(--warning)">⚠️ Sem WhatsApp cadastrado — os avisos não chegam até preencher o número acima.</p>' : ''}
-            <div class="mt-1">${linhas}</div>
-            <button type="button" data-acao="salvar-comunicacoes" data-id="${p.id}" class="mt-2 w-full flex items-center justify-center gap-1.5 border text-[11px] py-1.5 rounded-lg font-bold" style="background:var(--sprout-light);color:var(--pine);border-color:var(--sprout)">
-                <svg data-lucide="check" style="width:12px;height:12px"></svg> Salvar avisos desta pessoa
-            </button>
-        </div>`;
+function capitalizar(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-// v1.7.0 (bc9df144, item 2) — atalho "Acessos recentes": só aparece na
-// tela nova (App > Conta > Pessoas, ctxUi.autoFiltro=true) e só pra
-// pessoa já salva. Lazy de propósito (LGPD — minimização: não busca log
-// de ninguém até a própria pessoa abrir a seção).
-function acessosRecentesHtml(p, ctxUi) {
-    if (!ctxUi.autoFiltro || !p.id) return '';
-    return `
-        <div class="mt-3 pt-3 border-t border-gray-100">
-            <button type="button" data-acao="ver-acessos" data-id="${p.id}" class="w-full flex items-center justify-between text-[11px] font-bold text-gray-500">
-                <span>Acessos recentes</span>
-                <svg data-lucide="chevron-down" style="width:14px;height:14px"></svg>
-            </button>
-            <div id="acessos-pessoa-${p.id}" class="hidden mt-1.5 space-y-1"></div>
-        </div>`;
+function icones() {
+    if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 }
 
-function cartaoPessoaHtml(p, idx, ctxUi) {
-    const { perfilLogado, modulosPorPerfil, proativasDisponiveis, preferenciasMap } = ctxUi;
-    const temLogin = !!p.userId;
-    const ehMaster = p.perfil === 'master';
-    const perfilTravado = ehMaster && perfilLogado !== 'master';
-    const podeEditarPerfil = !ehMaster && (window.podeUsar ? window.podeUsar('pessoas.editar').ok : false); // v1.3.1 — catálogo, não perfil chumbado
-    const idSeguro = p.id || ('novo-' + idx);
-    const ehNova = !p.id;
-
-    // v1.4.0 — lápis/lixeira redondos viraram ⋮ (abrirSheetAcoes do App) com
-    // código do catálogo: Editar (pessoas.editar) e Remover (pessoas.excluir)
-    // aparecem com cadeado pra quem não pode. Master não é removível por aqui.
-    const botaoMais = `<button type="button" data-acao="mais" data-id="${p.id || ''}" data-alvo="${idSeguro}" data-master="${ehMaster ? '1' : ''}" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>`;
-
-    const botaoAcesso = temLogin && !perfilTravado
-        ? `<button type="button" data-acao="desvincular" data-id="${p.id}" class="w-full flex items-center justify-center gap-1.5 bg-red-50 text-red-600 border border-red-200 text-[11px] py-2 rounded-lg font-bold"><svg data-lucide="user-x" style="width:13px;height:13px"></svg> Remover acesso ao sistema</button>`
-        : (!temLogin && p.id ? `
-            <button type="button" data-acao="criar-acesso" data-id="${p.id}" class="w-full flex items-center justify-center gap-1.5 text-white text-[11px] py-2 rounded-lg font-bold" style="background:var(--pine)"><svg data-lucide="user-check" style="width:13px;height:13px"></svg> Criar Acesso (envia e-mail para definir senha)</button>
-            <button type="button" data-acao="vincular" data-id="${p.id}" class="w-full text-gray-500 text-[10px] py-1 underline">ou vincular a um login já existente no Supabase</button>
-          ` : (!temLogin && !p.id ? '<p class="text-gray-400 text-[10px]">Salve esta pessoa antes de criar o acesso.</p>' : ''));
-
-    return `
-        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200" data-pessoa-id="${p.id || ''}">
-            <div class="flex items-center justify-between gap-2">
-                <button type="button" data-acao="alternar-detalhe" data-alvo="${idSeguro}" class="flex-1 min-w-0 text-left">
-                    <p class="text-xs font-bold text-slate-900 truncate">${(p.nome || '(sem nome)')}${ehMaster ? ' <svg data-lucide="shield-check" style="width:12px;height:12px;display:inline;vertical-align:-1px;color:var(--pine)"></svg>' : ''}</p>
-                    <p class="text-[11px] text-gray-500 truncate">${p.funcao || 'Sem função definida'} · <span class="font-semibold">${p.perfil || 'sem perfil'}</span></p>
-                    ${badgesAcessoHtml(modulosPorPerfil, p.perfil)}
-                </button>
-                <div class="flex gap-1.5 flex-none">
-                    ${botaoMais}
-                    <button type="button" data-acao="remover" data-id="${p.id || ''}" hidden></button><!-- v1.4.0 — alvo do ⋮ Remover -->
-                    <!-- lápis redondo antigo (hidden, alvo do ⋮ Editar via alternar-detalhe) -->
-                </div>
-            </div>
-
-            <div id="pessoa-detalhe-${idSeguro}" class="${ehNova ? '' : 'hidden'} mt-3 pt-3 border-t border-gray-100 space-y-2">
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Nome <span style="color:var(--danger)">*</span></label>
-                    <input type="text" class="pessoa-nome w-full p-1.5 border rounded mt-0.5 text-[12px] font-bold" value="${escapeAttr(p.nome)}" placeholder="Nome completo" ${perfilTravado ? 'disabled' : ''}>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-500">E-mail</label>
-                    <input type="email" class="pessoa-email w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.email || ''}" placeholder="nome@email.com" ${perfilTravado ? 'disabled' : ''}>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-500">WhatsApp</label>
-                    <input type="tel" class="pessoa-whatsapp w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.whatsapp || ''}" placeholder="(11) 91234-5678" ${perfilTravado ? 'disabled' : ''}>
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Função na empresa</label>
-                    <input type="text" class="pessoa-funcao w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.funcao || ''}" placeholder="Opcional" ${perfilTravado ? 'disabled' : ''}>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500">% de cotas</label>
-                        <input type="number" min="0" max="100" step="0.01" class="pessoa-pct-cotas w-full p-1.5 border rounded mt-0.5 text-[12px]" value="${p.percentualCotasEmpresa || ''}" placeholder="Ex.: 50" ${perfilTravado ? 'disabled' : ''}>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-gray-500">Perfil de acesso</label>
-                        <select class="pessoa-perfil w-full p-1.5 border rounded mt-0.5 text-[12px] ${podeEditarPerfil ? '' : 'bg-gray-100 text-gray-400'}" ${podeEditarPerfil ? '' : 'disabled'} title="${ehMaster ? 'Perfil master não pode ser alterado pela tela, nem pelo próprio master — só direto no banco' : (podeEditarPerfil ? '' : 'Só master ou admin podem alterar o perfil de acesso')}">
-                            <option value="operador" ${p.perfil === 'operador' ? 'selected' : ''}>operador</option>
-                            <option value="consulta" ${p.perfil === 'consulta' ? 'selected' : ''}>consulta</option>
-                            <option value="admin" ${p.perfil === 'admin' ? 'selected' : ''}>admin</option>
-                            ${ehMaster ? `<option value="master" selected>master</option>` : ''}
-                        </select>
-                        ${podeEditarPerfil ? `<p class="text-[10px] text-gray-400 mt-1">Acesso a módulo depende do perfil — ver badges acima.</p>` : ''}
-                    </div>
-                </div>
-                ${comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap)}
-                ${botaoAcesso}
-                ${acessosRecentesHtml(p, ctxUi)}
-            </div>
-        </div>`;
-}
+const AVISO_SO_APP = 'Ações disponíveis só dentro do app principal.';
 
 // mountEl = elemento container já presente no DOM do host. ctx = {
 //   dbAuth, clienteId, perfilLogado,   // perfil de quem está LOGADO agora
@@ -427,23 +349,15 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
 //   onToast(mensagem, tipo),           // opcional
 //   registrarLog(acao, detalhe),       // opcional
 //
-//   -- v1.7.0 (bc9df144, item 2, 17/09/2026) — campos NOVOS, todos OPCIONAIS
-//   -- (nenhum quebra o call site do Cofre, que não os passa):
-//   pessoaId,             // id da pessoa logada agora (mesmo padrão que
-//                          // js/cofre-app.js já usa em montarPessoasCofre())
+//   -- v1.7.0 (bc9df144, item 2) — campos OPCIONAIS (Cofre não os passa):
+//   pessoaId,             // id da pessoa logada agora
 //   autoFiltro,            // true = ativa a regra "só eu, a não ser que eu
 //                          // possa ver todo mundo" (App > Conta > Pessoas).
-//                          // false/ausente = comportamento de sempre
-//                          // (mostra todo mundo, master oculto de quem não
-//                          // é master) — é o que o Cofre continua recebendo.
 //   podeVerTodas,          // true = (com autoFiltro) mostra TODAS as
-//                          // pessoas da empresa, não só a própria — só
-//                          // deve vir true pra quem tem o codigo do
-//                          // catálogo pessoas.ver_todas (master da
-//                          // empresa). Também libera "+"/gerenciar outras.
-//   carregarAcessosDaPessoa(pessoaId), // opcional; alimenta o atalho
-//                          // "Acessos recentes" (lazy) dentro do card de
-//                          // cada pessoa. Sem isto, a seção não aparece.
+//                          // pessoas da empresa — só deve vir true pra
+//                          // quem tem o codigo pessoas.ver_todas.
+//   carregarAcessosDaPessoa(pessoaId), // opcional; alimenta o Sheet
+//                          // "Acessos recentes".
 // }
 export async function montarAbaPessoas(mountEl, ctx) {
     if (!mountEl) return;
@@ -455,17 +369,15 @@ export async function montarAbaPessoas(mountEl, ctx) {
     const podeGerenciarOutras = !autoFiltro || podeVerTodas;
 
     mountEl.innerHTML = `
-        <div class="flex items-center gap-3 mb-4">
-            <p class="flex-1" style="font-family:var(--font-title);font-size:18px;font-weight:600;color:var(--pine)">Pessoas</p>
-            ${podeGerenciarOutras ? '<button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' : ''}
+        <div class="rz-tabhead">
+            <p>${autoFiltro && !podeVerTodas ? 'Seu cadastro, seus avisos e seus acessos recentes.' : 'Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.'}</p>
+            ${podeGerenciarOutras ? '<button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa"><svg data-lucide="plus"></svg></button>' : ''}
         </div>
-        <p class="text-[11px] text-gray-500 mb-4">${autoFiltro && !podeVerTodas ? 'Seu cadastro, seus avisos e seus acessos recentes.' : 'Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.'}</p>
-        <div id="cp-lista" class="space-y-3 mb-4"><p class="text-xs text-center text-gray-400 py-4">Carregando pessoas...</p></div>
-        <button type="button" id="cp-btn-salvar" class="rz-btn rz-btn-1 rz-wide">${podeGerenciarOutras ? 'Salvar pessoas' : 'Salvar meus dados'}</button>
+        <div class="rz-card rz-list" id="cp-lista"><p class="text-xs text-center text-gray-400 py-4">Carregando pessoas...</p></div>
     `;
 
     if (!dbAuth || !clienteId) {
-        document.getElementById('cp-lista').innerHTML = '<p class="text-xs text-gray-500 text-center py-4">Nenhuma empresa carregada.</p>';
+        document.getElementById('cp-lista').innerHTML = '<div class="rz-empty"><p>Nenhuma empresa carregada.</p></div>';
         return;
     }
 
@@ -473,7 +385,8 @@ export async function montarAbaPessoas(mountEl, ctx) {
     let modulosPorPerfil = new Map();
     // v1.5.0 (A.5) — perfil escolhido em SHEET, lendo a tabela `perfis`
     // (escopo empresa) e `protegido`: perfil protegido (master, admin) só
-    // aparece pra quem é master. Substitui os prompt() com lista fixa.
+    // aparece pra quem é master. Fallback prompt() quando Sheet indisponível
+    // (Cofre standalone).
     let perfisCache = null;
     async function escolherPerfilSheet(titulo, sub, padrao = 'operador') {
         if (!perfisCache) {
@@ -490,7 +403,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
                 icone: p.protegido ? 'shield' : 'user', titulo: p.nome || p.codigo, sub: p.descricao || '',
                 aoTocar: () => { escolhido = p.codigo; resolve(p.codigo); },
             })) });
-            // fechar sem escolher → null (o sheet chama aoFechar? não temos hook aqui: usa polling leve)
+            // fechar sem escolher → null (o sheet não tem hook de fechar aqui: usa polling leve)
             const iv = setInterval(() => { const aberto = document.getElementById('rz-veil')?.classList.contains('rz-on'); if (escolhido !== null || !aberto) { clearInterval(iv); if (escolhido === null) resolve(null); } }, 300);
         });
     }
@@ -505,289 +418,391 @@ export async function montarAbaPessoas(mountEl, ctx) {
         ]);
     } catch (err) {
         console.warn('[comum-pessoas] Falha ao carregar pessoas:', err.message);
-        document.getElementById('cp-lista').innerHTML = '<p class="text-xs text-red-500 text-center py-4">Não foi possível carregar as pessoas agora.</p>';
+        document.getElementById('cp-lista').innerHTML = '<div class="rz-empty"><p>Não foi possível carregar as pessoas agora.</p></div>';
         return;
     }
 
     function renderLista() {
         const lista = document.getElementById('cp-lista');
         if (!lista) return;
-        // v1.7.0 (bc9df144, item 2) — com autoFiltro ligado, por padrão só a
-        // própria pessoa logada aparece; só quem tem pessoas.ver_todas
-        // (podeVerTodas=true, calculado no host via podeUsar) vê todo
-        // mundo — aí sim com a mesma regra de sempre (master oculto de
-        // quem não é master). Sem autoFiltro (Cofre), nada muda.
+        // Com autoFiltro ligado, por padrão só a própria pessoa logada
+        // aparece; só quem tem pessoas.ver_todas (podeVerTodas=true,
+        // calculado no host via podeUsar) vê todo mundo — aí sim com a
+        // mesma regra de sempre (master oculto de quem não é master).
+        // Sem autoFiltro (Cofre), nada muda.
         const visiveis = autoFiltro
             ? (podeVerTodas
                 ? (perfilLogado === 'master' ? pessoas : pessoas.filter(p => p.perfil !== 'master'))
                 : pessoas.filter(p => p.id === pessoaId))
             : (perfilLogado === 'master' ? pessoas : pessoas.filter(p => p.perfil !== 'master'));
         if (visiveis.length === 0) {
-            lista.innerHTML = autoFiltro && !podeVerTodas
-                ? '<p class="text-xs text-center text-gray-400 py-4">Não achamos seu cadastro de pessoa. Fale com quem administra esta empresa.</p>'
-                : '<p class="text-xs text-center text-gray-400 py-4">Nenhuma pessoa cadastrada. Toque no "+" para adicionar.</p>';
+            const msg = autoFiltro && !podeVerTodas
+                ? 'Não achamos seu cadastro de pessoa. Fale com quem administra esta empresa.'
+                : (podeGerenciarOutras ? 'Nenhuma pessoa cadastrada. Toque no "+" para adicionar.' : 'Nenhuma pessoa cadastrada.');
+            lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>${esc(msg)}</p></div>`;
+            icones();
             return;
         }
-        lista.innerHTML = visiveis.map((p, idx) => cartaoPessoaHtml(p, idx, { perfilLogado, modulosPorPerfil, proativasDisponiveis, preferenciasMap, autoFiltro })).join('');
-        if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+        lista.innerHTML = visiveis.map(p => {
+            const ehMaster = p.perfil === 'master';
+            const icone = ehMaster ? 'shield-check' : 'user';
+            const fato = p.perfil ? capitalizar(p.perfil) : 'Sem perfil';
+            const contexto = p.funcao || 'Sem função definida';
+            return `
+                <div class="rz-row rz-link" data-acao="ficha" data-id="${p.id}">
+                    <div class="rz-ic"><svg data-lucide="${icone}"></svg></div>
+                    <div class="rz-tx"><b>${esc(p.nome || '(sem nome)')}</b><span>${esc(fato)} · ${esc(contexto)}</span></div>
+                    <button type="button" data-acao="mais" data-id="${p.id}" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                </div>`;
+        }).join('');
+        icones();
     }
     renderLista();
 
-    // -------- delegação de eventos, escopada ao container (não document —
-    // evita colisão com outros módulos que também delegam) --------
-    mountEl.addEventListener('click', async (ev) => {
-        const alvo = ev.target.closest('[data-acao]');
-        if (alvo && alvo.dataset.acao === 'mais') { // v1.4.0
-            const id = alvo.dataset.id, alvoDet = alvo.dataset.alvo, ehM = alvo.dataset.master === '1';
-            const p = pessoas.find(x => (x.id || '') === id) || {};
-            const acoes = [{ icone: 'pencil', titulo: 'Editar', codigo: 'pessoas.editar', aoTocar: () => mountEl.querySelector(`[data-acao="alternar-detalhe"][data-alvo="${alvoDet}"]`)?.click() }];
-            if (!ehM) acoes.push({ icone: 'trash-2', titulo: 'Remover', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => mountEl.querySelector(`[data-acao="remover"][data-id="${id}"]`)?.click() });
-            else acoes.push({ icone: 'lock', titulo: 'Master não pode ser removido por aqui', sub: 'Fale com a Raiz', aoTocar: () => {} });
-            if (typeof window.abrirSheetAcoes === 'function') window.abrirSheetAcoes({ titulo: p.nome || 'Pessoa', sub: p.perfil || '', acoes });
-            return;
+    // ---------------------------------------------------------------
+    // FICHA — leitura (Sheet), igual ao padrão de abrirFichaParte.
+    // ---------------------------------------------------------------
+    function abrirFichaPessoa(id) {
+        const p = pessoas.find(x => x.id === id);
+        if (!p || typeof window.abrirSheet !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        const kv = (r, v) => v ? `<div><small>${esc(r)}</small><b>${esc(v)}</b></div>` : '';
+        const modulos = modulosPorPerfil.get(p.perfil);
+        const modulosTxt = modulos && modulos.size ? Array.from(modulos).sort().join(', ') : 'Nenhum';
+        const cabecalho = typeof window.rzSheetCabecalho === 'function'
+            ? window.rzSheetCabecalho(p.nome || '(sem nome)', p.perfil ? capitalizar(p.perfil) : 'Sem perfil')
+            : `<div class="rz-sh-h"><h3>${esc(p.nome || '(sem nome)')}</h3></div>`;
+        const sheet = window.abrirSheet(cabecalho + `
+            <div class="rz-sh-b">
+                <div class="rz-card">
+                    <div class="rz-card-h"><h3>Dados</h3><button type="button" data-acao="ficha-editar" class="rz-more" aria-label="Editar"><svg data-lucide="pencil"></svg></button></div>
+                    <div class="rz-kv">
+                        ${kv('E-mail', p.email)}
+                        ${kv('WhatsApp', p.whatsapp)}
+                        ${kv('Função na empresa', p.funcao)}
+                        ${p.percentualCotasEmpresa != null ? kv('% de cotas', String(p.percentualCotasEmpresa).replace('.', ',') + '%') : ''}
+                        ${kv('Acesso a módulos', modulosTxt)}
+                        ${kv('Acesso ao sistema', p.userId ? 'Sim' : 'Não')}
+                    </div>
+                </div>
+            </div>`);
+        sheet.querySelector('[data-acao="ficha-editar"]')?.addEventListener('click', () => abrirFormPessoaSheet(p.id));
+        icones();
+    }
+
+    // ---------------------------------------------------------------
+    // SHEET DE AÇÕES (⋮) — hub central: editar, perfil, comunicações,
+    // acessos recentes, acesso ao sistema, excluir. Mesma ordenação de
+    // abrirSheetAcoes (IA no topo · normal · destrutiva por último).
+    // ---------------------------------------------------------------
+    function abrirAcoesPessoa(id) {
+        const p = pessoas.find(x => x.id === id);
+        if (!p) return;
+        if (typeof window.abrirSheetAcoes !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        const ehMaster = p.perfil === 'master';
+        // Dados básicos do master só editáveis pelo próprio master —
+        // ninguém mais, nem admin (mesma trava de sempre).
+        const perfilTravado = ehMaster && perfilLogado !== 'master';
+        // Perfil master nunca é editável pela tela, nem pelo próprio
+        // master — só direto no banco (mesma trava de sempre).
+        const protegidoExclusao = p.perfil === 'admin' || p.perfil === 'master';
+        const temLogin = !!p.userId;
+
+        const acoes = [
+            { icone: 'id-card', titulo: 'Abrir ficha', sub: 'Dados e acessos', aoTocar: () => abrirFichaPessoa(p.id) },
+        ];
+        if (!perfilTravado) {
+            acoes.push({ icone: 'pencil', titulo: 'Editar dados', codigo: 'pessoas.editar', aoTocar: () => abrirFormPessoaSheet(p.id) });
+        } else {
+            acoes.push({ icone: 'lock', titulo: 'Dados protegidos do master', sub: 'Só o próprio master edita', aoTocar: () => {} });
         }
-        if (!alvo) return;
-        const acao = alvo.dataset.acao;
-        const id = alvo.dataset.id;
-
-        if (acao === 'alternar-detalhe') {
-            document.getElementById('pessoa-detalhe-' + alvo.dataset.alvo)?.classList.toggle('hidden');
-            return;
+        if (!ehMaster) {
+            acoes.push({ icone: 'shield', titulo: 'Perfil de acesso', sub: p.perfil ? capitalizar(p.perfil) : 'Sem perfil', codigo: 'pessoas.editar', aoTocar: () => alterarPerfilPessoa(p.id) });
         }
-
-        // v1.7.0 (bc9df144, item 2) — "Acessos recentes", lazy: busca só na
-        // primeira vez que a pessoa expande (data-carregado marca isso),
-        // reaproveitando o mesmo log_acessos de sempre via callback do host
-        // (carregarAcessosDaPessoa) — este módulo não faz a query direto,
-        // pra não duplicar a lógica de filtro que já existe no App.
-        if (acao === 'ver-acessos') {
-            const box = document.getElementById('acessos-pessoa-' + id);
-            if (!box) return;
-            box.classList.toggle('hidden');
-            if (box.classList.contains('hidden') || box.dataset.carregado) return;
-            box.dataset.carregado = '1';
-            if (typeof carregarAcessosDaPessoa !== 'function') {
-                box.innerHTML = '<p class="text-[10px] text-gray-400">Indisponível nesta tela.</p>';
-                return;
-            }
-            box.innerHTML = '<p class="text-[10px] text-gray-400">Carregando...</p>';
-            try {
-                const logs = await carregarAcessosDaPessoa(id);
-                box.innerHTML = (logs && logs.length)
-                    ? logs.map(l => `<div class="text-[10px] text-gray-500"><span class="text-gray-400">${new Date(l.criadoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span> — ${l.acao}</div>`).join('')
-                    : '<p class="text-[10px] text-gray-400">Nenhum acesso registrado ainda.</p>';
-            } catch (err) {
-                box.innerHTML = '<p class="text-[10px] text-red-400">Não foi possível carregar agora.</p>';
-            }
-            return;
+        if (proativasDisponiveis.length > 0) {
+            acoes.push({ icone: 'bell', titulo: 'Comunicações', sub: 'Avisos automáticos por WhatsApp', aoTocar: () => abrirComunicacoesPessoaSheet(p.id) });
         }
-
-        if (acao === 'remover') {
-            if (!id) { pessoas = pessoas.filter(p => p.id !== null); renderLista(); return; }
-            const pessoa = pessoas.find(p => p.id === id);
-            if (pessoa && (pessoa.perfil === 'admin' || pessoa.perfil === 'master')) {
-                alert('🔒 Usuários master não podem ser excluídos por aqui — é uma proteção proposital, contra remover o próprio administrador por engano. Se for realmente necessário, precisa ser feito direto no banco.');
-                return;
-            }
-            if (!confirm('Remover esta pessoa? Se ela tiver login, o acesso dela ao sistema também será removido.')) return;
-            try {
-                const { error } = await dbAuth.from('pessoas').delete().eq('id', id);
-                if (error) throw error;
-                pessoas = pessoas.filter(p => p.id !== id);
-                renderLista();
-                registrarLog?.('pessoas.excluir', { pessoaId: id });
-            } catch (err) {
-                alert('❌ Falha ao remover: ' + err.message);
-            }
-            return;
+        if (autoFiltro && typeof carregarAcessosDaPessoa === 'function') {
+            acoes.push({ icone: 'history', titulo: 'Acessos recentes', aoTocar: () => abrirAcessosPessoaSheet(p.id) });
         }
-
-        if (acao === 'vincular') {
-            const uuid = prompt('Cole aqui o UUID do usuário (Supabase → Authentication → Users → copiar o ID do usuário já criado):');
-            if (!uuid) return;
-            const perfil = await escolherPerfilSheet('Perfil de acesso', 'Login vinculado manualmente'); // v1.5.0
-            if (!perfil) return;
-            try {
-                const { error } = await dbAuth.from('pessoas').update({ user_id: uuid.trim(), perfil: perfil.trim() }).eq('id', id);
-                if (error) throw error;
-                alert('✅ Login vinculado com sucesso.');
-                registrarLog?.('pessoas.acesso.aprovar', { pessoaId: id, perfil: perfil.trim(), via: 'vinculacao_manual' });
-                pessoas = await listarPessoas(dbAuth, clienteId);
-                renderLista();
-            } catch (err) {
-                alert('❌ Falha ao vincular login: ' + err.message + '\n\nConfira se o UUID está certo e se já não está vinculado a outra pessoa deste mesmo cliente.');
+        if (!perfilTravado) {
+            if (temLogin) {
+                acoes.push({ icone: 'user-x', titulo: 'Remover acesso ao sistema', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
+            } else {
+                acoes.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'Envia e-mail para definir senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
+                acoes.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Usuário já criado no Supabase', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
             }
-            return;
         }
-
-        if (acao === 'desvincular') {
-            if (!confirm('Remover o acesso ao sistema desta pessoa? Ela continua cadastrada, só perde o login.')) return;
-            try {
-                const { error } = await dbAuth.from('pessoas').update({ user_id: null, perfil: null }).eq('id', id);
-                if (error) throw error;
-                registrarLog?.('pessoas.acesso.revogar', { pessoaId: id });
-                pessoas = await listarPessoas(dbAuth, clienteId);
-                renderLista();
-            } catch (err) {
-                alert('❌ Falha: ' + err.message);
-            }
-            return;
+        if (protegidoExclusao) {
+            acoes.push({ icone: 'lock', titulo: ehMaster ? 'Master não pode ser removido por aqui' : 'Admin não pode ser removido por aqui', sub: 'Fale com a Raiz', aoTocar: () => {} });
+        } else {
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir pessoa', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => excluirPessoa(p.id) });
         }
+        window.abrirSheetAcoes({ titulo: p.nome || '(sem nome)', sub: p.perfil ? capitalizar(p.perfil) : 'Sem perfil', acoes });
+    }
 
-        if (acao === 'criar-acesso') {
-            const pessoa = pessoas.find(p => p.id === id);
-            if (!pessoa) return;
-            if (!pessoa.email) { alert('⚠️ Esta pessoa não tem e-mail cadastrado. Preencha o e-mail antes de criar o acesso.'); return; }
-            if (pessoa.userId) { alert('Esta pessoa já tem acesso ao sistema.'); return; }
+    // ---------------------------------------------------------------
+    // SHEET DE FORMULÁRIO — dados básicos (nome/e-mail/whatsapp/função/
+    // % de cotas). Perfil de acesso fica fora daqui de propósito (ação
+    // própria no ⋮, mesmo padrão de sempre — perfil nunca é um campo de
+    // formulário solto, é uma decisão protegida por catálogo).
+    // ---------------------------------------------------------------
+    function abrirFormPessoaSheet(id) {
+        if (typeof window.abrirSheetForm !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        const p = id ? pessoas.find(x => x.id === id) : null;
+        const ehMaster = p?.perfil === 'master';
+        const perfilTravado = ehMaster && perfilLogado !== 'master';
+        const v = campo => esc((p && p[campo]) || '');
+        const campo = (rot, campoId, val, tipo = 'text', extra = '') =>
+            `<div><label class="block text-xs font-bold text-gray-600">${rot}</label><input type="${tipo}" id="${campoId}" value="${val}" ${extra} class="w-full p-2 border rounded mt-1 text-sm"></div>`;
+        const dis = perfilTravado ? 'disabled' : '';
+        window.abrirSheetForm({
+            titulo: p ? 'Editar pessoa' : 'Nova pessoa',
+            sub: p ? p.nome : 'Sócio ou usuário do sistema',
+            rotuloSalvar: p ? 'Salvar' : 'Cadastrar',
+            corpo: `
+                ${campo('Nome *', 'pe-nome', v('nome'), 'text', `required ${dis}`)}
+                <div class="grid grid-cols-2 gap-2">
+                    ${campo('E-mail', 'pe-email', v('email'), 'email', dis)}
+                    ${campo('WhatsApp', 'pe-whatsapp', v('whatsapp'), 'tel', dis)}
+                </div>
+                ${campo('Função na empresa', 'pe-funcao', v('funcao'), 'text', dis)}
+                ${campo('% de cotas', 'pe-pct', p?.percentualCotasEmpresa ?? '', 'number', `min="0" max="100" step="0.01" ${dis}`)}
+                ${perfilTravado ? '<p class="text-xs text-gray-400">Dados do master só podem ser alterados pelo próprio master.</p>' : ''}
+            `,
+            aoSalvar: (el) => salvarPessoaSheet(el, id || null),
+        });
+    }
 
-            const perfilEscolhido = await escolherPerfilSheet('Perfil de acesso', pessoa.nome); // v1.5.0
-            if (!perfilEscolhido) return;
-
-            const senhaAleatoria = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + '!1';
-
-            try {
-                // Client TEMPORÁRIO, isolado (persistSession:false) — nunca
-                // toca no localStorage da sessão de quem está usando a
-                // tela. Ver nota completa no changelog do topo do arquivo.
-                const { createClient } = window.supabase;
-                const clienteTemp = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-
-                const { data: signUpData, error: signUpError } = await clienteTemp.auth.signUp({ email: pessoa.email, password: senhaAleatoria });
-                if (signUpError) { alert('❌ Falha ao criar acesso: ' + signUpError.message); return; }
-
-                const { error: updateError } = await dbAuth.from('pessoas').update({ user_id: signUpData.user.id, perfil: perfilEscolhido.trim() }).eq('id', id);
-                if (updateError) { alert('❌ Conta criada, mas falhou ao vincular à pessoa: ' + updateError.message); return; }
-
-                await clienteTemp.auth.resetPasswordForEmail(pessoa.email, { redirectTo: window.location.href.split('?')[0].split('#')[0] });
-
-                registrarLog?.('pessoas.acesso.criar', { pessoaId: id, nome: pessoa.nome, email: pessoa.email, perfil: perfilEscolhido.trim() });
-                onToast?.('Acesso criado — e-mail de definição de senha enviado.', 'success');
-                pessoas = await listarPessoas(dbAuth, clienteId);
-                renderLista();
-            } catch (err) {
-                alert('❌ Falha ao criar acesso: ' + err.message);
-            }
-            return;
+    async function salvarPessoaSheet(el, id) {
+        const g = campoId => (el.querySelector('#' + campoId)?.value || '').trim();
+        const nome = g('pe-nome');
+        if (!nome) { onToast?.('Informe o nome.', 'danger'); return false; }
+        const pctRaw = g('pe-pct');
+        const dados = {
+            cliente_id: clienteId,
+            nome,
+            email: g('pe-email') || null,
+            whatsapp: g('pe-whatsapp') || null,
+            funcao: g('pe-funcao') || null,
+            percentual_cotas_empresa: pctRaw !== '' ? parseFloat(pctRaw) : null,
+        };
+        if (id) {
+            const { error } = await dbAuth.from('pessoas').update(dados).eq('id', id);
+            if (error) throw error;
+        } else {
+            const { error } = await dbAuth.from('pessoas').insert(dados);
+            if (error) throw error;
         }
-        // NOVO (v1.2) — BUG REAL corrigido: preferências de comunicação só
-        // salvavam junto do "Salvar Pessoas" (botão lá embaixo, fora de
-        // vista) — clicar no checkbox/frequência "parecia" funcionar (o
-        // navegador muda o estado visual na hora), mas sem clicar
-        // naquele botão distante nada persistia, e qualquer re-render
-        // externo (dev_renderPessoas chamado por outra rotina) descartava
-        // a mudança em memória sem aviso nenhum. Botão próprio aqui —
-        // salva só isto, com feedback imediato, sem depender de lembrar
-        // do botão de baixo nem arriscar perder a edição num re-render.
-        if (acao === 'salvar-comunicacoes') {
-            const card = alvo.closest('[data-pessoa-id]');
-            if (!card) return;
-            const linhas = Array.from(card.querySelectorAll('.pref-comunicacao-habilitado')).map(chk => {
-                const codigo = chk.dataset.codigo;
-                const selectFreq = card.querySelector(`.pref-comunicacao-frequencia[data-codigo="${codigo}"]`);
-                return {
-                    cliente_id: clienteId, pessoa_id: id, funcionalidade_codigo: codigo,
-                    habilitado: chk.checked, frequencia: selectFreq ? selectFreq.value : 'semanal',
-                    atualizado_em: new Date().toISOString(),
-                };
-            });
-            if (linhas.length === 0) return;
-            try {
-                const { error } = await dbAuth.from('pessoa_preferencias_comunicacao')
-                    .upsert(linhas, { onConflict: 'pessoa_id,funcionalidade_codigo' });
-                if (error) throw error;
-                linhas.forEach(l => preferenciasMap.set(`${l.pessoa_id}|${l.funcionalidade_codigo}`, { habilitado: l.habilitado, frequencia: l.frequencia }));
-                onToast?.('Avisos salvos.', 'success');
-                registrarLog?.('pessoas.comunicacoes.salvar', { pessoaId: id, qtd: linhas.length });
-            } catch (err) {
-                alert('❌ Falha ao salvar avisos: ' + err.message);
-            }
-            return;
-        }
-    });
-
-    document.getElementById('cp-btn-nova')?.addEventListener('click', () => {
-        pessoas.push({ id: null, nome: '', email: '', whatsapp: '', funcao: '', percentualCotasEmpresa: null, userId: null, perfil: null });
+        onToast?.(id ? 'Pessoa atualizada.' : 'Pessoa cadastrada.', 'success');
+        registrarLog?.(id ? 'pessoas.editar' : 'pessoas.criar', { pessoaId: id });
+        pessoas = await listarPessoas(dbAuth, clienteId);
         renderLista();
-        const lista = document.getElementById('cp-lista');
-        if (lista && lista.lastElementChild) lista.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    }
 
-    document.getElementById('cp-btn-salvar').addEventListener('click', async () => {
-        const lista = document.getElementById('cp-lista');
-        const cards = lista.querySelectorAll('[data-pessoa-id]');
-        let algumErro = false;
+    // ---------------------------------------------------------------
+    // PERFIL DE ACESSO — decisão protegida, nunca um campo de form solto.
+    // ---------------------------------------------------------------
+    async function alterarPerfilPessoa(id) {
+        const pessoa = pessoas.find(p => p.id === id);
+        if (!pessoa) return;
+        const novoPerfil = await escolherPerfilSheet('Perfil de acesso', pessoa.nome, pessoa.perfil || 'operador');
+        if (!novoPerfil) return;
+        try {
+            const { error } = await dbAuth.from('pessoas').update({ perfil: novoPerfil.trim() }).eq('id', id);
+            if (error) throw error;
+            registrarLog?.('pessoas.perfil.alterar', { pessoaId: id, perfil: novoPerfil.trim() });
+            onToast?.('Perfil atualizado.', 'success');
+            pessoas = await listarPessoas(dbAuth, clienteId);
+            renderLista();
+        } catch (err) {
+            onToast?.('Falha ao atualizar perfil: ' + err.message, 'danger');
+        }
+    }
 
-        for (const card of cards) {
-            const id = card.getAttribute('data-pessoa-id');
-            const nomeInput = card.querySelector('.pessoa-nome');
-            const nome = nomeInput.value.trim();
-            if (!nome) continue; // ignora linhas sem nome preenchido
-            if (nomeInput.disabled) continue; // trava de segurança (perfil master travado)
-
-            const pctInput = card.querySelector('.pessoa-pct-cotas');
-            const perfilInput = card.querySelector('.pessoa-perfil');
-
-            const dadosPessoa = {
-                cliente_id: clienteId,
-                nome,
-                email: card.querySelector('.pessoa-email').value.trim() || null,
-                whatsapp: card.querySelector('.pessoa-whatsapp').value.trim() || null,
-                funcao: card.querySelector('.pessoa-funcao').value.trim() || null,
-                percentual_cotas_empresa: (pctInput && pctInput.value !== '') ? parseFloat(pctInput.value) : null,
-            };
-            // Perfil só é gravado se a pessoa já tem login (select vem
-            // desabilitado e sem valor útil quando não tem) — evita
-            // sobrescrever com lixo.
-            if (perfilInput && !perfilInput.disabled) dadosPessoa.perfil = perfilInput.value;
-
-            try {
-                if (id) {
-                    const { error } = await dbAuth.from('pessoas').update(dadosPessoa).eq('id', id);
-                    if (error) throw error;
-                } else {
-                    const { error } = await dbAuth.from('pessoas').insert(dadosPessoa);
-                    if (error) throw error;
-                }
-            } catch (err) {
-                algumErro = true;
-                console.warn('[comum-pessoas] Erro ao salvar pessoa "' + nome + '":', err.message);
-            }
-
-            // v1.1 — preferências de comunicação proativa. Só existe UI pra
-            // isso em pessoa já salva (id presente) — cards de pessoa nova
-            // não têm os campos `.pref-comunicacao-*`, o querySelectorAll
-            // abaixo simplesmente não acha nada e não faz nada, sem
-            // precisar de um if separado.
-            if (id) {
-                const linhas = Array.from(card.querySelectorAll('.pref-comunicacao-habilitado')).map(chk => {
+    // ---------------------------------------------------------------
+    // COMUNICAÇÕES — Sheet de formulário com 1 checkbox + 1 frequência
+    // por funcionalidade proativa disponível na licença. Mesma gravação
+    // de sempre (pessoa_preferencias_comunicacao, upsert por pessoa+
+    // funcionalidade).
+    // ---------------------------------------------------------------
+    function abrirComunicacoesPessoaSheet(id) {
+        if (typeof window.abrirSheetForm !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        const p = pessoas.find(x => x.id === id);
+        if (!p) return;
+        const semWhatsapp = !p.whatsapp;
+        const linhas = proativasDisponiveis.map(f => {
+            const pref = preferenciasMap.get(`${p.id}|${f.codigo}`);
+            const habilitado = pref ? pref.habilitado : true; // sem linha salva = padrão do sistema
+            const frequencia = pref ? pref.frequencia : 'semanal';
+            const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
+            return `
+                <div class="flex items-start justify-between gap-2 py-2 border-t border-gray-100">
+                    <label class="flex items-start gap-1.5 text-xs text-slate-700 flex-1 min-w-0">
+                        <input type="checkbox" class="pc-habilitado mt-0.5" data-codigo="${esc(f.codigo)}" ${habilitado ? 'checked' : ''}>
+                        <span>${esc(f.descricao)}</span>
+                    </label>
+                    <select class="pc-frequencia text-xs border rounded px-1 py-1 flex-none" data-codigo="${esc(f.codigo)}">${opcoesHtml}</select>
+                </div>`;
+        }).join('');
+        window.abrirSheetForm({
+            titulo: 'Comunicações', sub: p.nome, rotuloSalvar: 'Salvar avisos',
+            corpo: `
+                <p class="text-xs text-gray-500">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
+                ${semWhatsapp ? '<p class="text-xs mt-1" style="color:var(--warning)">Sem WhatsApp cadastrado — os avisos não chegam até preencher o número.</p>' : ''}
+                <div class="mt-1">${linhas || '<p class="text-xs text-gray-400">Nenhum aviso disponível no plano atual.</p>'}</div>
+            `,
+            aoSalvar: async (elCorpo) => {
+                const chks = Array.from(elCorpo.querySelectorAll('.pc-habilitado'));
+                if (!chks.length) return;
+                const linhasSalvar = chks.map(chk => {
                     const codigo = chk.dataset.codigo;
-                    const selectFreq = card.querySelector(`.pref-comunicacao-frequencia[data-codigo="${codigo}"]`);
+                    const sel = elCorpo.querySelector(`.pc-frequencia[data-codigo="${codigo}"]`);
                     return {
-                        cliente_id: clienteId, pessoa_id: id, funcionalidade_codigo: codigo,
-                        habilitado: chk.checked, frequencia: selectFreq ? selectFreq.value : 'semanal',
+                        cliente_id: clienteId, pessoa_id: p.id, funcionalidade_codigo: codigo,
+                        habilitado: chk.checked, frequencia: sel ? sel.value : 'semanal',
                         atualizado_em: new Date().toISOString(),
                     };
                 });
-                if (linhas.length > 0) {
-                    try {
-                        const { error } = await dbAuth.from('pessoa_preferencias_comunicacao')
-                            .upsert(linhas, { onConflict: 'pessoa_id,funcionalidade_codigo' });
-                        if (error) throw error;
-                    } catch (err) {
-                        algumErro = true;
-                        console.warn('[comum-pessoas] Erro ao salvar preferências de comunicação de "' + nome + '":', err.message);
-                    }
-                }
-            }
-        }
+                const { error } = await dbAuth.from('pessoa_preferencias_comunicacao')
+                    .upsert(linhasSalvar, { onConflict: 'pessoa_id,funcionalidade_codigo' });
+                if (error) throw error;
+                linhasSalvar.forEach(l => preferenciasMap.set(`${l.pessoa_id}|${l.funcionalidade_codigo}`, { habilitado: l.habilitado, frequencia: l.frequencia }));
+                registrarLog?.('pessoas.comunicacoes.salvar', { pessoaId: p.id, qtd: linhasSalvar.length });
+                onToast?.('Avisos salvos.', 'success');
+            },
+        });
+    }
 
+    // ---------------------------------------------------------------
+    // ACESSOS RECENTES — Sheet de leitura, lazy (LGPD — minimização: só
+    // busca ao abrir).
+    // ---------------------------------------------------------------
+    async function abrirAcessosPessoaSheet(id) {
+        if (typeof window.abrirSheet !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        const p = pessoas.find(x => x.id === id);
+        if (!p) return;
+        const cabecalho = typeof window.rzSheetCabecalho === 'function' ? window.rzSheetCabecalho('Acessos recentes', p.nome) : `<div class="rz-sh-h"><h3>Acessos recentes</h3></div>`;
+        const sheet = window.abrirSheet(cabecalho + `<div class="rz-sh-b"><div id="ap-lista"><p class="text-xs text-gray-400">Carregando...</p></div></div>`);
+        const listaEl = sheet.querySelector('#ap-lista');
+        if (typeof carregarAcessosDaPessoa !== 'function') {
+            if (listaEl) listaEl.innerHTML = '<div class="rz-empty"><p>Indisponível nesta tela.</p></div>';
+            return;
+        }
         try {
-            [pessoas, preferenciasMap] = await Promise.all([
-                listarPessoas(dbAuth, clienteId),
-                buscarPreferenciasComunicacao(dbAuth, clienteId),
-            ]);
-        } catch { /* mantém lista atual se o reload falhar */ }
-        renderLista();
-        alert(algumErro ? '⚠️ Alguma(s) pessoa(s) não foram salvas — veja o console para detalhes.' : '✅ Pessoas salvas com sucesso.');
+            const logs = await carregarAcessosDaPessoa(id);
+            if (!listaEl) return;
+            listaEl.innerHTML = (logs && logs.length)
+                ? logs.map(l => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="log-in"></svg></div><div class="rz-tx"><b>${esc(l.acao)}</b><span>${esc(new Date(l.criadoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }))}</span></div></div>`).join('')
+                : '<div class="rz-empty"><p>Nenhum acesso registrado ainda.</p></div>';
+            icones();
+        } catch (err) {
+            if (listaEl) listaEl.innerHTML = '<div class="rz-empty"><p>Não foi possível carregar agora.</p></div>';
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // ACESSO AO SISTEMA — criar/vincular/remover. Mesma lógica de
+    // sempre, só a superfície (Sheet em vez de botão inline) mudou.
+    // ---------------------------------------------------------------
+    async function criarAcessoPessoa(id) {
+        const pessoa = pessoas.find(p => p.id === id);
+        if (!pessoa) return;
+        if (!pessoa.email) { onToast?.('Esta pessoa não tem e-mail cadastrado. Preencha o e-mail antes de criar o acesso.', 'danger'); return; }
+        if (pessoa.userId) { onToast?.('Esta pessoa já tem acesso ao sistema.', 'info'); return; }
+        const perfilEscolhido = await escolherPerfilSheet('Perfil de acesso', pessoa.nome);
+        if (!perfilEscolhido) return;
+        const senhaAleatoria = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase() + '!1';
+        try {
+            // Client TEMPORÁRIO, isolado (persistSession:false) — nunca
+            // toca no localStorage da sessão de quem está usando a tela.
+            const { createClient } = window.supabase;
+            const clienteTemp = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+
+            const { data: signUpData, error: signUpError } = await clienteTemp.auth.signUp({ email: pessoa.email, password: senhaAleatoria });
+            if (signUpError) { onToast?.('Falha ao criar acesso: ' + signUpError.message, 'danger'); return; }
+
+            const { error: updateError } = await dbAuth.from('pessoas').update({ user_id: signUpData.user.id, perfil: perfilEscolhido.trim() }).eq('id', id);
+            if (updateError) { onToast?.('Conta criada, mas falhou ao vincular à pessoa: ' + updateError.message, 'danger'); return; }
+
+            await clienteTemp.auth.resetPasswordForEmail(pessoa.email, { redirectTo: window.location.href.split('?')[0].split('#')[0] });
+
+            registrarLog?.('pessoas.acesso.criar', { pessoaId: id, nome: pessoa.nome, email: pessoa.email, perfil: perfilEscolhido.trim() });
+            onToast?.('Acesso criado — e-mail de definição de senha enviado.', 'success');
+            pessoas = await listarPessoas(dbAuth, clienteId);
+            renderLista();
+        } catch (err) {
+            onToast?.('Falha ao criar acesso: ' + err.message, 'danger');
+        }
+    }
+
+    async function vincularLoginPessoa(id) {
+        const perfil = await escolherPerfilSheet('Perfil de acesso', 'Login vinculado manualmente');
+        if (!perfil) return;
+        if (typeof window.abrirSheetForm !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        window.abrirSheetForm({
+            titulo: 'Vincular login existente', sub: 'Cole o UUID do usuário já criado', rotuloSalvar: 'Vincular',
+            corpo: `<div><label class="block text-xs font-bold text-gray-600">UUID do usuário *</label>
+                <input type="text" id="vi-uuid" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Supabase → Authentication → Users">
+                <p class="text-[11px] text-gray-400 mt-1">Copie o ID do usuário já criado no Supabase.</p></div>`,
+            aoSalvar: async (el) => {
+                const uuid = (el.querySelector('#vi-uuid')?.value || '').trim();
+                if (!uuid) { onToast?.('Informe o UUID.', 'danger'); return false; }
+                const { error } = await dbAuth.from('pessoas').update({ user_id: uuid, perfil: perfil.trim() }).eq('id', id);
+                if (error) throw error;
+                onToast?.('Login vinculado.', 'success');
+                registrarLog?.('pessoas.acesso.aprovar', { pessoaId: id, perfil: perfil.trim(), via: 'vinculacao_manual' });
+                pessoas = await listarPessoas(dbAuth, clienteId);
+                renderLista();
+            },
+        });
+    }
+
+    async function desvincularAcessoPessoa(id) {
+        if (!confirm('Remover o acesso ao sistema desta pessoa? Ela continua cadastrada, só perde o login.')) return;
+        try {
+            const { error } = await dbAuth.from('pessoas').update({ user_id: null, perfil: null }).eq('id', id);
+            if (error) throw error;
+            registrarLog?.('pessoas.acesso.revogar', { pessoaId: id });
+            onToast?.('Acesso removido.', 'success');
+            pessoas = await listarPessoas(dbAuth, clienteId);
+            renderLista();
+        } catch (err) {
+            onToast?.('Falha: ' + err.message, 'danger');
+        }
+    }
+
+    async function excluirPessoa(id) {
+        const pessoa = pessoas.find(p => p.id === id);
+        if (!pessoa) return;
+        // Trava dupla (já refletida em não oferecer a ação no Sheet, ver
+        // abrirAcoesPessoa) — proteção contra remover o próprio
+        // administrador/master por engano, mesmo se chamado por outro
+        // caminho no futuro.
+        if (pessoa.perfil === 'admin' || pessoa.perfil === 'master') {
+            onToast?.('Usuários admin/master não podem ser excluídos por aqui — proteção proposital.', 'danger');
+            return;
+        }
+        if (!confirm(`Excluir "${pessoa.nome}"? Esta ação não pode ser desfeita. Se ela tiver login, o acesso dela ao sistema também será removido.`)) return;
+        try {
+            const { error } = await dbAuth.from('pessoas').delete().eq('id', id);
+            if (error) throw error;
+            pessoas = pessoas.filter(p => p.id !== id);
+            registrarLog?.('pessoas.excluir', { pessoaId: id });
+            onToast?.('Pessoa excluída.', 'success');
+            renderLista();
+        } catch (err) {
+            onToast?.('Não consegui excluir: ' + (err.message || String(err)), 'danger');
+        }
+    }
+
+    // -------- delegação de eventos, escopada ao container (não document —
+    // evita colisão com outros módulos que também delegam) --------
+    mountEl.addEventListener('click', (ev) => {
+        const maisBtn = ev.target.closest('[data-acao="mais"]');
+        if (maisBtn) { abrirAcoesPessoa(maisBtn.dataset.id); return; }
+        const linha = ev.target.closest('[data-acao="ficha"]');
+        if (linha) { abrirFichaPessoa(linha.dataset.id); return; }
     });
+
+    document.getElementById('cp-btn-nova')?.addEventListener('click', () => abrirFormPessoaSheet(null));
 }

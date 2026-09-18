@@ -6,9 +6,36 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.199.0
-   LINHAS: 14702
-   DATA: 17/09/2026
+   VERSÃO: Beta v1.200.0
+   LINHAS: 14705
+   DATA: 18/09/2026
+   NOVIDADES (Beta v1.200.0) — pedido explícito do Nicola (18/09/2026):
+   "A tela de pessoas ficou no formato antigo de leiaute, fora do
+   padrão. Deve ser totalmente reescrita. Além disto, sou master e não
+   consegui ver todas as pessoas cadastradas." Dois pedidos, os dois
+   fechados nesta versão (demanda 37b011d3, aberta desde 13/09 sem
+   escopo, encerrada nesta entrega): (1) BUG REAL corrigido — a
+   migration da v1.199.0 (bc9df144) tinha inserido o código
+   `pessoas.ver_todas` só em `perfil_funcionalidade`, faltando o lado
+   `plano_funcionalidade` que `fn_checar_funcionalidade()` de fato
+   consulta (regra ACE-01, gate duplo plano×perfil) — resultado: TODO
+   MUNDO, inclusive master, ficava bloqueado. Corrigido com migration
+   aditiva `catalogo_appdev_v2_plano_pessoas_ver_todas` (mesmos 4 planos
+   de pessoas.editar); verificado ao vivo via
+   fn_checar_funcionalidade() retornando liberado:true. (2) REESCRITA
+   TOTAL de js/comum-pessoas.js (v1.7.0 → v2.0.0) na gramática atual —
+   cartão com expansão inline + botão único "Salvar pessoas" (herdados
+   do app-dev original) viraram .rz-row + Sheets, mesmo padrão do módulo
+   Partes: ⋮ único por pessoa (Sheet de ações: editar dados, perfil de
+   acesso, comunicações, acessos recentes, criar/vincular/remover
+   acesso, excluir), Ficha de leitura (.rz-card/.rz-kv) ao tocar na
+   linha, "+" abrindo o Sheet de nova pessoa direto. Camada de dados
+   intocada (mesmas 3 funções que "Minhas notificações" já importa
+   direto). ACHADO DE GOVERNANÇA registrado como demanda nova (não
+   corrigido nesta entrega): cofre.html standalone não carrega os
+   helpers de Sheet do App — dentro do Cofre, as ações Sheet-dependentes
+   desta tela mostram o mesmo aviso "só dentro do app principal" que o
+   resto do Cofre já usa (ver changelog completo em comum-pessoas.js).
    NOVIDADES (Beta v1.199.0) — bc9df144 (decisão Nicola, 17/09/2026):
    desmonte completo do módulo "app-dev" (Configurações > Sistema),
    redistribuindo as 12 funções pra endereços definitivos, nunca mais
@@ -87,34 +114,8 @@
    ativo (rica ou genérica) com a mesma altura mínima padrão. Detalhe
    completo: js/cofre-ativos.js v1.45.0, js/ativos/ativos-markup.js
    v1.39.0.
-   NOVIDADES (Beta v1.195.0) — pedidos explícitos do Nicola (17/09/2026,
-   testes ao vivo em "Rumo Empreendimentos" e "Albuquerque Silva
-   Participações"): (1) BUG REAL DE VERDADE nos alertas da Visão Geral —
-   a v1.194.0 tinha corrigido 1 causa (documento_sem_vinculo sem ação de
-   grupo), mas o relato "só o de recebimentos pendentes clica; na aba
-   Alertas todos clicam; ao voltar pra Visão Geral, aí sim todos passam a
-   clicar" apontou a causa de verdade: alertasPorChave (Map usado por
-   rzAbrirDestinoAlerta) só era populado pela aba Alertas
-   (montarAlertasPatrimonio); a Visão Geral tinha sua própria cópia dos
-   dados e nunca escrevia nesse Map — corrigido, carregarDadosAssincronosVisaoGeral()
-   agora também popula. (2) chips de filtro da aba Ativos (Todos/Imóveis/
-   Veículos/Outros) quebravam pra 2ª linha — trocado "flex flex-wrap"
-   (Tailwind cru) por .rz-chips (padrão único do app, 1 linha com scroll),
-   ver js/ativos/ativos-markup.js v1.38.0. (3) BUG REAL na lista de
-   Ativos: locatário/valor/status prometidos na v1.194.0 nunca apareciam
-   pra NENHUM imóvel — buscarResumoImoveisParaCards() (js/cofre-api.js)
-   montava o Map de apoio com a chave errada (entidade_origem_id, e não
-   id — os dois nunca são o mesmo UUID, confirmado direto no banco);
-   corrigido em cofre-api.js v1.36.2, e de brinde passou a cobrir também
-   imóvel NATIVO (pós-Onda-12, não só os 104 legados) via contratos.ativo_id.
-   (4) nova seção "Patrimônio por tipo de ativo" na Visão Geral — quebra
-   executiva (Imóveis/Veículos/Outros, qtde + valor), mesmo escopo e
-   mesma soma do hero acima (soma_valor_mercado). (5) achado à parte
-   durante a investigação do item 3: o importmap (linha ~214) estava
-   dessincronizado de versoes.json em 5 módulos — corrigido, ver nota
-   junto do próprio importmap.
    ------------------------------------------------------------------
-   Versões anteriores (v1.194.0 … v1.194.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.195.0 … v1.195.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -138,7 +139,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.199.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.200.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3485,7 +3486,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.199.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.200.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9185,11 +9186,13 @@
         // v1.6.0, exportadas pra isso) em vez de reimplementar; grava com o
         // MESMO upsert em pessoa_preferencias_comunicacao, só que pra
         // pessoaIdLogada em vez de uma pessoa escolhida na lista.
-        // NÃO fiz: apagar comunicacaoProativaHtml() de dentro do card de
-        // Pessoas (o Motor doc pede isso — "preferências saem do cartão de
-        // Pessoas" — mas um admin editar as preferências de OUTRA pessoa
-        // ainda precisa viver em algum lugar; tirar de lá sem definir onde
-        // isso vai morar seria perda de funcionalidade, não simplificação).
+        // ATUALIZAÇÃO (v1.200.0) — a função comunicacaoProativaHtml() citada
+        // abaixo (card inline de Pessoas) foi removida na reescrita total de
+        // comum-pessoas.js (v2.0.0): um admin editar as preferências de
+        // OUTRA pessoa agora vive em abrirComunicacoesPessoaSheet(), aberto
+        // pelo ⋮ de cada pessoa (Sheet de formulário) — não desapareceu,
+        // só mudou de superfície. Esta tela ("Minhas notificações")
+        // continua sendo sobre "eu mesmo" e não muda.
         async function abrirPreferenciasComunicacao() {
             let overlay = document.getElementById('overlay-preferencias-comunicacao');
             if (!overlay) {
