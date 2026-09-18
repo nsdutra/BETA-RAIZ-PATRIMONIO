@@ -6,9 +6,47 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.198.0
-   LINHAS: 15792
+   VERSÃO: Beta v1.199.0
+   LINHAS: 14702
    DATA: 17/09/2026
+   NOVIDADES (Beta v1.199.0) — bc9df144 (decisão Nicola, 17/09/2026):
+   desmonte completo do módulo "app-dev" (Configurações > Sistema),
+   redistribuindo as 12 funções pra endereços definitivos, nunca mais
+   atrás do gesto de 2 cliques no logo (ELIMINADO, CAN-05 — não existe
+   mais nenhum caminho pra essa área no App). (1) Config > Pessoas:
+   dev_renderPessoas() ganhou visão "só eu" por padrão (autoFiltro),
+   admin com pessoas.ver_todas vê todo mundo; cada pessoa ganhou
+   "Acessos recentes" (js/comum-pessoas.js v1.199.0) puxando
+   carregarLogsSupabase() por pessoa — substitui o antigo log único da
+   empresa inteira. (2) e-mails por pessoa (opt-in, disparo manual,
+   config de envio automático) MIGRADOS pra Gestão > Comunicações,
+   modo "Pessoas" novo (js/telas/comunicacoes.js v0.4.0, Gestão) — precisou
+   de 4 RPCs novas (gestao.fn_config_email_automatico_obter/definir,
+   gestao.fn_pessoa_comunicacoes_obter/definir, SECURITY DEFINER, gate
+   fn_sou_master(), migration gestao_comunicacoes_pessoas_v1) porque a
+   RLS de clientes/pessoas/pessoa_preferencias_comunicacao só libera via
+   meus_clientes() e a equipe Raiz não tem esse vínculo. (3) "Apagar
+   Empresa e Acessos" MIGRADO pra Gestão > Empresas (js/telas/empresas.js
+   v0.15.0, Gestão), único item de manutenção que sobreviveu — chama
+   fn_apagar_empresa_completa() sem alterá-la. (4) "Limpar Sistema desta
+   Empresa" e "Importar Carga Inicial" ELIMINADOS do App inteiro (CAN-05):
+   o primeiro mirava a view de compatibilidade `imoveis` e já estava
+   quebrado em produção; o segundo dependia de saveAll()/estado em
+   memória, não portável — registrado em 2fb2153a. (5) log de sistema
+   único (dev_carregarLogsSistema, dev_popularFiltrosLog) ELIMINADO —
+   virou "Acessos recentes" por pessoa (item 1); trazer filtros
+   avançados pra Gestão > Empresas fica como avaliação soft, não feita
+   nesta rodada. (6) painel de licença duplicado (dev_carregarLicenca e
+   afins) ELIMINADO — a tela real (tab-licenca) já mostra a mesma
+   informação. (7) gerenciador de links da Vitrine
+   (dev_carregarLinks/dev_apagarLink*) reescrito na gramática atual
+   (carregarLinksVitrine/revogarLinkVitrine/apagarTodosLinksVitrine/
+   apagarLinksVitrineExpirados, .rz-row + abrirSheetAcoes) e virou item
+   de menu próprio dentro de Configurações (admin-only, catalog
+   vitrine.links.gerenciar). (8) "Trocar de empresa" removido por ora
+   (retomada em ccd04ad4). Achado incidental (QUA): dev_carregarAcessos/
+   dev_limparAcessos eram código morto (array `acessos` permanentemente
+   vazio desde a aposentadoria do Apps Script) — removidos junto.
    NOVIDADES (Beta v1.198.0) — Caminho B, fechamento do escopo "tipo de
    imóvel" das minutas: tipo_ativo (categoria macro) é grosso demais pra
    isso (só 2 valores pra imóvel), o nível certo é tipo_detalhe_id — mesma
@@ -75,30 +113,8 @@
    durante a investigação do item 3: o importmap (linha ~214) estava
    dessincronizado de versoes.json em 5 módulos — corrigido, ver nota
    junto do próprio importmap.
-   NOVIDADES (Beta v1.194.0) — pedidos explícitos do Nicola (16/09/2026,
-   tenant "Albuquerque Silva Participações"): (1) alerta de reajuste
-   pendente disparava mesmo com Renovação/Reajuste registrado há menos de
-   12 meses — obterUltimaVigenciaValor() só reconhecia o diff de edição
-   legado (alteracoes[].campo==='Valor do aluguel'), que carregarContratosSupabase()
-   regenera de forma genérica a cada reload (perde o campo específico);
-   passou a olhar h.tipo==='reajuste'|'renovacao' também, que sobrevive
-   ao reload. (2) alertas da Visão Geral que não navegavam a lugar nenhum
-   ao clicar: achado 1 caso real — documento_sem_vinculo era o único tipo
-   agrupável sem ação de grupo (ACAO_GRUPO_POR_TIPO), corrigido; e todo
-   onClick de alerta (linhaAlertaHtml) ganhou try/catch com toast — nunca
-   mais falha em silêncio, mesmo pra causas não identificadas nesta
-   rodada. (3) lista de Ativos — inspirada no padrão de lista do Outlook
-   mobile (nome completo sem truncar, detalhes extras, sinal de urgência
-   curto na direita): card do imóvel ganhou locatário completo + valor do
-   bem + valor do aluguel; card genérico ganhou valor do bem; chip de
-   vencimento perdeu o estado "Em dia" (só aparece quando há urgência).
-   (4) ficha do contrato — Ocorrências: chip colorido saiu (redundante
-   com texto+ícone), toda linha ficou clicável (fechada abre resumo
-   só-leitura), data parou de truncar; "Histórico" (redundante) saiu do
-   ⋮. Detalhe completo: js/cofre-ativos.js v1.44.0, js/contratos.js
-   v1.6.0.
    ------------------------------------------------------------------
-   Versões anteriores (v1.187.1 … v1.193.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.194.0 … v1.194.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -122,7 +138,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.6.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.199.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1393,7 +1409,7 @@
              com classes Tailwind + style de fundo virou o próprio .rz-hdr
              (menos 1 hex/style, menos 6 utilitárias soltas). -->
         <div class="rz-hdr">
-            <div class="rz-brand cursor-pointer select-none" onclick="agendarCliqueLogo()" ondblclick="cancelarCliqueLogoEAbrirDev()">
+            <div class="rz-brand cursor-pointer select-none" onclick="agendarCliqueLogo()">
                 <h1 id="logo-header">RAIZ</h1>
                 <small><span id="header-contexto">Raiz Patrimônio</span><span id="header-offline-tag" class="rz-off hidden">Offline</span></small>
             </div>
@@ -1417,20 +1433,17 @@
             </button>
         </div>
 
-        <!-- Nav antiga — reduzida (v1.39.8) só aos gatilhos internos DEV/
-             Parametrizações, escondidos, só abrem via duplo-clique na logo
-             (cancelarCliqueLogoEAbrirDev). Botões cliente-facing preservados
-             escondidos abaixo (não removidos do DOM) por segurança de
-             compatibilidade com qualquer código que ainda referencie o id. -->
+        <!-- Nav antiga — reduzida (v1.39.8), mantida só pelos 2 gatilhos
+             cliente-facing (Serviços/Sobre) que nenhuma outra tela ainda
+             substituiu. v1.199.0 (bc9df144, item 1) — DEV e Configurações
+             (a dupla que só abria via duplo-clique secreto na logo)
+             SAÍRAM: o módulo app-dev inteiro foi desmontado e redistribuído
+             (ver changelog). NUNCA mais o gesto de 2 cliques abre nada. -->
         <nav class="flex overflow-x-auto text-center text-xs font-medium">
 
             <button onclick="switchTab('tab-sindicos')" class="hidden flex-none px-4 py-3 text-slate-300" id="btn-tab-servicos">Serviços</button>
 
             <button onclick="switchTab('tab-sobre')" class="hidden flex-none px-4 py-3 text-slate-300" id="btn-tab-sobre">Sobre</button>
-
-            <button onclick="switchTab('tab-developer')" ondblclick="alternarAbaParametrizacoes()" class="hidden flex-none px-4 py-3 text-red-400 font-bold bg-emerald-950 border-l border-red-900/50" id="btn-tab-developer">⚙️ DEV</button>
-
-            <button onclick="switchTab('tab-parametrizacoes')" class="hidden flex-none px-4 py-3 text-amber-400 font-bold bg-emerald-950 border-l border-amber-900/50" id="btn-tab-parametrizacoes">🧩 Configurações</button>
 
         </nav>
 
@@ -3085,184 +3098,49 @@
 
         </section>
 
-        <!-- ================= ABA OCULTA: DEVELOPER CENTRALLOG ================= -->
-
-        <section id="tab-developer" class="tab-content">
-
-            <h2 class="text-lg font-bold raiz-text-pine mb-4">⚙️ Central do Desenvolvedor</h2>
-
-            <p class="text-[11px] text-gray-500 mb-4">Aba de depuração ativada. Use as ferramentas abaixo para monitorar a gravação de contratos e a integridade do banco.</p>
-
-            <button onclick="switchTab('tab-parametrizacoes')" class="w-full bg-amber-500 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition mb-4">
-                🧩 Ir para Parametrizações (Empreendimentos e Tipos de Imóvel)
-            </button>
-
-            <button onclick="trocarEmpresa()" class="w-full bg-indigo-600 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition mb-4">
-                🏢 Trocar Empresa (empresa atual: <span id="dev-nome-empresa-atual">-</span>)
-            </button>
-
-            <!-- ============ NOVA SEÇÃO: LICENÇA DA EMPRESA (Fase 1A — v1.39.0) ============ -->
-            <div class="bg-purple-50 border-2 border-purple-300 p-3 rounded-xl mb-4">
-                <p class="text-xs font-black text-purple-700 mb-2">🎫 Licença desta empresa</p>
-                <div id="dev-licenca-box">
-                    <p class="text-[11px] text-slate-500">Carregando...</p>
-                </div>
-            </div>
-
-            <div class="bg-red-50 border-2 border-red-300 p-3 rounded-xl mb-4">
-
-                <p class="text-xs font-black text-red-700 mb-1"><svg data-lucide="alert-triangle" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Importar Carga Inicial</p>
-
-                <p class="text-[11px] text-red-600 mb-2">Isso APAGA todos os imóveis, contratos e administradoras atuais e substitui pelos dados da planilha. Não pode ser desfeito.</p>
-
-                <input type="file" id="carga-inicial-input" accept=".xlsx,.xls" class="hidden" onchange="processarCargaInicial(this)">
-
-                <button onclick="document.getElementById('carga-inicial-input').click()" class="offline-disable w-full bg-red-600 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">📥 Escolher Planilha de Carga</button>
-
-            </div>
-
-            <div id="dev-limpar-sistema-secao" class="hidden bg-red-100 border-2 border-red-500 p-3 rounded-xl mb-4">
-
-                <p class="text-xs font-black text-red-800 mb-1">☠️ Limpar Sistema (só master)</p>
-
-                <p class="text-[11px] text-red-700 mb-2">Apaga TODOS os imóveis, contratos, mensalidades, repasses, pendências de extrato, prestadores, histórico, documentos no Storage e fotos desta empresa (<strong id="dev-limpar-nome-empresa">-</strong>). A empresa em si e os usuários/pessoas cadastrados NÃO são apagados. Não pode ser desfeito.</p>
-
-                <button onclick="limparSistemaEmpresaAtual()" class="w-full bg-red-800 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">☠️ Limpar Sistema desta Empresa</button>
-
-            </div>
-
-            <!-- FASE 1A (v1.39.5) — apagar a empresa por completo, incluindo
-                 todos os acessos (pessoas). Só aparece pra master, e o botão
-                 fica desabilitado até os dados já terem sido limpos (checagem
-                 ao vivo, não é só uma flag de sessão — funciona mesmo se
-                 "Limpar Sistema" tiver rodado numa sessão anterior). -->
-            <div id="dev-apagar-empresa-secao" class="hidden bg-red-200 border-2 border-red-700 p-3 rounded-xl mb-4">
-
-                <p class="text-xs font-black text-red-900 mb-1">🗑️ Apagar Empresa e Acessos (só master)</p>
-
-                <p class="text-[11px] text-red-800 mb-2">Apaga a empresa (<strong id="dev-apagar-nome-empresa">-</strong>) e TODOS os acessos/usuários vinculados a ela — inclusive o seu, só nesta empresa (seu login master continua funcionando normalmente nas outras). Só disponível depois de "Limpar Sistema desta Empresa". Não pode ser desfeito.</p>
-
-                <button onclick="apagarEmpresaCompleta()" class="w-full bg-red-900 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">🗑️ Apagar Empresa e Acessos</button>
-
-            </div>
-
-            <div class="bg-red-50 border-2 border-red-300 p-3 rounded-xl mb-4">
-
-                <p class="text-xs font-black text-red-700 mb-2">📋 Log do Sistema</p>
-
-                <div class="flex gap-2 mb-3">
-
-                    <button onclick="copiarLogsDoDesenvolvedor()" class="flex-1 bg-red-600 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">📋 Copiar Logs de Erro</button>
-
-                    <button onclick="limparLogsDoDesenvolvedor()" class="bg-white text-red-700 font-bold text-xs py-2.5 px-4 rounded-lg border border-red-300 active:scale-95 transition">Limpar</button>
-
-                </div>
-
-                <div class="bg-white p-3 rounded-lg border border-red-200 text-slate-700 font-mono text-[11px] space-y-2 max-h-96 overflow-y-auto" id="dev-detailed-log-box">
-
-                    <p class="text-red-600">// Central de Logs activa. Iniciando captura de escopos...</p>
-
-                </div>
-
-            </div>
-
-        
-            <!-- ============ NOVA SEÇÃO: E-MAIL MANUAL ============ -->
-            <div class="raiz-bg-sprout-light border-2 border-emerald-300 p-3 rounded-xl mb-4">
-                <p class="text-xs font-black raiz-text-pine mb-2">📧 Disparar E-mail Manual (Teste)</p>
-                <div class="space-y-2">
-                    <select id="dev-email-tipo" class="w-full p-2 border rounded bg-white text-sm">
-                        <option value="">-- Selecione o tipo de e-mail --</option>
-                        <option value="dia05">📊 Email Resultado (Evolução da Carteira)</option>
-                        <option value="dia01">📌 Email Lembrete (Fechamento de Mês)</option>
-                    </select>
-                    <input type="email" id="dev-email-destino" placeholder="E-mail de destino (teste)" class="w-full p-2 border rounded text-sm">
-                    <button onclick="dev_dispararEmailManual()" class="w-full raiz-bg-pine text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">
-                        🚀 Disparar E-mail de Teste
-                    </button>
-                </div>
-            </div>
-
-            <!-- ============ NOVA SEÇÃO: ENVIO AUTOMÁTICO ============ -->
-            <div class="bg-teal-50 border-2 border-teal-300 p-3 rounded-xl mb-4">
-                <p class="text-xs font-black text-teal-700 mb-2">🤖 Envio Automático de E-mails</p>
-                <p class="text-[11px] text-teal-800 mb-2">Quando ativado, envia automaticamente o Lembrete e o Resultado, às 08h, nos dias configurados abaixo, para os sócios cadastrados que optaram por receber cada um.</p>
-                <div class="grid grid-cols-2 gap-2 mb-2">
-                    <div>
-                        <label class="block text-[10px] font-bold text-teal-700 uppercase">Dia — Email Lembrete</label>
-                        <input type="number" id="dev-dia-email01" min="1" max="28" value="1" class="w-full p-1.5 border rounded text-sm bg-white">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-teal-700 uppercase">Dia — Email Resultado</label>
-                        <input type="number" id="dev-dia-email15" min="1" max="28" value="15" class="w-full p-1.5 border rounded text-sm bg-white">
-                    </div>
-                </div>
-                <button onclick="dev_salvarDiasEmail()" class="w-full bg-white text-teal-700 border border-teal-300 font-bold text-xs py-2 rounded-lg shadow-sm active:scale-95 transition mb-2">
-                    💾 Salvar Dias
-                </button>
-                <div id="dev-envio-auto-status" class="text-center text-xs font-bold py-2 rounded-lg mb-2 bg-gray-100 text-gray-500">Verificando status...</div>
-                <button id="dev-envio-auto-btn" onclick="dev_toggleEnvioAutomatico()" class="w-full bg-teal-600 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition">
-                    Carregando...
-                </button>
-            </div>
-
-            <!-- ============ NOVA SEÇÃO: LOGS DO SISTEMA (Supabase, log_acessos) ============ -->
-            <div class="bg-slate-100 border-2 border-slate-400 p-3 rounded-xl mb-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <p class="text-xs font-black text-slate-700 flex-1">📋 Logs do Sistema</p>
-                    <button onclick="dev_carregarLogsSistema()" class="text-[10px] bg-white border border-slate-300 px-2 py-1 rounded font-bold text-slate-600">🔄 Atualizar</button>
-                </div>
-                <div class="grid grid-cols-2 gap-1.5 mb-2">
-                    <select id="dev-log-filtro-pessoa" onchange="dev_carregarLogsSistema()" class="text-[11px] p-1.5 border rounded bg-white h-[30px] box-border">
-                        <option value="">Todos os usuários</option>
-                    </select>
-                    <select id="dev-log-filtro-entidade" onchange="dev_carregarLogsSistema()" class="text-[11px] p-1.5 border rounded bg-white h-[30px] box-border">
-                        <option value="">Todas as áreas</option>
-                    </select>
-                    <select id="dev-log-filtro-acao" onchange="dev_carregarLogsSistema()" class="text-[11px] p-1.5 border rounded bg-white h-[30px] box-border">
-                        <option value="">Todas as ações</option>
-                    </select>
-                    <div></div>
-                    <input type="date" id="dev-log-filtro-data-inicio" onchange="dev_carregarLogsSistema()" class="text-[11px] p-1.5 border rounded bg-white h-[30px] box-border" title="De">
-                    <input type="date" id="dev-log-filtro-data-fim" onchange="dev_carregarLogsSistema()" class="text-[11px] p-1.5 border rounded bg-white h-[30px] box-border" title="Até">
-                </div>
-                <div id="dev-logs-sistema-lista" class="bg-white rounded border border-slate-300 max-h-64 overflow-y-auto text-[11px] font-mono">
-                    <p class="p-2 text-gray-500">Carregando logs...</p>
-                </div>
-            </div>
-
-            <!-- ============ NOVA SEÇÃO: GERENCIADOR DE LINKS ============ -->
-            <div class="bg-purple-50 border-2 border-purple-300 p-3 rounded-xl mb-4">
-                <p class="text-xs font-black text-purple-700 mb-2">🔗 Gerenciador de Links da Vitrine</p>
-                <div id="dev-links-lista" class="bg-white rounded border border-purple-200 max-h-48 overflow-y-auto text-[11px] mb-2">
-                    <p class="p-2 text-gray-500">Carregando links...</p>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="dev_apagarLinksExpirados()" class="flex-1 bg-amber-600 text-white font-bold text-xs py-2 rounded-lg shadow active:scale-95 transition">
-                        ⏰ Apagar Expirados
-                    </button>
-                    <button onclick="dev_apagarTodosLinks()" class="flex-1 bg-red-600 text-white font-bold text-xs py-2 rounded-lg shadow active:scale-95 transition">
-                        💣 Apagar Todos
-                    </button>
-                </div>
-            </div>
-
-        </section>
-        <!-- ↑ Fecha tab-developer. A aba Serviços abaixo é independente, não aninhada. -->
-
-        <section id="tab-parametrizacoes" class="tab-content hidden">
-
-            <h2 class="text-lg font-bold text-amber-900 mb-4">🧩 Parametrizações</h2>
-
-            <p class="text-[11px] text-gray-500 mb-4">Estes cadastros agora têm telas próprias, acessíveis pelo menu de Conta.</p>
-
-            <button onclick="switchTab('tab-minha-empresa')" class="w-full bg-white border border-slate-300 text-slate-700 font-bold text-xs py-3 rounded-lg shadow-sm active:scale-95 transition mb-2">🏢 Minha Empresa</button>
-
-            <button onclick="switchTab('tab-tipo-empreendimento')" class="w-full bg-white border border-slate-300 text-slate-700 font-bold text-xs py-3 rounded-lg shadow-sm active:scale-95 transition mb-2">🏘️ Tipo de Empreendimento</button>
-
-            <button onclick="switchTab('tab-tipo-imovel')" class="w-full bg-white border border-slate-300 text-slate-700 font-bold text-xs py-3 rounded-lg shadow-sm active:scale-95 transition">🏠 Tipo de Imóvel</button>
-
-        </section>
+        <!-- ================= FIM DO MÓDULO APP-DEV (bc9df144, 17/09/2026) =================
+             v1.199.0 — tab-developer e tab-parametrizacoes ELIMINADAS por completo
+             (CAN-05, o que foi eliminado, explicitamente):
+               - gesto de 2 cliques na logo → nenhum substituto, é pra nunca mais existir.
+               - "Ir para Parametrizações" (atalho pros 2 botões abaixo) → eliminado
+                 junto (mesmo destino que os botões que ele abria).
+               - "Trocar Empresa" → sai por ora (App > Conta > Empresa perde o item;
+                 função trocarEmpresa() removida). Volta redesenhado em ccd04ad4
+                 (multi-empresa/family office).
+               - Box "Licença desta empresa" (dev-licenca-box/dev_carregarLicenca) →
+                 eliminado; a informação já mora em tab-licenca (App > Conta > Empresa
+                 > "Licença e uso", tela própria — essa NÃO mudou, continua existindo).
+               - "Importar Carga Inicial" → ELIMINADA sem substituto nesta sessão
+                 (achado técnico: depende de saveAll()/estado em memória do App,
+                 não é portável pro Gestão sem redesenho). Registrado em 2fb2153a.
+               - "Limpar Sistema desta Empresa" → ELIMINADA sem substituto nesta
+                 sessão (achado técnico mais grave: já está quebrada em produção
+                 desde a v1.197.0 — tenta `DELETE FROM imoveis`, que virou VIEW de
+                 compatibilidade no Caminho B; quem rodasse hoje apagava metade dos
+                 dados old-model e travava, sem tocar cofre_ativos/cofre_documentos/
+                 cofre_itens_controle nenhuma vez). Registrado em 2fb2153a pra
+                 reconstruir contra o modelo atual.
+               - Botões "Ir pra Parametrizações" (Tipo de Empreendimento/Tipo de
+                 Imóvel) → eliminados; os cadastros de verdade já são telas próprias
+                 (tab-tipo-empreendimento/tab-tipo-imovel, js/cadastros.js),
+                 alcançadas por Menu Conta › Cadastros › "Tipos e modelos". Só a
+                 porta de entrada duplicada do app-dev saiu — nada foi tocado no
+                 catálogo nem nas telas em si.
+               - "Apagar Empresa e Acessos" → MIGROU para Gestão › Empresas › ficha
+                 da empresa (chama a mesma fn_apagar_empresa_completa, intocada).
+               - "Log do Sistema" (erros, client-side, copiar/limpar) → eliminado.
+                 Retomada é demanda própria (23bbc9ca), junto da frente de suporte.
+               - "Disparar E-mail Manual" e "Envio Automático de E-mails" → MIGRARAM
+                 para Gestão › Comunicações › modo "Pessoas" (por empresa).
+               - "Logs do Sistema" (Supabase, log_acessos, com filtros) → o acesso
+                 de cada pessoa passa a viver em App > Conta > Pessoas e acessos
+                 (atalho "Acessos recentes" por pessoa); a auditoria completa,
+                 multi-pessoa e com filtro por área/ação, é o Gestão > Empresas.
+               - "Gerenciador de Links da Vitrine" → MIGROU para App > Conta >
+                 Empresa > "Gerenciador de links da vitrine" (só admin/master),
+                 mesmas 2 ações em massa + revogar 1 link, na gramática atual
+                 (ver tab-links-vitrine, mais abaixo). -->
+        <!-- ↑ A aba Serviços abaixo é independente, não aninhada. -->
 
 
 
@@ -3493,6 +3371,22 @@
             <div id="mount-licenca"></div>
         </section>
 
+        <!-- v1.199.0 (bc9df144, item 11) — Gerenciador de links da vitrine,
+             migrado do app-dev pra cá (App > Conta > Empresa), só admin
+             (codigo vitrine.links.gerenciar no catálogo). Mesmo escopo de
+             hoje — nada evoluído (decisão do Nicola, 17/09): apagar
+             expirados, apagar todos, revogar 1 link — agora na gramática
+             atual (rz-row + Sheet de ações, sem tabela HTML crua). -->
+        <section id="tab-links-vitrine" class="tab-content hidden">
+            <div class="rz-tabhead" style="display:flex;align-items:center;gap:8px">
+                <p style="flex:1">Links compartilháveis da Vitrine gerados por esta empresa.</p>
+                <button type="button" class="rz-more" onclick="abrirAcoesLinksVitrine()" aria-label="Mais ações">
+                    <svg data-lucide="ellipsis-vertical"></svg>
+                </button>
+            </div>
+            <div class="rz-card rz-list" id="lista-links-vitrine"></div>
+        </section>
+
     </main>
 
     <!-- ================= MODAL CENTRAL DE OPÇÕES ================= -->
@@ -3591,7 +3485,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.198.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.199.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4386,8 +4280,6 @@
 
         let syncSuccess = false; 
 
-        let isDevModeActive = false;
-
         let activeMenId = null;
 
         let activeConId = null;
@@ -4420,75 +4312,20 @@
         }
 
         // --- SISTEMA DE LOGS DO DESENVOLVEDOR ---
-
-        const MAX_LOG_ENTRIES = 200; // limite de entradas mantidas em tela/memória por log
-
-        let devLogEntries = [];      // buffer do log detalhado (Central Dev)
+        // v1.199.0 (bc9df144, item 10) — "Log do Sistema" (a caixa
+        // dev-detailed-log-box, com Copiar/Limpar) foi ELIMINADO junto do
+        // app-dev; retomada é demanda própria (23bbc9ca). devLog() continua
+        // existindo — é chamado de ~20 lugares fora do app-dev (fotos,
+        // sincronização, etc.) — mas vira ponte fina pro console de
+        // diagnóstico (logScreen), já que não há mais caixa nenhuma pra
+        // desenhar. QUA-01: eliminar o corpo morto (buffer/HTML que
+        // ninguém mais lê) em vez de deixar `if(!container) return` como
+        // única prova de que a função virou um no-op parcial.
 
         let screenLogEntries = [];   // buffer do console de diagnóstico
 
         function devLog(origin, message, objectPayload = null) {
-
-            const container = document.getElementById('dev-detailed-log-box');
-
-            if(!container) return;
-
-            
-
-            const time = new Date().toLocaleTimeString('pt-BR');
-
-            let payloadStr = '';
-
-            
-
-            if(objectPayload) {
-
-                try {
-
-                    payloadStr = `<pre class="bg-slate-50 p-1.5 rounded text-[11px] mt-1 border border-slate-200 text-amber-700 overflow-x-auto">${JSON.stringify(objectPayload, null, 2)}</pre>`;
-
-                } catch(e) {
-
-                    payloadStr = `<span class="text-red-600">[Falha stringify: ${e.message}]</span>`;
-
-                }
-
-            }
-
-            const entryHtml = `
-
-                <div class="border-b border-gray-200 pb-1.5">
-
-                    <span class="text-red-600 font-bold">[${time}]</span> 
-
-                    <span class="bg-slate-200 text-slate-800 px-1 py-0.2 rounded font-black text-[11px] uppercase tracking-wider">${origin}</span> 
-
-                    <span class="text-slate-700 ml-1">${message}</span>
-
-                    ${payloadStr}
-
-                </div>
-
-            `;
-
-            devLogEntries.push(entryHtml);
-
-            // Limpeza automática: mantém somente as últimas MAX_LOG_ENTRIES entradas,
-
-            // evitando que o log cresça indefinidamente e comprometa a performance/memória.
-
-            if (devLogEntries.length > MAX_LOG_ENTRIES) {
-
-                devLogEntries = devLogEntries.slice(devLogEntries.length - MAX_LOG_ENTRIES);
-
-            }
-
-            container.innerHTML = devLogEntries.join('');
-
-            container.scrollTop = container.scrollHeight;
-
-            logScreen(`[DEV][${origin}] ${message}`);
-
+            logScreen(`[DEV][${origin}] ${message}${objectPayload ? ' ' + JSON.stringify(objectPayload) : ''}`);
         }
 
         let timerCliqueLogo = null;
@@ -4508,193 +4345,10 @@
 
         }
 
-        function cancelarCliqueLogoEAbrirDev() {
-
-            if (timerCliqueLogo) { clearTimeout(timerCliqueLogo); timerCliqueLogo = null; }
-
-            ativarModoDesenvolvedor();
-
-        }
-
-        function ativarModoDesenvolvedor() {
-
-            // CORRIGIDO — checava o perfil "admin", que não existe mais desde a
-            // introdução do sistema de perfis (master_plataforma/master/operador/
-            // consulta). DEV é liberado para master e master_plataforma.
-            if (!podeUsar('dev.acessar').ok) { // v1.124 — era perfil chumbado
-
-                alert("🔒 Só perfis master têm acesso ao modo desenvolvedor.");
-
-                return;
-
-            }
-
-            if (isDevModeActive) {
-
-                // Já estava ativo — o duplo clique agora desativa.
-
-                isDevModeActive = false;
-
-                document.getElementById('btn-tab-developer').classList.add('hidden');
-                document.getElementById('btn-tab-parametrizacoes').classList.add('hidden');
-
-                // Se o usuário estava dentro da aba DEV ou Parametrizações, volta pra Imóveis.
-
-                if (document.getElementById('tab-developer').classList.contains('active') || document.getElementById('tab-parametrizacoes').classList.contains('active')) {
-
-                    switchTab('tab-imoveis');
-
-                }
-
-                devLog("SISTEMA", "Modo desenvolvedor desativado por duplo clique no Header.");
-
-                alert("⚙️ Central de Desenvolvedor desativada.");
-
-                return;
-
-            }
-
-            isDevModeActive = true;
-
-            document.getElementById('btn-tab-developer').classList.remove('hidden');
-
-            devLog("SISTEMA", "Modo desenvolvedor ativado por duplo clique no Header.");
-
-            alert("⚙️ Central de Desenvolvedor ATIVADA com sucesso!\n\nDica: dê duplo clique na aba \"⚙️ DEV\" para abrir também a aba de Parametrizações.");
-
-        }
-
-        // Segunda aba oculta — duplo clique no botão DEV (já visível depois de
-        // ativarModoDesenvolvedor) libera "Parametrizações" ao lado dele.
-        function alternarAbaParametrizacoes() {
-
-            if (!podeUsar('dev.acessar').ok) return; // v1.124
-
-            const btn = document.getElementById('btn-tab-parametrizacoes');
-
-            if (btn.classList.contains('hidden')) {
-                btn.classList.remove('hidden');
-                devLog("SISTEMA", "Aba Parametrizações liberada por duplo clique.");
-            } else {
-                btn.classList.add('hidden');
-                if (document.getElementById('tab-parametrizacoes').classList.contains('active')) {
-                    switchTab('tab-developer');
-                }
-            }
-
-        }
-
-        function copiarLogsDoDesenvolvedor() {
-
-            const container = document.getElementById('dev-detailed-log-box');
-
-            if(!container) return;
-
-            const textToCopy = container.innerText;
-
-            function baixarComoArquivo() {
-
-                try {
-
-                    const blob = new Blob([textToCopy], { type: 'text/plain;charset=utf-8' });
-
-                    const url = URL.createObjectURL(blob);
-
-                    const a = document.createElement('a');
-
-                    a.href = url;
-
-                    a.download = `rumo-log-${Date.now()}.txt`;
-
-                    document.body.appendChild(a);
-
-                    a.click();
-
-                    document.body.removeChild(a);
-
-                    setTimeout(() => URL.revokeObjectURL(url), 2000);
-
-                    alert("📄 Não foi possível copiar automaticamente. Baixei o log como arquivo .txt — envie esse arquivo aqui na conversa.");
-
-                } catch (e2) {
-
-                    alert("⚠️ Não foi possível copiar nem baixar o log: " + e2.message);
-
-                }
-
-            }
-
-            function copiarComExecCommand() {
-
-                try {
-
-                    const textarea = document.createElement('textarea');
-
-                    textarea.value = textToCopy;
-
-                    textarea.style.position = 'fixed';
-
-                    textarea.style.left = '-9999px';
-
-                    textarea.style.top = '0';
-
-                    document.body.appendChild(textarea);
-
-                    textarea.focus();
-
-                    textarea.select();
-
-                    const ok = document.execCommand('copy');
-
-                    document.body.removeChild(textarea);
-
-                    if (ok) {
-
-                        alert("📋 Logs copiados para a área de transferência! Cole aqui na nossa conversa.");
-
-                    } else {
-
-                        baixarComoArquivo();
-
-                    }
-
-                } catch (e) {
-
-                    baixarComoArquivo();
-
-                }
-
-            }
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-
-                navigator.clipboard.writeText(textToCopy).then(() => {
-
-                    alert("📋 Logs copiados para a área de transferência! Cole aqui na nossa conversa.");
-
-                }).catch(() => {
-
-                    copiarComExecCommand();
-
-                });
-
-            } else {
-
-                copiarComExecCommand();
-
-            }
-
-        }
-
-        function limparLogsDoDesenvolvedor() {
-
-            const container = document.getElementById('dev-detailed-log-box');
-
-            devLogEntries = [];
-
-            if(container) container.innerHTML = '<p class="text-red-600">// Central de Logs reiniciada.</p>';
-
-        }
+        // v1.199.0 (bc9df144, item 1) — cancelarCliqueLogoEAbrirDev(),
+        // ativarModoDesenvolvedor() e alternarAbaParametrizacoes() foram
+        // ELIMINADAS. NUNCA mais o duplo clique na logo abre nada — não
+        // há substituto, é pra ser assim.
 
         // --- MOTOR DE LOGS NA TELA ---
 
@@ -6308,9 +5962,11 @@
         // por js/comum-minha-empresa.js (módulo compartilhado — mesmo
         // algoritmo de recorte/transparência da assinatura, copiado fiel).
         // dev_carregarDadosEmpresa() vira ponte fina: nome mantido de
-        // propósito porque dev_param_inicializar() (Parametrizações) ainda
-        // chama ela — único call site externo que sobrou (os outros eram
-        // todos internos ao próprio bloco removido).
+        // propósito. Até v1.198.0 tinha 2 call sites externos (o dispatcher
+        // de tab-minha-empresa e dev_param_inicializar(), da extinta
+        // Parametrizações); v1.199.0 (bc9df144) eliminou dev_param_inicializar()
+        // junto com o resto do app-dev — só o dispatcher de tab-minha-empresa
+        // chama esta ponte agora.
         function dev_carregarDadosEmpresa() {
             const mount = document.getElementById('mount-minha-empresa');
             if (!mount) return;
@@ -6352,9 +6008,6 @@
         }
 
 
-        function dev_param_inicializar() {
-            dev_carregarDadosEmpresa();
-        }
         // v1.120.0 (fatia 7b-ii) — ponte pro js/cadastros.js: as regras de
         // "em uso" continuam as MESMAS da tela antiga (arrays em memória
         // do index), e aoAlterar recarrega os arrays + selects do
@@ -7627,14 +7280,8 @@
             entrarNaEmpresa(pessoaRow);
         }
 
-        // "Trocar empresa" (aba DEV) — o jeito mais simples e confiável de
-        // reiniciar o fluxo de escolha: recarrega a página. A sessão do
-        // Supabase continua válida (fica salva no navegador), então
-        // verificarAcessoEEntrar() roda de novo sozinha e mostra a escolha.
-        function trocarEmpresa() {
-            if (!confirm("Trocar de empresa? A página vai recarregar.")) return;
-            location.reload();
-        }
+        // v1.199.0 (bc9df144, item 7) — trocarEmpresa() ELIMINADA junto do
+        // item do Menu Conta. Volta redesenhada em ccd04ad4 (multi-empresa).
 
         async function fazerLogoutSupabase() {
             registrarLog('logout', { nome: socioLogado });
@@ -7912,9 +7559,13 @@
 
                         rzMinSeCarregado('renderMinutas');
 
-                        dev_carregarLogsSistema();
-
-                        dev_carregarLinks();
+                        // v1.199.0 (bc9df144) — dev_carregarLogsSistema() eliminada
+                        // (ver CAN-05, linha ~3085); dev_carregarLinks() virou
+                        // carregarLinksVitrine() (só re-renderiza se a aba
+                        // tab-links-vitrine estiver de fato aberta, mesmo padrão
+                        // de auto-proteção que as demais chamadas deste bloco já
+                        // usam via rz*SeCarregado/checagem de aba ativa).
+                        if (document.querySelector('.tab-content.active')?.id === 'tab-links-vitrine') carregarLinksVitrine();
 
                         dev_renderPessoas();
 
@@ -8671,143 +8322,14 @@
             }
         }
 
-        // ---------------- DEV: PAINEL DE LICENÇA (só empresa selecionada) ----------------
-
-        async function dev_carregarLicenca() {
-            const box = document.getElementById('dev-licenca-box');
-            if (!box) return;
-            if (!CLIENTE_ID_SUPABASE) { box.innerHTML = '<p class="text-[11px] text-slate-500">Nenhuma empresa carregada.</p>'; return; }
-            box.innerHTML = '<p class="text-[11px] text-slate-500">Carregando...</p>';
-            try {
-                const { data: lic, error } = await dbAuth
-                    .from('licencas')
-                    .select('*')
-                    .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                    .eq('modulo', 'imoveis')
-                    .maybeSingle();
-                if (error) throw error;
-                if (!lic) {
-                    box.innerHTML = '<p class="text-[11px] text-slate-500">Esta empresa não tem licença cadastrada pro módulo Imóveis.</p>';
-                    return;
-                }
-                LICENCA_ATUAL = lic;
-
-                const [limIm, limCon] = await Promise.all([
-                    dbAuth.rpc('fn_verificar_limite', { p_cliente_id: CLIENTE_ID_SUPABASE, p_modulo: 'imoveis', p_funcionalidade: 'imoveis.criar' }),
-                    dbAuth.rpc('fn_verificar_limite', { p_cliente_id: CLIENTE_ID_SUPABASE, p_modulo: 'imoveis', p_funcionalidade: 'contratos.criar' })
-                ]);
-                const li = Array.isArray(limIm.data) ? limIm.data[0] : limIm.data;
-                const lc = Array.isArray(limCon.data) ? limCon.data[0] : limCon.data;
-
-                const badgeStatus = lic.status === 'ativo'
-                    ? '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[10px] font-bold">ATIVO</span>'
-                    : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">' + lic.status.toUpperCase() + '</span>';
-
-                const dataExpiracaoInput = lic.data_expiracao ? lic.data_expiracao.substring(0, 10) : '';
-
-                box.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-black text-slate-700">Plano: ${lic.plano_codigo}</span>
-                        ${badgeStatus}
-                    </div>
-                    <p class="text-[11px] text-slate-600 mb-2">Início: ${lic.data_inicio ? new Date(lic.data_inicio).toLocaleDateString('pt-BR') : '-'}</p>
-
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Data de expiração</label>
-                    <input type="date" id="dev-licenca-data-expiracao" value="${dataExpiracaoInput}" class="w-full text-[11px] border rounded px-2 py-1.5 mb-1 box-border">
-                    <button onclick="dev_salvarDataExpiracao('${lic.id}')" class="w-full bg-slate-700 text-white text-[11px] font-bold py-1.5 rounded-lg mb-1.5">Salvar data</button>
-                    <button onclick="dev_estenderTrial('${lic.id}')" class="w-full bg-amber-500 text-white font-bold text-[11px] py-1.5 rounded-lg mb-3">
-                        ⏱ Estender +7 dias
-                    </button>
-
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Limite de imóveis (vazio = usa o do plano)</label>
-                    <input type="number" min="0" id="dev-licenca-limite-imoveis" value="${lic.limite_imoveis ?? ''}" placeholder="${li && li.limite !== null ? li.limite : '∞'}" class="w-full text-[11px] border rounded px-2 py-1.5 mb-1.5 box-border">
-
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-0.5">Limite de contratos</label>
-                    <input type="number" min="0" id="dev-licenca-limite-contratos" value="${lic.limite_contratos ?? ''}" placeholder="${lc && lc.limite !== null ? lc.limite : '∞'}" class="w-full text-[11px] border rounded px-2 py-1.5 mb-1.5 box-border">
-
-                    <button onclick="dev_salvarLimitesLicenca('${lic.id}')" class="w-full bg-slate-700 text-white text-[11px] font-bold py-1.5 rounded-lg mb-2">Salvar limites</button>
-
-                    <p class="text-[11px] text-slate-600 mb-1">Uso atual — Imóveis: ${li ? (li.usado + (li.limite !== null ? (' / ' + li.limite) : ' (sem limite)')) : '-'}</p>
-                    <p class="text-[11px] text-slate-600 mb-3">Uso atual — Contratos: ${lc ? (lc.usado + (lc.limite !== null ? (' / ' + lc.limite) : ' (sem limite)')) : '-'}</p>
-
-                    <div class="flex gap-2">
-                        <button onclick="dev_alternarStatusLicenca('${lic.id}', '${lic.status}')" class="flex-1 bg-slate-700 text-white font-bold text-[11px] py-2 rounded-lg">
-                            ${lic.status === 'ativo' ? '⏸ Desligar' : '▶ Ligar'}
-                        </button>
-                        <button onclick="registrarInteresseContratacao('dev_manual')" class="flex-1 bg-emerald-700 text-white font-bold text-[11px] py-2 rounded-lg">
-                            📞 Quero Contratar
-                        </button>
-                    </div>
-                `;
-            } catch (err) {
-                box.innerHTML = '<p class="text-[11px] text-red-600">Erro ao carregar licença: ' + err.message + '</p>';
-            }
-        }
-
-        // FASE 1A (v1.39.4) — controles de licença no DEV
-        async function dev_estenderTrial(licencaId) {
-            try {
-                const { data: atual, error: errSel } = await dbAuth.from('licencas').select('data_expiracao').eq('id', licencaId).single();
-                if (errSel) throw errSel;
-                const base = atual.data_expiracao ? new Date(atual.data_expiracao) : new Date();
-                base.setDate(base.getDate() + 7);
-                const { error } = await dbAuth.from('licencas').update({ data_expiracao: base.toISOString() }).eq('id', licencaId);
-                if (error) throw error;
-                mostrarToast('Trial estendido por mais 7 dias.', 'success');
-                dev_carregarLicenca();
-            } catch (err) {
-                mostrarToast('Erro ao estender trial.', 'danger');
-                console.warn(err.message);
-            }
-        }
-
-        async function dev_salvarDataExpiracao(licencaId) {
-            const input = document.getElementById('dev-licenca-data-expiracao');
-            if (!input || !input.value) { mostrarToast('Escolhe uma data.', 'danger'); return; }
-            try {
-                const { error } = await dbAuth.from('licencas').update({ data_expiracao: new Date(input.value + 'T23:59:59').toISOString() }).eq('id', licencaId);
-                if (error) throw error;
-                mostrarToast('Data de expiração atualizada.', 'success');
-                dev_carregarLicenca();
-            } catch (err) {
-                mostrarToast('Erro ao salvar data.', 'danger');
-                console.warn(err.message);
-            }
-        }
-
-        async function dev_salvarLimitesLicenca(licencaId) {
-            const campoIm = document.getElementById('dev-licenca-limite-imoveis');
-            const campoCon = document.getElementById('dev-licenca-limite-contratos');
-            const limiteImoveis = campoIm.value !== '' ? parseInt(campoIm.value, 10) : null;
-            const limiteContratos = campoCon.value !== '' ? parseInt(campoCon.value, 10) : null;
-            try {
-                const { error } = await dbAuth.from('licencas').update({
-                    limite_imoveis: limiteImoveis,
-                    limite_contratos: limiteContratos
-                }).eq('id', licencaId);
-                if (error) throw error;
-                mostrarToast('Limites atualizados.', 'success');
-                dev_carregarLicenca();
-            } catch (err) {
-                mostrarToast('Erro ao salvar limites.', 'danger');
-                console.warn(err.message);
-            }
-        }
-
-
-        async function dev_alternarStatusLicenca(licencaId, statusAtual) {
-            const novoStatus = statusAtual === 'ativo' ? 'suspenso' : 'ativo';
-            if (!confirm('Mudar status da licença para "' + novoStatus + '"?')) return;
-            try {
-                const { error } = await dbAuth.from('licencas').update({ status: novoStatus }).eq('id', licencaId);
-                if (error) throw error;
-                mostrarToast('Status da licença atualizado.', 'success');
-                dev_carregarLicenca();
-            } catch (err) {
-                mostrarToast('Erro ao atualizar licença.', 'danger');
-                console.warn('Erro ao alternar status da licença:', err.message);
-            }
-        }
+        // ---------------- DEV: PAINEL DE LICENÇA — ELIMINADO ----------------
+        // v1.199.0 (bc9df144, item 8, 17/09/2026) — dev_carregarLicenca()/
+        // dev_estenderTrial()/dev_salvarDataExpiracao()/dev_salvarLimitesLicenca()/
+        // dev_alternarStatusLicenca() removidas (só existiam pro box duplicado
+        // "dev-licenca-box", já eliminado do HTML — ver CAN-05, linha ~3085).
+        // A informação de licença já mora em tab-licenca (App > Conta >
+        // Empresa > "Licença e uso", via comum-licenca.js) — essa tela NÃO
+        // mudou, continua existindo e intocada.
 
         // ---------------- SOBRE: cartão de plano/licença ----------------
         // FASE 1A (v1.39.2). Chamado uma vez após o login (entrarNoSistema),
@@ -9256,9 +8778,11 @@
 
             devLog("NAVEGACAO", `Usuário acessou a aba: ${tabId}`);
 
-            // v7.3.2 — Carrega dados sob demanda ao abrir as abas DEV e Serviços
-            if (tabId === 'tab-developer' && typeof dev_inicializar === 'function') {
-                dev_inicializar();
+            // v1.199.0 (bc9df144) — tab-developer eliminada; dev_inicializar()
+            // não existe mais (ver CAN-05, linha ~3085). Gancho novo do que
+            // sobreviveu dela, na gramática atual:
+            if (tabId === 'tab-links-vitrine' && typeof carregarLinksVitrine === 'function') {
+                carregarLinksVitrine();
             }
             // R8 (fatia 4) — Vitrine sob demanda.
             if (tabId === 'tab-vitrine') {
@@ -9335,9 +8859,11 @@
                     montarAtivosTab(CLIENTE_ID_SUPABASE);
                 });
             }
-            if (tabId === 'tab-parametrizacoes' && typeof dev_param_inicializar === 'function') {
-                dev_param_inicializar();
-            }
+            // v1.199.0 (bc9df144) — tab-parametrizacoes eliminada;
+            // dev_param_inicializar() removida (só existia pra essa aba —
+            // ver CAN-05, linha ~3085). dev_carregarDadosEmpresa() continua
+            // chamada abaixo, direto pelo dispatcher de tab-minha-empresa,
+            // que é o único call site real que sobrou.
             // v1.41.3 — Pessoas/Cliente/Tipo Empreendimento/Tipo Imóvel viraram
             // telas próprias (antes viviam dentro de DEV/Parametrizações).
             // Reaproveita as mesmas funções de carregamento já existentes.
@@ -9540,7 +9066,11 @@
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
                         { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
-                        { icone: 'arrow-left-right', titulo: 'Trocar de empresa', aoTocar: trocarEmpresa }
+                        // v1.199.0 (bc9df144, item 11) — migrado do app-dev, só admin.
+                        { icone: 'link', titulo: 'Gerenciador de links da vitrine', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') }
+                        // v1.199.0 (bc9df144, item 7) — "Trocar de empresa" saiu por
+                        // ora (função trocarEmpresa() removida); volta redesenhado
+                        // em ccd04ad4 (multi-empresa/family office).
                     ]},
                     { titulo: 'Conta', acoes: [
                         { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
@@ -12724,304 +12254,16 @@
         }
 
         // ============================================================================
-
-        // IMPORTAÇÃO DE CARGA INICIAL (imóveis + contratos + administradoras)
-
+        // v1.199.0 (bc9df144) — IMPORTAÇÃO DE CARGA INICIAL ELIMINADA por
+        // completo (parseDataCarga/parseJsonCampoCarga/processarCargaInicial).
+        // Achado técnico: dependia de saveAll() e das variáveis globais em
+        // memória (imoveis/contratos/administradoras) — engine de boot
+        // inteira do App, não uma chamada isolada parametrizável por
+        // cliente_id. Não é portável pro Gestão sem redesenho (decisão do
+        // Nicola, 17/09/2026: eliminar sem substituto nesta sessão).
+        // Registrado em 2fb2153a — a rotina de verdade nasce lá, redesenhada.
         // ============================================================================
 
-        function parseDataCarga(valor) {
-
-            if (!valor) return '';
-
-            if (valor instanceof Date) return valor.toISOString().split('T')[0];
-
-            if (typeof valor === 'string') {
-
-                if (valor.includes('-')) return valor.split(' ')[0]; // já é yyyy-mm-dd
-
-                if (valor.includes('/')) { const [d, m, a] = valor.split('/'); return `${a}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`; }
-
-            }
-
-            if (typeof valor === 'number') {
-
-                const dataBase = new Date(Date.UTC(1899, 11, 30));
-
-                dataBase.setUTCDate(dataBase.getUTCDate() + Math.floor(valor));
-
-                return dataBase.toISOString().split('T')[0];
-
-            }
-
-            return '';
-
-        }
-
-        function parseJsonCampoCarga(valor, fallback) {
-
-            if (!valor) return fallback;
-
-            if (typeof valor === 'object') return valor;
-
-            try { return JSON.parse(valor); } catch(e) { return fallback; }
-
-        }
-
-        async function processarCargaInicial(inputElement) {
-
-            const file = inputElement.files[0];
-
-            if (!file) return;
-
-            if (!confirm("⚠️ ATENÇÃO: isso vai APAGAR todos os imóveis, contratos e administradoras atuais e substituir pelos dados desta planilha. Esta ação NÃO PODE SER DESFEITA. Confirma?")) {
-
-                inputElement.value = '';
-
-                return;
-
-            }
-
-            if (!confirm("Tem certeza mesmo? Essa é a ÚLTIMA confirmação antes de apagar os dados atuais.")) {
-
-                inputElement.value = '';
-
-                return;
-
-            }
-
-            mostrarCarregamentoGlobal("Processando carga inicial...");
-
-            try {
-
-                const buffer = await file.arrayBuffer();
-
-                const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
-
-                const nomeAba = workbook.SheetNames[0];
-
-                const linhas = XLSX.utils.sheet_to_json(workbook.Sheets[nomeAba], { header: 1, raw: true });
-
-                // Layout fixo de colunas (posição, não nome — a planilha tem cabeçalhos
-
-                // repetidos como "id"/"id.1" que não dá pra usar como chave única):
-
-                // 0:id 1:EMPREENDIMENTO 2:enderecoRua 3:enderecoNum 4:enderecoComp
-
-                // 5:enderecoBairro 6:enderecoCidade 7:tipo 8:tamanho 9:suites 10:banheiros
-
-                // 11:condominio 12:iptu 13:codigoIPTU 14:valor 15:fotos 16:divisao 17:status
-
-                // 18:manutencaoNome 19:manutencaoZap 20:energiaRumo 21:descricao
-
-                // 22:parteRumo(descricaoPropriedade) 23:valorMercado 24:txAdm 25:administradora
-
-                // 26:documentoAdministradora 27:id.1 28:imovelId 29:status(contrato)
-
-                // 30:locatario 31:docTipo 32:cpf 33:vencimentoDia 34:whatsapp 35:email
-
-                // 36:inicio 37:fim 38:valor(contrato) 39:valorAnterior 40:desconto
-
-                // 41:reajusteAplicado 42:reajuste 43:iptu(contrato) 44:historico
-
-                // 45:contatoNome 46:formaPagamento 47:descontoEnergia 48:anexos
-
-                // 49:condominioLocatario 50:descricao(contrato)
-
-                const novosImoveis = [];
-
-                const novosContratos = [];
-
-                const mapaAdministradoras = {};
-
-                for (let i = 1; i < linhas.length; i++) {
-
-                    const l = linhas[i];
-
-                    if (!l || l.length === 0 || !l[1]) continue; // sem empreendimento, ignora a linha
-
-                    const imovelId = 'imo_' + Date.now() + '_' + i;
-
-                    novosImoveis.push({
-
-                        id: imovelId,
-
-                        empreendimento: String(l[1] || '').trim(),
-
-                        enderecoRua: String(l[2] || '').trim(),
-
-                        enderecoNum: String(l[3] || '').trim(),
-
-                        enderecoComp: String(l[4] || '').trim(),
-
-                        enderecoBairro: String(l[5] || '').trim(),
-
-                        enderecoCidade: String(l[6] || '').trim(),
-
-                        tipo: String(l[7] || '').trim(),
-
-                        tamanho: parseFloat(l[8]) || 0,
-
-                        suites: parseInt(l[9]) || 0,
-
-                        banheiros: parseInt(l[10]) || 0,
-
-                        condominio: parseFloat(l[11]) || 0,
-
-                        iptu: parseFloat(l[12]) || 0,
-
-                        codigoIPTU: String(l[13] || '').trim(),
-
-                        valor: parseFloat(l[14]) || 0,
-
-                        fotos: [],
-
-                        divisao: parseJsonCampoCarga(l[16], { [SOCIO_PADRAO]: 100 }),
-
-                        status: String(l[17] || 'Vago').trim(),
-
-                        manutencaoNome: String(l[18] || '').trim(),
-
-                        manutencaoZap: String(l[19] || '').trim().replace(/\D/g, ''),
-
-                        energiaRumo: String(l[20] || 'Não').trim(),
-
-                        descricao: String(l[21] || '').trim(),
-
-                        parteRumo: parseJsonCampoCarga(l[22], { "Rumo": 100 }),
-
-                        valorMercado: parseFloat(l[23]) || 0
-
-                    });
-
-                    let administradoraId = '';
-
-                    const nomeAdm = String(l[25] || '').trim();
-
-                    if (nomeAdm) {
-
-                        const chave = nomeAdm.toUpperCase();
-
-                        if (!mapaAdministradoras[chave]) {
-
-                            mapaAdministradoras[chave] = {
-
-                                id: 'adm_' + Date.now() + '_' + i,
-
-                                nome: nomeAdm,
-
-                                docTipo: 'CNPJ',
-
-                                documento: String(l[26] || '').trim(),
-
-                                taxaAdm: (parseFloat(l[24]) || 0) * 100,
-
-                                escopo: ''
-
-                            };
-
-                        }
-
-                        administradoraId = mapaAdministradoras[chave].id;
-
-                    }
-
-                    const locatario = String(l[30] || '').trim();
-
-                    if (locatario) {
-
-                        let reajusteCarga = String(l[42] || 'IPCA').trim().toUpperCase();
-
-                        if (reajusteCarga === 'IGPM') reajusteCarga = 'IGP-M';
-
-                        const dataInicioCarga = parseDataCarga(l[36]);
-
-                        novosContratos.push({
-
-                            id: 'con_' + Date.now() + '_' + i,
-
-                            imovelId: imovelId,
-
-                            status: String(l[29] || 'Ativo').trim(),
-
-                            locatario: locatario,
-
-                            docTipo: String(l[31] || 'CPF').trim(),
-
-                            cpf: String(l[32] || '').trim(),
-
-                            vencimentoDia: parseInt(l[33]) || 15,
-
-                            whatsapp: String(l[34] || '').trim().replace(/\D/g, ''),
-
-                            email: String(l[35] || '').trim(),
-
-                            inicio: dataInicioCarga,
-
-                            fim: parseDataCarga(l[37]),
-
-                            valor: parseFloat(l[38]) || 0,
-
-                            valorAnterior: 0,
-
-                            reajusteAplicado: 0,
-
-                            reajuste: reajusteCarga,
-
-                            iptu: 0,
-
-                            contatoNome: String(l[45] || '').trim(),
-
-                            formaPagamento: String(l[46] || 'PIX').trim(),
-
-                            descontoEnergia: parseFloat(l[47]) || 0,
-
-                            anexos: [],
-
-                            condominioLocatario: String(l[49] || 'Não').trim(),
-
-                            descricao: String(l[50] || '').trim(),
-
-                            administradoraId: administradoraId,
-
-                            historico: [{
-
-                                data: new Date().toISOString(),
-
-                                vigenteDesde: dataInicioCarga,
-
-                                alteracoes: [{ campo: 'Contrato criado', de: '-', para: `Carga inicial — ${locatario}` }]
-
-                            }]
-
-                        });
-
-                    }
-
-                }
-
-                imoveis = novosImoveis;
-
-                contratos = novosContratos;
-
-                administradoras = Object.values(mapaAdministradoras);
-
-                esconderCarregamentoGlobal();
-
-                await saveAll(true, `✅ Carga concluída: ${novosImoveis.length} imóveis, ${novosContratos.length} contratos, ${administradoras.length} administradora(s).`);
-
-            } catch (err) {
-
-                esconderCarregamentoGlobal();
-
-                alert("⚠️ Falha ao processar a carga: " + err.message);
-
-                devLog("ERRO_CARGA", `Falha ao processar carga inicial: ${err.message}`);
-
-            }
-
-            inputElement.value = '';
-
-        }
 
 
         function arquivoParaBase64(file) {
@@ -14422,254 +13664,104 @@
         }
 
         // ============================================================================
-        // FASE 5: DEV EXPANDIDO - NOVAS FUNÇÕES
+        // v1.199.0 (bc9df144, 17/09/2026) — FASE 5 ("DEV EXPANDIDO") ENCERRADA.
+        // Ver CAN-05 completo no comentário "FIM DO MÓDULO APP-DEV" (linha ~3085).
+        // Resumo do que saiu deste ponto do arquivo:
+        //   - dev_dispararEmailManual/dev_atualizarUiEnvioAutomatico/
+        //     dev_verificarStatusEnvioAutomatico/dev_salvarDiasEmail/
+        //     dev_toggleEnvioAutomatico (SEÇÃO 1, e-mail manual + automático) →
+        //     MIGRARAM para Gestão > Comunicações > modo "Pessoas" (mesmo
+        //     GOOGLE_API_URL, mesmo payload; lá quem dispara é a Raiz, não a
+        //     própria empresa).
+        //   - dev_carregarAcessos/dev_limparAcessos (SEÇÃO 2, "log de acessos")
+        //     → ELIMINADAS sem substituto: achado à parte, fora dos 12 itens da
+        //     demanda — o array `acessos` que alimentava essa tela está SEMPRE
+        //     vazio desde a extinção do Apps Script legado (ver comentário na
+        //     função de entrada da empresa, "ETAPA 3 finalizada"); a tela nunca
+        //     mostrava nada de verdade havia tempo. Log de acesso real de
+        //     verdade é o `log_acessos` (Supabase), coberto pelos itens 2/3.
         // ============================================================================
 
-        // SEÇÃO 1: E-MAIL MANUAL (DISPARO DE TESTE)
-        function dev_dispararEmailManual() {
-            const tipo = document.getElementById('dev-email-tipo').value;
-            const destino = document.getElementById('dev-email-destino').value;
-
-            if (!tipo) {
-                alert("⚠️ Selecione o tipo de e-mail.");
-                return;
-            }
-
-            if (!destino || !destino.includes('@')) {
-                alert("⚠️ Digite um e-mail válido.");
-                return;
-            }
-
-            fetch(GOOGLE_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({
-                    rota: "dev_email_manual",
-                    tipo: tipo,
-                    destino: destino,
-                    nomeSimulado: socioLogado || 'Sócio'
-                })
-            }).then(async (resp) => {
-                const corpo = await resp.json();
-                if (corpo && corpo.status === "sucesso") {
-                    alert("✅ E-mail disparado com sucesso para " + destino + " (saudação como \"" + (socioLogado || 'Sócio') + "\", que é quem está logado agora)");
-                    devLog("EMAIL_MANUAL", "E-mail " + tipo + " enviado para " + destino + " simulando " + (socioLogado || 'Sócio'));
-                } else {
-                    alert("⚠️ Erro ao disparar e-mail: " + (corpo?.mensagem || "Desconhecido"));
-                }
-            }).catch((err) => {
-                alert("❌ Falha de conexão.");
-                devLog("ERRO_EMAIL", err.message);
-            });
-        }
-
-        // v7.3.8 — Envio automático: consulta o status atual (chamado ao abrir
-        // a aba DEV) e atualiza o botão/badge conforme ligado/desligado.
-        function dev_atualizarUiEnvioAutomatico(ativo, dia01, dia15) {
-            const status = document.getElementById('dev-envio-auto-status');
-            const btn = document.getElementById('dev-envio-auto-btn');
-            if (!status || !btn) return;
-
-            if (ativo) {
-                status.className = "text-center text-xs font-bold py-2 rounded-lg mb-2 bg-green-100 text-green-700";
-                status.innerText = "🟢 ATIVO — próximo envio automático nos dias " + dia01 + " e " + dia15 + ", às 08h";
-                btn.className = "w-full bg-red-600 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition";
-                btn.innerText = "🔴 Desativar Envio Automático";
-            } else {
-                status.className = "text-center text-xs font-bold py-2 rounded-lg mb-2 bg-gray-100 text-gray-500";
-                status.innerText = "⚪ INATIVO — nenhum e-mail será enviado automaticamente";
-                btn.className = "w-full bg-teal-600 text-white font-bold text-xs py-2.5 rounded-lg shadow active:scale-95 transition";
-                btn.innerText = "🟢 Ativar Envio Automático";
-            }
-        }
-
-        async function dev_verificarStatusEnvioAutomatico() {
-            const { data, error } = await dbAuth
-                .from('clientes')
-                .select('envio_email_dia01, envio_email_dia15, envio_email_ativo')
-                .eq('id', CLIENTE_ID_SUPABASE)
-                .single();
-
-            if (error) {
-                const btn = document.getElementById('dev-envio-auto-btn');
-                if (btn) btn.innerText = "⚠️ Erro ao verificar status";
-                return;
-            }
-
-            dev_atualizarUiEnvioAutomatico(data.envio_email_ativo, data.envio_email_dia01, data.envio_email_dia15);
-            const inputDia01 = document.getElementById('dev-dia-email01');
-            const inputDia15 = document.getElementById('dev-dia-email15');
-            if (inputDia01) inputDia01.value = data.envio_email_dia01;
-            if (inputDia15) inputDia15.value = data.envio_email_dia15;
-        }
-
-        async function dev_salvarDiasEmail() {
-            const dia01 = parseInt(document.getElementById('dev-dia-email01').value, 10);
-            const dia15 = parseInt(document.getElementById('dev-dia-email15').value, 10);
-
-            if (isNaN(dia01) || dia01 < 1 || dia01 > 28 || isNaN(dia15) || dia15 < 1 || dia15 > 28) {
-                alert("⚠️ Os dias devem ser números entre 1 e 28 (evita problemas com meses curtos).");
-                return;
-            }
-
-            const { error } = await dbAuth.from('clientes').update({
-                envio_email_dia01: dia01,
-                envio_email_dia15: dia15
-            }).eq('id', CLIENTE_ID_SUPABASE);
-
-            if (error) {
-                alert("❌ Erro ao salvar: " + error.message);
-                devLog("ERRO_DIAS_EMAIL", error.message);
-                return;
-            }
-
-            alert("✅ Dias salvos.");
-            devLog("DIAS_EMAIL_SALVOS", "Dia01=" + dia01 + " Dia15=" + dia15);
-            registrarLog('parametros.email.editar', { dia01: dia01, dia15: dia15 });
-            dev_verificarStatusEnvioAutomatico();
-        }
-
-        // ⚠️ IMPORTANTE — o que este botão faz e o que ele NÃO faz: ele só
-        // guarda a PREFERÊNCIA (ligado/desligado) no banco. O disparo de
-        // verdade dos e-mails no dia certo exige um agendador rodando no
-        // servidor (ex.: Supabase Edge Function + cron) — infraestrutura que
-        // ainda não construímos. Por enquanto, isso é só a configuração.
-        async function dev_toggleEnvioAutomatico() {
-            const btn = document.getElementById('dev-envio-auto-btn');
-            if (btn) btn.disabled = true;
-
-            const { data: atual, error: errLeitura } = await dbAuth
-                .from('clientes').select('envio_email_ativo').eq('id', CLIENTE_ID_SUPABASE).single();
-
-            if (errLeitura) {
-                alert("❌ Falha ao ler status atual: " + errLeitura.message);
-                if (btn) btn.disabled = false;
-                return;
-            }
-
-            const novoValor = !atual.envio_email_ativo;
-
-            const { error } = await dbAuth.from('clientes').update({ envio_email_ativo: novoValor }).eq('id', CLIENTE_ID_SUPABASE);
-
-            if (error) {
-                alert("❌ Erro: " + error.message);
-            } else {
-                devLog("ENVIO_AUTOMATICO", novoValor ? "Ativado" : "Desativado");
-                if (novoValor) {
-                    alert("⚠️ Preferência salva como ATIVA. Mas o disparo automático de verdade ainda não está implementado (falta o agendador no servidor) — isso aqui só guarda a configuração para quando essa parte for construída.");
-                }
-            }
-
-            dev_verificarStatusEnvioAutomatico();
-            if (btn) btn.disabled = false;
-        }
-
-        // SEÇÃO 2: LOG DE ACESSOS (COM HORÁRIO BRASÍLIA)
-        // v7.3.2 — Renderização instantânea a partir do array já carregado no
-        // início (mesmo padrão de renderImoveis/renderContratos), sem round-trip.
-        function dev_carregarAcessos() {
-            const lista = document.getElementById('dev-acessos-lista');
+        // SEÇÃO 3: GERENCIADOR DE LINKS DA VITRINE
+        // v1.199.0 (bc9df144, item 11) — MIGROU do app-dev pra App > Conta >
+        // Empresa > "Gerenciador de links da vitrine" (tab-links-vitrine, só
+        // admin/master via codigo vitrine.links.gerenciar). Mesmo escopo de
+        // hoje (decisão do Nicola, 17/09: "mesmas 2 ações em massa + revogar 1
+        // link, nada evoluído"), só a casca virou rz-row + Sheet de ações em
+        // vez de tabela HTML crua. Continua lendo do array `links` já
+        // carregado no boot (mesmo padrão de renderImoveis/renderContratos) e
+        // reaproveitando os helpers Supabase de sempre (carregarLinksVitrineSupabase/
+        // apagarLinkVitrineSupabase/apagarTodosLinksVitrineSupabase, intocados).
+        function carregarLinksVitrine() {
+            const lista = document.getElementById('lista-links-vitrine');
             if (!lista) return;
-
-            if (!acessos || acessos.length === 0) {
-                lista.innerHTML = '<p class="p-2 text-gray-500">Nenhum acesso registrado.</p>';
-                return;
-            }
-
-            let html = '<table class="w-full text-[11px]"><tr class="border-b"><th class="p-1 text-left">Data/Hora (Brasília)</th><th class="p-1 text-left">Tipo</th><th class="p-1 text-left">Usuário</th></tr>';
-            acessos.slice(0, 50).forEach(acs => {
-                const hora = acs.dataHoraBrasilia || acs.dataHora || '-';
-                html += `<tr class="border-b"><td class="p-1">${hora}</td><td class="p-1">${acs.tipo || ''}</td><td class="p-1">${acs.usuario || ''}</td></tr>`;
-            });
-            html += '</table>';
-            lista.innerHTML = html;
-        }
-
-        function dev_limparAcessos() {
-            if (!confirm("⚠️ Tem certeza? Todos os acessos serão removidos permanentemente.")) return;
-
-            fetch(GOOGLE_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({
-                    rota: "dev_limpar_acessos"
-                })
-            }).then(async (resp) => {
-                const corpo = await resp.json();
-                if (corpo && corpo.status === "sucesso") {
-                    alert("✅ Todos os acessos foram removidos.");
-                    acessos = []; // v7.3.2 — atualiza local instantaneamente
-                    dev_carregarAcessos();
-                    devLog("LIMPAR_ACESSOS", "Central de acessos reiniciada.");
-                } else {
-                    alert("⚠️ Erro ao limpar.");
-                }
-            }).catch((err) => {
-                alert("❌ Falha de conexão.");
-            });
-        }
-
-        // SEÇÃO 3: GERENCIADOR DE LINKS
-        // v7.3.2 — Renderização instantânea a partir do array já carregado no início.
-        function dev_carregarLinks() {
-            const lista = document.getElementById('dev-links-lista');
-            if (!lista) return;
-
             if (!links || links.length === 0) {
-                lista.innerHTML = '<p class="p-2 text-gray-500">Nenhum link de vitrine criado.</p>';
+                lista.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="link"></svg></div><p>Nenhum link de vitrine criado ainda.</p></div>';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
-
-            let html = '<table class="w-full text-[11px]"><tr class="border-b"><th class="p-1 text-left">Token</th><th class="p-1 text-left">Imóveis</th><th class="p-1 text-left">Criado (Brasília)</th><th class="p-1">Ação</th></tr>';
-            links.forEach(link => {
+            lista.innerHTML = links.map(function(link) {
                 const data = link.criadoEmBrasilia || link.criadoEm || '-';
                 const qtd = link.qtdImoveis || 0;
-                html += `<tr class="border-b"><td class="p-1 font-mono">${link.token}</td><td class="p-1 text-center">${qtd}</td><td class="p-1 text-[11px]">${data}</td><td class="p-1"><button onclick="dev_apagarLinkEspecifico('${link.token}')" class="text-red-600 text-[11px]">🗑️</button></td></tr>`;
-            });
-            html += '</table>';
-            lista.innerHTML = html;
+                return `
+                <div class="rz-row">
+                    <div class="rz-ic"><svg data-lucide="link"></svg></div>
+                    <div class="rz-tx"><b>${rzEsc(link.token)}</b><span>${qtd} imóve${qtd === 1 ? 'l' : 'is'} · criado ${rzEsc(data)}</span></div>
+                    <button type="button" onclick="revogarLinkVitrine('${link.token}')" class="rz-more" aria-label="Revogar link"><svg data-lucide="trash-2"></svg></button>
+                </div>`;
+            }).join('');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        function dev_apagarLinkEspecifico(token) {
-            if (!confirm("Remover link " + token + "?")) return;
-
-            apagarLinkVitrineSupabase(token).then(() => {
-                links = links.filter(l => l.token !== token);
-                dev_carregarLinks();
-                devLog("APAGAR_LINK", "Link " + token + " removido.");
-            }).catch((err) => {
-                alert("❌ Falha ao apagar link: " + err.message);
+        function abrirAcoesLinksVitrine() {
+            if (typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({
+                titulo: 'Links da vitrine',
+                sub: (links ? links.length : 0) + ' link(s) ativo(s)',
+                acoes: [
+                    { icone: 'clock-x', titulo: 'Apagar links expirados', codigo: 'vitrine.links.gerenciar', sub: 'Remove só os que já venceram', aoTocar: apagarLinksVitrineExpirados },
+                    { icone: 'trash-2', titulo: 'Apagar todos os links', codigo: 'vitrine.links.gerenciar', tipo: 'bad', aoTocar: apagarTodosLinksVitrine },
+                ]
             });
         }
 
-        function dev_apagarTodosLinks() {
-            if (!confirm("⚠️ Tem certeza? Todos os links de vitrine serão removidos.")) return;
+        function revogarLinkVitrine(token) {
+            if (!confirm('Revogar o link ' + token + '? Quem tiver esse link deixa de conseguir abrir a vitrine por ele.')) return;
+            apagarLinkVitrineSupabase(token).then(function() {
+                links = links.filter(function(l) { return l.token !== token; });
+                carregarLinksVitrine();
+                registrarLog('vitrine.links.revogar', { token: token });
+                mostrarToast('Link revogado.', 'success');
+            }).catch(function(err) {
+                mostrarToast('Falha ao revogar link: ' + err.message, 'danger');
+            });
+        }
 
-            apagarTodosLinksVitrineSupabase().then(() => {
-                alert("✅ Todos os links foram removidos.");
+        function apagarTodosLinksVitrine() {
+            if (!confirm('Apagar TODOS os links de vitrine desta empresa? Não pode ser desfeito.')) return;
+            apagarTodosLinksVitrineSupabase().then(function() {
                 links = [];
-                dev_carregarLinks();
-                devLog("APAGAR_LINKS_TODOS", "Todos os links removidos.");
-            }).catch((err) => {
-                alert("❌ Falha ao apagar links: " + err.message);
+                carregarLinksVitrine();
+                registrarLog('vitrine.links.apagar_todos', {});
+                mostrarToast('Todos os links foram removidos.', 'success');
+            }).catch(function(err) {
+                mostrarToast('Falha ao apagar links: ' + err.message, 'danger');
             });
         }
 
-        function dev_apagarLinksExpirados() {
+        function apagarLinksVitrineExpirados() {
             dbAuth.from('links_vitrine')
                 .delete()
                 .eq('cliente_id', CLIENTE_ID_SUPABASE)
                 .lt('data_expiracao', new Date().toISOString())
                 .select('token')
-                .then(({ data, error }) => {
-                    if (error) {
-                        alert("❌ Falha ao apagar links expirados: " + error.message);
-                        return;
-                    }
-                    const tokensRemovidos = (data || []).map(function(r) { return r.token; });
-                    alert("✅ " + tokensRemovidos.length + " link(s) expirado(s) removido(s).");
+                .then(function(r) {
+                    if (r.error) { mostrarToast('Falha ao apagar links expirados: ' + r.error.message, 'danger'); return; }
+                    const tokensRemovidos = (r.data || []).map(function(row) { return row.token; });
                     links = links.filter(function(l) { return !tokensRemovidos.includes(l.token); });
-                    dev_carregarLinks();
+                    carregarLinksVitrine();
+                    registrarLog('vitrine.links.apagar_expirados', { qtd: tokensRemovidos.length });
+                    mostrarToast(tokensRemovidos.length + ' link(s) expirado(s) removido(s).', 'success');
                 });
         }
 
@@ -14699,12 +13791,18 @@
         // calculado ao vivo a partir do perfil da pessoa — ver changelog
         // completo no topo daquele arquivo).
         //
-        // dev_renderPessoas() vira ponte fina: nome mantido de propósito —
-        // 3 call sites externos ainda chamam ela (bootstrap pós-login,
-        // rotina de refresh geral, dev_inicializar()) esperando que ela só
-        // atualize a tela SE a aba Pessoas estiver de fato aberta; os
-        // outros ~10 call sites antigos eram todos internos ao próprio
-        // bloco removido.
+        // dev_renderPessoas() vira ponte fina: nome mantido de propósito.
+        // Até v1.198.0 tinha 3 call sites externos (bootstrap pós-login,
+        // rotina de refresh geral, dev_inicializar()); v1.199.0 (bc9df144)
+        // eliminou dev_inicializar() junto com o resto do app-dev — sobraram
+        // os 2 primeiros, esperando que ela só atualize a tela SE a aba
+        // Pessoas estiver de fato aberta. Os outros ~10 call sites antigos
+        // eram todos internos ao próprio bloco removido.
+        //
+        // v1.199.0 (item 2) — ctx ganhou pessoaId/autoFiltro/podeVerTodas
+        // (ver call site abaixo): por padrão a tela mostra só a própria
+        // pessoa logada; quem tem pessoas.ver_todas (master da empresa) vê
+        // todo mundo.
         //
         // NOTA: a variável global `pessoas` (array) e carregarPessoasSupabase()
         // continuam existindo INTACTAS em outro ponto deste arquivo — são
@@ -14720,6 +13818,22 @@
                     dbAuth, clienteId: CLIENTE_ID_SUPABASE, perfilLogado,
                     onToast: mostrarToast,
                     registrarLog: registrarLog,
+                    // v1.199.0 (bc9df144, item 2) — "aba Pessoas" dentro de
+                    // Conta > Empresa: por padrão só a própria pessoa logada;
+                    // quem tem o codigo pessoas.ver_todas (perfil master da
+                    // empresa) vê todo mundo, com os mesmos atalhos de
+                    // comunicações + "Acessos recentes". pessoaId é o mesmo
+                    // padrão que o Cofre já usa (ver montarPessoasCofre() em
+                    // js/cofre-app.js) — App só não passava esse campo até aqui.
+                    pessoaId: pessoaIdLogada,
+                    autoFiltro: true,
+                    podeVerTodas: podeUsar('pessoas.ver_todas').ok,
+                    // v1.199.0 (bc9df144, item 2) — atalho "Acessos recentes":
+                    // reaproveita carregarLogsSupabase() (intocada, mesma usada
+                    // pela extinta "Logs do Sistema"), filtrada por 1 pessoa.
+                    // Só chamada de dentro do módulo (lazy, ao expandir), nunca
+                    // no primeiro render.
+                    carregarAcessosDaPessoa: function(idPessoa) { return carregarLogsSupabase(20, { pessoaId: idPessoa }); },
                 });
             }).catch(function(err) {
                 console.warn('Falha ao carregar js/comum-pessoas.js:', err.message);
@@ -14728,240 +13842,36 @@
         }
 
 
-        // CORRIGIDO — antes a lista de pessoas vinha de TODAS as pessoas
-        // cadastradas (incluindo quem nunca logou) e a lista de ações era uma
-        // lista fixa no código (podia mostrar ação que nunca aconteceu, ou
-        // faltar uma nova). Agora busca uma amostra recente de logs reais e
-        // deriva as opções só do que de fato existe. "Ação" também foi
-        // quebrada em duas: Área (a parte antes do primeiro ponto, ex.
-        // "imoveis") e Ação (a parte depois, ex. "criar") — login/logout, sem
-        // ponto, aparecem só em Ação.
-        async function dev_popularFiltrosLog() {
-            const selPessoa = document.getElementById('dev-log-filtro-pessoa');
-            const selEntidade = document.getElementById('dev-log-filtro-entidade');
-            const selAcao = document.getElementById('dev-log-filtro-acao');
-            if (!selPessoa || !selEntidade || !selAcao) return;
-
-            const { data: amostra, error } = await dbAuth
-                .from('log_acessos')
-                .select('pessoa_id, acao, pessoas(nome)')
-                .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                .order('criado_em', { ascending: false })
-                .limit(1000);
-
-            if (error) return; // sem amostra, mantém os filtros como estão
-
-            const pessoasNoLog = new Map();
-            const entidades = new Set();
-            const acoesBase = new Set();
-
-            (amostra || []).forEach(function(row) {
-                if (row.pessoa_id && row.pessoas) pessoasNoLog.set(row.pessoa_id, row.pessoas.nome);
-                const partes = (row.acao || '').split('.');
-                if (partes.length > 1) {
-                    entidades.add(partes.slice(0, -1).join('.'));
-                    acoesBase.add(partes[partes.length - 1]);
-                } else if (row.acao) {
-                    acoesBase.add(row.acao);
-                }
-            });
-
-            const valorPessoaAtual = selPessoa.value;
-            selPessoa.innerHTML = '<option value="">Todos os usuários</option>' +
-                Array.from(pessoasNoLog.entries()).map(function(e) { return `<option value="${e[0]}">${e[1]}</option>`; }).join('');
-            selPessoa.value = valorPessoaAtual;
-
-            const valorEntidadeAtual = selEntidade.value;
-            selEntidade.innerHTML = '<option value="">Todas as áreas</option>' +
-                Array.from(entidades).sort().map(function(e) { return `<option value="${e}">${e}</option>`; }).join('');
-            selEntidade.value = valorEntidadeAtual;
-
-            const valorAcaoAtual = selAcao.value;
-            selAcao.innerHTML = '<option value="">Todas as ações</option>' +
-                Array.from(acoesBase).sort().map(function(a) { return `<option value="${a}">${a}</option>`; }).join('');
-            selAcao.value = valorAcaoAtual;
-        }
-
-        async function dev_carregarLogsSistema() {
-            const lista = document.getElementById('dev-logs-sistema-lista');
-            if (!lista) return;
-            lista.innerHTML = '<p class="p-2 text-gray-500">Carregando logs...</p>';
-
-            await dev_popularFiltrosLog();
-
-            const filtros = {
-                pessoaId: document.getElementById('dev-log-filtro-pessoa')?.value || '',
-                entidade: document.getElementById('dev-log-filtro-entidade')?.value || '',
-                acao: document.getElementById('dev-log-filtro-acao')?.value || '',
-                dataInicio: document.getElementById('dev-log-filtro-data-inicio')?.value || '',
-                dataFim: document.getElementById('dev-log-filtro-data-fim')?.value || ''
-            };
-
-            try {
-                const logs = await carregarLogsSupabase(200, filtros);
-
-                if (logs.length === 0) {
-                    lista.innerHTML = '<p class="p-2 text-gray-500">Nenhum log encontrado com esse filtro.</p>';
-                    return;
-                }
-
-                lista.innerHTML = logs.map(function(l) {
-                    const dataFormatada = new Date(l.criadoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-                    const detalheTexto = l.detalhe && Object.keys(l.detalhe).length > 0
-                        ? Object.entries(l.detalhe).map(function(e) { return e[0] + '=' + e[1]; }).join(', ')
-                        : '';
-                    return `
-                        <div class="p-1.5 border-b border-gray-100">
-                            <span class="text-slate-400">${dataFormatada}</span>
-                            — <span class="font-bold text-slate-700">${l.pessoaNome}</span>
-                            — <span class="raiz-text-pine">${l.acao}</span>
-                            ${detalheTexto ? `<div class="text-gray-400 text-[10px] pl-2">${detalheTexto}</div>` : ''}
-                        </div>
-                    `;
-                }).join('');
-            } catch (err) {
-                lista.innerHTML = '<p class="p-2 text-red-500">Erro ao carregar logs: ' + err.message + '</p>';
-            }
-        }
-
-        // Carregar dados ao entrar em DEV
-        // Apaga todo o dado operacional da empresa ATUAL (mantém a linha da
-        // empresa em "clientes" e todas as "pessoas"/usuários). Dupla
-        // confirmação — a segunda exige digitar o nome da empresa, para não
-        // ser algo que sai sem querer num toque duplo.
-        async function limparSistemaEmpresaAtual() {
-            if (!podeUsar('dados.limpar').ok) { // v1.124 — era perfil chumbado
-                alert('Só master pode fazer isso.');
-                return;
-            }
-
-            if (!confirm(`⚠️ Isso apaga TODOS os imóveis, contratos, mensalidades, repasses, prestadores, histórico e arquivos de "${CONFIG_CLIENTE.nomeEmpresa}". Não pode ser desfeito. Continuar?`)) return;
-
-            const digitado = prompt(`Para confirmar de vez, digite exatamente o nome da empresa: ${CONFIG_CLIENTE.nomeEmpresa}`);
-            if (digitado !== CONFIG_CLIENTE.nomeEmpresa) {
-                alert('Nome não bateu — nada foi apagado.');
-                return;
-            }
-
-            mostrarCarregamentoGlobal('Limpando sistema...');
-
-            try {
-                // Ordem: tabelas com cliente_id direto primeiro; imoveis e
-                // prestadores por último nessa lista porque suas cascatas (no
-                // banco) já limpam propriedade_imovel, contratos,
-                // historico_contrato, divisao_repasse_contrato e
-                // prestador_vinculo sozinhas — mas apagar as outras direto
-                // também, sem depender só da cascata, para não esquecer nada.
-                // v3_15 (12/09/2026) — 'pendencias_extrato' removida da lista
-                // (tabela dropada — tentar apagar dela quebraria "Limpar sistema").
-                const tabelas = ['mensalidades', 'repasses', 'extrato_fingerprints', 'links_vitrine', 'log_acessos', 'imoveis', 'prestadores'];
-
-                for (const tabela of tabelas) {
-                    const { error } = await dbAuth.from(tabela).delete().eq('cliente_id', CLIENTE_ID_SUPABASE);
-                    if (error) throw new Error(`Falha ao limpar "${tabela}": ${error.message}`);
-                }
-
-                // Empreendimentos/tipos só depois de imóveis (senão a FK trava)
-                const { error: errEmp } = await dbAuth.from('empreendimentos').delete().eq('cliente_id', CLIENTE_ID_SUPABASE);
-                if (errEmp) throw new Error('Falha ao limpar empreendimentos: ' + errEmp.message);
-                const { error: errTipo } = await dbAuth.from('tipos_imovel').delete().eq('cliente_id', CLIENTE_ID_SUPABASE);
-                if (errTipo) throw new Error('Falha ao limpar tipos de imóvel: ' + errTipo.message);
-
-                // Storage — lista e apaga tudo dentro da pasta desta empresa,
-                // nos dois buckets.
-                for (const bucket of ['imoveis-fotos', 'contratos-documentos']) {
-                    const { data: arquivos, error: errList } = await dbAuth.storage.from(bucket).list(CLIENTE_ID_SUPABASE);
-                    if (!errList && arquivos && arquivos.length > 0) {
-                        const caminhos = arquivos.map(function(f) { return CLIENTE_ID_SUPABASE + '/' + f.name; });
-                        await dbAuth.storage.from(bucket).remove(caminhos);
-                    }
-                }
-
-                esconderCarregamentoGlobal();
-                alert('✅ Sistema limpo. A página vai recarregar.');
-                location.reload();
-
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Falha na limpeza: ' + err.message + '\n\nAlgumas tabelas podem já ter sido limpas — confira antes de tentar de novo.');
-                logScreen('Erro ao limpar sistema: ' + err.message, true);
-            }
-        }
-
-        function dev_inicializar() {
-            dev_carregarLogsSistema();
-            dev_carregarLinks();
-            dev_renderPessoas();
-            dev_verificarStatusEnvioAutomatico();
-            dev_carregarLicenca(); // FASE 1A (v1.39.0)
-            const spanEmpresa = document.getElementById('dev-nome-empresa-atual');
-            if (spanEmpresa) spanEmpresa.textContent = CONFIG_CLIENTE.nomeEmpresa || '-';
-
-            const secaoLimpar = document.getElementById('dev-limpar-sistema-secao');
-            if (secaoLimpar) {
-                secaoLimpar.classList.toggle('hidden', !podeUsar('dados.limpar').ok); // v1.124
-                const spanNomeLimpar = document.getElementById('dev-limpar-nome-empresa');
-                if (spanNomeLimpar) spanNomeLimpar.textContent = CONFIG_CLIENTE.nomeEmpresa || '-';
-            }
-
-            // FASE 1A (v1.39.5) — mesma trava de visibilidade (só master)
-            const secaoApagar = document.getElementById('dev-apagar-empresa-secao');
-            if (secaoApagar) {
-                secaoApagar.classList.toggle('hidden', !podeUsar('dados.apagar').ok); // v1.124
-                const spanNomeApagar = document.getElementById('dev-apagar-nome-empresa');
-                if (spanNomeApagar) spanNomeApagar.textContent = CONFIG_CLIENTE.nomeEmpresa || '-';
-            }
-        }
-
-        // FASE 1A (v1.39.5) — apagar empresa + todos os acessos. A checagem
-        // de "dados já limpos" é feita DE VERDADE no banco (dentro de
-        // fn_apagar_empresa_completa), não só aqui no front — isto aqui é só
-        // pra dar uma mensagem amigável antes de nem tentar.
-        async function apagarEmpresaCompleta() {
-            if (!podeUsar('dados.apagar').ok) { // v1.124 — era perfil chumbado
-                alert('Só master pode fazer isso.');
-                return;
-            }
-
-            if (imoveis.length > 0 || contratos.length > 0) {
-                alert('Esta empresa ainda tem dados (imóveis/contratos). Rode "Limpar Sistema desta Empresa" primeiro.');
-                return;
-            }
-
-            if (!confirm(`⚠️ Isso apaga PERMANENTEMENTE a empresa "${CONFIG_CLIENTE.nomeEmpresa}" e todos os acessos/usuários vinculados a ela. Não pode ser desfeito. Continuar?`)) return;
-
-            const digitado = prompt(`Para confirmar de vez, digite exatamente o nome da empresa: ${CONFIG_CLIENTE.nomeEmpresa}`);
-            if (digitado !== CONFIG_CLIENTE.nomeEmpresa) {
-                alert('Nome não bateu — nada foi apagado.');
-                return;
-            }
-
-            if (!confirm('Última confirmação: tem mesmo certeza? Essa empresa e todos os logins vinculados a ela vão sumir de vez.')) return;
-
-            mostrarCarregamentoGlobal('Apagando empresa...');
-
-            try {
-                const { error } = await dbAuth.rpc('fn_apagar_empresa_completa', { p_cliente_id: CLIENTE_ID_SUPABASE });
-                if (error) throw error;
-
-                esconderCarregamentoGlobal();
-                alert('✅ Empresa apagada. Você vai voltar pra tela de login.');
-
-                // Não usa fazerLogoutSupabase() aqui de propósito — ela tenta
-                // registrar log de logout usando o cliente_id atual, que já
-                // não existe mais (empresa acabou de ser apagada), e isso
-                // falharia. Faz o signOut direto.
-                await dbAuth.auth.signOut();
-                location.reload();
-
-            } catch (err) {
-                esconderCarregamentoGlobal();
-                alert('❌ Falha ao apagar empresa: ' + err.message);
-                logScreen('Erro ao apagar empresa completa: ' + err.message, true);
-            }
-        }
-
-
+        // v1.199.0 (bc9df144, itens 2/3/9, 17/09/2026) — ELIMINADAS deste
+        // ponto do arquivo (ver CAN-05 completo, linha ~3085):
+        //   - dev_popularFiltrosLog()/dev_carregarLogsSistema() ("Logs do
+        //     Sistema", Supabase log_acessos com filtros por pessoa/área/
+        //     ação) → o pedaço "acesso de uma pessoa" vira o atalho "Acessos
+        //     recentes" dentro de App > Conta > Pessoas (comum-pessoas.js,
+        //     reaproveitando carregarLogsSupabase() abaixo, intocada); a
+        //     auditoria completa multi-pessoa com filtro por área/ação é
+        //     avaliação em aberto no Gestão > Empresas (item 3 — "avaliar",
+        //     não obrigatório).
+        //   - limparSistemaEmpresaAtual() ("Limpar Sistema desta Empresa") →
+        //     ELIMINADA sem substituto. Achado técnico grave: já estava
+        //     QUEBRADA em produção desde a v1.197.0 — o `DELETE FROM imoveis`
+        //     dessa função vira erro, porque "imoveis" é hoje uma VIEW de
+        //     compatibilidade sobre imoveis_legado_aguardando_exclusao
+        //     (Caminho B); quem rodasse isso hoje apagava metade dos dados
+        //     old-model e travava, sem tocar cofre_ativos/cofre_documentos/
+        //     cofre_itens_controle nenhuma vez. Decisão do Nicola (17/09):
+        //     eliminar também do App, reconstruir do zero contra o modelo
+        //     atual em 2fb2153a.
+        //   - dev_inicializar() (orquestrador da extinta aba DEV) → ELIMINADA
+        //     por completo junto com a aba; seus alvos de DOM
+        //     (dev-nome-empresa-atual/dev-limpar-sistema-secao/etc.) já não
+        //     existem desde que o HTML de tab-developer saiu.
+        //   - apagarEmpresaCompleta() ("Apagar Empresa e Acessos") → MIGROU
+        //     pra Gestão > Empresas > ficha da empresa ("Ações
+        //     administrativas"), parametrizada pelo clienteId da ficha em
+        //     vez dos globais implícitos do App; chama a mesma
+        //     fn_apagar_empresa_completa (intocada, cerca respeitada) — ver
+        //     js/telas/empresas.js no repositório raiz-gestao.
         // ============================================================================
         // FASES 1-4: SERVIÇOS — SÍNDICOS, MANUTENCISTAS E ADMINISTRADORAS
         // v7.3.2 — Reescrito para seguir o mesmo padrão de Imóveis/Administradoras:

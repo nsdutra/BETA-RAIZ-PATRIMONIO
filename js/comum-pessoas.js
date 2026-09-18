@@ -1,6 +1,30 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.6.0 · 13/09/2026
+// Versão: 1.199.0 · 17/09/2026
+//
+// v1.7.0 (COMUM_PESSOAS_VERSAO) / v1.199.0 (VERSAO, header) — bc9df144,
+// item 2 (17/09/2026): "aba Pessoas" ganha auto-filtro. ctx novo e todo
+// OPCIONAL (pessoaId/autoFiltro/podeVerTodas/carregarAcessosDaPessoa) —
+// call site do Cofre (js/cofre-app.js, montarPessoasCofre) não passa
+// esses campos e continua exatamente como estava, sem autoFiltro.
+//   - autoFiltro=true (App > Conta > Pessoas, novo call site em
+//     index.html): por padrão renderLista() mostra só a pessoa cujo id é
+//     ctx.pessoaId; quem tem podeVerTodas=true (calculado no host a
+//     partir do codigo pessoas.ver_todas — perfil master da própria
+//     empresa) vê todo mundo, com as mesmas regras de sempre (master
+//     oculto de quem não é master).
+//   - "+" (nova pessoa) e o rótulo do botão de salvar só aparecem/mudam
+//     quando podeGerenciarOutras (= !autoFiltro || podeVerTodas) — no
+//     modo "só eu" não faz sentido cadastrar outra pessoa.
+//   - Novo atalho "Acessos recentes" por pessoa (acessosRecentesHtml()),
+//     lazy (só busca ao expandir — minimização de dados, LGPD): usa o
+//     callback ctx.carregarAcessosDaPessoa(pessoaId), que o host injeta
+//     reaproveitando a MESMA consulta de log_acessos que alimentava a
+//     extinta tela "Logs do Sistema" do app-dev — nenhuma lógica de
+//     consulta nova, só um ponto de entrada por pessoa em vez de
+//     multi-pessoa com filtros.
+//   - Esta seção só aparece quando ctxUi.autoFiltro é true — o Cofre
+//     nunca a vê.
 //
 // v1.6.0 — MOTOR CENTRAL DE ALERTAS, Fase 5: buscarProativasDisponiveis(),
 // buscarPreferenciasComunicacao() e FREQUENCIA_OPCOES viram export — a
@@ -118,8 +142,8 @@
 // segredo, mesmo padrão já replicado nesse outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.6.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
-export const COMUM_PESSOAS_VERSAO = '1.2.0';
+export const VERSAO = '1.199.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const COMUM_PESSOAS_VERSAO = '1.7.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
@@ -303,6 +327,22 @@ function comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap) {
         </div>`;
 }
 
+// v1.7.0 (bc9df144, item 2) — atalho "Acessos recentes": só aparece na
+// tela nova (App > Conta > Pessoas, ctxUi.autoFiltro=true) e só pra
+// pessoa já salva. Lazy de propósito (LGPD — minimização: não busca log
+// de ninguém até a própria pessoa abrir a seção).
+function acessosRecentesHtml(p, ctxUi) {
+    if (!ctxUi.autoFiltro || !p.id) return '';
+    return `
+        <div class="mt-3 pt-3 border-t border-gray-100">
+            <button type="button" data-acao="ver-acessos" data-id="${p.id}" class="w-full flex items-center justify-between text-[11px] font-bold text-gray-500">
+                <span>Acessos recentes</span>
+                <svg data-lucide="chevron-down" style="width:14px;height:14px"></svg>
+            </button>
+            <div id="acessos-pessoa-${p.id}" class="hidden mt-1.5 space-y-1"></div>
+        </div>`;
+}
+
 function cartaoPessoaHtml(p, idx, ctxUi) {
     const { perfilLogado, modulosPorPerfil, proativasDisponiveis, preferenciasMap } = ctxUi;
     const temLogin = !!p.userId;
@@ -374,6 +414,7 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
                 </div>
                 ${comunicacaoProativaHtml(p, proativasDisponiveis, preferenciasMap)}
                 ${botaoAcesso}
+                ${acessosRecentesHtml(p, ctxUi)}
             </div>
         </div>`;
 }
@@ -385,19 +426,42 @@ function cartaoPessoaHtml(p, idx, ctxUi) {
 //                                       // de sempre)
 //   onToast(mensagem, tipo),           // opcional
 //   registrarLog(acao, detalhe),       // opcional
+//
+//   -- v1.7.0 (bc9df144, item 2, 17/09/2026) — campos NOVOS, todos OPCIONAIS
+//   -- (nenhum quebra o call site do Cofre, que não os passa):
+//   pessoaId,             // id da pessoa logada agora (mesmo padrão que
+//                          // js/cofre-app.js já usa em montarPessoasCofre())
+//   autoFiltro,            // true = ativa a regra "só eu, a não ser que eu
+//                          // possa ver todo mundo" (App > Conta > Pessoas).
+//                          // false/ausente = comportamento de sempre
+//                          // (mostra todo mundo, master oculto de quem não
+//                          // é master) — é o que o Cofre continua recebendo.
+//   podeVerTodas,          // true = (com autoFiltro) mostra TODAS as
+//                          // pessoas da empresa, não só a própria — só
+//                          // deve vir true pra quem tem o codigo do
+//                          // catálogo pessoas.ver_todas (master da
+//                          // empresa). Também libera "+"/gerenciar outras.
+//   carregarAcessosDaPessoa(pessoaId), // opcional; alimenta o atalho
+//                          // "Acessos recentes" (lazy) dentro do card de
+//                          // cada pessoa. Sem isto, a seção não aparece.
 // }
 export async function montarAbaPessoas(mountEl, ctx) {
     if (!mountEl) return;
-    const { dbAuth, clienteId, perfilLogado, onToast, registrarLog } = ctx || {};
+    const { dbAuth, clienteId, perfilLogado, onToast, registrarLog, pessoaId, autoFiltro, podeVerTodas, carregarAcessosDaPessoa } = ctx || {};
+    // Só quem pode ver todo mundo (ou telas que não pedem auto-filtro, como
+    // o Cofre) gerencia pessoas ALHEIAS — adicionar, remover, editar de
+    // outra pessoa. No modo "só eu" o "+" some (não faz sentido cadastrar
+    // outra pessoa numa tela que só mostra a si mesmo).
+    const podeGerenciarOutras = !autoFiltro || podeVerTodas;
 
     mountEl.innerHTML = `
         <div class="flex items-center gap-3 mb-4">
             <p class="flex-1" style="font-family:var(--font-title);font-size:18px;font-weight:600;color:var(--pine)">Pessoas</p>
-            <button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa" title="Nova pessoa"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            ${podeGerenciarOutras ? '<button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa"><svg class="raiz-icone-toggle w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>' : ''}
         </div>
-        <p class="text-[11px] text-gray-500 mb-4">Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.</p>
+        <p class="text-[11px] text-gray-500 mb-4">${autoFiltro && !podeVerTodas ? 'Seu cadastro, seus avisos e seus acessos recentes.' : 'Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.'}</p>
         <div id="cp-lista" class="space-y-3 mb-4"><p class="text-xs text-center text-gray-400 py-4">Carregando pessoas...</p></div>
-        <button type="button" id="cp-btn-salvar" class="rz-btn rz-btn-1 rz-wide">Salvar pessoas</button>
+        <button type="button" id="cp-btn-salvar" class="rz-btn rz-btn-1 rz-wide">${podeGerenciarOutras ? 'Salvar pessoas' : 'Salvar meus dados'}</button>
     `;
 
     if (!dbAuth || !clienteId) {
@@ -448,12 +512,23 @@ export async function montarAbaPessoas(mountEl, ctx) {
     function renderLista() {
         const lista = document.getElementById('cp-lista');
         if (!lista) return;
-        const visiveis = perfilLogado === 'master' ? pessoas : pessoas.filter(p => p.perfil !== 'master');
+        // v1.7.0 (bc9df144, item 2) — com autoFiltro ligado, por padrão só a
+        // própria pessoa logada aparece; só quem tem pessoas.ver_todas
+        // (podeVerTodas=true, calculado no host via podeUsar) vê todo
+        // mundo — aí sim com a mesma regra de sempre (master oculto de
+        // quem não é master). Sem autoFiltro (Cofre), nada muda.
+        const visiveis = autoFiltro
+            ? (podeVerTodas
+                ? (perfilLogado === 'master' ? pessoas : pessoas.filter(p => p.perfil !== 'master'))
+                : pessoas.filter(p => p.id === pessoaId))
+            : (perfilLogado === 'master' ? pessoas : pessoas.filter(p => p.perfil !== 'master'));
         if (visiveis.length === 0) {
-            lista.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhuma pessoa cadastrada. Toque no "+" para adicionar.</p>';
+            lista.innerHTML = autoFiltro && !podeVerTodas
+                ? '<p class="text-xs text-center text-gray-400 py-4">Não achamos seu cadastro de pessoa. Fale com quem administra esta empresa.</p>'
+                : '<p class="text-xs text-center text-gray-400 py-4">Nenhuma pessoa cadastrada. Toque no "+" para adicionar.</p>';
             return;
         }
-        lista.innerHTML = visiveis.map((p, idx) => cartaoPessoaHtml(p, idx, { perfilLogado, modulosPorPerfil, proativasDisponiveis, preferenciasMap })).join('');
+        lista.innerHTML = visiveis.map((p, idx) => cartaoPessoaHtml(p, idx, { perfilLogado, modulosPorPerfil, proativasDisponiveis, preferenciasMap, autoFiltro })).join('');
         if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     }
     renderLista();
@@ -477,6 +552,33 @@ export async function montarAbaPessoas(mountEl, ctx) {
 
         if (acao === 'alternar-detalhe') {
             document.getElementById('pessoa-detalhe-' + alvo.dataset.alvo)?.classList.toggle('hidden');
+            return;
+        }
+
+        // v1.7.0 (bc9df144, item 2) — "Acessos recentes", lazy: busca só na
+        // primeira vez que a pessoa expande (data-carregado marca isso),
+        // reaproveitando o mesmo log_acessos de sempre via callback do host
+        // (carregarAcessosDaPessoa) — este módulo não faz a query direto,
+        // pra não duplicar a lógica de filtro que já existe no App.
+        if (acao === 'ver-acessos') {
+            const box = document.getElementById('acessos-pessoa-' + id);
+            if (!box) return;
+            box.classList.toggle('hidden');
+            if (box.classList.contains('hidden') || box.dataset.carregado) return;
+            box.dataset.carregado = '1';
+            if (typeof carregarAcessosDaPessoa !== 'function') {
+                box.innerHTML = '<p class="text-[10px] text-gray-400">Indisponível nesta tela.</p>';
+                return;
+            }
+            box.innerHTML = '<p class="text-[10px] text-gray-400">Carregando...</p>';
+            try {
+                const logs = await carregarAcessosDaPessoa(id);
+                box.innerHTML = (logs && logs.length)
+                    ? logs.map(l => `<div class="text-[10px] text-gray-500"><span class="text-gray-400">${new Date(l.criadoEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span> — ${l.acao}</div>`).join('')
+                    : '<p class="text-[10px] text-gray-400">Nenhum acesso registrado ainda.</p>';
+            } catch (err) {
+                box.innerHTML = '<p class="text-[10px] text-red-400">Não foi possível carregar agora.</p>';
+            }
             return;
         }
 
@@ -603,7 +705,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         }
     });
 
-    document.getElementById('cp-btn-nova').addEventListener('click', () => {
+    document.getElementById('cp-btn-nova')?.addEventListener('click', () => {
         pessoas.push({ id: null, nome: '', email: '', whatsapp: '', funcao: '', percentualCotasEmpresa: null, userId: null, perfil: null });
         renderLista();
         const lista = document.getElementById('cp-lista');

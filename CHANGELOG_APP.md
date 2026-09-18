@@ -4,6 +4,35 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.194.0) — pedidos explícitos do Nicola (16/09/2026,
+tenant "Albuquerque Silva Participações"): (1) alerta de reajuste
+pendente disparava mesmo com Renovação/Reajuste registrado há menos de
+12 meses — obterUltimaVigenciaValor() só reconhecia o diff de edição
+legado (alteracoes[].campo==='Valor do aluguel'), que carregarContratosSupabase()
+regenera de forma genérica a cada reload (perde o campo específico);
+passou a olhar h.tipo==='reajuste'|'renovacao' também, que sobrevive
+ao reload. (2) alertas da Visão Geral que não navegavam a lugar nenhum
+ao clicar: achado 1 caso real — documento_sem_vinculo era o único tipo
+agrupável sem ação de grupo (ACAO_GRUPO_POR_TIPO), corrigido; e todo
+onClick de alerta (linhaAlertaHtml) ganhou try/catch com toast — nunca
+mais falha em silêncio, mesmo pra causas não identificadas nesta
+rodada. (3) lista de Ativos — inspirada no padrão de lista do Outlook
+mobile (nome completo sem truncar, detalhes extras, sinal de urgência
+curto na direita): card do imóvel ganhou locatário completo + valor do
+bem + valor do aluguel; card genérico ganhou valor do bem; chip de
+vencimento perdeu o estado "Em dia" (só aparece quando há urgência).
+(4) ficha do contrato — Ocorrências: chip colorido saiu (redundante
+com texto+ícone), toda linha ficou clicável (fechada abre resumo
+só-leitura), data parou de truncar; "Histórico" (redundante) saiu do
+⋮. Detalhe completo: js/cofre-ativos.js v1.44.0, js/contratos.js
+v1.6.0.
+------------------------------------------------------------------
+Versões anteriores (v1.187.1 … v1.193.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.193.0) — 2 bugs reportados pelo Nicola em teste
 real (16/09/2026, tenant "Rumo Empreendimentos" e "Albuquerque Silva
 Participações"): (1) aba Contrato de um ativo imóvel quebrada
