@@ -6,9 +6,37 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.201.0
-   LINHAS: 14732
+   VERSÃO: Beta v1.202.0
+   LINHAS: 14746
    DATA: 18/09/2026
+   NOVIDADES (Beta v1.202.0) — 3 ajustes explícitos do Nicola na tela de
+   abertura (splash/login), proposta+protótipo aprovados em sessão
+   separada de UX antes desta entrega: (1) ícone do app (icon-maskable-
+   192/512.png) — corrigido o "halo branco" visto no launcher do
+   celular (print real, Samsung One UI): o selo (badge arredondado com
+   borda branca própria) ocupava ~78% do canvas, quase colando na borda
+   — qualquer máscara do launcher (círculo, squircle) cortava rente à
+   borda branca do selo, sobrando um risco/anel branco visível. Selo
+   reduzido pra 66,7% (mesma proporção 72dp/108dp da zona seguro de
+   ícone adaptativo Android), recentralizado sobre o mesmo verde de
+   fundo — pixel do selo em si INALTERADO, só escala e posição; icon-
+   192.png/icon-512.png (purpose "any", não usados pelo launcher
+   adaptativo) ficaram como estavam. (2) botão do robô da tela de login
+   (#btn-falar-bot-splash) — trocado o mascote verde-escuro com anel
+   branco fino (v1.40.3) pela MESMA linguagem visual de IA já usada no
+   cabeçalho pós-login (.rz-hdr .rz-ia: círculo brass, ícone sparkles,
+   sombra em vez de contorno — REGRAS_EXPERIENCIA §15/16, brass é cor
+   EXCLUSIVA de IA/Robô) — deixa de parecer um elemento solto e passa a
+   se identificar como o mesmo convite de IA do resto do app; ganhou um
+   pulso brass sutil (chamar atenção sem ser irritante) e foi reposto-
+   sicionado (right:66px, longe do canto onde fica o botão oculto
+   "Sou sócio", right:16px, sem colidir quando os dois aparecem juntos).
+   Handler (abrirBotWhatsapp) e telemetria (eventos_landing, origem
+   app_splash) intocados — só visual e posição mudaram. CSS morta do
+   mascote antigo (.raiz-bot-eye/@keyframes raiz-bot-blink, só usada
+   ali) removida junto. (3) Imagem de fundo da tela de login MANTIDA
+   sem alteração — decisão explícita do Nicola de não trocar a foto
+   atual (Unsplash skyline) por nenhuma das opções propostas.
    NOVIDADES (Beta v1.201.0) — 2 ajustes do Nicola em cima da v1.200.0:
    (1) "Remover acesso ao sistema" (⋮ de Pessoas) travava só pro master —
    agora trava pra admin também (mesma proteção de "Excluir pessoa"), com
@@ -102,20 +130,8 @@
    ajustada; leitura/escrita de minuta (index.html) e o seletor/casamento em
    js/minutas.js (v1.1.0) passam a usar o catálogo novo. Detalhe: memória do
    projeto, área "Caminho B".
-   NOVIDADES (Beta v1.197.0) — Caminho B (migração imóveis→cofre_ativos),
-   fechamento: minutas_contrato ganhou coluna ativo_id (a coluna antiga
-   imovel_id tinha FK pra imoveis, mas o app já gravava ali o id do
-   ativo desde a Onda 12 — bug de FK latente, nunca tinha estourado
-   porque não existe hoje minuta ativa com escopo='imovel'); leitura e
-   escrita de minuta (sincronizarMinutaContratoSupabase / carga) agora
-   usam ativo_id. No banco: tabela imoveis renomeada pra
-   imoveis_legado_aguardando_exclusao (só 104 linhas congeladas, nada no
-   app escreve nela desde a Onda 12) + view de compatibilidade
-   `imoveis` criada pra não quebrar o bot (leitura direta, pendência à
-   parte) nem cofre-api.js::buscarResumoImovelOrigem. Detalhe completo
-   e migrations aplicadas: memória do projeto, área "Caminho B".
    ------------------------------------------------------------------
-   Versões anteriores (v1.196.0 … v1.196.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.197.0 … v1.197.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -391,26 +407,38 @@
            validação de verdade, o parágrafo volta a ocupar espaço normal. */
         .raiz-indicador-inline:empty { height: 0; margin-top: 0; }
 
-        /* Mascote R.AI.Z (v1.40.2) — piscada REESTILIZADA pra ficar bem
-           perceptível (v1.40.1 tinha squish de 150ms a cada 4.5s — pequeno
-           e rápido demais pra notar). Agora é uma "piscadela dupla" (efeito
-           mais expressivo, tipo cutucar-o-olho de mascote de verdade):
-           fecha, abre rapidinho, fecha de novo, abre e fica aberto o resto
-           do ciclo. Dura ~0.8s dentro de um ciclo de 5s — evento claro, não
-           irritante (~84% do tempo os olhos ficam parados, abertos).
-           transform-box: fill-box continua garantindo que o scaleY gira em
-           torno do próprio olho. */
-        @keyframes raiz-bot-blink {
-            0%, 100% { transform: scaleY(1); }
-            4%       { transform: scaleY(0.08); }
-            8%       { transform: scaleY(1); }
-            11%      { transform: scaleY(0.08); }
-            15%      { transform: scaleY(1); }
+        /* v1.202.0 — #btn-falar-bot-splash (botão de IA da tela de abertura)
+           migrado do mascote R.AI.Z próprio (verde-escuro, anel branco fino,
+           olhos piscando — v1.40.2/v1.40.3, CSS acima removida por não ter
+           mais uso) pra MESMA linguagem visual de IA já usada no cabeçalho
+           pós-login (.rz-hdr .rz-ia: círculo brass + sparkles + sombra —
+           REGRAS_EXPERIENCIA §15/16, brass é cor EXCLUSIVA de IA/Robô).
+           Regra própria (em vez de reaproveitar .rz-ia direto) porque aqui
+           o botão fica solto sobre a splash, position:absolute, sem o
+           .rz-hdr como pai — mesmos tokens, mesmo desenho. onclick continua
+           abrirBotWhatsapp() (não é o sheet do Raiz IA — pré-login não tem
+           sessão/empresa carregada; o convite aqui é o mesmo WhatsApp de
+           sempre). Pulso brass (::before) só decorativo, sem interferir no
+           toque (pointer-events não desativado pois fica atrás via z-index
+           de stacking do próprio botão, não some clique). */
+        #btn-falar-bot-splash{
+            position:absolute; top:14px; right:66px; z-index:10;
+            width:44px; height:44px; border-radius:50%;
+            background:var(--brass); color:#fff; border:0; padding:0; cursor:pointer;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 6px 18px rgba(21,42,36,.35), 0 2px 6px rgba(21,42,36,.2);
+            transition:transform .08s;
         }
-        .raiz-bot-eye {
-            transform-box: fill-box;
-            transform-origin: center;
-            animation: raiz-bot-blink 5s ease-in-out infinite;
+        #btn-falar-bot-splash:active{ transform:scale(.92); }
+        #btn-falar-bot-splash svg{ width:20px; height:20px; position:relative; z-index:1; }
+        #btn-falar-bot-splash::before{
+            content:''; position:absolute; inset:0; border-radius:50%;
+            background:var(--brass); z-index:0;
+            animation:rz-splash-ia-pulse 2.6s ease-out infinite;
+        }
+        @keyframes rz-splash-ia-pulse{
+            0%   { transform:scale(1); opacity:.5; }
+            100% { transform:scale(1.9); opacity:0; }
         }
 
 
@@ -1292,29 +1320,15 @@
 
         <button id="btn-solicitar-acesso-socio" onclick="solicitarAcessoSocio()" title="Sou sócio — solicitar acesso sem senha" class="hidden absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white text-slate-700 rounded-full shadow-lg z-10"><svg data-lucide="user" style="width:18px;height:18px"></svg></button>
 
-        <!-- Mascote R.AI.Z (v1.40.3) — reposicionado e restilizado pra ficar
-             EXATAMENTE igual ao ícone que aparece no header do app pós-login
-             (mesmas classes: w-9 h-9, bg-emerald-800, text-white, mesmo SVG
-             21x21, mesmos olhos r=1.8). Posição: top-3 right-14 replica o
-             offset real do botão no header (header tem p-3 = 12px de
-             padding = top-3; o botão bot no header fica à esquerda do botão
-             de Conta, então seu canto direito soma padding(12px) +
-             botão-Conta(36px) + gap-2(8px) = 56px = right-14 no Tailwind).
-             Resultado: quando a splash sai e o header entra, o ícone não
-             "pula" de lugar nem muda de tamanho/cor — só o resto da tela ao
-             redor dele muda. Antes (v1.40.0-v1.40.2) ficava no canto
-             superior ESQUERDO, com fundo branco — não batia com o header. -->
-        <button id="btn-falar-bot-splash" onclick="abrirBotWhatsapp()" title="Falar com o R.AI.Z no WhatsApp" class="absolute top-3 right-14 w-9 h-9 flex items-center justify-center bg-emerald-800 text-white rounded-full shadow-lg z-10 active:scale-90 transition">
-            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 2v3"/>
-                <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none"/>
-                <rect x="4" y="7" width="16" height="12" rx="4"/>
-                <circle class="raiz-bot-eye" cx="9" cy="13" r="1.8" fill="currentColor" stroke="none"/>
-                <circle class="raiz-bot-eye" cx="15" cy="13" r="1.8" fill="currentColor" stroke="none"/>
-                <path d="M9 16.5c.8.6 1.9.9 3 .9s2.2-.3 3-.9" stroke-width="1.6"/>
-                <path d="M2 11v3"/>
-                <path d="M22 11v3"/>
-            </svg>
+        <!-- Botão de IA da splash (v1.202.0) — migrado do mascote R.AI.Z
+             próprio (v1.40.3, print real do Nicola mostrava anel branco
+             malposicionado, fora do padrão visual do app) pro MESMO círculo
+             brass + sparkles do .rz-hdr .rz-ia pós-login (REGRAS §15/16) —
+             ver CSS de #btn-falar-bot-splash acima ("v1.202.0") pra
+             posição/animação. Handler e telemetria (abrirBotWhatsapp,
+             eventos_landing) intocados — só visual e posição mudaram. -->
+        <button id="btn-falar-bot-splash" onclick="abrirBotWhatsapp()" title="Falar com o R.AI.Z no WhatsApp" aria-label="Falar com o R.AI.Z no WhatsApp">
+            <svg data-lucide="sparkles" style="width:20px;height:20px" aria-hidden="true"></svg>
         </button>
 
         <div class="w-full max-w-sm text-center space-y-5 py-8">
@@ -3486,7 +3500,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.201.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.202.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
