@@ -6,9 +6,27 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.200.0
-   LINHAS: 14705
+   VERSÃO: Beta v1.201.0
+   LINHAS: 14732
    DATA: 18/09/2026
+   NOVIDADES (Beta v1.201.0) — 2 ajustes do Nicola em cima da v1.200.0:
+   (1) "Remover acesso ao sistema" (⋮ de Pessoas) travava só pro master —
+   agora trava pra admin também (mesma proteção de "Excluir pessoa"), com
+   2ª trava dentro da própria função (mesmo padrão de excluirPessoa()) —
+   ver comum-pessoas.js v2.1.0. (2) Tela "Minhas notificações" (menu
+   Conta) redesenhada: a seção "Alertas e avisos automáticos" ganhou o
+   MESMO padrão visual/comportamental (toggle liga/desliga) da seção
+   "Comunicações da Raiz" logo abaixo — cada aviso salva na hora ao tocar
+   o toggle ou trocar a frequência, sem botão de salvar em lote (saiu
+   "Salvar meus avisos"); os 2 títulos continuam separados, são conceitos
+   diferentes (alertas do patrimônio × comunicações da equipe). Essa
+   MESMA tela agora também abre a partir do ⋮ "Comunicações" da própria
+   pessoa logada na aba Pessoas (window.abrirPreferenciasComunicacao,
+   exposta no Object.assign(window,...) — hoisting de function
+   declaration cobre a referência antes da declaração física no arquivo);
+   pra outra pessoa (fluxo admin), o ⋮ continua abrindo o Sheet local de
+   alertas (a seção "Comunicações da Raiz" é conta de terceiro, não se
+   aplica), que também ganhou o mesmo toggle com salvamento imediato.
    NOVIDADES (Beta v1.200.0) — pedido explícito do Nicola (18/09/2026):
    "A tela de pessoas ficou no formato antigo de leiaute, fora do
    padrão. Deve ser totalmente reescrita. Além disto, sou master e não
@@ -96,26 +114,8 @@
    `imoveis` criada pra não quebrar o bot (leitura direta, pendência à
    parte) nem cofre-api.js::buscarResumoImovelOrigem. Detalhe completo
    e migrations aplicadas: memória do projeto, área "Caminho B".
-   NOVIDADES (Beta v1.196.0) — feedback do Nicola em cima da v1.195.0
-   (mesmo dia, mesma rodada de testes): (1) seção "Patrimônio por tipo de
-   ativo" só aparece com 2+ tipos na carteira (1 tipo só é redundante com
-   o hero); grid deixou de ser fixa em 3 colunas — até 3 grupos = 1
-   linha, 4+ = 2 linhas balanceadas (4→2x2, 5→3 em cima/2 embaixo).
-   (2) BUG REAL achado a partir de uma pergunta ("por que o alerta de
-   extrato aparece azul?"): linhaAlertaHtml() tratava TODO a.dias como
-   contagem regressiva até um vencimento (>14 dias = "folgado" = azul);
-   extrato_desatualizado é o único tipo cujo `dias` conta pra FRENTE
-   (dias desde que ficou desatualizado, não dias até vencer) — corrigido,
-   este tipo agora é sempre laranja (severidade 'atencao'), nunca azul.
-   (3) card de imóvel na lista de Ativos: linha "Empreendimento · Tipo"
-   saiu de dentro da caixa (redundante com o agrupador da lista); nova
-   ordem — nome do imóvel, valor do bem, locatário, aluguel, cada um na
-   própria linha; ícone centralizado na altura da caixa; toda caixa de
-   ativo (rica ou genérica) com a mesma altura mínima padrão. Detalhe
-   completo: js/cofre-ativos.js v1.45.0, js/ativos/ativos-markup.js
-   v1.39.0.
    ------------------------------------------------------------------
-   Versões anteriores (v1.195.0 … v1.195.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.196.0 … v1.196.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -139,7 +139,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.200.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.6.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.37.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.3","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.45.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.25.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.15.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.40.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3486,7 +3486,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.200.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.201.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3791,7 +3791,13 @@
             return `<span class="rz-st rz-${sem}">${rzEsc(texto)}</span>`;
         }
 
-        Object.assign(window, { rzIcones, rzEsc, abrirSheet, fecharSheet, abrirSheetAcoes, abrirSheetForm, renderStatus, rzSemantica, RZ_STATUS });
+        // v1.201.0 — abrirPreferenciasComunicacao adicionada aqui (função
+        // declarada mais abaixo no mesmo <script> clássico, mas hoisting de
+        // function declaration cobre isso — mesmo princípio das outras).
+        // Exposta pra js/comum-pessoas.js poder abrir a MESMA tela "Minhas
+        // notificações" quando o ⋮ de "Comunicações" é da própria pessoa
+        // logada (Sheet de ações > Comunicações).
+        Object.assign(window, { rzIcones, rzEsc, abrirSheet, fecharSheet, abrirSheetAcoes, abrirSheetForm, renderStatus, rzSemantica, RZ_STATUS, abrirPreferenciasComunicacao });
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -9208,8 +9214,7 @@
 
                 <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 2px">Alertas e avisos automáticos</p>
                 <p style="font-size:11px;color:var(--sage,#6b857a);margin:0 0 8px">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
-                <div id="lista-preferencias-alertas" style="display:flex;flex-direction:column;gap:2px;margin-bottom:8px">Carregando...</div>
-                <button type="button" id="btn-salvar-preferencias-alertas" style="display:none;width:100%;margin-bottom:20px;padding:8px;border-radius:10px;font-size:12px;font-weight:700;background:var(--sprout-light);color:var(--pine);border:1px solid var(--sprout)">Salvar meus avisos</button>
+                <div id="lista-preferencias-alertas" style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px">Carregando...</div>
 
                 <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 8px;padding-top:8px;border-top:1px solid var(--line,#e6e3da)">Comunicações da Raiz</p>
                 <div id="lista-preferencias-comunicacao" style="display:flex;flex-direction:column;gap:2px">Carregando...</div>
@@ -9225,45 +9230,32 @@
                     buscarPreferenciasComunicacao(dbAuth, CLIENTE_ID_SUPABASE),
                 ]);
                 const listaAlertas = document.getElementById('lista-preferencias-alertas');
-                const btnSalvar = document.getElementById('btn-salvar-preferencias-alertas');
                 if (!proativas.length) {
                     listaAlertas.innerHTML = '<p style="font-size:13px;color:var(--sage,#6b857a);padding:4px 0">Nenhum aviso automático disponível no seu plano.</p>';
                 } else {
+                    // v1.201.0 — mesmo padrão visual/comportamental do toggle de
+                    // "Comunicações da Raiz" logo abaixo: cada aviso salva na
+                    // hora ao ligar/desligar (ou trocar a frequência), sem
+                    // botão de salvar em lote (o botão saiu — pedido do
+                    // Nicola, "já que tera o componente de ligar ou desligar").
                     listaAlertas.innerHTML = proativas.map(f => {
                         const pref = preferenciasMap.get(`${pessoaIdLogada}|${f.codigo}`);
                         const habilitado = pref ? pref.habilitado : true;
                         const frequencia = pref ? pref.frequencia : 'semanal';
                         const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
-                        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line,#e6e3da)">
-                            <label style="display:flex;align-items:flex-start;gap:6px;flex:1;font-size:12.5px;color:var(--ink,#17211e);min-width:0">
-                                <input type="checkbox" class="pref-alerta-habilitado" data-codigo="${f.codigo}" ${habilitado ? 'checked' : ''} style="margin-top:2px">
-                                <span>${f.descricao}</span>
-                            </label>
-                            <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" style="font-size:11px;border:1px solid var(--line,#e6e3da);border-radius:6px;padding:2px 4px;flex:none">${opcoesHtml}</select>
+                        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#e6e3da)">
+                            <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${rzEsc(f.descricao)}</span>
+                            <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" style="font-size:11px;border:1px solid var(--line,#e6e3da);border-radius:6px;padding:2px 4px;flex:none" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
+                            <button type="button" class="pref-alerta-toggle" data-codigo="${f.codigo}" data-habilitado="${habilitado ? '1' : '0'}"
+                                onclick="alternarPreferenciaAlerta(this)"
+                                style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;flex:none;background:${habilitado ? 'var(--sprout,#3f8163)' : '#d7d2c4'};transition:background .15s">
+                                <span style="position:absolute;top:2px;left:${habilitado ? '22px' : '2px'};width:20px;height:20px;border-radius:999px;background:#fff;transition:left .15s"></span>
+                            </button>
                         </div>`;
                     }).join('');
-                    btnSalvar.style.display = 'block';
-                    btnSalvar.onclick = async () => {
-                        const linhas = Array.from(listaAlertas.querySelectorAll('.pref-alerta-habilitado')).map(chk => {
-                            const codigo = chk.dataset.codigo;
-                            const selectFreq = listaAlertas.querySelector(`.pref-alerta-frequencia[data-codigo="${codigo}"]`);
-                            return {
-                                cliente_id: CLIENTE_ID_SUPABASE, pessoa_id: pessoaIdLogada, funcionalidade_codigo: codigo,
-                                habilitado: chk.checked, frequencia: selectFreq ? selectFreq.value : 'semanal',
-                                atualizado_em: new Date().toISOString(),
-                            };
-                        });
-                        btnSalvar.disabled = true;
-                        try {
-                            const { error } = await dbAuth.from('pessoa_preferencias_comunicacao').upsert(linhas, { onConflict: 'pessoa_id,funcionalidade_codigo' });
-                            if (error) throw error;
-                            mostrarToast('Avisos salvos.', 'success');
-                        } catch (err) {
-                            mostrarToast('Não foi possível salvar: ' + err.message, 'danger');
-                        } finally {
-                            btnSalvar.disabled = false;
-                        }
-                    };
+                    listaAlertas.querySelectorAll('.pref-alerta-frequencia').forEach(sel => {
+                        sel.onchange = () => salvarPreferenciaAlerta(sel.dataset.codigo, listaAlertas.querySelector(`.pref-alerta-toggle[data-codigo="${sel.dataset.codigo}"]`)?.dataset.habilitado === '1', sel.value, sel);
+                    });
                 }
             } catch (err) {
                 document.getElementById('lista-preferencias-alertas').innerHTML = '<p style="font-size:13px;color:#c1463a;padding:4px 0">Não foi possível carregar seus avisos agora.</p>';
@@ -9311,6 +9303,41 @@
             } finally {
                 btn.disabled = false;
             }
+        }
+
+        // v1.201.0 — par de "Alertas e avisos automáticos" (Minhas
+        // notificações, seção 1): mesmo padrão de salvar-na-hora de
+        // alternarPreferenciaComunicacao() acima, mas contra
+        // pessoa_preferencias_comunicacao (pessoaIdLogada) em vez de
+        // fn_definir_opt_out_comunicacao. Sem botão de salvar — o toggle e
+        // a frequência gravam sozinhos.
+        async function salvarPreferenciaAlerta(codigo, habilitado, frequencia, origemEl) {
+            if (origemEl) origemEl.disabled = true;
+            try {
+                const { error } = await dbAuth.from('pessoa_preferencias_comunicacao').upsert([{
+                    cliente_id: CLIENTE_ID_SUPABASE, pessoa_id: pessoaIdLogada, funcionalidade_codigo: codigo,
+                    habilitado, frequencia, atualizado_em: new Date().toISOString(),
+                }], { onConflict: 'pessoa_id,funcionalidade_codigo' });
+                if (error) throw error;
+            } catch (err) {
+                mostrarToast('Não foi possível salvar: ' + err.message, 'danger');
+            } finally {
+                if (origemEl) origemEl.disabled = false;
+            }
+        }
+        async function alternarPreferenciaAlerta(btn) {
+            const codigo = btn.dataset.codigo;
+            const novoHabilitado = btn.dataset.habilitado !== '1';
+            const lista = btn.closest('#lista-preferencias-alertas');
+            const sel = lista?.querySelector(`.pref-alerta-frequencia[data-codigo="${codigo}"]`);
+            const frequencia = sel ? sel.value : 'semanal';
+            btn.disabled = true;
+            await salvarPreferenciaAlerta(codigo, novoHabilitado, frequencia);
+            btn.dataset.habilitado = novoHabilitado ? '1' : '0';
+            btn.style.background = novoHabilitado ? 'var(--sprout)' : '#d7d2c4';
+            btn.querySelector('span').style.left = novoHabilitado ? '22px' : '2px';
+            if (sel) sel.disabled = !novoHabilitado;
+            btn.disabled = false;
         }
 
         function fecharMenuConta() { fecharSheet(); }

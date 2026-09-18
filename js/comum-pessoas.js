@@ -1,6 +1,25 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.200.0 · 18/09/2026
+// Versão: 1.201.0 · 18/09/2026
+//
+// v2.1.0 (COMUM_PESSOAS_VERSAO) / v1.201.0 (VERSAO, header) — 2 ajustes
+// pedidos pelo Nicola em cima da reescrita v2.0.0:
+//   1. "Remover acesso ao sistema" travava só pro master (perfilTravado) —
+//      agora trava pra admin TAMBÉM (protegidoExclusao), mesma proteção
+//      já usada em "Excluir pessoa". Reforçado com 2ª trava dentro de
+//      desvincularAcessoPessoa() (mesmo padrão de excluirPessoa()).
+//   2. "Comunicações", quando a linha é a PRÓPRIA pessoa logada, agora
+//      abre window.abrirPreferenciasComunicacao() — a tela "Minhas
+//      notificações" de index.html, redesenhada nesta mesma leva pra
+//      salvar cada aviso na hora (toggle liga/desliga, sem botão de
+//      salvar em lote) e usar o MESMO padrão visual nas duas seções
+//      (Alertas e avisos automáticos · Comunicações da Raiz). Pra outra
+//      pessoa (fluxo admin), continua abrindo abrirComunicacoesPessoaSheet()
+//      local — só essa também ganhou o mesmo toggle com salvamento
+//      imediato (a Raiz não se aplica a conta de terceiro, então essa
+//      seção não entra aqui, só os avisos/alertas).
+//
+// Versão anterior: 1.200.0 · 18/09/2026
 //
 // v2.0.0 (COMUM_PESSOAS_VERSAO) / v1.200.0 (VERSAO, header) — pedido
 // explícito do Nicola (18/09/2026): "A tela de pessoas ficou no formato
@@ -196,8 +215,8 @@
 // outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.200.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
-export const COMUM_PESSOAS_VERSAO = '2.0.0';
+export const VERSAO = '1.201.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const COMUM_PESSOAS_VERSAO = '2.1.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
@@ -519,14 +538,28 @@ export async function montarAbaPessoas(mountEl, ctx) {
             acoes.push({ icone: 'shield', titulo: 'Perfil de acesso', sub: p.perfil ? capitalizar(p.perfil) : 'Sem perfil', codigo: 'pessoas.editar', aoTocar: () => alterarPerfilPessoa(p.id) });
         }
         if (proativasDisponiveis.length > 0) {
-            acoes.push({ icone: 'bell', titulo: 'Comunicações', sub: 'Avisos automáticos por WhatsApp', aoTocar: () => abrirComunicacoesPessoaSheet(p.id) });
+            // v2.1.0 — pra pessoa logada (a própria linha), abre a MESMA tela
+            // "Minhas notificações" (index.html), que já junta alertas +
+            // comunicações da Raiz numa peça só; pra outra pessoa (fluxo
+            // admin), a Raiz não se aplica (é conta de terceiro) — fica só
+            // o Sheet local de alertas.
+            acoes.push({ icone: 'bell', titulo: 'Comunicações', sub: 'Avisos automáticos por WhatsApp', aoTocar: () => {
+                if (id === pessoaId && typeof window.abrirPreferenciasComunicacao === 'function') { window.abrirPreferenciasComunicacao(); return; }
+                abrirComunicacoesPessoaSheet(p.id);
+            } });
         }
         if (autoFiltro && typeof carregarAcessosDaPessoa === 'function') {
             acoes.push({ icone: 'history', titulo: 'Acessos recentes', aoTocar: () => abrirAcessosPessoaSheet(p.id) });
         }
         if (!perfilTravado) {
             if (temLogin) {
-                acoes.push({ icone: 'user-x', titulo: 'Remover acesso ao sistema', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
+                // v2.1.0 — pedido explícito: remover acesso também trava pra
+                // admin, não só master (mesma proteção de "Excluir pessoa").
+                if (protegidoExclusao) {
+                    acoes.push({ icone: 'lock', titulo: 'Acesso protegido', sub: 'Admin e master não perdem o acesso por aqui', aoTocar: () => {} });
+                } else {
+                    acoes.push({ icone: 'user-x', titulo: 'Remover acesso ao sistema', sub: 'A pessoa continua cadastrada', codigo: 'pessoas.editar', tipo: 'bad', aoTocar: () => desvincularAcessoPessoa(p.id) });
+                }
             } else {
                 acoes.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'Envia e-mail para definir senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
                 acoes.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Usuário já criado no Supabase', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
@@ -620,55 +653,86 @@ export async function montarAbaPessoas(mountEl, ctx) {
     }
 
     // ---------------------------------------------------------------
-    // COMUNICAÇÕES — Sheet de formulário com 1 checkbox + 1 frequência
-    // por funcionalidade proativa disponível na licença. Mesma gravação
-    // de sempre (pessoa_preferencias_comunicacao, upsert por pessoa+
-    // funcionalidade).
+    // COMUNICAÇÕES (outra pessoa, fluxo admin) — v2.1.0: cada aviso salva
+    // na hora ao ligar/desligar o toggle (ou trocar a frequência), mesmo
+    // padrão visual/comportamental de "Comunicações da Raiz" em Minhas
+    // notificações (index.html) — sem botão de salvar em lote. Pra pessoa
+    // logada, o ⋮ abre window.abrirPreferenciasComunicacao() em vez desta
+    // função (ver abrirAcoesPessoa) — essa junta Raiz + alertas.
     // ---------------------------------------------------------------
+    async function salvarPreferenciaComunicacaoPessoa(pessoaAlvoId, codigo, habilitado, frequencia) {
+        const { error } = await dbAuth.from('pessoa_preferencias_comunicacao').upsert([{
+            cliente_id: clienteId, pessoa_id: pessoaAlvoId, funcionalidade_codigo: codigo,
+            habilitado, frequencia, atualizado_em: new Date().toISOString(),
+        }], { onConflict: 'pessoa_id,funcionalidade_codigo' });
+        if (error) throw error;
+        preferenciasMap.set(`${pessoaAlvoId}|${codigo}`, { habilitado, frequencia });
+        registrarLog?.('pessoas.comunicacoes.salvar', { pessoaId: pessoaAlvoId, codigo, habilitado, frequencia });
+    }
+
     function abrirComunicacoesPessoaSheet(id) {
         if (typeof window.abrirSheetForm !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
         const p = pessoas.find(x => x.id === id);
         if (!p) return;
         const semWhatsapp = !p.whatsapp;
-        const linhas = proativasDisponiveis.map(f => {
+        const linhaHtml = f => {
             const pref = preferenciasMap.get(`${p.id}|${f.codigo}`);
             const habilitado = pref ? pref.habilitado : true; // sem linha salva = padrão do sistema
             const frequencia = pref ? pref.frequencia : 'semanal';
             const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
             return `
-                <div class="flex items-start justify-between gap-2 py-2 border-t border-gray-100">
-                    <label class="flex items-start gap-1.5 text-xs text-slate-700 flex-1 min-w-0">
-                        <input type="checkbox" class="pc-habilitado mt-0.5" data-codigo="${esc(f.codigo)}" ${habilitado ? 'checked' : ''}>
-                        <span>${esc(f.descricao)}</span>
-                    </label>
-                    <select class="pc-frequencia text-xs border rounded px-1 py-1 flex-none" data-codigo="${esc(f.codigo)}">${opcoesHtml}</select>
+                <div class="flex items-center gap-2 py-2 border-t border-gray-100" data-linha-codigo="${esc(f.codigo)}">
+                    <span class="text-xs text-slate-700 flex-1 min-w-0">${esc(f.descricao)}</span>
+                    <select class="pc-frequencia text-xs border rounded px-1 py-1 flex-none" data-codigo="${esc(f.codigo)}" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
+                    <button type="button" class="pc-toggle" data-codigo="${esc(f.codigo)}" data-habilitado="${habilitado ? '1' : '0'}"
+                        style="border:0;border-radius:999px;width:40px;height:22px;position:relative;cursor:pointer;flex:none;background:${habilitado ? 'var(--sprout,#3f8163)' : '#d7d2c4'};transition:background .15s">
+                        <span style="position:absolute;top:2px;left:${habilitado ? '20px' : '2px'};width:18px;height:18px;border-radius:999px;background:#fff;transition:left .15s"></span>
+                    </button>
                 </div>`;
-        }).join('');
+        };
         window.abrirSheetForm({
-            titulo: 'Comunicações', sub: p.nome, rotuloSalvar: 'Salvar avisos',
-            corpo: `
-                <p class="text-xs text-gray-500">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
-                ${semWhatsapp ? '<p class="text-xs mt-1" style="color:var(--warning)">Sem WhatsApp cadastrado — os avisos não chegam até preencher o número.</p>' : ''}
-                <div class="mt-1">${linhas || '<p class="text-xs text-gray-400">Nenhum aviso disponível no plano atual.</p>'}</div>
-            `,
-            aoSalvar: async (elCorpo) => {
-                const chks = Array.from(elCorpo.querySelectorAll('.pc-habilitado'));
-                if (!chks.length) return;
-                const linhasSalvar = chks.map(chk => {
-                    const codigo = chk.dataset.codigo;
-                    const sel = elCorpo.querySelector(`.pc-frequencia[data-codigo="${codigo}"]`);
-                    return {
-                        cliente_id: clienteId, pessoa_id: p.id, funcionalidade_codigo: codigo,
-                        habilitado: chk.checked, frequencia: sel ? sel.value : 'semanal',
-                        atualizado_em: new Date().toISOString(),
-                    };
+            titulo: 'Comunicações', sub: p.nome, semRodape: true,
+            corpo: (elCorpo) => {
+                elCorpo.innerHTML = `
+                    <p class="text-xs text-gray-500">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
+                    ${semWhatsapp ? '<p class="text-xs mt-1" style="color:var(--warning)">Sem WhatsApp cadastrado — os avisos não chegam até preencher o número.</p>' : ''}
+                    <div class="mt-1">${proativasDisponiveis.length ? proativasDisponiveis.map(linhaHtml).join('') : '<p class="text-xs text-gray-400">Nenhum aviso disponível no plano atual.</p>'}</div>
+                `;
+                elCorpo.querySelectorAll('.pc-toggle').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const codigo = btn.dataset.codigo;
+                        const novoHabilitado = btn.dataset.habilitado !== '1';
+                        const sel = elCorpo.querySelector(`.pc-frequencia[data-codigo="${codigo}"]`);
+                        const frequencia = sel ? sel.value : 'semanal';
+                        btn.disabled = true;
+                        try {
+                            await salvarPreferenciaComunicacaoPessoa(p.id, codigo, novoHabilitado, frequencia);
+                            btn.dataset.habilitado = novoHabilitado ? '1' : '0';
+                            btn.style.background = novoHabilitado ? 'var(--sprout)' : '#d7d2c4';
+                            btn.querySelector('span').style.left = novoHabilitado ? '20px' : '2px';
+                            if (sel) sel.disabled = !novoHabilitado;
+                        } catch (err) {
+                            onToast?.('Não foi possível salvar: ' + err.message, 'danger');
+                        } finally {
+                            btn.disabled = false;
+                        }
+                    });
                 });
-                const { error } = await dbAuth.from('pessoa_preferencias_comunicacao')
-                    .upsert(linhasSalvar, { onConflict: 'pessoa_id,funcionalidade_codigo' });
-                if (error) throw error;
-                linhasSalvar.forEach(l => preferenciasMap.set(`${l.pessoa_id}|${l.funcionalidade_codigo}`, { habilitado: l.habilitado, frequencia: l.frequencia }));
-                registrarLog?.('pessoas.comunicacoes.salvar', { pessoaId: p.id, qtd: linhasSalvar.length });
-                onToast?.('Avisos salvos.', 'success');
+                elCorpo.querySelectorAll('.pc-frequencia').forEach(sel => {
+                    sel.addEventListener('change', async () => {
+                        const codigo = sel.dataset.codigo;
+                        const btn = elCorpo.querySelector(`.pc-toggle[data-codigo="${codigo}"]`);
+                        const habilitado = btn ? btn.dataset.habilitado === '1' : true;
+                        sel.disabled = true;
+                        try {
+                            await salvarPreferenciaComunicacaoPessoa(p.id, codigo, habilitado, sel.value);
+                        } catch (err) {
+                            onToast?.('Não foi possível salvar: ' + err.message, 'danger');
+                        } finally {
+                            sel.disabled = false;
+                        }
+                    });
+                });
             },
         });
     }
@@ -758,6 +822,15 @@ export async function montarAbaPessoas(mountEl, ctx) {
     }
 
     async function desvincularAcessoPessoa(id) {
+        // Trava dupla (já refletida em não oferecer a ação no Sheet, ver
+        // abrirAcoesPessoa) — admin/master não perdem o acesso por aqui,
+        // mesma proteção de excluirPessoa, contra remover o próprio
+        // administrador por engano mesmo se chamado por outro caminho.
+        const pessoa = pessoas.find(p => p.id === id);
+        if (pessoa && (pessoa.perfil === 'admin' || pessoa.perfil === 'master')) {
+            onToast?.('Usuários admin/master não podem ter o acesso removido por aqui — proteção proposital.', 'danger');
+            return;
+        }
         if (!confirm('Remover o acesso ao sistema desta pessoa? Ela continua cadastrada, só perde o login.')) return;
         try {
             const { error } = await dbAuth.from('pessoas').update({ user_id: null, perfil: null }).eq('id', id);
