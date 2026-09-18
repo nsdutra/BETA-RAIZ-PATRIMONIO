@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.37.0 · 17/09/2026
+// Versão: 1.37.2 · 18/09/2026 (rodada 3)
+//
+// v1.37.2 — listarModelosItemControle(): order() trocou tipo_ativo (campo
+// deprecated, formulário de Modelos de controle parou de gravar nele — ver
+// changelog de cofre-controles.js v1.26.0) por escopo_valor.
+//
+// v1.37.1 — BUG REAL (print do Nicola, ficha de ativo com 2 chips
+// "Documento" idênticos em vez do nome de cada categoria): listarCategorias()
+// filtrava só `cliente_id = clienteId`, nunca batendo com as categorias
+// globais (cliente_id NULL = catálogo padrão Raiz — hoje as 34 únicas que
+// existem no banco). Corrigida pro mesmo `.or('cliente_id.is.null,cliente_id.eq.…')`
+// já usado em listarSubtiposControle/listarModelosItemControle/ativo_tipos.
+// Ver changelog completo junto da função, mais abaixo.
 //
 // v1.37.0 — buscarCandidatosContrato() nova (ver changelog junto da função,
 // mais abaixo): "Vincular a" um documento nunca teve busca por Contrato,
@@ -332,7 +344,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.37.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.37.1'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -381,8 +393,24 @@ export async function pessoaTemFuncionalidade(perfil, funcionalidade) {
 // ============================================================================
 // CATEGORIAS
 // ============================================================================
+// v1.37.1 — BUG REAL (achado no print do Nicola: ficha de ativo mostrando
+// 2 chips "Documento" idênticos em vez do nome de cada categoria). Causa
+// raiz: `cofre_categorias` segue o MESMO padrão global-ou-do-cliente de
+// ativo_tipos/cofre_controle_subtipos/cofre_modelos_item_controle
+// (cliente_id NULL = catálogo padrão Raiz, ver comentário da tabela e
+// listarCategoriasGabarito() logo abaixo), mas esta função filtrava só
+// `.eq('cliente_id', clienteId)` — que no Postgres NUNCA bate com
+// cliente_id IS NULL. Resultado: as 34 categorias hoje cadastradas são
+// TODAS globais (nenhum cliente tem categoria própria ainda), então
+// estado.categorias vinha SEMPRE vazio, pra QUALQUER tenant — todo
+// documento caía no fallback genérico 'Documento' (cofre-ativos.js
+// nomeCat()/montarAnexosChips(), cofre-documentos.js e a tela
+// "Categorizar"). Corrigido pro mesmo `.or()` já usado nas outras 3
+// listas de catálogo — nenhum outro lugar precisa mudar, todos os
+// consumidores só leem estado.categorias.
 export async function listarCategorias(clienteId) {
-    const { data, error } = await dbAuth.from('cofre_categorias').select('*').eq('cliente_id', clienteId).eq('ativo', true).order('ordem');
+    const { data, error } = await dbAuth.from('cofre_categorias').select('*')
+        .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true).order('ordem');
     if (error) throw error;
     return data || [];
 }
@@ -1339,9 +1367,11 @@ export async function listarSubtiposControle(clienteId, tipoAtivo) {
 // (global + do cliente). Usado pra pré-preencher a criação de item de
 // controle a partir do tipo de ativo (App e, futuramente, bot).
 export async function listarModelosItemControle(clienteId) {
+    // v1.37.2 (rodada 3, 18/09/2026) — order() trocou de tipo_ativo (campo
+    // deprecated, parou de ser gravado) pra escopo_valor.
     const { data, error } = await dbAuth.from('cofre_modelos_item_controle').select('*, cofre_controle_subtipos(nome)')
         .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true)
-        .order('tipo_ativo').order('tipo');
+        .order('escopo_valor').order('tipo');
     if (error) throw error;
     return data || [];
 }

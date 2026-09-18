@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.40.0 · 17/09/2026
+// Versão: 1.41.0 · 18/09/2026 (rodada 3)
+//
+// v1.41.0 — modal-modelos-controle: #modelo-tipo-ativo (select único, 14
+// valores misturados categoria+código) virou #modelo-categoria (8
+// categorias) + #modelo-tipo-especifico (opcional) — acompanha
+// cofre-controles.js v1.26.0 (escopo_tipo/escopo_valor em vez do
+// tipo_ativo deprecated). Espelha cofre.html.
 //
 // v1.40.0 — achado real do Nicola (relato + print, 17/09/2026): no seletor
 // "Vincular a" do upload/ficha de documento (#up-vinculo-tipo, #fd-va-tipo)
@@ -1549,7 +1555,12 @@ export const ATIVOS_MARKUP = `<style>
             <button type="button" data-action="fechar-modelos-controle" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="grid grid-cols-2 gap-2 mb-2">
-            <select id="modelo-tipo-ativo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <!-- v1.26.0 (rodada 3, 18/09/2026) — modelo-tipo-ativo (14
+                 valores misturados categoria+código) virou 2 seletores:
+                 categoria (as 8 macro) + tipo específico opcional. Espelha
+                 cofre.html. -->
+            <select id="modelo-categoria" data-action-change="modelo-categoria-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <select id="modelo-tipo-especifico" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <select id="modelo-tipo" data-action-change="modelo-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
                 <option value="seguro">Seguro</option>
                 <option value="manutencao">Manutenção</option>

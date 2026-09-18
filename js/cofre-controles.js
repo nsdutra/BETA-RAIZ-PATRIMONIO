@@ -1,6 +1,34 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.25.0 · 15/09/2026
+// Versão: 1.26.0 · 18/09/2026 (rodada 3)
+//
+// v1.26.0 — Pedido explícito do Nicola: formulário "Modelos de item de
+// controle" (abrirModelosControle/salvarModeloControle) passa a gravar
+// escopo_tipo/escopo_valor (mesmo padrão de cofre_subtipo_aplicabilidade,
+// migration demanda_7e6f4027_fix_modelos_escopo_v1) em vez do tipo_ativo
+// antigo (coluna virou DEPRECATED — ALTER ... DROP NOT NULL, comentada no
+// banco; nada foi apagado, os 11 modelos pré-existentes mantêm o valor
+// histórico). 2º seletor novo no form, "Tipo específico" (#modelo-tipo-
+// especifico, espelha o de cofre-ativos.js) — vazio = modelo vale pra
+// toda a categoria (escopo_tipo='categoria'); com um tipo escolhido,
+// escopo_tipo='codigo'. TIPOS_ATIVO_ORDEM (14 valores misturados,
+// categoria + código, com histórico de gap — ver v1.21.2 abaixo) vira
+// CATEGORIAS_MODELO_ORDEM (as 8 categorias reais).
+// QUA-01 (root-cause, mesmo padrão em outro lugar): achei DOIS
+// consumidores do tipo_ativo antigo além do form — renderizarModelosControle
+// (agrupamento da lista) e renderizarModelosSugeridosForm (pills "Usar
+// modelo" no form de item de controle, comparando m.tipo_ativo ===
+// ativo?.tipo_ativo). O 2º estava silenciosamente quebrado pra todo modelo
+// de escopo específico (TUF, revisão/seguro de blindado, seguro de obra
+// de arte, nota fiscal de terreno — 5 dos 11) desde que ativo.tipo_ativo
+// passou a usar só as 8 categorias novas: a comparação nunca batia, pill
+// nunca aparecia, sem erro nenhum. Corrigido junto — ambos agora resolvem
+// via categoriaDoModelo()/modeloAplicaAoAtivo() (novas), que tratam
+// escopo_tipo='codigo' resolvendo a categoria/código real do ativo pelo
+// catálogo (listarTiposPorCategoria, cofre-validacoes.js). Espelha em 2
+// arquivos de markup (cofre.html + js/ativos/ativos-markup.js — HTML
+// duplicado entre App e Cofre standalone, prática já documentada no
+// cabeçalho de cofre.html) e 1 case novo no dispatcher (cofre-app.js).
 //
 // v1.25.0 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4 ("A5"), Onda 12
 // (decisão do Nicola: "vamos fazer a 15.2 e a migração dos dados").
@@ -341,6 +369,7 @@ import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento,
     rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo,
     numeroWhatsAppComDDI,
+    inicializarCatalogoTiposAtivo, listarTiposPorCategoria,
 } from './cofre-validacoes.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
@@ -1390,7 +1419,13 @@ export function aoMudarFrequenciaItemControle() {
 function renderizarModelosSugeridosForm() {
     const el = document.getElementById('ic-modelos-sugeridos');
     const ativo = estado.ativoEmFoco;
-    const modelos = (modelosCache || []).filter(m => m.tipo_ativo === ativo?.tipo_ativo);
+    // v1.26.0 — a comparação direta `m.tipo_ativo === ativo?.tipo_ativo`
+    // (achado, mesmo bug pattern da trigger corrigida na demanda 7e6f4027:
+    // ativo.tipo_ativo só tem os 8 valores de categoria, e nunca batia com
+    // os modelos de escopo 'codigo' — TUF/veículo blindado/obra de arte
+    // ficavam invisíveis aqui em silêncio) virou modeloAplicaAoAtivo(),
+    // que resolve escopo_tipo='codigo' via o tipo_detalhe_id do ativo.
+    const modelos = (modelosCache || []).filter(m => modeloAplicaAoAtivo(m, ativo));
     if (!ativo || !modelos.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
     el.classList.remove('hidden');
     el.innerHTML = `<p class="text-[11px] font-semibold mb-1" style="color:var(--sage)">Usar modelo</p>
@@ -1780,18 +1815,57 @@ function renderizarSubtiposControle() {
 // (ver ESPECIFICACAO_FLUXO_DOCUMENTO_BOT). Precisou de tabela e policy
 // novas — cofre_modelos_item_controle_v1.
 // ============================================================================
-const TIPOS_ATIVO_ORDEM = ['veiculo', 'veiculo_blindado', 'imovel', 'terreno', 'obra_arte', 'vida_protecao', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'imovel_predial', 'imovel_territorial', 'vida', 'bem_valor'];
+// v1.26.0 (rodada 3, 18/09/2026) — as 8 categorias macro reais (mesma
+// lista de popularSelectTipoAtivo em cofre-ativos.js), substituindo os 14
+// valores misturados (categoria + código específico) de TIPOS_ATIVO_ORDEM.
+// Ver changelog da versão pra contexto completo da troca pra escopo_tipo/
+// escopo_valor.
+const CATEGORIAS_MODELO_ORDEM = ['imovel_predial', 'imovel_territorial', 'veiculo', 'embarcacao', 'aeronave', 'vida', 'bem_valor', 'outro'];
+
+// Catálogo cru (categoria+código+id) carregado em abrirModelosControle() —
+// listarTiposPorCategoria() (cofre-validacoes.js) só filtra POR categoria;
+// aqui precisamos também do caminho inverso (código → categoria), pra
+// agrupar a lista de modelos por categoria mesmo nos de escopo 'codigo'.
+let catalogoTiposAtivoBruto = [];
+
+async function garantirCatalogoTiposAtivoModelos() {
+    try {
+        const catalogo = await api.listarTiposAtivo(estado.clienteId);
+        inicializarCatalogoTiposAtivo(catalogo);
+        catalogoTiposAtivoBruto = catalogo?.tipos || [];
+    } catch (err) {
+        console.error('Catálogo de tipos de ativo indisponível — modelos de escopo "código" não conseguem resolver categoria.', err);
+    }
+}
+
+function categoriaDoModelo(m) {
+    if (m.escopo_tipo === 'categoria') return m.escopo_valor;
+    return catalogoTiposAtivoBruto.find(t => t.codigo === m.escopo_valor)?.categoria || m.escopo_valor;
+}
+
+// Usada tanto pelas pills "Usar modelo" (renderizarModelosSugeridosForm)
+// quanto — futuramente — pelo bot. categoria = toda a categoria; codigo =
+// só o tipo específico (resolvido via tipo_detalhe_id do ativo).
+function modeloAplicaAoAtivo(m, ativo) {
+    if (!ativo) return false;
+    if (m.escopo_tipo === 'categoria') return m.escopo_valor === ativo.tipo_ativo;
+    const codigoDoAtivo = listarTiposPorCategoria(ativo.tipo_ativo).find(t => t.id === ativo.tipo_detalhe_id)?.codigo;
+    return !!codigoDoAtivo && codigoDoAtivo === m.escopo_valor;
+}
 
 export async function abrirModelosControle() {
     try {
         if (!subtiposCache) subtiposCache = await api.listarSubtiposControle(estado.clienteId);
+        await garantirCatalogoTiposAtivoModelos();
         modelosCache = await api.listarModelosItemControle(estado.clienteId);
     } catch (err) {
         mostrarToast('Erro ao carregar modelos: ' + err.message, 'erro');
         return;
     }
     modeloEmEdicao = null;
-    document.getElementById('modelo-tipo-ativo').innerHTML = TIPOS_ATIVO_ORDEM.map(t => `<option value="${t}">${escapeHtml(rotuloTipoAtivo(t))}</option>`).join('');
+    document.getElementById('modelo-categoria').innerHTML = CATEGORIAS_MODELO_ORDEM.map(t => `<option value="${t}">${escapeHtml(rotuloTipoAtivo(t))}</option>`).join('');
+    document.getElementById('modelo-categoria').value = 'imovel_predial';
+    atualizarSelectModeloTipoEspecifico('imovel_predial', null);
     document.getElementById('modelo-tipo').value = 'seguro';
     popularSelectSubtipoEm('modelo-subtipo', 'seguro', null);
     document.getElementById('modelo-titulo').value = '';
@@ -1812,8 +1886,23 @@ export function aoMudarTipoModeloControleForm() {
     popularSelectSubtipoEm('modelo-subtipo', document.getElementById('modelo-tipo').value, null);
 }
 
+// Repopula "Tipo específico" com os códigos da categoria escolhida (2º
+// seletor, mesmo espírito do "Tipo específico" na ficha do ativo). Opção
+// padrão vazia = modelo vale pra toda a categoria (escopo_tipo='categoria').
+export function aoMudarCategoriaModeloControleForm() {
+    atualizarSelectModeloTipoEspecifico(document.getElementById('modelo-categoria').value, null);
+}
+
+function atualizarSelectModeloTipoEspecifico(categoria, tipoDetalheIdAtual) {
+    const sel = document.getElementById('modelo-tipo-especifico');
+    const tipos = listarTiposPorCategoria(categoria);
+    sel.innerHTML = `<option value="">— toda a categoria —</option>` +
+        tipos.map(t => `<option value="${t.id}"${t.id === tipoDetalheIdAtual ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('');
+}
+
 export async function salvarModeloControle() {
-    const tipoAtivo = document.getElementById('modelo-tipo-ativo').value;
+    const categoria = document.getElementById('modelo-categoria').value;
+    const tipoEspecificoId = document.getElementById('modelo-tipo-especifico').value || null;
     const tipo = document.getElementById('modelo-tipo').value;
     const subtipoId = document.getElementById('modelo-subtipo').value || null;
     const titulo = document.getElementById('modelo-titulo').value.trim();
@@ -1821,8 +1910,14 @@ export async function salvarModeloControle() {
     const freqUnidade = freqIntervalo ? document.getElementById('modelo-freq-unidade').value : null;
     const antecedencia = parseInt(document.getElementById('modelo-antecedencia').value, 10) || 0;
     if (!titulo) { mostrarToast('Informe um título sugerido.', 'erro'); return; }
+    // v1.26.0 — escopo_tipo/escopo_valor (mesmo padrão de
+    // cofre_subtipo_aplicabilidade) em vez do antigo tipo_ativo (deprecated,
+    // não é mais gravado por este formulário).
+    const tipoEspecifico = tipoEspecificoId ? listarTiposPorCategoria(categoria).find(t => t.id === tipoEspecificoId) : null;
+    const escopoTipo = tipoEspecifico ? 'codigo' : 'categoria';
+    const escopoValor = tipoEspecifico ? tipoEspecifico.codigo : categoria;
     const payload = {
-        tipo_ativo: tipoAtivo, tipo, subtipo_id: subtipoId, titulo_sugerido: titulo,
+        escopo_tipo: escopoTipo, escopo_valor: escopoValor, tipo, subtipo_id: subtipoId, titulo_sugerido: titulo,
         frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia,
     };
     try {
@@ -1852,7 +1947,12 @@ export function editarModeloControle(id) {
     const m = (modelosCache || []).find(x => x.id === id);
     if (!m) return;
     modeloEmEdicao = id;
-    document.getElementById('modelo-tipo-ativo').value = m.tipo_ativo;
+    // v1.26.0 — reconstrói categoria + tipo específico a partir de
+    // escopo_tipo/escopo_valor (tipo_ativo não é mais gravado/lido).
+    const categoria = categoriaDoModelo(m);
+    document.getElementById('modelo-categoria').value = categoria;
+    const tipoDetalheId = m.escopo_tipo === 'codigo' ? (listarTiposPorCategoria(categoria).find(t => t.codigo === m.escopo_valor)?.id || null) : null;
+    atualizarSelectModeloTipoEspecifico(categoria, tipoDetalheId);
     document.getElementById('modelo-tipo').value = m.tipo;
     popularSelectSubtipoEm('modelo-subtipo', m.tipo, m.subtipo_id);
     document.getElementById('modelo-titulo').value = m.titulo_sugerido;
@@ -1886,15 +1986,19 @@ export async function excluirModeloControle(id) {
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
-// Agrupado por tipo de ativo (ordem fixa TIPOS_ATIVO_ORDEM), cada grupo
+// Agrupado por categoria (ordem fixa CATEGORIAS_MODELO_ORDEM), cada grupo
 // mostrando tipo/subtipo/frequência/antecedência numa linha só — mesmo
 // espírito de "itens a receber" (sem borda/fundo, divisor fino).
 function renderizarModelosControle() {
     const grupos = {};
-    TIPOS_ATIVO_ORDEM.forEach(t => { grupos[t] = []; });
-    (modelosCache || []).forEach(m => { if (grupos[m.tipo_ativo]) grupos[m.tipo_ativo].push(m); });
+    CATEGORIAS_MODELO_ORDEM.forEach(t => { grupos[t] = []; });
+    // v1.26.0 — agrupa por categoriaDoModelo() (resolve escopo_tipo='codigo'
+    // pra sua categoria via o catálogo), não mais por tipo_ativo cru — o
+    // `if (grupos[...])` continua defensivo (nunca esconde: cai fora do
+    // agrupamento só se a categoria vier de fora das 8 conhecidas).
+    (modelosCache || []).forEach(m => { const cat = categoriaDoModelo(m); if (grupos[cat]) grupos[cat].push(m); });
     const el = document.getElementById('modelos-lista');
-    el.innerHTML = TIPOS_ATIVO_ORDEM.map(tipoAtivo => {
+    el.innerHTML = CATEGORIAS_MODELO_ORDEM.map(tipoAtivo => {
         const itens = grupos[tipoAtivo];
         if (!itens.length) return '';
         return `<div class="mb-3">

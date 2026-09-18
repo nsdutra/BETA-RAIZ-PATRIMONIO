@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.3 · 15/09/2026
+// Versão: 1.32.4 · 18/09/2026 (rodada 3)
+//
+// v1.32.4 — case novo 'modelo-categoria-mudou' →
+// controles.aoMudarCategoriaModeloControleForm() — acompanha a troca do
+// formulário de Modelos de controle pra escopo_tipo/escopo_valor
+// (cofre-controles.js v1.26.0).
 //
 // v1.32.3 — PLANO_IMPLEMENTACAO v1.0, etapa E14.4: 7 cases de contato-
 // item saíram do despachante, 1 novo (acionar-parte-item-direto) no
@@ -646,6 +651,7 @@ document.addEventListener('change', async (ev) => {
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;
         case 'ic-tipo-mudou': controles.aoMudarTipoControleForm(); break;
         case 'modelo-tipo-mudou': controles.aoMudarTipoModeloControleForm(); break;
+        case 'modelo-categoria-mudou': controles.aoMudarCategoriaModeloControleForm(); break; // v1.26.0 rodada 3
         case 'fic-ed-tipo-mudou': controles.aoMudarTipoEditarItemForm(); break;
         default: break;
     }

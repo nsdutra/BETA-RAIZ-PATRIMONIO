@@ -10,8 +10,13 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.25.9
-  Data       : 16/09/2026
+  Versão     : 1.26.0
+  Data       : 18/09/2026 (rodada 3)
+  CHANGELOG v1.26.0 — modal-modelos-controle: #modelo-tipo-ativo virou
+               #modelo-categoria + #modelo-tipo-especifico — espelha
+               js/ativos/ativos-markup.js v1.41.0/js/cofre-controles.js
+               v1.26.0 (escopo_tipo/escopo_valor em vez do tipo_ativo
+               deprecated).
   CHANGELOG v1.25.9 — Onda 12, pendências avançadas (16/09/2026): seletor
                "Qual imóvel?" removido do form de novo ativo (linha ~2450)
                — espelha js/cofre-ativos.js v1.41.0/js/ativos/
@@ -3206,7 +3211,12 @@
             <button type="button" data-action="fechar-modelos-controle" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div class="grid grid-cols-2 gap-2 mb-2">
-            <select id="modelo-tipo-ativo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <!-- v1.26.0 (rodada 3, 18/09/2026) — modelo-tipo-ativo (14
+                 valores misturados categoria+código) virou 2 seletores:
+                 categoria (as 8 macro) + tipo específico opcional. Espelha
+                 js/ativos/ativos-markup.js. -->
+            <select id="modelo-categoria" data-action-change="modelo-categoria-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <select id="modelo-tipo-especifico" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <select id="modelo-tipo" data-action-change="modelo-tipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1">
                 <option value="seguro">Seguro</option>
                 <option value="manutencao">Manutenção</option>
