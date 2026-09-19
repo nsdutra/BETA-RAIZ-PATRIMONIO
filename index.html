@@ -6,9 +6,23 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.210.0
-   LINHAS: 15031
-   DATA: 18/09/2026 (rodada 7)
+   VERSÃO: Beta v1.211.0
+   LINHAS: 15045
+   DATA: 18/09/2026 (rodada 8)
+   NOVIDADES (Beta v1.211.0) (pedido explícito, 18/09/2026: "Nos detalhes do
+   arquivo deve ser possivel editar o nome. Tanto nos anexos de contrato,
+   quanto ativos, itens de controle e os demais") — Ficha do Documento
+   (#modal-ficha-doc) ganhou lapiseira ao lado do nome: editarNomeDocumentoAtual()
+   nova em cofre-documentos.js v2.18.0, mesmo abrirSheetForm/gramática .rz-f
+   já usada em fa-editar-nome (cofre-ativos.js), grava nome_exibicao via
+   api.atualizarDocumento() (já genérica). Como abrirFichaDocumento() é o
+   único fluxo que monta essa ficha pros 3 contextos citados pelo Nicola
+   (anexo de contrato, de ativo, de item de controle), o botão único já
+   cobre os 3. Markup duplicado em 2 lugares (cofre.html v1.28.0 e
+   js/ativos/ativos-markup.js v1.43.0, mesmos ids) — os dois entraram
+   junto. IMPORTMAP: cofre-app.js →1.32.5, cofre-documentos.js →2.18.0,
+   ativos-markup.js →1.43.0.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.210.0) — MERGE de 2 frentes que divergiram da mesma
    base sem se ver: a frente "app" (esta sessão, rodada 4) tinha corrigido
    o padrão "há/em xx d" (linhaAlertaHtml() e o mesmo padrão em
@@ -315,7 +329,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.8.0","./js/contratos.js":"./js/contratos.js?v=1.8.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.47.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.27.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.17.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.41.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.8.0","./js/contratos.js":"./js/contratos.js?v=1.9.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.48.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.28.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.18.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3701,7 +3715,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.210.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.211.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
