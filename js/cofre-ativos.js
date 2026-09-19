@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.50.0 · 19/09/2026 (rodada 10)
+// Versão: 1.51.0 · 19/09/2026 (rodada 10)
 //
 // v1.49.0 — CORRIGIDO (pedido explícito: "em todos os ativos, colocar o
 // valor de mercado do ativo") — ativoCardHtml(), ramo de imóvel com resumo
@@ -640,7 +640,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1192,50 +1192,41 @@ function ativoCardHtml(a) {
             ? (principal.locatario || 'Locatário não informado')
             : principal && principal.status !== 'Finalizado' ? `${principal.status} — ${principal.locatario || '-'}`
             : usoProprio ? 'Uso próprio' : 'Sem contrato cadastrado';
-        // CORRIGIDO v1.47.0 (pedido explícito — "a altura de um item de
-        // imóvel está maior que a de um item de ativo, manter o padrão de
-        // ativo" + "retire a palavra Bem"): eram até 4 linhas de texto
-        // (nome + valor do bem + locatário + aluguel), sempre mais alto
-        // que o card genérico (nome + 1 linha). Consolidado em UMA linha
-        // de detalhe (a mesma altura do genérico): alugado mostra
-        // locatário + aluguel; sem contrato ativo mostra locatário/status
-        // + valor do bem (sem a palavra "Bem", sem decimais — fmtMoeda
-        // local já ajustado acima).
         const aluguelFmt = alugado && principal.valor != null ? `${fmtMoeda(principal.valor)}/mês` : null;
         const valorFmt = a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null;
-        // CORRIGIDO v1.48.0 (pedido explícito: "em todos os ativos, colocar
-        // o valor de mercado") — valorFmt (a.valor_referencia) SEMPRE entra
-        // agora, inclusive Alugado (antes só aparecia em Vago/Em uso — o
-        // card do locatário+aluguel nunca mostrava quanto o imóvel vale).
-        //
-        // CORRIGIDO v1.50.0 (18/09/2026, rodada 10 — achado do Nicola:
-        // "valor de mercado continua faltando, nada mudou na lista") — a
-        // v1.48.0 acima ESTAVA certa (valorFmt entrava na linha, conferido
-        // no código), mas a linha inteira era 1 `<p class="... truncate">`
-        // (1 linha, overflow oculto) com os 3 pedaços concatenados numa
-        // string só — nome de locatário mais longo já enchia a largura
-        // sozinho, e tudo que vinha DEPOIS (aluguel, valor) ficava por trás
-        // do corte, sem aparecer — mesma classe de bug já vista e corrigida
-        // em Financeiro (rodada 9/10, `.rz-tx span`). Fix estrutural, não só
-        // reordenar: a linha vira um flex com 2 partes — locatário (var1,
-        // `min-width:0` + truncate, único pedaço que pode ser cortado) e
-        // aluguel+valor (fixo, `flex:none`, nunca trunca). Card genérico
-        // (ramo abaixo, ativos que não são imóvel) não muda — só tem
-        // identificador+valor, sem parte de tamanho variável tipo nome de
-        // locatário na frente.
-        const linhaValorFixo = [aluguelFmt, valorFmt].filter(Boolean).join(' · ');
+        // CORRIGIDO v1.51.0 (19/09/2026, rodada 10, pedido explícito —
+        // "a descrição do card de ativos quando imóveis na lista ainda não
+        // está legal. Não está aparecendo o nome do locatário e o valor do
+        // aluguel está confundindo com o valor do ativo") — a v1.47.0
+        // (comentário removido, histórico) tinha CONSOLIDADO tudo numa
+        // única linha ("locatário · aluguel · valor de mercado") pra manter
+        // a mesma altura do card genérico; a v1.50.0 (rodada 10, mais
+        // acima) corrigiu o truncamento escondendo o valor, mas os 2
+        // conceitos (aluguel do contrato × valor de mercado do bem)
+        // continuavam lado a lado na mesma linha, sem rótulo — daí a
+        // confusão relatada. Pedido explícito agora é 4 linhas fixas, cada
+        // uma com 1 informação só: (1) nome do ativo [já era o <h3>],
+        // (2) tipo de uso + valor de mercado, (3) nome do locatário,
+        // (4) valor do aluguel — todos os valores sem casa decimal
+        // (fmtMoeda local já configurado assim). Abandona de vez a meta de
+        // "mesma altura do card genérico" da v1.47.0 — pedido explícito
+        // de hoje pesa mais que aquela decisão de layout antiga.
+        const finalidadeRotulo = FINALIDADES_USO_ATIVO.find(f => f.v === resumoImovel.finalidadeUso)?.l || null;
+        const linhaTipoValor = [finalidadeRotulo, valorFmt].filter(Boolean).join(' · ');
 
-        // v1.45.0 — ícone/avatar centralizado na ALTURA da caixa. .card-ativo
-        // ganhou min-height padrão em ativos-markup.js pra toda caixa (rica
-        // ou genérica) ter a MESMA altura — agora as duas realmente batem,
-        // porque as duas têm o mesmo número de linhas de texto (nome + 1).
+        // v1.51.0 — ícone/avatar centralizado na ALTURA da caixa. Imóvel com
+        // resumo agora tem até 4 linhas de texto (nome + tipo/valor +
+        // locatário + aluguel) — mais alto que o card genérico (nome + 1
+        // linha) de propósito, ver nota acima.
         return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-center">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
                 ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
             </div>
             <div class="flex-1 min-w-0">
                 <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(a.nome_exibicao)}</h3>
-                ${linhaLocatario || linhaValorFixo ? `<p class="text-xs text-slate-500 mt-0.5" style="display:flex;align-items:baseline;gap:4px;overflow:hidden">${linhaLocatario ? `<span class="truncate">${escapeHtml(linhaLocatario)}</span>` : ''}${linhaValorFixo ? `<span style="flex:none;white-space:nowrap">${linhaLocatario ? '· ' : ''}${escapeHtml(linhaValorFixo)}</span>` : ''}</p>` : ''}
+                ${linhaTipoValor ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(linhaTipoValor)}</p>` : ''}
+                ${linhaLocatario ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(linhaLocatario)}</p>` : ''}
+                ${aluguelFmt ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(aluguelFmt)}</p>` : ''}
             </div>
             <div class="flex flex-col items-end gap-1 flex-none">
                 ${badgeHtml}
