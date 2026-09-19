@@ -6,8 +6,30 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.215.0
+   VERSÃO: Beta v1.216.0
    LINHAS: 15045
+   DATA: 19/09/2026 (rodada 10, entrega 4)
+   NOVIDADES (Beta v1.216.0) — novo ajuste pedido pelo Nicola em cima da
+   entrega anterior (v1.215.0), ainda na mesma tela: "a descrição do card
+   de ativos na lista de ativos ainda não está legal. coloque na 1a linha
+   o nome do ativo, na 2a linha, o valor de mercado, sem casa decimal. na
+   3a linha o nome locatario. na quarta linha, o valor do aluguel, sem
+   casa decimal. Em itens nao alugados, no lugar do aluguel coloque sem
+   contrato e no lugar do valor do aluguel, deixe em branco. para os
+   demais ativos, na 1 linha coloque o nome do ativo, na 2a linha o valor
+   de mercado sem casa decimal, na 3a linha modelo e a 4a linha um
+   identificador como placa ou identificacao ou registro." Simplifica o
+   card de imóvel (linha 2 volta a ser só valor de mercado, sem o "tipo de
+   uso ·" na frente; linha 3 vira só "Sem contrato" pra qualquer item não
+   alugado — o selo colorido ao lado já diferencia Assinando/Em uso/Vago;
+   linha 4 só aparece quando há aluguel) e estende o MESMO padrão de 4
+   linhas isoladas pro card genérico (demais tipos de ativo: veículo,
+   embarcação, aeronave etc.), que até aqui só tinha nome + 1 linha com
+   identificador e valor concatenados — agora nome / valor de mercado /
+   modelo / identificador (placa, matrícula, registro conforme o tipo),
+   cada um na sua linha. cofre-ativos.js v1.52.0. IMPORTMAP:
+   cofre-ativos.js →1.52.0.
+   ------------------------------------------------------------------
    DATA: 19/09/2026 (rodada 10, entrega 3)
    NOVIDADES (Beta v1.215.0) — último ajuste pedido pelo Nicola na rodada
    10: "a descrição do card de ativos quando imóveis na lista ainda não
@@ -426,7 +448,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.51.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.52.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3812,7 +3834,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.215.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.216.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.51.0 · 19/09/2026 (rodada 10)
+// Versão: 1.52.0 · 19/09/2026 (rodada 10)
+//
+// v1.52.0 — CORRIGIDO (pedido explícito, rodada 10 entrega 4) —
+// ativoCardHtml(): simplifica de vez a descrição do card na lista de
+// Ativos, nos 2 ramos. Imóvel: linha 2 volta a ser só valor de mercado
+// (tipo de uso saiu, virou 3 textos → 1: "Sem contrato" cobre
+// Assinando/Em uso/Vago, o selo colorido à direita já diferencia esses
+// estados); linha 4 (aluguel) só aparece se alugado. Demais ativos:
+// ganham as mesmas 4 linhas isoladas (nome/valor/modelo/identificador),
+// que antes só existiam pro imóvel — modelo (dados_especificos.modelo)
+// e identificador (identificadorDocumentoAtivo(), já existia desde
+// v1.47.0) cada um na sua própria linha, sem "·" concatenando.
 //
 // v1.49.0 — CORRIGIDO (pedido explícito: "em todos os ativos, colocar o
 // valor de mercado do ativo") — ativoCardHtml(), ramo de imóvel com resumo
@@ -1153,6 +1164,10 @@ function ativoCardHtml(a) {
     // intocados.
     const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
     const identificadorDocumento = identificadorDocumentoAtivo(a);
+    // v1.52.0 — valor de mercado (a.valor_referencia) movido pro escopo
+    // compartilhado da função: agora usado tanto no ramo de imóvel quanto
+    // no card genérico (ver notas abaixo).
+    const valorFmt = a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null;
 
     // v1.7.0 — ativo do tipo imóvel COM resumo carregado: mesma "cara"
     // exata da lista antiga de Imóveis (montarCabecalhoImovelHtml, no
@@ -1188,43 +1203,35 @@ function ativoCardHtml(a) {
         // pediu explicitamente pra tirar essa redundância. O endereço
         // (a.nome_exibicao) vira a linha de título do card (única linha
         // que identifica QUAL imóvel é, agora que "Canaã · Casa" saiu).
-        const linhaLocatario = alugado
-            ? (principal.locatario || 'Locatário não informado')
-            : principal && principal.status !== 'Finalizado' ? `${principal.status} — ${principal.locatario || '-'}`
-            : usoProprio ? 'Uso próprio' : 'Sem contrato cadastrado';
+        // CORRIGIDO v1.52.0 (19/09/2026, rodada 10, pedido explícito —
+        // "a descrição do card de ativos na lista de ativos ainda não está
+        // legal... na 2a linha, o valor de mercado, sem casa decimal. na 3a
+        // linha o nome locatario. na quarta linha, o valor do aluguel...
+        // Em itens nao alugados, no lugar do aluguel coloque sem contrato e
+        // no lugar do valor do aluguel, deixe em branco") — a v1.51.0
+        // (comentário removido, histórico) ainda juntava "tipo de uso +
+        // valor de mercado" na linha 2 e usava 3 textos de status
+        // diferentes (Assinando/Uso próprio/Sem contrato cadastrado) na
+        // linha 3; pedido de hoje simplifica pra 4 linhas ainda mais
+        // diretas: (1) nome [já era o <h3>], (2) só valor de mercado,
+        // (3) locatário OU "Sem contrato" (o selo colorido à direita já
+        // diferencia Assinando/Em uso/Vago — não precisa repetir o texto
+        // aqui), (4) aluguel — que só aparece quando alugado (senão fica
+        // em branco, ou seja, a linha nem é renderizada).
+        const linhaLocatario = alugado ? (principal.locatario || 'Locatário não informado') : 'Sem contrato';
         const aluguelFmt = alugado && principal.valor != null ? `${fmtMoeda(principal.valor)}/mês` : null;
-        const valorFmt = a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null;
-        // CORRIGIDO v1.51.0 (19/09/2026, rodada 10, pedido explícito —
-        // "a descrição do card de ativos quando imóveis na lista ainda não
-        // está legal. Não está aparecendo o nome do locatário e o valor do
-        // aluguel está confundindo com o valor do ativo") — a v1.47.0
-        // (comentário removido, histórico) tinha CONSOLIDADO tudo numa
-        // única linha ("locatário · aluguel · valor de mercado") pra manter
-        // a mesma altura do card genérico; a v1.50.0 (rodada 10, mais
-        // acima) corrigiu o truncamento escondendo o valor, mas os 2
-        // conceitos (aluguel do contrato × valor de mercado do bem)
-        // continuavam lado a lado na mesma linha, sem rótulo — daí a
-        // confusão relatada. Pedido explícito agora é 4 linhas fixas, cada
-        // uma com 1 informação só: (1) nome do ativo [já era o <h3>],
-        // (2) tipo de uso + valor de mercado, (3) nome do locatário,
-        // (4) valor do aluguel — todos os valores sem casa decimal
-        // (fmtMoeda local já configurado assim). Abandona de vez a meta de
-        // "mesma altura do card genérico" da v1.47.0 — pedido explícito
-        // de hoje pesa mais que aquela decisão de layout antiga.
-        const finalidadeRotulo = FINALIDADES_USO_ATIVO.find(f => f.v === resumoImovel.finalidadeUso)?.l || null;
-        const linhaTipoValor = [finalidadeRotulo, valorFmt].filter(Boolean).join(' · ');
 
         // v1.51.0 — ícone/avatar centralizado na ALTURA da caixa. Imóvel com
-        // resumo agora tem até 4 linhas de texto (nome + tipo/valor +
-        // locatário + aluguel) — mais alto que o card genérico (nome + 1
-        // linha) de propósito, ver nota acima.
+        // resumo agora tem até 4 linhas de texto (nome + valor + locatário
+        // + aluguel) — mais alto que o card genérico (nome + 1 linha) de
+        // propósito, ver nota acima.
         return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-center">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
                 ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
             </div>
             <div class="flex-1 min-w-0">
                 <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(a.nome_exibicao)}</h3>
-                ${linhaTipoValor ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(linhaTipoValor)}</p>` : ''}
+                ${valorFmt ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(valorFmt)}</p>` : ''}
                 ${linhaLocatario ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(linhaLocatario)}</p>` : ''}
                 ${aluguelFmt ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(aluguelFmt)}</p>` : ''}
             </div>
@@ -1236,18 +1243,29 @@ function ativoCardHtml(a) {
     }
 
     // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
-    // ainda carregado). CORRIGIDO v1.47.0 (pedido explícito): saiu o
-    // texto de categoria (rotuloTipoAtivo — o ícone já diz isso) e entrou
-    // no lugar o identificador do documento do bem (placa, matrícula
-    // etc. — identificadorDocumentoAtivo(), calculado acima), pra
-    // continuar dando pra diferenciar 2 ativos do mesmo tipo/ícone na
-    // lista sem abrir a ficha. Valor sem decimais (fmtMoeda local acima).
-    // Uma linha de detalhe só (nome + 1), mesma altura do card de imóvel.
+    // ainda carregado). CORRIGIDO v1.52.0 (19/09/2026, rodada 10, pedido
+    // explícito — "para os demais ativos, na 1 linha coloque o nome do
+    // ativo, na 2a linha o valor de mercado sem casa decimal, na 3a linha
+    // modelo e a 4a linha um identificador como placa ou identificacao ou
+    // registro") — a v1.47.0 (comentário removido, histórico) juntava
+    // identificador + valor numa linha só, separados por "·". Agora 4
+    // linhas fixas, 1 informação por linha, mesmo espírito do card de
+    // imóvel acima: (1) nome, (2) valor de mercado, (3) modelo
+    // (dados_especificos.modelo — só existe pra veículo/veículo
+    // blindado/aeronave/embarcação; tipo sem esse campo simplesmente não
+    // mostra a linha), (4) identificador oficial do bem (placa/matrícula/
+    // registro — identificadorDocumentoAtivo(), calculado acima, já por
+    // tipo). Linha ausente (sem valor/modelo/identificador) não deixa
+    // "·" solto nem linha em branco — some inteira, como já era o padrão
+    // no resto da lista.
+    const modeloAtivo = a.dados_especificos?.modelo || null;
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
         <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--tile);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
-            <p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml([identificadorDocumento, a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null].filter(Boolean).join(' · '))}</p>
+            ${valorFmt ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(valorFmt)}</p>` : ''}
+            ${modeloAtivo ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(modeloAtivo)}</p>` : ''}
+            ${identificadorDocumento ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(identificadorDocumento)}</p>` : ''}
         </div>
         ${chip ? chip.html : ''}
     </button>`;
