@@ -6,8 +6,64 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.212.0
+   VERSÃO: Beta v1.214.0
    LINHAS: 15045
+   DATA: 19/09/2026 (rodada 10, entrega 2)
+   NOVIDADES (Beta v1.214.0) — pendência em aberto desde a mensagem de 4
+   pedidos da rodada 10 (item 4, "distribuição do contrato"): "Na aba
+   contratos no chip resumo de um contrato, deve aparecer a visão de
+   distribuição deste contrato abaixo de ocorrências. Utilize o mesmo
+   modelo que aparece nos ativos (propriedade) na aba resumo." Novo card
+   "Distribuição" no chip Resumo da ficha do contrato, logo abaixo de
+   Ocorrências — mesmo markup do card "Propriedade" da ficha do ativo
+   (.rz-card > .rz-card-h com h3+rz-sub+⋮, lista em .rz-row ícone+nome+%),
+   lendo divisao_repasse_contrato (rateio do aluguel entre proprietários —
+   fonte já existente, já usada no popup antigo "Detalhes do Contrato",
+   agora também exibida na ficha nova). ⋮ do card abre atalho pro
+   formulário de Editar contrato (onde a divisão já é editável há tempo,
+   exibirDivisaoImovelNoContrato) — nenhuma escrita nova, só exibição +
+   atalho. contratos.js v1.12.0. IMPORTMAP: contratos.js →1.12.0.
+   ------------------------------------------------------------------
+   DATA: 19/09/2026 (rodada 10)
+   NOVIDADES (Beta v1.213.0) — 6 achados do Nicola em teste real da entrega
+   anterior (rodada 9) que continuavam quebrados ou incompletos:
+   1) Financeiro › Recebimentos/Saídas: a v1.9.0 (rodada 9) só REORDENOU a
+      data pra logo depois do nome, mas deixou o resto (pago em/vence em/
+      venceu em + imóvel + banco + categoria + parte/ativo) na mesma linha
+      de 1 truncamento só — em qualquer nome/categoria mais longo, esse
+      resto ainda cortava tudo antes da data aparecer. Fix de verdade: a
+      linha vira só a data nua, sem mais nada pra truncar por cima —
+      status já está no badge à direita; o resto (imóvel, banco, parte,
+      ativo, reembolsável) passou pro sheet de ações (toque no item) —
+      financeiro.js v1.10.0. 2) Chip Financeiro do contrato: mesmo padrão
+      (título na 1ª linha, só a data embaixo) — item sem data de pagamento
+      gravada mostrava texto "Vencido"/"A vencer" em vez de data real;
+      agora calcula a data de vencimento de verdade a partir da referência
+      + dia de vencimento do contrato — contratos.js v1.11.0. 3) Chip
+      Anexos do contrato: a v1.10.0 (rodada 9) trocou o X por
+      data-action="abrir-documento" copiando o padrão do módulo Cofre —
+      só que esse padrão só funciona depois que o Cofre já bootou (aba
+      Ativos aberta pelo menos 1x na sessão), o que nunca acontece vindo
+      direto de Contratos: o toque não fazia nada (parecia travado). Fix:
+      sheet de ações autocontido (Baixar/Excluir via Storage direto, sem
+      depender do Cofre) — contratos.js v1.11.0. 4) Lista de Ativos:
+      valorFmt (v1.48.0/v1.49.0, rodada 8/9) ESTAVA no código certo, mas a
+      linha inteira era 1 truncamento só — nome de locatário mais longo
+      escondia aluguel+valor por trás do "..." sem aparecer nunca. Fix
+      estrutural: linha em flex com 2 partes — locatário (trunca) e
+      aluguel+valor (fixo, nunca corta) — cofre-ativos.js v1.50.0.
+      5) Chip "Controles" do ativo: continuava escrevendo "N a vencer"
+      quando não havia nada realmente vencido/vence-hoje/pendente — agora
+      escreve "Em dia" nesses casos (mesmo texto de "nenhum alerta") —
+      cofre-controles.js v1.30.0. 6) Padrão "há/em xx d": "Vencido há Xd"
+      tinha a palavra "Vencido" redundante (o "Em Xd" positivo nunca teve
+      essa palavra extra) — removida nos 6 lugares que usavam esse texto
+      (cofre-ativos.js, cofre-controles.js ×3, cofre-documentos.js,
+      cofre-validacoes.js, contratos.js). IMPORTMAP: financeiro.js
+      →1.10.0, contratos.js →1.11.0, cofre-ativos.js →1.50.0,
+      cofre-controles.js →1.30.0, cofre-documentos.js →2.20.0,
+      cofre-validacoes.js →2.2.0.
+   ------------------------------------------------------------------
    DATA: 18/09/2026 (rodada 9)
    NOVIDADES (Beta v1.212.0) — 7 achados do Nicola em teste real (prints):
    1) Menu de editar nome do documento nascia atrás da Ficha do Documento
@@ -354,7 +410,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.9.0","./js/contratos.js":"./js/contratos.js?v=1.10.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.49.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.29.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.19.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.1.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.50.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3740,7 +3796,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.212.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.214.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8898,7 +8954,7 @@
             'fecharBuscaContratos', 'verAlertasContrato', 'renderHistoricoContratoInline', 'alternarHistoricoContratoItem',
             'alternarTodosHistoricosContrato', 'verHistoricoContrato', 'abrirFichaContrato', 'rzCarregarDocumentoContrato',
             'abrirAcoesCobrancasContrato', 'abrirAcoesPartesContrato', 'abrirAcoesLocatarioContrato', 'abrirAcoesFiadorContrato',
-            'abrirSeletorRemoverFiador', 'removerFiadorDireto', 'abrirAcoesAnexosContrato', 'fcMontarChipsAnexos',
+            'abrirSeletorRemoverFiador', 'removerFiadorDireto', 'abrirAcoesAnexosContrato', 'abrirAcoesAnexoContrato', 'fcMontarChipsAnexos',
             'fcFiltrarAnexos', 'fcTrocarChip', 'abrirAcoesFichaContrato', 'abrirAcaoStatusContrato',
             'alternarMaisAcoesFichaContrato', 'alternarMaisAcoesDocContrato', 'montarDocumentosContrato',
             'carregarNovoDocumentoContrato', 'voltarDaFichaContrato', 'montarChipsPartesContrato',
@@ -8916,6 +8972,7 @@
             'abrirSeletorContratoParaAcao', 'criarContratoParaImovel', 'abrirEdicaoContratoContextual', 'processarMultiplosDocumentos',
             'montarOcorrenciasContrato', 'abrirAcoesOcorrenciaContrato', 'salvarBaixaOcorrenciaContrato', 'salvarReagendarOcorrenciaContrato', // v1.159.0 — A.10
             'abrirOcorrenciaContrato', 'abrirDetalheOcorrenciaContrato', // v1.194.0 — linha fechada/cancelada agora também abre (resumo só-leitura)
+            'montarDistribuicaoContrato', 'abrirAcoesDistribuicaoContrato', // NOVO v1.11.0 (rodada 10) — card "Distribuição" no Resumo
             'renovarContrato', 'calcularPctRenovacaoPopup', 'calcularValorRenovacaoPopup', 'salvarRenovacaoContratoPopup'
         ].forEach(nome => { window[nome] = (...args) => carregarContratos().then(m => m[nome](...args)); });
 

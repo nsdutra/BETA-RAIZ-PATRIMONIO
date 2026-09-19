@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.1.0 · 18/09/2026 (rodada 9)
+// Versão: 2.2.0 · 19/09/2026 (rodada 10)
 //
 // v2.1.0 — CORRIGIDO (mesma classe de bug do chip "Controles" da Faria
 // Lima, ver cofre-controles.js v1.29.0) — chipVencimento() (badge de
@@ -104,7 +104,7 @@
 // daqui, nunca o contrário.
 // ============================================================================
 
-export const VERSAO = '2.1.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.2.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -516,7 +516,7 @@ export const BADGE_OK = `${RAIZ_BADGE} bg-green-100 text-green-800`;
 // Documento vencendo em 21/28 dias não é "pendente" — ainda tem prazo.
 export function chipVencimento(diffDias) {
     if (diffDias === null || diffDias === undefined) return null;
-    if (diffDias < 0) return { classe: BADGE_ALERTA, texto: `Vencido há ${Math.abs(diffDias)}d` };
+    if (diffDias < 0) return { classe: BADGE_ALERTA, texto: `há ${Math.abs(diffDias)}d` };
     if (diffDias === 0) return { classe: BADGE_PENDENTE, texto: 'Vence hoje' };
     return { classe: BADGE_OK, texto: `Vence em ${diffDias}d` };
 }

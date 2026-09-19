@@ -1,7 +1,7 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.10.0 · 18/09/2026 (rodada 9)
+// Versão: 1.12.0 · 19/09/2026 (rodada 10)
 //
 // v1.10.0 — 2 pedidos explícitos do Nicola:
 //   (1) "no chip financeiro do contrato retirar das linhas o label de
@@ -201,7 +201,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.12.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1682,6 +1682,21 @@ export function reabrirFichaSeFor(contratoId) {
             const statusMensal = (m) => m.status === 'Pago' ? rs('ok', 'Pago') : mensalidadeEmAtraso(m) ? rs('bad', 'Em atraso') : rs('run', 'A receber');
             const iconeMensal = (m) => m.status === 'Pago' ? 'arrow-down-left' : mensalidadeEmAtraso(m) ? 'alarm-clock' : 'clock';
             const classeMensal = (m) => mensalidadeEmAtraso(m) ? ' rz-bad' : '';
+            // CORRIGIDO v1.11.0 (18/09/2026, rodada 10 — achado do Nicola:
+            // "seguir o mesmo padrão do chip financeiro do ativo: título na
+            // 1ª linha, abaixo apenas a data sem label") — a linha de
+            // mensalidade mostrava "Vencido"/"A vencer" como TEXTO quando
+            // não havia m.dataPgto ainda gravada (mesma minoria de casos já
+            // mapeada em financeiro.js v1.10.0), em vez de uma data de
+            // verdade — e o status já está no badge à direita (statusMensal),
+            // repetir em palavra na esquerda é o label redundante que o
+            // Nicola pediu pra tirar. dataVencMensal() monta a data real a
+            // partir de referencia (MM/YYYY) + vencimentoDia do contrato.
+            const dataVencMensal = (m) => {
+                if (m.dataPgto) return formatarDataBR(m.dataPgto);
+                const p = (m.referencia || '').split('/');
+                return p.length === 2 ? `${String(con.vencimentoDia || 15).padStart(2, '0')}/${p[0]}/${p[1]}` : '';
+            };
             const abreArquivos = (con.status === 'Ativo' || con.status === 'Assinando');
             const irFinanceiro = `document.getElementById('men-filtro-imovel').value='${con.imovelId}'; document.getElementById('men-filtro-imovel-resumo').textContent='${(imo ? imo.empreendimento : '-').replace(/'/g, "")}'; switchTab('tab-mensal'); renderMensalidades();`;
             const kv = (r, v) => `<div><small>${r}</small><b>${v}</b></div>`;
@@ -1720,6 +1735,22 @@ export function reabrirFichaSeFor(contratoId) {
                         <div class="rz-card-h"><h3>Ocorrências</h3><span class="rz-sub" id="fc-ocorrencias-status"></span><button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <div id="fc-ocorrencias"><p class="rz-desc">Carregando...</p></div>
                     </div>
+                    <!-- NOVO (19/09/2026, rodada 10, pedido explícito: "no chip
+                         resumo de um contrato, deve aparecer a visão de
+                         distribuição deste contrato abaixo de ocorrências.
+                         Utilize o mesmo modelo que aparece nos ativos
+                         (propriedade) na aba resumo") — mesmo markup
+                         (.rz-card > .rz-card-h com h3+rz-sub+rz-more, lista em
+                         .rz-row) do card "Propriedade" da ficha do ativo
+                         (ativos-markup.js, montarPropriedadeAtivo em
+                         cofre-ativos.js) — só a fonte de dado muda:
+                         divisao_repasse_contrato (rateio do aluguel entre
+                         proprietários), não propriedade_ativo (dono do bem).
+                         montarDistribuicaoContrato() abaixo. -->
+                    <div class="rz-card" id="fc-card-distribuicao">
+                        <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span><button type="button" onclick="abrirAcoesDistribuicaoContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div id="fc-distribuicao"><p class="rz-desc">Carregando...</p></div>
+                    </div>
                 </div>
 
                 <div class="fc-painel hidden" id="fc-painel-cobrancas">
@@ -1746,7 +1777,7 @@ export function reabrirFichaSeFor(contratoId) {
                         ${ultimasSeis.length ? ultimasSeis.map(m => `
                         <div class="rz-row" onclick="switchTab('tab-mensal'); rzAcoesMensalidade('${m.id}')" style="cursor:pointer">
                             <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.dataPgto ? formatarDataBR(m.dataPgto) : (mensalidadeEmAtraso(m) ? 'Vencido' : 'A vencer')}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${dataVencMensal(m)}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
                             <button type="button" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
@@ -1793,6 +1824,54 @@ export function reabrirFichaSeFor(contratoId) {
             if (typeof lucide !== 'undefined') lucide.createIcons();
             if (abreArquivos) montarDocumentosContrato(con.id);
             montarOcorrenciasContrato(con.id); // v1.1.0 — A.10
+            montarDistribuicaoContrato(con.id); // NOVO (19/09/2026, rodada 10)
+        }
+
+        // NOVO (19/09/2026, rodada 10, pedido explícito: "visão de
+        // distribuição deste contrato abaixo de ocorrências... mesmo modelo
+        // que aparece nos ativos (propriedade) na aba resumo") — mesma
+        // fonte que montarChipsPartesContrato() (acima, popup antigo
+        // "Detalhes do Contrato") já lê, divisao_repasse_contrato, mas
+        // renderizada como .rz-row (ícone + nome + %), igual a
+        // montarPropriedadeAtivo() (cofre-ativos.js) — não como pill/chip,
+        // que era o formato do popup antigo. Não duplica escrita nenhuma —
+        // a divisão continua editável só pelo formulário de Editar contrato
+        // (exibirDivisaoImovelNoContrato), que já existe; ⋮ deste card
+        // (abrirAcoesDistribuicaoContrato, abaixo) só abre um atalho pra lá.
+        export async function montarDistribuicaoContrato(contratoId) {
+            const el = document.getElementById('fc-distribuicao');
+            if (!el || fichaContratoAtualId !== contratoId) return;
+            try {
+                const { data, error } = await dbAuth.from('divisao_repasse_contrato')
+                    .select('nome_externo, percentual, pessoas(nome)')
+                    .eq('contrato_id', contratoId);
+                if (error) throw error;
+                const linhas = data || [];
+                if (!linhas.length) {
+                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>Sem divisão cadastrada ainda. Sem ela, o aluguel recebido não sabe pra quem repassar.</p></div>`;
+                } else {
+                    el.innerHTML = linhas.map(l => {
+                        const nome = l.pessoas?.nome || l.nome_externo || 'Sem nome';
+                        return `<div class="rz-row">
+                            <div class="rz-ic"><svg data-lucide="${l.pessoas?.nome ? 'user' : 'user-round'}"></svg></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(nome)}</b><span>${l.pessoas?.nome ? 'Sócio' : 'Parte externa'}</span></div>
+                            <div class="rz-rt"><b style="color:var(--sprout)">${Number(l.percentual)}%</b></div>
+                        </div>`;
+                    }).join('');
+                }
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (err) {
+                el.innerHTML = `<p class="text-xs text-red-500">Não consegui carregar a distribuição.</p>`;
+                console.warn('Falha ao carregar distribuição do contrato (não bloqueando):', err.message);
+            }
+        }
+
+        export function abrirAcoesDistribuicaoContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con || typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({ titulo: 'Distribuição', sub: con.locatario || '', acoes: [
+                { icone: 'pencil', titulo: 'Editar divisão', codigo: 'contratos.editar', sub: 'Sócios, percentuais e partes externas', aoTocar: () => editarContrato(con.id) },
+            ] });
         }
 
         // ===================================================================
@@ -1836,7 +1915,7 @@ export function reabrirFichaSeFor(contratoId) {
                         let cls = '', urgencia = '';
                         if (aberta) {
                             const dias = Math.round((new Date(oc.data_prevista_atual + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
-                            if (dias < 0) { urgencia = `Vencido há ${Math.abs(dias)}d`; cls = ' rz-bad'; }
+                            if (dias < 0) { urgencia = `há ${Math.abs(dias)}d`; cls = ' rz-bad'; }
                             else if (dias === 0) { urgencia = 'Vence hoje'; cls = ' rz-warn'; }
                             // CORRIGIDO v1.8.0 (padrão "há/em xx d") — mesma correção da
                             // rodada em cofre-ativos.js/cofre-controles.js: prazo ainda
@@ -2063,6 +2142,11 @@ export function reabrirFichaSeFor(contratoId) {
         }
 
         window.addEventListener('cofre:recarregar-documentos', () => { if (fichaContratoAtualId) montarDocumentosContrato(fichaContratoAtualId); });
+        // NOVO (18/09/2026) — Editar dados na Ficha da Parte (abrirFichaParte,
+        // cofre-controles.js) dispara 'cofre:recarregar-partes'; o chip
+        // Partes do contrato (nome exibido no chip) recarrega junto — mesmo
+        // padrão do listener de documentos acima.
+        window.addEventListener('cofre:recarregar-partes', () => { const con = contratos.find(c => c.id === fichaContratoAtualId); if (con) montarChipsPartesContrato(con); });
 
         // v1.113.0 — ⋮ dos cards da ficha do contrato (rodapés saíram; toda
         // ação vive no ⋮ ou no toque). Sheets de dados, não HTML.
@@ -2074,11 +2158,40 @@ export function reabrirFichaSeFor(contratoId) {
             ] });
         }
 
+        // NOVO (18/09/2026, pedido explícito: "o atalho de editar locatário
+        // dentro de partes de um contrato está abrindo o formulário antigo
+        // de um novo contrato") — abrirEdicaoContratoContextual() abre o
+        // formulário INTEIRO de edição do contrato (imóvel/valores/datas),
+        // não um editor da parte — pra mudar telefone/endereço do
+        // locatário isso forçava abrir o form do contrato inteiro sem
+        // nada óbvio de "locatário" ali dentro. Todo locatário/fiador de
+        // contrato JÁ tem uma linha própria em partes_papeis (conferido no
+        // banco: 68/68 contratos ativos com papel='locatario') — resolve o
+        // parte_id e abre a Ficha da Parte (cofre-controles.js
+        // abrirFichaParte, mesmo fluxo do item de controle — telefone,
+        // endereço etc. + Editar/Acionar por WhatsApp/e-mail pelo ⋮).
+        // Fallback (parte ainda sem linha em partes_papeis, caso raro):
+        // mantém o form do contrato como estava, com aviso.
+        async function abrirFichaParteDoContrato(contratoId, papel) {
+            try {
+                const { data, error } = await dbAuth.from('partes_papeis').select('parte_id').eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId).eq('papel', papel).eq('ativo', true).limit(1).maybeSingle();
+                if (error) throw error;
+                if (!data?.parte_id) {
+                    mostrarToast('Esta parte ainda não tem cadastro próprio — abrindo pelo formulário do contrato.', 'aviso');
+                    abrirEdicaoContratoContextual(contratoId, 'fichaContrato', contratoId);
+                    return;
+                }
+                window.dispatchEvent(new CustomEvent('cofre:abrir-ficha-parte', { detail: { id: data.parte_id } }));
+            } catch (err) {
+                mostrarToast('Erro ao abrir a parte: ' + (err.message || String(err)), 'erro');
+            }
+        }
+
         export function abrirAcoesPartesContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             const temFiador = (window.__fiadoresFichaAtual || []).length > 0;
             abrirSheetAcoes({ titulo: 'Partes', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Dados no formulário do contrato', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
                 { icone: 'user-plus', titulo: temFiador ? 'Editar fiadores' : 'Adicionar fiador', codigo: 'contratos.editar', sub: 'Garantias exigidas pela minuta', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
             ] });
         }
@@ -2086,7 +2199,7 @@ export function reabrirFichaSeFor(contratoId) {
         export function abrirAcoesLocatarioContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: con.locatario || 'Locatário', sub: 'Locatário', acoes: [
-                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Nome, CPF/CNPJ, contato, endereço', aoTocar: () => abrirEdicaoContratoContextual(con.id, 'fichaContrato', con.id) },
+                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
             ] });
         }
 
@@ -2262,7 +2375,10 @@ export function reabrirFichaSeFor(contratoId) {
                     // NOVO (30/08/2026) — criado_em (do vínculo, é quando o
                     // documento passou a valer PRA ESSE contrato — pedido
                     // explícito: faltava data/hora no box).
-                    .select('id, criado_em, cofre_documentos!inner(id, nome_exibicao, mime_type, status)')
+                    // CORRIGIDO v1.11.0 (18/09/2026) — bucket/storage_path
+                    // entraram no select: abrirAcoesAnexoContrato() (abaixo)
+                    // precisa deles pra Baixar/Excluir sem depender do Cofre.
+                    .select('id, criado_em, cofre_documentos!inner(id, nome_exibicao, mime_type, status, bucket, storage_path)')
                     .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId)
                     .order('criado_em', { ascending: false });
                 if (error) throw error;
@@ -2272,7 +2388,7 @@ export function reabrirFichaSeFor(contratoId) {
                 if (nArq) nArq.textContent = String(__docsContratoAtual.length);
                 fcMontarChipsAnexos();
                 el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v) => `
-                    <div class="rz-row rz-link" data-action="abrir-documento" data-id="${v.cofre_documentos.id}">
+                    <div class="rz-row rz-link" onclick="abrirAcoesAnexoContrato('${v.id}')">
                         <div class="rz-ic"><svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}"></svg></div>
                         <div class="rz-tx"><b>${escapeHtmlSaidas(v.cofre_documentos.nome_exibicao || 'Documento')}</b><span>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : ''}</span></div>
                         <svg data-lucide="chevron-right" class="rz-chev"></svg>
@@ -2284,15 +2400,83 @@ export function reabrirFichaSeFor(contratoId) {
             }
         }
 
+        // CORRIGIDO v1.11.0 (18/09/2026, rodada 10 — achado do Nicola: "o X
+        // no chip Anexos não permite clicar nem ver as ações, trava — só ao
+        // clicar em voltar é que abre a Ficha") — CAUSA RAIZ (root-cause, não
+        // só o sintoma): a v1.10.0 (rodada 9) trocou o X por
+        // data-action="abrir-documento", copiando o padrão de
+        // cofre-ativos.js montarDocumentosAtivo(). Só que esse padrão
+        // funciona ali porque cofre-ativos.js só RODA depois que o módulo
+        // Cofre já bootou (é preciso ter aberto a aba Ativos pra chegar
+        // numa ficha de ativo) — nesse ponto, cofre-app.js (que registra o
+        // ÚNICO listener document.addEventListener('click', ...) que
+        // interpreta [data-action]) já está carregado, e o próprio HTML da
+        // Ficha do Documento (#modal-ficha-doc, ids fd-*, injetado por
+        // ativos-markup.js) já existe no DOM. A aba Contratos é acessível
+        // DIRETO do app principal, sem nunca passar por Ativos — nesse
+        // caso, js/cofre-app.js (que só é importado dinamicamente dentro de
+        // montarAtivosTab(), ao abrir Ativos pela 1ª vez na sessão — ver
+        // js/ativos/ativos-boot.js) nunca chega a rodar, então nem o
+        // listener existe, nem #modal-ficha-doc está no DOM: o toque não
+        // fazia ABSOLUTAMENTE NADA (dava a impressão de "travado"). O
+        // "abre ao voltar" batido pelo Nicola bate com isso: só funcionava
+        // depois de a pessoa ter passado pela aba Ativos em algum momento
+        // da mesma sessão (o que faz o Cofre bootar de verdade).
+        // FIX: em vez de depender da Ficha do Documento do Cofre (módulo
+        // que pode nunca ter carregado a partir de Contratos), a linha
+        // agora abre um sheet de ações AUTOCONTIDO (abrirAcoesAnexoContrato
+        // abaixo), Baixar/Excluir, usando dbAuth.storage direto — MESMO
+        // padrão zero-dependência-do-Cofre já usado em abrirDocumentoFicha/
+        // removerDocumentoFichaAtual (index.html, ficha do imóvel antiga),
+        // não inventado agora. abrirAcoesAnexosContrato() (plural, cabeçalho
+        // "..." do box, upload) não muda — continua igual.
+        export function abrirAcoesAnexoContrato(vinculoId) {
+            const v = __docsContratoAtual.find(x => x.id === vinculoId);
+            const doc = v?.cofre_documentos;
+            if (!doc || typeof abrirSheetAcoes !== 'function') { mostrarToast('Documento não encontrado.', 'erro'); return; }
+            abrirSheetAcoes({ titulo: doc.nome_exibicao || 'Documento', acoes: [
+                { icone: 'download', titulo: 'Baixar', aoTocar: () => baixarAnexoContrato(doc) },
+                { icone: 'trash-2', titulo: 'Excluir', tipo: 'bad', aoTocar: () => excluirAnexoContrato(vinculoId, doc) },
+            ] });
+        }
+
+        async function baixarAnexoContrato(doc) {
+            try {
+                const { data, error } = await dbAuth.storage.from(doc.bucket || 'cofre-documentos').createSignedUrl(doc.storage_path, 120);
+                if (error) throw error;
+                window.open(data.signedUrl, '_blank');
+            } catch (err) {
+                mostrarToast('Erro ao abrir o documento: ' + (err.message || String(err)), 'erro');
+            }
+        }
+
+        async function excluirAnexoContrato(vinculoId, doc) {
+            if (!confirm('Excluir este documento definitivamente?\n\nNão fica guardado no Cofre depois — essa ação não pode ser desfeita.')) return;
+            try {
+                const { error: errVinculo } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', vinculoId);
+                if (errVinculo) throw errVinculo;
+                const { error: errDoc } = await dbAuth.from('cofre_documentos').delete().eq('id', doc.id);
+                if (errDoc) throw errDoc;
+                if (doc.bucket && doc.storage_path) {
+                    const { error: errStorage } = await dbAuth.storage.from(doc.bucket).remove([doc.storage_path]);
+                    if (errStorage) console.warn('Vínculo excluído, mas o arquivo no Storage não pôde ser removido (órfão, não crítico):', errStorage.message);
+                }
+                mostrarToast('Documento excluído.');
+                if (fichaContratoAtualId) montarDocumentosContrato(fichaContratoAtualId);
+            } catch (err) {
+                mostrarToast('Erro ao excluir: ' + (err.message || String(err)), 'erro');
+            }
+        }
+
         // REMOVIDAS (18/09/2026, pedido explícito: "retirar o X e colocar as
         // ações padrões do documento, abrindo o form de arquivo") —
         // abrirDocumentoContratoAtual() (abria o arquivo cru numa aba nova) e
         // removerDocumentoContratoAtual() (X de exclusão direta, sem
-        // confirmação padronizada) saíram de vez. A linha agora usa
-        // data-action="abrir-documento" (mesmo padrão de cofre-ativos.js
-        // montarDocumentosAtivo()), que abre a Ficha do Documento
-        // (abrirFichaDocumento(), fluxo único pros 3 contextos) — Baixar e
-        // Excluir já existem lá dentro, sem reinventar nada aqui.
+        // confirmação padronizada) saíram de vez. A linha usou
+        // data-action="abrir-documento" na v1.10.0 (rodada 9) — trocado na
+        // v1.11.0 (rodada 10) por abrirAcoesAnexoContrato() acima, pela
+        // causa raiz documentada ali (data-action dependia do módulo Cofre
+        // ter bootado, o que não acontece vindo direto de Contratos).
         // ÓRFÃ (27/08/2026, pedido explícito) — nenhum botão do HTML aponta
         // mais pra cá. Substituída por abrirCofreDocumentos('contrato', id),
         // que leva pro MESMO fluxo rico (Com IA/Upload simples) já usado

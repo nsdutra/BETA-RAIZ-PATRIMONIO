@@ -1,7 +1,7 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.9.0 · 18/09/2026 (rodada 9)
+// Versão: 1.10.0 · 19/09/2026 (rodada 10)
 //
 // v1.9.0 — pedido explícito do Nicola ("em cada linha de item deve
 // apresentar a data do item"): a data JÁ estava sendo montada tanto em
@@ -456,7 +456,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -602,7 +602,14 @@ export function montarAbaFinanceiro(tabId) {
         // como mensalidade tem).
         export function rzAcoesDespesa(id) {
             const d = lancamentos.find(x => x.id === id); if (!d || typeof abrirSheetAcoes !== 'function') return;
-            const sub = `${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}`;
+            // v1.10.0 (18/09/2026, rodada 10 — achado do Nicola: "continua
+            // muito texto na frente da data" na linha de Saídas) — a linha
+            // da lista virou só descrição + data nua (ver renderSaidas()
+            // abaixo); categoria/parte/ativo/reembolsável, que saíram da
+            // linha, entram aqui no sub do sheet de ações (ao tocar no
+            // item), que é onde o Nicola pediu pra aparecerem agora
+            // ("ao clicar no item, aí sim deve aparecer maiores informações").
+            const sub = `${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ''}${d.reembolsavel ? ' · reembolsável' : ''}`;
             if (d.status === 'realizado') {
                 const acoesRealizado = [
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
@@ -724,7 +731,7 @@ export function montarAbaFinanceiro(tabId) {
                     return `
                         <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
                             <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${rotuloCategoriaSaida(d.categoria)}${d.vencimento ? ' · ' + (pago ? 'pago' : 'vence') + ' ' + formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ''}${d.reembolsavel ? ' · reembolsável' : ''}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}</span></div>
                             <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
                             <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                         </div>`;
@@ -3100,7 +3107,13 @@ export function montarAbaFinanceiro(tabId) {
         export function rzAcoesMensalidade(menId) {
             const men = mensalidades.find(m => m.id === menId); if (!men || typeof abrirSheetAcoes !== 'function') return;
             const con = contratos.find(c => c.id === men.contratoId) || {};
-            const sub = `${con.locatario || ''} · ${men.referencia}`;
+            // v1.10.0 (18/09/2026, rodada 10) — imóvel e banco saíram da
+            // linha da lista (renderMensalidades acima, achado "muito texto
+            // na frente da data") e entram aqui, no sub do sheet que abre
+            // ao tocar no item — "ao clicar, aí sim maiores informações".
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            const localImovel = imo ? `${imo.empreendimento || ''} · ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '';
+            const sub = `${con.locatario || ''} · ${men.referencia}${localImovel ? ' · ' + localImovel : ''}${men.banco ? ' · ' + men.banco : ''}`;
             if (men.status === 'Pago') {
                 const acoesPago = [
                     { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', codigo: 'recibo.gerar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
@@ -3283,6 +3296,26 @@ export function montarAbaFinanceiro(tabId) {
             // recolhíveis (alternarGrupoMensal) — toque no rótulo do mês.
             let kTotRecebido = 0, kTotAtraso = 0, kTotAVencer = 0;
             const rsM = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+            // v1.10.0 (18/09/2026, rodada 10 — achado do Nicola: "continua
+            // muito texto na frente da data, deve ter apenas a data") — a
+            // v1.9.0 (rodada 9) só REORDENOU a data pra logo depois do nome,
+            // mas manteve o resto (pago em/vence em/venceu em + imóvel +
+            // banco) na mesma linha — em locatário/imóvel com nome longo,
+            // `.rz-tx span` (1 linha, ellipsis) ainda cortava tudo isso
+            // ANTES da data se a linha total passasse do limite. Fix de
+            // verdade: a linha vira só a data nua (não tem mais nada pra
+            // truncar por cima dela) — status (Pago/Em atraso/A vencer) já
+            // está no badge à direita (rsM), não precisa repetir em texto.
+            // dataVencMensal() cobre o caso sem dataPgto ainda gravada
+            // (item minoria — 13 de 320 "atrasado" no banco, conferido via
+            // SQL): monta a data de vencimento de verdade a partir de
+            // referencia (MM/YYYY) + vencimentoDia do contrato, em vez do
+            // texto cru "dia N" (sem mês/ano) que existia antes.
+            const dataVencMensal = (m, con) => {
+                if (m.dataPgto) return formatarDataBR(m.dataPgto);
+                const p = (m.referencia || '').split('/');
+                return p.length === 2 ? `${String(con.vencimentoDia || 15).padStart(2, '0')}/${p[0]}/${p[1]}` : '';
+            };
             const htmlGrupos = competenciasOrdenadas.map((ref) => {
                 const itensGrupo = grupos[ref].slice().sort((a, b) => {
 
@@ -3312,7 +3345,7 @@ export function montarAbaFinanceiro(tabId) {
                         recebidoGrupo += men.valorConfirmado; qtdRecebido++;
                         return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
                             <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${men.dataPgto ? 'pago em ' + formatarDataBR(men.dataPgto) : ''}${localImovel ? (men.dataPgto ? ' · ' : '') + escapeHtmlSaidas(localImovel) : ''}${men.banco ? ' · ' + escapeHtmlSaidas(men.banco) : ''}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${rsM('ok', 'Pago')}</div>
                             <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                         </div>`;
@@ -3326,7 +3359,7 @@ export function montarAbaFinanceiro(tabId) {
                     // (rz-bad) quando atrasada, só a forma que ficou fixa.
                     return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
                         <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${atrasada ? 'venceu em' : 'vence em'} ${men.dataPgto ? formatarDataBR(men.dataPgto) : 'dia ' + (con.vencimentoDia || 15)}${localImovel ? ' · ' + escapeHtmlSaidas(localImovel) : ''}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}</span></div>
                         <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;

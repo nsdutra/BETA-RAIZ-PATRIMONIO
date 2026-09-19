@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.19.0 · 18/09/2026 (rodada 9)
+// Versão: 2.20.0 · 19/09/2026 (rodada 10)
 //
 // v2.19.0 — 2 achados do Nicola:
 //   (1) "o menu de editar o nome do arquivo está ficando sob a tela do
@@ -425,7 +425,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.19.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.20.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -572,7 +572,7 @@ export function resumoDocumentosEmTriagem() {
 function fraseVencimento(dataVencimento, dias) {
     const dataFmt = formatarDataBR(dataVencimento);
     if (dias === null || dias === undefined) return `Vencimento: ${dataFmt}`;
-    if (dias < 0) { const d = Math.abs(dias); return `Vencimento: ${dataFmt} · Vencido há ${d}d`; }
+    if (dias < 0) { const d = Math.abs(dias); return `Vencimento: ${dataFmt} · há ${d}d`; }
     if (dias === 0) return `Vencimento: ${dataFmt} · Vence hoje`;
     return `Vencimento: ${dataFmt} · Em ${dias}d`;
 }

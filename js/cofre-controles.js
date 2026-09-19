@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.29.0 · 18/09/2026 (rodada 9)
+// Versão: 1.30.0 · 19/09/2026 (rodada 10)
 //
 // v1.29.0 — CORRIGIDO (achado do Nicola: "no ativo da Faria Lima tem um
 // alerta vermelho mas sem item em alerta aparente") — ver changelog
@@ -396,7 +396,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.29.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.30.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -510,10 +510,19 @@ export function reiniciarChipControlesDoMotor() {
 // como "vermelho" pelo usuário) pra QUALQUER dias de 0 a 30 — um item a 21
 // ou 28 dias (calmo em toda outra tela) acendia "Controles" como urgente,
 // sem nenhum vencido/vence-hoje pra mostrar quando a lista abria. Só vencido
-// (dias<0) e vence-hoje (dias===0) acendem o chip agora; dias>0 vira "N a
-// vencer" informativo (run/azul, sem grifo). Pendência sem data (ex.:
-// anexo_apolice_pendente) continua acendendo — é ação real sem prazo pra
-// comparar, não um falso alarme.
+// (dias<0) e vence-hoje (dias===0) acendem o chip agora; dias>0 fica calmo,
+// sem grifo. Pendência sem data (ex.: anexo_apolice_pendente) continua
+// acendendo — é ação real sem prazo pra comparar, não um falso alarme.
+//
+// CORRIGIDO v1.30.0 (18/09/2026, rodada 10 — achado do Nicola: "sumiu o
+// vermelho e aparece 'a vencer'; nestes casos onde não há nada vencido,
+// deixar em dia") — a v1.29.0 (linha acima) resolveu a cor errada (chip não
+// acende mais 'warn' pra item calmo), mas ainda escrevia "N a vencer" no
+// texto quando havia itens na janela sem nenhum urgente de verdade — o
+// Nicola quer que, sem NADA vencido/vence-hoje/pendente, o chip diga
+// simplesmente "Em dia" (mesmo texto/cor de "nenhum alerta"), sem contar
+// itens futuros que não pedem ação nenhuma agora. As 2 branches (lista
+// vazia e lista com itens mas sem urgente) convergem pro mesmo resultado.
 export function aplicarMotorNoChipControles(alertas) {
     motorDecidiuChipControles = true;
     const lista = Array.isArray(alertas) ? alertas : [];
@@ -533,7 +542,7 @@ export function aplicarMotorNoChipControles(alertas) {
 
     if (!urgentes.length) {
         chip?.classList.remove('rz-warn');
-        if (cab) cab.innerHTML = statusHtml('run', `${lista.length} a vencer`);
+        if (cab) cab.innerHTML = statusHtml('ok', 'Em dia');
         return;
     }
 
@@ -634,7 +643,7 @@ function itemResumoHtml(item) {
     }
     const dias = diasProximaOcorrencia(item);
     let sem = 'ok', rotulo = 'Em dia', classeIc = '';
-    if (dias !== null && dias < 0) { sem = 'bad'; rotulo = `Vencido há ${Math.abs(dias)}d`; classeIc = ' rz-bad'; }
+    if (dias !== null && dias < 0) { sem = 'bad'; rotulo = `há ${Math.abs(dias)}d`; classeIc = ' rz-bad'; }
     else if (dias === 0) { sem = 'warn'; rotulo = 'Vence hoje'; classeIc = ' rz-warn'; }
     // CORRIGIDO v1.27.0 (padrão "há/em xx d") — de 0 a 30 dias caía tudo em
     // 'warn' com rótulo cru ("13 dias"), sem o prefixo "Em" e na cor de
@@ -712,10 +721,20 @@ async function montarPartesItemControle(item) {
     // E14.4 ("A5") — atalho de WhatsApp por parte, migrado da seção
     // Contatos (removida — unificada aqui). Só aparece se a parte tiver
     // whatsapp cadastrado, mesmo critério de antes.
+    //
+    // CORRIGIDO (18/09/2026, pedido explícito: "no cadastro e edição de
+    // uma parte... deve aparecer os campos... e a opção de ver e poder
+    // acionar o contato via 3 pontinhos") — a linha inteira abria
+    // abrirEditarPartesItem() (editor da LISTA de vínculos — pra
+    // adicionar/trocar quem está ligado ao item, sem mostrar dado nenhum
+    // da parte tocada). Isso continua existindo, só que agora só pelo ⋮ do
+    // CABEÇALHO do box (abrir-acoes-partes-item, ativos-markup.js — mesma
+    // função, nada mudou aí). A linha agora abre abrirFichaParte(), a
+    // ficha da parte tocada (dados + Editar/Acionar).
     mount.innerHTML = linhas.map(l => `
-        <div class="rz-row">
-            <div class="rz-ic rz-link" data-action="abrir-acoes-partes-linha"><i data-lucide="briefcase"></i></div>
-            <div class="rz-tx rz-link" data-action="abrir-acoes-partes-linha"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}${l.whatsapp ? ' · ' + escapeHtml(l.whatsapp) : ''}</span></div>
+        <div class="rz-row rz-link" data-action="abrir-ficha-parte" data-id="${l.parte_id}">
+            <div class="rz-ic"><i data-lucide="briefcase"></i></div>
+            <div class="rz-tx"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}${l.whatsapp ? ' · ' + escapeHtml(l.whatsapp) : ''}</span></div>
             ${l.whatsapp ? `<button type="button" data-action="acionar-parte-item-direto" data-whatsapp="${escapeHtml(l.whatsapp)}" title="Chamar no WhatsApp" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="message-circle" style="width:18px;height:18px;color:var(--success)"></i></button>` : ''}
         </div>`).join('');
     refrescarIcones();
@@ -965,7 +984,7 @@ function renderizarFichaItemControle() {
     const statusItem = item.ativo === false ? statusHtml('neu', 'Encerrado') // v1.20.0
         : item.alerta_ativo === false ? statusHtml('neu', 'Alertas desligados')
         : diasProx === null ? statusHtml('ok', 'Sem pendência')
-        : diasProx < 0 ? statusHtml('bad', `Vencido há ${Math.abs(diasProx)}d`)
+        : diasProx < 0 ? statusHtml('bad', `há ${Math.abs(diasProx)}d`)
         : diasProx === 0 ? statusHtml('warn', 'Vence hoje')
         // CORRIGIDO v1.27.0 (padrão "há/em xx d") — ver nota na mesma
         // rodada em cardItemControleHtml(): "run"/azul, não "warn"/marrom.
@@ -998,7 +1017,7 @@ function renderizarFichaItemControle() {
             const dias = aberta ? diasAte(oc.data_prevista_atual) : null;
             let sem = 'ok', rot = 'Em dia', ic = 'calendar-check', cls = '';
             if (!aberta) { sem = oc.status_execucao === 'concluido' ? 'ok' : 'neu'; rot = rotuloStatusOcorrencia(oc.status_execucao); ic = oc.status_execucao === 'concluido' ? 'check-circle-2' : 'x-circle'; cls = oc.status_execucao === 'concluido' ? '' : ' rz-neu'; }
-            else if (dias < 0) { sem = 'bad'; rot = `Vencido há ${Math.abs(dias)}d`; ic = 'alarm-clock'; cls = ' rz-bad'; }
+            else if (dias < 0) { sem = 'bad'; rot = `há ${Math.abs(dias)}d`; ic = 'alarm-clock'; cls = ' rz-bad'; }
             else if (dias === 0) { sem = 'warn'; rot = 'Vence hoje'; ic = 'clock'; cls = ' rz-warn'; }
             // CORRIGIDO v1.27.0 (padrão "há/em xx d") — mesma correção da
             // rodada: "run"/azul (REGRAS_EXPERIENCIA §9, "A vencer"/"A
@@ -1435,6 +1454,94 @@ export function acionarParteItemDireto(whatsapp) {
     const numero = numeroWhatsAppComDDI(whatsapp);
     window.open(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`, '_blank', 'noopener');
 }
+
+// ============================================================================
+// FICHA DA PARTE (NOVO, 18/09/2026, pedido explícito: "no cadastro e edição
+// de uma parte dentro do item de controle ou contrato, deve aparecer os
+// campos do cadastro como telefone, endereço... e a opção de ver e poder
+// acionar o contato via menu de 3 pontinhos") — até aqui não existia NENHUM
+// visualizador/editor de 1 parte só: tocar numa linha de Partes do item
+// abria abrirEditarPartesItem() (o editor da LISTA de vínculos, útil pra
+// adicionar/trocar/remover quem está ligado ao item, mas não mostra nem
+// deixa editar os dados da própria parte — telefone, endereço etc.).
+// abrirFichaParte() é o fluxo único novo (mesmo espírito de
+// abrirFichaDocumento() — 1 função, vários chamadores): mostra os dados
+// (sheet de ações com o resumo no subtítulo) e oferece Editar/Acionar.
+// Chamada por data-action="abrir-ficha-parte" (linha da parte, abaixo, e
+// contratos.js — atalho "Editar locatário"/fiador), então funciona de
+// qualquer tela sem import cruzado (mesmo padrão de abrir-documento).
+export async function abrirFichaParte(parteId) {
+    if (!parteId) { mostrarToast('Parte não encontrada.', 'erro'); return; }
+    let p;
+    try { p = await api.buscarParte(parteId); } catch (err) { mostrarToast('Erro ao carregar a parte: ' + (err.message || String(err)), 'erro'); return; }
+    if (!p) { mostrarToast('Parte não encontrada.', 'erro'); return; }
+    const linhasInfo = [p.documento, p.whatsapp, p.email, p.endereco].filter(Boolean);
+    sheetAcoes({
+        titulo: p.nome || 'Parte',
+        sub: linhasInfo.length ? linhasInfo.join(' · ') : 'Sem dados de contato cadastrados ainda',
+        acoes: [
+            { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.controles.editar', sub: 'Nome, documento, telefone, e-mail, endereço', aoTocar: () => abrirEditarParte(parteId) },
+            ...(p.whatsapp ? [{ icone: 'message-circle', titulo: 'Acionar por WhatsApp', aoTocar: () => acionarParteWhatsAppDireto(p.whatsapp) }] : []),
+            ...(p.email ? [{ icone: 'mail', titulo: 'Acionar por e-mail', aoTocar: () => acionarParteEmailDireto(p.email) }] : []),
+        ]
+    });
+}
+
+// Acionar genérico (fora do contexto de "cotação de renovação" de
+// acionarParteItemDireto, acima, que é específico do item em foco) — usado
+// pela Ficha da Parte, que pode ser aberta de um contrato onde não existe
+// item de controle nenhum em foco.
+export function acionarParteWhatsAppDireto(whatsapp) {
+    if (!whatsapp) { mostrarToast('Esta parte não tem WhatsApp cadastrado.', 'erro'); return; }
+    window.open(`https://wa.me/${numeroWhatsAppComDDI(whatsapp)}`, '_blank', 'noopener');
+}
+
+export function acionarParteEmailDireto(email) {
+    if (!email) { mostrarToast('Esta parte não tem e-mail cadastrado.', 'erro'); return; }
+    window.open(`mailto:${email}`, '_blank', 'noopener');
+}
+
+export async function abrirEditarParte(parteId) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
+    let p;
+    try { p = await api.buscarParte(parteId); } catch (err) { mostrarToast('Erro ao carregar a parte: ' + (err.message || String(err)), 'erro'); return; }
+    if (!p) { mostrarToast('Parte não encontrada.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Editar parte',
+        sub: p.nome || '',
+        corpo: `
+            <div class="rz-f"><label>Nome <i>*</i></label><input type="text" id="pf-nome" maxlength="200" value="${escapeHtml(p.nome || '')}"></div>
+            <div class="rz-f"><label>Documento (CPF/CNPJ)</label><input type="text" id="pf-documento" maxlength="20" value="${escapeHtml(p.documento || '')}"></div>
+            <div class="rz-f"><label>WhatsApp</label><input type="tel" id="pf-whatsapp" maxlength="20" value="${escapeHtml(p.whatsapp || '')}"></div>
+            <div class="rz-f"><label>E-mail</label><input type="email" id="pf-email" maxlength="200" value="${escapeHtml(p.email || '')}"></div>
+            <div class="rz-f"><label>Endereço</label><input type="text" id="pf-endereco" maxlength="300" value="${escapeHtml(p.endereco || '')}"></div>
+        `,
+        rotuloSalvar: 'Salvar',
+        aoSalvar: async () => {
+            const nome = document.getElementById('pf-nome').value.trim();
+            if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
+            try {
+                await api.atualizarParte(parteId, {
+                    nome,
+                    documento: document.getElementById('pf-documento').value.trim() || null,
+                    whatsapp: document.getElementById('pf-whatsapp').value.trim() || null,
+                    email: document.getElementById('pf-email').value.trim() || null,
+                    endereco: document.getElementById('pf-endereco').value.trim() || null,
+                });
+                mostrarToast('Parte atualizada.');
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-partes'));
+                return true;
+            } catch (err) { mostrarToast('Erro: ' + (err.message || String(err)), 'erro'); return false; }
+        }
+    });
+}
+
+// Recarrega a lista de Partes do item de controle em foco depois de um
+// Editar dados salvo pela Ficha da Parte (acima) — mesmo padrão do
+// 'cofre:recarregar-documentos' já usado por cofre-documentos.js/
+// contratos.js. contratos.js tem seu próprio listener pro chip Partes do
+// contrato (montarChipsPartesContrato).
+window.addEventListener('cofre:recarregar-partes', () => { if (itemEmFoco) montarPartesItemControle(itemEmFoco); });
 
 // ============================================================================
 // CRIAR ITEM DE CONTROLE (formulário na ficha do ativo)

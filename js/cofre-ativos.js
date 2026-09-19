@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.49.0 · 18/09/2026 (rodada 9)
+// Versão: 1.50.0 · 19/09/2026 (rodada 10)
 //
 // v1.49.0 — CORRIGIDO (pedido explícito: "em todos os ativos, colocar o
 // valor de mercado do ativo") — ativoCardHtml(), ramo de imóvel com resumo
@@ -640,7 +640,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.49.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.50.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1143,7 +1143,7 @@ function ativoCardHtml(a) {
     // problema"); o resto do prazo ainda não vencido é 'run' (azul,
     // REGRAS_EXPERIENCIA §9 — mesma semântica de "A vencer"/"A pagar").
     const chip = proximo === undefined || proximo === null || proximo > 30 ? null
-        : proximo < 0 ? { html: rsA('bad', `Vencido há ${Math.abs(proximo)}d`) }
+        : proximo < 0 ? { html: rsA('bad', `há ${Math.abs(proximo)}d`) }
         : proximo === 0 ? { html: rsA('warn', 'Vence hoje') }
         : { html: rsA('run', `Em ${proximo}d`) };
     // CORRIGIDO v1.47.0 (pedido explícito, achado no print — valores com
@@ -1207,7 +1207,23 @@ function ativoCardHtml(a) {
         // o valor de mercado") — valorFmt (a.valor_referencia) SEMPRE entra
         // agora, inclusive Alugado (antes só aparecia em Vago/Em uso — o
         // card do locatário+aluguel nunca mostrava quanto o imóvel vale).
-        const linhaDetalhe = [linhaLocatario, aluguelFmt, valorFmt].filter(Boolean).join(' · ');
+        //
+        // CORRIGIDO v1.50.0 (18/09/2026, rodada 10 — achado do Nicola:
+        // "valor de mercado continua faltando, nada mudou na lista") — a
+        // v1.48.0 acima ESTAVA certa (valorFmt entrava na linha, conferido
+        // no código), mas a linha inteira era 1 `<p class="... truncate">`
+        // (1 linha, overflow oculto) com os 3 pedaços concatenados numa
+        // string só — nome de locatário mais longo já enchia a largura
+        // sozinho, e tudo que vinha DEPOIS (aluguel, valor) ficava por trás
+        // do corte, sem aparecer — mesma classe de bug já vista e corrigida
+        // em Financeiro (rodada 9/10, `.rz-tx span`). Fix estrutural, não só
+        // reordenar: a linha vira um flex com 2 partes — locatário (var1,
+        // `min-width:0` + truncate, único pedaço que pode ser cortado) e
+        // aluguel+valor (fixo, `flex:none`, nunca trunca). Card genérico
+        // (ramo abaixo, ativos que não são imóvel) não muda — só tem
+        // identificador+valor, sem parte de tamanho variável tipo nome de
+        // locatário na frente.
+        const linhaValorFixo = [aluguelFmt, valorFmt].filter(Boolean).join(' · ');
 
         // v1.45.0 — ícone/avatar centralizado na ALTURA da caixa. .card-ativo
         // ganhou min-height padrão em ativos-markup.js pra toda caixa (rica
@@ -1219,7 +1235,7 @@ function ativoCardHtml(a) {
             </div>
             <div class="flex-1 min-w-0">
                 <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(a.nome_exibicao)}</h3>
-                ${linhaDetalhe ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(linhaDetalhe)}</p>` : ''}
+                ${linhaLocatario || linhaValorFixo ? `<p class="text-xs text-slate-500 mt-0.5" style="display:flex;align-items:baseline;gap:4px;overflow:hidden">${linhaLocatario ? `<span class="truncate">${escapeHtml(linhaLocatario)}</span>` : ''}${linhaValorFixo ? `<span style="flex:none;white-space:nowrap">${linhaLocatario ? '· ' : ''}${escapeHtml(linhaValorFixo)}</span>` : ''}</p>` : ''}
             </div>
             <div class="flex flex-col items-end gap-1 flex-none">
                 ${badgeHtml}
