@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.4 · 18/09/2026 (rodada 3)
+// Versão: 1.32.5 · 18/09/2026 (rodada 4)
+//
+// v1.32.5 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo deve ser
+// possivel editar o nome. Tanto nos anexos de contrato, quanto ativos, itens
+// de controle e os demais") — case novo 'editar-nome-documento-atual' →
+// docs.editarNomeDocumentoAtual() (cofre-documentos.js v2.18.0), lapiseira
+// nova ao lado do #fd-nome na Ficha do Documento. FIX de passagem: VERSAO
+// (const) estava em '1.32.3' enquanto o cabeçalho já apontava '1.32.4' —
+// mesmo tipo de deslize de v-check já visto em cofre-api.js — corrigido
+// junto, os dois number agora batem de novo.
 //
 // v1.32.4 — case novo 'modelo-categoria-mudou' →
 // controles.aoMudarCategoriaModeloControleForm() — acompanha a troca do
@@ -282,7 +291,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.32.3'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.32.5'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -542,6 +551,10 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-acoes-docs-item': controles.abrirAcoesDocsItem(); break;
         case 'abrir-acoes-partes-linha': controles.abrirAcoesPartesItem(); break;
         case 'categorizar-documento-atual': await docs.categorizarDocumentoAtual(); break;
+        // v1.32.5 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo deve
+        // ser possivel editar o nome") — lapiseira ao lado do #fd-nome na
+        // Ficha do Documento (ver changelog de cofre-documentos.js v2.18.0).
+        case 'editar-nome-documento-atual': await docs.editarNomeDocumentoAtual(); break;
         case 'fa-acoes-contratos': ativos.abrirAcoesContratosAtivo(); break;
         // v1.15.0 (NOVO) — chip Financeiro da ficha do ativo: "Novo
         // lançamento" e "Ver tudo em Saídas" são pontes pro App (ver

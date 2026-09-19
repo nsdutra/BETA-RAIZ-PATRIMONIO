@@ -1,6 +1,23 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.41.0 · 18/09/2026 (rodada 3)
+// Versão: 1.43.0 · 18/09/2026 (rodada 9)
+// CHANGELOG v1.43.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo
+// deve ser possivel editar o nome. Tanto nos anexos de contrato, quanto
+// ativos, itens de controle e os demais") — #modal-ficha-doc: título
+// #fd-nome ganhou uma lapiseira ao lado (data-action=
+// "editar-nome-documento-atual" → cofre-documentos.js v2.18.0
+// editarNomeDocumentoAtual(), abre abrirSheetForm com 1 campo, mesma
+// gramática .rz-f de fa-editar-nome). abrirFichaDocumento() é o único
+// caminho que monta esta ficha pros 3 contextos citados (contrato/ativo/
+// item de controle), então o botão único aqui já cobre os 3. Espelha
+// cofre.html (mesmo markup, mesmos ids).
+//
+// CHANGELOG v1.42.0 (pedido explícito, item de controle gerando "a pagar"
+// retroativo) — checkbox #ic-gerar-desde-inicio: default trocado de
+// checked pra desmarcado + rótulo reescrito pra deixar claro que marcá-lo
+// cria uma pendência retroativa ("Em atraso" no Financeiro). Corrigido de
+// passagem um descompasso VER-04 pré-existente: header estava em 1.41.0
+// mas export const VERSAO ainda em 1.40.0.
 //
 // v1.41.0 — modal-modelos-controle: #modelo-tipo-ativo (select único, 14
 // valores misturados categoria+código) virou #modelo-categoria (8
@@ -368,7 +385,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.40.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.43.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -908,10 +925,19 @@ export const ATIVOS_MARKUP = `<style>
             <!-- E14.1 ("A4", 15/09/2026) — só faz sentido quando a data
                  início já é do passado (obrigação antiga sendo cadastrada
                  agora); com data início no futuro não muda nada, então
-                 fica sempre visível mas só importa nesse caso. -->
+                 fica sempre visível mas só importa nesse caso.
+                 CORRIGIDO (pedido explícito, 18/09/2026, rodada 8) — default
+                 trocado de "checked" pra desmarcado: um item de controle com
+                 data início no passado + valor previsto estava gerando, por
+                 padrão, uma ocorrência JÁ vencida ("Em atraso") no Financeiro
+                 pra um ciclo que nunca foi de fato cobrado/pago — flagrado
+                 pelo Nicola num item de Dedetização anual criado com data
+                 início em 10/10/2025. Marcar continua possível pra quem
+                 realmente precisa registrar uma pendência antiga conhecida;
+                 o padrão agora é seguro (só gera daqui pra frente). -->
             <label class="col-span-2 flex items-center gap-2 text-xs" style="color:var(--ink)">
-                <input type="checkbox" id="ic-gerar-desde-inicio" checked>
-                Gerar também as ocorrências passadas (desde a data início) — desmarque pra só gerar a partir de hoje
+                <input type="checkbox" id="ic-gerar-desde-inicio">
+                Gerar também as ocorrências passadas (desde a data início) — cria pendência retroativa (aparece "Em atraso" no Financeiro); marque só se for uma cobrança antiga real
             </label>
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Repetir a cada</label>
@@ -1340,7 +1366,7 @@ export const ATIVOS_MARKUP = `<style>
 <div id="modal-ficha-doc" class="modal-overlay hidden">
     <div class="modal-box p-5">
         <div class="flex items-start justify-between mb-3">
-            <div><h3 class="text-base font-bold pr-4" id="fd-nome">—</h3><p class="text-xs" style="color:var(--sage)" id="fd-contexto-label">—</p></div>
+            <div class="min-w-0 pr-4"><div class="flex items-center gap-1"><h3 class="text-base font-bold truncate" id="fd-nome">—</h3><button type="button" data-action="editar-nome-documento-atual" title="Editar nome" aria-label="Editar nome do documento" style="background:none;border:none;padding:2px;flex:none;color:var(--sage);cursor:pointer"><i data-lucide="pencil" style="width:14px;height:14px"></i></button></div><p class="text-xs" style="color:var(--sage)" id="fd-contexto-label">—</p></div>
             <button type="button" data-action="fechar-ficha-doc" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
         </div>
         <div id="fd-chips" class="flex flex-wrap gap-1 mb-3"></div>

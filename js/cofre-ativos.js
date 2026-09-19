@@ -1,6 +1,38 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.46.0 · 18/09/2026
+// Versão: 1.48.0 · 18/09/2026 (rodada 8)
+//
+// v1.48.0 — CORRIGIDO (pedido explícito: "no chip financeiro do ativo,
+// permitir dar baixa ou excluir uma despesa, e se clicar nela, vai pra aba
+// financeira") — montarFinanceiroAtivo(): a linha inteira do
+// Movimentações ficou clicável (antes só o ⋮ reagia); e a entrada
+// (mensalidade) agora também troca pra aba Financeiro (tab-mensal) antes
+// de abrir rzAcoesMensalidade — antes só a saída (despesa, via
+// abrirEditarDespesa) fazia isso.
+//
+// v1.47.0 — CORRIGIDO: header e VERSAO (linha ~601) estavam dessincronizados
+// (header já dizia 1.46.0, VERSAO ainda '1.45.0') — corrigido de passagem.
+// 4 pedidos explícitos do Nicola na mesma rodada, todos em ativoCardHtml()/
+// renderAtivosLista(): (1) padrão "há/em xx d" — o chip de prazo do card
+// ("29 dias") usava 'warn'/marrom e número cru; virou 'run'/azul + "Em Xd"
+// (REGRAS_EXPERIENCIA §9: "run" é a semântica de "A vencer"/"A pagar", não
+// "warn" — só o dia exato do vencimento continua 'warn', "Vence hoje"); (2)
+// card de imóvel tinha até 4 linhas de texto (nome + "Bem R$X" + locatário +
+// aluguel) contra as 2 do card genérico — sempre mais alto, mesmo com
+// min-height compartilhado (ativos-markup.js). Consolidado numa linha de
+// detalhe só: alugado = "locatário · R$ aluguel/mês"; sem contrato ativo =
+// "locatário/status · R$ valor do bem" (Vago/Em uso) — mesma altura do
+// genérico agora, de verdade; (3) removida a palavra "Bem" e as casas
+// decimais dos valores (fmtMoeda local ganhou maximumFractionDigits:0,
+// escopado a este card — formatarMoedaBR() de sempre continua com
+// centavos em toda outra tela); (4) card genérico: saiu o texto de
+// categoria (rotuloTipoAtivo — o ícone já diz isso) e entrou o
+// identificador do documento do bem (placa/matrícula/registro, por tipo —
+// identificadorDocumentoAtivo(), novo), pra dar pra diferenciar 2 ativos
+// do mesmo tipo sem abrir a ficha; (5) agrupamento por empreendimento
+// (renderAtivosLista) deixou de exigir mais de 10 imóveis na carteira —
+// carteira pequena com 1 empreendimento só (ex.: 8 imóveis em "Capital")
+// nunca agrupava; agora agrupa sempre.
 //
 // v1.46.0 — E15.3 (demanda abd1a73f): destravado o campo "Tipo específico"
 // na edição de ativo VINCULADO (imóvel legado ligado a `imoveis`) — antes
@@ -598,7 +630,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.45.0'; // v-check (17/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.48.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -926,36 +958,33 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
 
     // v1.7.0 (pedido explícito, 01/09/2026: "a lista de ativos está bem
     // diferente da lista antiga de imóveis... prefiro o padrão da lista
-    // antiga, favor ajustar") — agrupamento por empreendimento, MESMO
-    // critério da lista antiga (index.html, renderImoveis()): só agrupa
-    // quando há mais de 10 imóveis no TOTAL da carteira (traço do porte
-    // da carteira, não do filtro do momento). Ativos que não são imóvel
-    // (sem empreendimento) caem em "(Outros ativos)", sempre por último
-    // — hoje (Rumo) isso nunca acontece, mas o critério já vem pronto
-    // pra quando existirem veículos/outros tipos na carteira.
-    const totalImoveisNaCarteira = estado.ativos.filter(a => ehCategoriaImovel(a.tipo_ativo)).length;
-
-    if (totalImoveisNaCarteira > 10) {
-        const grupos = {};
-        lista.forEach(a => {
-            const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
-            const chave = resumo?.empreendimento || (ehCategoriaImovel(a.tipo_ativo) ? '(Sem empreendimento)' : '(Outros ativos)');
-            (grupos[chave] = grupos[chave] || []).push(a);
-        });
-        const nomesGrupos = Object.keys(grupos).sort((x, y) => {
-            if (x === '(Outros ativos)') return 1;
-            if (y === '(Outros ativos)') return -1;
-            return x.localeCompare(y);
-        });
-        container.innerHTML = nomesGrupos.map(nome => `
-            <div class="mb-1">
-                <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 px-1 mb-2 mt-4 first:mt-0">${escapeHtml(nome)} <span class="text-slate-400">(${grupos[nome].length})</span></p>
-                <div class="space-y-2">${grupos[nome].map(ativoCardHtml).join('')}</div>
-            </div>
-        `).join('');
-    } else {
-        container.innerHTML = `<div class="space-y-2">${lista.map(ativoCardHtml).join('')}</div>`;
-    }
+    // antiga, favor ajustar") — agrupamento por empreendimento. Ativos
+    // que não são imóvel (sem empreendimento) caem em "(Outros ativos)",
+    // sempre por último.
+    // CORRIGIDO v1.47.0 (pedido explícito — "agrupe os itens na tela pelo
+    // tipo empreendimento") — o agrupamento só ligava com mais de 10
+    // imóveis no total da carteira; carteira pequena (ex.: 8 imóveis, 1
+    // único empreendimento "Capital", + 3 outros ativos) ficava sempre em
+    // lista plana, sem agrupar nunca. Grupo sempre ativo agora — com 1
+    // empreendimento só, vira 1 cabeçalho ("Capital (8)"), o que já é
+    // informação (mostra que a carteira toda está concentrada ali).
+    const grupos = {};
+    lista.forEach(a => {
+        const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
+        const chave = resumo?.empreendimento || (ehCategoriaImovel(a.tipo_ativo) ? '(Sem empreendimento)' : '(Outros ativos)');
+        (grupos[chave] = grupos[chave] || []).push(a);
+    });
+    const nomesGrupos = Object.keys(grupos).sort((x, y) => {
+        if (x === '(Outros ativos)') return 1;
+        if (y === '(Outros ativos)') return -1;
+        return x.localeCompare(y);
+    });
+    container.innerHTML = nomesGrupos.map(nome => `
+        <div class="mb-1">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 px-1 mb-2 mt-4 first:mt-0">${escapeHtml(nome)} <span class="text-slate-400">(${grupos[nome].length})</span></p>
+            <div class="space-y-2">${grupos[nome].map(ativoCardHtml).join('')}</div>
+        </div>
+    `).join('');
 
     const vazio = document.getElementById('ativos-estado-vazio');
     vazio.classList.toggle('hidden', estado.ativos.length !== 0);
@@ -1067,6 +1096,26 @@ export async function carregarResumoImoveisParaCards() {
     renderAtivosLista(tiposFiltroAtual, termoAtual);
 }
 
+// NOVO v1.47.0 (pedido explícito — "para itens diferentes de imóvel,
+// inclua informação do documento como placa, pra identificar o bem",
+// depois de retirar o texto de categoria do card) — 1 campo estruturado
+// por tipo (dados_especificos, ver CAMPOS_POR_TIPO_ATIVO_FALLBACK em
+// cofre-validacoes.js) escolhido como "o" identificador oficial do bem:
+// o mesmo que já é obrigatório no cadastro pra esse tipo, quando existe
+// um. Tipo sem documento oficial (obra de arte, coleção, "outro") não
+// tem chave aqui — o card cai só no valor, sem inventar rótulo vazio.
+const CAMPO_IDENTIFICADOR_POR_TIPO = {
+    veiculo: 'placa', veiculo_blindado: 'placa',
+    aeronave: 'matricula_aeronave',
+    embarcacao: 'registro_capitania',
+    terreno: 'matricula', imovel: 'matricula', imovel_predial: 'matricula', imovel_territorial: 'matricula',
+};
+function identificadorDocumentoAtivo(a) {
+    const campo = CAMPO_IDENTIFICADOR_POR_TIPO[a.tipo_ativo];
+    if (!campo) return null;
+    return a.dados_especificos?.[campo] || null;
+}
+
 function ativoCardHtml(a) {
     const ocorrenciasDoAtivo = estado.ocorrenciasAbertas.filter(oc => oc.cofre_itens_controle?.ativo_id === a.id);
     const proximo = ocorrenciasDoAtivo.map(oc => diasAte(oc.data_prevista_atual)).filter(d => d !== null).sort((x, y) => x - y)[0];
@@ -1078,10 +1127,22 @@ function ativoCardHtml(a) {
     // o card inteiro sem alerta nenhum); só ocupa a extrema direita quando
     // há de fato algo a tratar (vencido ou vencendo em ≤30d), curto, como
     // o sinal de quantidade do Outlook.
+    // CORRIGIDO v1.47.0 (padrão "há/em xx d", achado pelo Nicola —
+    // print mostrando "29 dias" no card do ativo em vez de "Em 29d"):
+    // só o dia exato do vencimento é 'warn' (marrom, "vai virar
+    // problema"); o resto do prazo ainda não vencido é 'run' (azul,
+    // REGRAS_EXPERIENCIA §9 — mesma semântica de "A vencer"/"A pagar").
     const chip = proximo === undefined || proximo === null || proximo > 30 ? null
         : proximo < 0 ? { html: rsA('bad', `Vencido há ${Math.abs(proximo)}d`) }
-        : { html: rsA('warn', proximo === 0 ? 'Vence hoje' : `${proximo} dia${proximo === 1 ? '' : 's'}`) };
-    const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        : proximo === 0 ? { html: rsA('warn', 'Vence hoje') }
+        : { html: rsA('run', `Em ${proximo}d`) };
+    // CORRIGIDO v1.47.0 (pedido explícito, achado no print — valores com
+    // casa decimal poluindo a lista) — sem decimais aqui (lista); o valor
+    // exato com centavos continua em toda tela que precisa dele (ficha
+    // do ativo, financeiro), formatarMoedaBR()/fmtMoeda locais de sempre,
+    // intocados.
+    const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const identificadorDocumento = identificadorDocumentoAtivo(a);
 
     // v1.7.0 — ativo do tipo imóvel COM resumo carregado: mesma "cara"
     // exata da lista antiga de Imóveis (montarCabecalhoImovelHtml, no
@@ -1117,32 +1178,36 @@ function ativoCardHtml(a) {
         // pediu explicitamente pra tirar essa redundância. O endereço
         // (a.nome_exibicao) vira a linha de título do card (única linha
         // que identifica QUAL imóvel é, agora que "Canaã · Casa" saiu).
-        // Nova ordem pedida: nome do imóvel → valor do imóvel → locatário
-        // → aluguel — cada um na sua própria linha (antes valor e aluguel
-        // vinham juntos numa linha só, "Bem X · Aluguel Y").
         const linhaLocatario = alugado
             ? (principal.locatario || 'Locatário não informado')
             : principal && principal.status !== 'Finalizado' ? `${principal.status} — ${principal.locatario || '-'}`
             : usoProprio ? 'Uso próprio' : 'Sem contrato cadastrado';
-        const linhaValor = a.valor_referencia != null ? `Bem ${fmtMoeda(a.valor_referencia)}` : null;
-        const linhaAluguel = alugado && principal.valor != null ? `Aluguel ${fmtMoeda(principal.valor)}/mês` : null;
+        // CORRIGIDO v1.47.0 (pedido explícito — "a altura de um item de
+        // imóvel está maior que a de um item de ativo, manter o padrão de
+        // ativo" + "retire a palavra Bem"): eram até 4 linhas de texto
+        // (nome + valor do bem + locatário + aluguel), sempre mais alto
+        // que o card genérico (nome + 1 linha). Consolidado em UMA linha
+        // de detalhe (a mesma altura do genérico): alugado mostra
+        // locatário + aluguel; sem contrato ativo mostra locatário/status
+        // + valor do bem (sem a palavra "Bem", sem decimais — fmtMoeda
+        // local já ajustado acima).
+        const aluguelFmt = alugado && principal.valor != null ? `${fmtMoeda(principal.valor)}/mês` : null;
+        const valorFmt = a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null;
+        const linhaDetalhe = alugado
+            ? [linhaLocatario, aluguelFmt].filter(Boolean).join(' · ')
+            : [linhaLocatario, (situacao === 'Vago' || situacao === 'Em uso') ? valorFmt : null].filter(Boolean).join(' · ');
 
-        // v1.45.0 — ícone/avatar centralizado na ALTURA da caixa (era
-        // items-start, alinhava só com a 1ª linha do texto — esquisito
-        // agora que o bloco de texto tem até 4 linhas). "items-start" no
-        // <button> virou "items-center" (ver classe do <button> abaixo);
-        // .card-ativo ganhou min-height padrão em ativos-markup.js pra
-        // toda caixa (rica ou genérica) ter a MESMA altura, não importa
-        // quantas linhas o conteúdo dela realmente usa.
+        // v1.45.0 — ícone/avatar centralizado na ALTURA da caixa. .card-ativo
+        // ganhou min-height padrão em ativos-markup.js pra toda caixa (rica
+        // ou genérica) ter a MESMA altura — agora as duas realmente batem,
+        // porque as duas têm o mesmo número de linhas de texto (nome + 1).
         return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-center">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
                 ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
             </div>
             <div class="flex-1 min-w-0">
-                <h3 class="text-xs font-extrabold" style="color:var(--pine)">${escapeHtml(a.nome_exibicao)}</h3>
-                ${linhaValor ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(linhaValor)}</div>` : ''}
-                <div class="text-xs text-slate-700 mt-1">${escapeHtml(linhaLocatario)}</div>
-                ${linhaAluguel ? `<div class="text-xs text-slate-500 mt-0.5">${escapeHtml(linhaAluguel)}</div>` : ''}
+                <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(a.nome_exibicao)}</h3>
+                ${linhaDetalhe ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(linhaDetalhe)}</p>` : ''}
             </div>
             <div class="flex flex-col items-end gap-1 flex-none">
                 ${badgeHtml}
@@ -1152,16 +1217,18 @@ function ativoCardHtml(a) {
     }
 
     // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
-    // ainda carregado) — mesmo formato de sempre, + valor do bem (v1.44.0,
-    // pedido explícito, 16/09) quando cadastrado. Já usava items-center
-    // (ícone já nascia centralizado aqui); min-height padrão vem de
-    // .card-ativo (ativos-markup.js), igual ao card rico acima.
+    // ainda carregado). CORRIGIDO v1.47.0 (pedido explícito): saiu o
+    // texto de categoria (rotuloTipoAtivo — o ícone já diz isso) e entrou
+    // no lugar o identificador do documento do bem (placa, matrícula
+    // etc. — identificadorDocumentoAtivo(), calculado acima), pra
+    // continuar dando pra diferenciar 2 ativos do mesmo tipo/ícone na
+    // lista sem abrir a ficha. Valor sem decimais (fmtMoeda local acima).
+    // Uma linha de detalhe só (nome + 1), mesma altura do card de imóvel.
     return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
         <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--tile);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
         <div class="min-w-0 flex-1">
             <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
-            <p class="text-xs" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(a.tipo_ativo))}</p>
-            ${a.valor_referencia != null ? `<p class="text-xs text-slate-500 mt-0.5">${fmtMoeda(a.valor_referencia)}</p>` : ''}
+            <p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml([identificadorDocumento, a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null].filter(Boolean).join(' · '))}</p>
         </div>
         ${chip ? chip.html : ''}
     </button>`;
@@ -1735,8 +1802,17 @@ async function montarFinanceiroAtivo(a) {
             // v1.116); saída abre abrirEditarDespesa (mesmo destino do
             // toque na linha de Financeiro › Saídas). A RPC já devolve o
             // id de cada item (mensalidades.id / lancamentos.id).
+            // CORRIGIDO (pedido explícito, 18/09/2026, rodada 8, "no chip
+            // financeiro do ativo, permitir dar baixa ou excluir uma
+            // despesa, e se clicar nela, vai pra aba financeira") — a linha
+            // inteira ficou clicável (data-fin-acao/data-fin-dir migraram
+            // do <button> pro div.rz-row; o ⋮ virou só visual) e a entrada
+            // (mensalidade) agora também troca pra aba Financeiro
+            // (tab-mensal) antes de abrir a sheet — antes só a saída
+            // (despesa) fazia isso; a entrada abria rzAcoesMensalidade por
+            // cima da ficha do ativo, sem sair dela.
             return `
-                <div class="rz-row">
+                <div class="rz-row" data-fin-acao="${it.id}" data-fin-dir="${it.direcao}" style="cursor:pointer">
                     <div class="rz-ic${atrasado ? ' rz-bad' : ''}"><i data-lucide="${icone}"></i></div>
                     <div class="rz-tx">
                         <b>${escapeHtml(it.descricao || '')}</b>
@@ -1746,19 +1822,19 @@ async function montarFinanceiroAtivo(a) {
                         <b class="${ehEntrada ? 'rz-in' : 'rz-out'}">${ehEntrada ? '+ ' : '− '}${fmtMoeda(it.valor)}</b>
                         ${status}
                     </div>
-                    <button type="button" data-fin-acao="${it.id}" data-fin-dir="${it.direcao}" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
+                    <button type="button" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
                 </div>`;
         }).join('');
-        painelLista.querySelectorAll('[data-fin-acao]').forEach(btn => btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-fin-acao');
-            if (btn.getAttribute('data-fin-dir') === 'entrada') {
+        painelLista.querySelectorAll('[data-fin-acao]').forEach(row => row.addEventListener('click', () => {
+            const id = row.getAttribute('data-fin-acao');
+            if (typeof window.switchTab !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+            window.switchTab('tab-mensal');
+            if (row.getAttribute('data-fin-dir') === 'entrada') {
                 if (typeof window.rzAcoesMensalidade === 'function') window.rzAcoesMensalidade(id);
                 else mostrarToast('Ação só disponível dentro do app principal.', 'erro');
             } else {
-                if (typeof window.switchTab === 'function' && typeof window.abrirEditarDespesa === 'function') {
-                    window.switchTab('tab-mensal');
-                    window.abrirEditarDespesa(id);
-                } else mostrarToast('Ação só disponível dentro do app principal.', 'erro');
+                if (typeof window.abrirEditarDespesa === 'function') window.abrirEditarDespesa(id);
+                else mostrarToast('Ação só disponível dentro do app principal.', 'erro');
             }
         }));
     }

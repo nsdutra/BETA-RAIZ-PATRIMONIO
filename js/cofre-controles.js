@@ -1,6 +1,29 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.26.0 · 18/09/2026 (rodada 3)
+// Versão: 1.28.0 · 18/09/2026 (rodada 8)
+//
+// v1.28.0 — CORRIGIDO (pedido explícito, relato do Nicola): item de
+// controle recorrente com data início no passado gerava, por padrão, uma
+// ocorrência já vencida ("Em atraso" no Financeiro) sem cobrança real por
+// trás — flagrado num item de Dedetização anual criado com data início em
+// 10/10/2025. gerarOcorrenciasHorizonte(): default de gerarDesdeInicio
+// trocado de true pra false (afeta também criarItemControleDeDocumento(),
+// que não passava esse parâmetro). salvarItemControle(): fallback do
+// checkbox (quando ele não existir no DOM) também trocado de true pra
+// false. Ver mesmo checkbox em js/ativos/ativos-markup.js v1.42.0/
+// cofre.html v1.27.0 (default do próprio <input> também mudou lá).
+//
+// v1.27.0 — CORRIGIDO: header e VERSAO (linha ~362) estavam dessincronizados
+// (header já dizia 1.26.0, VERSAO ainda '1.25.0') — corrigido de passagem.
+// Padrão "há/em xx d" (mesma correção replicada em cofre-ativos.js/
+// contratos.js/index.html, achado a partir de print do Nicola): 3 rótulos
+// de prazo aqui (cardItemControleHtml, cabeçalho da ficha do item de
+// controle, linha de ocorrência) caíam em 'warn'/marrom com número cru
+// ("13 dias") pra qualquer prazo de 1 a 30 dias. REGRAS_EXPERIENCIA §9
+// reserva 'warn' pra "vai virar problema" (Vencendo/Renovar) — um prazo
+// ainda confortável é 'run'/azul (mesma semântica de "A vencer"/"A
+// pagar"). Agora só o dia exato do vencimento (dias===0, "Vence hoje")
+// fica 'warn'; o resto do prazo (1 a 30 dias) é 'run' + "Em Xd".
 //
 // v1.26.0 — Pedido explícito do Nicola: formulário "Modelos de item de
 // controle" (abrirModelosControle/salvarModeloControle) passa a gravar
@@ -359,7 +382,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.25.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.28.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -571,7 +594,14 @@ function itemResumoHtml(item) {
     const dias = diasProximaOcorrencia(item);
     let sem = 'ok', rotulo = 'Em dia', classeIc = '';
     if (dias !== null && dias < 0) { sem = 'bad'; rotulo = `Vencido há ${Math.abs(dias)}d`; classeIc = ' rz-bad'; }
-    else if (dias !== null && dias <= 30) { sem = 'warn'; rotulo = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; classeIc = ' rz-warn'; }
+    else if (dias === 0) { sem = 'warn'; rotulo = 'Vence hoje'; classeIc = ' rz-warn'; }
+    // CORRIGIDO v1.27.0 (padrão "há/em xx d") — de 0 a 30 dias caía tudo em
+    // 'warn' com rótulo cru ("13 dias"), sem o prefixo "Em" e na cor de
+    // "vai virar problema" (--warning, marrom) em vez da cor de "ainda
+    // dentro do prazo" (--info/azul, REGRAS_EXPERIENCIA §9: "run" cobre
+    // exatamente "A vencer"/"A pagar"). Só o dia exato do vencimento
+    // (dias===0, acima) fica em 'warn' — o resto do prazo é 'run'.
+    else if (dias !== null && dias <= 30) { sem = 'run'; rotulo = `Em ${dias}d`; classeIc = ''; }
     return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
         <div class="rz-ic${classeIc}"><i data-lucide="${sem === 'bad' ? 'alarm-clock' : (sem === 'warn' ? 'clock' : iconeTipo)}"></i></div>
         <div class="rz-tx"><b>${escapeHtml(item.titulo)}</b><span>${escapeHtml(subtitulo)}</span></div>
@@ -895,7 +925,10 @@ function renderizarFichaItemControle() {
         : item.alerta_ativo === false ? statusHtml('neu', 'Alertas desligados')
         : diasProx === null ? statusHtml('ok', 'Sem pendência')
         : diasProx < 0 ? statusHtml('bad', `Vencido há ${Math.abs(diasProx)}d`)
-        : diasProx <= 30 ? statusHtml('warn', diasProx === 0 ? 'Vence hoje' : `${diasProx} dia${diasProx === 1 ? '' : 's'}`)
+        : diasProx === 0 ? statusHtml('warn', 'Vence hoje')
+        // CORRIGIDO v1.27.0 (padrão "há/em xx d") — ver nota na mesma
+        // rodada em cardItemControleHtml(): "run"/azul, não "warn"/marrom.
+        : diasProx <= 30 ? statusHtml('run', `Em ${diasProx}d`)
         : statusHtml('ok', 'Em dia');
     document.getElementById('fic-dados-cabecalho').innerHTML = `
         <div class="rz-ic"><i data-lucide="${{ seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check'}"></i></div>
@@ -925,7 +958,11 @@ function renderizarFichaItemControle() {
             let sem = 'ok', rot = 'Em dia', ic = 'calendar-check', cls = '';
             if (!aberta) { sem = oc.status_execucao === 'concluido' ? 'ok' : 'neu'; rot = rotuloStatusOcorrencia(oc.status_execucao); ic = oc.status_execucao === 'concluido' ? 'check-circle-2' : 'x-circle'; cls = oc.status_execucao === 'concluido' ? '' : ' rz-neu'; }
             else if (dias < 0) { sem = 'bad'; rot = `Vencido há ${Math.abs(dias)}d`; ic = 'alarm-clock'; cls = ' rz-bad'; }
-            else if (dias <= 30) { sem = 'warn'; rot = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; ic = 'clock'; cls = ' rz-warn'; }
+            else if (dias === 0) { sem = 'warn'; rot = 'Vence hoje'; ic = 'clock'; cls = ' rz-warn'; }
+            // CORRIGIDO v1.27.0 (padrão "há/em xx d") — mesma correção da
+            // rodada: "run"/azul (REGRAS_EXPERIENCIA §9, "A vencer"/"A
+            // pagar"), não "warn"/marrom, pro prazo ainda não vencido.
+            else if (dias <= 30) { sem = 'run'; rot = `Em ${dias}d`; ic = 'clock'; cls = ''; }
             return `<div class="rz-row rz-link" data-action="abrir-acoes-ocorrencia" data-id="${oc.id}">
                 <div class="rz-ic${cls}"><i data-lucide="${ic}"></i></div>
                 <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}${(oc.valor_real ?? oc.valor_previsto) ? ` · ${moedaBR(oc.valor_real ?? oc.valor_previsto)}` : ''}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
@@ -1493,8 +1530,12 @@ export async function salvarItemControle() {
     const parcelas = Math.max(1, parseInt(document.getElementById('ic-parcelas')?.value, 10) || 1);
     const parcelaIntervalo = Math.max(1, parseInt(document.getElementById('ic-parcela-intervalo')?.value, 10) || 30);
     // E14.1 ("A4") — checkbox some do DOM em telas antigas de cache; default
-    // true (comportamento de sempre) se por algum motivo não existir.
-    const gerarDesdeInicio = document.getElementById('ic-gerar-desde-inicio') ? document.getElementById('ic-gerar-desde-inicio').checked : true;
+    // false se por algum motivo não existir. CORRIGIDO (pedido explícito,
+    // 18/09/2026, rodada 8) — era default true ("gerar desde o início"), o
+    // que fazia todo item de controle com data início no passado nascer com
+    // uma ocorrência já vencida ("Em atraso") no Financeiro por padrão. Ver
+    // changelog completo em js/ativos/ativos-markup.js (mesmo checkbox).
+    const gerarDesdeInicio = document.getElementById('ic-gerar-desde-inicio') ? document.getElementById('ic-gerar-desde-inicio').checked : false;
 
     if (!titulo) { mostrarToast('Informe um título para o item de controle.', 'erro'); return; }
     if (!dataBase) { mostrarToast('Informe a data início.', 'erro'); return; }
@@ -1585,9 +1626,15 @@ const MAX_OCORRENCIAS_GERADAS = 60; // guarda contra frequência muito curta (ex
 // E14.1 ("A4", 15/09/2026) — gerarDesdeInicio=false pula toda ocorrência
 // anterior a hoje: avança dataBase (mantendo a fase do ciclo — ex. sempre
 // dia 15 de cada mês) até a 1ª data >= hoje, e só a partir daí gera.
-// Default true preserva o comportamento de sempre (item não-recorrente
-// não usa isto — só tem 1 ocorrência, sempre na data_base literal).
-function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade, gerarDesdeInicio = true) {
+// Item não-recorrente não usa isto — só tem 1 ocorrência, sempre na
+// data_base literal. CORRIGIDO (pedido explícito, 18/09/2026, rodada 8) —
+// default trocado de true pra false: um item recorrente com data_base no
+// passado gerava, por padrão, ocorrência(s) já vencida(s) que viravam
+// despesa "Em atraso" no Financeiro sem nenhuma cobrança real por trás.
+// Afeta também criarItemControleDeDocumento() (item nascido de upload com
+// vencimento no passado), que não passa este parâmetro e por isso também
+// dependia deste default.
+function gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade, gerarDesdeInicio = false) {
     const camposComuns = { cliente_id: estado.clienteId, item_controle_id: item.id, alerta_habilitado: !!item.alerta_ativo, status_execucao: 'aberto' };
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
     const hojeISO = hoje.toISOString().slice(0, 10);

@@ -1,7 +1,30 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.7.0 · 18/09/2026
+// Versão: 1.9.0 · 18/09/2026 (rodada 8)
+//
+// v1.9.0 — CORRIGIDO (pedido explícito: "no chip financeiro do contrato,
+// permitir dar baixa ou excluir, e se clicar nela, vai pra aba
+// financeira") — abrirFichaContrato(), painel Financeiro: a linha de
+// mensalidade ficou clicável inteira (antes só o ⋮ reagia) e agora troca
+// pra aba Financeiro (tab-mensal) antes de abrir rzAcoesMensalidade (o
+// mesmo sheet Dar baixa/Excluir de sempre — nenhuma lógica nova ali).
+//
+// v1.8.0 — 3 pedidos explícitos do Nicola na mesma rodada: (1) padrão
+// "há/em xx d" (mesma correção replicada em cofre-ativos.js/cofre-
+// controles.js/index.html) — a urgência das Ocorrências do contrato
+// (aba Financeiro) usava "${dias} dias" cru, sem "Em" e sem ser azul
+// (rz-warn/marrom); virou "Em Xd" sem tag colorida (era só tinta de
+// ícone, não status pill, então "run" não se aplica aqui — cls vazio,
+// mesmo tratamento do "Em dia"); (2) aba Cobranças/Financeiro — texto
+// "Vencido"/"A vencer" de cada mensalidade não dizia QUANDO; agora
+// mostra "Venceu em DD/MM/AAAA"/"Vence em DD/MM/AAAA" usando
+// m.dataPgto (campo que guarda a data prevista até a mensalidade ser
+// paga — mesmo uso que mensalidadeEmAtraso() já fazia); (3) renomeado
+// o chip "Cobranças" da ficha do contrato para "Financeiro" (e o
+// título do card dentro dele) — o id interno (data-fc-chip="cobrancas",
+// fc-painel-cobrancas, abrirAcoesCobrancasContrato) não mudou, só o
+// texto visível, pra não quebrar nenhuma referência.
 //
 // v1.7.0 — demanda 53ca281b (print do Nicola: aba Cobranças da ficha do
 // contrato mostrando competências de 11/2026 e 12/2026 como "Em atraso"/
@@ -159,7 +182,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1651,7 +1674,7 @@ export function reabrirFichaSeFor(contratoId) {
                 </div>
                 <div class="rz-chips" id="fc-chips">
                     <button type="button" class="rz-chip rz-on" data-fc-chip="resumo" onclick="fcTrocarChip('resumo')">Resumo</button>
-                    <button type="button" class="rz-chip ${atrasadas.length ? 'rz-warn' : ''}" data-fc-chip="cobrancas" onclick="fcTrocarChip('cobrancas')">Cobranças <span class="rz-n">${atrasadas.length}</span></button>
+                    <button type="button" class="rz-chip ${atrasadas.length ? 'rz-warn' : ''}" data-fc-chip="cobrancas" onclick="fcTrocarChip('cobrancas')">Financeiro <span class="rz-n">${atrasadas.length}</span></button>
                     <button type="button" class="rz-chip" data-fc-chip="partes" onclick="fcTrocarChip('partes')">Partes <span class="rz-n">${1 + fiadoresDaFicha.length}</span></button>
                     <button type="button" class="rz-chip" data-fc-chip="arquivos" onclick="fcTrocarChip('arquivos')">Anexos <span class="rz-n" id="fc-chip-n-arquivos">0</span></button>
                 </div>
@@ -1682,19 +1705,31 @@ export function reabrirFichaSeFor(contratoId) {
 
                 <div class="fc-painel hidden" id="fc-painel-cobrancas">
                     <div class="rz-card ${atrasadas.length ? 'rz-critico' : ''}">
-                        <div class="rz-card-h"><h3>Cobranças</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}<button type="button" onclick="abrirAcoesCobrancasContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
+                        <div class="rz-card-h"><h3>Financeiro</h3>${atrasadas.length ? rs('bad', `${formatarMoedaBR(totalAtrasado)} em atraso`) : (ultimasSeis.length ? rs('ok', 'Em dia') : '')}<button type="button" onclick="abrirAcoesCobrancasContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
                         <!-- v1.116.0 (pedido explícito: "colocar no ⋮ a
                              opção de tratar aquele recebimento") — cada
                              linha ganhou ⋮ chamando rzAcoesMensalidade(),
                              a mesma sheet (Dar baixa/Recibo/Estornar/
                              Excluir) já usada em Financeiro › Recebimentos
-                             (fatia 5); nenhuma lógica nova. -->
+                             (fatia 5); nenhuma lógica nova.
+                             CORRIGIDO (pedido explícito, 18/09/2026, rodada
+                             8, "se clicar nela, vai pra aba financeira") —
+                             a linha inteira ficou clicável (onclick no
+                             div.rz-row; o ⋮ continua ali só visualmente,
+                             o clique nele borbulha pro mesmo onclick — não
+                             duplica chamada porque não tem handler próprio
+                             mais) e agora troca pra aba Financeiro
+                             (tab-mensal) ANTES de abrir a sheet — antes o
+                             ⋮ abria a sheet por cima da ficha do contrato
+                             sem trocar de aba, então "Ver no Financeiro"
+                             (dentro da própria sheet) não fazia sentido
+                             igual. -->
                         ${ultimasSeis.length ? ultimasSeis.map(m => `
-                        <div class="rz-row">
+                        <div class="rz-row" onclick="switchTab('tab-mensal'); rzAcoesMensalidade('${m.id}')" style="cursor:pointer">
                             <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (mensalidadeEmAtraso(m) ? 'Vencido' : 'A vencer')}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (m.dataPgto ? (mensalidadeEmAtraso(m) ? 'Venceu em ' + formatarDataBR(m.dataPgto) : 'Vence em ' + formatarDataBR(m.dataPgto)) : (mensalidadeEmAtraso(m) ? 'Vencido' : 'A vencer'))}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
-                            <button type="button" onclick="rzAcoesMensalidade('${m.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                            <button type="button" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
 
                     </div>
@@ -1783,7 +1818,11 @@ export function reabrirFichaSeFor(contratoId) {
                         if (aberta) {
                             const dias = Math.round((new Date(oc.data_prevista_atual + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
                             if (dias < 0) { urgencia = `Vencido há ${Math.abs(dias)}d`; cls = ' rz-bad'; }
-                            else if (dias <= 30) { urgencia = dias === 0 ? 'Vence hoje' : `${dias} dia${dias === 1 ? '' : 's'}`; cls = ' rz-warn'; }
+                            else if (dias === 0) { urgencia = 'Vence hoje'; cls = ' rz-warn'; }
+                            // CORRIGIDO v1.8.0 (padrão "há/em xx d") — mesma correção da
+                            // rodada em cofre-ativos.js/cofre-controles.js: prazo ainda
+                            // não vencido usa "Em Xd", não o número cru.
+                            else if (dias <= 30) { urgencia = `Em ${dias}d`; cls = ''; }
                         } else if (oc.status_execucao === 'cancelado') { urgencia = 'Cancelada'; cls = ' rz-neu'; }
                         const titulo = aberta ? `${rot} · vence ${formatarDataBR(oc.data_prevista_atual)}` : `${rot} · ${formatarDataBR(oc.data_prevista_atual)}`;
                         const desc = [urgencia, oc.tratamento_descricao ? rzEsc(oc.tratamento_descricao) : ''].filter(Boolean).join(' · ')

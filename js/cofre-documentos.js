@@ -1,6 +1,22 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.17.0 · 18/09/2026 (rodada 6)
+// Versão: 2.18.0 · 18/09/2026 (rodada 7)
+//
+// v2.18.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo deve ser
+// possivel editar o nome. Tanto nos anexos de contrato, quanto ativos, itens
+// de controle e os demais") — editarNomeDocumentoAtual() nova: lapiseira ao
+// lado do #fd-nome na Ficha do Documento abre o mesmo abrirSheetForm de
+// sempre (1 campo "Nome de exibição *", mesma gramática .rz-f de
+// alternarEditarAtivo/fa-editar-nome em cofre-ativos.js), valida
+// não-vazio/≤200 chars, grava via api.atualizarDocumento() — já genérica,
+// nenhuma função nova em cofre-api.js — e recarrega a ficha + as listas
+// (cofre:recarregar-documentos). ACHADO DE ARQUITETURA (investigado antes de
+// codar): abrirFichaDocumento()/#modal-ficha-doc é UM SÓ fluxo pros 3
+// contextos que o Nicola citou (anexo de contrato, de ativo, de item de
+// controle — todos abrem a mesma ficha por aqui), então isto já cobre os 3
+// de uma vez. O MARKUP do modal, porém, está duplicado em 2 lugares
+// (cofre.html e js/ativos/ativos-markup.js, mesmos ids) — o botão novo
+// entrou nos dois (ver changelog de cada um).
 //
 // v2.17.0 — box "Documentos da empresa" na aba Minha Empresa do App (pedido
 // explícito, mesmo relato do Nicola da v2.16.0: "no menu empresa do app,
@@ -389,7 +405,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.17.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.18.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1767,6 +1783,44 @@ export async function baixarDocumentoAtual() {
 // status='arquivado' continua um valor válido no CHECK constraint de
 // cofre_documentos (documentos já arquivados antes continuam aparecendo
 // normalmente) — só não tem mais como CRIAR um novo a partir da ficha.
+
+// v2.18.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo deve ser
+// possivel editar o nome. Tanto nos anexos de contrato, quanto ativos, itens
+// de controle e os demais") — mesmo abrirSheetForm de sempre, 1 campo só
+// ("Nome de exibição *", mesma gramática .rz-f de fa-editar-nome em
+// cofre-ativos.js/alternarEditarAtivo — não inventei padrão novo). Grava
+// nome_exibicao via api.atualizarDocumento() (já genérica, usada por
+// categorizarDocumentoAtual/excluirDocumentoAtual logo abaixo — nenhuma
+// função nova precisou entrar em cofre-api.js). abrirFichaDocumento() é o
+// único fluxo que monta a Ficha do Documento pros 3 contextos citados pelo
+// Nicola (contrato/ativo/item de controle todos passam por aqui), então
+// isto já cobre os 3 de uma vez só.
+export async function editarNomeDocumentoAtual() {
+    if (!docAtualId) return;
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
+    const d = estado.documentos.find(x => x.id === docAtualId) || await api.buscarDocumentoPorId(docAtualId);
+    if (!d) { mostrarToast('Documento não encontrado.', 'erro'); return; }
+    window.abrirSheetForm({
+        titulo: 'Editar nome do documento',
+        sub: d.nome_exibicao,
+        corpo: `<div class="rz-f"><label>Nome de exibição <i>*</i></label><input type="text" id="fd-editar-nome" maxlength="200" value="${escapeHtml(d.nome_exibicao)}"></div>`,
+        rotuloSalvar: 'Salvar',
+        aoSalvar: async () => {
+            const nome = document.getElementById('fd-editar-nome').value.trim();
+            if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
+            if (nome.length > 200) { mostrarToast('Nome muito longo (máx. 200 caracteres).', 'erro'); return false; }
+            if (nome === d.nome_exibicao) return true; // nada mudou, só fecha o sheet
+            try {
+                await api.atualizarDocumento(docAtualId, { nome_exibicao: nome });
+                d.nome_exibicao = nome;
+                await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { documento_id: docAtualId, acao: 'editar_nome_documento' });
+                mostrarToast('Nome atualizado.');
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+                await abrirFichaDocumento(docAtualId);
+            } catch (e) { mostrarToast('Erro: ' + e.message, 'erro'); return false; }
+        }
+    });
+}
 
 // v1.x (03/09, Nicola: "deve ter opção de categorizar um documento sem
 // categoria") — sheet com as categorias do cliente; grava categoria_id e

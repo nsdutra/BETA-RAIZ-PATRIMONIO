@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.7.2 · 12/09/2026
+// Versão: 1.8.0 · 18/09/2026 (rodada 4)
+//
+// v1.8.0 — pedido explícito do Nicola: aba Financeiro › Recebimentos, cada
+// mensalidade não paga só dizia "vence dia 15" (dia do mês, sem mês/ano —
+// ambíguo fora do agrupamento por competência). Passou a mostrar a data
+// completa (men.dataPgto, mesmo campo que mensalidadeEmAtraso() já usa
+// como referência de vencimento até a mensalidade ser paga), com o verbo
+// certo pro caso ("venceu em"/"vence em"); "vence dia N" continua como
+// fallback só pra quando essa data ainda não existe no registro.
 //
 // v1.7.2 — pedido do Nicola após validar a extensão de saída no bot:
 //   - Novo modal "Resumo da conciliação" (abrirResumoConciliacao /
@@ -435,7 +443,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.7.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -3305,7 +3313,7 @@ export function montarAbaFinanceiro(tabId) {
                     // (rz-bad) quando atrasada, só a forma que ficou fixa.
                     return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
                         <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${escapeHtmlSaidas(localImovel)} · vence dia ${con.vencimentoDia || 15}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${escapeHtmlSaidas(localImovel)} · ${atrasada ? 'venceu em' : 'vence em'} ${men.dataPgto ? formatarDataBR(men.dataPgto) : 'dia ' + (con.vencimentoDia || 15)}</span></div>
                         <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;
