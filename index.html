@@ -6,9 +6,29 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.209.0
-   LINHAS: 15006
-   DATA: 18/09/2026 (rodada 6)
+   VERSÃO: Beta v1.210.0
+   LINHAS: 15031
+   DATA: 18/09/2026 (rodada 7)
+   NOVIDADES (Beta v1.210.0) — MERGE de 2 frentes que divergiram da mesma
+   base sem se ver: a frente "app" (esta sessão, rodada 4) tinha corrigido
+   o padrão "há/em xx d" (linhaAlertaHtml() e o mesmo padrão em
+   cofre-ativos.js/cofre-controles.js/contratos.js/financeiro.js) sobre a
+   v1.207.0; a frente "catálogo/documentos" (outra sessão, rodadas 5-6)
+   tinha, na mesma v1.207.0, corrigido o filtro de "Tipo de documento" e o
+   travamento de Categoria/Subcategoria (cofre-api.js v1.38.0,
+   cofre-documentos.js v2.16.0) e depois adicionado o box "Documentos da
+   empresa" (v1.209.0, ver bloco logo abaixo). Nenhuma das duas sessões viu
+   a outra rodar. Peguei a v1.209.0 (que já continha 100% da v1.208.0 dela)
+   como base e apliquei por cima só o que faltava — a correção
+   "há/em xx d" em linhaAlertaHtml(), que ainda estava com o rótulo cru
+   ("13 dias") pra prazos de 1-14 dias. Nada de nenhuma das duas frentes foi
+   perdido ou sobrescrito. Reflexo no IMPORTMAP: contratos.js e
+   financeiro.js →1.8.0, cofre-ativos.js →1.47.0, cofre-controles.js
+   →1.27.0 (versões que essas 4 sessões-app já tinham deployado nos
+   próprios arquivos, mas que a v1.209.0 dela ainda apontava pra
+   versões antigas por não ter visto o meu lado). APP_VERSAO sincronizada
+   pra "Beta v1.210.0".
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.209.0) — box "Documentos da empresa" na aba Minha
    Empresa (pedido explícito, mesmo relato do Nicola da v1.208.0: "no menu
    empresa do app, deve ter um box pra anexar documentos... com as mesmas
@@ -295,7 +315,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.7.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.46.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.26.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.17.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.41.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.8.0","./js/contratos.js":"./js/contratos.js?v=1.8.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.47.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.27.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.17.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.41.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3681,7 +3701,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.209.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.210.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11447,8 +11467,13 @@
                     // pra "Há Xd", mesma informação, quase metade da largura.
                     if (a.dias < 0) { sem = 'bad'; rotulo = `Há ${Math.abs(a.dias)}d`; classeIc = ' rz-bad'; icone = 'alarm-clock'; }
                     else if (a.dias === 0) { sem = 'warn'; rotulo = 'Vence hoje'; classeIc = ' rz-warn'; icone = 'clock'; }
-                    else if (a.dias <= 14) { sem = 'warn'; rotulo = `${a.dias} dia${a.dias === 1 ? '' : 's'}`; classeIc = ' rz-warn'; icone = 'clock'; }
-                    else { sem = 'run'; rotulo = `${a.dias} dias`; }
+                    // CORRIGIDO v1.208.0/rodada 4 (padrão "há/em xx d", achado a
+                    // partir do print do Nicola noutras telas — mesmo bug aqui: de
+                    // 1 a 14 dias caía em 'warn'/marrom com rótulo cru, e mesmo
+                    // depois de 14 dias ('run'/azul, correto) faltava o prefixo
+                    // "Em"). Ver mesma correção em cofre-ativos.js/
+                    // cofre-controles.js/contratos.js.
+                    else { sem = 'run'; rotulo = `Em ${a.dias}d`; }
                 }
                 const clicavel = !!a.onClick;
                 // v1.194.0 (16/09/2026, pedido explícito — "os alertas ao
