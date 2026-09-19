@@ -6,8 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.211.0
+   VERSÃO: Beta v1.212.0
    LINHAS: 15045
+   DATA: 18/09/2026 (rodada 9)
+   NOVIDADES (Beta v1.212.0) — 7 achados do Nicola em teste real (prints):
+   1) Menu de editar nome do documento nascia atrás da Ficha do Documento
+      ainda aberta — .rz-veil (sheet) subiu de z-index:90 pra 97, acima de
+      .modal-overlay (96). 2) Data de cada linha em Financeiro › Recebimentos/
+      Saídas ficava cortada pelo truncamento de 1 linha (.rz-tx span) quando
+      havia muito texto antes dela — reordenada pra logo depois do dado
+      principal (financeiro.js v1.9.0). 3) Chip Financeiro do contrato:
+      label "venceu/vence/pago em" removido da frente da data (contratos.js
+      v1.10.0). 4) Chip Anexos do contrato: X de exclusão direta trocado
+      pelas ações padrão do documento (abre a Ficha, mesmo fluxo de
+      ativos) — contratos.js v1.10.0. 5) Lista de Ativos: imóvel alugado
+      ganhou o valor de mercado ao lado de locatário+aluguel
+      (cofre-ativos.js v1.49.0). 6) e 7) "Alerta vermelho na Faria Lima sem
+      item aparente" + telas de alerta fora do padrão "há/em xx d" — raiz
+      comum acima do que os prints mostravam: 3 lugares ainda pintavam de
+      âmbar qualquer prazo de 0 a 30 dias (chip "Controles" do ativo,
+      alertaCardHtml da tela de Alertas, badge de validade de documento),
+      destoando da régua já unificada em linhaAlertaHtml/ativoCardHtml
+      desde a rodada 4 — corrigidos os 3 (cofre-controles.js v1.29.0,
+      cofre-documentos.js v2.19.0, cofre-validacoes.js v2.1.0). IMPORTMAP:
+      financeiro.js →1.9.0, contratos.js →1.10.0, cofre-ativos.js →1.49.0,
+      cofre-controles.js →1.29.0, cofre-documentos.js →2.19.0,
+      cofre-validacoes.js →2.1.0.
+   ------------------------------------------------------------------
    DATA: 18/09/2026 (rodada 8)
    NOVIDADES (Beta v1.211.0) (pedido explícito, 18/09/2026: "Nos detalhes do
    arquivo deve ser possivel editar o nome. Tanto nos anexos de contrato,
@@ -329,7 +354,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.8.0","./js/contratos.js":"./js/contratos.js?v=1.9.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.48.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.28.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.18.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.9.0","./js/contratos.js":"./js/contratos.js?v=1.10.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.49.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.29.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.19.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.1.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -872,7 +897,7 @@
         .rz-nav button .rz-b{position:absolute;top:4px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;line-height:16px}
         .rz-nav button .rz-b.rz-warn{background:var(--warning)}
         /* 3. sheet — única superfície modal (formulário, ações, menu, IA) */
-        .rz-veil{position:fixed;inset:0;background:rgba(23,33,30,.5);display:flex;align-items:flex-end;justify-content:center;z-index:90;opacity:0;pointer-events:none;transition:opacity .15s}
+        .rz-veil{position:fixed;inset:0;background:rgba(23,33,30,.5);display:flex;align-items:flex-end;justify-content:center;z-index:97;opacity:0;pointer-events:none;transition:opacity .15s}
         .rz-veil.rz-on{opacity:1;pointer-events:auto}
         .rz-sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;max-height:86vh;display:flex;flex-direction:column;transform:translateY(24px);transition:transform .18s}
         .rz-veil.rz-on .rz-sheet{transform:none}
@@ -3715,7 +3740,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.211.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.212.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8875,8 +8900,8 @@
             'abrirAcoesCobrancasContrato', 'abrirAcoesPartesContrato', 'abrirAcoesLocatarioContrato', 'abrirAcoesFiadorContrato',
             'abrirSeletorRemoverFiador', 'removerFiadorDireto', 'abrirAcoesAnexosContrato', 'fcMontarChipsAnexos',
             'fcFiltrarAnexos', 'fcTrocarChip', 'abrirAcoesFichaContrato', 'abrirAcaoStatusContrato',
-            'alternarMaisAcoesFichaContrato', 'alternarMaisAcoesDocContrato', 'montarDocumentosContrato', 'abrirDocumentoContratoAtual',
-            'removerDocumentoContratoAtual', 'carregarNovoDocumentoContrato', 'voltarDaFichaContrato', 'montarChipsPartesContrato',
+            'alternarMaisAcoesFichaContrato', 'alternarMaisAcoesDocContrato', 'montarDocumentosContrato',
+            'carregarNovoDocumentoContrato', 'voltarDaFichaContrato', 'montarChipsPartesContrato',
             'abrirFormularioContrato', 'alternarFormularioContrato', 'sincronizarBotaoToggleContrato', 'saveContrato',
             'editarContrato', 'cancelarEdicaoContrato', 'renderPreviewDocumentosContrato', 'removerDocumentoContrato',
             'enviarDocumentoContratoStorage', 'validarWhatsappContrato', 'validarEmailContrato', 'alternarPainelReajusteContrato',

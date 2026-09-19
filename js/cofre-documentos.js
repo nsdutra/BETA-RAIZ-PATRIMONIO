@@ -1,6 +1,26 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.18.0 · 18/09/2026 (rodada 7)
+// Versão: 2.19.0 · 18/09/2026 (rodada 9)
+//
+// v2.19.0 — 2 achados do Nicola:
+//   (1) "o menu de editar o nome do arquivo está ficando sob a tela do
+//   anexo" — editarNomeDocumentoAtual() (v2.18.0, abaixo) abre por
+//   abrirSheetForm/#rz-veil (z-index:90, index.html); a Ficha do Documento
+//   (#modal-ficha-doc) é um .modal-overlay (z-index:96) — o sheet nascia
+//   ATRÁS do modal ainda aberto. Corrigido subindo #rz-veil pra z-index:97
+//   (index.html) — acima de qualquer .modal-overlay, sem mexer nos outros
+//   overlays (spinner/toast/confirmação, 200-500, continuam por cima do
+//   sheet, como já eram).
+//   (2) mesma classe de bug do chip "Controles" da Faria Lima (ver
+//   cofre-controles.js v1.29.0) achada aqui: fraseVencimento()/
+//   corFraseVencimento() (usadas por alertaCardHtml(), tela de Alertas —
+//   #alertas-lista) ainda no padrão antigo — "Falta(m) X dia(s)!"/"Venceu
+//   há X dia(s)!" (verboso) e âmbar pra qualquer prazo de 0 a 30 dias,
+//   nunca alinhado com o padrão "há/em xx d" já unificado em
+//   linhaAlertaHtml (index.html)/ativoCardHtml (cofre-ativos.js) desde a
+//   rodada 4. Reescritas: só dias<0 é vermelho (vencido) e dias===0 é
+//   âmbar (vence hoje); qualquer prazo positivo vira "Em Xd" azul, sem
+//   teto de 30 dias.
 //
 // v2.18.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo deve ser
 // possivel editar o nome. Tanto nos anexos de contrato, quanto ativos, itens
@@ -405,7 +425,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.18.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.19.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -539,19 +559,29 @@ export function resumoDocumentosEmTriagem() {
 // TIPO DO ATIVO (mesmo glyph usado na aba Ativos — iconeAtivo()), não
 // mais um selo genérico de vencimento. Badge "Vence em Xd" + data
 // numa linha separada viraram UMA frase só (fraseVencimento()).
+// CORRIGIDO (18/09/2026, achado no print do Nicola — "alerta vermelho no
+// ativo da Faria Lima sem item em alerta aparente"): mesmo bug de padrão já
+// corrigido em index.html/cofre-ativos.js/cofre-controles.js/contratos.js
+// (rodada 4) nunca tinha chegado aqui — "Falta(m) X dia(s)!"/"Venceu há X
+// dia(s)!" (verboso, sem o "d" curto) e, pior, corFraseVencimento() pintava
+// de âmbar QUALQUER coisa até 30 dias de prazo (inclusive 21/28 dias, que a
+// régua "há/em xx d" já trata como 'run'/tranquilo em todo o resto do app) —
+// o alerta piscava "preocupante" numa tela e "em Xd" tranquilo noutra, pro
+// MESMO item. Unificado: só dias<0 é vermelho (vencido) e dias===0 é âmbar
+// (vence hoje); qualquer prazo positivo é 'run' (azul), sem teto de 30 dias.
 function fraseVencimento(dataVencimento, dias) {
     const dataFmt = formatarDataBR(dataVencimento);
     if (dias === null || dias === undefined) return `Vencimento: ${dataFmt}`;
-    if (dias < 0) { const d = Math.abs(dias); return `Vencimento: ${dataFmt} · Venceu há ${d} dia${d === 1 ? '' : 's'}!`; }
-    if (dias === 0) return `Vencimento: ${dataFmt} · Vence hoje!`;
-    return `Vencimento: ${dataFmt} · Falta${dias === 1 ? '' : 'm'} ${dias} dia${dias === 1 ? '' : 's'}!`;
+    if (dias < 0) { const d = Math.abs(dias); return `Vencimento: ${dataFmt} · Vencido há ${d}d`; }
+    if (dias === 0) return `Vencimento: ${dataFmt} · Vence hoje`;
+    return `Vencimento: ${dataFmt} · Em ${dias}d`;
 }
 
 function corFraseVencimento(dias) {
     if (dias === null || dias === undefined) return 'text-slate-500';
     if (dias < 0) return 'text-red-700';
-    if (dias <= 30) return 'text-amber-700';
-    return 'text-slate-500';
+    if (dias === 0) return 'text-amber-700';
+    return 'text-blue-700';
 }
 
 export function alertaCardHtml(e) {

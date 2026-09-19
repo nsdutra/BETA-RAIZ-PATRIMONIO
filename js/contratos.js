@@ -1,7 +1,26 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.9.0 · 18/09/2026 (rodada 8)
+// Versão: 1.10.0 · 18/09/2026 (rodada 9)
+//
+// v1.10.0 — 2 pedidos explícitos do Nicola:
+//   (1) "no chip financeiro do contrato retirar das linhas o label de
+//   venceu, vence e pago da frente da data" — linha de mensalidade do
+//   painel Financeiro (v1.9.0, abaixo) mostrava "Pago em DD/MM"/"Venceu em
+//   DD/MM"/"Vence em DD/MM"; virou só a data nua (mesma info, sem o rótulo
+//   redundante à esquerda) — cai pro texto de status ("Vencido"/"A
+//   vencer") só quando não há data real (dataPgto nulo).
+//   (2) "no chip anexo no contrato, retirar o X e colocar as ações
+//   padrões do documento, abrindo o form de arquivo" — montarDocumentos
+//   Contrato(): linha ganhava um botão "X" (exclusão direta e definitiva,
+//   sem passar pela Ficha do Documento) e o toque no texto abria o
+//   arquivo cru numa aba nova (abrirDocumentoContratoAtual, bypass total
+//   da Ficha). Os 2 caminhos bespoke saíram — a linha inteira agora é
+//   data-action="abrir-documento" (mesmo padrão de cofre-ativos.js
+//   montarDocumentosAtivo()), abrindo abrirFichaDocumento() — Baixar/
+//   Excluir já existem lá dentro, único fluxo pros 3 contextos (contrato/
+//   ativo/item de controle), nada reinventado. abrirDocumentoContratoAtual/
+//   removerDocumentoContratoAtual removidas (órfãs, sem outro chamador).
 //
 // v1.9.0 — CORRIGIDO (pedido explícito: "no chip financeiro do contrato,
 // permitir dar baixa ou excluir, e se clicar nela, vai pra aba
@@ -182,7 +201,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1727,7 +1746,7 @@ export function reabrirFichaSeFor(contratoId) {
                         ${ultimasSeis.length ? ultimasSeis.map(m => `
                         <div class="rz-row" onclick="switchTab('tab-mensal'); rzAcoesMensalidade('${m.id}')" style="cursor:pointer">
                             <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.status === 'Pago' && m.dataPgto ? 'Pago em ' + formatarDataBR(m.dataPgto) : (m.dataPgto ? (mensalidadeEmAtraso(m) ? 'Venceu em ' + formatarDataBR(m.dataPgto) : 'Vence em ' + formatarDataBR(m.dataPgto)) : (mensalidadeEmAtraso(m) ? 'Vencido' : 'A vencer'))}</span></div>
+                            <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${m.dataPgto ? formatarDataBR(m.dataPgto) : (mensalidadeEmAtraso(m) ? 'Vencido' : 'A vencer')}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
                             <button type="button" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
@@ -2252,11 +2271,11 @@ export function reabrirFichaSeFor(contratoId) {
                 const nArq = document.getElementById('fc-chip-n-arquivos');
                 if (nArq) nArq.textContent = String(__docsContratoAtual.length);
                 fcMontarChipsAnexos();
-                el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v, i) => `
-                    <div class="rz-row">
+                el.innerHTML = __docsContratoAtual.length ? __docsContratoAtual.map((v) => `
+                    <div class="rz-row rz-link" data-action="abrir-documento" data-id="${v.cofre_documentos.id}">
                         <div class="rz-ic"><svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}"></svg></div>
-                        <div class="rz-tx rz-link" onclick="abrirDocumentoContratoAtual(${i})"><b>${v.cofre_documentos.nome_exibicao || 'Documento'}</b><span>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : ''} · toque pra abrir</span></div>
-                        <button type="button" onclick="removerDocumentoContratoAtual(${i})" title="Remover deste contrato" class="rz-ico-btn" style="width:36px;height:36px"><svg data-lucide="x" style="width:16px;height:16px;color:var(--muted)"></svg></button>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(v.cofre_documentos.nome_exibicao || 'Documento')}</b><span>${v.criado_em ? new Date(v.criado_em).toLocaleDateString('pt-BR') : ''}</span></div>
+                        <svg data-lucide="chevron-right" class="rz-chev"></svg>
                     </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-plus-2"></svg></div><p>Nenhum documento neste contrato. A minuta assinada guardada aqui fica a um toque.</p></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } catch (err) {
@@ -2265,54 +2284,15 @@ export function reabrirFichaSeFor(contratoId) {
             }
         }
 
-        export async function abrirDocumentoContratoAtual(indice) {
-            const v = __docsContratoAtual[indice];
-            if (!v) return;
-            try {
-                const { data: doc, error } = await dbAuth.from('cofre_documentos').select('bucket, storage_path').eq('id', v.cofre_documentos.id).single();
-                if (error) throw error;
-                const { data: signed, error: errSigned } = await dbAuth.storage.from(doc.bucket).createSignedUrl(doc.storage_path, 120);
-                if (errSigned) throw errSigned;
-                window.open(signed.signedUrl, '_blank', 'noopener');
-            } catch (err) {
-                alert('❌ Não consegui abrir o documento: ' + (err.message || String(err)));
-            }
-        }
-
-        // CORRIGIDO (30/08/2026, pedido explícito do Nicola: "não está
-        // sendo possível excluir"): antes só desvinculava (o documento
-        // continuava existindo no Cofre, "Em triagem") — nome do botão e
-        // da confirmação diziam "Remover"/desvincular, mas o pedido era
-        // "excluir" de verdade. Agora apaga o arquivo do Storage + a linha
-        // de cofre_documentos + o vínculo — os 3, não só o vínculo. Não
-        // reaproveitável depois (diferente do "Em triagem" de antes) —
-        // por isso a confirmação agora avisa que é definitivo.
-        export async function removerDocumentoContratoAtual(indice) {
-            const v = __docsContratoAtual[indice];
-            if (!v) return;
-            if (!confirm('Excluir este documento definitivamente?\n\nNão fica guardado no Cofre depois — essa ação não pode ser desfeita.')) return;
-            try {
-                const { data: doc, error: errBusca } = await dbAuth.from('cofre_documentos').select('bucket, storage_path').eq('id', v.cofre_documentos.id).single();
-                if (errBusca) throw errBusca;
-
-                const { error: errVinculo } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', v.id);
-                if (errVinculo) throw errVinculo;
-
-                const { error: errDoc } = await dbAuth.from('cofre_documentos').delete().eq('id', v.cofre_documentos.id);
-                if (errDoc) throw errDoc;
-
-                if (doc?.bucket && doc?.storage_path) {
-                    const { error: errStorage } = await dbAuth.storage.from(doc.bucket).remove([doc.storage_path]);
-                    if (errStorage) console.warn('Linha excluída, mas o arquivo no Storage não pôde ser removido (órfão, não crítico):', errStorage.message);
-                }
-
-                mostrarToast('Documento excluído.', 'success');
-                montarDocumentosContrato(fichaContratoAtualId);
-            } catch (err) {
-                alert('❌ Erro ao excluir: ' + (err.message || String(err)));
-            }
-        }
-
+        // REMOVIDAS (18/09/2026, pedido explícito: "retirar o X e colocar as
+        // ações padrões do documento, abrindo o form de arquivo") —
+        // abrirDocumentoContratoAtual() (abria o arquivo cru numa aba nova) e
+        // removerDocumentoContratoAtual() (X de exclusão direta, sem
+        // confirmação padronizada) saíram de vez. A linha agora usa
+        // data-action="abrir-documento" (mesmo padrão de cofre-ativos.js
+        // montarDocumentosAtivo()), que abre a Ficha do Documento
+        // (abrirFichaDocumento(), fluxo único pros 3 contextos) — Baixar e
+        // Excluir já existem lá dentro, sem reinventar nada aqui.
         // ÓRFÃ (27/08/2026, pedido explícito) — nenhum botão do HTML aponta
         // mais pra cá. Substituída por abrirCofreDocumentos('contrato', id),
         // que leva pro MESMO fluxo rico (Com IA/Upload simples) já usado

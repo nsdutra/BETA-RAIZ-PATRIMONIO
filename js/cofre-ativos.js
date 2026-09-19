@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.48.0 · 18/09/2026 (rodada 8)
+// Versão: 1.49.0 · 18/09/2026 (rodada 9)
+//
+// v1.49.0 — CORRIGIDO (pedido explícito: "em todos os ativos, colocar o
+// valor de mercado do ativo") — ativoCardHtml(), ramo de imóvel com resumo
+// carregado (Alugado): linhaDetalhe só mostrava locatário + aluguel;
+// valorFmt (a.valor_referencia, mesmo campo que o card genérico e o ramo
+// Vago/Em uso já usavam) nunca entrava aí — o card do imóvel alugado nunca
+// dizia quanto ele vale. Agora entra sempre que existir (65/109 imóveis
+// têm o campo preenchido no banco, conferido antes de mudar), junto com
+// locatário e aluguel na mesma linha (aluguel já sem casa decimal desde
+// v1.47.0 — fmtMoeda local intocado).
 //
 // v1.48.0 — CORRIGIDO (pedido explícito: "no chip financeiro do ativo,
 // permitir dar baixa ou excluir uma despesa, e se clicar nela, vai pra aba
@@ -630,7 +640,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.48.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.49.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1193,9 +1203,11 @@ function ativoCardHtml(a) {
         // local já ajustado acima).
         const aluguelFmt = alugado && principal.valor != null ? `${fmtMoeda(principal.valor)}/mês` : null;
         const valorFmt = a.valor_referencia != null ? fmtMoeda(a.valor_referencia) : null;
-        const linhaDetalhe = alugado
-            ? [linhaLocatario, aluguelFmt].filter(Boolean).join(' · ')
-            : [linhaLocatario, (situacao === 'Vago' || situacao === 'Em uso') ? valorFmt : null].filter(Boolean).join(' · ');
+        // CORRIGIDO v1.48.0 (pedido explícito: "em todos os ativos, colocar
+        // o valor de mercado") — valorFmt (a.valor_referencia) SEMPRE entra
+        // agora, inclusive Alugado (antes só aparecia em Vago/Em uso — o
+        // card do locatário+aluguel nunca mostrava quanto o imóvel vale).
+        const linhaDetalhe = [linhaLocatario, aluguelFmt, valorFmt].filter(Boolean).join(' · ');
 
         // v1.45.0 — ícone/avatar centralizado na ALTURA da caixa. .card-ativo
         // ganhou min-height padrão em ativos-markup.js pra toda caixa (rica

@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.0.0 · 15/09/2026
+// Versão: 2.1.0 · 18/09/2026 (rodada 9)
+//
+// v2.1.0 — CORRIGIDO (mesma classe de bug do chip "Controles" da Faria
+// Lima, ver cofre-controles.js v1.29.0) — chipVencimento() (badge de
+// validade de documento, usado por abrirFichaDocumento()) pintava PENDENTE
+// (âmbar) pra qualquer prazo de 0 a 30 dias, destoando do padrão "há/em xx
+// d" já unificado no resto do app. Só diffDias===0 é PENDENTE/"Vence
+// hoje" agora; qualquer prazo positivo vira OK (verde)/"Vence em Xd" — sem
+// teto de 30 dias.
 //
 // v2.0.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão do Nicola,
 // "pode evoluir"). QUEBRA DE CONTRATO: `CAMPOS_POR_TIPO_ATIVO` deixou de
@@ -96,7 +104,7 @@
 // daqui, nunca o contrário.
 // ============================================================================
 
-export const VERSAO = '2.0.0'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.1.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -500,11 +508,17 @@ export const BADGE_NEUTRO = `${RAIZ_BADGE} bg-slate-100 text-slate-700`;   // "D
 export const BADGE_ALERTA = `${RAIZ_BADGE} bg-red-100 text-red-800`;      // vencido/restrito — mesmo par usado no badge de status "Cancelado" do Contrato (index.html)
 export const BADGE_PENDENTE = `${RAIZ_BADGE} bg-amber-100 text-amber-800`;
 export const BADGE_OK = `${RAIZ_BADGE} bg-green-100 text-green-800`;
+// CORRIGIDO (18/09/2026, mesma classe de bug achada no chip "Controles" do
+// ativo da Faria Lima — Nicola: "alerta vermelho sem item em alerta
+// aparente") — qualquer prazo de 0 a 30 dias pintava PENDENTE (âmbar),
+// destoando da régua "há/em xx d" já unificada em todo o resto do app (só
+// diffDias===0 é alerta de verdade; positivo, qualquer magnitude, é calmo).
+// Documento vencendo em 21/28 dias não é "pendente" — ainda tem prazo.
 export function chipVencimento(diffDias) {
     if (diffDias === null || diffDias === undefined) return null;
     if (diffDias < 0) return { classe: BADGE_ALERTA, texto: `Vencido há ${Math.abs(diffDias)}d` };
-    if (diffDias <= 30) return { classe: BADGE_PENDENTE, texto: `Vence em ${diffDias}d` };
-    return { classe: BADGE_OK, texto: 'Em dia' };
+    if (diffDias === 0) return { classe: BADGE_PENDENTE, texto: 'Vence hoje' };
+    return { classe: BADGE_OK, texto: `Vence em ${diffDias}d` };
 }
 
 // Alertas DERIVADOS (v6, pedido explícito) — não existe mais cadastro de

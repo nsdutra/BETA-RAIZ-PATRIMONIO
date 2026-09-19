@@ -1,6 +1,20 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.28.0 · 18/09/2026 (rodada 8)
+// Versão: 1.29.0 · 18/09/2026 (rodada 9)
+//
+// v1.29.0 — CORRIGIDO (achado do Nicola: "no ativo da Faria Lima tem um
+// alerta vermelho mas sem item em alerta aparente") — ver changelog
+// completo dentro de aplicarMotorNoChipControles(), logo abaixo. Resumo:
+// fn_diario_cofre_item_vencendo (banco) devolve item dentro da janela de
+// ANTECEDÊNCIA (30/60/90 dias antes, por subtipo) — não "vencendo" no
+// sentido visual do resto do app. O chip "Controles" pintava .rz-warn
+// (marrom) pra qualquer alerta de 0 a 30 dias, mesmo prazo que a lista de
+// ocorrências (já corrigida, rodada 4) mostra calmo em azul "Em Xd" — daí
+// o chip "aceso" sem nenhum item vencido/vence-hoje visível na lista.
+// Confirmado ao vivo: item "Dedetização periódica" do ativo Av. Faria
+// Lima, 3000 (dias=21, dentro da janela) disparava "1 vencendo" no chip.
+// Só vencido/vence-hoje/pendência-sem-data acendem agora; dias>0 vira "N a
+// vencer" (run/azul), sem grifo.
 //
 // v1.28.0 — CORRIGIDO (pedido explícito, relato do Nicola): item de
 // controle recorrente com data início no passado gerava, por padrão, uma
@@ -382,7 +396,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.28.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.29.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -483,6 +497,23 @@ export function reiniciarChipControlesDoMotor() {
 // Recebe o que fn_alertas_do_ativo devolveu (cofre-ativos.js busca) e pinta.
 // Pode ACENDER e também APAGAR — era justamente a regra "só acende, nunca
 // apaga" da v1.31.0 que deixava vermelho preso depois de resolver a causa.
+//
+// CORRIGIDO v1.29.0 (18/09/2026, achado do Nicola: "no ativo da Faria Lima
+// tem um alerta vermelho mas sem item em alerta aparente") — mesma classe de
+// bug do comentário logo acima (chip acende sem alerta visível), causa
+// diferente: fn_diario_cofre_item_vencendo devolve todo item dentro da
+// JANELA DE ANTECEDÊNCIA do subtipo (30/60/90 dias antes, calculado no
+// banco) — não "vencendo" no sentido visual do resto do app, que só trata
+// dias===0 como alerta de verdade (dias>0, qualquer magnitude, é 'run'/azul,
+// "em andamento", sem grifo — mesma régua "há/em xx d" de linhaAlertaHtml/
+// ativoCardHtml/fraseVencimento). Este chip pintava .rz-warn (marrom, lido
+// como "vermelho" pelo usuário) pra QUALQUER dias de 0 a 30 — um item a 21
+// ou 28 dias (calmo em toda outra tela) acendia "Controles" como urgente,
+// sem nenhum vencido/vence-hoje pra mostrar quando a lista abria. Só vencido
+// (dias<0) e vence-hoje (dias===0) acendem o chip agora; dias>0 vira "N a
+// vencer" informativo (run/azul, sem grifo). Pendência sem data (ex.:
+// anexo_apolice_pendente) continua acendendo — é ação real sem prazo pra
+// comparar, não um falso alarme.
 export function aplicarMotorNoChipControles(alertas) {
     motorDecidiuChipControles = true;
     const lista = Array.isArray(alertas) ? alertas : [];
@@ -496,18 +527,28 @@ export function aplicarMotorNoChipControles(alertas) {
         return;
     }
 
+    // Urgente de verdade: vencido, vence hoje, ou sem data pra comparar
+    // (pendência de documento). dias>0 sozinho NUNCA acende o chip.
+    const urgentes = lista.filter(x => x.dias === null || x.dias <= 0);
+
+    if (!urgentes.length) {
+        chip?.classList.remove('rz-warn');
+        if (cab) cab.innerHTML = statusHtml('run', `${lista.length} a vencer`);
+        return;
+    }
+
     chip?.classList.add('rz-warn');
     if (!cab) return;
 
-    const vencidos = lista.filter(x => x.dias !== null && x.dias < 0).length;
+    const vencidos = urgentes.filter(x => x.dias !== null && x.dias < 0).length;
     if (vencidos) { cab.innerHTML = statusHtml('bad', `${vencidos} vencido${vencidos === 1 ? '' : 's'}`); return; }
 
-    const vencendo = lista.filter(x => x.dias !== null && x.dias >= 0 && x.dias <= 30).length;
-    if (vencendo) { cab.innerHTML = statusHtml('warn', `${vencendo} vencendo`); return; }
+    const venceHoje = urgentes.filter(x => x.dias === 0).length;
+    if (venceHoje) { cab.innerHTML = statusHtml('warn', venceHoje === 1 ? 'Vence hoje' : `${venceHoje} vencem hoje`); return; }
 
     // Sem data: o motivo é o tipo mais frequente entre os alertas do ativo.
     const contagem = {};
-    lista.forEach(x => { contagem[x.tipo_alerta] = (contagem[x.tipo_alerta] || 0) + 1; });
+    urgentes.forEach(x => { contagem[x.tipo_alerta] = (contagem[x.tipo_alerta] || 0) + 1; });
     const tipo = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a])[0];
     const n = contagem[tipo];
     const rot = ROTULO_ALERTA_CHIP[tipo] || ['pendência', 'pendências'];
