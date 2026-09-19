@@ -1,6 +1,41 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.16.0 · 18/09/2026 (rodada 5)
+// Versão: 2.17.0 · 18/09/2026 (rodada 6)
+//
+// v2.17.0 — box "Documentos da empresa" na aba Minha Empresa do App (pedido
+// explícito, mesmo relato do Nicola da v2.16.0: "no menu empresa do app,
+// deve ter um box pra anexar documentos... com as mesmas funções de um
+// documento de contrato ou de ativo" — escolheu o padrão "Box simples",
+// igual ao do Item de Controle, via AskUserQuestion). Novo:
+// documentosDaEmpresa()/renderizarDocumentosEmpresa()/
+// carregarNovoDocumentoEmpresa()/excluirDocumentoDaEmpresa()/
+// montarBoxDocumentosEmpresa() (export, chamado por
+// dev_carregarDadosEmpresa() em index.html). Vínculo
+// entidade_tipo='empresa'/entidade_id=null — o mesmo padrão já usado pelo
+// "Vincular a › Empresa" do upload livre, nenhuma migration nova. Excluir
+// só desvincula (api.removerVinculo), documento nunca é apagado de vez.
+//
+// ACHADO DE ARQUITETURA (investigado antes de codar, pra não montar em
+// cima de DOM que não existe): tab-minha-empresa é montada por
+// dev_carregarDadosEmpresa() em index.html, no MESMO nível de tab-ativos —
+// cada aba carrega seu próprio módulo sob demanda, independente uma da
+// outra (index.html/switchTab()). Isso quer dizer que a pessoa pode abrir
+// "Minha empresa" sem nunca ter tocado em Ativos, e nesse caso o Cofre
+// (nav.bootstrap(), cofre-app.js) nunca rodou: `estado.clienteId`/
+// `estado.pessoa` continuam null, e a Ficha do Documento (fd-*, DOM só
+// injetado pelo módulo Ativos) nem existe ainda. O box do Item de
+// Controle (cofre-controles.js) nunca precisou lidar com isso porque só
+// existe DENTRO da ficha do Cofre, depois do Cofre já ter dado boot.
+// Por isso este box: (1) usa CLIENTE_ID_SUPABASE/pessoaIdLogada — globais
+// do script clássico de index.html, não `estado` — mesmo padrão que
+// contratos.js já usa (única outra aba de nível de App com box de
+// documento); (2) abre o arquivo com URL assinada direto
+// (api.gerarSignedUrl) em vez da Ficha do Documento; (3) escuta
+// 'cofre:recarregar-documentos' com listener PRÓPRIO (checando se
+// #me-documentos existe no DOM), em vez de depender do listener central
+// de cofre-app.js (cujo dispatcher `[data-action]`/`telaAtual` também só
+// existe depois do Cofre ter dado boot) — mesma solução, mesmo motivo, que
+// contratos.js já usa pro card Anexos do Contrato.
 //
 // v2.16.0 — 2 achados reais do Nicola (relato + 3 prints do sheet de upload,
 // 18/09/2026):
@@ -354,7 +389,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.16.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.17.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1919,3 +1954,132 @@ function renderizarCategorias() {
         `<div class="raiz-bloco-interno flex items-center justify-between"><span class="text-sm">${escapeHtml(c.nome)}</span><span class="text-xs" style="color:var(--sage)">${escapeHtml(c.grupo || '')}</span></div>`
     ).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhuma categoria.</p>`;
 }
+
+// ============================================================================
+// BOX "DOCUMENTOS DA EMPRESA" (aba Minha Empresa do App) — v2.17.0
+// (pedido explícito, 18/09/2026: "no menu empresa do app, deve ter um box
+// pra anexar documentos... com as mesmas funções de um documento de
+// contrato ou de ativo" — escolheu o padrão "Box simples", igual ao do
+// Item de Controle). ATENÇÃO ARQUITETURA: tab-minha-empresa é uma aba de
+// NÍVEL DE APP (switchTab), montada por dev_carregarDadosEmpresa() em
+// index.html — igual tab-contratos, NÃO é uma tela dentro de tab-ativos
+// (Cofre). Ao contrário do box do Item de Controle (cofre-controles.js,
+// só existe dentro da ficha do Cofre, depois do Cofre já ter dado boot),
+// aqui não dá pra supor `estado.clienteId`/`estado.pessoa`/o modal "Ficha
+// do documento" (fd-*) — todos só existem depois de montarAtivosTab()
+// rodar de verdade (a pessoa pode abrir "Minha empresa" direto, sem nunca
+// ter tocado em Ativos — confirmado lendo index.html/ativos-boot.js: cada
+// aba carrega o próprio módulo sob demanda, uma independente da outra).
+// Por isso este box usa CLIENTE_ID_SUPABASE/pessoaIdLogada (globais do
+// script clássico de index.html, mesmo padrão já usado por contratos.js —
+// ver comentário no topo desse arquivo) em vez de `estado`, e abre o
+// arquivo com URL assinada direto (api.gerarSignedUrl) em vez da Ficha do
+// Documento (fd-*, DOM injetado só pelo Cofre) — mesma solução que
+// contratos.js já usa pro card "Anexos" do Contrato, pelo mesmo motivo.
+// Vínculo: entidade_tipo='empresa', entidade_id=null — o MESMO padrão já
+// usado pelo "Vincular a › Empresa" do upload livre (nenhuma migration
+// nova). Excluir aqui só remove o VÍNCULO (api.removerVinculo, igual ao
+// Item de Controle) — o documento nunca é apagado de vez, continua no
+// Cofre ("Em triagem" se não sobrar nenhum outro vínculo).
+// ============================================================================
+let __docsEmpresaCache = [];
+let __meBoxWired = false;
+
+async function documentosDaEmpresa() {
+    const todos = await api.listarDocumentos(CLIENTE_ID_SUPABASE);
+    return todos.filter(d => (d.cofre_documento_vinculos || []).some(v => v.entidade_tipo === 'empresa'));
+}
+
+export async function renderizarDocumentosEmpresa() {
+    const el = document.getElementById('me-documentos');
+    if (!el || !CLIENTE_ID_SUPABASE) return;
+    try {
+        __docsEmpresaCache = await documentosDaEmpresa();
+    } catch (err) {
+        el.innerHTML = `<p class="text-xs text-red-500">Não consegui carregar os documentos.</p>`;
+        console.warn('Falha ao carregar documentos da empresa (não bloqueando):', err.message);
+        return;
+    }
+    el.innerHTML = __docsEmpresaCache.length ? __docsEmpresaCache.map(d => {
+        const vinculo = (d.cofre_documento_vinculos || []).find(v => v.entidade_tipo === 'empresa');
+        return `<div class="rz-row">
+            <div class="rz-ic"><i data-lucide="${(d.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}"></i></div>
+            <div class="rz-tx rz-link" data-me-abrir="${d.id}"><b>${escapeHtml(d.nome_exibicao || 'Documento')}</b><span>${d.criado_em ? formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
+            <button type="button" data-me-excluir="${vinculo?.id || ''}" title="Remover da empresa" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="x" style="width:16px;height:16px;color:var(--muted)"></i></button>
+        </div>`;
+    }).join('') : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-plus-2"></i></div><p>Nenhum documento anexado. CNPJ, contrato social ou outro documento da empresa fica guardado aqui.</p></div>`;
+    el.querySelectorAll('[data-me-abrir]').forEach(row => row.addEventListener('click', () => abrirDocumentoEmpresa(row.dataset.meAbrir)));
+    el.querySelectorAll('[data-me-excluir]').forEach(btn => btn.addEventListener('click', () => excluirDocumentoDaEmpresa(btn.dataset.meExcluir)));
+    refrescarIcones();
+}
+
+async function abrirDocumentoEmpresa(documentoId) {
+    const d = __docsEmpresaCache.find(x => x.id === documentoId);
+    if (!d) return;
+    try {
+        const url = await api.gerarSignedUrl(d.bucket || 'cofre-documentos', d.storage_path);
+        window.open(url, '_blank', 'noopener');
+    } catch (err) { mostrarToast('Não consegui abrir o documento: ' + (err.message || String(err)), 'erro'); }
+}
+
+async function excluirDocumentoDaEmpresa(vinculoId) {
+    if (!vinculoId) { mostrarToast('Vínculo não encontrado.', 'erro'); return; }
+    if (!confirm('Remover este documento da empresa?\n\nO documento continua guardado no Cofre — só desvincula dele.')) return;
+    try {
+        await api.removerVinculo(vinculoId);
+        mostrarToast('Documento removido.');
+        await renderizarDocumentosEmpresa();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
+}
+
+async function carregarNovoDocumentoEmpresa(file) {
+    if (!file || !CLIENTE_ID_SUPABASE) return;
+    const documentoId = crypto.randomUUID();
+    const storagePath = api.montarStoragePath(CLIENTE_ID_SUPABASE, documentoId, file.name);
+    try {
+        await api.uploadArquivoDocumento(storagePath, file);
+        try {
+            await api.inserirDocumento({
+                id: documentoId, cliente_id: CLIENTE_ID_SUPABASE, nome_original: file.name, nome_exibicao: file.name,
+                bucket: 'cofre-documentos', storage_path: storagePath, mime_type: api.mimeDoArquivo(file),
+                extensao: (file.name.split('.').pop() || '').toLowerCase(), origem: 'app', status: 'ativo',
+                criado_por: pessoaIdLogada || null,
+            });
+        } catch (err) { await api.removerArquivoDocumento(storagePath); throw err; }
+        await api.inserirVinculo(CLIENTE_ID_SUPABASE, documentoId, 'empresa', null, true, pessoaIdLogada || null);
+        mostrarToast('Documento carregado ✅');
+        await renderizarDocumentosEmpresa();
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    } catch (err) {
+        mostrarToast('Não consegui carregar o documento: ' + (err.message || String(err)), 'erro');
+    }
+}
+
+// Chamado por dev_carregarDadosEmpresa() (index.html) toda vez que a aba
+// "Minha empresa" é aberta — mesmo padrão de "chamar de novo é barato, a
+// função se protege sozinha" já usado por montarAtivosTab(). Os listeners
+// do botão "+"/input de arquivo só são presos 1 vez (__meBoxWired).
+export async function montarBoxDocumentosEmpresa() {
+    const btnAdd = document.getElementById('me-doc-add');
+    const input = document.getElementById('me-doc-input');
+    if (!__meBoxWired && btnAdd && input) {
+        btnAdd.addEventListener('click', () => input.click());
+        input.addEventListener('change', async () => {
+            const file = input.files[0];
+            input.value = '';
+            if (file) await carregarNovoDocumentoEmpresa(file);
+        });
+        __meBoxWired = true;
+    }
+    await renderizarDocumentosEmpresa();
+}
+
+// Independente do "telaAtual" do Cofre (cofre-app.js) — este box vive fora
+// da árvore de telas do Cofre, então escuta o evento direto, do mesmo jeito
+// que contratos.js já faz pro card Anexos do Contrato. Checagem por DOM
+// (em vez de guardar um "aba ativa" à parte) — sem custo quando a aba
+// Minha Empresa não está montada.
+window.addEventListener('cofre:recarregar-documentos', () => {
+    if (document.getElementById('me-documentos')) renderizarDocumentosEmpresa();
+});

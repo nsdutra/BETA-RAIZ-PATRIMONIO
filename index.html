@@ -6,9 +6,27 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.208.0
-   LINHAS: 14879
-   DATA: 18/09/2026 (rodada 5)
+   VERSÃO: Beta v1.209.0
+   LINHAS: 15006
+   DATA: 18/09/2026 (rodada 6)
+   NOVIDADES (Beta v1.209.0) — box "Documentos da empresa" na aba Minha
+   Empresa (pedido explícito, mesmo relato do Nicola da v1.208.0: "no menu
+   empresa do app, deve ter um box pra anexar documentos... com as mesmas
+   funções de um documento de contrato ou de ativo" — escolheu o padrão
+   "Box simples", igual ao do Item de Controle, via pergunta direta antes
+   de construir). Lógica nova em cofre-documentos.js v2.17.0
+   (montarBoxDocumentosEmpresa/renderizarDocumentosEmpresa/
+   carregarNovoDocumentoEmpresa/excluirDocumentoDaEmpresa — ver changelog
+   do arquivo pro porquê de NÃO reaproveitar a Ficha do Documento nem o
+   dispatcher central do Cofre aqui, achado investigando a arquitetura
+   antes de codar: a aba Minha Empresa é de nível de App, pode ser aberta
+   sem o módulo Ativos/Cofre nunca ter dado boot). Markup novo dentro de
+   #tab-minha-empresa (index.html), import próprio em
+   dev_carregarDadosEmpresa() (catch separado do de
+   comum-minha-empresa.js — uma falha não derruba a outra). Vínculo
+   entidade_tipo='empresa'/entidade_id=null, mesmo padrão já usado pelo
+   "Vincular a › Empresa" do upload livre — nenhuma migration nova.
+   ------------------------------------------------------------------
    NOVIDADES (Beta v1.208.0) — MERGE: você fez deploy direto da v1.207.0
    (rodada 4, item 12/paridade — reajuste/contratos, ver bloco logo abaixo)
    antes de eu terminar esta rodada; as 2 sessões incrementaram
@@ -277,7 +295,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.7.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.46.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.26.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.16.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.41.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.7.2","./js/contratos.js":"./js/contratos.js?v=1.7.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.38.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.4","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.46.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.26.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.17.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.0.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.5.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.41.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3482,6 +3500,18 @@
              (ver dev_carregarDadosEmpresa()). -->
         <section id="tab-minha-empresa" class="tab-content hidden">
             <div id="mount-minha-empresa"></div>
+            <!-- v1.209.0 (pedido explícito, 18/09/2026) — box "Documentos da
+                 empresa", padrão "Box simples" (mesmo do Item de Controle),
+                 fora de comum-minha-empresa.js (módulo compartilhado
+                 host-agnóstico — ver nota lá). Lógica em
+                 js/cofre-documentos.js (montarBoxDocumentosEmpresa/
+                 renderizarDocumentosEmpresa/...), chamada por
+                 dev_carregarDadosEmpresa() abaixo. -->
+            <div class="rz-card" style="margin-top:16px">
+                <div class="rz-card-h"><h3>Documentos da empresa</h3><button type="button" id="me-doc-add" class="rz-more" aria-label="Carregar novo documento"><svg data-lucide="upload"></svg></button></div>
+                <div id="me-documentos"></div>
+            </div>
+            <input type="file" id="me-doc-input" class="hidden" accept="application/pdf,image/*,.doc,.docx,.xls,.xlsx">
         </section>
 
         <!-- v1.178.5 — Etapa 10 do plano de conciliação, adiantada a pedido
@@ -3651,7 +3681,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.208.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.209.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6189,6 +6219,16 @@
             }).catch(function(err) {
                 console.warn('Falha ao carregar js/comum-minha-empresa.js:', err.message);
                 mount.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar a tela agora.</p>';
+            });
+            // v1.209.0 (pedido explícito) — box "Documentos da empresa",
+            // independente de comum-minha-empresa.js (módulo compartilhado,
+            // não é o lugar certo pra essa lógica — ver nota no topo de
+            // js/cofre-documentos.js). Import separado, próprio
+            // catch — uma falha aqui não pode derrubar o formulário acima.
+            import('./js/cofre-documentos.js').then(function(docs) {
+                docs.montarBoxDocumentosEmpresa();
+            }).catch(function(err) {
+                console.warn('Falha ao carregar js/cofre-documentos.js (box de documentos da empresa):', err.message);
             });
         }
 
