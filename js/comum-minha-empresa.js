@@ -1,6 +1,22 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.5.0 · 09/09/2026
+// Versão: 1.6.0 · 20/09/2026
+//
+// v1.6.0 (Fase R / Entrega R.2, 20/09/2026) — Card "Rotinas": lista as 5
+// rotinas de empresa do catálogo (cofre_controle_subtipos, tipo='rotina',
+// titular_escopo 'empresa' — fechamento mensal, envio ao contador, NFS-e
+// da competência, relatório da carteira, indicadores de mercado) via
+// fn_rotinas_empresa_listar. Toque na linha abre Sheet de ações (⋮,
+// abrirSheetAcoes já global no host) com "Ligar rotina" (codigo
+// cofre.controles.criar — ACE-01: aparece travada com cadeado/motivo se o
+// plano não incluir, igual a qualquer outro item do catálogo) ou "Desligar
+// rotina". Camada de dados nova (buscarRotinasEmpresa/ligarRotinaEmpresa/
+// desligarRotinaEmpresa) chama fn_rotina_empresa_ligar/fn_rotina_empresa_
+// desligar/fn_rotinas_empresa_listar (migration rotinas_funcoes_ligar_
+// desligar_listar_v1). Segue o mesmo princípio do resto do arquivo: módulo
+// não pressupõe host, mas usa window.abrirSheetAcoes/window.renderStatus/
+// window.podeUsar (via codigo na ação) quando disponíveis, com fallback
+// degradado (toast "só disponível dentro do app principal") quando não.
 //
 // v1.5.0 (A.5.1, 09/09/2026) — CEP, telefone, e-mail e site da empresa:
 // colunas criadas em `clientes` (migration a5_1_clientes_cep_telefone_email_
@@ -66,7 +82,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.5.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -350,6 +366,8 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
                 <button id="cme-btn-apagar-assinatura" type="button" title="Apagar assinatura" aria-label="Apagar assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-ico-btn" ${gate ? 'disabled' : ''}><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
             </div>
         </div>
+
+        <div id="cme-rotinas-card"></div>
     `;
     if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     if (gate) mountEl.querySelectorAll('input,select').forEach(el => { if (el.id !== 'cme-nome') el.disabled = true; });
@@ -474,6 +492,114 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             onToast?.('Falha ao remover: ' + err.message, 'danger');
         }
     });
+
+    // -------- rotinas da empresa (R.2, Fase R) --------
+    await renderRotinasCard();
+
+    async function renderRotinasCard() {
+        const alvo = document.getElementById('cme-rotinas-card');
+        if (!alvo) return;
+        let rotinas;
+        try {
+            rotinas = await buscarRotinasEmpresa(dbAuth, clienteId);
+        } catch (err) {
+            console.warn('[comum-minha-empresa] Falha ao carregar rotinas:', err.message);
+            alvo.innerHTML = '';
+            return;
+        }
+        if (!rotinas || !rotinas.length) { alvo.innerHTML = ''; return; }
+
+        const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${esc(c)}">${esc(t || c)}</span>`;
+        alvo.innerHTML = `
+            <div class="rz-card"><div class="rz-card-h"><h3>Rotinas</h3></div>
+                <div class="rz-list">
+                    ${rotinas.map(rt => `
+                        <div class="rz-row" data-rotina-codigo="${esc(rt.codigo)}" data-rotina-item="${rt.item_id || ''}" style="cursor:pointer">
+                            <div class="rz-ic${rt.ligada ? '' : ' rz-neu'}"><i data-lucide="${ICONES_ROTINA_EMPRESA[rt.codigo] || 'repeat'}"></i></div>
+                            <div class="rz-tx">
+                                <b>${esc(rt.nome)}</b>
+                                <span>${rt.ligada ? 'Mensal · aviso ' + (rt.antecedencia_alerta_dias ?? 5) + ' dias antes' : 'Desligada'}</span>
+                            </div>
+                            <div class="rz-rt">${rt.ligada ? r('ok', 'Ligada') : r('neu', 'Desligada')}</div>
+                            <button type="button" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
+                        </div>`).join('')}
+                </div>
+                <span class="rz-hint" style="display:block;margin-top:8px">Rotinas ligadas viram itens de controle da empresa e aparecem em Controles perto do prazo.</span>
+            </div>`;
+        if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
+
+        alvo.querySelectorAll('[data-rotina-codigo]').forEach(row => row.addEventListener('click', () => {
+            const codigo = row.getAttribute('data-rotina-codigo');
+            const itemId = row.getAttribute('data-rotina-item');
+            const rt = rotinas.find(x => x.codigo === codigo);
+            if (!rt) return;
+            const abrirSheet = typeof window.abrirSheetAcoes === 'function' ? window.abrirSheetAcoes : null;
+            if (!abrirSheet) { onToast?.('Ação só disponível dentro do app principal.', 'danger'); return; }
+
+            if (rt.ligada) {
+                abrirSheet({
+                    titulo: rt.nome, sub: 'Rotina da empresa',
+                    acoes: [{
+                        titulo: 'Desligar rotina', sub: 'Para de gerar controle mensal', icone: 'power-off',
+                        aoTocar: async () => {
+                            try {
+                                await desligarRotinaEmpresa(dbAuth, itemId, 'Desligada pelo usuário em Minha Empresa');
+                                onToast?.('Rotina desligada.', 'success');
+                                registrarLog?.('cofre.controles.desativar', { subtipo: codigo });
+                                renderRotinasCard();
+                            } catch (err) { onToast?.('Falha ao desligar: ' + err.message, 'danger'); }
+                        }
+                    }]
+                });
+            } else {
+                abrirSheet({
+                    titulo: rt.nome, sub: 'Rotina da empresa',
+                    acoes: [{
+                        titulo: 'Ligar rotina', sub: 'Cria um item de controle mensal', icone: 'power', codigo: 'cofre.controles.criar',
+                        aoTocar: async () => {
+                            try {
+                                await ligarRotinaEmpresa(dbAuth, clienteId, codigo);
+                                onToast?.('Rotina ligada.', 'success');
+                                registrarLog?.('cofre.controles.criar', { subtipo: codigo, origem: 'rotina' });
+                                renderRotinasCard();
+                            } catch (err) { onToast?.('Falha ao ligar: ' + err.message, 'danger'); }
+                        }
+                    }]
+                });
+            }
+        }));
+    }
+}
+
+// Ícone lucide por subtipo de rotina de empresa (catálogo cofre_controle_subtipos, tipo='rotina').
+const ICONES_ROTINA_EMPRESA = {
+    fechamento_mensal: 'calendar-check',
+    envio_contador: 'send',
+    nfse_competencia: 'file-text',
+    relatorio_carteira: 'clipboard-list',
+    indicadores_mercado: 'trending-up',
+};
+
+// ----------------------------------------------------------------------------
+// ROTINAS DA EMPRESA (R.2, Fase R) — camada de dados. RPCs SECURITY DEFINER
+// (migration rotinas_funcoes_ligar_desligar_listar_v1): fn_rotina_empresa_ligar
+// checa fn_checar_funcionalidade('cofre.controles.criar') antes de inserir
+// (ACE-01 — declaração de uso sobre acesso que o plano já dá, nunca um gate novo).
+// ----------------------------------------------------------------------------
+async function buscarRotinasEmpresa(dbAuth, clienteId) {
+    const { data, error } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: clienteId });
+    if (error) throw error;
+    return data || [];
+}
+
+async function ligarRotinaEmpresa(dbAuth, clienteId, subtipoCodigo) {
+    const { error } = await dbAuth.rpc('fn_rotina_empresa_ligar', { p_cliente_id: clienteId, p_subtipo_codigo: subtipoCodigo });
+    if (error) throw error;
+}
+
+async function desligarRotinaEmpresa(dbAuth, itemId, motivo) {
+    const { error } = await dbAuth.rpc('fn_rotina_empresa_desligar', { p_item_id: itemId, p_motivo: motivo || null });
+    if (error) throw error;
 }
 
 // Reduz uma imagem no navegador (canvas) pra caber em maxW×maxH, devolvendo

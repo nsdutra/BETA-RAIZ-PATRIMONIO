@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.53.0 · 20/09/2026
+// Versão: 1.54.0 · 20/09/2026
+//
+// v1.54.0 (Fase R / Entrega R.3, 20/09/2026) — "Iniciar revisão anual" no
+// ⋮ da ficha do ativo (abrirAcoesAtivo): abre Sheet de formulário pedindo a
+// data da última revisão de valor e chama api.iniciarRevisaoValorAtivo()
+// (cofre-api.js v1.41.0 → fn_revisao_valor_ativo_iniciar). Esqueleto sem
+// IA — cria só o item de controle anual do ativo; a sugestão de valor da
+// IA (REGRAS §10, card "Performance") é a Entrega R.4, depois de
+// indicador_valores nascer na Fase B1.1. Duplicidade (ativo que já tem
+// revisão em andamento) é recusada no banco, não pré-checada aqui.
 //
 // v1.53.0 — NOVO (Entrega 0.1 da frente Resultados/Mercado/Fiscal,
 // PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0) — campo "CIB
@@ -667,7 +676,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.54.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1715,9 +1724,45 @@ export function abrirAcoesAtivo() {
     // v1.22.0 (fatia 7) — "Gerar vitrine" deste imóvel (link único) —
     // reaproveita gerarVitrineDoImovel() do App (index.html v1.115.0).
     if (ehImovelComVitrineDisponivel && a.status !== 'vendido' && typeof window.gerarVitrineDoImovel === 'function') acoes.push({ icone: 'image', titulo: 'Gerar vitrine', codigo: 'vitrine.gerar', sub: 'Link deste imóvel pra compartilhar', aoTocar: () => window.gerarVitrineDoImovel(a.entidade_origem_id) });
+    // Fase R / Entrega R.3 (20/09/2026) — esqueleto sem IA. O botão aparece
+    // sempre (nenhuma consulta nova só pra decidir se esconde); duplicidade
+    // é recusada no banco por fn_revisao_valor_ativo_iniciar, com toast de
+    // erro claro — evita uma 2ª chamada de rede só pra pré-checar aqui.
+    if (a.status !== 'vendido') acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Começa o ciclo de revisão de valor deste ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
     if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
     acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), acoes });
+}
+
+// Fase R / Entrega R.3 (20/09/2026) — "Iniciar revisão anual" (esqueleto
+// sem IA): pede a data da última revisão de valor (o usuário sabe quando
+// avaliou por último; sem isso não dá pra calcular o próximo ciclo) e
+// chama fn_revisao_valor_ativo_iniciar via api.iniciarRevisaoValorAtivo().
+// A sugestão da IA com memória de cálculo (REGRAS §10, card "Performance")
+// só chega em R.4, depois de indicador_valores nascer na Fase B1.1.
+function abrirIniciarRevisaoAnual(a) {
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    const hoje = new Date().toISOString().slice(0, 10);
+    const corpo = `<div class="rz-f" style="margin-bottom:0"><label>Data da última revisão de valor</label>
+        <input type="date" id="fa-revisao-data" max="${hoje}" value="${hoje}">
+        <span class="rz-hint">O próximo aviso nasce 1 ano depois desta data, com 30 dias de antecedência.</span>
+    </div>`;
+    window.abrirSheetForm({
+        titulo: 'Iniciar revisão anual', sub: a.nome_exibicao, corpo, rotuloSalvar: 'Iniciar',
+        aoSalvar: async () => {
+            const data = document.getElementById('fa-revisao-data')?.value;
+            if (!data) { mostrarToast('Informe a data da última revisão.', 'erro'); return false; }
+            try {
+                await api.iniciarRevisaoValorAtivo(a.id, data);
+                mostrarToast('Revisão anual iniciada.', 'sucesso');
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+                return true;
+            } catch (err) {
+                mostrarToast('Falha ao iniciar: ' + err.message, 'erro');
+                return false;
+            }
+        }
+    });
 }
 
 // v1.93.0 (NOVO, pedido explícito, "evoluir a exemplo do protótipo") —
