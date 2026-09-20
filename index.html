@@ -6,8 +6,55 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.217.0
-   LINHAS: 14875
+   VERSÃO: Beta v1.218.0
+   LINHAS: 15104
+   DATA: 20/09/2026 (Entrega AL.3 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
+   NOVIDADES (Beta v1.218.0) — Entrega AL.3 (App: central de alertas
+   unificada) da frente Resultados/Mercado/Fiscal. Chips de tema na tela de
+   Alertas passam a ser por `alerta_tipos.dominio` (financeiro/documental/
+   contratual/fiscal/cadastro), não mais por entidade_tipo (REGRAS §14 v3.16.0,
+   ajuste §12/ESPECIFICACAO v1.3.0) — DOMINIO_ROTULO_ALERTA substitui
+   ENTIDADE_PARA_CHIP_ALERTA; ICONE_CATEGORIA e ACAO_GRUPO_POR_TIPO.
+   documento_sem_vinculo rekeyados junto (achados: sem isso, todo alerta
+   documental/contratual caía no ícone genérico, e o resumo de "documentos
+   sem vínculo" perdia o onClick). Cabeçalho da tela ganha "· N abertos"
+   (recalcularAlertasTela). Toque num alerta avulso abre um sheet de
+   detalhe novo (abrirAlertaDetalheSheet) — conteúdo, fonte (domínio),
+   natureza, prazo, ação sugerida (texto pronto de alerta_tipos.
+   acao_sugerida), botão de ação contextual (rzAbrirDestinoAlerta) ou campo
+   de edição inline pra `acao_tipo='atualizar_campo'` (cib_pendente,
+   revisao_valor_pendente — grava via fn_alerta_executar_acao sem sair do
+   sheet), Compartilhar (só quando fn_alerta_compartilhar_texto devolve
+   texto não-vazio — nunca pra alerta acionável/obrigatório, §6 do Motor) e
+   "Mais opções" (marcar visto/adiar/dispensar via fn_alerta_marcar/
+   fn_alerta_desmarcar, natureza-gated, fecha demanda 52ad5569). Resumos de
+   grupo continuam navegando direto (não tem um conteúdo só pra mostrar).
+   rzAbrirDestinoAlerta ganha o case `empresa/rotinas` (os 5 tipos de
+   rotina de escopo empresa abrem Minha Empresa › Rotinas, não Ativos — os
+   itens não têm ativo_id) e seu `default` agora sempre mostra um toast
+   (antes só console.warn — "clica e não acontece nada", 2º achado da
+   mesma demanda). switchTab: tab-alertas passa a acender o ícone da barra
+   inferior da aba de ORIGEM real (origemAoAbrirAlertas), não fica sem
+   destaque nenhum — 3º achado da demanda 52ad5569; ficou de fora do
+   TAB_PARENT_MAP fixo de propósito (a tela é alcançada de 4 lugares
+   diferentes, um destino fixo acenderia o ícone errado conforme a
+   origem). Visão Geral: card único de atenção já estava pronto de sessão
+   anterior (v1.185.0/v1.187.0) — nenhuma mudança necessária aqui, achado
+   que reduziu o escopo desta entrega.
+   Migrations aplicadas direto no Supabase nesta sessão (fora deste
+   arquivo): alertas_executar_acao_item_controle_v1 — achado em teste:
+   revisao_valor_pendente nasce com entidade_tipo='item_controle' no
+   Motor, mas fn_alerta_executar_acao (AL.1) só aceitava 'ativo'; salvar o
+   valor patrimonial pelo sheet ia falhar. Corrigido na raiz (QUA-01): a
+   função resolve o ativo_id de verdade via cofre_itens_controle antes de
+   gravar, sem mudar assinatura nem grants. alertas_marcar_desmarcar_
+   grant_authenticated_v1 — achado bloqueante em teste ao vivo:
+   fn_alerta_marcar/fn_alerta_desmarcar (AL.1) nunca tinham GRANT EXECUTE
+   pra `authenticated` (só postgres/service_role) — todo usuário real
+   receberia "permission denied" ao marcar/adiar/dispensar, exatamente a
+   funcionalidade que esta entrega liga no App. Corrigido com GRANT
+   aditivo, sem PUBLIC (mesma convenção do resto do Motor).
+   ------------------------------------------------------------------
    DATA: 20/09/2026 (Entrega 0.1 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
    NOVIDADES (Beta v1.217.0) — Entrega 0.1 do plano de execução da frente
    Resultados/Mercado/Fiscal (ESPECIFICACAO+ARQUITETURA v1.3.0, conferidas
@@ -86,48 +133,8 @@
    atalho. contratos.js v1.12.0. IMPORTMAP: contratos.js →1.12.0.
    ------------------------------------------------------------------
    DATA: 19/09/2026 (rodada 10)
-   NOVIDADES (Beta v1.213.0) — 6 achados do Nicola em teste real da entrega
-   anterior (rodada 9) que continuavam quebrados ou incompletos:
-   1) Financeiro › Recebimentos/Saídas: a v1.9.0 (rodada 9) só REORDENOU a
-      data pra logo depois do nome, mas deixou o resto (pago em/vence em/
-      venceu em + imóvel + banco + categoria + parte/ativo) na mesma linha
-      de 1 truncamento só — em qualquer nome/categoria mais longo, esse
-      resto ainda cortava tudo antes da data aparecer. Fix de verdade: a
-      linha vira só a data nua, sem mais nada pra truncar por cima —
-      status já está no badge à direita; o resto (imóvel, banco, parte,
-      ativo, reembolsável) passou pro sheet de ações (toque no item) —
-      financeiro.js v1.10.0. 2) Chip Financeiro do contrato: mesmo padrão
-      (título na 1ª linha, só a data embaixo) — item sem data de pagamento
-      gravada mostrava texto "Vencido"/"A vencer" em vez de data real;
-      agora calcula a data de vencimento de verdade a partir da referência
-      + dia de vencimento do contrato — contratos.js v1.11.0. 3) Chip
-      Anexos do contrato: a v1.10.0 (rodada 9) trocou o X por
-      data-action="abrir-documento" copiando o padrão do módulo Cofre —
-      só que esse padrão só funciona depois que o Cofre já bootou (aba
-      Ativos aberta pelo menos 1x na sessão), o que nunca acontece vindo
-      direto de Contratos: o toque não fazia nada (parecia travado). Fix:
-      sheet de ações autocontido (Baixar/Excluir via Storage direto, sem
-      depender do Cofre) — contratos.js v1.11.0. 4) Lista de Ativos:
-      valorFmt (v1.48.0/v1.49.0, rodada 8/9) ESTAVA no código certo, mas a
-      linha inteira era 1 truncamento só — nome de locatário mais longo
-      escondia aluguel+valor por trás do "..." sem aparecer nunca. Fix
-      estrutural: linha em flex com 2 partes — locatário (trunca) e
-      aluguel+valor (fixo, nunca corta) — cofre-ativos.js v1.50.0.
-      5) Chip "Controles" do ativo: continuava escrevendo "N a vencer"
-      quando não havia nada realmente vencido/vence-hoje/pendente — agora
-      escreve "Em dia" nesses casos (mesmo texto de "nenhum alerta") —
-      cofre-controles.js v1.30.0. 6) Padrão "há/em xx d": "Vencido há Xd"
-      tinha a palavra "Vencido" redundante (o "Em Xd" positivo nunca teve
-      essa palavra extra) — removida nos 6 lugares que usavam esse texto
-      (cofre-ativos.js, cofre-controles.js ×3, cofre-documentos.js,
-      cofre-validacoes.js, contratos.js). IMPORTMAP: financeiro.js
-      →1.10.0, contratos.js →1.11.0, cofre-ativos.js →1.50.0,
-      cofre-controles.js →1.30.0, cofre-documentos.js →2.20.0,
-      cofre-validacoes.js →2.2.0.
    ------------------------------------------------------------------
-   DATA: 18/09/2026 (rodada 9)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.199.0 … v1.212.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.213.0 … v1.213.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3059,7 +3066,10 @@
                  (origemAoAbrirAlertas), nunca um destino fixo. -->
             <button onclick="voltarDeAlertas()" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
 
-            <h2 class="text-lg font-bold raiz-text-pine mb-1">Alertas</h2>
+            <!-- AL.3 (REGRAS §14) — "<h2> Alertas + 'n abertos'": id próprio
+                 pra montarAlertasPatrimonio() escrever a contagem sem
+                 reconstruir o cabeçalho inteiro. -->
+            <h2 class="text-lg font-bold raiz-text-pine mb-1">Alertas<span id="alertas-contagem-header" class="text-sm font-normal text-slate-400"></span></h2>
             <p class="text-[11px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
 
             <!-- v1.102.0 (NOVO, pedido explícito: "deve ser possível, via
@@ -3541,7 +3551,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.217.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.218.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8859,7 +8869,18 @@
                 if (label) label.style.color = 'var(--sage)';
             });
 
-            const tabParaDestaque = TAB_PARENT_MAP[tabId] || tabId;
+            // AL.3 (fecha achado da demanda 52ad5569, "nenhum ícone da barra
+            // acende" em Alertas) — tab-alertas não entra no TAB_PARENT_MAP
+            // fixo de propósito: ela é alcançada de 4 lugares diferentes
+            // (3 cards na Visão Geral + item no menu ⚙️, sempre por
+            // abrirTabAlertas(), único funil — ver comentário na seção
+            // #tab-alertas), então um destino fixo acenderia o ícone ERRADO
+            // quando a origem real fosse outra aba. origemAoAbrirAlertas já
+            // guarda de onde a pessoa veio (mesma variável usada por
+            // voltarDeAlertas()) — resolve o destaque por ela, não por
+            // tab-alertas.
+            const tabId2 = (tabId === 'tab-alertas' && typeof origemAoAbrirAlertas !== 'undefined' && origemAoAbrirAlertas) ? origemAoAbrirAlertas : tabId;
+            const tabParaDestaque = TAB_PARENT_MAP[tabId2] || tabId2;
             const btnDestaque = document.getElementById('btn-' + tabParaDestaque);
             if (btnDestaque && btnDestaque.closest('#bottom-nav-bar')) {
                 btnDestaque.classList.add('bottomnav-active');
@@ -10840,14 +10861,21 @@
         let geralVisiveisTodos = []; // v1.187.0 — bruto da Visão Geral; renderizarPontosAtencaoGeral() deriva daqui
         let geralSeveridadeFiltro = 'todas'; // v1.187.0 — estado próprio, independente do da tela de Alertas
 
-        const ENTIDADE_PARA_CHIP_ALERTA = {
-            pendencia_financeira: 'financeiro',
-            empresa: 'financeiro',
-            contrato: 'contrato',
-            item_controle: 'item_controle',
-            carteira: 'fiscal',
-            documento: 'documento',
-            ativo: 'cadastro', // v1.184.0 (E9) — cadastro_incompleto
+        // AL.3 (20/09/2026, Motor de Alertas) — REGRAS_EXPERIENCIA v3.16.0 §14:
+        // "chips (dominio): tema do alerta" — os chips passam a ler
+        // alerta_tipos.dominio DIRETO do banco, em vez de um mapa fixo por
+        // entidade_tipo mantido aqui. Motivo: dominio já é a coluna que
+        // decide o tema (mesma fonte usada pelo Gestão, AL.4); manter os
+        // dois (entidade_tipo aqui + dominio no banco) divergiria cedo ou
+        // tarde — 1 regra, 1 fonte. ENTIDADE_PARA_CHIP_ALERTA REMOVIDO;
+        // toda leitura abaixo passa a usar r.dominio (ou r0.dominio/
+        // grupo[0].dominio, conforme o caso).
+        const DOMINIO_ROTULO_ALERTA = {
+            financeiro: 'Financeiro',
+            documental: 'Documentos',
+            contratual: 'Contratos',
+            fiscal: 'Fiscal',
+            cadastro: 'Cadastro',
         };
 
         // Rótulos por categoria de sinal fiscal — mesmo mapa de antes
@@ -10955,8 +10983,26 @@
                     switchTab('tab-ativos');
                     if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(row.entidade_id, 'resumo');
                     return;
+                // AL.3 (Fase AL.2) — os 5 alertas de rotina de escopo empresa
+                // (fechamento, contador, NFS-e, relatório, indicadores) não
+                // têm ativo_id — abrirAlertaItemControle() trocaria pra
+                // tab-ativos e tentaria abrir ficha de ativo que não existe.
+                // Vão para Empresa › Rotinas (card criado na Entrega R.2),
+                // onde a ocorrência específica se trata.
+                case 'empresa/rotinas':
+                    switchTab('tab-minha-empresa');
+                    setTimeout(() => document.getElementById('cme-rotinas-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+                    return;
+                // AL.3 (fecha achado da demanda 52ad5569) — antes só um
+                // console.warn: se um destino_rota novo entrasse no catálogo
+                // sem dispatcher aqui, o toque não fazia NADA visível (nem
+                // erro, nem aviso) — mesmo sintoma "clica e não acontece
+                // nada" que motivou o onClickSeguro de linhaAlertaHtml
+                // (v1.194.0), só que este default não lançava exceção pra
+                // aquele try/catch pegar. Agora sempre há um retorno visível.
                 default:
                     console.warn('[alertas] destino_rota sem dispatcher:', row.destino_rota);
+                    if (typeof mostrarToast === 'function') mostrarToast('Não consegui abrir esse alerta agora.', 'danger');
             }
         }
 
@@ -11004,7 +11050,9 @@
             // agrupava, ia pro individual via destino_rota). abrirTabAlertas
             // já aceita filtro de categoria ('documento') — mesmo padrão
             // usado pela Visão Geral (ver comentário em abrirTabAlertas).
-            documento_sem_vinculo: "abrirTabAlertas('documento')",
+            // AL.3 — 'documento' virou 'documental' (chave do chip agora é o
+            // dominio, não mais o entidade_tipo antigo).
+            documento_sem_vinculo: "abrirTabAlertas('documental')",
         };
 
         // v1.186.0 (achado do Nicola: "conto 21, o sistema mostra 10/12") —
@@ -11038,12 +11086,17 @@
 
         function itemAvulso(r) {
             return {
-                categoria: ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro',
+                categoria: r.dominio || 'outro',
                 tipoAlerta: r.tipo_alerta,
                 dias: r.dias,
                 titulo: tituloAlertaMotor(r),
                 subtitulo: subtituloAlertaMotor(r),
-                onClick: r.destino_rota ? `rzAbrirDestinoAlerta('${r.alerta_chave}')` : null,
+                // AL.3 — toque abre o Sheet do alerta (conteúdo/fonte/natureza/
+                // ação/Compartilhar), não navega mais direto. A navegação em
+                // si (rzAbrirDestinoAlerta) virou a AÇÃO CONTEXTUAL dentro do
+                // sheet. Resumos de grupo (abaixo) continuam navegando direto
+                // — um card "12 atrasos" não tem 1 conteúdo só pra mostrar.
+                onClick: `abrirAlertaDetalheSheet('${r.alerta_chave}')`,
             };
         }
 
@@ -11109,7 +11162,7 @@
                 if (grupo.length < limiarTipo) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
                 itens.push({
-                    categoria: ENTIDADE_PARA_CHIP_ALERTA[r0.entidade_tipo] || 'outro',
+                    categoria: r0.dominio || 'outro',
                     tipoAlerta,
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorTipo(tipoAlerta, grupo.length),
@@ -11125,7 +11178,7 @@
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
                 const ativoNome = grupo[0].detalhe?.ativo_nome || grupo[0].titulo || 'Ativo';
                 itens.push({
-                    categoria: ENTIDADE_PARA_CHIP_ALERTA[grupo[0].entidade_tipo] || 'outro',
+                    categoria: grupo[0].dominio || 'outro',
                     tipoAlerta: grupo[0].tipo_alerta,
                     dias: maisUrgente.dias,
                     titulo: ativoNome,
@@ -11180,7 +11233,7 @@
 
             alertasContagemPorCategoria = new Map();
             porSeveridade.forEach(r => {
-                const cat = ENTIDADE_PARA_CHIP_ALERTA[r.entidade_tipo] || 'outro';
+                const cat = r.dominio || 'outro';
                 alertasContagemPorCategoria.set(cat, (alertasContagemPorCategoria.get(cat) || 0) + pesoAlerta(r));
             });
 
@@ -11188,6 +11241,12 @@
             renderSegSeveridadeAlertas();
             renderChipsAlertas();
             renderListaAlertas();
+
+            // AL.3 (REGRAS §14) — "<h2> Alertas + 'n abertos'". Mesmo total
+            // ponderado (pesoAlerta) do chip "Todos", pra nunca discordar.
+            const totalAbertos = Array.from(alertasContagemPorCategoria.values()).reduce((a, b) => a + b, 0);
+            const elContagem = document.getElementById('alertas-contagem-header');
+            if (elContagem) elContagem.textContent = totalAbertos ? ` · ${totalAbertos} aberto${totalAbertos > 1 ? 's' : ''}` : '';
         }
 
         function filtrarAlertasPorSeveridade(severidade) {
@@ -11203,14 +11262,17 @@
         function renderChipsAlertas() {
             const wrap = document.getElementById('alertas-chips-categoria');
             if (!wrap) return;
+            // AL.3 — chips por dominio (REGRAS §14), não mais por
+            // entidade_tipo. 'item_controle' e 'documento' (do mapa antigo)
+            // se fundem num chip só, 'Documentos' (dominio='documental'),
+            // porque no banco os dois já eram o mesmo tema.
             const grupos = [
                 { chave: 'todos', rotulo: 'Todos' },
-                { chave: 'financeiro', rotulo: 'Financeiro' },
-                { chave: 'item_controle', rotulo: 'Itens de controle' },
-                { chave: 'contrato', rotulo: 'Contratos' },
-                { chave: 'documento', rotulo: 'Documentos' },
-                { chave: 'fiscal', rotulo: 'Fiscal' },
-                { chave: 'cadastro', rotulo: 'Cadastro' } // v1.184.0 (E9)
+                { chave: 'financeiro', rotulo: DOMINIO_ROTULO_ALERTA.financeiro },
+                { chave: 'documental', rotulo: DOMINIO_ROTULO_ALERTA.documental },
+                { chave: 'contratual', rotulo: DOMINIO_ROTULO_ALERTA.contratual },
+                { chave: 'fiscal', rotulo: DOMINIO_ROTULO_ALERTA.fiscal },
+                { chave: 'cadastro', rotulo: DOMINIO_ROTULO_ALERTA.cadastro },
             ];
             // v1.108.0 — chips no catálogo (.rz-chip, 1 linha com rolagem,
             // contador dentro; REGRAS §8) — antes eram pills Tailwind em
@@ -11281,7 +11343,12 @@
         // visualmente diferente conforme a tela. Agora é a mesma função, a
         // mesma marcação, em qualquer lugar que mostre um alerta do Motor.
         const ICONE_TIPO_ALERTA = { anexo_apolice_pendente: 'paperclip' };
-        const ICONE_CATEGORIA = { item_controle: 'wrench', contrato: 'file-text', financeiro: 'wallet', fiscal: 'landmark' };
+        // AL.3 — chaves viram dominio (era entidade_tipo: 'item_controle'
+        // virou 'documental', 'contrato' virou 'contratual'). Achado ao
+        // trocar a fonte dos chips: sem este ajuste, todo alerta de item de
+        // controle e todo alerta contratual cairia silenciosamente no
+        // fallback 'info', perdendo o ícone próprio.
+        const ICONE_CATEGORIA = { documental: 'wrench', contratual: 'file-text', financeiro: 'wallet', fiscal: 'landmark', cadastro: 'user-cog' };
         function linhaAlertaHtml(a) {
                 const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
                 let sem = 'neu', rotulo = '', classeIc = '', icone = ICONE_TIPO_ALERTA[a.tipoAlerta] || ICONE_CATEGORIA[a.categoria] || 'info';
@@ -11336,6 +11403,168 @@
                     <div class="rz-rt">${rotulo ? st(sem, rotulo) : ''}</div>
                     ${clicavel ? '<svg data-lucide="chevron-right" class="rz-chev"></svg>' : ''}
                 </div>`;
+        }
+
+        // ============================================================
+        // AL.3 — SHEET DE DETALHE DO ALERTA (ESP §13.4/A3-A7; REGRAS §14).
+        // Toque num alerta avulso (itemAvulso, acima) abre este sheet em vez
+        // de navegar direto — conteúdo/fonte/natureza/prazo, ação sugerida
+        // (texto já vem pronto de alerta_tipos.acao_sugerida — não reinventa
+        // frase por tipo aqui), Compartilhar (só quando o texto do banco vem
+        // não-vazio — fn_alerta_compartilhar_texto já decide isso pela
+        // natureza, regra única no banco, §6 do Motor) e "Mais opções"
+        // (marcar visto/adiar/dispensar, natureza-gated, mesma regra que
+        // fn_alerta_marcar já aplica — o app só espelha, nunca reimplementa).
+        // ============================================================
+        const NATUREZA_ROTULO_ALERTA = {
+            informativo: 'Informativo',
+            acionavel: 'Precisa de ação',
+            obrigatorio: 'Obrigatório',
+        };
+
+        function prazoAlertaTexto(r) {
+            if (r.tipo_alerta === 'extrato_desatualizado') return r.dias != null ? `Desatualizado há ${r.dias}d` : 'Desatualizado';
+            if (r.dias === null) return 'Sem prazo definido';
+            if (r.dias < 0) return `Venceu há ${Math.abs(r.dias)}d`;
+            if (r.dias === 0) return 'Vence hoje';
+            return `Vence em ${r.dias}d`;
+        }
+
+        // Ação 'atualizar_campo' (alerta_tipos.acao_tipo) — edita um campo de
+        // cofre_ativos sem sair do sheet (ESP §13.4/A5). Lista fechada, cada
+        // tipo sabe seu campo/rótulo/tipo de input. revisao_valor_pendente
+        // entra aqui apesar de nascer com entidade_tipo='item_controle' no
+        // Motor — fn_alerta_executar_acao (migration
+        // alertas_executar_acao_item_controle_v1, AL.3) resolve o ativo_id de
+        // verdade via cofre_itens_controle antes de gravar.
+        const ACAO_CAMPO_ALERTA = {
+            cib_pendente: { campo: 'cib', rotulo: 'CIB do imóvel', tipoInput: 'text', placeholder: 'Ex.: 1234567890' },
+            revisao_valor_pendente: { campo: 'valor_referencia', rotulo: 'Valor patrimonial atual (R$)', tipoInput: 'number', placeholder: 'Ex.: 850000' },
+        };
+
+        async function abrirAlertaDetalheSheet(alertaChave) {
+            const r = alertasPorChave.get(alertaChave);
+            if (!r) { mostrarToast('Não encontrei esse alerta — a lista pode ter mudado.', 'danger'); return; }
+
+            const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+            const semPrazo = r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run'));
+            const campoAcao = ACAO_CAMPO_ALERTA[r.tipo_alerta];
+            const chaveJs = alertaChave.replace(/'/g, "\\'");
+
+            const corpo = `
+                <div class="rz-card" style="margin-bottom:12px">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+                        ${st(semPrazo, prazoAlertaTexto(r))}
+                        <span class="rz-sub">${rzEsc(DOMINIO_ROTULO_ALERTA[r.dominio] || r.dominio || '')}</span>
+                        <span class="rz-sub">· ${rzEsc(NATUREZA_ROTULO_ALERTA[r.natureza] || r.natureza || '')}</span>
+                    </div>
+                    <p style="margin:0;font-size:14px;color:var(--pine)">${rzEsc(subtituloAlertaMotor(r))}</p>
+                    ${r.acao_sugerida ? `<p style="margin:8px 0 0;font-size:13px;color:var(--sage)"><b>Ação sugerida:</b> ${rzEsc(r.acao_sugerida)}</p>` : ''}
+                </div>
+                ${campoAcao ? `
+                <div class="rz-card" style="margin-bottom:12px">
+                    <label class="block text-xs font-bold text-gray-600">${rzEsc(campoAcao.rotulo)}</label>
+                    <input id="rz-alerta-campo-valor" type="${campoAcao.tipoInput}" placeholder="${rzEsc(campoAcao.placeholder)}" class="w-full p-2 border rounded mt-1 text-sm">
+                    <button type="button" class="rz-btn rz-btn-1 rz-wide" style="margin-top:10px" onclick="rzSalvarCampoAlerta('${chaveJs}')">Salvar</button>
+                </div>` : ''}
+                <div id="rz-alerta-acoes-corpo"></div>
+            `;
+
+            const sheet = abrirSheet(rzSheetCabecalho(tituloAlertaMotor(r), null) + `<div class="rz-sh-b">${corpo}</div>`);
+            const acoesEl = sheet.querySelector('#rz-alerta-acoes-corpo');
+
+            const botoesRodape = [];
+            if (r.destino_rota && !campoAcao) {
+                botoesRodape.push(`<button type="button" class="rz-btn rz-btn-2 rz-wide" onclick="fecharSheet(); rzAbrirDestinoAlerta('${chaveJs}')">Ver / tratar</button>`);
+            }
+            botoesRodape.push(`<button type="button" class="rz-btn rz-btn-2 rz-wide" onclick="abrirAlertaMenuMarcas('${chaveJs}')">Mais opções</button>`);
+            if (acoesEl) acoesEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">${botoesRodape.join('')}</div>`;
+
+            // Compartilhar entra depois (chamada assíncrona ao banco) — só
+            // aparece se vier texto; nunca pra alerta acionável/obrigatório
+            // (fn_alerta_compartilhar_texto retorna '' nesses casos, §6).
+            try {
+                const { data: texto, error } = await dbAuth.rpc('fn_alerta_compartilhar_texto', { p_alerta_chave: alertaChave });
+                if (error) throw error;
+                if (texto && acoesEl) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'rz-btn rz-btn-2 rz-wide';
+                    btn.innerHTML = '<svg data-lucide="share-2"></svg> Compartilhar';
+                    btn.onclick = () => window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(texto), '_blank');
+                    acoesEl.querySelector('div')?.prepend(btn);
+                    if (typeof rzIcones === 'function') rzIcones();
+                }
+            } catch (e) { console.warn('[alertas] fn_alerta_compartilhar_texto:', e.message); }
+        }
+
+        async function rzSalvarCampoAlerta(alertaChave) {
+            const r = alertasPorChave.get(alertaChave);
+            const campoAcao = r && ACAO_CAMPO_ALERTA[r.tipo_alerta];
+            if (!r || !campoAcao) return;
+            const input = document.getElementById('rz-alerta-campo-valor');
+            const valor = input ? input.value.trim() : '';
+            if (!valor) { mostrarToast('Preencha o valor antes de salvar.', 'danger'); return; }
+            try {
+                const { error } = await dbAuth.rpc('fn_alerta_executar_acao', {
+                    p_alerta_chave: alertaChave,
+                    p_payload: { campo: campoAcao.campo, valor },
+                });
+                if (error) throw error;
+                mostrarToast('Salvo com sucesso.', 'success');
+                fecharSheet();
+                if (typeof montarAlertasPatrimonio === 'function') montarAlertasPatrimonio();
+                if (typeof renderVisaoGeral === 'function') renderVisaoGeral();
+            } catch (e) {
+                mostrarToast(e.message || 'Não consegui salvar agora.', 'danger');
+            }
+        }
+
+        // "Mais opções" — marcar visto/adiar/dispensar, sempre gated pela
+        // natureza (mesma regra de fn_alerta_marcar, §6): informativo pode
+        // visto/dispensado; acionavel pode adiado/dispensado; obrigatorio
+        // não pode nenhuma marca (some do menu, mostra o motivo em toast).
+        function abrirAlertaMenuMarcas(alertaChave) {
+            const r = alertasPorChave.get(alertaChave);
+            if (!r) return;
+            if (r.natureza === 'obrigatorio') {
+                fecharSheet();
+                mostrarToast('Este alerta não pode ser adiado nem dispensado — é obrigatório até ser resolvido.', 'info');
+                return;
+            }
+            const acoes = [];
+            if (r.natureza === 'informativo') {
+                acoes.push(r.marcado_visto
+                    ? { icone: 'eye-off', titulo: 'Desmarcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto', true) }
+                    : { icone: 'eye', titulo: 'Marcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto') });
+            }
+            if (r.natureza === 'acionavel') {
+                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 7 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 7) });
+                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 30 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 30) });
+            }
+            acoes.push({ icone: 'x-circle', titulo: 'Dispensar', tipo: 'bad', aoTocar: () => rzMarcarAlerta(alertaChave, 'dispensado') });
+            abrirSheetAcoes({ titulo: 'Mais opções', sub: tituloAlertaMotor(r), acoes });
+        }
+
+        async function rzMarcarAlerta(alertaChave, tipo, desmarcar = false, diasAdiar = null) {
+            const r = alertasPorChave.get(alertaChave);
+            if (!r || !pessoaIdLogada) return;
+            try {
+                if (desmarcar) {
+                    const { error } = await dbAuth.rpc('fn_alerta_desmarcar', { p_alerta_chave: alertaChave, p_pessoa_id: pessoaIdLogada, p_tipo: tipo });
+                    if (error) throw error;
+                } else {
+                    const p_ate = tipo === 'adiado' ? new Date(Date.now() + diasAdiar * 86400000).toISOString().slice(0, 10) : null;
+                    const { error } = await dbAuth.rpc('fn_alerta_marcar', { p_alerta_chave: alertaChave, p_pessoa_id: pessoaIdLogada, p_tipo: tipo, p_ate });
+                    if (error) throw error;
+                }
+                mostrarToast(tipo === 'dispensado' ? 'Alerta dispensado.' : (tipo === 'adiado' ? 'Alerta adiado.' : (desmarcar ? 'Desmarcado.' : 'Marcado como visto.')), 'success');
+                fecharSheet();
+                if (typeof montarAlertasPatrimonio === 'function') montarAlertasPatrimonio();
+                if (typeof renderVisaoGeral === 'function') renderVisaoGeral();
+            } catch (e) {
+                mostrarToast(e.message || 'Não consegui salvar agora.', 'danger');
+            }
         }
 
         // Ponte pro módulo Ativos (Cofre) — primeira nesta direção neste
