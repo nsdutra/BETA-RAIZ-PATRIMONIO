@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.38.0 · 18/09/2026 (rodada 5)
+// Versão: 1.39.0 · 19/09/2026
+//
+// v1.39.0 — demanda 0b2fd53a (3º consumidor do padrão antigo, achado em
+// QUA-01 na correção de cofre-documentos.js v2.16.0): listarSubtiposControle()
+// filtrava por tipo_ativo_aplicavel (campo quase sempre vazio, .or() que na
+// prática não filtrava nada) quando chamada com `tipoAtivo` — usado pelo
+// seletor de subtipo do form "Novo item de controle" (cofre-controles.js::
+// abrirFormControle()). Trocado por cofre_subtipo_aplicabilidade (mesma
+// fonte de listarAplicabilidadeSubtipos() logo abaixo), com a MESMA regra
+// de cofre-documentos.js: só entra se houver vínculo explícito subtipo ×
+// tipo de ativo. Confirmado no banco que os 10 subtipos sem vínculo nenhum
+// são todos titular_escopo=empresa/contrato — não regridem.
 //
 // v1.38.0 — listarAplicabilidadeSubtipos() nova (cofre_subtipo_aplicabilidade,
 // só linhas ativas): fonte real de aplicabilidade por tipo de ativo, pro
@@ -351,7 +362,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.38.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.39.0'; // v-check (19/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1363,24 +1374,38 @@ export async function encontrarOuCriarParte(clienteId, nome, extras = {}) {
 // autorização real continua no servidor (RLS), não só escondida na UI.
 // ============================================================================
 // v1.25.0 (E0.2 / A8) — parametro opcional `tipoAtivo`. Quando presente,
-// devolve so os subtipos aplicaveis aquele tipo de ativo
-// (cofre_controle_subtipos.tipo_ativo_aplicavel, array que ja existia no
-// catalogo desde a criacao e nunca era usado). Subtipo com o array NULO
-// continua aparecendo — nulo significa "serve pra qualquer ativo", nao
-// "nao serve pra nenhum". Sem o parametro, comportamento identico ao de
-// antes (catalogo completo) — o cadastro de subtipos e o de modelos
+// devolve so os subtipos aplicaveis aquele tipo de ativo.
+// v1.39.0 (0b2fd53a, rodada 19/09/2026) — o filtro por `tipoAtivo` trocou de
+// cofre_controle_subtipos.tipo_ativo_aplicavel (campo antigo, array quase
+// sempre vazio — nulo != "serve pra qualquer ativo" nos 2 subtipos citados
+// na demanda, aditivo_contrato/contrato_social; e nos demais, o array cheio
+// simplesmente nunca foi mantido) pra cofre_subtipo_aplicabilidade, a MESMA
+// fonte já usada por cofre-documentos.js v2.16.0 (aba Aplicabilidade do
+// Gestão) e por listarAplicabilidadeSubtipos() logo abaixo. Terceiro
+// consumidor do padrão antigo encontrado no pente-fino (QUA-01) — os outros
+// dois (upload de documento, Motor Documental no Gestão) já corrigidos ou
+// em correção na mesma rodada. Sem o parametro `tipoAtivo`, comportamento
+// idêntico a antes (catálogo completo) — cadastro de subtipos e de modelos
 // continuam chamando assim.
-// Obs.: usa .or() em vez de .contains() porque .contains() sozinho
-// excluiria os subtipos de array nulo.
 export async function listarSubtiposControle(clienteId, tipoAtivo) {
-    let q = dbAuth.from('cofre_controle_subtipos').select('*')
-        .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true);
-    if (tipoAtivo) {
-        q = q.or(`tipo_ativo_aplicavel.is.null,tipo_ativo_aplicavel.cs.{${tipoAtivo}}`);
-    }
-    const { data, error } = await q.order('tipo').order('nome');
+    const { data, error } = await dbAuth.from('cofre_controle_subtipos').select('*')
+        .or(`cliente_id.is.null,cliente_id.eq.${clienteId}`).eq('ativo', true)
+        .order('tipo').order('nome');
     if (error) throw error;
-    return data || [];
+    const todos = data || [];
+    if (!tipoAtivo) return todos;
+
+    // v1.39.0 — filtro client-side por cofre_subtipo_aplicabilidade (escopo_tipo
+    // = 'categoria'), MESMA regra de cofre-documentos.js::subtipoAplicaAoTipoAtivo:
+    // só entra se houver vínculo explícito subtipo × tipo de ativo. Sem vínculo
+    // nenhum cadastrado, o subtipo NÃO aparece pra nenhum tipoAtivo específico
+    // (confirmado no banco em 19/09/2026: os 10 subtipos globais sem nenhuma
+    // linha em cofre_subtipo_aplicabilidade são todos titular_escopo=empresa/
+    // contrato — nunca 'ativo' — então corretamente não têm o que fazer num
+    // filtro por tipo de ativo; os 109 restantes, todos ativo-relacionados,
+    // têm cobertura completa).
+    const aplicabilidade = await listarAplicabilidadeSubtipos();
+    return todos.filter(s => aplicabilidade.some(a => a.subtipo_id === s.id && a.escopo_tipo === 'categoria' && a.escopo_valor === tipoAtivo));
 }
 
 // Modelos de item de controle por tipo de ativo (pedido explícito,
