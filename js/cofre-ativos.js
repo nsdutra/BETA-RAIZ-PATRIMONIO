@@ -1,6 +1,22 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.52.0 · 19/09/2026 (rodada 10)
+// Versão: 1.53.0 · 20/09/2026
+//
+// v1.53.0 — NOVO (Entrega 0.1 da frente Resultados/Mercado/Fiscal,
+// PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0) — campo "CIB
+// (NFS-e)" na ficha do ativo, categoria imóvel: renderizarBlocoImovel()
+// ganha o `.rz-f` de texto simples, lerBlocoImovel() devolve `cib`,
+// salvarEdicaoAtivo() grava em cofre_ativos.cib (coluna nova, migration
+// fiscal_cofre_ativos_cib_v1) e salvarAtivo()/criarImovelEAtivo()
+// (cofre-api.js v1.40.0) gravam já na criação. Exibição de leitura em
+// montarDadosAtivo() nos dois ramos (avulso e vinculado). Preenchimento
+// é manual (decisão do Nicola, Q1 do HANDOFF) — sem OCR, sem
+// integração; é o dado que a Reforma Tributária exige (cCIB) pra NFS-e
+// de locação a partir de 01/12/2026, e por isso está no caminho crítico
+// do plano, não é feature nova de produto. Corrigido de passagem: o
+// v-check (linha abaixo) estava em '1.51.0' desatualizado em relação ao
+// header (que já dizia 1.52.0 na entrega anterior) — QUA-01, mesmo
+// padrão de deslize já visto em outros arquivos deste app.
 //
 // v1.52.0 — CORRIGIDO (pedido explícito, rodada 10 entrega 4) —
 // ativoCardHtml(): simplifica de vez a descrição do card na lista de
@@ -651,7 +667,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.51.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.53.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -854,6 +870,10 @@ function renderizarBlocoImovel(prefixo, v = {}) {
             <label>Aluguel esperado (R$)</label>
             <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}">
         </div>
+        <div class="rz-f">
+            <label>CIB (NFS-e)</label>
+            <input type="text" id="${prefixo}cib" value="${escapeHtml(v.cib || '')}" placeholder="Cadastro do imóvel na NFS-e nacional">
+        </div>
         <div class="rz-f sm:col-span-2">
             <label>Observação</label>
             <textarea id="${prefixo}observacao" rows="2">${escapeHtml(v.observacao || '')}</textarea>
@@ -884,6 +904,7 @@ function lerBlocoImovel(prefixo) {
             finalidade_uso: txt('finalidade-uso'),
             situacao_uso: txt('situacao-uso'),
             observacao: txt('observacao'),
+            cib: txt('cib'),
         },
         aluguelDesejado: num('aluguel-desejado'),
     };
@@ -1471,6 +1492,7 @@ export async function salvarAtivo() {
                 finalidade_uso: camposImovelLido?.finalidade_uso || null,
                 status: camposImovelLido?.situacao_uso || null,
                 descricao: camposImovelLido?.observacao || null,
+                cib: camposImovelLido?.cib || null,
             };
             novoAtivo = await api.criarImovelEAtivo(estado.clienteId, nome, tipo, imovelDados, tipoDetalheId, payload.dados_especificos);
         } else {
@@ -2221,6 +2243,7 @@ async function montarDadosAtivo(a) {
             a.area_m2 != null ? `<div><small>Área</small><b>${a.area_m2} m²</b></div>` : '',
             a.finalidade_uso ? `<div><small>Finalidade de uso</small><b>${escapeHtml(FINALIDADES_USO_ATIVO.find(f => f.v === a.finalidade_uso)?.l || a.finalidade_uso)}</b></div>` : '',
             a.situacao_uso ? `<div><small>Situação de uso</small><b>${escapeHtml(SITUACOES_USO_ATIVO.find(s => s.v === a.situacao_uso)?.l || a.situacao_uso)}</b></div>` : '',
+            a.cib ? `<div><small>CIB (NFS-e)</small><b>${escapeHtml(a.cib)}</b></div>` : '',
             a.observacao ? `<div class="rz-full"><small>Observação</small><b>${escapeHtml(a.observacao)}</b></div>` : '',
         ].join('');
         gridWrapper.innerHTML = `<div class="rz-kv"><div class="rz-full"><small>Endereço completo</small><b>${escapeHtml(enderecoCompleto)}</b></div>${kvExtra}</div>`;
@@ -2269,6 +2292,10 @@ async function montarDadosAtivo(a) {
             campo('UF / Município', (resumoImovel?.uf && resumoImovel?.endereco_cidade) ? escapeHtml(resumoImovel.uf) + ' · ' + escapeHtml(resumoImovel.endereco_cidade) : ''),
             campo('Valor de mercado', resumoImovel?.valor_mercado ? 'R$ ' + Number(resumoImovel.valor_mercado).toLocaleString('pt-BR') : ''),
             campo('IPTU (anual)', resumoImovel?.iptu ? 'R$ ' + Number(resumoImovel.iptu).toLocaleString('pt-BR') : ''),
+            // CIB vive em cofre_ativos (não em `imoveis`, tabela isolada
+            // desde a Onda 12) — por isso lê de `a.cib` direto, não de
+            // resumoImovel, mesmo neste ramo "vinculado".
+            campo('CIB (NFS-e)', a.cib ? escapeHtml(a.cib) : ''),
         ].filter(Boolean);
         const campoEndereco = enderecoCompleto
             ? `<div class="rz-full"><small>Endereço completo</small><b>${escapeHtml(enderecoCompleto)}</b></div>`
@@ -2495,6 +2522,7 @@ export async function salvarEdicaoAtivo() {
             finalidade_uso: camposImovel.finalidade_uso,
             situacao_uso: camposImovel.situacao_uso,
             observacao: camposImovel.observacao,
+            cib: camposImovel.cib,
         });
     } else {
         // não-imóvel: só empreendimento/valor, direto em cofre_ativos

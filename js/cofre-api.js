@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.39.0 · 19/09/2026
+// Versão: 1.40.0 · 20/09/2026
+//
+// v1.40.0 — NOVO (Entrega 0.1 da frente Resultados/Mercado/Fiscal,
+// PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0) —
+// criarImovelEAtivo() passa a gravar `cib` (coluna nova em cofre_ativos,
+// migration fiscal_cofre_ativos_cib_v1) já na criação do ativo; a edição
+// (atualizarAtivo, passthrough de patch) não precisou de mudança.
 //
 // v1.39.0 — demanda 0b2fd53a (3º consumidor do padrão antigo, achado em
 // QUA-01 na correção de cofre-documentos.js v2.16.0): listarSubtiposControle()
@@ -362,7 +368,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.39.0'; // v-check (19/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.40.0'; // v-check (19/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1208,6 +1214,7 @@ export async function criarImovelEAtivo(clienteId, nomeExibicao, tipoAtivo, imov
         finalidade_uso: imovelDados.finalidade_uso || 'long_stay',
         situacao_uso: imovelDados.status || null,
         observacao: imovelDados.descricao || null,
+        cib: imovelDados.cib || null,
     };
     const { data, error } = await dbAuth.from('cofre_ativos').insert(payload).select().single();
     if (error) throw error;
