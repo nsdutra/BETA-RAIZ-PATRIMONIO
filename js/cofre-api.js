@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.40.0 · 20/09/2026
+// Versão: 1.41.0 · 20/09/2026
+//
+// v1.41.0 (Fase R / Entrega R.3, 20/09/2026) — iniciarRevisaoValorAtivo(),
+// nova: wrapper de fn_revisao_valor_ativo_iniciar (migration revisao_valor_
+// ativo_iniciar_v1). Esqueleto sem IA — cria o item de controle anual do
+// ativo a partir da data de última revisão informada pelo usuário; a
+// sugestão da IA (R.4) fica pra depois de B1.1 (indicador_valores ainda
+// não existe).
 //
 // v1.40.0 — NOVO (Entrega 0.1 da frente Resultados/Mercado/Fiscal,
 // PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0) —
@@ -368,7 +375,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.40.0'; // v-check (19/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.41.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1229,6 +1236,22 @@ export async function atualizarAtivo(id, patch) {
 export async function arquivarAtivo(id) {
     const { error } = await dbAuth.from('cofre_ativos').update({ status: 'arquivado' }).eq('id', id);
     if (error) throw error;
+}
+
+// Fase R / Entrega R.3 (20/09/2026) — revisão anual de valor, esqueleto sem
+// IA: cria o item de controle do ativo (tipo='rotina', subtipo
+// revisao_valor_ativo) a partir da última data de revisão informada pelo
+// usuário. fn_revisao_valor_ativo_iniciar (migration revisao_valor_ativo_
+// iniciar_v1) grava gerar_desde_inicio=false de propósito — sem isso,
+// fn_cofre_gerar_proximas_ocorrencias criaria uma ocorrência retroativa na
+// própria data da última revisão (já resolvida, não é pendência).
+export async function iniciarRevisaoValorAtivo(ativoId, dataUltimaRevisao) {
+    const { data, error } = await dbAuth.rpc('fn_revisao_valor_ativo_iniciar', {
+        p_ativo_id: ativoId,
+        p_data_ultima_revisao: dataUltimaRevisao,
+    });
+    if (error) throw error;
+    return data;
 }
 
 // NOVO (29/08/2026, pedido explícito) — marca o ativo como vendido E

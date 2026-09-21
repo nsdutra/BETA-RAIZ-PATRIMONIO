@@ -6,8 +6,35 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.218.0
-   LINHAS: 15104
+   VERSÃO: Beta v1.219.0
+   LINHAS: 15229
+   DATA: 20/09/2026 (correção pós-teste da AL.3/AL.4 — feedback do Nicola)
+   NOVIDADES (Beta v1.219.0) — 3 achados do Nicola testando ao vivo a
+   central de alertas (empresa Albuquerque Silva Participações), todos
+   QUA-01 (raiz + varredura, não só o caso testado): (1) tituloAlertaMotor/
+   subtituloAlertaMotor caíam no `default` (mostrava o código bruto do
+   banco, ex. "concentracao_locatario" literal) pra 8 tipos nascidos na
+   Fase AL.2 que nunca entraram nesses switches — cadastrados agora com
+   texto próprio; concentracao_locatario ganha locatário + % + valor/mês
+   (o pedido explícito: "qual concentração?"). (2) cib_pendente (único
+   tipo `por_tipo` fora de ACAO_GRUPO_POR_TIPO/tituloResumoPorTipo) gerava
+   o card agrupado genérico e inclicável ("9 alertas", sem onClick real) —
+   corrigido, e de passagem corrigido o bug maior por trás (afetava os
+   outros 6+ tipos por_tipo): o subtítulo do resumo caía sempre no texto
+   fixo "Toque pra ver no app" (frase de bot, não de app) em vez de nomear
+   a entidade. Grupos por_entidade (cofre_item_vencendo, revisao_valor_
+   pendente) invertidos pro padrão pedido: 1ª linha = quantidade + resumo,
+   2ª linha = entidade afetada (mesma gramática de .rz-row §8, não é
+   componente novo). (3) abrirAlertaDetalheSheet (sheet do alerta aberto)
+   tinha tipografia inline fora do catálogo rz-* (style="color:var(--pine)
+   /--sage" em texto de corpo — REGRAS §16) e empilhava 2-3 botões
+   rz-btn-2 rz-wide como itens de menu (zero nível 1, violando §0 regra 3
+   e o fluxo "conteúdo → ação contextual → Compartilhar" do §14): corpo
+   agora em .rz-desc, "Ação sugerida" em par rótulo/valor .rz-kv (mesmo
+   padrão de abrirFichaParte), "Ver/tratar" vira o único botão nível 1,
+   "Mais opções"/Compartilhar viram nível 3 — sem tocar no conteúdo do
+   menu "Mais opções" em si, que o Nicola já confirmou correto.
+   ------------------------------------------------------------------
    DATA: 20/09/2026 (Entrega AL.3 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
    NOVIDADES (Beta v1.218.0) — Entrega AL.3 (App: central de alertas
    unificada) da frente Resultados/Mercado/Fiscal. Chips de tema na tela de
@@ -117,24 +144,8 @@
    cofre-ativos.js →1.51.0.
    ------------------------------------------------------------------
    DATA: 19/09/2026 (rodada 10, entrega 2)
-   NOVIDADES (Beta v1.214.0) — pendência em aberto desde a mensagem de 4
-   pedidos da rodada 10 (item 4, "distribuição do contrato"): "Na aba
-   contratos no chip resumo de um contrato, deve aparecer a visão de
-   distribuição deste contrato abaixo de ocorrências. Utilize o mesmo
-   modelo que aparece nos ativos (propriedade) na aba resumo." Novo card
-   "Distribuição" no chip Resumo da ficha do contrato, logo abaixo de
-   Ocorrências — mesmo markup do card "Propriedade" da ficha do ativo
-   (.rz-card > .rz-card-h com h3+rz-sub+⋮, lista em .rz-row ícone+nome+%),
-   lendo divisao_repasse_contrato (rateio do aluguel entre proprietários —
-   fonte já existente, já usada no popup antigo "Detalhes do Contrato",
-   agora também exibida na ficha nova). ⋮ do card abre atalho pro
-   formulário de Editar contrato (onde a divisão já é editável há tempo,
-   exibirDivisaoImovelNoContrato) — nenhuma escrita nova, só exibição +
-   atalho. contratos.js v1.12.0. IMPORTMAP: contratos.js →1.12.0.
    ------------------------------------------------------------------
-   DATA: 19/09/2026 (rodada 10)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.213.0 … v1.213.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.214.0 … v1.214.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3551,7 +3562,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.218.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.219.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10912,6 +10923,26 @@
                 }
                 case 'documento_sem_vinculo': return 'Documento sem vínculo';
                 case 'cadastro_incompleto': return row.detalhe?.ativo_nome || 'Cadastro incompleto';
+                // AL.2 (20/09/2026) — ACHADO (feedback do Nicola testando ao vivo,
+                // empresa Albuquerque): estes 8 tipos, todos nascidos na Fase AL.2,
+                // nunca entraram neste switch — caíam no default e mostravam o
+                // CÓDIGO cru da tabela (ex.: "concentracao_locatario" literal na
+                // tela). QUA-01: achado o padrão, corrigidos todos de uma vez, não
+                // só o caso testado. Nomes batem com alerta_tipos.nome (catálogo).
+                case 'cib_pendente': return 'CIB pendente de preenchimento';
+                case 'fechamento_pendente': return 'Fechamento mensal pendente';
+                case 'pacote_contador_pendente': return 'Envio ao contador pendente';
+                case 'documento_fiscal_pendente': return 'Documento fiscal (NFS-e) pendente';
+                case 'indicadores_mes_pronto': return 'Indicadores do mês prontos para revisão';
+                case 'relatorio_carteira_pronto': return 'Relatório da carteira pronto';
+                case 'revisao_valor_pendente': return 'Revisão anual de valor pendente';
+                // Achado do Nicola (20/09/2026): título mostrava o código cru e o
+                // subtítulo só o nome do locatário, sem dizer QUAL concentração —
+                // o número (percentual) é o fato principal, vira o título.
+                case 'concentracao_locatario': {
+                    const pct = row.detalhe?.percentual;
+                    return pct != null ? `${pct}% da receita concentrada em 1 locatário` : 'Concentração de receita em 1 locatário';
+                }
                 default: return row.tipo_alerta;
             }
         }
@@ -10937,6 +10968,30 @@
             if (row.tipo_alerta === 'cadastro_incompleto') {
                 const campos = row.detalhe?.campos_faltando || [];
                 return campos.length ? `Falta: ${campos.join(', ')}` : 'Cadastro incompleto';
+            }
+            // AL.2 (20/09/2026) — mesmo achado do tituloAlertaMotor: os 6 tipos de
+            // rotina de empresa (fechamento, contador, NFS-e, relatório,
+            // indicadores, revisão de valor) são todos 'item_controle' vindos de
+            // fn_diario_cofre_item_vencendo, com data_referencia/dias no detalhe —
+            // mesmo idioma "venceu em/vence em" já usado em cofre_item_vencendo,
+            // pra não inventar um 2º jeito de dizer a mesma coisa (consistência).
+            const ROTINA_PENDENTE = ['fechamento_pendente', 'pacote_contador_pendente', 'documento_fiscal_pendente', 'revisao_valor_pendente'];
+            const ROTINA_PRONTA = ['indicadores_mes_pronto', 'relatorio_carteira_pronto'];
+            if (ROTINA_PENDENTE.includes(row.tipo_alerta) || ROTINA_PRONTA.includes(row.tipo_alerta)) {
+                const dataRef = row.detalhe?.data_referencia;
+                const dataTxt = dataRef ? formatarDataBR(dataRef) : '';
+                const fraseData = ROTINA_PRONTA.includes(row.tipo_alerta)
+                    ? (dataTxt ? `disponível desde ${dataTxt}` : 'disponível')
+                    : (dataTxt ? `${(row.dias ?? 0) < 0 ? 'venceu em' : 'vence em'} ${dataTxt}` : '');
+                // revisao_valor_pendente é o único deste grupo ligado a 1 ativo
+                // específico (os outros 5 são de escopo empresa, sem ativo_id).
+                return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${fraseData}` : fraseData;
+            }
+            // Achado do Nicola (20/09/2026) — faltava o valor/percentual, só o
+            // nome do locatário aparecia (sem dizer "concentração de quê").
+            if (row.tipo_alerta === 'concentracao_locatario') {
+                const valor = row.detalhe?.valor_total;
+                return valor != null ? `${row.detalhe.locatario} · ${formatarMoedaBR(valor)}/mês` : (row.detalhe?.locatario || '');
             }
             return row.detalhe?.locatario || row.titulo || '';
         }
@@ -11041,6 +11096,13 @@
             contrato_aguardando_assinatura: "switchTab('tab-contratos')",
             contrato_ativo_vendido_arquivado: "switchTab('tab-contratos')",
             cadastro_incompleto: "switchTab('tab-ativos')",
+            // AL.2 (20/09/2026) — ACHADO (Nicola, empresa Albuquerque): mesmo
+            // sintoma do documento_sem_vinculo abaixo — cib_pendente nasceu
+            // agrupável (agrupamento='por_tipo') na Fase AL.2 mas nunca ganhou
+            // ação de grupo. Card "9 alertas" sem onClick = não abria nada e
+            // não avisava por quê. CIB é campo do cadastro do ativo, mesma
+            // ação de cadastro_incompleto.
+            cib_pendente: "switchTab('tab-ativos')",
             // v1.194.0 (16/09/2026) — ACHADO investigando "alerta não navega
             // ao clicar" (pedido explícito do Nicola): este era o único tipo
             // agrupável (agrupamento='por_tipo') SEM ação de grupo — com 2+
@@ -11112,6 +11174,9 @@
                 case 'reajuste_aniversario': return `${n} contratos com reajuste pendente`;
                 case 'contrato_aguardando_assinatura': return `${n} contratos aguardando assinatura`;
                 case 'contrato_ativo_vendido_arquivado': return `${n} contratos em ativo vendido/arquivado`;
+                // AL.2 (20/09/2026) — achado do Nicola: faltava aqui (ver nota em
+                // ACAO_GRUPO_POR_TIPO acima).
+                case 'cib_pendente': return `${n} ativos com CIB pendente`;
                 default: return `${n} alertas`;
             }
         }
@@ -11122,7 +11187,32 @@
                 const maisAntigo = grupo.reduce((min, r) => (r.dias !== null && r.dias < min) ? r.dias : min, 0);
                 return `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total · a mais antiga venceu há ${Math.abs(maisAntigo)}d`;
             }
-            return `Toque pra ver no app`;
+            // AL.2 (20/09/2026) — ACHADO (Nicola, empresa Albuquerque): todo
+            // grupo sem tratamento especial (inclusive cib_pendente, que nem
+            // título tinha) caía neste "Toque pra ver no app" — frase de
+            // mensagem de BOT (onde faz sentido dizer "veja no app"), sem
+            // nenhum sentido estando JÁ dentro do app (REGRAS §14: card de
+            // alerta = "1 fato + 1 contexto", nunca uma instrução de toque).
+            // QUA-01: corrigido pra TODOS os tipos que caíam aqui, não só o
+            // testado — mostra a entidade mais urgente do grupo (mesma
+            // informação que apareceria se o alerta não tivesse agrupado).
+            const ordenado = [...grupo].sort((a, b) => (a.dias ?? 9999) - (b.dias ?? 9999));
+            const nomes = ordenado.map(r => r.detalhe?.ativo_nome || r.detalhe?.locatario || r.titulo).filter(Boolean);
+            const distintos = [...new Set(nomes)];
+            if (distintos.length === 0) return '';
+            return distintos.length === 1 ? distintos[0] : `${distintos[0]} e mais ${distintos.length - 1}`;
+        }
+
+        // Mesmo espírito de tituloResumoPorTipo (linha 1 = qtd + resumo), só
+        // que pro agrupamento por_entidade (hoje: cofre_item_vencendo,
+        // revisao_valor_pendente) — a entidade vai na 2ª linha (subtítulo),
+        // não aqui.
+        function tituloResumoPorEntidade(tipoAlerta, n) {
+            switch (tipoAlerta) {
+                case 'cofre_item_vencendo': return `${n} itens de controle vencendo`;
+                case 'revisao_valor_pendente': return `${n} revisões de valor pendentes`;
+                default: return `${n} pendências`;
+            }
         }
 
         function agruparEMapearAlertas(rows) {
@@ -11177,12 +11267,17 @@
                 if (grupo.length < limiarEnt) { grupo.forEach(r => itens.push(itemAvulso(r))); return; } // mesmo FIX do bloco acima
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
                 const ativoNome = grupo[0].detalhe?.ativo_nome || grupo[0].titulo || 'Ativo';
+                // AL.2 (20/09/2026) — ACHADO (Nicola, testando em Albuquerque):
+                // pedido explícito de padronizar TODO card agrupado (por tipo ou
+                // por entidade) como "1ª linha = qtd + resumo do alerta, 2ª linha
+                // = entidade afetada". Este bloco estava invertido (nome do ativo
+                // na 1ª linha, contagem genérica "N pendências" na 2ª) — trocado.
                 itens.push({
                     categoria: grupo[0].dominio || 'outro',
                     tipoAlerta: grupo[0].tipo_alerta,
                     dias: maisUrgente.dias,
-                    titulo: ativoNome,
-                    subtitulo: `${grupo.length} pendências`,
+                    titulo: tituloResumoPorEntidade(grupo[0].tipo_alerta, grupo.length),
+                    subtitulo: ativoNome,
                     onClick: `rzAbrirDestinoAlerta('${maisUrgente.alerta_chave}')`,
                 });
             });
@@ -11442,6 +11537,28 @@
             revisao_valor_pendente: { campo: 'valor_referencia', rotulo: 'Valor patrimonial atual (R$)', tipoInput: 'number', placeholder: 'Ex.: 850000' },
         };
 
+        // v1.219.0 — Nicola (20/09), teste ao vivo do alerta "Aguardando
+        // assinatura": tipografia inline (style="font-size...color:var(
+        // --pine)"/"--sage", fora do catálogo rz-* — REGRAS §16) e 2-3
+        // botões rz-btn-2 rz-wide empilhados como se fossem itens de menu,
+        // violando §0 regra 3 (só 1 botão preenchido por sheet — aqui
+        // eram ZERO nível 1 e vários nível 2 lado a lado) e o fluxo do
+        // "Alerta aberto" do §14 (conteúdo → ação sugerida → ação
+        // contextual → Compartilhar). Fix, sem tocar em nada que o
+        // Nicola já confirmou correto (o conteúdo de "Mais opções" segue
+        // o mesmo abrirAlertaMenuMarcas/abrirSheetAcoes de sempre):
+        //  - conteúdo → .rz-desc (classe já catalogada em §5 pra corpo de
+        //    card, 13px --muted — não mais 14px --pine, cor reservada a
+        //    primário/título);
+        //  - "Ação sugerida" → par rótulo/valor .rz-kv (mesmo padrão de
+        //    abrirFichaParte), não mais <b> solto com --sage (token
+        //    reservado a agrupador/status neutro, não corpo de texto);
+        //  - "Ver / tratar" vira o único botão nível 1 (a ação contextual
+        //    do §14) — nunca 2 preenchidos no mesmo sheet quando também
+        //    há campoAcao (que já tem seu próprio Salvar nível 1 acima);
+        //  - "Mais opções" e "Compartilhar" viram nível 3 (.rz-btn-3, já
+        //    cataloga do em §6 pro mesmo papel de "Depois"/"Agora não"),
+        //    lado a lado, nunca mais rz-wide/rz-btn-2 empilhado.
         async function abrirAlertaDetalheSheet(alertaChave) {
             const r = alertasPorChave.get(alertaChave);
             if (!r) { mostrarToast('Não encontrei esse alerta — a lista pode ter mudado.', 'danger'); return; }
@@ -11458,8 +11575,8 @@
                         <span class="rz-sub">${rzEsc(DOMINIO_ROTULO_ALERTA[r.dominio] || r.dominio || '')}</span>
                         <span class="rz-sub">· ${rzEsc(NATUREZA_ROTULO_ALERTA[r.natureza] || r.natureza || '')}</span>
                     </div>
-                    <p style="margin:0;font-size:14px;color:var(--pine)">${rzEsc(subtituloAlertaMotor(r))}</p>
-                    ${r.acao_sugerida ? `<p style="margin:8px 0 0;font-size:13px;color:var(--sage)"><b>Ação sugerida:</b> ${rzEsc(r.acao_sugerida)}</p>` : ''}
+                    <p class="rz-desc">${rzEsc(subtituloAlertaMotor(r))}</p>
+                    ${r.acao_sugerida ? `<div class="rz-kv" style="margin-top:10px"><div class="rz-full"><small>Ação sugerida</small><b>${rzEsc(r.acao_sugerida)}</b></div></div>` : ''}
                 </div>
                 ${campoAcao ? `
                 <div class="rz-card" style="margin-bottom:12px">
@@ -11473,26 +11590,34 @@
             const sheet = abrirSheet(rzSheetCabecalho(tituloAlertaMotor(r), null) + `<div class="rz-sh-b">${corpo}</div>`);
             const acoesEl = sheet.querySelector('#rz-alerta-acoes-corpo');
 
-            const botoesRodape = [];
-            if (r.destino_rota && !campoAcao) {
-                botoesRodape.push(`<button type="button" class="rz-btn rz-btn-2 rz-wide" onclick="fecharSheet(); rzAbrirDestinoAlerta('${chaveJs}')">Ver / tratar</button>`);
+            // Ação contextual (§14): 1 único botão nível 1, só quando há
+            // destino e o sheet ainda não tem o Salvar do campoAcao acima.
+            const acaoContextual = (r.destino_rota && !campoAcao)
+                ? `<button type="button" class="rz-btn rz-btn-1 rz-wide" onclick="fecharSheet(); rzAbrirDestinoAlerta('${chaveJs}')">Ver / tratar</button>`
+                : '';
+            const terciarios = [`<button type="button" class="rz-btn rz-btn-3" onclick="abrirAlertaMenuMarcas('${chaveJs}')">Mais opções</button>`];
+            if (acoesEl) {
+                acoesEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">` +
+                    acaoContextual +
+                    `<div id="rz-alerta-terciarios" style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap">${terciarios.join('')}</div></div>`;
             }
-            botoesRodape.push(`<button type="button" class="rz-btn rz-btn-2 rz-wide" onclick="abrirAlertaMenuMarcas('${chaveJs}')">Mais opções</button>`);
-            if (acoesEl) acoesEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">${botoesRodape.join('')}</div>`;
 
             // Compartilhar entra depois (chamada assíncrona ao banco) — só
             // aparece se vier texto; nunca pra alerta acionável/obrigatório
             // (fn_alerta_compartilhar_texto retorna '' nesses casos, §6).
+            // Nível 3 também, ao lado de "Mais opções" — nunca disputa
+            // espaço com o único botão preenchido (Ver/tratar).
             try {
                 const { data: texto, error } = await dbAuth.rpc('fn_alerta_compartilhar_texto', { p_alerta_chave: alertaChave });
                 if (error) throw error;
-                if (texto && acoesEl) {
+                const wrapTerciarios = sheet.querySelector('#rz-alerta-terciarios');
+                if (texto && wrapTerciarios) {
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = 'rz-btn rz-btn-2 rz-wide';
+                    btn.className = 'rz-btn rz-btn-3';
                     btn.innerHTML = '<svg data-lucide="share-2"></svg> Compartilhar';
                     btn.onclick = () => window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(texto), '_blank');
-                    acoesEl.querySelector('div')?.prepend(btn);
+                    wrapTerciarios.appendChild(btn);
                     if (typeof rzIcones === 'function') rzIcones();
                 }
             } catch (e) { console.warn('[alertas] fn_alerta_compartilhar_texto:', e.message); }

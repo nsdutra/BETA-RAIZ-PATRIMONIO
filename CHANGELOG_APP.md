@@ -4,6 +4,403 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.214.0) — pendência em aberto desde a mensagem de 4
+pedidos da rodada 10 (item 4, "distribuição do contrato"): "Na aba
+contratos no chip resumo de um contrato, deve aparecer a visão de
+distribuição deste contrato abaixo de ocorrências. Utilize o mesmo
+modelo que aparece nos ativos (propriedade) na aba resumo." Novo card
+"Distribuição" no chip Resumo da ficha do contrato, logo abaixo de
+Ocorrências — mesmo markup do card "Propriedade" da ficha do ativo
+(.rz-card > .rz-card-h com h3+rz-sub+⋮, lista em .rz-row ícone+nome+%),
+lendo divisao_repasse_contrato (rateio do aluguel entre proprietários —
+fonte já existente, já usada no popup antigo "Detalhes do Contrato",
+agora também exibida na ficha nova). ⋮ do card abre atalho pro
+formulário de Editar contrato (onde a divisão já é editável há tempo,
+exibirDivisaoImovelNoContrato) — nenhuma escrita nova, só exibição +
+atalho. contratos.js v1.12.0. IMPORTMAP: contratos.js →1.12.0.
+------------------------------------------------------------------
+DATA: 19/09/2026 (rodada 10)
+------------------------------------------------------------------
+Versões anteriores (v1.213.0 … v1.213.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.213.0) — 6 achados do Nicola em teste real da entrega
+anterior (rodada 9) que continuavam quebrados ou incompletos:
+1) Financeiro › Recebimentos/Saídas: a v1.9.0 (rodada 9) só REORDENOU a
+   data pra logo depois do nome, mas deixou o resto (pago em/vence em/
+   venceu em + imóvel + banco + categoria + parte/ativo) na mesma linha
+   de 1 truncamento só — em qualquer nome/categoria mais longo, esse
+   resto ainda cortava tudo antes da data aparecer. Fix de verdade: a
+   linha vira só a data nua, sem mais nada pra truncar por cima —
+   status já está no badge à direita; o resto (imóvel, banco, parte,
+   ativo, reembolsável) passou pro sheet de ações (toque no item) —
+   financeiro.js v1.10.0. 2) Chip Financeiro do contrato: mesmo padrão
+   (título na 1ª linha, só a data embaixo) — item sem data de pagamento
+   gravada mostrava texto "Vencido"/"A vencer" em vez de data real;
+   agora calcula a data de vencimento de verdade a partir da referência
+   + dia de vencimento do contrato — contratos.js v1.11.0. 3) Chip
+   Anexos do contrato: a v1.10.0 (rodada 9) trocou o X por
+   data-action="abrir-documento" copiando o padrão do módulo Cofre —
+   só que esse padrão só funciona depois que o Cofre já bootou (aba
+   Ativos aberta pelo menos 1x na sessão), o que nunca acontece vindo
+   direto de Contratos: o toque não fazia nada (parecia travado). Fix:
+   sheet de ações autocontido (Baixar/Excluir via Storage direto, sem
+   depender do Cofre) — contratos.js v1.11.0. 4) Lista de Ativos:
+   valorFmt (v1.48.0/v1.49.0, rodada 8/9) ESTAVA no código certo, mas a
+   linha inteira era 1 truncamento só — nome de locatário mais longo
+   escondia aluguel+valor por trás do "..." sem aparecer nunca. Fix
+   estrutural: linha em flex com 2 partes — locatário (trunca) e
+   aluguel+valor (fixo, nunca corta) — cofre-ativos.js v1.50.0.
+   5) Chip "Controles" do ativo: continuava escrevendo "N a vencer"
+   quando não havia nada realmente vencido/vence-hoje/pendente — agora
+   escreve "Em dia" nesses casos (mesmo texto de "nenhum alerta") —
+   cofre-controles.js v1.30.0. 6) Padrão "há/em xx d": "Vencido há Xd"
+   tinha a palavra "Vencido" redundante (o "Em Xd" positivo nunca teve
+   essa palavra extra) — removida nos 6 lugares que usavam esse texto
+   (cofre-ativos.js, cofre-controles.js ×3, cofre-documentos.js,
+   cofre-validacoes.js, contratos.js). IMPORTMAP: financeiro.js
+   →1.10.0, contratos.js →1.11.0, cofre-ativos.js →1.50.0,
+   cofre-controles.js →1.30.0, cofre-documentos.js →2.20.0,
+   cofre-validacoes.js →2.2.0.
+------------------------------------------------------------------
+DATA: 18/09/2026 (rodada 9)
+------------------------------------------------------------------
+Versões anteriores (v1.199.0 … v1.212.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.212.0) — 7 achados do Nicola em teste real (prints):
+1) Menu de editar nome do documento nascia atrás da Ficha do Documento
+   ainda aberta — .rz-veil (sheet) subiu de z-index:90 pra 97, acima de
+   .modal-overlay (96). 2) Data de cada linha em Financeiro › Recebimentos/
+   Saídas ficava cortada pelo truncamento de 1 linha (.rz-tx span) quando
+   havia muito texto antes dela — reordenada pra logo depois do dado
+   principal (financeiro.js v1.9.0). 3) Chip Financeiro do contrato:
+   label "venceu/vence/pago em" removido da frente da data (contratos.js
+   v1.10.0). 4) Chip Anexos do contrato: X de exclusão direta trocado
+   pelas ações padrão do documento (abre a Ficha, mesmo fluxo de
+   ativos) — contratos.js v1.10.0. 5) Lista de Ativos: imóvel alugado
+   ganhou o valor de mercado ao lado de locatário+aluguel
+   (cofre-ativos.js v1.49.0). 6) e 7) "Alerta vermelho na Faria Lima sem
+   item aparente" + telas de alerta fora do padrão "há/em xx d" — raiz
+   comum acima do que os prints mostravam: 3 lugares ainda pintavam de
+   âmbar qualquer prazo de 0 a 30 dias (chip "Controles" do ativo,
+   alertaCardHtml da tela de Alertas, badge de validade de documento),
+   destoando da régua já unificada em linhaAlertaHtml/ativoCardHtml
+   desde a rodada 4 — corrigidos os 3 (cofre-controles.js v1.29.0,
+   cofre-documentos.js v2.19.0, cofre-validacoes.js v2.1.0). IMPORTMAP:
+   financeiro.js →1.9.0, contratos.js →1.10.0, cofre-ativos.js →1.49.0,
+   cofre-controles.js →1.29.0, cofre-documentos.js →2.19.0,
+   cofre-validacoes.js →2.1.0.
+------------------------------------------------------------------
+DATA: 18/09/2026 (rodada 8)
+NOVIDADES (Beta v1.211.0) (pedido explícito, 18/09/2026: "Nos detalhes do
+arquivo deve ser possivel editar o nome. Tanto nos anexos de contrato,
+quanto ativos, itens de controle e os demais") — Ficha do Documento
+(#modal-ficha-doc) ganhou lapiseira ao lado do nome: editarNomeDocumentoAtual()
+nova em cofre-documentos.js v2.18.0, mesmo abrirSheetForm/gramática .rz-f
+já usada em fa-editar-nome (cofre-ativos.js), grava nome_exibicao via
+api.atualizarDocumento() (já genérica). Como abrirFichaDocumento() é o
+único fluxo que monta essa ficha pros 3 contextos citados pelo Nicola
+(anexo de contrato, de ativo, de item de controle), o botão único já
+cobre os 3. Markup duplicado em 2 lugares (cofre.html v1.28.0 e
+js/ativos/ativos-markup.js v1.43.0, mesmos ids) — os dois entraram
+junto. IMPORTMAP: cofre-app.js →1.32.5, cofre-documentos.js →2.18.0,
+ativos-markup.js →1.43.0.
+------------------------------------------------------------------
+NOVIDADES (Beta v1.210.0) — MERGE de 2 frentes que divergiram da mesma
+base sem se ver: a frente "app" (esta sessão, rodada 4) tinha corrigido
+o padrão "há/em xx d" (linhaAlertaHtml() e o mesmo padrão em
+cofre-ativos.js/cofre-controles.js/contratos.js/financeiro.js) sobre a
+v1.207.0; a frente "catálogo/documentos" (outra sessão, rodadas 5-6)
+tinha, na mesma v1.207.0, corrigido o filtro de "Tipo de documento" e o
+travamento de Categoria/Subcategoria (cofre-api.js v1.38.0,
+cofre-documentos.js v2.16.0) e depois adicionado o box "Documentos da
+empresa" (v1.209.0, ver bloco logo abaixo). Nenhuma das duas sessões viu
+a outra rodar. Peguei a v1.209.0 (que já continha 100% da v1.208.0 dela)
+como base e apliquei por cima só o que faltava — a correção
+"há/em xx d" em linhaAlertaHtml(), que ainda estava com o rótulo cru
+("13 dias") pra prazos de 1-14 dias. Nada de nenhuma das duas frentes foi
+perdido ou sobrescrito. Reflexo no IMPORTMAP: contratos.js e
+financeiro.js →1.8.0, cofre-ativos.js →1.47.0, cofre-controles.js
+→1.27.0 (versões que essas 4 sessões-app já tinham deployado nos
+próprios arquivos, mas que a v1.209.0 dela ainda apontava pra
+versões antigas por não ter visto o meu lado). APP_VERSAO sincronizada
+pra "Beta v1.210.0".
+------------------------------------------------------------------
+NOVIDADES (Beta v1.209.0) — box "Documentos da empresa" na aba Minha
+Empresa (pedido explícito, mesmo relato do Nicola da v1.208.0: "no menu
+empresa do app, deve ter um box pra anexar documentos... com as mesmas
+funções de um documento de contrato ou de ativo" — escolheu o padrão
+"Box simples", igual ao do Item de Controle, via pergunta direta antes
+de construir). Lógica nova em cofre-documentos.js v2.17.0
+(montarBoxDocumentosEmpresa/renderizarDocumentosEmpresa/
+carregarNovoDocumentoEmpresa/excluirDocumentoDaEmpresa — ver changelog
+do arquivo pro porquê de NÃO reaproveitar a Ficha do Documento nem o
+dispatcher central do Cofre aqui, achado investigando a arquitetura
+antes de codar: a aba Minha Empresa é de nível de App, pode ser aberta
+sem o módulo Ativos/Cofre nunca ter dado boot). Markup novo dentro de
+#tab-minha-empresa (index.html), import próprio em
+dev_carregarDadosEmpresa() (catch separado do de
+comum-minha-empresa.js — uma falha não derruba a outra). Vínculo
+entidade_tipo='empresa'/entidade_id=null, mesmo padrão já usado pelo
+"Vincular a › Empresa" do upload livre — nenhuma migration nova.
+------------------------------------------------------------------
+NOVIDADES (Beta v1.208.0) — MERGE: você fez deploy direto da v1.207.0
+(rodada 4, item 12/paridade — reajuste/contratos, ver bloco logo abaixo)
+antes de eu terminar esta rodada; as 2 sessões incrementaram
+Beta v1.206.0 → v1.207.0 em paralelo, sem se ver. Peguei sua v1.207.0
+já deployada (index.html + contratos.js v1.7.0, sem alteração minha) como
+base e apliquei por cima só o que era meu, agora como v1.208.0 — nada da
+sua v1.207.0 foi perdido ou sobrescrito. Corrigido de passagem: a
+const APP_VERSAO (usada na splash/Sobre) tinha ficado em "Beta v1.206.0"
+na v1.207.0 — o cabeçalho já estava certo, só o v-check não tinha
+acompanhado (mesmo tipo de deslize que corrigi em cofre-api.js nesta
+rodada — ver changelog do arquivo). Mais importante: o IMPORTMAP da
+v1.207.0 tinha ficado com "./js/contratos.js?v=1.6.0" — contratos.js em
+si já estava em 1.7.0 (o conteúdo novo foi deployado), mas a URL
+versionada que estoura cache não mudou junto. Corrigido pra ?v=1.7.0
+nesta v1.208.0 — sem isso, quem já tinha o app aberto/cacheado podia
+continuar rodando o contratos.js ANTIGO mesmo depois do seu deploy.
+O que é meu, de fato (2 achados reais do Nicola testando o upload de
+documento, relato + prints, 18/09/2026): (1) o seletor "Tipo de
+documento" no sheet de confirmação mostrava uma lista grande e sem
+filtro real — cofre-documentos.js v2.16.0 achou a causa: o agrupamento
+"Deste tipo de ativo" usava o campo antigo e quase sempre vazio
+cofre_controle_subtipos.tipo_ativo_aplicavel (vazio = "serve pra tudo",
+então não filtrava nada) em vez da aba Aplicabilidade do Gestão
+(cofre_subtipo_aplicabilidade, a fonte real) — trocado, junto do mesmo
+filtro no seletor de subtipo do bloco "Controlar vencimento"
+(api.listarAplicabilidadeSubtipos() nova, cofre-api.js v1.38.0). (2) o
+campo Categoria › Subcategoria "travava" de volta no valor anterior
+sempre que trocado à mão sem um Tipo de documento escolhido —
+aplicarPadroesCategoriaUpload() delegava pra uma função que recalculava
+e sobrescrevia a categoria a partir do subtipo/IA, ignorando a escolha
+manual; corrigido.
+------------------------------------------------------------------
+NOVIDADES (Beta v1.207.0, demanda item 12/paridade) — corrigido o
+descompasso entre o alerta de "contrato precisa de revisão" do App e o
+detector do bot (fn_diario_contratos_aniversario_reajuste): uma edição
+GENÉRICA de contrato que só muda o "Valor do aluguel" (fora do fluxo
+dedicado "Lançar reajuste") gravava a entrada de histórico com
+tipo='alteracao' em sincronizarContratoSupabase() — e como
+carregarContratosSupabase() reconstrói `alteracoes` de forma genérica a
+partir de h.tipo depois de qualquer reload (não guarda mais o rótulo
+"Valor do aluguel"), NEM o próprio App nem o bot reconheciam essa edição
+como um reajuste depois de recarregar a página: o contrato voltava a
+contar os 12 meses a partir do início/última revisão anterior, mesmo
+tendo sido reajustado. Agora a entrada nasce com tipo='reajuste' sempre
+que a lista de alterações inclui "Valor do aluguel", igual ao fluxo
+dedicado. Também alinhados com o SQL do bot: contratoPrecisaRevisao()
+passou a usar "<=" (não mais "<") na comparação dos 12 meses, e
+obterUltimaVigenciaValor() ganhou o 3º nível de fallback (tipo=
+'assinatura') que o bot já tinha, pro caso de um contrato ser reassinado
+sem passar pelos fluxos dedicados de reajuste/renovação.
+------------------------------------------------------------------
+NOVIDADES (Beta v1.206.0) — pedido explícito do Nicola: menu "Tipos e
+modelos" desagrupado — "Modelos de controle" saiu do menu (a tela não
+foi apagada, só perdeu o ponto de entrada — ver nota em
+abrirMenuTiposModelos() removida, junto de abrirMenuConta()); "Tipo de
+empreendimento" e "Documentos arquivados" (os 2 que sobraram) viraram
+itens diretos do menu Cadastros, sem submenu. Formulário de Modelos de
+controle (cofre-controles.js v1.26.0) passou a gravar escopo_tipo/
+escopo_valor em vez do tipo_ativo deprecated — condição que segurava a
+remoção do item do menu numa rodada anterior.
+------------------------------------------------------------------
+NOVIDADES (Beta v1.205.0) — E15.3 fechada na mesma sessão (demanda
+abd1a73f): levantamento mostrou que o receio que travava essa migração
+(imoveis.tipo_id "ainda lido por outras partes do sistema legado") não
+procede mais — 0 função SQL ativa lê esse campo, cofre_ativos.
+tipo_detalhe_id já bate 100% (104/104) com ele, e o form de editar
+ativo já não escreve em `imoveis` desde a Onda 12. "Tipo de imóvel"
+saiu do menu "Tipos e modelos" (catálogo virou global master-only, aba
+"Tipos de ativo" do Raiz Gestão). js/cofre-ativos.js v1.46.0: campo
+"Tipo específico" destravado também pra ativo vinculado na edição
+(antes só avulso podia). imoveis.tipo_id/tipos_imovel ficam congelados
+no banco (COMMENT ON), não apagados.
+------------------------------------------------------------------
+NOVIDADES (Beta v1.204.0) — feedback do Nicola na rodada 2 da Onda 2 do
+catálogo (item 6): removidos do menu "Tipos e modelos" os itens
+"Categoria de documento" e "Sub-tipos de item de controle" —
+abrirConfiguracaoCofre('categorias'/'subtipos') não é mais a fonte de
+verdade, virou catálogo global na aba Subtipos do Catálogo do patrimônio
+(Raiz Gestão) desde a Onda 2. Ver ENTREGA_20260918_catalogo-r2b.md.
+------------------------------------------------------------------
+NOVIDADES (Beta v1.203.0) — execução da demanda f60fe32e (achados
+deixados em aberto na entrega da v1.202.0) + 1 bug real achado pelo
+Nicola em print: (1) manifest.json: background_color/theme_color
+("#0f172a"/"#1e40af", sobra de paleta antiga, não batiam com nenhum
+token do Design System) trocados pra "#1e3a32" (--pine, a mesma cor
+de fundo real da splash/header — --color-emerald-900 já é um alias
+de --pine). (2) botão de IA da splash ganhou o chip de convite "Fale
+com a Raiz IA" do protótipo aprovado (#splash-ia-tooltip): aparece só
+na 1ª vez que a pessoa vê a splash NESTE aparelho (chaveLocal, mesmo
+padrão de outras flags por instalação), some sozinho depois de ~6s ou
+ao tocar em qualquer lugar da tela; sem localStorage (aba anônima),
+simplesmente não aparece — não quebra o botão. Demanda f60fe32e
+encerrada (fn_demanda_encerrar) com os 2 itens resolvidos. (3) BUG
+REAL, achado root-cause (print do Nicola: ficha do ativo "Av. Faria
+Lima, 3000" mostrando 2 chips "Documento" idênticos na aba Anexos em
+vez do nome de cada categoria) — js/cofre-api.js listarCategorias()
+filtrava só `cliente_id = clienteId`, que no Postgres NUNCA bate com
+`cliente_id IS NULL`; as 34 categorias hoje cadastradas são TODAS
+globais (catálogo padrão Raiz, nenhum cliente ainda tem categoria
+própria), então estado.categorias vinha SEMPRE vazio pra QUALQUER
+tenant — todo documento caía no fallback genérico "Documento"
+(afetava também o sheet "Categorizar", que abria com a lista de
+ações vazia). Corrigido pro mesmo `.or('cliente_id.is.null,cliente_id.eq.…')`
+já usado em ativo_tipos/cofre_controle_subtipos/cofre_modelos_item_controle
+— ver changelog completo em cofre-api.js v1.37.1. QUA-01: procurado o
+mesmo padrão (`.eq('cliente_id'` sem `.or()`) no resto do arquivo —
+nenhuma outra ocorrência do mesmo bug encontrada. (4) ÍCONE MASKABLE
+v2 — Nicola testou a v1.202.0 no aparelho real e reportou que o
+selo interno ainda aparecia como um "quadrado com cantos
+arredondados" visível por cima do verde (a v1.202.0 só tinha
+encolhido o selo pra 66,7% do canvas, mas não removeu a borda do
+próprio selo). icon-maskable-192.png/512.png recompostos: máscara
+geométrica "manter" (retângulo arredondado calculado a partir do
+raio real de corte da máscara adaptativa do Android) preserva 100%
+dos pixels internos (texto "RAIZ/PATRIMÔNIO", skyline, fita "BETA"
+intactos) e substitui só o anel/cantos da borda por extrapolação do
+próprio verde vizinho (nearest-neighbor + suavização), sem branco/
+transparência residual — resultado é uma superfície verde uniforme
+sem nenhuma borda interna visível, testado sob máscara circular e
+squircle. (5) TELA "escolha qual entrar" (multi-empresa) — Nicola
+reportou (print) o botão dourado de IA sobrepondo o título "GESTÃO
+PATRIMONIAL INTELIGENTE" quando a lista de empresas era longa: o
+botão é `position:absolute` fixo na tela, mas a splash inteira (foto+
+título+lista) rolava por baixo dele como uma coluna só, então o
+header acabava passando por trás do botão. Corrigido sem redesenhar
+o botão: nova classe `.splash-lista-ativa` (aplicada só quando a
+seleção de empresa está visível) transforma o layout em cabeçalho
+fixo + rodapé fixo + só `#lista-selecao-empresa` rola internamente
+(flex `min-height:0`), com `scrollbar-width:none`/`::-webkit-
+scrollbar{display:none}` pra não mostrar barra de rolagem; removida
+também a borda visível do `<select>` de filtro de planos. Validado
+via Playwright com lista de 12 empresas simulando rolagem no meio.
+NOVIDADES (Beta v1.202.0) — 3 ajustes explícitos do Nicola na tela de
+abertura (splash/login), proposta+protótipo aprovados em sessão
+separada de UX antes desta entrega: (1) ícone do app (icon-maskable-
+192/512.png) — corrigido o "halo branco" visto no launcher do
+celular (print real, Samsung One UI): o selo (badge arredondado com
+borda branca própria) ocupava ~78% do canvas, quase colando na borda
+— qualquer máscara do launcher (círculo, squircle) cortava rente à
+borda branca do selo, sobrando um risco/anel branco visível. Selo
+reduzido pra 66,7% (mesma proporção 72dp/108dp da zona seguro de
+ícone adaptativo Android), recentralizado sobre o mesmo verde de
+fundo — pixel do selo em si INALTERADO, só escala e posição; icon-
+192.png/icon-512.png (purpose "any", não usados pelo launcher
+adaptativo) ficaram como estavam. (2) botão do robô da tela de login
+(#btn-falar-bot-splash) — trocado o mascote verde-escuro com anel
+branco fino (v1.40.3) pela MESMA linguagem visual de IA já usada no
+cabeçalho pós-login (.rz-hdr .rz-ia: círculo brass, ícone sparkles,
+sombra em vez de contorno — REGRAS_EXPERIENCIA §15/16, brass é cor
+EXCLUSIVA de IA/Robô) — deixa de parecer um elemento solto e passa a
+se identificar como o mesmo convite de IA do resto do app; ganhou um
+pulso brass sutil (chamar atenção sem ser irritante) e foi reposto-
+sicionado (right:66px, longe do canto onde fica o botão oculto
+"Sou sócio", right:16px, sem colidir quando os dois aparecem juntos).
+Handler (abrirBotWhatsapp) e telemetria (eventos_landing, origem
+app_splash) intocados — só visual e posição mudaram. CSS morta do
+mascote antigo (.raiz-bot-eye/@keyframes raiz-bot-blink, só usada
+ali) removida junto. (3) Imagem de fundo da tela de login MANTIDA
+sem alteração — decisão explícita do Nicola de não trocar a foto
+atual (Unsplash skyline) por nenhuma das opções propostas.
+NOVIDADES (Beta v1.201.0) — 2 ajustes do Nicola em cima da v1.200.0:
+(1) "Remover acesso ao sistema" (⋮ de Pessoas) travava só pro master —
+agora trava pra admin também (mesma proteção de "Excluir pessoa"), com
+2ª trava dentro da própria função (mesmo padrão de excluirPessoa()) —
+ver comum-pessoas.js v2.1.0. (2) Tela "Minhas notificações" (menu
+Conta) redesenhada: a seção "Alertas e avisos automáticos" ganhou o
+MESMO padrão visual/comportamental (toggle liga/desliga) da seção
+"Comunicações da Raiz" logo abaixo — cada aviso salva na hora ao tocar
+o toggle ou trocar a frequência, sem botão de salvar em lote (saiu
+"Salvar meus avisos"); os 2 títulos continuam separados, são conceitos
+diferentes (alertas do patrimônio × comunicações da equipe). Essa
+MESMA tela agora também abre a partir do ⋮ "Comunicações" da própria
+pessoa logada na aba Pessoas (window.abrirPreferenciasComunicacao,
+exposta no Object.assign(window,...) — hoisting de function
+declaration cobre a referência antes da declaração física no arquivo);
+pra outra pessoa (fluxo admin), o ⋮ continua abrindo o Sheet local de
+alertas (a seção "Comunicações da Raiz" é conta de terceiro, não se
+aplica), que também ganhou o mesmo toggle com salvamento imediato.
+NOVIDADES (Beta v1.200.0) — pedido explícito do Nicola (18/09/2026):
+"A tela de pessoas ficou no formato antigo de leiaute, fora do
+padrão. Deve ser totalmente reescrita. Além disto, sou master e não
+consegui ver todas as pessoas cadastradas." Dois pedidos, os dois
+fechados nesta versão (demanda 37b011d3, aberta desde 13/09 sem
+escopo, encerrada nesta entrega): (1) BUG REAL corrigido — a
+migration da v1.199.0 (bc9df144) tinha inserido o código
+`pessoas.ver_todas` só em `perfil_funcionalidade`, faltando o lado
+`plano_funcionalidade` que `fn_checar_funcionalidade()` de fato
+consulta (regra ACE-01, gate duplo plano×perfil) — resultado: TODO
+MUNDO, inclusive master, ficava bloqueado. Corrigido com migration
+aditiva `catalogo_appdev_v2_plano_pessoas_ver_todas` (mesmos 4 planos
+de pessoas.editar); verificado ao vivo via
+fn_checar_funcionalidade() retornando liberado:true. (2) REESCRITA
+TOTAL de js/comum-pessoas.js (v1.7.0 → v2.0.0) na gramática atual —
+cartão com expansão inline + botão único "Salvar pessoas" (herdados
+do app-dev original) viraram .rz-row + Sheets, mesmo padrão do módulo
+Partes: ⋮ único por pessoa (Sheet de ações: editar dados, perfil de
+acesso, comunicações, acessos recentes, criar/vincular/remover
+acesso, excluir), Ficha de leitura (.rz-card/.rz-kv) ao tocar na
+linha, "+" abrindo o Sheet de nova pessoa direto. Camada de dados
+intocada (mesmas 3 funções que "Minhas notificações" já importa
+direto). ACHADO DE GOVERNANÇA registrado como demanda nova (não
+corrigido nesta entrega): cofre.html standalone não carrega os
+helpers de Sheet do App — dentro do Cofre, as ações Sheet-dependentes
+desta tela mostram o mesmo aviso "só dentro do app principal" que o
+resto do Cofre já usa (ver changelog completo em comum-pessoas.js).
+NOVIDADES (Beta v1.199.0) — bc9df144 (decisão Nicola, 17/09/2026):
+desmonte completo do módulo "app-dev" (Configurações > Sistema),
+redistribuindo as 12 funções pra endereços definitivos, nunca mais
+atrás do gesto de 2 cliques no logo (ELIMINADO, CAN-05 — não existe
+mais nenhum caminho pra essa área no App). (1) Config > Pessoas:
+dev_renderPessoas() ganhou visão "só eu" por padrão (autoFiltro),
+admin com pessoas.ver_todas vê todo mundo; cada pessoa ganhou
+"Acessos recentes" (js/comum-pessoas.js v1.199.0) puxando
+carregarLogsSupabase() por pessoa — substitui o antigo log único da
+empresa inteira. (2) e-mails por pessoa (opt-in, disparo manual,
+config de envio automático) MIGRADOS pra Gestão > Comunicações,
+modo "Pessoas" novo (js/telas/comunicacoes.js v0.4.0, Gestão) — precisou
+de 4 RPCs novas (gestao.fn_config_email_automatico_obter/definir,
+gestao.fn_pessoa_comunicacoes_obter/definir, SECURITY DEFINER, gate
+fn_sou_master(), migration gestao_comunicacoes_pessoas_v1) porque a
+RLS de clientes/pessoas/pessoa_preferencias_comunicacao só libera via
+meus_clientes() e a equipe Raiz não tem esse vínculo. (3) "Apagar
+Empresa e Acessos" MIGRADO pra Gestão > Empresas (js/telas/empresas.js
+v0.15.0, Gestão), único item de manutenção que sobreviveu — chama
+fn_apagar_empresa_completa() sem alterá-la. (4) "Limpar Sistema desta
+Empresa" e "Importar Carga Inicial" ELIMINADOS do App inteiro (CAN-05):
+o primeiro mirava a view de compatibilidade `imoveis` e já estava
+quebrado em produção; o segundo dependia de saveAll()/estado em
+memória, não portável — registrado em 2fb2153a. (5) log de sistema
+único (dev_carregarLogsSistema, dev_popularFiltrosLog) ELIMINADO —
+virou "Acessos recentes" por pessoa (item 1); trazer filtros
+avançados pra Gestão > Empresas fica como avaliação soft, não feita
+nesta rodada. (6) painel de licença duplicado (dev_carregarLicenca e
+afins) ELIMINADO — a tela real (tab-licenca) já mostra a mesma
+informação. (7) gerenciador de links da Vitrine
+(dev_carregarLinks/dev_apagarLink*) reescrito na gramática atual
+(carregarLinksVitrine/revogarLinkVitrine/apagarTodosLinksVitrine/
+apagarLinksVitrineExpirados, .rz-row + abrirSheetAcoes) e virou item
+de menu próprio dentro de Configurações (admin-only, catalog
+vitrine.links.gerenciar). (8) "Trocar de empresa" removido por ora
+(retomada em ccd04ad4). Achado incidental (QUA): dev_carregarAcessos/
+dev_limparAcessos eram código morto (array `acessos` permanentemente
+vazio desde a aposentadoria do Apps Script) — removidos junto.
+------------------------------------------------------------------
+Versões anteriores (v1.198.0 … v1.198.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.194.0) — pedidos explícitos do Nicola (16/09/2026,
 tenant "Albuquerque Silva Participações"): (1) alerta de reajuste
 pendente disparava mesmo com Renovação/Reajuste registrado há menos de
