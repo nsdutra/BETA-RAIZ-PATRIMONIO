@@ -1,6 +1,32 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.56.0 · 21/09/2026
+// Versão: 1.57.0 · 21/09/2026
+//
+// v1.57.0 (demanda b46e30fa, continuação — pedido explícito do Nicola após a
+// v1.56.0: "minha intenção é sim levar o cartão do ativo pro padrão por
+// exemplo do componente de contratos sem mexer no texto e exposição do
+// conteúdo do cartão") — o CONTAINER e a MOLDURA do cartão de ativo agora
+// seguem o mesmo componente que a lista de Contratos usa (contratos.js
+// renderContratos(): 1 `.rz-card.rz-list` por grupo/empreendimento, com
+// `.rz-row` dividido por `border-top` entre os itens), no lugar da grade de
+// caixas soltas (`.card-ativo` individual + `space-y-2`). Trocado em
+// renderAtivosLista(): `<div class="space-y-2">` → `<div class="rz-card
+// rz-list">`. Trocado em ativoCardHtml() (as 2 variantes — imóvel com resumo
+// e ativo genérico): `<button class="card-ativo ...">` → `<div class="rz-row
+// rz-link" role="button" tabindex="0" data-action="abrir-ativo" ...>`
+// (mesma delegação de clique de sempre, cofre-app.js; teclado via
+// onkeydown Enter/Espaço, igual ao padrão de contratos.js); ícone raiz
+// `w-12 h-12 rounded-xl` (48px) → `.rz-ic` (42px/12px, tile), igual
+// contratos; adicionado `.rz-chev` (seta) no fim da linha, igual contratos
+// (indica "toque para abrir", não existia antes). TEXTO/CONTEÚDO EXPOSTO
+// NÃO MUDOU: as mesmas linhas de sempre (nome, valor de mercado, locatário/
+// modelo, aluguel/identificador — decidido com o Nicola em v1.44.0/
+// v1.51.0/v1.52.0) viraram `<b>`/`<span>` dentro de `.rz-tx` — a CSS de
+// `.rz-row .rz-tx span` (DESIGN_SYSTEM, index.html) já é `display:block`,
+// então cada `<span>` empilha numa linha, sem precisar de nenhuma classe
+// nova. Selo de status (Alugado/Assinando/Vago) e chip de vencimento
+// mantidos exatamente como eram, agora dentro de `.rz-rt`. Agrupamento por
+// empreendimento (`.rz-group`, já corrigido na v1.56.0) mantido intocado.
 //
 // v1.56.0 (demanda b46e30fa — registrada como "lista de imóveis no padrão
 // das demais listas", mas tab-imoveis/imoveis.js está desligada desde
@@ -718,7 +744,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1074,7 +1100,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     });
     container.innerHTML = nomesGrupos.map(nome => `
         <div class="rz-group">${escapeHtml(nome)} · ${grupos[nome].length}</div>
-        <div class="space-y-2">${grupos[nome].map(ativoCardHtml).join('')}</div>
+        <div class="rz-card rz-list">${grupos[nome].map(ativoCardHtml).join('')}</div>
     `).join('');
 
     const vazio = document.getElementById('ativos-estado-vazio');
@@ -1295,21 +1321,22 @@ function ativoCardHtml(a) {
         // resumo agora tem até 4 linhas de texto (nome + valor + locatário
         // + aluguel) — mais alto que o card genérico (nome + 1 linha) de
         // propósito, ver nota acima.
-        return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex gap-3 items-center">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none overflow-hidden" style="background:var(--tile);color:var(--pine)">
-                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<i data-lucide="home" style="width:20px;height:20px"></i>`}
+        return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
+            <div class="rz-ic"${resumoImovel.foto ? ' style="overflow:hidden"' : ''}>
+                ${resumoImovel.foto ? `<img src="${resumoImovel.foto}" class="w-full h-full object-cover">` : `<svg data-lucide="home"></svg>`}
             </div>
-            <div class="flex-1 min-w-0">
-                <h3 class="text-xs font-extrabold truncate" style="color:var(--pine)">${escapeHtml(a.nome_exibicao)}</h3>
-                ${valorFmt ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(valorFmt)}</p>` : ''}
-                ${linhaLocatario ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(linhaLocatario)}</p>` : ''}
-                ${aluguelFmt ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(aluguelFmt)}</p>` : ''}
+            <div class="rz-tx">
+                <b>${escapeHtml(a.nome_exibicao)}</b>
+                ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
+                ${linhaLocatario ? `<span>${escapeHtml(linhaLocatario)}</span>` : ''}
+                ${aluguelFmt ? `<span>${escapeHtml(aluguelFmt)}</span>` : ''}
             </div>
-            <div class="flex flex-col items-end gap-1 flex-none">
+            <div class="rz-rt">
                 ${badgeHtml}
                 ${chip ? chip.html : ''}
             </div>
-        </button>`;
+            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+        </div>`;
     }
 
     // Card genérico (ativos que não são imóvel, ou imóvel sem resumo
@@ -1329,16 +1356,17 @@ function ativoCardHtml(a) {
     // "·" solto nem linha em branco — some inteira, como já era o padrão
     // no resto da lista.
     const modeloAtivo = a.dados_especificos?.modelo || null;
-    return `<button data-action="abrir-ativo" data-id="${a.id}" class="card-ativo w-full p-3 text-left flex items-center gap-3">
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-none" style="background:var(--tile);color:var(--pine)"><i data-lucide="${iconeAtivo(a.tipo_ativo)}" style="width:20px;height:20px"></i></div>
-        <div class="min-w-0 flex-1">
-            <p class="text-xs font-extrabold truncate">${escapeHtml(a.nome_exibicao)}</p>
-            ${valorFmt ? `<p class="text-xs text-slate-500 mt-0.5 truncate">${escapeHtml(valorFmt)}</p>` : ''}
-            ${modeloAtivo ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(modeloAtivo)}</p>` : ''}
-            ${identificadorDocumento ? `<p class="text-xs text-slate-500 truncate">${escapeHtml(identificadorDocumento)}</p>` : ''}
+    return `<div class="rz-row rz-link" role="button" tabindex="0" data-action="abrir-ativo" data-id="${a.id}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
+        <div class="rz-ic"><svg data-lucide="${iconeAtivo(a.tipo_ativo)}"></svg></div>
+        <div class="rz-tx">
+            <b>${escapeHtml(a.nome_exibicao)}</b>
+            ${valorFmt ? `<span>${escapeHtml(valorFmt)}</span>` : ''}
+            ${modeloAtivo ? `<span>${escapeHtml(modeloAtivo)}</span>` : ''}
+            ${identificadorDocumento ? `<span>${escapeHtml(identificadorDocumento)}</span>` : ''}
         </div>
-        ${chip ? chip.html : ''}
-    </button>`;
+        ${chip ? `<div class="rz-rt">${chip.html}</div>` : ''}
+        <svg data-lucide="chevron-right" class="rz-chev"></svg>
+    </div>`;
 }
 
 // ============================================================================

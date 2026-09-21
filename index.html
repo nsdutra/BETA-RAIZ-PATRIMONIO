@@ -6,10 +6,35 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.230.0
-   LINHAS: 15502
-   DATA: 21/09/2026 (demanda b46e30fa — checklist do soft launch, item
-   crítico: lista de Ativos fora da gramática de chips e agrupador)
+   VERSÃO: Beta v1.232.0
+   LINHAS: 15511
+   DATA: 21/09/2026 (demanda 8ed523d1 — CRÍTICO C6 do checklist de soft
+   launch, prazo 27/09: contador de ativos sumido do cabeçalho)
+   NOVIDADES (Beta v1.232.0) — CORRIGIDO (demanda 8ed523d1): a causa raiz
+   já tinha sido diagnosticada numa rodada anterior (18/09/2026, ver
+   histórico da própria demanda) mas o fix nunca tinha sido aplicado —
+   atualizarContextoHeader() (linha ~9314) registrava direto no evento
+   'cofre:dados-carregados'; como esse listener vive num script inline
+   (roda no parse, antes de qualquer módulo ES) e o listener que seta
+   `window.__cofreAtivos` vive em cofre-app.js (módulo, sempre deferido),
+   o de cabeçalho SEMPRE rodava primeiro e nunca via a contagem certa —
+   o cabeçalho ficava permanentemente sem "· N ativos", não só por alguns
+   segundos como o comentário do código previa. Corrigido com
+   `setTimeout(atualizarContextoHeader, 0)` dentro do listener (mesmo
+   padrão já usado nas linhas ~9281/~9532 deste arquivo) — independe da
+   ordem de registro dos listeners no mesmo evento. Sem migration, sem
+   mudança de outro arquivo.
+   NOVIDADES (Beta v1.231.0) — CORRIGIDO (demanda b46e30fa, parte 2):
+   js/cofre-ativos.js v1.56.0→v1.57.0 — o cartão de ativo na lista de
+   Ativos (agrupada por empreendimento) trocou a moldura de caixas soltas
+   (`.card-ativo` + `space-y-2`) pelo mesmo componente que a lista de
+   Contratos usa: `.rz-card.rz-list` por grupo, com `.rz-row` dividido por
+   linha (ícone `.rz-ic`, texto `.rz-tx`, selo/chip `.rz-rt`, seta
+   `.rz-chev` no fim — igual contratos.js). TEXTO E CONTEÚDO EXPOSTO NO
+   CARTÃO NÃO MUDARAM (mesmas linhas de sempre: nome, valor de mercado,
+   locatário/modelo, aluguel/identificador — decidido com o Nicola em
+   rodadas anteriores), só a moldura ao redor. Demanda b46e30fa mantida
+   ABERTA a pedido do Nicola (ver demanda para o que falta).
    NOVIDADES (Beta v1.230.0) — CORRIGIDO (demanda b46e30fa): registrada
    como "lista de imóveis", mas tab-imoveis está desligada desde v1.108.0
    (decisão do Nicola) e não é mais vista por nenhum usuário — quem abre
@@ -51,39 +76,8 @@
    conversa.)
    ------------------------------------------------------------------
    DATA: 21/09/2026 (Entrega A.7 — "Certo, vamos em frente na implementação!")
-   NOVIDADES (Beta v1.227.0) — Entrega A.7 (PLANO_IMPLEMENTACAO_RESULTADOS_
-   MERCADO_FISCAL v2.0.0 / ESP v1.3.0 §8): chip "Financeiro" da Ficha do
-   ativo vira "Performance" — js/ativos/ativos-markup.js v1.43.0→v1.44.0
-   (rótulo, contador saiu), js/cofre-ativos.js v1.54.0→v1.55.0
-   (montarFinanceiroAtivo reescrita: saiu o grid de Movimentações — ESP C5
-   —, entraram 2 KPIs do ano, gráfico "Recebimento mês a mês" novo e o
-   grid de 10 campos com a mediana da carteira pra comparar — ESP C4),
-   js/cofre-api.js v1.41.0→v1.42.0 (buscarPerformanceAtivo/
-   buscarResultadoMensalAtivo, novas — consomem fn_performance_ativo e
-   fn_resultado_mensal, ambas já existentes desde a Entrega A.1; nenhuma
-   migration nesta entrega). Card "Revisão anual de valor" (ESP §8.1/C6)
-   fica de fora — critério de pronto próprio da Entrega R.4, depende da
-   Fase B1.1 (índice IVG-R) que ainda não existe.
    ------------------------------------------------------------------
-   DATA: 21/09/2026 (Entrega A.6 reduzida — "Certo, avance na implementação!"
-   → escolha explícita do Nicola: "A.6 reduzida, mesmo padrão da A.3")
-   NOVIDADES (Beta v1.226.0) — js/contratos.js v1.12.0→v1.13.0: 5º chip
-   "Renovação" na Ficha do contrato (REGRAS §10: Resumo · Cobranças ·
-   Renovação · Partes · Anexos) — "Pelo contrato" com aluguel, índice
-   cadastrado e próximo aniversário (ESP §7); "Pelo mercado" e "Negociar
-   acima do índice" (IA) em estado vazio honesto, mesma razão da A.3 (Fase
-   de Indicadores do roadmap ainda não existe no banco). Ações "Aplicar o
-   reajuste contratual"/"Renovar o contrato" reaproveitam 100% as funções
-   já existentes, nenhuma ação nova. Junto: salvarReajusteContratoPopup()
-   trocou de contratos.update()+historico_contrato.insert() direto pra
-   fn_contrato_reajustar (migration contratos_fn_reajustar_v1, nova função
-   central, mesmo padrão de fn_contrato_renovar) — fecha a demanda
-   8380419b ("Criar fn_contrato_reajustar com vigência estruturada").
-   ------------------------------------------------------------------
-   DATA: 21/09/2026 (pedido explícito ao vivo, testando A.3/A.4: "o icone i
-   deve entrar em todos os cards desta tela")
-   ------------------------------------------------------------------
-   Versões anteriores (v1.225.0 … v1.225.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.227.0 … v1.227.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -107,7 +101,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.1","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.56.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.1","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.57.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3537,7 +3531,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.230.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.232.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9314,7 +9308,22 @@
             }
             el.textContent = partes.length ? partes.join(' · ') : 'Raiz Patrimônio';
         }
-        window.addEventListener('cofre:dados-carregados', atualizarContextoHeader);
+        // CORRIGIDO v1.232.0 (demanda 8ed523d1, causa raiz já diagnosticada
+        // em rodada anterior, 18/09/2026) — o listener rodava DIRETO neste
+        // mesmo evento; como este script é inline (roda no parse, antes
+        // de qualquer módulo ES) e cofre-app.js é módulo (sempre deferido),
+        // este listener SEMPRE registra primeiro e por isso SEMPRE executa
+        // primeiro quando o evento dispara — antes do listener de
+        // cofre-app.js:791 que seta window.__cofreAtivos. Resultado: a
+        // função sempre lia __cofreAtivos ainda undefined e nunca mostrava
+        // a contagem (não por alguns segundos, como o comentário acima
+        // previa — permanentemente, até o próximo evento redisparar, o que
+        // nunca acontecia de novo). Fix (opção "a" do diagnóstico, mesmo
+        // padrão já usado nas linhas ~9281/~9532 deste arquivo):
+        // setTimeout(...,0) empurra a leitura pro próximo tick, depois que
+        // TODOS os listeners síncronos do mesmo dispatchEvent (inclusive o
+        // de cofre-app.js) já rodaram — independe da ordem de registro.
+        window.addEventListener('cofre:dados-carregados', () => setTimeout(atualizarContextoHeader, 0));
 
         // v1.177.0 — forcarLayoutHeaderGlobal() e a chamada no boot saíram:
         // era rede de segurança pro "cabeçalho desformatado em campo"
