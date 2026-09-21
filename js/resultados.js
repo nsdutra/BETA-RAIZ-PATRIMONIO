@@ -1,8 +1,32 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.0.0 (21/09/2026 — Entrega A.3 do
-// PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
+// VERSÃO: Beta v1.1.0 (21/09/2026 — correções e pedido do Nicola
+// testando a Entrega A.3 ao vivo)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.1.0):
+//   — BUG REAL corrigido: chip de ano (Período) nunca marcava depois do
+//     1º clique — onclick gerado por template string sempre manda texto
+//     ('2026'), enquanto o padrão nascia number; escolherResultadosFiltro
+//     agora força Number() só pro grupo 'ano'.
+//   — Layout corrigido: linhas de "Dependência de locatário" quebravam
+//     nome E valor quando o locatário tinha nome longo (faltava
+//     flex:1;min-width:0 no nome e flex:none;white-space:nowrap no
+//     valor — mesmo mecanismo que .rz-row .rz-tx/.rz-rt já usam no
+//     resto do app).
+//   — "Reajustes no ano" corrigido: a âncora do mês era o ÚLTIMO evento
+//     de reajuste/renovação em historico_contrato, o que fazia o mês
+//     "andar" ano a ano — agora é sempre o mês de aniversário da
+//     ASSINATURA (con.inicio), fixo (migration
+//     resultados_reajustes_revisionais_v1).
+//   — Card novo "Revisional / Renovação": mesmo desenho do calendário
+//     de reajustes (12 barras, por VALOR, mês concentra ≥25% = warning),
+//     mas pelo mês de TÉRMINO do contrato (fn_carteira_revisionais_
+//     calendario/fn_carteira_revisionais_mes, funções novas) — conceito
+//     distinto de reajuste anual por índice, pedido explícito do Nicola.
+//   — Os dois cards (Reajustes, Revisional/Renovação) ganham ícone (i)
+//     no cabeçalho — abre sheet explicando os conceitos e métricas do
+//     card, mesmo padrão de explicarStatusConciliacao() (financeiro.js).
 // -----------------------------------------------------------------
 // Tela nova de Resultados (ESP_RESULTADOS_MERCADO_FISCAL §4, REGRAS §13):
 // "Resultados só mostra performance" — sem seletor, sem segmento, sem
@@ -61,7 +85,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.1.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -177,7 +201,16 @@ function reescreverCorpoFiltros() {
 
 export function escolherResultadosFiltro(grupo, valor) {
     if (!rascunho) rascunho = { ...filtro };
-    rascunho[grupo] = valor;
+    // BUG REAL (achado pelo Nicola, 21/09/2026): o onclick é HTML gerado
+    // por template string — `${valor}` sempre vira texto no atributo,
+    // então um clique no chip de ano manda '2026' (string) pra cá, mas o
+    // padrão do filtro (ANO_ATUAL) é number. chipOpcao() compara com
+    // === : depois do 1º clique em qualquer ano, nenhum chip nunca mais
+    // batia (number !== string), o ano ficava "sem marcação" pra sempre
+    // (mesmo quando o valor aplicado era o certo). Só 'ano' precisa de
+    // Number — os outros grupos (abrangencia/contexto) já nascem string
+    // dos dois lados (padrão E clique), nunca tiveram esse problema.
+    rascunho[grupo] = grupo === 'ano' ? Number(valor) : valor;
     if (grupo === 'abrangencia') rascunho.alvoId = null, rascunho.alvoNome = null;
     reescreverCorpoFiltros();
 }
@@ -246,7 +279,7 @@ async function renderizarConteudo() {
     const alvoId = filtro.abrangencia === 'empreendimento' ? filtro.alvoId : null;
 
     try {
-        const [resumoR, perfR, mensalR, concR, reajR] = await Promise.all([
+        const [resumoR, perfR, mensalR, concR, reajR, revR] = await Promise.all([
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
                 : Promise.resolve({ data: null }),
@@ -260,18 +293,25 @@ async function renderizarConteudo() {
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_carteira_reajustes_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
                 : Promise.resolve({ data: [] }),
+            // v1.1.0 — card novo, mesmo desenho do de reajustes, mas pelo
+            // mês de TÉRMINO do contrato (fn_carteira_revisionais_*, nova).
+            filtro.abrangencia === 'carteira'
+                ? dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
+                : Promise.resolve({ data: [] }),
         ]);
         if (resumoR.error) throw resumoR.error;
         if (perfR.error) throw perfR.error;
         if (mensalR.error) throw mensalR.error;
         if (concR.error) throw concR.error;
         if (reajR.error) throw reajR.error;
+        if (revR.error) throw revR.error;
 
         const resumo = Array.isArray(resumoR.data) ? resumoR.data[0] : resumoR.data;
         const perf = Array.isArray(perfR.data) ? perfR.data[0] : perfR.data;
         const mensal = mensalR.data || [];
         const concentracao = concR.data || [];
         const reajustes = reajR.data || [];
+        const revisionais = revR.data || [];
 
         alvo.innerHTML = [
             montarKpis(resumo, perf),
@@ -280,11 +320,13 @@ async function renderizarConteudo() {
             montarGraficoIndicador(),
             filtro.abrangencia === 'carteira' ? montarConcentracao(concentracao) : '',
             filtro.abrangencia === 'carteira' ? montarReajustesCalendario(reajustes) : '',
+            filtro.abrangencia === 'carteira' ? montarRevisionaisCalendario(revisionais) : '',
             montarPerformanceGrid(perf),
         ].filter(Boolean).join('');
 
         if (typeof rzIcones === 'function') rzIcones();
-        ligarBarrasReajuste(reajustes);
+        ligarBarrasCalendario('.rz-res-barra-mes', reajustes, abrirResultadosMesReajuste);
+        ligarBarrasCalendario('.rz-res-barra-revisional', revisionais, abrirResultadosMesRevisional);
     } catch (err) {
         console.warn('[resultados] Falha ao carregar conteúdo:', err.message);
         alvo.innerHTML = `<div class="rz-card"><p class="rz-desc">Não deu pra carregar os resultados agora (${rzEsc(err.message || 'erro')}). Puxe a lupa e toque em Aplicar de novo pra tentar.</p></div>`;
@@ -381,19 +423,27 @@ function montarConcentracao(linhas) {
     const restoValor = resto.reduce((s, l) => s + Number(l.valor_ano || 0), 0);
     const restoPct = total > 0 ? Math.round((restoValor / total) * 1000) / 10 : 0;
     const concentrada = principais.some(l => l.concentrado);
+    // CORRIGIDO (achado pelo Nicola ao vivo, 21/09/2026) — layout original
+    // não dava `flex:1;min-width:0` pro nome nem `flex:none;white-space:
+    // nowrap` pro valor: com locatário de nome longo, os DOIS lados
+    // quebravam linha (nome em 2 linhas E "21.2% · R$" numa linha com
+    // "146.400,00" sozinho na de baixo) — mesmo mecanismo que .rz-row
+    // .rz-tx/.rz-rt já resolvem em todo o resto do app (.rz-tx com
+    // min-width:0 pra poder encolher/quebrar, .rz-rt com flex:none pra
+    // nunca quebrar), só que aqui não tinha essas duas propriedades.
     const rows = principais.map(l => `
         <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
-                <b style="font-weight:600;color:${l.concentrado ? 'var(--danger)' : 'var(--ink)'}">${rzEsc(l.locatario || '—')}</b>
-                <span style="color:${l.concentrado ? 'var(--danger)' : 'var(--muted)'}">${l.percentual_pct}% · ${formatarMoedaBR(l.valor_ano)}</span>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:3px">
+                <b style="font-weight:600;color:${l.concentrado ? 'var(--danger)' : 'var(--ink)'};flex:1;min-width:0">${rzEsc(l.locatario || '—')}</b>
+                <span style="color:${l.concentrado ? 'var(--danger)' : 'var(--muted)'};flex:none;white-space:nowrap">${l.percentual_pct}% · ${formatarMoedaBR(l.valor_ano)}</span>
             </div>
             <div class="rz-prog"><i style="width:${Math.min(100, l.percentual_pct)}%;${l.concentrado ? 'background:var(--danger)' : ''}"></i></div>
         </div>`).join('');
     const rowOutros = resto.length ? `
         <div>
-            <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
-                <b style="font-weight:600;color:var(--muted)">Outros ${resto.length} locatário${resto.length > 1 ? 's' : ''}</b>
-                <span style="color:var(--muted)">${restoPct}% · ${formatarMoedaBR(restoValor)}</span>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:3px">
+                <b style="font-weight:600;color:var(--muted);flex:1;min-width:0">Outros ${resto.length} locatário${resto.length > 1 ? 's' : ''}</b>
+                <span style="color:var(--muted);flex:none;white-space:nowrap">${restoPct}% · ${formatarMoedaBR(restoValor)}</span>
             </div>
             <div class="rz-prog"><i style="width:${Math.min(100, restoPct)}%;background:var(--sage)"></i></div>
         </div>` : '';
@@ -403,14 +453,17 @@ function montarConcentracao(linhas) {
     </div>`;
 }
 
-function montarReajustesCalendario(meses) {
+// v1.1.0 — Reajustes e Revisional/Renovação viraram 2 cards com o MESMO
+// desenho (12 barras, por VALOR, mês que concentra ≥25% do ano vira
+// warning) — motor comum, só muda o título, o dado e o botão de info.
+function montarCalendario12Meses(meses, { titulo, classeBarra, infoOnclick }) {
     const total = meses.reduce((s, m) => s + Number(m.valor_total || 0), 0);
     const max = Math.max(...meses.map(m => Number(m.valor_total || 0)), 0) || 1;
     const alerta = meses.find(m => m.concentrado);
     const barras = Array.from({ length: 12 }, (_, i) => {
         const m = meses.find(mm => mm.mes === i + 1) || { mes: i + 1, valor_total: 0, qtd_contratos: 0, concentrado: false };
         const alturaPct = Math.max(2, (Number(m.valor_total) / max) * 100);
-        return `<div class="rz-res-barra-mes" data-mes="${m.mes}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:${Number(m.valor_total) > 0 ? 'pointer' : 'default'}">
+        return `<div class="${classeBarra}" data-mes="${m.mes}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:${Number(m.valor_total) > 0 ? 'pointer' : 'default'}">
             <div style="width:70%;height:${alturaPct}%;border-radius:3px 3px 0 0;background:${m.concentrado ? 'var(--warning)' : 'var(--sprout)'}"></div>
             <small style="font-size:9px;color:var(--muted);margin-top:2px">${m.qtd_contratos || ''}</small>
             <small style="font-size:9.5px;color:var(--muted)">${NOMES_MES[i]}</small>
@@ -418,18 +471,38 @@ function montarReajustesCalendario(meses) {
     }).join('');
     const nota = alerta ? `<p class="rz-desc" style="margin-top:8px;color:var(--warning)">${NOMES_MES[alerta.mes - 1]} concentra ${formatarMoedaBR(alerta.valor_total)} dos ${formatarMoedaBR(total)} do ano.</p>` : '';
     return `<div class="rz-card">
-        <div class="rz-card-h"><b>Reajustes no ano</b></div>
+        <div class="rz-card-h" style="justify-content:space-between"><b>${titulo}</b>
+            <button type="button" onclick="${infoOnclick}" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button>
+        </div>
         <div style="height:110px;display:flex;align-items:flex-end;gap:3px;margin-top:10px">${barras}</div>
         ${nota}
     </div>`;
 }
 
-function ligarBarrasReajuste(meses) {
-    document.querySelectorAll('.rz-res-barra-mes').forEach(el => {
+function montarReajustesCalendario(meses) {
+    return montarCalendario12Meses(meses, { titulo: 'Reajustes no ano', classeBarra: 'rz-res-barra-mes', infoOnclick: 'abrirInfoReajustes()' });
+}
+
+function montarRevisionaisCalendario(meses) {
+    if (!meses.length || !meses.some(m => Number(m.valor_total) > 0)) {
+        // ainda mostra o card (nunca fica menos informativo que Reajustes),
+        // mas com estado vazio honesto — não tem contrato terminando no ano.
+        return `<div class="rz-card">
+            <div class="rz-card-h" style="justify-content:space-between"><b>Revisional / Renovação</b>
+                <button type="button" onclick="abrirInfoRevisionais()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button>
+            </div>
+            <p class="rz-desc" style="margin-top:8px">Nenhum contrato termina em ${filtro.ano}.</p>
+        </div>`;
+    }
+    return montarCalendario12Meses(meses, { titulo: 'Revisional / Renovação', classeBarra: 'rz-res-barra-revisional', infoOnclick: 'abrirInfoRevisionais()' });
+}
+
+function ligarBarrasCalendario(seletor, meses, aoTocarMes) {
+    document.querySelectorAll(seletor).forEach(el => {
         const mes = Number(el.dataset.mes);
         const dado = meses.find(m => m.mes === mes);
         if (!dado || !Number(dado.valor_total)) return;
-        el.addEventListener('click', () => abrirResultadosMesReajuste(mes));
+        el.addEventListener('click', () => aoTocarMes(mes));
     });
 }
 
@@ -453,6 +526,62 @@ export async function abrirResultadosMesReajuste(mes) {
         const corpo = document.getElementById('res-mes-reajuste-corpo');
         if (corpo) corpo.innerHTML = `<p class="rz-desc">Não deu pra carregar (${rzEsc(err.message || 'erro')}).</p>`;
     }
+}
+
+// v1.1.0 — mesmo padrão de abrirResultadosMesReajuste, pelo mês de TÉRMINO
+// do contrato (fn_carteira_revisionais_mes). Subtítulo mostra a data de
+// término em vez do índice (não faz sentido aqui — não é reajuste).
+export async function abrirResultadosMesRevisional(mes) {
+    abrirSheet(rzSheetCabecalho(`Revisional/Renovação de ${NOMES_MES[mes - 1]}/${filtro.ano}`, null) + `<div class="rz-sh-b" id="res-mes-revisional-corpo"><p class="text-xs text-slate-400 text-center py-6">Carregando...</p></div>`);
+    try {
+        const { data, error } = await dbAuth.rpc('fn_carteira_revisionais_mes', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_mes: mes });
+        if (error) throw error;
+        const corpo = document.getElementById('res-mes-revisional-corpo');
+        if (!corpo) return;
+        if (!data || !data.length) { corpo.innerHTML = '<p class="rz-desc">Nenhum contrato termina neste mês.</p>'; return; }
+        corpo.innerHTML = `<div class="rz-card rz-list">${data.map(c => `
+            <div class="rz-row rz-link" onclick="fecharSheet(); abrirFichaContrato('${c.contrato_id}')">
+                <div class="rz-ic"><svg data-lucide="file-text"></svg></div>
+                <div class="rz-tx"><b>${rzEsc(c.locatario || '—')}</b><span>${rzEsc(c.ativo_nome || '')} · termina em ${formatarDataBR(c.fim)}</span></div>
+                <div class="rz-rt"><b>${formatarMoedaBR(c.valor)}</b></div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg>
+            </div>`).join('')}</div>`;
+        if (typeof rzIcones === 'function') rzIcones();
+    } catch (err) {
+        const corpo = document.getElementById('res-mes-revisional-corpo');
+        if (corpo) corpo.innerHTML = `<p class="rz-desc">Não deu pra carregar (${rzEsc(err.message || 'erro')}).</p>`;
+    }
+}
+
+// v1.1.0 — pedido explícito do Nicola: ícone (i) em cada card explicando
+// conceitos e métricas. Mesmo padrão de explicarStatusConciliacao()
+// (financeiro.js) — sheet com rz-kv, sem novo componente.
+export function abrirInfoReajustes() {
+    const itens = [
+        ['Reajuste', 'O aumento anual do valor do aluguel pelo índice do contrato (IPCA, IGP-M...).'],
+        ['Mês da barra', 'O mês de aniversário da ASSINATURA do contrato — fixo, não muda com o tempo. Um contrato assinado em março reajusta em março todo ano, mesmo que o reajuste seja aplicado com atraso.'],
+        ['Valor da barra', 'Soma do valor de aluguel dos contratos que reajustam naquele mês — não a quantidade de contratos. Poucos contratos de valor alto pesam mais que muitos de valor baixo.'],
+        ['Mês em alerta', 'Quando um único mês concentra 25% ou mais do valor total do ano — o fluxo de caixa da carteira fica mais sensível a esse mês.'],
+        ['Toque na barra', 'Abre a lista de contratos que reajustam naquele mês; toque num contrato leva à ficha dele.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Como funciona o calendário de reajustes') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
+export function abrirInfoRevisionais() {
+    const itens = [
+        ['Revisional / Renovação', 'O momento em que locador e locatário negociam continuar o contrato (renovando ou revisando condições) ou encerrá-lo.'],
+        ['Mês da barra', 'O mês de TÉRMINO (fim) do contrato — calendário separado do de reajuste, que olha a data de assinatura.'],
+        ['Valor da barra', 'Soma do valor de aluguel dos contratos que terminam naquele mês.'],
+        ['Mês em alerta', 'Quando um único mês concentra 25% ou mais do valor total do ano que ainda vai terminar.'],
+        ['Toque na barra', 'Abre a lista de contratos que terminam naquele mês; toque num contrato leva à ficha dele.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Como funciona o calendário de revisionais/renovações') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
 }
 
 function montarPerformanceGrid(perf) {

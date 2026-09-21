@@ -4,6 +4,60 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.218.0) — Entrega AL.3 (App: central de alertas
+unificada) da frente Resultados/Mercado/Fiscal. Chips de tema na tela de
+Alertas passam a ser por `alerta_tipos.dominio` (financeiro/documental/
+contratual/fiscal/cadastro), não mais por entidade_tipo (REGRAS §14 v3.16.0,
+ajuste §12/ESPECIFICACAO v1.3.0) — DOMINIO_ROTULO_ALERTA substitui
+ENTIDADE_PARA_CHIP_ALERTA; ICONE_CATEGORIA e ACAO_GRUPO_POR_TIPO.
+documento_sem_vinculo rekeyados junto (achados: sem isso, todo alerta
+documental/contratual caía no ícone genérico, e o resumo de "documentos
+sem vínculo" perdia o onClick). Cabeçalho da tela ganha "· N abertos"
+(recalcularAlertasTela). Toque num alerta avulso abre um sheet de
+detalhe novo (abrirAlertaDetalheSheet) — conteúdo, fonte (domínio),
+natureza, prazo, ação sugerida (texto pronto de alerta_tipos.
+acao_sugerida), botão de ação contextual (rzAbrirDestinoAlerta) ou campo
+de edição inline pra `acao_tipo='atualizar_campo'` (cib_pendente,
+revisao_valor_pendente — grava via fn_alerta_executar_acao sem sair do
+sheet), Compartilhar (só quando fn_alerta_compartilhar_texto devolve
+texto não-vazio — nunca pra alerta acionável/obrigatório, §6 do Motor) e
+"Mais opções" (marcar visto/adiar/dispensar via fn_alerta_marcar/
+fn_alerta_desmarcar, natureza-gated, fecha demanda 52ad5569). Resumos de
+grupo continuam navegando direto (não tem um conteúdo só pra mostrar).
+rzAbrirDestinoAlerta ganha o case `empresa/rotinas` (os 5 tipos de
+rotina de escopo empresa abrem Minha Empresa › Rotinas, não Ativos — os
+itens não têm ativo_id) e seu `default` agora sempre mostra um toast
+(antes só console.warn — "clica e não acontece nada", 2º achado da
+mesma demanda). switchTab: tab-alertas passa a acender o ícone da barra
+inferior da aba de ORIGEM real (origemAoAbrirAlertas), não fica sem
+destaque nenhum — 3º achado da demanda 52ad5569; ficou de fora do
+TAB_PARENT_MAP fixo de propósito (a tela é alcançada de 4 lugares
+diferentes, um destino fixo acenderia o ícone errado conforme a
+origem). Visão Geral: card único de atenção já estava pronto de sessão
+anterior (v1.185.0/v1.187.0) — nenhuma mudança necessária aqui, achado
+que reduziu o escopo desta entrega.
+Migrations aplicadas direto no Supabase nesta sessão (fora deste
+arquivo): alertas_executar_acao_item_controle_v1 — achado em teste:
+revisao_valor_pendente nasce com entidade_tipo='item_controle' no
+Motor, mas fn_alerta_executar_acao (AL.1) só aceitava 'ativo'; salvar o
+valor patrimonial pelo sheet ia falhar. Corrigido na raiz (QUA-01): a
+função resolve o ativo_id de verdade via cofre_itens_controle antes de
+gravar, sem mudar assinatura nem grants. alertas_marcar_desmarcar_
+grant_authenticated_v1 — achado bloqueante em teste ao vivo:
+fn_alerta_marcar/fn_alerta_desmarcar (AL.1) nunca tinham GRANT EXECUTE
+pra `authenticated` (só postgres/service_role) — todo usuário real
+receberia "permission denied" ao marcar/adiar/dispensar, exatamente a
+funcionalidade que esta entrega liga no App. Corrigido com GRANT
+aditivo, sem PUBLIC (mesma convenção do resto do Motor).
+------------------------------------------------------------------
+DATA: 20/09/2026 (Entrega 0.1 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
+------------------------------------------------------------------
+Versões anteriores (v1.217.0 … v1.217.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.217.0) — Entrega 0.1 do plano de execução da frente
 Resultados/Mercado/Fiscal (ESPECIFICACAO+ARQUITETURA v1.3.0, conferidas
 ao vivo no banco em 20/09/2026). Campo "CIB (NFS-e)" na ficha do ativo,

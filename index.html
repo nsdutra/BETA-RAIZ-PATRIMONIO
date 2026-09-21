@@ -6,8 +6,38 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.222.0
-   LINHAS: 15521
+   VERSÃO: Beta v1.223.0
+   LINHAS: 15508
+   DATA: 21/09/2026 (correções e pedido do Nicola testando a Entrega A.3 ao vivo)
+   NOVIDADES (Beta v1.223.0) — Nicola testou a Entrega A.3 (Resultados) ao
+   vivo em produção e mandou 3 achados/pedidos no mesmo teste, todos em
+   js/resultados.js (v1.0.0→v1.1.0):
+   (1) BUG REAL: chip de ano (Período, sheet Filtros) nunca marcava depois
+   do 1º clique — onclick gerado por template string sempre manda o valor
+   como texto ('2026'), enquanto o padrão do filtro nascia number;
+   escolherResultadosFiltro() comparava com === e nunca mais batia depois
+   da 1ª escolha. Corrigido: Number() só pro grupo 'ano'.
+   (2) Layout: linhas de "Dependência de locatário" quebravam nome E valor
+   quando o locatário tinha nome longo (faltava flex:1;min-width:0 no nome
+   e flex:none;white-space:nowrap no valor — mesmo mecanismo que .rz-row
+   .rz-tx/.rz-rt já resolvem no resto do app).
+   (3) "Reajustes no ano" tinha só 2 barras no ano inteiro — causa: a
+   âncora do mês era o ÚLTIMO evento de reajuste/renovação em
+   historico_contrato (coalesce), que faz o mês "andar" a cada reajuste
+   registrado — reajuste de aluguel é sempre no aniversário da ASSINATURA,
+   fixo. Corrigido no banco (migration
+   resultados_reajustes_revisionais_v1: fn_carteira_reajustes_calendario/
+   fn_carteira_reajustes_mes agora usam con.inicio direto). Pedido junto:
+   card novo "Revisional / Renovação" — mesmo desenho (12 barras, por
+   VALOR, mês concentra ≥25% = warning), mas pelo mês de TÉRMINO do
+   contrato (fn_carteira_revisionais_calendario/fn_carteira_revisionais_
+   mes, funções novas, mesma migration) — conceito distinto do reajuste
+   anual por índice. Os dois cards ganham ícone (i) no cabeçalho (sheet
+   explicando conceitos/métricas, mesmo padrão de
+   explicarStatusConciliacao() do financeiro.js) — 3 nomes novos na ponte
+   window[nome] (abrirResultadosMesRevisional, abrirInfoReajustes,
+   abrirInfoRevisionais).
+   ------------------------------------------------------------------
    DATA: 21/09/2026 (Entrega A.3 — Tela Resultados nova, PLANO_IMPLEMENTACAO_
    RESULTADOS_MERCADO_FISCAL v2.0.0)
    NOVIDADES (Beta v1.222.0) — Entrega A.3: Resultados vira tela só de
@@ -150,55 +180,8 @@
    menu "Mais opções" em si, que o Nicola já confirmou correto.
    ------------------------------------------------------------------
    DATA: 20/09/2026 (Entrega AL.3 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
-   NOVIDADES (Beta v1.218.0) — Entrega AL.3 (App: central de alertas
-   unificada) da frente Resultados/Mercado/Fiscal. Chips de tema na tela de
-   Alertas passam a ser por `alerta_tipos.dominio` (financeiro/documental/
-   contratual/fiscal/cadastro), não mais por entidade_tipo (REGRAS §14 v3.16.0,
-   ajuste §12/ESPECIFICACAO v1.3.0) — DOMINIO_ROTULO_ALERTA substitui
-   ENTIDADE_PARA_CHIP_ALERTA; ICONE_CATEGORIA e ACAO_GRUPO_POR_TIPO.
-   documento_sem_vinculo rekeyados junto (achados: sem isso, todo alerta
-   documental/contratual caía no ícone genérico, e o resumo de "documentos
-   sem vínculo" perdia o onClick). Cabeçalho da tela ganha "· N abertos"
-   (recalcularAlertasTela). Toque num alerta avulso abre um sheet de
-   detalhe novo (abrirAlertaDetalheSheet) — conteúdo, fonte (domínio),
-   natureza, prazo, ação sugerida (texto pronto de alerta_tipos.
-   acao_sugerida), botão de ação contextual (rzAbrirDestinoAlerta) ou campo
-   de edição inline pra `acao_tipo='atualizar_campo'` (cib_pendente,
-   revisao_valor_pendente — grava via fn_alerta_executar_acao sem sair do
-   sheet), Compartilhar (só quando fn_alerta_compartilhar_texto devolve
-   texto não-vazio — nunca pra alerta acionável/obrigatório, §6 do Motor) e
-   "Mais opções" (marcar visto/adiar/dispensar via fn_alerta_marcar/
-   fn_alerta_desmarcar, natureza-gated, fecha demanda 52ad5569). Resumos de
-   grupo continuam navegando direto (não tem um conteúdo só pra mostrar).
-   rzAbrirDestinoAlerta ganha o case `empresa/rotinas` (os 5 tipos de
-   rotina de escopo empresa abrem Minha Empresa › Rotinas, não Ativos — os
-   itens não têm ativo_id) e seu `default` agora sempre mostra um toast
-   (antes só console.warn — "clica e não acontece nada", 2º achado da
-   mesma demanda). switchTab: tab-alertas passa a acender o ícone da barra
-   inferior da aba de ORIGEM real (origemAoAbrirAlertas), não fica sem
-   destaque nenhum — 3º achado da demanda 52ad5569; ficou de fora do
-   TAB_PARENT_MAP fixo de propósito (a tela é alcançada de 4 lugares
-   diferentes, um destino fixo acenderia o ícone errado conforme a
-   origem). Visão Geral: card único de atenção já estava pronto de sessão
-   anterior (v1.185.0/v1.187.0) — nenhuma mudança necessária aqui, achado
-   que reduziu o escopo desta entrega.
-   Migrations aplicadas direto no Supabase nesta sessão (fora deste
-   arquivo): alertas_executar_acao_item_controle_v1 — achado em teste:
-   revisao_valor_pendente nasce com entidade_tipo='item_controle' no
-   Motor, mas fn_alerta_executar_acao (AL.1) só aceitava 'ativo'; salvar o
-   valor patrimonial pelo sheet ia falhar. Corrigido na raiz (QUA-01): a
-   função resolve o ativo_id de verdade via cofre_itens_controle antes de
-   gravar, sem mudar assinatura nem grants. alertas_marcar_desmarcar_
-   grant_authenticated_v1 — achado bloqueante em teste ao vivo:
-   fn_alerta_marcar/fn_alerta_desmarcar (AL.1) nunca tinham GRANT EXECUTE
-   pra `authenticated` (só postgres/service_role) — todo usuário real
-   receberia "permission denied" ao marcar/adiar/dispensar, exatamente a
-   funcionalidade que esta entrega liga no App. Corrigido com GRANT
-   aditivo, sem PUBLIC (mesma convenção do resto do Motor).
    ------------------------------------------------------------------
-   DATA: 20/09/2026 (Entrega 0.1 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.217.0 … v1.217.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.218.0 … v1.218.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -222,7 +205,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.41.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.54.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.41.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.54.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.1.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3637,7 +3620,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.222.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.223.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8873,6 +8856,10 @@
         [
             'renderResultados', 'abrirResultadosFiltros', 'escolherResultadosFiltro', 'escolherResultadosAlvo',
             'limparResultadosFiltros', 'aplicarResultadosFiltros', 'abrirResultadosExportar', 'abrirResultadosMesReajuste',
+            // v1.1.0 (achado/pedido do Nicola testando A.3 ao vivo) — card
+            // novo Revisional/Renovação + ícone (i) de explicação nos dois
+            // calendários (Reajustes e Revisional/Renovação).
+            'abrirResultadosMesRevisional', 'abrirInfoReajustes', 'abrirInfoRevisionais',
         ].forEach(nome => { window[nome] = (...args) => carregarResultados().then(m => m[nome](...args)); });
 
         // =====================================================================
