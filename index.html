@@ -6,8 +6,48 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.220.0
-   LINHAS: 15343
+   VERSÃO: Beta v1.221.0
+   LINHAS: 15450
+   DATA: 20/09/2026 (Entrega AL.6 — feedback do Nicola sobre a AL.5, 3 prints)
+   NOVIDADES (Beta v1.221.0) — Entrega AL.6, feedback do Nicola sobre a tela
+   de alertas recém-entregue na AL.5 (3 prints: sheet "Item de controle
+   vencendo" sem data, card "9 ativos com CIB pendente" abrindo Ativos em
+   vez de listar, badge "Precisa de atenção" no lugar da criticidade),
+   REGRAS_EXPERIENCIA_RAIZ v3.18.0 (§14), QUA-01 (auditados todos os tipos
+   do Motor, não só os 3 exemplos):
+   (1) Alerta aberto ganha DATA de compromisso (calendário, não só relativa)
+   — compromissoAlertaData/rotuloCompromissoAlerta, novo, lê o campo de data
+   que cada tipo já tem no detalhe (data_vencimento/fim/data_referencia,
+   conforme o tipo) ou deriva (extrato_desatualizado: hoje − dias). Achado
+   maior nesta varredura: reajuste_aniversario era o ÚNICO tipo cuja regra é
+   literalmente sobre uma data e que não expunha NENHUMA (nem dias, sempre
+   null) — fn_diario_contratos_aniversario_reajuste (migration
+   alertas_datas_compromisso_v1) passa a devolver data_referencia +
+   proxima_data (a antiga já calculava a 1ª só pro WHERE, nunca devolvia);
+   fn_alertas_listar (v2) consome as duas, dias vira (proxima_data − hoje).
+   Tipos sem data real (CIB pendente, cadastro incompleto, concentração de
+   locatário, contrato aguardando assinatura, contrato em ativo vendido/
+   arquivado, documento sem vínculo, anexo pendente, sinal fiscal) seguem
+   sem — auditados um a um nos `fn_diario_*` de origem, é estado, não
+   lacuna. (2) Badge de natureza ("Precisa de ação", confundida com
+   criticidade) trocada pela badge de SEVERIDADE (Crítico/Atenção/
+   Informativo, já existia pro segmento da tela de Alertas) —
+   NATUREZA_ROTULO_ALERTA removida (CAN-05, só esse 1 uso). (3) Os 3 modos
+   de agrupamento (por_tipo, por_entidade, por_natureza) passam a se
+   comportar igual: tocar no grupo SEMPRE abre a lista dos itens primeiro
+   (abrirListaAlertasGrupo, generaliza abrirListaAlertasNatureza da AL.5) —
+   ACAO_GRUPO_POR_TIPO (navegava direto pra uma tela, ex. cib_pendente →
+   tab-ativos) aposentado; alertasPorGrupoTipo/alertasPorGrupoEntidade,
+   novos, persistem os grupos pro sheet ler. (4) `alerta_tipos.acao_sugerida`
+   reescrito nos 19 tipos ativos (migration
+   alertas_acao_sugerida_resolucao_primeiro_v1) — sempre lidera com a
+   resolução direta ("Registre o pagamento e encerre esta pendência"),
+   seguida da alternativa real do tipo ("ou adie o alerta"/"ou marque como
+   visto", conforme a natureza).
+   Migrations aplicadas direto no Supabase nesta sessão (fora deste
+   arquivo): alertas_datas_compromisso_v1, alertas_datas_compromisso_v2,
+   alertas_acao_sugerida_resolucao_primeiro_v1.
+   ------------------------------------------------------------------
    DATA: 20/09/2026 (Entrega AL.5 — 4 prints do app, pedido do Nicola)
    NOVIDADES (Beta v1.220.0) — Entrega AL.5, a partir de 4 prints do app
    (Sheet do alerta "Fechamento mensal pendente", "Mais opções", alerta
@@ -140,30 +180,8 @@
    fiscal_cofre_ativos_cib_v1, fiscal_parametros_correcao_art261_v1.
    ------------------------------------------------------------------
    DATA: 19/09/2026 (rodada 10, entrega 4)
-   NOVIDADES (Beta v1.216.0) — novo ajuste pedido pelo Nicola em cima da
-   entrega anterior (v1.215.0), ainda na mesma tela: "a descrição do card
-   de ativos na lista de ativos ainda não está legal. coloque na 1a linha
-   o nome do ativo, na 2a linha, o valor de mercado, sem casa decimal. na
-   3a linha o nome locatario. na quarta linha, o valor do aluguel, sem
-   casa decimal. Em itens nao alugados, no lugar do aluguel coloque sem
-   contrato e no lugar do valor do aluguel, deixe em branco. para os
-   demais ativos, na 1 linha coloque o nome do ativo, na 2a linha o valor
-   de mercado sem casa decimal, na 3a linha modelo e a 4a linha um
-   identificador como placa ou identificacao ou registro." Simplifica o
-   card de imóvel (linha 2 volta a ser só valor de mercado, sem o "tipo de
-   uso ·" na frente; linha 3 vira só "Sem contrato" pra qualquer item não
-   alugado — o selo colorido ao lado já diferencia Assinando/Em uso/Vago;
-   linha 4 só aparece quando há aluguel) e estende o MESMO padrão de 4
-   linhas isoladas pro card genérico (demais tipos de ativo: veículo,
-   embarcação, aeronave etc.), que até aqui só tinha nome + 1 linha com
-   identificador e valor concatenados — agora nome / valor de mercado /
-   modelo / identificador (placa, matrícula, registro conforme o tipo),
-   cada um na sua linha. cofre-ativos.js v1.52.0. IMPORTMAP:
-   cofre-ativos.js →1.52.0.
    ------------------------------------------------------------------
-   DATA: 19/09/2026 (rodada 10, entrega 3)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.215.0 … v1.215.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.216.0 … v1.216.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3580,7 +3598,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.220.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.221.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10888,9 +10906,17 @@
         let alertasTodos = [];
         let alertasPorChave = new Map();
         // AL.5 — grupos por natureza (chave "tipoAlerta:itemTipo" → linhas
-        // do grupo), repovoado a cada agruparEMapearAlertas; abrirListaAlertas
-        // Natureza() lê daqui pra "ao clicar no grupo, abra os itens agrupados".
+        // do grupo), repovoado a cada agruparEMapearAlertas; abrirListaAlertasGrupo()
+        // lê daqui pra "ao clicar no grupo, abra os itens agrupados".
         let alertasPorGrupoNatureza = new Map();
+        // AL.6 (20/09/2026, pedido do Nicola: "todo item agrupado deve abrir
+        // conforme padrão a lista dos itens" — no print, "9 pendências do CIB
+        // abrem a tela de imóveis" em vez da lista) — mesmo mecanismo da
+        // AL.5, agora também para os outros 2 modos de agrupamento.
+        // alertasPorGrupoTipo: chave = tipo_alerta. alertasPorGrupoEntidade:
+        // chave = "tipoAlerta:ativoId" (igual à chave usada em agruparEMapearAlertas).
+        let alertasPorGrupoTipo = new Map();
+        let alertasPorGrupoEntidade = new Map();
         let alertasFiltroAtual = 'todos';
         let alertasVisiveisTodos = []; // v1.187.0 — bruto, sem filtro; recalcularAlertasTela() deriva daqui
         let alertasSeveridadeFiltro = 'todas'; // v1.187.0 — 'todas' | 'critico' | 'atencao' | 'informativo'
@@ -11118,43 +11144,21 @@
         // Só agrupa de verdade quando há MAIS DE 1 no grupo (limiar em
         // alerta_tipos.agrupar_a_partir_de) — abaixo disso mostra normal,
         // sem virar "resumo de 1".
-        // Clique do resumo é decidido por ACAO_GRUPO_POR_TIPO (abaixo) —
-        // abrir "o item aleatório X" pra representar 77 atrasos não faz
-        // sentido; abrir a tela de Cobranças (que já lista todos) faz.
+        // AL.6 — clique do resumo (qualquer um dos 3 modos) abre a lista dos
+        // itens do grupo (abrirListaAlertasGrupo) — abrir "o item aleatório
+        // X" ou navegar direto pra uma tela pra representar 77 atrasos não
+        // diz QUAIS são; a lista sim.
         // ============================================================
-        // v1.186.0 — troca DESTINO_GERAL (que testava destino_rota) por um
-        // mapa direto tipoAlerta → ação. destino_rota de contrato/item
-        // aponta pra UMA entidade específica (entidade_id) — abrir isso a
-        // partir de um card agrupado ("3 contratos...") abriria só 1 dos 3,
-        // enganoso. As ações aqui são todas genéricas (abrem a lista/aba),
-        // certas pra representar o grupo inteiro.
-        const ACAO_GRUPO_POR_TIPO = {
-            atraso_pagamento: "switchTab('tab-inadimplencia')",
-            contrato_encerramento: "switchTab('tab-contratos')",
-            reajuste_aniversario: "switchTab('tab-contratos')",
-            contrato_aguardando_assinatura: "switchTab('tab-contratos')",
-            contrato_ativo_vendido_arquivado: "switchTab('tab-contratos')",
-            cadastro_incompleto: "switchTab('tab-ativos')",
-            // AL.2 (20/09/2026) — ACHADO (Nicola, empresa Albuquerque): mesmo
-            // sintoma do documento_sem_vinculo abaixo — cib_pendente nasceu
-            // agrupável (agrupamento='por_tipo') na Fase AL.2 mas nunca ganhou
-            // ação de grupo. Card "9 alertas" sem onClick = não abria nada e
-            // não avisava por quê. CIB é campo do cadastro do ativo, mesma
-            // ação de cadastro_incompleto.
-            cib_pendente: "switchTab('tab-ativos')",
-            // v1.194.0 (16/09/2026) — ACHADO investigando "alerta não navega
-            // ao clicar" (pedido explícito do Nicola): este era o único tipo
-            // agrupável (agrupamento='por_tipo') SEM ação de grupo — com 2+
-            // documentos sem vínculo abertos ao mesmo tempo, o card
-            // resultante nascia sem onClick (chip.onClick = null), logo sem
-            // `rz-link`/chevron — clicável só quando havia exatamente 1 (não
-            // agrupava, ia pro individual via destino_rota). abrirTabAlertas
-            // já aceita filtro de categoria ('documento') — mesmo padrão
-            // usado pela Visão Geral (ver comentário em abrirTabAlertas).
-            // AL.3 — 'documento' virou 'documental' (chave do chip agora é o
-            // dominio, não mais o entidade_tipo antigo).
-            documento_sem_vinculo: "abrirTabAlertas('documental')",
-        };
+        // ACAO_GRUPO_POR_TIPO — APOSENTADO na AL.6 (20/09/2026, pedido do
+        // Nicola: "todo item agrupado deve abrir a lista dos itens" — no
+        // print, "9 pendências do CIB abrem a tela de imóveis" era exatamente
+        // o comportamento antigo deste mapa, e o Nicola pediu pra trocar).
+        // Navegar direto pra uma aba a partir de um card "N ocorrências"
+        // escondia QUAIS eram os N — agora todo grupo (por_tipo, por_entidade
+        // e por_natureza, que já funcionava assim desde a AL.5) abre a lista
+        // dos itens primeiro (abrirListaAlertasGrupo), e cada item da lista
+        // é que decide se abre o detalhe do alerta (padrão já usado por
+        // por_natureza) — nunca mais uma tela genérica no lugar dos itens.
 
         // v1.186.0 (achado do Nicola: "conto 21, o sistema mostra 10/12") —
         // sinal_fiscal é uma linha só no Motor, mas representa VÁRIAS
@@ -11280,6 +11284,8 @@
             const porNatureza = new Map();
             const avulsos = [];
             alertasPorGrupoNatureza = new Map();
+            alertasPorGrupoTipo = new Map();
+            alertasPorGrupoEntidade = new Map();
 
             rows.forEach(r => {
                 if (r.agrupamento === 'por_tipo') {
@@ -11321,17 +11327,20 @@
                 // < é o comparador correto — "a partir de N" inclui N.
                 if (grupo.length < limiarTipo) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
                 const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
+                // AL.6 — grupo persiste no mapa pra abrirListaAlertasGrupo
+                // ler depois (mesmo mecanismo da AL.5 pra por_natureza).
+                alertasPorGrupoTipo.set(tipoAlerta, grupo);
                 itens.push({
                     categoria: r0.dominio || 'outro',
                     tipoAlerta,
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorTipo(tipoAlerta, grupo.length),
                     subtitulo: subtituloResumoPorTipo(tipoAlerta, grupo),
-                    onClick: ACAO_GRUPO_POR_TIPO[tipoAlerta] || null,
+                    onClick: `abrirListaAlertasGrupo('tipo', '${tipoAlerta}')`,
                 });
             });
 
-            porEntidade.forEach(grupo => {
+            porEntidade.forEach((grupo, chave) => {
                 // v1.182.0 (E3) — mesmo limiar do bloco acima.
                 const limiarEnt = grupo[0].agrupar_a_partir_de ?? 6;
                 if (grupo.length < limiarEnt) { grupo.forEach(r => itens.push(itemAvulso(r))); return; } // mesmo FIX do bloco acima
@@ -11342,13 +11351,17 @@
                 // por entidade) como "1ª linha = qtd + resumo do alerta, 2ª linha
                 // = entidade afetada". Este bloco estava invertido (nome do ativo
                 // na 1ª linha, contagem genérica "N pendências" na 2ª) — trocado.
+                // AL.6 — grupo persiste (mesmo mecanismo de por_tipo/por_natureza)
+                // e o clique abre a lista dos itens, não mais o destino do mais
+                // urgente representando o grupo inteiro.
+                alertasPorGrupoEntidade.set(chave, grupo);
                 itens.push({
                     categoria: grupo[0].dominio || 'outro',
                     tipoAlerta: grupo[0].tipo_alerta,
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorEntidade(grupo[0].tipo_alerta, grupo.length),
                     subtitulo: ativoNome,
-                    onClick: `rzAbrirDestinoAlerta('${maisUrgente.alerta_chave}')`,
+                    onClick: `abrirListaAlertasGrupo('entidade', '${chave}')`,
                 });
             });
 
@@ -11369,7 +11382,7 @@
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorNatureza(nat, grupo.length),
                     subtitulo: subtituloResumoPorTipo(grupo[0].tipo_alerta, grupo), // mesmo fallback genérico (sem case próprio pra este tipo)
-                    onClick: `abrirListaAlertasNatureza('${chave}')`,
+                    onClick: `abrirListaAlertasGrupo('natureza', '${chave}')`,
                 });
             });
 
@@ -11592,8 +11605,8 @@
         }
 
         // ============================================================
-        // AL.3/AL.5 — SHEET DE DETALHE DO ALERTA (ESP §13.4/A3-A7; REGRAS
-        // §14 v3.17.0). Toque num alerta avulso (itemAvulso, acima) abre
+        // AL.3/AL.5/AL.6 — SHEET DE DETALHE DO ALERTA (ESP §13.4/A3-A7;
+        // REGRAS §14 v3.18.0). Toque num alerta avulso (itemAvulso, acima) abre
         // este sheet em vez de navegar direto — conteúdo/fonte/natureza/
         // prazo, ação sugerida (texto já vem pronto de alerta_tipos.
         // acao_sugerida — não reinventa frase por tipo aqui) e, no rodapé,
@@ -11605,11 +11618,21 @@
         // devolve texto — fn_alerta_compartilhar_texto já decide isso pela
         // natureza, §6 do Motor) · Dispensar (sempre por último, vermelha).
         // ============================================================
-        const NATUREZA_ROTULO_ALERTA = {
-            informativo: 'Informativo',
-            acionavel: 'Precisa de ação',
-            obrigatorio: 'Obrigatório',
-        };
+        // NATUREZA_ROTULO_ALERTA — APOSENTADO na AL.6 (20/09/2026, pedido do
+        // Nicola: "alguns itens não estão aparecendo a criticidade e no
+        // lugar está aparecendo 'precisa de atenção'. Ajustar para aparecer
+        // a criticidade"). Achado: a 2ª badge do sheet mostrava a NATUREZA
+        // (acionável/informativo/obrigatório — "Precisa de ação" é o rótulo
+        // de 'acionavel'), não a SEVERIDADE (crítico/atenção/informativo,
+        // que É a criticidade de verdade, mesma taxonomia já usada no
+        // segmento da tela de Alertas) — daí a confusão reportada. Trocado
+        // por SEVERIDADE_ROTULO (já existe, §9) — sem inventar um 2º texto
+        // pra mesma coisa (CAN-03). A natureza deixa de ter badge própria:
+        // já se manifesta pelas ações disponíveis (Adiar só em acionável,
+        // Marcar como visto só em informativo) — repeti-la aqui era um 2º
+        // jeito de dizer o mesmo dado (§0 regra 7); função removida (CAN-05,
+        // nenhum outro ponto do app chamava/lia este mapa).
+        const SEVERIDADE_SEMANTICA_ALERTA = { critico: 'bad', atencao: 'warn', informativo: 'neu' };
 
         function prazoAlertaTexto(r) {
             if (r.tipo_alerta === 'extrato_desatualizado') return r.dias != null ? `Desatualizado há ${r.dias}d` : 'Desatualizado';
@@ -11619,31 +11642,111 @@
             return `Vence em ${r.dias}d`;
         }
 
-        // AL.5 — "ao clicar no grupo, abra os itens agrupados; permita
-        // clicar por item e abrir então detalhes do alerta". Sheet simples
-        // (não é Sheet de ações — cada linha entra no CONTEÚDO do alerta,
-        // não numa ação), 1 .rz-row por item, ordenado pelo mesmo critério
-        // da lista principal (vencido há mais tempo primeiro). Título já
-        // nomeia o objeto (subtituloAlertaMotor prioriza subtipo_nome —
-        // "condomínio", "revisão periódica" etc., pedido do Nicola);
-        // subtítulo é só o ativo, pra não repetir o objeto 2x na mesma linha.
-        function abrirListaAlertasNatureza(chaveGrupo) {
-            const grupo = alertasPorGrupoNatureza.get(chaveGrupo);
+        // AL.6 (20/09/2026, pedido do Nicola a partir de 3 prints: "faltam
+        // detalhes importantes... como as datas. Qual o compromisso deste
+        // item... inclua as datas nestas informações") — a badge de prazo
+        // (prazoAlertaTexto, acima) sempre foi só relativa ("Venceu há
+        // 20d"); a data de calendário nunca aparecia em lugar nenhum do
+        // sheet. QUA-01: auditados os ~16 tipos do Motor via fn_alertas_
+        // listar — nem todo alerta TEM uma data de compromisso (cib_pendente,
+        // concentracao_locatario, cadastro_incompleto, documento_sem_vinculo,
+        // contrato_aguardando_assinatura, contrato_ativo_vendido_arquivado,
+        // anexo_apolice_pendente, sinal_fiscal são estado, não prazo — nunca
+        // teve e não é lacuna, é honesto continuar sem mostrar); os que têm,
+        // devolvem por campos diferentes no detalhe (mapeados abaixo).
+        // extrato_desatualizado não tem uma data literal no detalhe (só a
+        // contagem de dias), mas dá pra derivar (hoje − dias = última
+        // conciliação) sem precisar de migration.
+        function compromissoAlertaData(r) {
+            switch (r.tipo_alerta) {
+                case 'atraso_pagamento': return r.detalhe?.data_vencimento || null;
+                case 'contrato_encerramento': return r.detalhe?.fim || null;
+                // reajuste_aniversario — ver migration alertas_datas_compromisso_v1:
+                // proxima_data passou a vir no detalhe (a aniversário do
+                // reajuste + 12 meses), antes este tipo não tinha NENHUMA
+                // data disponível (achado nesta rodada, não só o exemplo do
+                // Nicola).
+                case 'reajuste_aniversario': return r.detalhe?.proxima_data || null;
+                case 'extrato_desatualizado':
+                    if (r.dias == null) return null;
+                    { const d = new Date(); d.setDate(d.getDate() - r.dias); return d.toISOString().slice(0, 10); }
+                // cofre_item_vencendo + os 6 tipos de rotina de empresa
+                // (fechamento/contador/nfse/relatório/indicadores/revisão de
+                // valor) — todos vêm de fn_diario_cofre_item_vencendo,
+                // mesmo campo data_referencia.
+                default: return r.detalhe?.data_referencia || null;
+            }
+        }
+        const ROTINA_PRONTA_ALERTA = ['indicadores_mes_pronto', 'relatorio_carteira_pronto'];
+        function rotuloCompromissoAlerta(r) {
+            if (r.tipo_alerta === 'extrato_desatualizado') return 'Última conciliação';
+            if (ROTINA_PRONTA_ALERTA.includes(r.tipo_alerta)) return 'Disponível desde';
+            if (r.tipo_alerta === 'reajuste_aniversario') return (r.dias ?? 0) < 0 ? 'Reajuste devido desde' : 'Reajuste devido em';
+            return (r.dias ?? 0) < 0 ? 'Venceu em' : 'Vencimento';
+        }
+
+        // AL.6 (20/09/2026, pedido do Nicola: "todo item agrupado deve abrir
+        // conforme padrão a lista dos itens" — generaliza a AL.5, que só
+        // valia pra por_natureza; no print, "9 pendências do CIB abrem a
+        // tela de imóveis" era exatamente o que este ajuste elimina).
+        // "Ao clicar no grupo, abra os itens agrupados; permita clicar por
+        // item e abrir então detalhes do alerta" — vale agora pros 3 modos
+        // de agrupamento (por_tipo, por_entidade, por_natureza). Sheet
+        // simples (não é Sheet de ações — cada linha entra no CONTEÚDO do
+        // alerta, não numa ação), 1 .rz-row por item, ordenado pelo mesmo
+        // critério da lista principal (vencido há mais tempo primeiro).
+        function tituloItemGrupo(modo, r) {
+            // por_natureza: o objeto (subtipo_nome, ex. "Condomínio") é o
+            // fato que varia entre os itens — mesmo critério da AL.5 (§14:
+            // "1ª linha nomeia o objeto").
+            if (modo === 'natureza') return r.detalhe?.subtipo_nome || r.titulo;
+            // por_tipo: todo item já é do MESMO tipo (é o que o agrupou) —
+            // o que varia é a entidade afetada.
+            if (modo === 'tipo') return r.detalhe?.ativo_nome || r.detalhe?.locatario || r.titulo;
+            // por_entidade: todo item já é do MESMO ativo — o que varia é
+            // o item/ocorrência específica dentro dele.
+            return r.detalhe?.subtipo_nome || r.titulo;
+        }
+        function subtituloItemGrupo(modo, r) {
+            if (modo === 'natureza') return r.detalhe?.ativo_nome || '';
+            if (modo === 'tipo') {
+                // Complementa com o dado que sobra quando a entidade já vai
+                // no título — não repete o dominio/tipo (já está no
+                // cabeçalho do sheet, ex. "9 ativos com CIB pendente").
+                if (r.detalhe?.valor != null) return formatarMoedaBR(r.detalhe.valor);
+                if (r.detalhe?.campos_faltando?.length) return `Falta: ${r.detalhe.campos_faltando.join(', ')}`;
+                return '';
+            }
+            return '';
+        }
+        function tituloResumoGrupo(modo, grupo) {
+            if (modo === 'tipo') return tituloResumoPorTipo(grupo[0].tipo_alerta, grupo.length);
+            if (modo === 'entidade') return tituloResumoPorEntidade(grupo[0].tipo_alerta, grupo.length);
+            return tituloResumoPorNatureza(grupo[0].detalhe?.item_tipo || 'outro', grupo.length);
+        }
+        function subtituloResumoGrupoSheet(modo, grupo) {
+            // por_entidade: todo item é do mesmo ativo — nomeia no
+            // subcabeçalho do sheet (senão some, já que tituloResumoPorEntidade
+            // só devolve a contagem, ex. "3 revisões de valor pendentes").
+            if (modo === 'entidade') return grupo[0].detalhe?.ativo_nome || grupo[0].titulo || null;
+            return null;
+        }
+        function abrirListaAlertasGrupo(modo, chaveGrupo) {
+            const mapa = modo === 'tipo' ? alertasPorGrupoTipo : modo === 'entidade' ? alertasPorGrupoEntidade : alertasPorGrupoNatureza;
+            const grupo = mapa.get(chaveGrupo);
             if (!grupo || !grupo.length) { mostrarToast('Não encontrei esses alertas — a lista pode ter mudado.', 'danger'); return; }
-            const nat = grupo[0].detalhe?.item_tipo || 'outro';
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             const ordenados = [...grupo].sort((a, b) => (a.dias ?? 9999) - (b.dias ?? 9999));
             const corpo = `<div class="rz-card rz-list">` + ordenados.map(r => {
                 const sem = r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run'));
-                const objeto = r.detalhe?.subtipo_nome || r.titulo;
                 return `<div class="rz-row rz-link" onclick="fecharSheet(); abrirAlertaDetalheSheet('${r.alerta_chave}')">
-                    <div class="rz-ic"><svg data-lucide="${ICONE_CATEGORIA[r.dominio] || 'info'}"></svg></div>
-                    <div class="rz-tx"><b>${rzEsc(objeto)}</b><span>${rzEsc(r.detalhe?.ativo_nome || '')}</span></div>
+                    <div class="rz-ic"><svg data-lucide="${ICONE_TIPO_ALERTA[r.tipo_alerta] || ICONE_CATEGORIA[r.dominio] || 'info'}"></svg></div>
+                    <div class="rz-tx"><b>${rzEsc(tituloItemGrupo(modo, r))}</b><span>${rzEsc(subtituloItemGrupo(modo, r))}</span></div>
                     <div class="rz-rt">${st(sem, prazoAlertaTexto(r))}</div>
                     <svg data-lucide="chevron-right" class="rz-chev"></svg>
                 </div>`;
             }).join('') + `</div>`;
-            abrirSheet(rzSheetCabecalho(tituloResumoPorNatureza(nat, grupo.length), null) + `<div class="rz-sh-b">${corpo}</div>`);
+            abrirSheet(rzSheetCabecalho(tituloResumoGrupo(modo, grupo), subtituloResumoGrupoSheet(modo, grupo)) + `<div class="rz-sh-b">${corpo}</div>`);
         }
 
         // Ação 'atualizar_campo' (alerta_tipos.acao_tipo) — edita um campo de
@@ -11679,16 +11782,20 @@
             const semPrazo = r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run'));
             const campoAcao = ACAO_CAMPO_ALERTA[r.tipo_alerta];
             const chaveJs = alertaChave.replace(/'/g, "\\'");
+            const dataCompromisso = compromissoAlertaData(r);
 
             const corpo = `
                 <div class="rz-card" style="margin-bottom:12px">
                     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
                         ${st(semPrazo, prazoAlertaTexto(r))}
+                        ${st(SEVERIDADE_SEMANTICA_ALERTA[r.severidade] || 'neu', SEVERIDADE_ROTULO[r.severidade] || r.severidade || '')}
                         <span class="rz-sub">${rzEsc(DOMINIO_ROTULO_ALERTA[r.dominio] || r.dominio || '')}</span>
-                        <span class="rz-sub">· ${rzEsc(NATUREZA_ROTULO_ALERTA[r.natureza] || r.natureza || '')}</span>
                     </div>
                     <p class="rz-desc">${rzEsc(subtituloAlertaMotor(r))}</p>
-                    ${r.acao_sugerida ? `<div class="rz-kv" style="margin-top:10px"><div class="rz-full"><small>Ação sugerida</small><b>${rzEsc(r.acao_sugerida)}</b></div></div>` : ''}
+                    ${(dataCompromisso || r.acao_sugerida) ? `<div class="rz-kv" style="margin-top:10px">
+                        ${dataCompromisso ? `<div class="rz-full"><small>${rzEsc(rotuloCompromissoAlerta(r))}</small><b>${formatarDataBR(dataCompromisso)}</b></div>` : ''}
+                        ${r.acao_sugerida ? `<div class="rz-full"><small>Ação sugerida</small><b>${rzEsc(r.acao_sugerida)}</b></div>` : ''}
+                    </div>` : ''}
                 </div>
                 ${campoAcao ? `
                 <div class="rz-card" style="margin-bottom:12px">

@@ -4,6 +4,35 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.216.0) — novo ajuste pedido pelo Nicola em cima da
+entrega anterior (v1.215.0), ainda na mesma tela: "a descrição do card
+de ativos na lista de ativos ainda não está legal. coloque na 1a linha
+o nome do ativo, na 2a linha, o valor de mercado, sem casa decimal. na
+3a linha o nome locatario. na quarta linha, o valor do aluguel, sem
+casa decimal. Em itens nao alugados, no lugar do aluguel coloque sem
+contrato e no lugar do valor do aluguel, deixe em branco. para os
+demais ativos, na 1 linha coloque o nome do ativo, na 2a linha o valor
+de mercado sem casa decimal, na 3a linha modelo e a 4a linha um
+identificador como placa ou identificacao ou registro." Simplifica o
+card de imóvel (linha 2 volta a ser só valor de mercado, sem o "tipo de
+uso ·" na frente; linha 3 vira só "Sem contrato" pra qualquer item não
+alugado — o selo colorido ao lado já diferencia Assinando/Em uso/Vago;
+linha 4 só aparece quando há aluguel) e estende o MESMO padrão de 4
+linhas isoladas pro card genérico (demais tipos de ativo: veículo,
+embarcação, aeronave etc.), que até aqui só tinha nome + 1 linha com
+identificador e valor concatenados — agora nome / valor de mercado /
+modelo / identificador (placa, matrícula, registro conforme o tipo),
+cada um na sua linha. cofre-ativos.js v1.52.0. IMPORTMAP:
+cofre-ativos.js →1.52.0.
+------------------------------------------------------------------
+DATA: 19/09/2026 (rodada 10, entrega 3)
+------------------------------------------------------------------
+Versões anteriores (v1.215.0 … v1.215.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.215.0) — último ajuste pedido pelo Nicola na rodada
 10: "a descrição do card de ativos quando imóveis na lista ainda não
 está legal. Não está aparecendo o nome do locatário e o valor do
