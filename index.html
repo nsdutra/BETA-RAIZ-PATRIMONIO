@@ -6,10 +6,28 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.234.0
-   LINHAS: 15550
-   DATA: 21/09/2026 (Entrega F.2 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
-   FISCAL v2.0.0, Fase F: Fechamento da competência)
+   VERSÃO: Beta v1.235.0
+   LINHAS: 15548
+   DATA: 21/09/2026 (Entrega F.3 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
+   FISCAL v2.0.0, achado do Nicola: lista de Recebimentos/Saídas sem
+   agrupamento/filtro de competência própria)
+   NOVIDADES (Beta v1.235.0) — Entrega F.3: achado do Nicola — "uma vez que
+   tem o chip do mês no topo, não precisa mais ter os agrupamentos e
+   filtros por competência" (aba Financeiro, Recebimentos ou Saídas).
+   Recebimentos e Saídas perdem o agrupamento colapsável por mês e o
+   filtro de competência do "Buscar" (o <select> escondido) — a lista
+   passa a mostrar só a competência já selecionada no card do topo
+   (mesma fonte dos 4 KPIs desde a Entrega F.1), como lista simples, sem
+   grupos. Reverte a decisão registrada na F.1 de manter os dois
+   independentes (ver nota grande em js/financeiro.js): aquela cautela
+   era porque o <select> só aceitava competência já carregada, o que
+   esvaziaria a lista ao navegar pra um mês futuro/vazio pelo <select>;
+   sem mais <select>, quem manda é só o card, e mês vazio mostra a lista
+   vazia mesmo (mesmo comportamento que os KPIs já tinham desde a F.1).
+   Atrasados (tab-inadimplencia, segmento próprio) e Fechamento/
+   Conciliação (tab-conciliacao, decisão da F.1 continua valendo —
+   precisa ver vários meses de uma vez) NÃO mudam. Sem migration — só UI/
+   front (js/financeiro.js, index.html).
    NOVIDADES (Beta v1.234.0) — Entrega F.2: fechar/reabrir a competência
    (REGRAS_EXPERIENCIA_RAIZ v3.19.0 §11.1) — o chip Fechamento ganha o
    MESMO card de competência de Recebimentos/Saídas, agora com status
@@ -70,17 +88,8 @@
    locatário/modelo, aluguel/identificador — decidido com o Nicola em
    rodadas anteriores), só a moldura ao redor. Demanda b46e30fa mantida
    ABERTA a pedido do Nicola (ver demanda para o que falta).
-   NOVIDADES (Beta v1.230.0) — CORRIGIDO (demanda b46e30fa): registrada
-   como "lista de imóveis", mas tab-imoveis está desligada desde v1.108.0
-   (decisão do Nicola) e não é mais vista por nenhum usuário — quem abre
-   depois do cadastro é a lista de Ativos. Confirmado com o Nicola e
-   redirecionado: js/cofre-ativos.js v1.55.0→v1.56.0 — chips de tipo
-   (Todos/Imóveis/Veículos/Outros) trocados pra `.rz-chip`/`.rz-n` (fecha
-   de vez a 5011173d) e cabeçalho de grupo por empreendimento trocado de
-   `uppercase tracking-wide` (proibido) pra `.rz-group`, sentence case,
-   mesmo padrão da lista de Contratos. Conteúdo do card não mudou.
    ------------------------------------------------------------------
-   Versões anteriores (v1.229.0 … v1.229.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.230.0 … v1.230.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -104,7 +113,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.12.0","./js/fechamento.js":"./js/fechamento.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.57.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.13.0","./js/fechamento.js":"./js/fechamento.js?v=1.0.0","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.57.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -803,9 +812,10 @@
     </div>
 
     <!-- v1.52.0 — overlay de busca/filtro da aba Financeiro, mesmo
-         componente/padrão de Imóveis — "Status" virou "Competência"
-         (pedido explícito), Locatário/Empreendimento/Imóvel preservados
-         (nenhum filtro que já existia foi perdido, só migrou de lugar). -->
+         componente/padrão de Imóveis — Locatário/Empreendimento/Imóvel
+         preservados (nenhum filtro que já existia foi perdido, só migrou
+         de lugar). v1.235.0 (Entrega F.3) — "Competência" saiu daqui: o
+         card do topo já cobre isso, ver js/financeiro.js. -->
     <div id="modal-busca-mensal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
         <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
             <div class="p-3 border-b flex items-center justify-between flex-none">
@@ -820,12 +830,6 @@
                 <div>
                     <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
                     <input type="text" id="men-busca-texto" placeholder="Locatário, endereço, bairro..." oninput="renderMensalidades()" class="w-full p-2 border rounded-lg text-sm mt-1">
-                </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Competência</label>
-                    <select id="men-filtro-competencia" onchange="renderMensalidades()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
-                        <option value="todos">Todas</option>
-                    </select>
                 </div>
                 <div>
                     <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
@@ -844,7 +848,7 @@
                     <input type="hidden" id="men-filtro-imovel" value="todos">
                     <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('men-filtro-imovel').value = id || 'todos'; document.getElementById('men-filtro-imovel-resumo').textContent = resumo; renderMensalidades(); }, true)" id="men-filtro-imovel-resumo" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1 text-left truncate">Todos</button>
                 </div>
-                <button type="button" onclick="document.getElementById('men-busca-texto').value=''; document.getElementById('men-filtro-competencia').value='todos'; document.getElementById('men-filtro-locatario').value='todos'; document.getElementById('men-filtro-empreendimento').value='todos'; document.getElementById('men-filtro-imovel').value='todos'; document.getElementById('men-filtro-imovel-resumo').textContent='Todos'; renderMensalidades();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
+                <button type="button" onclick="document.getElementById('men-busca-texto').value=''; document.getElementById('men-filtro-locatario').value='todos'; document.getElementById('men-filtro-empreendimento').value='todos'; document.getElementById('men-filtro-imovel').value='todos'; document.getElementById('men-filtro-imovel-resumo').textContent='Todos'; renderMensalidades();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
             </div>
         </div>
     </div>
@@ -905,12 +909,6 @@
                     <input type="text" id="saidas-busca-texto" placeholder="Descrição, fornecedor..." oninput="renderSaidas()" class="w-full p-2 border rounded-lg text-sm mt-1">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Competência</label>
-                    <select id="saidas-filtro-competencia" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
-                        <option value="todos">Todas</option>
-                    </select>
-                </div>
-                <div>
                     <label class="block text-[11px] font-bold text-gray-500">Status</label>
                     <select id="saidas-filtro-status" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
@@ -948,7 +946,7 @@
                         <option value="todos">Todos</option>
                     </select>
                 </div>
-                <button type="button" onclick="document.getElementById('saidas-busca-texto').value=''; document.getElementById('saidas-filtro-competencia').value='todos'; document.getElementById('saidas-filtro-status').value='todos'; document.getElementById('saidas-filtro-categoria').value='todos'; document.getElementById('saidas-filtro-ativo').value='todos'; document.getElementById('saidas-filtro-ativo-select').value='todos'; document.getElementById('saidas-filtro-fornecedor').value='todos'; renderSaidas();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
+                <button type="button" onclick="document.getElementById('saidas-busca-texto').value=''; document.getElementById('saidas-filtro-status').value='todos'; document.getElementById('saidas-filtro-categoria').value='todos'; document.getElementById('saidas-filtro-ativo').value='todos'; document.getElementById('saidas-filtro-ativo-select').value='todos'; document.getElementById('saidas-filtro-fornecedor').value='todos'; renderSaidas();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
             </div>
         </div>
     </div>
@@ -3552,7 +3550,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.234.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.235.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8827,14 +8825,14 @@
         }
         [
             'rzAcoesMensalidade', 'rzAbrirBaixaMensalidade', // v1.6.5 — rzAcoesRecebimentos saiu ("+" removido de Recebimentos); v1.178.8 — rzAcoesGrupoMensal saiu (achado do Nicola)
-            'renderMensalidades', 'alternarGrupoMensal', 'liquidarMensalidade',
+            'renderMensalidades', 'liquidarMensalidade', // v1.13.0 (Entrega F.3) — alternarGrupoMensal saiu (lista não agrupa mais por competência)
             'estornarMensalidade', 'alternarMenuBaixaExtra', 'recalcularTotalBaixaExtra', 'borderEstornoCheck',
             'excluirLancamentoMensal', 'abrirRecebimentoDetalhe', 'voltarDoRecebimentoDetalhe', 'liquidarMensalidadeERefletirDetalhe',
             'estornarMensalidadeERefletirDetalhe', 'abrirFinanceiroFiltradoImovel', 'voltarDoFinanceiroFiltrado', 'abrirBuscaInadimplencia',
             'fecharBuscaInadimplencia', 'renderInadimplencia', 'rzAcoesGrupoInadimplencia', 'dispararCobrancaWhatsAppDirect',
             'abrirTelaAtrasados', 'alternarGrupoInadimplencia', // v1.179.1 — cortinas colapsáveis + caminho mais visível
-            'estaAtrasadaDespesa', 'popularFiltrosSaidas', 'renderSaidas', 'rotuloCategoriaSaida',
-            'alternarGrupoSaidas', 'abrirBuscaSaidas', 'fecharBuscaSaidas', 'abrirSaidasFiltradasPorAtivo',
+            'estaAtrasadaDespesa', 'popularFiltrosSaidas', 'renderSaidas', 'rotuloCategoriaSaida', // v1.13.0 (Entrega F.3) — alternarGrupoSaidas saiu (idem)
+            'abrirBuscaSaidas', 'fecharBuscaSaidas', 'abrirSaidasFiltradasPorAtivo',
             'voltarDasSaidasFiltradas', 'abrirNovaDespesa', 'abrirEditarDespesa', 'montarPopupDespesa',
             'rzAcoesDespesa', // v1.179.2 — achado do Nicola: menu (⋮) de Saídas, mesmo padrão de rzAcoesMensalidade
             'gerarProximasCompetencias', 'alternarNovoFornecedor', 'fecharPopupDespesa', 'salvarDespesa',

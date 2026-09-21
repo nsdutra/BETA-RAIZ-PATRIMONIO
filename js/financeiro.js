@@ -1,7 +1,26 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.12.0 · 21/09/2026
+// Versão: 1.13.0 · 21/09/2026
+//
+// v1.13.0 (Entrega F.3 — achado do Nicola, 21/09/2026: "uma vez que tem o
+// chip do mês no topo, não precisa mais ter os agrupamentos e filtros por
+// competência") — Recebimentos e Saídas PERDEM o agrupamento colapsável
+// por mês e o filtro de competência próprio (o <select> escondido de
+// "Buscar"): a lista passa a mostrar só a competência do card do topo
+// (financeiroCompetenciaAtual/window.RZ_FIN_COMPETENCIA), flat, sem
+// grupos. Reverte a decisão registrada em v1.11.0 (ver nota grande antes
+// de financeiroCompetenciaAtual) de manter os dois independentes — aquela
+// cautela era pro caso de um mês futuro/vazio sumir da lista ao trocar o
+// <select>; agora não tem mais <select>, o card manda sozinho, e mês vazio
+// mostra a lista vazia mesmo (mesmo comportamento que os KPIs já tinham).
+// Removidos: men-/saidas-filtro-competencia (index.html), popularFiltrosMensal/
+// Saidas pararam de popular esse select, gruposMensalAbertos/
+// gruposSaidasAbertos e alternarGrupoMensal/Saidas (dead code). Atrasados
+// (tab-inadimplencia) e Fechamento/Conciliação (tab-conciliacao) NÃO
+// mudam — o primeiro tem segmento próprio, o segundo continua
+// deliberadamente independente do card (decisão da F.1, ainda válida:
+// conciliação precisa ver vários meses de uma vez).
 //
 // v1.12.0 (Entrega F.2 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
 // v2.0.0, REGRAS_EXPERIENCIA_RAIZ v3.19.0 §11.1) — "Fechamento da
@@ -501,7 +520,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.12.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.13.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -541,6 +560,19 @@ export function montarAbaFinanceiro(tabId) {
 // filtro (Buscar) intocado. Unificar os dois de verdade é trabalho da
 // Entrega F.2 (Fechamento da competência), que introduz a competência
 // "corrente" de verdade (fn_fechamento_verificar/fechar/reabrir).
+//
+// REVISTO NA ENTREGA F.3 (21/09/2026 — achado do Nicola: "uma vez que tem
+// o chip do mês no topo, não precisa mais ter os agrupamentos e filtros
+// por competência"): a cautela acima segue válida para o CARD (continua
+// alimentando só os 4 KPIs), mas a LISTA deixou de ter filtro/agrupamento
+// próprio de competência — renderMensalidades()/renderSaidas() agora leem
+// financeiroCompetenciaAtual direto (mesma fonte do card) e mostram só
+// essa competência, sem agrupar por mês. O <select> escondido
+// (men-/saidas-filtro-competencia) e o agrupamento colapsável
+// (gruposMensalAbertos/gruposSaidasAbertos, alternarGrupoMensal/Saidas)
+// saíram junto — deixaram de ter consumidor. Um mês futuro/vazio agora
+// mostra a lista vazia mesmo (mesmo comportamento do KPI zerado) — é a
+// consequência aceita da unificação, não um bug.
 let financeiroCompetenciaAtual = null; // 'YYYY-MM-01'; null = ainda não inicializada (usa o mês corrente)
 let financeiroRotinaFechamentoLigada = null; // null = ainda não verificado nesta sessão; true/false depois
 
@@ -677,9 +709,6 @@ function financeiroRenderCabecalho(aba) {
     if (aba === 'conciliacao' && typeof fechamentoAtualizarCard === 'function') fechamentoAtualizarCard();
 }
 
-        let gruposSaidasAbertos = null;
-
-        let gruposMensalAbertos = null; // null = ainda não inicializado (abre só o mês mais recente)
         let gruposInadimplenciaAbertos = null; // v1.179.1 — idem, cortinas de Atrasados
         let mensalChipStatus = 'todos'; // v1.178.9 — chip de status (Recebimentos): todos · pago · atrasado · a_vencer
 
@@ -736,20 +765,17 @@ function financeiroRenderCabecalho(aba) {
             return new Date(d.vencimento + 'T00:00:00') < hoje;
         }
 
+        // ENTREGA F.3 (21/09/2026) — perdeu o <select> de competência (ver
+        // nota grande no topo do arquivo): a lista agora lê
+        // financeiroCompetenciaAtual direto, sem popular opção nenhuma pra
+        // isso. Ativo/Fornecedor continuam exatamente como antes.
         export function popularFiltrosSaidas() {
-            const selComp = document.getElementById('saidas-filtro-competencia');
             const selAtivo = document.getElementById('saidas-filtro-ativo-select');
             const selFornecedor = document.getElementById('saidas-filtro-fornecedor');
-            if (!selComp || !selAtivo || !selFornecedor) return;
+            if (!selAtivo || !selFornecedor) return;
 
-            const valComp = selComp.value || 'todos';
             const valAtivo = selAtivo.value || 'todos';
             const valForn = selFornecedor.value || 'todos';
-
-            const competencias = [...new Set(lancamentos.map(d => dataParaCompetencia(d.competencia)))]
-                .sort((a, b) => { const [ma, aa] = a.split('/'); const [mb, ab] = b.split('/'); return (ab + mb).localeCompare(aa + ma); });
-            selComp.innerHTML = '<option value="todos">Todas</option>' + competencias.map(c => `<option value="${c}">${c}</option>`).join('');
-            selComp.value = competencias.includes(valComp) ? valComp : 'todos';
 
             const ativosUsados = [...new Map(lancamentos.filter(d => d.ativoId).map(d => [d.ativoId, d.ativoNome])).entries()];
             selAtivo.innerHTML = '<option value="todos">Todos</option>' + ativosUsados.map(([id, nome]) => `<option value="${id}">${escapeHtmlSaidas(nome)}</option>`).join('');
@@ -844,17 +870,25 @@ function financeiroRenderCabecalho(aba) {
 
             popularFiltrosSaidas();
 
-            const fComp = document.getElementById('saidas-filtro-competencia')?.value || 'todos';
             const fStatus = document.getElementById('saidas-filtro-status')?.value || 'todos';
             const fCategoria = document.getElementById('saidas-filtro-categoria')?.value || 'todos';
             const fAtivo = document.getElementById('saidas-filtro-ativo')?.value || 'todos';
             const fFornecedor = document.getElementById('saidas-filtro-fornecedor')?.value || 'todos';
             const termoBusca = (document.getElementById('saidas-busca-texto')?.value || '').trim().toLowerCase();
 
+            // ENTREGA F.3 (21/09/2026 — achado do Nicola: com o card de
+            // competência no topo, a lista não precisa mais do próprio
+            // filtro/agrupamento por mês) — a lista mostra só a competência
+            // do card (financeiroCompetenciaAtual), a mesma que alimenta os
+            // 4 KPIs (ver nota grande no topo do arquivo). O <select>
+            // escondido (saidas-filtro-competencia) e o agrupamento
+            // colapsável (gruposSaidasAbertos/alternarGrupoSaidas) saíram.
+            const compAtualRef = dataParaCompetencia(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO());
+
             // v1.178.9 — achado do Nicola: filtros sem o status (pro hero e
             // pros chips contarem sem o próprio chip se esconder da contagem).
             const filtradasSemStatus = lancamentos.filter(d => {
-                if (fComp !== 'todos' && dataParaCompetencia(d.competencia) !== fComp) return false;
+                if (dataParaCompetencia(d.competencia) !== compAtualRef) return false;
                 if (fCategoria !== 'todos' && d.categoria !== fCategoria) return false;
                 if (fAtivo !== 'todos' && d.ativoId !== fAtivo) return false;
                 if (fFornecedor !== 'todos' && d.parteId !== fFornecedor) return false;
@@ -875,79 +909,51 @@ function financeiroRenderCabecalho(aba) {
             });
 
             // ENTREGA F.1 (21/09/2026) — os 4 KPIs (Previsto/Pago/Vencido/A
-            // pagar) SAÍRAM daqui: antes eram somados no cliente a partir do
-            // filtro de competência deste <select> (fComp); agora vêm de
-            // fn_financeiro_totalizadores, escopados pela competência do
-            // card do topo (financeiroCompetenciaAtual), via
-            // financeiroAtualizarKpis('saidas') — chamada por
-            // financeiroRenderCabecalho() a cada troca de aba/flip de mês,
-            // não a cada renderSaidas(). As duas competências são
-            // independentes de propósito (ver nota grande no topo do
-            // arquivo) — fComp aqui continua controlando só a LISTA abaixo,
-            // exatamente como antes.
+            // pagar) SAÍRAM daqui: vêm de fn_financeiro_totalizadores,
+            // escopados pela competência do card do topo
+            // (financeiroCompetenciaAtual), via financeiroAtualizarKpis
+            // ('saidas') — chamada por financeiroRenderCabecalho() a cada
+            // troca de aba/flip de mês, não a cada renderSaidas().
 
-            // ---- lista agrupada por competência, mesmo padrão de Recebimentos
-            const grupos = {};
-            filtradas.forEach(d => { const c = dataParaCompetencia(d.competencia); (grupos[c] = grupos[c] || []).push(d); });
-            const competenciasOrdenadas = Object.keys(grupos).sort((a, b) => {
-                const [ma, aa] = a.split('/'), [mb, ab] = b.split('/');
-                return (ab + mb).localeCompare(aa + ma);
-            });
-
-            if (gruposSaidasAbertos === null) {
-                gruposSaidasAbertos = new Set(competenciasOrdenadas.length > 0 ? [competenciasOrdenadas[0]] : []);
-            }
-
-            if (!competenciasOrdenadas.length) {
+            if (!filtradas.length) {
                 container.innerHTML = `<p class="text-xs text-center py-8" style="color:var(--sage)">Nenhuma despesa encontrada.</p>`;
                 return;
             }
 
-            container.innerHTML = competenciasOrdenadas.map(comp => {
-                // v1.178.9 — achado do Nicola: lista "sai da ordem" depois
-                // de dar baixa — não tinha ordenação estável dentro do
-                // grupo, ficava na ordem que `lancamentos` vinha do banco
-                // (que muda a cada recarregamento, não é cronológica).
-                // Ordena por vencimento (paga usa a data de pagamento) —
-                // mesma leitura natural de sempre, estável entre renders.
-                const itens = [...grupos[comp]].sort((a, b) => {
-                    const da = (a.status === 'realizado' && a.dataPagamento) ? a.dataPagamento : a.vencimento;
-                    const db = (b.status === 'realizado' && b.dataPagamento) ? b.dataPagamento : b.vencimento;
-                    return (da || '').localeCompare(db || '');
-                });
-                const totalGrupo = itens.reduce((s, d) => s + d.valor, 0);
-                const aberto = gruposSaidasAbertos.has(comp);
+            // v1.178.9 — achado do Nicola: lista "sai da ordem" depois de
+            // dar baixa — não tinha ordenação estável, ficava na ordem que
+            // `lancamentos` vinha do banco (que muda a cada recarregamento,
+            // não é cronológica). Ordena por vencimento (paga usa a data de
+            // pagamento) — mesma leitura natural de sempre, estável entre renders.
+            const itens = [...filtradas].sort((a, b) => {
+                const da = (a.status === 'realizado' && a.dataPagamento) ? a.dataPagamento : a.vencimento;
+                const db = (b.status === 'realizado' && b.dataPagamento) ? b.dataPagamento : b.vencimento;
+                return (da || '').localeCompare(db || '');
+            });
 
-                // v1.179.2 — achados do Nicola: (1) padroniza com
-                // Recebimentos — toque abre o menu (⋮) de opções do status,
-                // não pula direto pro formulário; (2) ícone por categoria
-                // (repasse, tributo, seguro etc. cada um com o seu, não só
-                // pago/atrasado/a-vencer); (3) descrição limpa — mesma
-                // função que já tira "SAÍDA BOLETO PAGO"/"PIX TRANSF"/TED
-                // etc. na Conciliação (limparRotuloConciliacao), aplicada
-                // aqui também.
-                const rsS = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
-                const cards = itens.map(d => {
-                    const atrasada = estaAtrasadaDespesa(d);
-                    const pago = d.status === 'realizado';
-                    const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
-                    const ic = ICONE_POR_CATEGORIA_SAIDA[d.categoria] || 'circle-dollar-sign';
-                    const descricaoLimpa = limparRotuloConciliacao(d.descricao);
-                    return `
-                        <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
-                            <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}</span></div>
-                            <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
-                            <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
-                        </div>`;
-                }).join('');
+            // v1.179.2 — achados do Nicola: (1) padroniza com Recebimentos —
+            // toque abre o menu (⋮) de opções do status, não pula direto
+            // pro formulário; (2) ícone por categoria (repasse, tributo,
+            // seguro etc. cada um com o seu, não só pago/atrasado/a-vencer);
+            // (3) descrição limpa — mesma função que já tira "SAÍDA BOLETO
+            // PAGO"/"PIX TRANSF"/TED etc. na Conciliação
+            // (limparRotuloConciliacao), aplicada aqui também.
+            const rsS = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+            const cards = itens.map(d => {
+                const atrasada = estaAtrasadaDespesa(d);
+                const pago = d.status === 'realizado';
+                const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
+                const ic = ICONE_POR_CATEGORIA_SAIDA[d.categoria] || 'circle-dollar-sign';
+                const descricaoLimpa = limparRotuloConciliacao(d.descricao);
                 return `
-                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoSaidas('${comp}')">
-                        <span style="flex:1">${comp} · ${formatarMoedaBR(totalGrupo)} · ${itens.length} ite${itens.length > 1 ? 'ns' : 'm'}</span>
-                        <svg data-lucide="chevron-down" style="width:16px;height:16px;transform:rotate(${aberto ? '180' : '0'}deg)"></svg>
-                    </div>
-                    <div class="rz-card rz-list ${aberto ? '' : 'hidden'}">${cards}</div>`;
+                    <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
+                        <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}</span></div>
+                        <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
+                        <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+                    </div>`;
             }).join('');
+            container.innerHTML = `<div class="rz-card rz-list">${cards}</div>`;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -967,10 +973,9 @@ function financeiroRenderCabecalho(aba) {
             aluguel: 'key-round', outro: 'circle-dollar-sign'
         };
 
-        export function alternarGrupoSaidas(comp) {
-            if (gruposSaidasAbertos.has(comp)) gruposSaidasAbertos.delete(comp); else gruposSaidasAbertos.add(comp);
-            renderSaidas();
-        }
+        // v1.13.0 — alternarGrupoSaidas() removida (Entrega F.3): a lista
+        // deixou de agrupar por competência, não tem mais o que expandir/
+        // recolher (ver nota grande no topo do arquivo).
 
         export function abrirBuscaSaidas() {
             const modal = document.getElementById('modal-busca-saidas');
@@ -3250,9 +3255,11 @@ function financeiroRenderCabecalho(aba) {
 
         }
 
+        // ENTREGA F.3 (21/09/2026) — perdeu o <select> de competência (ver
+        // nota grande no topo do arquivo): a lista agora lê
+        // financeiroCompetenciaAtual direto, sem popular opção nenhuma pra
+        // isso. Locatário/Empreendimento/Imóvel continuam como antes.
         export function popularFiltrosMensal() {
-
-            const selComp = document.getElementById('men-filtro-competencia');
 
             const selLoc = document.getElementById('men-filtro-locatario');
 
@@ -3260,23 +3267,11 @@ function financeiroRenderCabecalho(aba) {
 
             const selEmp = document.getElementById('men-filtro-empreendimento');
 
-            if (!selComp || !selLoc || !selImo) return;
-
-            const valComp = selComp.value || 'todos';
+            if (!selLoc || !selImo) return;
 
             const valLoc = selLoc.value || 'todos';
 
             const valImo = selImo.value || 'todos';
-
-            const competencias = [...new Set(mensalidades.map(m => m.referencia))].sort((a, b) => {
-
-                const [ma, aa] = a.split('/'); const [mb, ab] = b.split('/');
-
-                return (aa + ma).localeCompare(ab + mb);
-
-            });
-
-            selComp.innerHTML = '<option value="todos">Todas</option>' + competencias.map(c => `<option value="${c}">${c}</option>`).join('');
 
             const locatarios = [...new Set(contratos.map(c => c.locatario))].sort();
 
@@ -3288,8 +3283,6 @@ function financeiroRenderCabecalho(aba) {
             if (selEmp) popularFiltroSelect('men-filtro-empreendimento', imoveis.map(i => i.empreendimento));
 
             // Restaura a seleção anterior (o padrão inicial já é "todos" via option acima).
-
-            selComp.value = competencias.includes(valComp) ? valComp : 'todos';
 
             selLoc.value = locatarios.includes(valLoc) ? valLoc : 'todos';
 
@@ -3396,227 +3389,123 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export function renderMensalidades() {
-
             const container = document.getElementById('lista-mensalidades');
-
-            if(!container) return;
+            if (!container) return;
 
             popularFiltrosMensal();
 
-            const fComp = document.getElementById('men-filtro-competencia')?.value || 'todos';
-
             const fLoc = document.getElementById('men-filtro-locatario')?.value || 'todos';
-
             const fImo = document.getElementById('men-filtro-imovel')?.value || 'todos';
-
             const fEmp = document.getElementById('men-filtro-empreendimento')?.value || 'todos';
 
             // v1.55.0 — NOVO: busca por texto livre (endereço/locatário/
             // bairro), mesmo padrão de Imóveis.
             const termoBuscaMen = (document.getElementById('men-busca-texto')?.value || '').trim().toLowerCase();
 
+            // ENTREGA F.3 (21/09/2026 — achado do Nicola: com o card de
+            // competência no topo, a lista não precisa mais do próprio
+            // filtro/agrupamento por mês) — mostra só a competência do card
+            // (financeiroCompetenciaAtual), a mesma que alimenta os 4 KPIs
+            // (ver nota grande no topo do arquivo). O <select> escondido
+            // (men-filtro-competencia) e o agrupamento colapsável
+            // (gruposMensalAbertos/alternarGrupoMensal) saíram.
+            const compAtualRef = dataParaCompetencia(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO());
+
             const filtradas = mensalidades.filter(men => {
-
-                if (fComp !== 'todos' && men.referencia !== fComp) return false;
-
+                if (men.referencia !== compAtualRef) return false;
                 const con = contratos.find(c => c.id === men.contratoId);
-
                 if (!con) return false;
-
                 if (fLoc !== 'todos' && con.locatario !== fLoc) return false;
-
                 if (fImo !== 'todos' && con.imovelId !== fImo) return false;
-
                 const imo = imoveis.find(i => i.id === con.imovelId);
-
                 if (fEmp !== 'todos') {
-
                     if (!imo || imo.empreendimento !== fEmp) return false;
-
                 }
-
                 if (termoBuscaMen) {
                     const campos = [con.locatario, imo?.enderecoRua, imo?.enderecoNum, imo?.enderecoBairro, imo?.enderecoCidade, imo?.empreendimento];
                     if (!campos.some(c => (c || '').toString().toLowerCase().includes(termoBuscaMen))) return false;
                 }
-
                 return true;
-
             });
 
             // v1.178.9 — achado do Nicola: chips de status. Conta em cima do
-            // que já passou pelos outros filtros (competência/locatário/
-            // busca), sem o chip — senão o próprio chip escondia sua opção
+            // que já passou pelos outros filtros (locatário/imóvel/busca),
+            // sem o chip — senão o próprio chip escondia sua opção
             // "vizinha" da contagem. Aplica o chip DEPOIS de contar.
             renderChipsMensal(filtradas);
             const statusMen = (men) => men.status === 'Pago' ? 'pago' : mensalidadeEmAtraso(men) ? 'atrasado' : 'a_vencer';
             const filtradasComChip = mensalChipStatus === 'todos' ? filtradas : filtradas.filter(men => statusMen(men) === mensalChipStatus);
 
-            // Agrupa por competência (Ref), sempre em ordem decrescente (mês mais
+            // ENTREGA F.1 (21/09/2026) — os 4 KPIs (Previsto/Recebido/Em
+            // atraso/A receber) SAÍRAM daqui: vêm de
+            // fn_financeiro_totalizadores, escopados pela competência do
+            // card do topo, via financeiroAtualizarKpis('mensal').
 
-            // recente primeiro) — cada grupo pode ser expandido/recolhido.
-
-            const grupos = {};
-
-            filtradasComChip.forEach(men => {
-
-                if (!grupos[men.referencia]) grupos[men.referencia] = [];
-
-                grupos[men.referencia].push(men);
-
-            });
-
-            const competenciasOrdenadas = Object.keys(grupos).sort((a, b) => {
-
-                const [ma, aa] = a.split('/'), [mb, ab] = b.split('/');
-
-                return (ab + mb).localeCompare(aa + ma);
-
-            });
-
-            // Preserva quais grupos estavam abertos/fechados entre re-renderizações
-
-            // (ex: ao dar baixa ou excluir um item, o grupo não deve fechar sozinho).
-
-            // Na primeira vez, abre só o mês mais recente por padrão.
-
-            if (gruposMensalAbertos === null) {
-
-                gruposMensalAbertos = new Set(competenciasOrdenadas.length > 0 ? [competenciasOrdenadas[0]] : []);
-
+            if (!filtradasComChip.length) {
+                container.innerHTML = `<p class="text-xs text-center py-8" style="color:var(--sage)">Nenhum recebimento encontrado.</p>`;
+                return;
             }
 
-            const hoje = new Date();
-
             // v1.114.0 (FATIA 5 da gramática única, REGRAS §9/§10/§11) — cada
-            // competência vira .rz-group + .rz-card.rz-list; cada mensalidade é
-            // uma .rz-row com status nas 5 semânticas (Pago ok · Em atraso bad ·
-            // A vencer run). O TOQUE na linha abre o sheet de ações do
-            // lançamento (rzAcoesMensalidade): Dar baixa (sheet de formulário
-            // com os MESMOS ids banco-/data-/valor-/obs-/energia-/multa-/taxa-
-            // admin-${id}, então liquidarMensalidade() não mudou) · Excluir;
-            // pago → Recibo · Estornar. Os formulários inline por card, os 4
-            // botões por card e o cabeçalho verde-escuro do grupo saíram.
-            // KPIs do período no topo (rzKpisMensal). Grupos continuam
-            // recolhíveis (alternarGrupoMensal) — toque no rótulo do mês.
-            let kTotRecebido = 0, kTotAtraso = 0, kTotAVencer = 0;
+            // mensalidade é uma .rz-row com status nas 5 semânticas (Pago ok ·
+            // Em atraso bad · A vencer run). O TOQUE na linha abre o sheet de
+            // ações do lançamento (rzAcoesMensalidade): Dar baixa (sheet de
+            // formulário com os MESMOS ids banco-/data-/valor-/obs-/energia-/
+            // multa-/taxa-admin-${id}, então liquidarMensalidade() não mudou)
+            // · Excluir; pago → Recibo · Estornar.
             const rsM = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
             // v1.10.0 (18/09/2026, rodada 10 — achado do Nicola: "continua
-            // muito texto na frente da data, deve ter apenas a data") — a
-            // v1.9.0 (rodada 9) só REORDENOU a data pra logo depois do nome,
-            // mas manteve o resto (pago em/vence em/venceu em + imóvel +
-            // banco) na mesma linha — em locatário/imóvel com nome longo,
-            // `.rz-tx span` (1 linha, ellipsis) ainda cortava tudo isso
-            // ANTES da data se a linha total passasse do limite. Fix de
-            // verdade: a linha vira só a data nua (não tem mais nada pra
-            // truncar por cima dela) — status (Pago/Em atraso/A vencer) já
-            // está no badge à direita (rsM), não precisa repetir em texto.
-            // dataVencMensal() cobre o caso sem dataPgto ainda gravada
-            // (item minoria — 13 de 320 "atrasado" no banco, conferido via
-            // SQL): monta a data de vencimento de verdade a partir de
-            // referencia (MM/YYYY) + vencimentoDia do contrato, em vez do
-            // texto cru "dia N" (sem mês/ano) que existia antes.
+            // muito texto na frente da data, deve ter apenas a data") —
+            // status (Pago/Em atraso/A vencer) já está no badge à direita
+            // (rsM), não precisa repetir em texto. dataVencMensal() cobre o
+            // caso sem dataPgto ainda gravada: monta a data de vencimento de
+            // verdade a partir de referencia (MM/YYYY) + vencimentoDia do
+            // contrato, em vez do texto cru "dia N" (sem mês/ano).
             const dataVencMensal = (m, con) => {
                 if (m.dataPgto) return formatarDataBR(m.dataPgto);
                 const p = (m.referencia || '').split('/');
                 return p.length === 2 ? `${String(con.vencimentoDia || 15).padStart(2, '0')}/${p[0]}/${p[1]}` : '';
             };
-            const htmlGrupos = competenciasOrdenadas.map((ref) => {
-                const itensGrupo = grupos[ref].slice().sort((a, b) => {
-
-                    const conA = contratos.find(c => c.id === a.contratoId);
-
-                    const conB = contratos.find(c => c.id === b.contratoId);
-
-                    const imoA = conA ? imoveis.find(i => i.id === conA.imovelId) : null;
-
-                    const imoB = conB ? imoveis.find(i => i.id === conB.imovelId) : null;
-
-                    const empA = imoA ? imoA.empreendimento : '';
-
-                    const empB = imoB ? imoB.empreendimento : '';
-
-                    return empA.localeCompare(empB) || (conA?.locatario || '').localeCompare(conB?.locatario || '');
-
-                });
-
-                let recebidoGrupo = 0, inadimplenteGrupo = 0, avencerGrupo = 0;
-                let qtdRecebido = 0, qtdInadimplente = 0, qtdAVencer = 0;
-                const linhas = itensGrupo.map(men => {
-                    const con = contratos.find(c => c.id === men.contratoId) || {};
-                    const imo = imoveis.find(i => i.id === con.imovelId);
-                    const localImovel = imo ? `${imo.empreendimento || ''} · ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '';
-                    if (men.status === 'Pago') {
-                        recebidoGrupo += men.valorConfirmado; qtdRecebido++;
-                        return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
-                            <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
-                            <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}</span></div>
-                            <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${rsM('ok', 'Pago')}</div>
-                            <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
-                        </div>`;
-                    }
-                    const atrasada = mensalidadeEmAtraso(men);
-                    if (atrasada) { inadimplenteGrupo += men.valorConfirmado; qtdInadimplente++; } else { avencerGrupo += men.valorConfirmado; qtdAVencer++; }
-                    // v1.179.3 — achado do Nicola: ícone por TIPO de
-                    // recebimento (entrada — mesma seta de sempre), não por
-                    // status — status já está na tag (rsM), não precisa
-                    // repetir mudando a forma do ícone. Cor ainda muda
-                    // (rz-bad) quando atrasada, só a forma que ficou fixa.
+            const itens = filtradasComChip.slice().sort((a, b) => {
+                const conA = contratos.find(c => c.id === a.contratoId);
+                const conB = contratos.find(c => c.id === b.contratoId);
+                const imoA = conA ? imoveis.find(i => i.id === conA.imovelId) : null;
+                const imoB = conB ? imoveis.find(i => i.id === conB.imovelId) : null;
+                const empA = imoA ? imoA.empreendimento : '';
+                const empB = imoB ? imoB.empreendimento : '';
+                return empA.localeCompare(empB) || (conA?.locatario || '').localeCompare(conB?.locatario || '');
+            });
+            const linhas = itens.map(men => {
+                const con = contratos.find(c => c.id === men.contratoId) || {};
+                if (men.status === 'Pago') {
                     return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
-                        <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
+                        <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
                         <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}</span></div>
-                        <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
+                        <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${rsM('ok', 'Pago')}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;
-                }).join('');
-                kTotRecebido += recebidoGrupo; kTotAtraso += inadimplenteGrupo; kTotAVencer += avencerGrupo;
-                const grupoId = 'grupo-mensal-' + ref.replace('/', '-');
-                const abertoPorPadrao = gruposMensalAbertos.has(ref);
-                // v1.179.3 — achado do Nicola: resumo da competência
-                // padronizado, SEM variar com o chip — sempre "valor · N
-                // itens", nunca a repartição por status (nem no "Todos").
-                // Mesmo padrão em qualquer competência, futura ou passada.
-                const totalItensGrupo = qtdRecebido + qtdInadimplente + qtdAVencer;
-                const valorGrupo = recebidoGrupo + inadimplenteGrupo + avencerGrupo;
-                const resumo = `${formatarMoedaBR(valorGrupo)} · ${totalItensGrupo} ite${totalItensGrupo > 1 ? 'ns' : 'm'}`;
-                // v1.6.5 — achado do Nicola: mês 100% futuro (só "a vencer",
-                // nada pago ou em atraso ainda) ficava com a MESMA cor de
-                // cabeçalho que um mês com coisa pra agir — a única
-                // diferença era o ⋮ sumir, sutil demais. Futuro puro agora
-                // usa opacidade reduzida no cabeçalho inteiro — sinaliza
-                // "ainda não chegou a hora" antes mesmo de ler o resumo.
-                const soFuturo = qtdRecebido === 0 && qtdInadimplente === 0 && qtdAVencer > 0;
-                return `
-                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer${soFuturo ? ';opacity:.6' : ''}" onclick="alternarGrupoMensal('${ref}')">
-                        <span style="flex:1">${ref} · ${resumo}</span>
-                        <svg data-lucide="chevron-down" id="${grupoId}-seta" style="width:16px;height:16px;transform:rotate(${abertoPorPadrao ? '180' : '0'}deg)"></svg>
-                    </div>
-                    <div id="${grupoId}" class="rz-card rz-list ${abertoPorPadrao ? '' : 'hidden'}">${linhas}</div>`;
+                }
+                const atrasada = mensalidadeEmAtraso(men);
+                // v1.179.3 — achado do Nicola: ícone por TIPO de recebimento
+                // (entrada — mesma seta de sempre), não por status — status
+                // já está na tag (rsM), não precisa repetir mudando a forma
+                // do ícone. Cor ainda muda (rz-bad) quando atrasada, só a
+                // forma que ficou fixa.
+                return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
+                    <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}</span></div>
+                    <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
+                    <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+                </div>`;
             }).join('');
-            // ENTREGA F.1 (21/09/2026) — os 4 KPIs (Previsto/Recebido/Em
-            // atraso/A receber) SAÍRAM daqui: kTotRecebido/kTotAtraso/
-            // kTotAVencer continuam calculados acima (dead code inofensivo,
-            // preservado pra não mexer no corpo do loop por cima) mas não
-            // são mais escritos na tela — quem escreve agora é
-            // financeiroAtualizarKpis('mensal'), a partir de
-            // fn_financeiro_totalizadores, escopado pela competência do
-            // card do topo (ver nota grande no topo do arquivo).
-            container.innerHTML = htmlGrupos;
+            container.innerHTML = `<div class="rz-card rz-list">${linhas}</div>`;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
-
         }
 
-        export function alternarGrupoMensal(ref) {
-            const grupoId = 'grupo-mensal-' + ref.replace('/', '-');
-            const el = document.getElementById(grupoId);
-            const seta = document.getElementById(grupoId + '-seta');
-            if (!el) return;
-            el.classList.toggle('hidden');
-            const aberto = !el.classList.contains('hidden');
-            if (seta) seta.style.transform = `rotate(${aberto ? 180 : 0}deg)`;
-            if (aberto) gruposMensalAbertos.add(ref); else gruposMensalAbertos.delete(ref);
-        }
+        // v1.13.0 — alternarGrupoMensal() removida (Entrega F.3): a lista
+        // deixou de agrupar por competência, não tem mais o que expandir/
+        // recolher (ver nota grande no topo do arquivo).
 
         // v1.178.8 — rzAcoesGrupoMensal() e apagarInadimplentesDoGrupo()
         // removidas (achado do Nicola: "apagar lançamentos em atraso" no
