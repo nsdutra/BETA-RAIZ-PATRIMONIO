@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# gerar_versoes.py v1.14 (21/09/2026) — ARQ ganha js/fechamento.js (Entrega
+# F.2 do PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0 — fechar/
+# reabrir a competência, módulo novo).
 # gerar_versoes.py v1.13 (21/09/2026) — ARQ ganha js/resultados.js (Entrega
 # A.3 do PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0 — tela nova
 # de Resultados, fatia lazy UI-05).
@@ -43,7 +46,7 @@
 # deveria estar no ar) a partir dos headers dos arquivos do app. Rodado por
 # Claude a cada entrega; o Deploy_Raiz.ps1 v2.10 publica e compara com o site.
 import re, os, json, sys, datetime, io
-ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/comum-endereco.js','js/resultados.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
+ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/fechamento.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/comum-endereco.js','js/resultados.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
 out = {'app': 'patrimonio', 'gerado_em': datetime.datetime.now().isoformat(timespec='seconds'), 'arquivos': {}, 'detalhes': {}}
 for f in ARQ:
     s = io.open(f, encoding='utf-8').read()

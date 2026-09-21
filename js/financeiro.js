@@ -1,7 +1,22 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.11.0 · 21/09/2026
+// Versão: 1.12.0 · 21/09/2026
+//
+// v1.12.0 (Entrega F.2 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0, REGRAS_EXPERIENCIA_RAIZ v3.19.0 §11.1) — "Fechamento da
+// competência": o chip Fechamento (tab-conciliacao) ganha o MESMO card de
+// competência de Recebimentos/Saídas (agora com ⋮, abre Sheet de ações
+// Fechar/Reabrir — js/fechamento.js, módulo novo e isolado, mesmo padrão
+// de ponte global dos demais). financeiro.js não ganhou lógica de
+// fechamento nenhuma — só passou a (1) espelhar
+// financeiroCompetenciaAtual em window.RZ_FIN_COMPETENCIA (module isolado
+// não importa module isolado; fechamento.js lê essa variável pra saber
+// "qual mês" sem duplicar estado), (2) reagir ao flip de competência
+// também quando tab-conciliacao está ativa (financeiroMudarCompetencia),
+// e (3) chamar a ponte fechamentoAtualizarCard() de dentro de
+// financeiroRenderCabecalho('conciliacao'). REGRAS §11.1: card de
+// competência (F.1) + Sheet de ações (§2) — zero CSS/superfície nova.
 //
 // v1.11.0 (Entrega F.1 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
 // v2.0.0, REGRAS_EXPERIENCIA_RAIZ v3.18.0 §11) — "Totalizadores e
@@ -486,7 +501,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.11.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.12.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -534,22 +549,35 @@ function financeiroCompetenciaHojeISO() {
     return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
+// Entrega F.2 — único ponto que ESCREVE financeiroCompetenciaAtual, pra
+// nunca esquecer de espelhar em window.RZ_FIN_COMPETENCIA (fechamento.js
+// lê essa variável; módulos isolados não se importam, ver nota do topo).
+function financeiroDefinirCompetencia(iso) {
+    financeiroCompetenciaAtual = iso;
+    if (typeof window !== 'undefined') window.RZ_FIN_COMPETENCIA = iso;
+}
+
 function financeiroCompetenciaLabel(iso) {
     const nomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const [ano, mes] = iso.split('-');
     return `${nomes[parseInt(mes, 10) - 1]}/${ano}`;
 }
 
-/** Flip ‹ › do card de competência — só reage se Recebimentos ou Saídas
- * estiver aberta agora (Fechamento não usa competência nesta entrega, ver
- * nota acima). */
+/** Flip ‹ › do card de competência — reage em qual das 3 abas estiver
+ * ativa agora (Entrega F.2: Fechamento também tem o card, ver
+ * financeiroRenderCabecalho e js/fechamento.js). */
 export function financeiroMudarCompetencia(delta) {
-    if (!financeiroCompetenciaAtual) financeiroCompetenciaAtual = financeiroCompetenciaHojeISO();
+    if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
     const [ano, mes] = financeiroCompetenciaAtual.split('-').map(Number);
     const d = new Date(ano, (mes - 1) + delta, 1);
-    financeiroCompetenciaAtual = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    financeiroDefinirCompetencia(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
     if (document.getElementById('tab-mensal')?.classList.contains('active')) montarAbaFinanceiro('tab-mensal');
     else if (document.getElementById('tab-saidas')?.classList.contains('active')) montarAbaFinanceiro('tab-saidas');
+    // Entrega F.2 — Fechamento também tem o card de competência agora
+    // (REGRAS §11.1), mas SÓ redesenha o card (financeiroRenderCabecalho),
+    // nunca recarrega a lista de conciliação (continua com filtro próprio,
+    // independente — decisão da F.1).
+    else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) financeiroRenderCabecalho('conciliacao');
 }
 
 /** Camada de chips Recebimentos · Saídas · Fechamento — 1 cópia por aba
@@ -636,13 +664,17 @@ async function financeiroAtualizarKpis(aba) {
  * abas do grupo Financeiro. Chamado 1x por troca de aba (montarAbaFinanceiro)
  * e pelo flip de competência. */
 function financeiroRenderCabecalho(aba) {
-    if (!financeiroCompetenciaAtual) financeiroCompetenciaAtual = financeiroCompetenciaHojeISO();
+    if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
     const elLabel = document.getElementById(`fin-competencia-label-${aba}`);
     if (elLabel) elLabel.textContent = financeiroCompetenciaLabel(financeiroCompetenciaAtual);
     const elChips = document.getElementById(`fin-chips-nivel-${aba}`);
     if (elChips) elChips.innerHTML = financeiroChipsNivelHtml(aba);
     if (financeiroRotinaFechamentoLigada === null) financeiroVerificarRotinaFechamento();
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
+    // Entrega F.2 — card de Fechar/Reabrir dentro do chip Fechamento
+    // (REGRAS §11.1). Ponte global pra js/fechamento.js, módulo isolado
+    // (mesmo padrão de mostrarToast/abrirSheetAcoes usados aqui).
+    if (aba === 'conciliacao' && typeof fechamentoAtualizarCard === 'function') fechamentoAtualizarCard();
 }
 
         let gruposSaidasAbertos = null;
