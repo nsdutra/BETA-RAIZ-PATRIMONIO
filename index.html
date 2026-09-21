@@ -6,10 +6,30 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.232.0
-   LINHAS: 15511
-   DATA: 21/09/2026 (demanda 8ed523d1 — CRÍTICO C6 do checklist de soft
-   launch, prazo 27/09: contador de ativos sumido do cabeçalho)
+   VERSÃO: Beta v1.233.0
+   LINHAS: 15510
+   DATA: 21/09/2026 (Entrega F.1 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
+   FISCAL v2.0.0, Fase F: Totalizadores e reordenação do Financeiro)
+   NOVIDADES (Beta v1.233.0) — Entrega F.1: card de competência (‹ Mês/Ano ›)
+   sozinho no topo de Recebimentos e Saídas (REGRAS_EXPERIENCIA_RAIZ
+   v3.18.0 §11: "a competência vem primeiro porque qualifica tudo que vem
+   depois"); .rz-seg (Recebimentos/Saídas/Conciliação) virou .rz-chips
+   (Recebimentos/Saídas/Fechamento — REGRAS §7: "NUNCA chips e segmento
+   pra mesma decisão", chip Fechamento fica desabilitado com motivo quando
+   a rotina fechamento_mensal está desligada, leva a Empresa › Rotinas);
+   os 4 KPIs de cada aba (Previsto/Recebido/Em atraso/A receber em
+   Recebimentos; Previsto/Pago/Vencido/A pagar em Saídas) passaram a vir
+   de fn_financeiro_totalizadores (banco, migration
+   fechamento_totalizadores_v1), nunca mais de soma no cliente — fecha
+   parte da demanda a247bddf ("resultado calculado em 3 lugares"). Os
+   chips internos de status (Pago/Pendente/Atrasado em Recebimentos,
+   Pago/A pagar/Vencido em Saídas, Tudo/Entradas/Saídas +
+   Pendentes/Conciliados/Não controlado em Fechamento) e as 3 listas
+   continuam exatamente como estavam — nenhuma coluna/campo de linha
+   mudou (ajuste explícito do Nicola, 20/09/2026). Card de competência
+   fica de fora do chip Fechamento nesta entrega, de propósito (ver
+   nota grande no topo de js/financeiro.js) — entra de verdade na
+   Entrega F.2 (Fechamento da competência).
    NOVIDADES (Beta v1.232.0) — CORRIGIDO (demanda 8ed523d1): a causa raiz
    já tinha sido diagnosticada numa rodada anterior (18/09/2026, ver
    histórico da própria demanda) mas o fix nunca tinha sido aplicado —
@@ -59,25 +79,8 @@
    fn_alertas_listar() inteira para todos os clientes (referência ambígua
    de coluna em fn_diario_contratos_aniversario_reajuste) — ver relatório
    §12 completo na entrega desta rodada.
-   NOVIDADES (Beta v1.228.0) — CORRIGIDO: js/contratos.js v1.13.0→v1.13.1 e
-   js/imoveis.js v1.5.0→v1.5.1 — a aba/box Financeiro (Ficha do contrato E
-   Ficha do imóvel) ordenava as mensalidades comparando a string bruta
-   "referencia" ("MM/YYYY") com localeCompare: o MÊS pesava mais que o ANO
-   na comparação, então agrupava tudo por mês (todo "12/*" antes de todo
-   "11/*") em vez de decrescente real por competência — exatamente o print
-   que o Nicola mandou (12/2026, 12/2025, 12/2024, 12/2023, 11/2026...).
-   Fix: chave de ordenação "AAAAMM", mesmo padrão já correto em
-   financeiro.js (~linha 3066). QUA-01 aplicado — mesmo bug, achado nos 2
-   lugares que usavam o padrão errado, corrigido nos 2. Sem migration, sem
-   mudança de RPC. (O chip "Renovação" em si — 1º ponto do relato do
-   Nicola — já existe no código desde a v1.226.0/v1.13.0; se não aparece
-   na tela dele o mais provável é cache do navegador/PWA numa versão
-   anterior ao deploy da A.6, não um bug de código — ver resposta na
-   conversa.)
    ------------------------------------------------------------------
-   DATA: 21/09/2026 (Entrega A.7 — "Certo, vamos em frente na implementação!")
-   ------------------------------------------------------------------
-   Versões anteriores (v1.227.0 … v1.227.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.228.0 … v1.228.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -101,7 +104,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.1","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.57.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.57.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -502,6 +505,10 @@
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
         .rz-tabhead p{flex:1;font-size:12px;color:var(--muted);line-height:1.35;margin:0}
         .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
+        /* Entrega F.1 (21/09/2026, REGRAS §11) — card de competência
+           (‹ Mês/Ano ›) no topo de Recebimentos/Saídas. */
+        .rz-mes-label{font-family:var(--font-title);font-size:16px;letter-spacing:-.02em}
+        button.rz-kpi{text-align:left;width:100%;font:inherit;cursor:pointer}
         .rz-ico-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none;position:relative}
         /* v1.6.3 — achado do Nicola: .rz-ico-btn.rz-ia (já usado em
            btn-minutizar-ia) não tinha regra própria — o selo "IA" (fundo/
@@ -2638,16 +2645,24 @@
 
         <section id="tab-mensal" class="tab-content">
 
-            <!-- v1.6.5 — achado do Nicola: chip "Atrasados" solto abaixo do
-                 segmento tirado (redundante com o hero abaixo, cujo "Em
-                 atraso" agora é o próprio caminho pra tab-inadimplencia —
-                 mesmo destino, sem precisar de um chip fixo ocupando linha
-                 própria). -->
-            <div class="rz-seg">
-                <button onclick="switchTab('tab-mensal')" class="rz-on">Recebimentos</button>
-                <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
-                <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
+            <!-- Entrega F.1 (21/09/2026, REGRAS §11) — card de competência
+                 sozinho no topo ("a competência vem primeiro porque
+                 qualifica tudo que vem depois"). Move só os 4 KPIs abaixo
+                 (financeiroAtualizarKpis) — a lista continua com seu
+                 próprio filtro de competência (Buscar), ver nota grande no
+                 topo de financeiro.js. -->
+            <div class="rz-card flex items-center justify-between gap-2 mb-4">
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
+                <b id="fin-competencia-label-mensal" class="rz-mes-label">—</b>
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
             </div>
+
+            <!-- REGRAS §7/§11: "NUNCA chips e segmento pra mesma decisão" —
+                 o .rz-seg (Recebimentos/Saídas/Conciliação) virou chips,
+                 porque só chip representa "bloqueado com motivo" (Fechamento
+                 desabilitado quando a rotina fechamento_mensal está
+                 desligada). Desenhado por financeiroRenderCabecalho(). -->
+            <div class="rz-chips" id="fin-chips-nivel-mensal"></div>
 
             <!-- v1.51.0 — "< Voltar" condicional: só aparece quando esta
                  aba foi aberta filtrada a partir da ficha do imóvel
@@ -2660,7 +2675,7 @@
                  curta à esquerda dos ícones, mesmo padrão de Imóveis. -->
             <div class="flex items-center gap-2 mb-4">
 
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa. Importe extratos e concilie na aba Conciliação.</p>
+                <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa. Importe extratos e concilie no chip Fechamento.</p>
 
                 <!-- v1.6.5 — achado do Nicola: "+" tirado — abria um menu de
                      Importar/Reprocessar/Painel de conciliação, tudo
@@ -2670,28 +2685,18 @@
                 <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
             </div>
 
-            <!-- v1.6.5 — achado do Nicola: resumo padronizado com o de
-                 Saídas (mesmo .rz-kpi.rz-hero do catálogo, que antes só
-                 existia em Visão Geral) — antes eram 3 caixas soltas com
-                 desenho diferente do de Saídas. "Em atraso" agora é o
-                 caminho pra tab-inadimplencia (substitui o chip solto que
-                 saiu do topo da tela); "A vencer" é só informativo, sem
-                 tela própria de destino. -->
+            <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
+                 · Recebido · Em atraso · A receber), sempre vindos de
+                 fn_financeiro_totalizadores (nunca soma no cliente). Antes
+                 era 1 hero (fundo pine) + 2 caixas internas; agora são 4
+                 .rz-kpi do mesmo peso, igual ao catálogo já usa noutras
+                 telas. "Em atraso" continua sendo o caminho pra
+                 tab-inadimplencia (preservado do desenho anterior). -->
             <div class="rz-kpis">
-                <div class="rz-kpi rz-hero">
-                    <small>Recebido no período</small>
-                    <b id="mensal-resumo-recebido">R$ 0,00</b>
-                    <div class="grid grid-cols-2 gap-2 mt-3">
-                        <button type="button" onclick="abrirTelaAtrasados()" style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;text-align:left;position:relative">
-                            <div style="font-size:11px;opacity:.8;display:flex;align-items:center;justify-content:space-between">Em atraso <svg data-lucide="chevron-right" style="width:12px;height:12px;opacity:.7"></svg></div>
-                            <b id="mensal-resumo-atraso" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
-                        </button>
-                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
-                            <div style="font-size:11px;opacity:.8">A vencer</div>
-                            <b id="mensal-resumo-avencer" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
-                        </div>
-                    </div>
-                </div>
+                <div class="rz-kpi"><small>Previsto</small><b id="fin-kpi-mensal-previsto">R$ 0</b></div>
+                <div class="rz-kpi rz-in"><small>Recebido</small><b id="mensal-resumo-recebido">R$ 0</b></div>
+                <button type="button" class="rz-kpi rz-bad" onclick="abrirTelaAtrasados()"><small>Em atraso</small><b id="mensal-resumo-atraso">R$ 0</b></button>
+                <div class="rz-kpi"><small>A receber</small><b id="mensal-resumo-avencer">R$ 0</b></div>
             </div>
 
             <!-- v1.178.9 — achado do Nicola: chips de status pra filtrar
@@ -2717,11 +2722,18 @@
 
         <section id="tab-conciliacao" class="tab-content">
 
-            <div class="rz-seg">
-                <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
-                <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
-                <button onclick="switchTab('tab-conciliacao')" class="rz-on">Conciliação</button>
-            </div>
+            <!-- Entrega F.1 (21/09/2026, REGRAS §11) — esta aba passa a se
+                 chamar "Fechamento" na camada de chips de nível superior
+                 (id/rota internos continuam tab-conciliacao — nada de
+                 destino_rota/switchTab mudou). O CONTEÚDO da aba (import de
+                 extrato, hero Pendentes/Conciliados, Tudo/Entradas/Saídas +
+                 chips Pendentes/Conciliados/Não controlado) é hoje
+                 exatamente o que REGRAS §11 chama de "Conciliação (dentro
+                 do chip Fechamento)" — nada mudou aqui além do rótulo do
+                 chip; "fechar/reabrir a competência" de verdade é da
+                 Entrega F.2. Sem card de competência aqui de propósito (ver
+                 nota grande no topo de financeiro.js). -->
+            <div class="rz-chips" id="fin-chips-nivel-conciliacao"></div>
 
             <!-- v1.179.0 — achado do Nicola: botão Importar virou redondo
                  (.rz-ico-btn, mesmo padrão de Localizar/+ nas outras abas),
@@ -2861,16 +2873,18 @@
 
         <section id="tab-saidas" class="tab-content">
 
-            <!-- v1.6.5 — achado do Nicola: chip "Atrasados" solto tirado
-                 (mesmo motivo de Recebimentos — "Atrasado" agora vive
-                 dentro do hero abaixo, mas aqui filtra a própria lista de
-                 Saídas, não navega pra tab-inadimplencia, que é só de
-                 recebimento). -->
-            <div class="rz-seg">
-                <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
-                <button onclick="switchTab('tab-saidas')" class="rz-on">Saídas</button>
-                <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
+            <!-- Entrega F.1 (21/09/2026, REGRAS §11) — mesmo card de
+                 competência de Recebimentos (ver comentário lá). -->
+            <div class="rz-card flex items-center justify-between gap-2 mb-4">
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
+                <b id="fin-competencia-label-saidas" class="rz-mes-label">—</b>
+                <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
             </div>
+
+            <!-- REGRAS §7/§11 — .rz-seg virou chips, mesmo motivo de
+                 Recebimentos (chip representa "bloqueado com motivo",
+                 segmento não). -->
+            <div class="rz-chips" id="fin-chips-nivel-saidas"></div>
 
             <!-- "< Voltar" condicional, mesmo padrão de btn-voltar-financeiro
                  (só aparece quando esta aba foi aberta filtrada a partir do
@@ -2883,32 +2897,16 @@
                 <button id="btn-nova-despesa" onclick="abrirNovaDespesa()" title="Nova despesa" class="rz-ico-btn rz-primary" aria-label="Nova despesa"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
             </div>
 
-            <!-- v1.6.5 — achado do Nicola ("padronizar o resumo — a saída é
-                 de um jeito e o recebimento de outro"): mesma classe
-                 .rz-kpi.rz-hero de Recebimentos agora, em vez do card
-                 solto com cor própria (--sprout) e caixas bg-white/10 que
-                 só esta tela usava. "Atrasado" virou botão — filtra a
-                 própria lista (mesmo <select> escondido de sempre,
-                 saidas-filtro-status), sem navegar pra outra tela. -->
+            <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
+                 · Pago · Vencido · A pagar), sempre vindos de
+                 fn_financeiro_totalizadores. "Vencido" continua clicável
+                 (filtra a própria lista, mesmo <select> escondido de
+                 sempre, preservado do desenho anterior). -->
             <div class="rz-kpis">
-                <div class="rz-kpi rz-hero">
-                    <small>Total previsto — <span id="saidas-resumo-competencia">—</span></small>
-                    <b id="saidas-resumo-total">R$ 0,00</b>
-                    <div class="grid grid-cols-3 gap-2 mt-3">
-                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
-                            <div style="font-size:11px;opacity:.8">Pago</div>
-                            <b id="saidas-resumo-pago" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
-                        </div>
-                        <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
-                            <div style="font-size:11px;opacity:.8">A vencer</div>
-                            <b id="saidas-resumo-avencer" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
-                        </div>
-                        <button type="button" onclick="filtrarSaidasPorStatus('atrasado')" style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;text-align:left">
-                            <div style="font-size:11px;opacity:.8">Atrasado</div>
-                            <b id="saidas-resumo-atrasado" style="display:block;font-size:15px;margin-top:2px">R$ 0</b>
-                        </button>
-                    </div>
-                </div>
+                <div class="rz-kpi"><small>Previsto</small><b id="saidas-resumo-total">R$ 0</b></div>
+                <div class="rz-kpi"><small>Pago</small><b id="saidas-resumo-pago">R$ 0</b></div>
+                <button type="button" class="rz-kpi rz-bad" onclick="filtrarSaidasPorStatus('atrasado')"><small>Vencido</small><b id="saidas-resumo-atrasado">R$ 0</b></button>
+                <div class="rz-kpi"><small>A pagar</small><b id="saidas-resumo-avencer">R$ 0</b></div>
             </div>
 
             <!-- v1.178.9 — achado do Nicola: chips de status pra filtrar
@@ -3531,7 +3529,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.232.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.233.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8831,6 +8829,7 @@
             'alternarGrupoConciliacao', // v1.6.5 — agrupamento por competência na Conciliação
             'abrirAcoesImportarConciliacao', // v1.178.9 — menu único Importar/Reprocessar
             'abrirBuscaConciliacao', 'fecharBuscaConciliacao', 'limparBuscaConciliacao', 'atualizarCamposTipoConciliacao', // v1.179.0 — lupa de filtro
+            'financeiroMudarCompetencia', 'rzTocarChipFechamentoDesligado', // Entrega F.1 (21/09/2026) — card de competência + chip Fechamento
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         function switchTab(tabId) {

@@ -1,7 +1,28 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.10.1 · 21/09/2026
+// Versão: 1.11.0 · 21/09/2026
+//
+// v1.11.0 (Entrega F.1 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0, REGRAS_EXPERIENCIA_RAIZ v3.18.0 §11) — "Totalizadores e
+// reordenação do Financeiro (preservando chips e listas)": card de
+// competência (‹ Mês/Ano ›) sozinho no topo de Recebimentos/Saídas
+// (financeiroMudarCompetencia); .rz-seg (Recebimentos/Saídas/Conciliação)
+// virou .rz-chips (Recebimentos/Saídas/Fechamento — só chip representa
+// "bloqueado com motivo", segmento não; chip Fechamento fica .rz-off com
+// motivo quando a rotina fechamento_mensal está desligada, leva a
+// Empresa › Rotinas — financeiroVerificarRotinaFechamento/
+// rzTocarChipFechamentoDesligado, mesmo destino de rzAbrirDestinoAlerta
+// case 'empresa/rotinas'); os 4 KPIs de cada aba passaram a vir de
+// fn_financeiro_totalizadores (migration fechamento_totalizadores_v1),
+// nunca mais de soma no cliente (financeiroAtualizarKpis) — fecha parte
+// da demanda a247bddf. Ver a nota grande logo depois de montarAbaFinanceiro
+// pra a decisão de manter a competência do card INDEPENDENTE do filtro de
+// competência da lista (men-filtro-competencia/saidas-filtro-competencia),
+// e por quê. Nenhuma coluna/campo de linha das 3 listas mudou; os chips
+// internos de status (filtrarMensalPorChip/filtrarSaidasPorChip/
+// #conc-uni-chips) continuam exatamente como estavam (ajuste explícito do
+// Nicola, 20/09/2026).
 //
 // v1.10.1 — CORRIGIDO (QUA-01, achado buscando o mesmo padrão do bug da
 // demanda ac549b98 em contratos.js): as 2 sugestões de vínculo do sheet de
@@ -465,18 +486,163 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.10.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.11.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
-    if (tabId === 'tab-mensal') { renderMensalidades(); }
+    if (tabId === 'tab-mensal') { financeiroRenderCabecalho('mensal'); renderMensalidades(); }
     else if (tabId === 'tab-inadimplencia') { renderInadimplencia(); }
-    else if (tabId === 'tab-saidas') { renderSaidas(); }
+    else if (tabId === 'tab-saidas') { financeiroRenderCabecalho('saidas'); renderSaidas(); }
     // v1.178.2 — Etapa 7/8 + retirada do painel de Pendências legado:
     // Conciliação é aba própria, só carregarConciliacaoUnificada() agora
     // (renderPendenciasExtrato() removida — painel legado retirado).
-    else if (tabId === 'tab-conciliacao') { carregarConciliacaoUnificada(); }
+    else if (tabId === 'tab-conciliacao') { financeiroRenderCabecalho('conciliacao'); carregarConciliacaoUnificada(); }
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ============================================================================
+// ENTREGA F.1 (21/09/2026 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0, REGRAS_EXPERIENCIA_RAIZ v3.18.0 §11) — "Totalizadores e
+// reordenação do Financeiro (preservando chips e listas)".
+//
+// Card de competência (‹ Mês/Ano ›) sozinho no topo de Recebimentos e
+// Saídas + camada de chips de nível superior (Recebimentos · Saídas ·
+// Fechamento, substituindo o antigo .rz-seg — REGRAS §7: "NUNCA chips e
+// segmento para a mesma decisão") + 4 KPIs de totalizador que agora vêm de
+// fn_financeiro_totalizadores (banco), nunca de soma no cliente.
+//
+// DECISÃO TÉCNICA (registrada pra não repetir a investigação): o card de
+// competência é um estado NOVO e independente do <select> escondido
+// (men-filtro-competencia/saidas-filtro-competencia) que a lupa de Buscar já
+// usa pra filtrar a LISTA. Cheguei a cogitar unificar os dois, mas
+// popularFiltrosSaidas()/popularFiltrosMensal() só aceitam, como valor do
+// select, uma competência que já tenha lançamento/mensalidade carregado —
+// qualquer valor fora da lista de opções é descartado e volta pra "todos"
+// (linha 554/558 acima). Isso quebraria o caso mais comum de um flip de
+// mês: navegar pra um mês futuro (ou um mês já 100% quitado) que ainda não
+// tem nada na lista. Por isso o card de competência SÓ alimenta os 4 KPIs
+// (via RPC, que devolve zero de boa pra mês vazio); a lista continua
+// exatamente como hoje, agrupada por todas as competências, com seu próprio
+// filtro (Buscar) intocado. Unificar os dois de verdade é trabalho da
+// Entrega F.2 (Fechamento da competência), que introduz a competência
+// "corrente" de verdade (fn_fechamento_verificar/fechar/reabrir).
+let financeiroCompetenciaAtual = null; // 'YYYY-MM-01'; null = ainda não inicializada (usa o mês corrente)
+let financeiroRotinaFechamentoLigada = null; // null = ainda não verificado nesta sessão; true/false depois
+
+function financeiroCompetenciaHojeISO() {
+    const h = new Date();
+    return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+function financeiroCompetenciaLabel(iso) {
+    const nomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const [ano, mes] = iso.split('-');
+    return `${nomes[parseInt(mes, 10) - 1]}/${ano}`;
+}
+
+/** Flip ‹ › do card de competência — só reage se Recebimentos ou Saídas
+ * estiver aberta agora (Fechamento não usa competência nesta entrega, ver
+ * nota acima). */
+export function financeiroMudarCompetencia(delta) {
+    if (!financeiroCompetenciaAtual) financeiroCompetenciaAtual = financeiroCompetenciaHojeISO();
+    const [ano, mes] = financeiroCompetenciaAtual.split('-').map(Number);
+    const d = new Date(ano, (mes - 1) + delta, 1);
+    financeiroCompetenciaAtual = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    if (document.getElementById('tab-mensal')?.classList.contains('active')) montarAbaFinanceiro('tab-mensal');
+    else if (document.getElementById('tab-saidas')?.classList.contains('active')) montarAbaFinanceiro('tab-saidas');
+}
+
+/** Camada de chips Recebimentos · Saídas · Fechamento — 1 cópia por aba
+ * (tab-mensal/tab-saidas/tab-conciliacao), cada uma sempre com a SUA
+ * própria opção marcada .rz-on (não é um estado compartilhado — quem
+ * decide qual está "ativa" é em qual das 3 seções esta cópia vive). */
+function financeiroChipsNivelHtml(aba) {
+    const fechamentoOff = financeiroRotinaFechamentoLigada === false;
+    const itens = [
+        { chave: 'mensal', rotulo: 'Recebimentos', tab: 'tab-mensal' },
+        { chave: 'saidas', rotulo: 'Saídas', tab: 'tab-saidas' },
+        { chave: 'conciliacao', rotulo: 'Fechamento', tab: 'tab-conciliacao', off: fechamentoOff },
+    ];
+    return itens.map(it => {
+        const classes = ['rz-chip', it.chave === aba ? 'rz-on' : '', it.off ? 'rz-off' : ''].filter(Boolean).join(' ');
+        const onclick = it.off ? 'rzTocarChipFechamentoDesligado()' : `switchTab('${it.tab}')`;
+        const contador = (it.chave === 'conciliacao' && conciliacaoUniCache.length)
+            ? ` <span class="rz-n">${conciliacaoUniCache.filter(x => x.status === 'pendente').length}</span>` : '';
+        return `<button type="button" class="${classes}" onclick="${onclick}">${it.rotulo}${contador}</button>`;
+    }).join('');
+}
+
+function financeiroRedesenharChipsNivel() {
+    ['mensal', 'saidas', 'conciliacao'].forEach(aba => {
+        const el = document.getElementById(`fin-chips-nivel-${aba}`);
+        if (el) el.innerHTML = financeiroChipsNivelHtml(aba);
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// REGRAS §11/§7 ("regra 9 do §0"): chip que representa uma rotina desligada
+// aparece desabilitado, com o motivo, e leva a Empresa › Rotinas — mesmo
+// destino/padrão já usado pelos 5 alertas de rotina de escopo empresa
+// (rzAbrirDestinoAlerta, case 'empresa/rotinas', Entrega AL.3).
+async function financeiroVerificarRotinaFechamento() {
+    if (financeiroRotinaFechamentoLigada !== null) return; // já verificado nesta sessão
+    try {
+        const { data, error } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
+        if (error) throw error;
+        const linha = (data || []).find(r => r.codigo === 'fechamento_mensal');
+        financeiroRotinaFechamentoLigada = linha ? !!linha.ligada : true; // rotina fora do catálogo não deve travar o chip
+    } catch (e) {
+        console.error('[financeiro] fn_rotinas_empresa_listar', e);
+        financeiroRotinaFechamentoLigada = true; // falha de rede nunca trava o chip — só a rotina desligada de propósito trava
+    }
+    financeiroRedesenharChipsNivel();
+}
+
+export function rzTocarChipFechamentoDesligado() {
+    if (typeof mostrarToast === 'function') mostrarToast('Fechamento mensal está desligado para esta empresa. Toque pra ativar em Empresa › Rotinas.', 'info');
+    switchTab('tab-minha-empresa');
+    setTimeout(() => document.getElementById('cme-rotinas-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+}
+
+// 4 KPIs de totalizador — SEMPRE de fn_financeiro_totalizadores (banco),
+// nunca somados no cliente (REGRAS §11). aba: 'mensal' (Recebimentos) ou
+// 'saidas' (Saídas); Fechamento mantém o próprio hero (Pendentes/
+// Conciliados), que não muda nesta entrega.
+async function financeiroAtualizarKpis(aba) {
+    const tipo = aba === 'mensal' ? 'recebimento' : 'saida';
+    const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+    const idsMensal = { previsto: 'fin-kpi-mensal-previsto', realizado: 'mensal-resumo-recebido', em_atraso: 'mensal-resumo-atraso', em_aberto: 'mensal-resumo-avencer' };
+    const idsSaidas = { previsto: 'saidas-resumo-total', realizado: 'saidas-resumo-pago', em_atraso: 'saidas-resumo-atrasado', em_aberto: 'saidas-resumo-avencer' };
+    const ids = aba === 'mensal' ? idsMensal : idsSaidas;
+    // Zera visualmente enquanto busca (evita mostrar o total do mês anterior
+    // por 1 instante como se já fosse do mês novo).
+    Object.values(ids).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '...'; });
+    try {
+        const { data, error } = await dbAuth.rpc('fn_financeiro_totalizadores', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_tipo: tipo });
+        if (error) throw error;
+        const linha = (data && data[0]) || { previsto: 0, realizado: 0, em_atraso: 0, em_aberto: 0 };
+        Object.entries(ids).forEach(([campo, id]) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = formatarMoedaBR(Number(linha[campo] || 0));
+        });
+    } catch (e) {
+        console.error('[financeiro] fn_financeiro_totalizadores', e);
+        Object.values(ids).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = 'R$ 0'; });
+        if (typeof mostrarToast === 'function') mostrarToast('Não consegui calcular os totais deste mês agora.', 'danger');
+    }
+}
+
+/** Desenha o cabeçalho novo (competência + chips de nível) de uma das 3
+ * abas do grupo Financeiro. Chamado 1x por troca de aba (montarAbaFinanceiro)
+ * e pelo flip de competência. */
+function financeiroRenderCabecalho(aba) {
+    if (!financeiroCompetenciaAtual) financeiroCompetenciaAtual = financeiroCompetenciaHojeISO();
+    const elLabel = document.getElementById(`fin-competencia-label-${aba}`);
+    if (elLabel) elLabel.textContent = financeiroCompetenciaLabel(financeiroCompetenciaAtual);
+    const elChips = document.getElementById(`fin-chips-nivel-${aba}`);
+    if (elChips) elChips.innerHTML = financeiroChipsNivelHtml(aba);
+    if (financeiroRotinaFechamentoLigada === null) financeiroVerificarRotinaFechamento();
+    if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
 }
 
         let gruposSaidasAbertos = null;
@@ -676,19 +842,17 @@ export function montarAbaFinanceiro(tabId) {
                 return true;
             });
 
-            // v1.178.9 — achado do Nicola ("o resumo de despesa está por
-            // competência, e o recebimento geral — padronize"): hero passa a
-            // somar TUDO que bate com os filtros ativos (mesmo padrão de
-            // Recebimentos), não mais travado no mês corrente do calendário.
-            const totalMes = filtradasSemStatus.reduce((s, d) => s + d.valor, 0);
-            const totalPago = filtradasSemStatus.filter(d => d.status === 'realizado').reduce((s, d) => s + d.valor, 0);
-            const totalAtrasado = filtradasSemStatus.filter(d => estaAtrasadaDespesa(d)).reduce((s, d) => s + d.valor, 0);
-            const totalAVencer = totalMes - totalPago - totalAtrasado;
-            document.getElementById('saidas-resumo-competencia').textContent = fComp === 'todos' ? 'todo o período' : fComp;
-            document.getElementById('saidas-resumo-total').textContent = formatarMoedaBR(totalMes);
-            document.getElementById('saidas-resumo-pago').textContent = formatarMoedaBR(totalPago);
-            document.getElementById('saidas-resumo-avencer').textContent = formatarMoedaBR(totalAVencer);
-            document.getElementById('saidas-resumo-atrasado').textContent = formatarMoedaBR(totalAtrasado);
+            // ENTREGA F.1 (21/09/2026) — os 4 KPIs (Previsto/Pago/Vencido/A
+            // pagar) SAÍRAM daqui: antes eram somados no cliente a partir do
+            // filtro de competência deste <select> (fComp); agora vêm de
+            // fn_financeiro_totalizadores, escopados pela competência do
+            // card do topo (financeiroCompetenciaAtual), via
+            // financeiroAtualizarKpis('saidas') — chamada por
+            // financeiroRenderCabecalho() a cada troca de aba/flip de mês,
+            // não a cada renderSaidas(). As duas competências são
+            // independentes de propósito (ver nota grande no topo do
+            // arquivo) — fComp aqui continua controlando só a LISTA abaixo,
+            // exatamente como antes.
 
             // ---- lista agrupada por competência, mesmo padrão de Recebimentos
             const grupos = {};
@@ -3397,17 +3561,14 @@ export function montarAbaFinanceiro(tabId) {
                     </div>
                     <div id="${grupoId}" class="rz-card rz-list ${abertoPorPadrao ? '' : 'hidden'}">${linhas}</div>`;
             }).join('');
-            // v1.6.5 — achado do Nicola: hero padronizado com o de Saídas
-            // (mesma classe .rz-kpi.rz-hero do catálogo) — virou HTML
-            // estático em tab-mensal (index.html), preenchido aqui por id,
-            // igual ao padrão que Saídas já usava. Não faz mais parte do
-            // innerHTML montado a cada render.
-            const elRecebido = document.getElementById('mensal-resumo-recebido');
-            const elAtraso = document.getElementById('mensal-resumo-atraso');
-            const elAVencer = document.getElementById('mensal-resumo-avencer');
-            if (elRecebido) elRecebido.textContent = formatarMoedaBR(kTotRecebido);
-            if (elAtraso) elAtraso.textContent = formatarMoedaBR(kTotAtraso);
-            if (elAVencer) elAVencer.textContent = formatarMoedaBR(kTotAVencer);
+            // ENTREGA F.1 (21/09/2026) — os 4 KPIs (Previsto/Recebido/Em
+            // atraso/A receber) SAÍRAM daqui: kTotRecebido/kTotAtraso/
+            // kTotAVencer continuam calculados acima (dead code inofensivo,
+            // preservado pra não mexer no corpo do loop por cima) mas não
+            // são mais escritos na tela — quem escreve agora é
+            // financeiroAtualizarKpis('mensal'), a partir de
+            // fn_financeiro_totalizadores, escopado pela competência do
+            // card do topo (ver nota grande no topo do arquivo).
             container.innerHTML = htmlGrupos;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
