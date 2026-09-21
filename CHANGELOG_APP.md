@@ -4,6 +4,53 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.221.0) — Entrega AL.6, feedback do Nicola sobre a tela
+de alertas recém-entregue na AL.5 (3 prints: sheet "Item de controle
+vencendo" sem data, card "9 ativos com CIB pendente" abrindo Ativos em
+vez de listar, badge "Precisa de atenção" no lugar da criticidade),
+REGRAS_EXPERIENCIA_RAIZ v3.18.0 (§14), QUA-01 (auditados todos os tipos
+do Motor, não só os 3 exemplos):
+(1) Alerta aberto ganha DATA de compromisso (calendário, não só relativa)
+— compromissoAlertaData/rotuloCompromissoAlerta, novo, lê o campo de data
+que cada tipo já tem no detalhe (data_vencimento/fim/data_referencia,
+conforme o tipo) ou deriva (extrato_desatualizado: hoje − dias). Achado
+maior nesta varredura: reajuste_aniversario era o ÚNICO tipo cuja regra é
+literalmente sobre uma data e que não expunha NENHUMA (nem dias, sempre
+null) — fn_diario_contratos_aniversario_reajuste (migration
+alertas_datas_compromisso_v1) passa a devolver data_referencia +
+proxima_data (a antiga já calculava a 1ª só pro WHERE, nunca devolvia);
+fn_alertas_listar (v2) consome as duas, dias vira (proxima_data − hoje).
+Tipos sem data real (CIB pendente, cadastro incompleto, concentração de
+locatário, contrato aguardando assinatura, contrato em ativo vendido/
+arquivado, documento sem vínculo, anexo pendente, sinal fiscal) seguem
+sem — auditados um a um nos `fn_diario_*` de origem, é estado, não
+lacuna. (2) Badge de natureza ("Precisa de ação", confundida com
+criticidade) trocada pela badge de SEVERIDADE (Crítico/Atenção/
+Informativo, já existia pro segmento da tela de Alertas) —
+NATUREZA_ROTULO_ALERTA removida (CAN-05, só esse 1 uso). (3) Os 3 modos
+de agrupamento (por_tipo, por_entidade, por_natureza) passam a se
+comportar igual: tocar no grupo SEMPRE abre a lista dos itens primeiro
+(abrirListaAlertasGrupo, generaliza abrirListaAlertasNatureza da AL.5) —
+ACAO_GRUPO_POR_TIPO (navegava direto pra uma tela, ex. cib_pendente →
+tab-ativos) aposentado; alertasPorGrupoTipo/alertasPorGrupoEntidade,
+novos, persistem os grupos pro sheet ler. (4) `alerta_tipos.acao_sugerida`
+reescrito nos 19 tipos ativos (migration
+alertas_acao_sugerida_resolucao_primeiro_v1) — sempre lidera com a
+resolução direta ("Registre o pagamento e encerre esta pendência"),
+seguida da alternativa real do tipo ("ou adie o alerta"/"ou marque como
+visto", conforme a natureza).
+Migrations aplicadas direto no Supabase nesta sessão (fora deste
+arquivo): alertas_datas_compromisso_v1, alertas_datas_compromisso_v2,
+alertas_acao_sugerida_resolucao_primeiro_v1.
+------------------------------------------------------------------
+DATA: 20/09/2026 (Entrega AL.5 — 4 prints do app, pedido do Nicola)
+------------------------------------------------------------------
+Versões anteriores (v1.220.0 … v1.220.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.220.0) — Entrega AL.5, a partir de 4 prints do app
 (Sheet do alerta "Fechamento mensal pendente", "Mais opções", alerta
 agrupado "4 ocorrências · Contrato", "Item de controle vencendo"),
