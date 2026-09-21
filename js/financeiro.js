@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.10.0 · 19/09/2026 (rodada 10)
+// Versão: 1.10.1 · 21/09/2026
+//
+// v1.10.1 — CORRIGIDO (QUA-01, achado buscando o mesmo padrão do bug da
+// demanda ac549b98 em contratos.js): as 2 sugestões de vínculo do sheet de
+// conciliação de extrato (recebimento e saída) mostravam o valor com
+// `Number(c.valor).toFixed(2)` — formato americano (ponto decimal, sem
+// separador de milhar), ex. "R$ 1234.50" em vez de "R$ 1.234,50". Trocado
+// por fmtBR(c.valor), já usado em todo o resto deste arquivo para o mesmo
+// fim (ver comentário da própria fmtBR, linha ~6527 do index.html). Nenhuma
+// mudança de lógica de negócio ou de RPC.
 //
 // v1.9.0 — pedido explícito do Nicola ("em cada linha de item deve
 // apresentar a data do item"): a data JÁ estava sendo montada tanto em
@@ -456,7 +465,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.10.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -2733,14 +2742,14 @@ export function montarAbaFinanceiro(tabId) {
             if (entrada) {
                 candidatos.forEach((c, i) => acoes.push({
                     icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.locatario}`,
-                    sub: `Ref ${c.referencia} · R$ ${Number(c.valor).toFixed(2)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
+                    sub: `Ref ${c.referencia} · R$ ${fmtBR(c.valor)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
                     aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
                 }));
                 acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Ver outros recebimentos em aberto' : 'Nenhuma sugestão — escolha entre os recebimentos em aberto', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
             } else {
                 candidatos.forEach((c, i) => acoes.push({
                     icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.descricao || c.categoria || 'despesa prevista'}`,
-                    sub: `R$ ${Number(c.valor).toFixed(2)} · vence ${formatarDataBR(c.vencimento)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
+                    sub: `R$ ${fmtBR(c.valor)} · vence ${formatarDataBR(c.vencimento)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
                     aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
                 }));
                 // "Nova despesa" abre a tela nativa já preenchida (abrirNovaDespesa

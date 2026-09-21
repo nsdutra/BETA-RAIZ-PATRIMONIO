@@ -1,7 +1,21 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.13.1 · 21/09/2026
+// Versão: 1.13.2 · 21/09/2026
+//
+// v1.13.2 — CORRIGIDO (demanda ac549b98, achado gravando as Pílulas de
+// demonstração): ao criar um contrato novo, a 1ª entrada de histórico
+// ("Contrato criado") interpolava `contratoDados.valor` cru, sem chamar
+// formatarMoedaBR() — resultado "R$ 20000/mês" em vez de "R$ 20.000,00/mês".
+// Confirmado como bug de código real (não dado de demo): o mesmo texto cru
+// aparece no histórico de contratos de teste do próprio Nicola em
+// "Rabelo Testes"/"BETA-RAIZ-PATRIMONIO", criados pela UI de produção.
+// Corrigido para usar formatarMoedaBR(), no mesmo padrão já usado em todo o
+// resto do arquivo (linhas 733/822/1601 etc.). QUA-01 (mesmo padrão em todo
+// o código): buscado `R$ ${...}` sem formatarMoedaBR/fmtBR/toLocaleString em
+// todo o projeto — achados mais 2 casos em financeiro.js (sheet de
+// conciliação, usando `.toFixed(2)` cru — formato americano, ponto decimal
+// sem separador de milhar), corrigidos no mesmo changelog daquele arquivo.
 //
 // v1.13.1 — CORRIGIDO (achado por Nicola em teste manual, contrato de teste
 // na empresa Karen Corrêa, aba Financeiro da Ficha do contrato mostrando
@@ -242,7 +256,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.13.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.13.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3303,7 +3317,7 @@ export function reabrirFichaSeFor(contratoId) {
 
             } else {
 
-                const alteracoesIniciais = [{ campo: 'Contrato criado', de: '-', para: `${contratoDados.locatario} — R$ ${contratoDados.valor}/mês` }];
+                const alteracoesIniciais = [{ campo: 'Contrato criado', de: '-', para: `${contratoDados.locatario} — ${formatarMoedaBR(contratoDados.valor)}/mês` }];
 
                 const observacaoDigitadaNovo = (document.getElementById('con-observacao-nova').value || '').trim();
                 if (observacaoDigitadaNovo) {

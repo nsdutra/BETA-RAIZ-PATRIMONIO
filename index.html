@@ -6,11 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.228.0
-   LINHAS: 15514
-   DATA: 21/09/2026 (hotfix — 2 bugs reportados por Nicola em teste manual
-   do contrato fake na empresa Karen Corrêa: chip "Renovação" não
-   encontrado + ordenação errada da aba Financeiro)
+   VERSÃO: Beta v1.229.0
+   LINHAS: 15507
+   DATA: 21/09/2026 (demanda ac549b98 — inconsistências vistas na massa demo
+   durante gravação das Pílulas + SEG-02: fechamento das 43 funções
+   SECURITY DEFINER sem checagem interna de tenant, uma migration só)
+   NOVIDADES (Beta v1.229.0) — CORRIGIDO (demanda ac549b98, achado nas
+   Pílulas): js/contratos.js v1.13.1→v1.13.2 e js/financeiro.js
+   v1.10.0→v1.10.1 — valores em R$ mostrados sem formatação pt-BR em 3
+   pontos (histórico "Contrato criado" ao assinar um contrato novo; 2
+   sugestões do sheet de conciliação de extrato). QUA-01: buscado o mesmo
+   padrão (`R$ ${...}` sem formatarMoedaBR/fmtBR/toLocaleString) em todo o
+   projeto — só esses 3 pontos encontrados, todos corrigidos juntos.
+   Sem migration nova para este item — 100% client-side.
+   Além disso, backend (sem mudança de versão de app): fechado o achado de
+   segurança SEG-02 (43 funções SECURITY DEFINER faltando checagem interna
+   de tenant, corrigidas em migration única) + corrigido, durante os
+   testes desse fechamento, um bug pré-existente que derrubava
+   fn_alertas_listar() inteira para todos os clientes (referência ambígua
+   de coluna em fn_diario_contratos_aniversario_reajuste) — ver relatório
+   §12 completo na entrega desta rodada.
    NOVIDADES (Beta v1.228.0) — CORRIGIDO: js/contratos.js v1.13.0→v1.13.1 e
    js/imoveis.js v1.5.0→v1.5.1 — a aba/box Financeiro (Ficha do contrato E
    Ficha do imóvel) ordenava as mensalidades comparando a string bruta
@@ -72,30 +87,8 @@
    ------------------------------------------------------------------
    DATA: 21/09/2026 (Entrega A.4 — Visão Geral nova, PLANO_IMPLEMENTACAO_
    RESULTADOS_MERCADO_FISCAL v2.0.0)
-   NOVIDADES (Beta v1.224.0) — Entrega A.4: a aba Visão Geral ganha o
-   seletor de universo Tudo·Comercial·Família (.rz-seg, topo da aba, acima
-   dos KPIs — REGRAS §7), MESMO recorte e MESMA regra de banco da aba
-   Resultados (ESP_RESULTADOS_MERCADO_FISCAL §3.1: "o recorte é parâmetro
-   da função, nunca filtro no cliente"). Achado real nesta entrega: a ESP
-   exigia isso, mas fn_alertas_listar não tinha p_uso e o PLANO da A.4
-   dizia "Migrations: Nenhuma" — conflito genuíno, resolvido com o Nicola
-   via pergunta direta (AskUserQuestion); decisão explícita: "Migration
-   pequena em fn_alertas_listar (recomendado)". Migration
-   resultados_alertas_listar_p_uso_v1/v2/v3 (mais cedo na mesma sessão) deu
-   a fn_alertas_listar o parâmetro p_uso que faltava. Nesta versão:
-   escolherGeralUniverso() troca o seletor e REFAZ as 3 buscas
-   (fn_resumo_resultados, fn_alertas_listar, quebra por tipo de ativo) com
-   o novo p_uso — nunca um filtro sobre array já buscado. Os 4 KPIs do
-   hero (Patrimônio · Recebido no mês · Em atraso · Ocupação) e a lista
-   "Precisa de atenção" passam a refletir o universo escolhido. V5 (ESP
-   §3.1): em Família, "Recebido no mês" e "Ocupação" trocam de rótulo pra
-   "Custo no mês"/"Ativos em uso" (mesma relabelagem que
-   js/resultados.js/montarKpis() já faz pro card de Resultados — aqui só o
-   texto do <small> troca, os <b> dos KPIs continuam fixos no DOM).
    ------------------------------------------------------------------
-   DATA: 21/09/2026 (correções e pedido do Nicola testando a Entrega A.3 ao vivo)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.223.0 … v1.223.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.224.0 … v1.224.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -119,7 +112,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.13.1","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.55.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.1","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.55.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3549,7 +3542,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.228.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.229.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
