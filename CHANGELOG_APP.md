@@ -4,6 +4,29 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.215.0) — último ajuste pedido pelo Nicola na rodada
+10: "a descrição do card de ativos quando imóveis na lista ainda não
+está legal. Não está aparecendo o nome do locatário e o valor do
+aluguel está confundindo com o valor do ativo." O card de imóvel (lista
+de Ativos) tinha os 3 dados (locatário, aluguel, valor de mercado)
+consolidados numa única linha, sem rótulo — aluguel e valor de mercado
+ficavam lado a lado sem distinção, e o locatário podia sumir por trás
+do corte de 1 linha (mesma classe de bug já corrigida numa entrega
+anterior desta rodada, mas o formato "tudo numa linha só" continuava
+confuso mesmo sem cortar). Virou 4 linhas fixas, 1 informação por
+linha: (1) nome do ativo, (2) tipo de uso + valor de mercado sem
+decimais, (3) nome do locatário, (4) valor do aluguel sem decimais —
+exatamente como pedido. cofre-ativos.js v1.51.0. IMPORTMAP:
+cofre-ativos.js →1.51.0.
+------------------------------------------------------------------
+DATA: 19/09/2026 (rodada 10, entrega 2)
+------------------------------------------------------------------
+Versões anteriores (v1.214.0 … v1.214.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.214.0) — pendência em aberto desde a mensagem de 4
 pedidos da rodada 10 (item 4, "distribuição do contrato"): "Na aba
 contratos no chip resumo de um contrato, deve aparecer a visão de

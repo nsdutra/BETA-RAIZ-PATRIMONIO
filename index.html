@@ -6,8 +6,42 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.219.0
-   LINHAS: 15229
+   VERSÃO: Beta v1.220.0
+   LINHAS: 15343
+   DATA: 20/09/2026 (Entrega AL.5 — 4 prints do app, pedido do Nicola)
+   NOVIDADES (Beta v1.220.0) — Entrega AL.5, a partir de 4 prints do app
+   (Sheet do alerta "Fechamento mensal pendente", "Mais opções", alerta
+   agrupado "4 ocorrências · Contrato", "Item de controle vencendo"),
+   REGRAS_EXPERIENCIA_RAIZ v3.17.0 (§14):
+   (1) Itens de controle (cofre_item_vencendo) passam a agrupar por
+   NATUREZA (documento/manutenção/seguro/taxa/tributo — "mesma
+   criticidade", pedido literal) em vez de por ativo — novo modo
+   `agrupamento='por_natureza'` no catálogo (migration
+   alertas_agrupamento_natureza_v1/v2, aditiva, `por_natureza` somado ao
+   CHECK existente). Tocar no card do grupo abre a lista dos itens
+   agrupados (abrirListaAlertasNatureza, sheet novo, 1 .rz-row por item);
+   tocar num item dessa lista abre o Alerta aberto de sempre
+   (abrirAlertaDetalheSheet) — nada novo aqui, reaproveitado. (2) A 1ª
+   linha da descrição (avulso OU resumo de grupo) passa a nomear o OBJETO
+   do alerta — "condomínio", "revisão periódica" — em vez do título livre
+   digitado na criação do item: subtituloAlertaMotor/tituloResumoPorNatureza
+   agora preferem `cofre_controle_subtipos.nome` (novo `subtipo_nome` no
+   detalhe de fn_alertas_listar, fonte fn_diario_cofre_item_vencendo v4).
+   (3) O par "Ver/tratar" (botão nível 1) + "Mais opções"/"Compartilhar"
+   (nível 3) da v1.219.0 virou UMA lista de ações só, no estilo do print
+   "Mais opções" (ícone + verbo, sem chrome de botão) — Tratar → Marcar
+   como visto/Adiar (natureza-gated) → Compartilhar (quando o banco
+   devolve texto) → Dispensar (sempre por último, vermelha). Elimina o
+   sheet separado abrirAlertaMenuMarcas (CAN-05) — a lista fica embutida
+   no próprio sheet do alerta; rzOrdenarAcoes/rzAcaoItemHtml extraídas de
+   dentro de abrirSheetAcoes pra virar fonte única da linha (CAN-03), sem
+   duplicar marcação nem a checagem de bloqueio por licença.
+   Migration aplicada direto no Supabase nesta sessão (fora deste
+   arquivo): alertas_agrupamento_natureza_v1 (fn_diario_cofre_item_
+   vencendo v4 + fn_alertas_listar, ambas recriadas por mudança de tipo de
+   retorno) e alertas_agrupamento_natureza_v2 (CHECK de
+   alerta_tipos.agrupamento + UPDATE do catálogo).
+   ------------------------------------------------------------------
    DATA: 20/09/2026 (correção pós-teste da AL.3/AL.4 — feedback do Nicola)
    NOVIDADES (Beta v1.219.0) — 3 achados do Nicola testando ao vivo a
    central de alertas (empresa Albuquerque Silva Participações), todos
@@ -128,24 +162,8 @@
    cofre-ativos.js →1.52.0.
    ------------------------------------------------------------------
    DATA: 19/09/2026 (rodada 10, entrega 3)
-   NOVIDADES (Beta v1.215.0) — último ajuste pedido pelo Nicola na rodada
-   10: "a descrição do card de ativos quando imóveis na lista ainda não
-   está legal. Não está aparecendo o nome do locatário e o valor do
-   aluguel está confundindo com o valor do ativo." O card de imóvel (lista
-   de Ativos) tinha os 3 dados (locatário, aluguel, valor de mercado)
-   consolidados numa única linha, sem rótulo — aluguel e valor de mercado
-   ficavam lado a lado sem distinção, e o locatário podia sumir por trás
-   do corte de 1 linha (mesma classe de bug já corrigida numa entrega
-   anterior desta rodada, mas o formato "tudo numa linha só" continuava
-   confuso mesmo sem cortar). Virou 4 linhas fixas, 1 informação por
-   linha: (1) nome do ativo, (2) tipo de uso + valor de mercado sem
-   decimais, (3) nome do locatário, (4) valor do aluguel sem decimais —
-   exatamente como pedido. cofre-ativos.js v1.51.0. IMPORTMAP:
-   cofre-ativos.js →1.51.0.
    ------------------------------------------------------------------
-   DATA: 19/09/2026 (rodada 10, entrega 2)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.214.0 … v1.214.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.215.0 … v1.215.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3562,7 +3580,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.219.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.220.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3782,31 +3800,40 @@
                 setTimeout(ir, 4000); // se o SW não assumir em 4 s, recarrega mesmo assim
             } catch (e) { location.href = location.pathname + '?r=' + Date.now(); }
         }
-        function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
-            const ordenar = lista => [
+        // v1.220.0 — rzOrdenarAcoes/rzAcaoItemHtml extraídas de dentro de
+        // abrirSheetAcoes (eram closures locais) pra virar a ÚNICA fonte da
+        // marcação de uma linha de ação (CAN-03) — abrirAlertaDetalheSheet
+        // passa a embutir a mesma lista dentro de outro sheet (conteúdo do
+        // alerta + ações, sem precisar abrir um 2º sheet só pra isso), sem
+        // duplicar HTML/regra de bloqueio por licença. Ordem: IA no topo,
+        // destrutiva (`tipo:'bad'`) sempre por último (REGRAS §2).
+        function rzOrdenarAcoes(lista) {
+            return [
                 ...lista.filter(a => a.tipo === 'ia'),
                 ...lista.filter(a => a.tipo !== 'ia' && a.tipo !== 'bad'),
-                ...lista.filter(a => a.tipo === 'bad')
+                ...lista.filter(a => a.tipo === 'bad'),
             ];
-            const item = (a, i) => {
-                const b = a.codigo ? podeUsar(a.codigo) : { ok: true };
-                const off = !b.ok;
-                const sub2 = off ? b.textoCurto : a.sub;
-                return `<button type="button" class="rz-act ${a.tipo === 'bad' ? 'rz-bad' : ''} ${off ? 'rz-off' : ''}" data-rz-i="${i}" ${off ? 'aria-disabled="true"' : ''}>` +
-                `<div class="rz-ic ${a.tipo ? 'rz-' + a.tipo : ''}"><svg data-lucide="${rzEsc(off ? 'lock' : (a.icone || 'chevron-right'))}"></svg></div>` +
-                `<div>${rzEsc(a.titulo)}${sub2 ? `<small>${rzEsc(sub2)}</small>` : ''}</div></button>`;
-            };
+        }
+        function rzAcaoItemHtml(a, i) {
+            const b = a.codigo ? podeUsar(a.codigo) : { ok: true };
+            const off = !b.ok;
+            const sub2 = off ? b.textoCurto : a.sub;
+            return `<button type="button" class="rz-act ${a.tipo === 'bad' ? 'rz-bad' : ''} ${off ? 'rz-off' : ''}" data-rz-i="${i}" ${off ? 'aria-disabled="true"' : ''}>` +
+            `<div class="rz-ic ${a.tipo ? 'rz-' + a.tipo : ''}"><svg data-lucide="${rzEsc(off ? 'lock' : (a.icone || 'chevron-right'))}"></svg></div>` +
+            `<div>${rzEsc(a.titulo)}${sub2 ? `<small>${rzEsc(sub2)}</small>` : ''}</div></button>`;
+        }
+        function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
             let corpo = '', planas = [];
             if (grupos) {
                 grupos.forEach(g => {
-                    const lista = ordenar(g.acoes || []);
+                    const lista = rzOrdenarAcoes(g.acoes || []);
                     corpo += `<div class="rz-group">${rzEsc(g.titulo)}</div><div class="rz-card rz-list">`;
-                    lista.forEach(a => { corpo += item(a, planas.length); planas.push(a); });
+                    lista.forEach(a => { corpo += rzAcaoItemHtml(a, planas.length); planas.push(a); });
                     corpo += '</div>';
                 });
             } else {
-                planas = ordenar(acoes);
-                corpo = planas.map(item).join('');
+                planas = rzOrdenarAcoes(acoes);
+                corpo = planas.map(rzAcaoItemHtml).join('');
             }
             const sheet = abrirSheet(rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`, { classe: grupos ? 'rz-menu' : '' });
             sheet.querySelectorAll('[data-rz-i]').forEach(btn => {
@@ -10860,6 +10887,10 @@
         // buckets calculados aqui).
         let alertasTodos = [];
         let alertasPorChave = new Map();
+        // AL.5 — grupos por natureza (chave "tipoAlerta:itemTipo" → linhas
+        // do grupo), repovoado a cada agruparEMapearAlertas; abrirListaAlertas
+        // Natureza() lê daqui pra "ao clicar no grupo, abra os itens agrupados".
+        let alertasPorGrupoNatureza = new Map();
         let alertasFiltroAtual = 'todos';
         let alertasVisiveisTodos = []; // v1.187.0 — bruto, sem filtro; recalcularAlertasTela() deriva daqui
         let alertasSeveridadeFiltro = 'todas'; // v1.187.0 — 'todas' | 'critico' | 'atencao' | 'informativo'
@@ -10961,8 +10992,16 @@
             // v1.186.0 (achado do Nicola) — mesmo padrão: sem o nome do
             // ativo, duas linhas de "Item de controle vencendo" pareciam
             // duplicadas mesmo sendo de ativos diferentes.
+            // AL.5 (20/09/2026, pedido do Nicola a partir de 4 prints do
+            // app) — o título do item (cic.titulo, texto livre digitado na
+            // criação) nem sempre nomeia o OBJETO do alerta; o catálogo já
+            // sabe isso (cofre_controle_subtipos.nome, ex. "Condomínio
+            // (boleto)", "Revisão periódica") — vira o objeto exibido
+            // sempre que existir, caindo pro título livre só quando o item
+            // não tem subtipo cadastrado.
             if (row.tipo_alerta === 'cofre_item_vencendo') {
-                return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${row.titulo}` : row.titulo;
+                const objeto = row.detalhe?.subtipo_nome || row.titulo;
+                return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${objeto}` : objeto;
             }
             // v1.184.0 (E9) — mostra quais campos faltam, não só que "algo falta".
             if (row.tipo_alerta === 'cadastro_incompleto') {
@@ -11204,33 +11243,64 @@
         }
 
         // Mesmo espírito de tituloResumoPorTipo (linha 1 = qtd + resumo), só
-        // que pro agrupamento por_entidade (hoje: cofre_item_vencendo,
-        // revisao_valor_pendente) — a entidade vai na 2ª linha (subtítulo),
-        // não aqui.
+        // que pro agrupamento por_entidade (hoje: revisao_valor_pendente —
+        // cofre_item_vencendo saiu daqui na AL.5, foi pra por_natureza
+        // abaixo) — a entidade vai na 2ª linha (subtítulo), não aqui.
         function tituloResumoPorEntidade(tipoAlerta, n) {
             switch (tipoAlerta) {
-                case 'cofre_item_vencendo': return `${n} itens de controle vencendo`;
                 case 'revisao_valor_pendente': return `${n} revisões de valor pendentes`;
                 default: return `${n} pendências`;
             }
         }
 
+        // AL.5 (20/09/2026, pedido do Nicola) — "agrupe os alertas de itens
+        // de controle por natureza (documentos, manutenções, tributos, etc
+        // pois tem em tese a mesma criticidade)". item_tipo vem de
+        // cofre_itens_controle.tipo (catálogo cofre_controle_subtipos),
+        // exposto no detalhe pela migration alertas_agrupamento_natureza_v1.
+        // Rótulo de apresentação — mesmo espírito de DOMINIO_ROTULO_ALERTA/
+        // ICONE_CATEGORIA (dado técnico, texto de tela é escolha à parte).
+        const NATUREZA_ITEM_CONTROLE_LABEL = {
+            documento: 'documentos', manutencao: 'manutenções', seguro: 'seguros',
+            taxa: 'taxas', tributo: 'tributos', rotina: 'rotinas',
+        };
+        // Mesmo espírito de tituloResumoPorTipo (linha 1 = qtd + resumo),
+        // mas a chave é a NATUREZA do item de controle (item_tipo), não o
+        // tipo_alerta (hoje só 'cofre_item_vencendo' agrupa assim) — pedido
+        // explícito do Nicola: "1ª linha após a quantidade, mencionar o
+        // nome do objeto do alerta" também no card de grupo.
+        function tituloResumoPorNatureza(itemTipo, n) {
+            const plural = NATUREZA_ITEM_CONTROLE_LABEL[itemTipo] || 'itens de controle';
+            return `${n} ${plural} vencendo`;
+        }
+
         function agruparEMapearAlertas(rows) {
             const porTipo = new Map();
             const porEntidade = new Map();
+            const porNatureza = new Map();
             const avulsos = [];
+            alertasPorGrupoNatureza = new Map();
 
             rows.forEach(r => {
                 if (r.agrupamento === 'por_tipo') {
                     if (!porTipo.has(r.tipo_alerta)) porTipo.set(r.tipo_alerta, []);
                     porTipo.get(r.tipo_alerta).push(r);
                 } else if (r.agrupamento === 'por_entidade') {
-                    // Agrupa por ativo (hoje só cofre_item_vencendo usa este
-                    // modo — cada item já sabe seu ativo_id via detalhe).
+                    // Agrupa por ativo (hoje: revisao_valor_pendente — cada
+                    // item já sabe seu ativo_id via detalhe).
                     const chaveAtivo = r.detalhe?.ativo_id || r.entidade_id;
                     const chave = `${r.tipo_alerta}:${chaveAtivo}`;
                     if (!porEntidade.has(chave)) porEntidade.set(chave, []);
                     porEntidade.get(chave).push(r);
+                } else if (r.agrupamento === 'por_natureza') {
+                    // AL.5 — agrupa por natureza do item de controle (hoje só
+                    // cofre_item_vencendo usa este modo): documento/manutenção/
+                    // seguro/taxa/tributo, "mesma criticidade" (pedido do
+                    // Nicola), em vez de por ativo.
+                    const nat = r.detalhe?.item_tipo || 'outro';
+                    const chave = `${r.tipo_alerta}:${nat}`;
+                    if (!porNatureza.has(chave)) porNatureza.set(chave, []);
+                    porNatureza.get(chave).push(r);
                 } else {
                     avulsos.push(r);
                 }
@@ -11279,6 +11349,27 @@
                     titulo: tituloResumoPorEntidade(grupo[0].tipo_alerta, grupo.length),
                     subtitulo: ativoNome,
                     onClick: `rzAbrirDestinoAlerta('${maisUrgente.alerta_chave}')`,
+                });
+            });
+
+            // AL.5 — grupo por natureza: "ao clicar no grupo, abra os itens
+            // agrupados" (pedido do Nicola) — nunca navega direto feito
+            // porTipo/porEntidade, porque aqui o próximo passo é escolher
+            // QUAL item entre vários de naturezas iguais, não "o mais
+            // urgente representa todos".
+            porNatureza.forEach((grupo, chave) => {
+                const limiarNat = grupo[0].agrupar_a_partir_de ?? 6;
+                if (grupo.length < limiarNat) { grupo.forEach(r => itens.push(itemAvulso(r))); return; }
+                const maisUrgente = grupo.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
+                const nat = grupo[0].detalhe?.item_tipo || 'outro';
+                alertasPorGrupoNatureza.set(chave, grupo);
+                itens.push({
+                    categoria: grupo[0].dominio || 'outro',
+                    tipoAlerta: grupo[0].tipo_alerta,
+                    dias: maisUrgente.dias,
+                    titulo: tituloResumoPorNatureza(nat, grupo.length),
+                    subtitulo: subtituloResumoPorTipo(grupo[0].tipo_alerta, grupo), // mesmo fallback genérico (sem case próprio pra este tipo)
+                    onClick: `abrirListaAlertasNatureza('${chave}')`,
                 });
             });
 
@@ -11501,15 +11592,18 @@
         }
 
         // ============================================================
-        // AL.3 — SHEET DE DETALHE DO ALERTA (ESP §13.4/A3-A7; REGRAS §14).
-        // Toque num alerta avulso (itemAvulso, acima) abre este sheet em vez
-        // de navegar direto — conteúdo/fonte/natureza/prazo, ação sugerida
-        // (texto já vem pronto de alerta_tipos.acao_sugerida — não reinventa
-        // frase por tipo aqui), Compartilhar (só quando o texto do banco vem
-        // não-vazio — fn_alerta_compartilhar_texto já decide isso pela
-        // natureza, regra única no banco, §6 do Motor) e "Mais opções"
-        // (marcar visto/adiar/dispensar, natureza-gated, mesma regra que
-        // fn_alerta_marcar já aplica — o app só espelha, nunca reimplementa).
+        // AL.3/AL.5 — SHEET DE DETALHE DO ALERTA (ESP §13.4/A3-A7; REGRAS
+        // §14 v3.17.0). Toque num alerta avulso (itemAvulso, acima) abre
+        // este sheet em vez de navegar direto — conteúdo/fonte/natureza/
+        // prazo, ação sugerida (texto já vem pronto de alerta_tipos.
+        // acao_sugerida — não reinventa frase por tipo aqui) e, no rodapé,
+        // a LISTA de ações (nunca botão — pedido explícito do Nicola a
+        // partir de 4 prints do app: "não coloque as opções da tela em
+        // botões mas em ações listas no estilo do print"): Tratar (mais
+        // provável, primeiro) · Marcar como visto/Desmarcar (informativo) ·
+        // Adiar 7/30 dias (acionável) · Compartilhar (só quando o banco
+        // devolve texto — fn_alerta_compartilhar_texto já decide isso pela
+        // natureza, §6 do Motor) · Dispensar (sempre por último, vermelha).
         // ============================================================
         const NATUREZA_ROTULO_ALERTA = {
             informativo: 'Informativo',
@@ -11525,6 +11619,33 @@
             return `Vence em ${r.dias}d`;
         }
 
+        // AL.5 — "ao clicar no grupo, abra os itens agrupados; permita
+        // clicar por item e abrir então detalhes do alerta". Sheet simples
+        // (não é Sheet de ações — cada linha entra no CONTEÚDO do alerta,
+        // não numa ação), 1 .rz-row por item, ordenado pelo mesmo critério
+        // da lista principal (vencido há mais tempo primeiro). Título já
+        // nomeia o objeto (subtituloAlertaMotor prioriza subtipo_nome —
+        // "condomínio", "revisão periódica" etc., pedido do Nicola);
+        // subtítulo é só o ativo, pra não repetir o objeto 2x na mesma linha.
+        function abrirListaAlertasNatureza(chaveGrupo) {
+            const grupo = alertasPorGrupoNatureza.get(chaveGrupo);
+            if (!grupo || !grupo.length) { mostrarToast('Não encontrei esses alertas — a lista pode ter mudado.', 'danger'); return; }
+            const nat = grupo[0].detalhe?.item_tipo || 'outro';
+            const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+            const ordenados = [...grupo].sort((a, b) => (a.dias ?? 9999) - (b.dias ?? 9999));
+            const corpo = `<div class="rz-card rz-list">` + ordenados.map(r => {
+                const sem = r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run'));
+                const objeto = r.detalhe?.subtipo_nome || r.titulo;
+                return `<div class="rz-row rz-link" onclick="fecharSheet(); abrirAlertaDetalheSheet('${r.alerta_chave}')">
+                    <div class="rz-ic"><svg data-lucide="${ICONE_CATEGORIA[r.dominio] || 'info'}"></svg></div>
+                    <div class="rz-tx"><b>${rzEsc(objeto)}</b><span>${rzEsc(r.detalhe?.ativo_nome || '')}</span></div>
+                    <div class="rz-rt">${st(sem, prazoAlertaTexto(r))}</div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                </div>`;
+            }).join('') + `</div>`;
+            abrirSheet(rzSheetCabecalho(tituloResumoPorNatureza(nat, grupo.length), null) + `<div class="rz-sh-b">${corpo}</div>`);
+        }
+
         // Ação 'atualizar_campo' (alerta_tipos.acao_tipo) — edita um campo de
         // cofre_ativos sem sair do sheet (ESP §13.4/A5). Lista fechada, cada
         // tipo sabe seu campo/rótulo/tipo de input. revisao_valor_pendente
@@ -11537,28 +11658,19 @@
             revisao_valor_pendente: { campo: 'valor_referencia', rotulo: 'Valor patrimonial atual (R$)', tipoInput: 'number', placeholder: 'Ex.: 850000' },
         };
 
-        // v1.219.0 — Nicola (20/09), teste ao vivo do alerta "Aguardando
-        // assinatura": tipografia inline (style="font-size...color:var(
-        // --pine)"/"--sage", fora do catálogo rz-* — REGRAS §16) e 2-3
-        // botões rz-btn-2 rz-wide empilhados como se fossem itens de menu,
-        // violando §0 regra 3 (só 1 botão preenchido por sheet — aqui
-        // eram ZERO nível 1 e vários nível 2 lado a lado) e o fluxo do
-        // "Alerta aberto" do §14 (conteúdo → ação sugerida → ação
-        // contextual → Compartilhar). Fix, sem tocar em nada que o
-        // Nicola já confirmou correto (o conteúdo de "Mais opções" segue
-        // o mesmo abrirAlertaMenuMarcas/abrirSheetAcoes de sempre):
-        //  - conteúdo → .rz-desc (classe já catalogada em §5 pra corpo de
-        //    card, 13px --muted — não mais 14px --pine, cor reservada a
-        //    primário/título);
-        //  - "Ação sugerida" → par rótulo/valor .rz-kv (mesmo padrão de
-        //    abrirFichaParte), não mais <b> solto com --sage (token
-        //    reservado a agrupador/status neutro, não corpo de texto);
-        //  - "Ver / tratar" vira o único botão nível 1 (a ação contextual
-        //    do §14) — nunca 2 preenchidos no mesmo sheet quando também
-        //    há campoAcao (que já tem seu próprio Salvar nível 1 acima);
-        //  - "Mais opções" e "Compartilhar" viram nível 3 (.rz-btn-3, já
-        //    cataloga do em §6 pro mesmo papel de "Depois"/"Agora não"),
-        //    lado a lado, nunca mais rz-wide/rz-btn-2 empilhado.
+        // v1.220.0 — Nicola (20/09), 4 prints do app ao vivo: "não coloque
+        // as opções da tela em botões mas em ações listas no estilo do
+        // print marcar como visto, adiar, dispensar e ações tratar e
+        // compartilhar". Substitui de vez o par "Ver/tratar" (nível 1) +
+        // "Mais opções"/"Compartilhar" (nível 3) da v1.219.0 — que já tinha
+        // corrigido a tipografia solta, mas ainda usava botão — por UMA lista
+        // só (rzAcaoItemHtml, mesma marcação de abrirSheetAcoes/§2/§16,
+        // CAN-03: fonte única da linha de ação), embutida no próprio sheet
+        // do alerta (sem precisar abrir um 2º sheet pra "Mais opções" —
+        // abrirAlertaMenuMarcas foi eliminada, CAN-05). Ordem: Tratar (mais
+        // provável) → Marcar como visto/Adiar (natureza-gated, mesma regra
+        // de fn_alerta_marcar) → Compartilhar (quando o banco devolve
+        // texto) → Dispensar (sempre por último, vermelha, §2).
         async function abrirAlertaDetalheSheet(alertaChave) {
             const r = alertasPorChave.get(alertaChave);
             if (!r) { mostrarToast('Não encontrei esse alerta — a lista pode ter mudado.', 'danger'); return; }
@@ -11590,35 +11702,58 @@
             const sheet = abrirSheet(rzSheetCabecalho(tituloAlertaMotor(r), null) + `<div class="rz-sh-b">${corpo}</div>`);
             const acoesEl = sheet.querySelector('#rz-alerta-acoes-corpo');
 
-            // Ação contextual (§14): 1 único botão nível 1, só quando há
-            // destino e o sheet ainda não tem o Salvar do campoAcao acima.
-            const acaoContextual = (r.destino_rota && !campoAcao)
-                ? `<button type="button" class="rz-btn rz-btn-1 rz-wide" onclick="fecharSheet(); rzAbrirDestinoAlerta('${chaveJs}')">Ver / tratar</button>`
-                : '';
-            const terciarios = [`<button type="button" class="rz-btn rz-btn-3" onclick="abrirAlertaMenuMarcas('${chaveJs}')">Mais opções</button>`];
-            if (acoesEl) {
-                acoesEl.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">` +
-                    acaoContextual +
-                    `<div id="rz-alerta-terciarios" style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap">${terciarios.join('')}</div></div>`;
+            // Monta a lista de ações (dado, não HTML solto — §16): Tratar só
+            // quando há destino e o sheet não tem já o Salvar do campoAcao
+            // (nunca 2 ações pra "resolver" a mesma coisa); marcas sempre
+            // gated pela natureza, mesma regra de fn_alerta_marcar (o app só
+            // espelha, nunca reimplementa, CAN-03); Dispensar nunca aparece
+            // pra alerta obrigatório (não pode ser adiado nem dispensado).
+            const acoes = [];
+            if (r.destino_rota && !campoAcao) {
+                acoes.push({ icone: 'arrow-right-circle', titulo: 'Tratar', sub: 'Ver e resolver', aoTocar: () => rzAbrirDestinoAlerta(alertaChave) });
             }
+            if (r.natureza === 'informativo') {
+                acoes.push(r.marcado_visto
+                    ? { icone: 'eye-off', titulo: 'Desmarcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto', true) }
+                    : { icone: 'eye', titulo: 'Marcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto') });
+            }
+            if (r.natureza === 'acionavel') {
+                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 7 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 7) });
+                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 30 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 30) });
+            }
+            if (r.natureza !== 'obrigatorio') {
+                acoes.push({ icone: 'x-circle', titulo: 'Dispensar', tipo: 'bad', aoTocar: () => rzMarcarAlerta(alertaChave, 'dispensado') });
+            }
+
+            const renderAcoesLista = () => {
+                if (!acoesEl) return;
+                if (!acoes.length) { acoesEl.innerHTML = ''; return; } // §0 regra 7: sem ação, não renderiza
+                const planas = rzOrdenarAcoes(acoes);
+                acoesEl.innerHTML = `<div class="rz-group">Ações</div><div class="rz-card rz-list">${planas.map(rzAcaoItemHtml).join('')}</div>`;
+                acoesEl.querySelectorAll('[data-rz-i]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const a = planas[Number(btn.dataset.rzI)];
+                        if (a.codigo && rzMostrarBloqueio(a.codigo)) return;
+                        if (!a.manterAberto) fecharSheet();
+                        if (typeof a.aoTocar === 'function') a.aoTocar();
+                    });
+                });
+                if (typeof rzIcones === 'function') rzIcones();
+            };
+            renderAcoesLista();
 
             // Compartilhar entra depois (chamada assíncrona ao banco) — só
             // aparece se vier texto; nunca pra alerta acionável/obrigatório
             // (fn_alerta_compartilhar_texto retorna '' nesses casos, §6).
-            // Nível 3 também, ao lado de "Mais opções" — nunca disputa
-            // espaço com o único botão preenchido (Ver/tratar).
+            // Entra ANTES de Dispensar — destrutiva sempre por último, §2.
             try {
                 const { data: texto, error } = await dbAuth.rpc('fn_alerta_compartilhar_texto', { p_alerta_chave: alertaChave });
                 if (error) throw error;
-                const wrapTerciarios = sheet.querySelector('#rz-alerta-terciarios');
-                if (texto && wrapTerciarios) {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'rz-btn rz-btn-3';
-                    btn.innerHTML = '<svg data-lucide="share-2"></svg> Compartilhar';
-                    btn.onclick = () => window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(texto), '_blank');
-                    wrapTerciarios.appendChild(btn);
-                    if (typeof rzIcones === 'function') rzIcones();
+                if (texto) {
+                    const idxDispensar = acoes.findIndex(a => a.tipo === 'bad');
+                    const acaoCompartilhar = { icone: 'share-2', titulo: 'Compartilhar', manterAberto: true, aoTocar: () => window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(texto), '_blank') };
+                    if (idxDispensar >= 0) acoes.splice(idxDispensar, 0, acaoCompartilhar); else acoes.push(acaoCompartilhar);
+                    renderAcoesLista();
                 }
             } catch (e) { console.warn('[alertas] fn_alerta_compartilhar_texto:', e.message); }
         }
@@ -11645,32 +11780,11 @@
             }
         }
 
-        // "Mais opções" — marcar visto/adiar/dispensar, sempre gated pela
-        // natureza (mesma regra de fn_alerta_marcar, §6): informativo pode
-        // visto/dispensado; acionavel pode adiado/dispensado; obrigatorio
-        // não pode nenhuma marca (some do menu, mostra o motivo em toast).
-        function abrirAlertaMenuMarcas(alertaChave) {
-            const r = alertasPorChave.get(alertaChave);
-            if (!r) return;
-            if (r.natureza === 'obrigatorio') {
-                fecharSheet();
-                mostrarToast('Este alerta não pode ser adiado nem dispensado — é obrigatório até ser resolvido.', 'info');
-                return;
-            }
-            const acoes = [];
-            if (r.natureza === 'informativo') {
-                acoes.push(r.marcado_visto
-                    ? { icone: 'eye-off', titulo: 'Desmarcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto', true) }
-                    : { icone: 'eye', titulo: 'Marcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto') });
-            }
-            if (r.natureza === 'acionavel') {
-                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 7 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 7) });
-                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 30 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 30) });
-            }
-            acoes.push({ icone: 'x-circle', titulo: 'Dispensar', tipo: 'bad', aoTocar: () => rzMarcarAlerta(alertaChave, 'dispensado') });
-            abrirSheetAcoes({ titulo: 'Mais opções', sub: tituloAlertaMotor(r), acoes });
-        }
-
+        // v1.220.0 — abrirAlertaMenuMarcas (o sheet separado "Mais opções")
+        // foi ELIMINADA (CAN-05): a lista de marcas (visto/adiar/dispensar)
+        // se fundiu com Tratar/Compartilhar numa lista só, embutida no
+        // próprio abrirAlertaDetalheSheet — ver comentário ali. Nenhum
+        // outro ponto do app chamava esta função.
         async function rzMarcarAlerta(alertaChave, tipo, desmarcar = false, diasAdiar = null) {
             const r = alertasPorChave.get(alertaChave);
             if (!r || !pessoaIdLogada) return;
