@@ -1,6 +1,17 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.43.0 · 18/09/2026 (rodada 9)
+// Versão: 1.44.0 · 21/09/2026
+// CHANGELOG v1.44.0 — Entrega A.7 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
+// FISCAL v2.0.0 / ESP v1.3.0 §8): chip "Financeiro" da Ficha do ativo vira
+// "Performance" (id interno data-fa-aba="financeiro" e o painel
+// #fa-painel-financeiro não mudaram — só o rótulo visível, mesmo princípio
+// do chip Cobranças→Financeiro do contrato). O contador (`<span
+// class="rz-n" id="fa-chip-n-financeiro">`) saiu do botão do chip: a
+// leitura de performance não é mais lista de pendência (o grid de
+// Movimentações, que alimentava a contagem, saiu — ESP C5), então um selo
+// numérico ali não teria mais o que contar honestamente. Painel interno
+// reestruturado em 3 blocos (#fa-financeiro-resumo, #fa-financeiro-grafico,
+// #fa-financeiro-grid) — cofre-ativos.js v1.55.0 preenche os 3.
 // CHANGELOG v1.43.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo
 // deve ser possivel editar o nome. Tanto nos anexos de contrato, quanto
 // ativos, itens de controle e os demais") — #modal-ficha-doc: título
@@ -385,7 +396,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.43.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.44.0'; // v-check (21/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -790,7 +801,7 @@ export const ATIVOS_MARKUP = `<style>
         <button data-action="fa-trocar-aba" data-fa-aba="resumo" class="fa-subtab rz-chip rz-on">Resumo</button>
         <button data-action="fa-trocar-aba" data-fa-aba="contratos" class="fa-subtab rz-chip">Contratos <span class="rz-n" id="fa-chip-n-contratos">0</span></button>
         <button data-action="fa-trocar-aba" data-fa-aba="controles" class="fa-subtab rz-chip">Controles <span class="rz-n" id="fa-chip-n-controles">0</span></button>
-        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Financeiro <span class="rz-n" id="fa-chip-n-financeiro">0</span></button>
+        <button data-action="fa-trocar-aba" data-fa-aba="financeiro" class="fa-subtab rz-chip">Performance</button>
         <button data-action="fa-trocar-aba" data-fa-aba="arquivos" class="fa-subtab rz-chip">Anexos <span class="rz-n" id="fa-chip-n-arquivos">0</span></button>
     </div>
 
@@ -841,13 +852,25 @@ export const ATIVOS_MARKUP = `<style>
         </div>
     </div>
 
-    <!-- ===== Painel: Financeiro ===== -->
+    <!-- ===== Painel: Performance (id interno "financeiro" não mudou —
+         mesmo princípio já usado no chip Cobranças→Financeiro do contrato:
+         só o texto visível troca, nenhuma referência quebra) =====
+         v1.X (Entrega A.7, ESP v1.3.0 §8): "Financeiro" virou "Performance"
+         — 2 KPIs (recebido/saídas do ano, agora vêm de fn_performance_ativo
+         em vez do recorte de 6 meses de fn_fluxo_financeiro_ativo), gráfico
+         de recebimento mês a mês (fn_resultado_mensal, p_nivel='ativo', já
+         suportado desde A.1) e o grid de 10 campos com a mediana da
+         carteira pra comparar (C4). O grid de Movimentações saiu daqui
+         (C5) — é operação, mora no Financeiro por competência (ESP §10.1);
+         o botão "Mais ações" deste chip continua levando a "Novo
+         lançamento"/"Ver no Financeiro", só o que renderiza aqui dentro
+         mudou. Card "Revisão anual de valor" (C6) fica fora desta entrega
+         — depende da Fase B1.1 (índice IVG-R), critério de pronto próprio
+         (R.4), não da A.7. -->
     <div id="fa-painel-financeiro" class="fa-painel hidden">
         <div id="fa-financeiro-resumo" class="rz-kpis"></div>
-        <div class="rz-card">
-            <div class="rz-card-h"><h3>Movimentações</h3><span class="rz-sub">Últimos 6 meses</span><button data-action="fa-acoes-financeiro" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>
-            <div id="fa-financeiro-lista"></div>
-        </div>
+        <div id="fa-financeiro-grafico"></div>
+        <div id="fa-financeiro-grid"></div>
     </div>
 
     <!-- ===== Painel: Arquivos (Documentos · Fotos) ===== -->

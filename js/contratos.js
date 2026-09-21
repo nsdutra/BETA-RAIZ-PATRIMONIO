@@ -1,7 +1,48 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.12.0 · 19/09/2026 (rodada 10)
+// Versão: 1.13.1 · 21/09/2026
+//
+// v1.13.1 — CORRIGIDO (achado por Nicola em teste manual, contrato de teste
+// na empresa Karen Corrêa, aba Financeiro da Ficha do contrato mostrando
+// 12/2026, 12/2025, 12/2024, 12/2023, 11/2026, 11/2025... em vez de
+// decrescente real): abrirFichaContrato() ordenava mensalidadesDoContrato
+// comparando a string bruta "referencia" (formato "MM/YYYY") com
+// localeCompare — nessa comparação o MÊS (2 primeiros chars) pesa mais que
+// o ANO, então agrupava tudo por mês igual (todo "12/*" antes de todo
+// "11/*") em vez de ordenar por competência real. QUA-01 (mesmo padrão em
+// código inteiro): achado o idêntico bug em imoveis.js (box Financeiro da
+// Ficha do imóvel, mesma correção aplicada ali). Fix: chave de ordenação
+// "AAAAMM" (ano+mês, com padStart), mesmo padrão já usado corretamente no
+// filtro de competência de financeiro.js (~linha 3066). Nenhuma mudança de
+// RPC/banco — client-side only.
+//
+// v1.13.0 — Entrega A.6 (reduzida, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
+// FISCAL v2.0.0 / ESP §7, escolha explícita do Nicola: "A.6 reduzida, mesmo
+// padrão da A.3"). Duas mudanças:
+//   (1) salvarReajusteContratoPopup() parava de gravar direto em
+//   contratos.update()+historico_contrato.insert() (regra de negócio fora
+//   do banco, driblando DEM-04/CAN-03) — agora chama fn_contrato_reajustar
+//   (migration contratos_fn_reajustar_v1), a mesma função central que a
+//   ação "Aplicar o reajuste contratual" da Ficha usa; ela grava em
+//   cofre_ocorrencias_controle (tipo='reajuste'), não mais em
+//   historico_contrato. Mesma ordem de salvarRenovacaoContratoPopup: anexo
+//   sobe ANTES da RPC, pra nascer vinculado (p_documento_id) na ocorrência.
+//   (2) abrirFichaContrato() ganhou o 5º chip "Renovação" (REGRAS §10: 5
+//   chips Resumo · Cobranças · Renovação · Partes · Anexos): "Pelo
+//   contrato" com dado real (aluguel, índice cadastrado, próximo
+//   aniversário — calculado a partir de con.inicio, âncora FIXA, nunca do
+//   padrão de âncora móvel já achado como bug em
+//   fn_diario_contratos_aniversario_reajuste, demanda a9488469, fora do
+//   escopo aqui); "Pelo mercado" e "Negociar acima do índice" (IA) em
+//   estado vazio honesto — dependem de indicador_series/valores (Fase B1),
+//   que ainda não existe no banco (mesma razão/frase da A.3 em
+//   resultados.js). "Aplicar o reajuste contratual" e "Renovar o
+//   contrato" reaproveitam 100% lancarReajusteContrato()/renovarContrato()
+//   já existentes — nenhuma ação nova. CORRIGIDO de passagem: o subtítulo
+//   de lancarReajusteContrato() lia con.indiceReajuste (propriedade que
+//   nunca existiu — sempre undefined, nunca mostrava o índice); o campo
+//   certo é con.reajuste (mesmo usado no card "Condições" da ficha).
 //
 // v1.10.0 — 2 pedidos explícitos do Nicola:
 //   (1) "no chip financeiro do contrato retirar das linhas o label de
@@ -201,7 +242,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.12.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.13.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -689,7 +730,7 @@ export function reabrirFichaSeFor(contratoId) {
             if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.reajustar')) return;
             const hoje = new Date().toISOString().slice(0, 10);
             const corpo = `
-                <p class="text-xs text-slate-500 mb-3">Valor atual: <b>${formatarMoedaBR(con.valor)}/mês</b>${con.indiceReajuste ? ' · índice ' + rzEsc(con.indiceReajuste) : ''}</p>
+                <p class="text-xs text-slate-500 mb-3">Valor atual: <b>${formatarMoedaBR(con.valor)}/mês</b>${con.reajuste ? ' · índice ' + rzEsc(con.reajuste) : ''}</p>
                 <div class="grid grid-cols-2 gap-2 mb-3">
                     <div><label class="block text-xs font-bold text-gray-600">Novo valor (R$) <span style="color:var(--danger)">*</span></label><input type="number" step="0.01" id="rj-valor" oninput="calcularPctReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
                     <div><label class="block text-xs font-bold text-gray-600">% de reajuste</label><input type="number" step="0.01" id="rj-pct" oninput="calcularValorReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
@@ -732,9 +773,35 @@ export function reabrirFichaSeFor(contratoId) {
 
             mostrarCarregamentoGlobal('Registrando reajuste...');
             try {
-                const { error } = await dbAuth.from('contratos').update({
-                    valor: novoValor, valor_anterior: valorAntigo, reajuste_aplicado: true
-                }).eq('id', contratoId);
+                // v1.X (A.6, migration contratos_fn_reajustar_v1) — mesma ordem
+                // de salvarRenovacaoContratoPopup: o anexo sobe ANTES da RPC,
+                // pra já nascer vinculado (p_documento_id) na ocorrência criada
+                // pela função central — antes o documento só era anexado
+                // DEPOIS do registro em historico_contrato, num fluxo à parte.
+                let docId = null;
+                if (arquivoReajuste && typeof window.rzAnexarArquivoEntidade === 'function') {
+                    try {
+                        docId = await window.rzAnexarArquivoEntidade('contrato', contratoId, arquivoReajuste, {
+                            nome: `Reajuste ${vigencia.slice(5, 7)}/${vigencia.slice(0, 4)} — ${con.locatario || ''}`.trim(),
+                            descricao: `Reajuste de aluguel vigente desde ${formatarDataBR(vigencia)}.`, dataDocumento: vigencia, categoriaSugerida: 'reajuste|aditivo|contrato',
+                        });
+                    } catch (errDoc) { mostrarToast('O anexo falhou, o reajuste segue sem ele: ' + (errDoc.message || errDoc), 'danger'); }
+                }
+
+                // v1.X (A.6) — CORRIGIDO: antes gravava direto em
+                // contratos.update() + historico_contrato.insert() (sem
+                // função central, driblando DEM-04/CAN-03 — regra de
+                // negócio duplicada fora do banco). Agora passa por
+                // fn_contrato_reajustar, a mesma função central que a Ficha
+                // › Renovação usa como ação "Aplicar o reajuste contratual"
+                // (nível 1) — ela atualiza contratos.valor/valor_anterior/
+                // reajuste_aplicado e grava a ocorrência em
+                // cofre_ocorrencias_controle (tipo='reajuste'), não mais em
+                // historico_contrato (tabela legada).
+                const { error } = await dbAuth.rpc('fn_contrato_reajustar', {
+                    p_contrato_id: contratoId, p_novo_valor: novoValor, p_indice: con.reajuste || null,
+                    p_percentual: pct, p_vigencia: vigencia, p_observacao: obs || null, p_documento_id: docId,
+                });
                 if (error) throw error;
 
                 // v1.177.0 — Parte G do plano de conciliação: sem isto, os
@@ -754,22 +821,12 @@ export function reabrirFichaSeFor(contratoId) {
 
                 let descricao = `Reajuste de aluguel: ${formatarMoedaBR(valorAntigo)} → ${formatarMoedaBR(novoValor)} (${pct >= 0 ? '+' : ''}${pct}%), vigente desde ${formatarDataBR(vigencia)}.`;
                 if (obs) descricao += ' ' + obs;
-                // v1.133 — anexo: guarda no Cofre vinculado ao contrato (motor do Cofre, sem abrir o sheet de upload)
-                let docId = null;
-                if (arquivoReajuste && typeof window.rzAnexarArquivoEntidade === 'function') {
-                    try {
-                        docId = await window.rzAnexarArquivoEntidade('contrato', contratoId, arquivoReajuste, {
-                            nome: `Reajuste ${vigencia.slice(5, 7)}/${vigencia.slice(0, 4)} — ${con.locatario || ''}`.trim(),
-                            descricao: descricao, dataDocumento: vigencia, categoriaSugerida: 'reajuste|aditivo|contrato',
-                        });
-                        descricao += ' [documento anexado no Cofre]';
-                    } catch (errDoc) { mostrarToast('Reajuste salvo, mas o anexo falhou: ' + (errDoc.message || errDoc), 'danger'); }
-                }
-                const { data: inserida, error: errHist } = await dbAuth.from('historico_contrato').insert({ contrato_id: contratoId, tipo: 'reajuste', descricao }).select().single();
-                if (!errHist) {
-                    con.historico = con.historico || [];
-                    con.historico.push({ data: inserida.criado_em, descricao, tipo: 'reajuste', _salvo: true });
-                }
+                if (docId) descricao += ' [documento anexado no Cofre]';
+                // Otimista (mesmo padrão de salvarRenovacaoContratoPopup): a
+                // ocorrência já foi gravada pela RPC acima, isto só reflete
+                // na tela sem esperar um novo round-trip de leitura.
+                con.historico = con.historico || [];
+                con.historico.push({ data: new Date().toISOString(), descricao, tipo: 'reajuste', _salvo: true });
 
                 con.valor = novoValor;
                 con.valorAnterior = valorAntigo;
@@ -1617,7 +1674,18 @@ export function reabrirFichaSeFor(contratoId) {
 
             const imo = imoveis.find(i => i.id === con.imovelId);
             const enderecoImo = imo ? `${imo.empreendimento || ''} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '-';
-            const mensalidadesDoContrato = mensalidades.filter(m => m.contratoId === con.id).slice().sort((a, b) => (b.referencia || '').localeCompare(a.referencia || ''));
+            // v1.13.1 — CORRIGIDO (achado por Nicola em teste manual): a ordenação
+            // comparava a string "referencia" (formato "MM/YYYY") direto por
+            // localeCompare, então o MÊS pesava mais que o ANO e agrupava tudo
+            // por mês (todos os "12/*" antes de todos os "11/*", etc.) em vez de
+            // decrescente real por competência. Chave de ordenação agora é
+            // "AAAAMM", igual ao padrão já usado no filtro de competência do
+            // financeiro.js (linha ~3066).
+            const chaveCompetenciaContrato = (ref) => {
+                const [m, a] = (ref || '').split('/');
+                return `${a || '0000'}${(m || '00').padStart(2, '0')}`;
+            };
+            const mensalidadesDoContrato = mensalidades.filter(m => m.contratoId === con.id).slice().sort((a, b) => chaveCompetenciaContrato(b.referencia).localeCompare(chaveCompetenciaContrato(a.referencia)));
             const ultimas = mensalidadesDoContrato.slice(0, 4);
 
             // NOVO (30/08/2026) — Fiadores, pra exibir no detalhe do
@@ -1650,12 +1718,23 @@ export function reabrirFichaSeFor(contratoId) {
 
             // v1.110.0 (fatia 4 da gramática única, REGRAS §6/§9/§10/§11) —
             // ficha do contrato no mesmo padrão da ficha do ativo: cabeçalho
-            // de entidade (.rz-entity), 4 chips (Resumo · Cobranças · Partes ·
-            // Arquivos) e cards com rodapé único. "Mais ações" abre sheet
-            // (abrirSheetAcoes); os painéis inline #fc-mais-acoes e
-            // #fc-doc-acoes saíram. Nenhuma função de negócio mudou — só
-            // quem as chama (verHistoricoContrato, gerarMinutaContrato,
-            // excluirContrato, abrirCofreDocumentos, abrirEdicaoFiadoresPopup…).
+            // de entidade (.rz-entity), chips e cards com rodapé único.
+            // "Mais ações" abre sheet (abrirSheetAcoes); os painéis inline
+            // #fc-mais-acoes e #fc-doc-acoes saíram. Nenhuma função de
+            // negócio mudou — só quem as chama (verHistoricoContrato,
+            // gerarMinutaContrato, excluirContrato, abrirCofreDocumentos,
+            // abrirEdicaoFiadoresPopup…).
+            // v1.X (A.6, ESP §7/REGRAS §10) — 5º chip "Renovação" (Resumo ·
+            // Cobranças · Renovação · Partes · Anexos): contrato, mercado e
+            // as 4 alternativas da ficha. Escopo reduzido (mesmo padrão da
+            // A.3): "Pelo contrato" é 100% dado real (aluguel, índice
+            // cadastrado, próximo aniversário calculado a partir de
+            // con.inicio — nunca do padrão de âncora móvel já registrado
+            // como bug na demanda a9488469); "Pelo mercado" fica em estado
+            // vazio honesto (Fase de Indicadores do roadmap, mesma frase da
+            // A.3 em resultados.js) — não existe indicador_series/valores
+            // no banco pra estimar faixa/confiança/situação nem pra montar
+            // o argumento de "Negociar acima do índice" (IA).
             const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             const vencidoFicha = contratoVencido(con), revisarFicha = contratoPrecisaRevisao(con);
             const statusFicha = vencidoFicha ? rs('bad', 'Vencido')
@@ -1700,6 +1779,27 @@ export function reabrirFichaSeFor(contratoId) {
             const abreArquivos = (con.status === 'Ativo' || con.status === 'Assinando');
             const irFinanceiro = `document.getElementById('men-filtro-imovel').value='${con.imovelId}'; document.getElementById('men-filtro-imovel-resumo').textContent='${(imo ? imo.empreendimento : '-').replace(/'/g, "")}'; switchTab('tab-mensal'); renderMensalidades();`;
             const kv = (r, v) => `<div><small>${r}</small><b>${v}</b></div>`;
+
+            // v1.X (A.6) — aniversário do contrato = data de assinatura
+            // (con.inicio) + 12 meses, repetido até cair no futuro. Âncora
+            // FIXA, de propósito: nunca deriva do último evento de
+            // histórico (esse é o padrão de âncora móvel já achado como bug
+            // em fn_diario_contratos_aniversario_reajuste, demanda a9488469
+            // — produção-sensível, fora do escopo desta entrega). Serve só
+            // pra mostrar "em quantos dias" na Ficha; não alimenta nenhum
+            // alerta nem substitui contratoPrecisaRevisao().
+            let proxAniversarioStr = null, diasParaAniversario = null;
+            if (con.inicio) {
+                const inicioDt = new Date(con.inicio + 'T00:00:00');
+                if (!isNaN(inicioDt)) {
+                    const hojeSemHora = new Date(); hojeSemHora.setHours(0, 0, 0, 0);
+                    const prox = new Date(inicioDt);
+                    prox.setFullYear(prox.getFullYear() + 1);
+                    while (prox <= hojeSemHora) prox.setFullYear(prox.getFullYear() + 1);
+                    proxAniversarioStr = prox.toISOString().slice(0, 10);
+                    diasParaAniversario = Math.round((prox - hojeSemHora) / 86400000);
+                }
+            }
             document.getElementById('ficha-contrato-conteudo').innerHTML = `
                 <div class="rz-entity">
                     <div class="rz-ic"><svg data-lucide="${con.status === 'Assinando' ? 'file-signature' : 'file-text'}"></svg></div>
@@ -1709,6 +1809,7 @@ export function reabrirFichaSeFor(contratoId) {
                 <div class="rz-chips" id="fc-chips">
                     <button type="button" class="rz-chip rz-on" data-fc-chip="resumo" onclick="fcTrocarChip('resumo')">Resumo</button>
                     <button type="button" class="rz-chip ${atrasadas.length ? 'rz-warn' : ''}" data-fc-chip="cobrancas" onclick="fcTrocarChip('cobrancas')">Financeiro <span class="rz-n">${atrasadas.length}</span></button>
+                    <button type="button" class="rz-chip" data-fc-chip="renovacao" onclick="fcTrocarChip('renovacao')">Renovação</button>
                     <button type="button" class="rz-chip" data-fc-chip="partes" onclick="fcTrocarChip('partes')">Partes <span class="rz-n">${1 + fiadoresDaFicha.length}</span></button>
                     <button type="button" class="rz-chip" data-fc-chip="arquivos" onclick="fcTrocarChip('arquivos')">Anexos <span class="rz-n" id="fc-chip-n-arquivos">0</span></button>
                 </div>
@@ -1782,6 +1883,53 @@ export function reabrirFichaSeFor(contratoId) {
                             <button type="button" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
 
+                    </div>
+                </div>
+
+                <div class="fc-painel hidden" id="fc-painel-renovacao">
+                    ${(diasParaAniversario !== null && diasParaAniversario <= 30) ? `
+                    <div class="rz-card rz-atencao">
+                        <div class="rz-card-h"><h3>Aniversário do contrato em ${diasParaAniversario <= 0 ? 'até hoje' : diasParaAniversario + (diasParaAniversario === 1 ? ' dia' : ' dias')}</h3>${rs('warn', 'Reajuste')}</div>
+                        <p class="rz-desc">O contrato completa 12 meses em ${formatarDataBR(proxAniversarioStr)}. Pelo índice cadastrado${con.reajuste ? ' (' + escapeHtmlSaidas(con.reajuste) + ')' : ''}, a regra do contrato permite reajustar o aluguel a partir dessa data.</p>
+                    </div>` : ''}
+                    <div class="rz-card">
+                        <div class="rz-card-h"><h3>Pelo contrato</h3></div>
+                        <div class="rz-kv">
+                            ${kv('Aluguel atual', `${formatarMoedaBR(con.valor)}/mês`)}
+                            ${kv('Índice cadastrado', escapeHtmlSaidas(con.reajuste || '—'))}
+                            ${kv('Próximo aniversário', proxAniversarioStr ? formatarDataBR(proxAniversarioStr) : '—')}
+                            ${kv('Acumulado 12m', '—')}
+                            ${kv('Valor reajustado (estimado)', '—')}
+                        </div>
+                        <p class="rz-desc" style="margin-top:6px">Acumulado do índice e valor reajustado dependem da série de mercado — ver "Pelo mercado" abaixo.</p>
+                    </div>
+                    <div class="rz-card">
+                        <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo mercado</h3><span style="opacity:.6" title="Estimativa por IA">✨</span></div>
+                        <div class="rz-empty" style="padding:14px 8px">
+                            <div class="rz-ic"><svg data-lucide="line-chart"></svg></div>
+                            <p>Faixa estimada, confiança e situação de mercado chegam com a Fase de Indicadores do roadmap — ainda não há série de índice (IPCA/IGP-M/Selic/IVG-R) no banco pra estimar.</p>
+                        </div>
+                    </div>
+                    <div class="rz-card">
+                        <div class="rz-card-h"><h3>O que você pode fazer</h3></div>
+                        <div class="rz-row rz-link" onclick="lancarReajusteContrato('${con.id}')">
+                            <div class="rz-ic"><svg data-lucide="trending-up"></svg></div>
+                            <div class="rz-tx"><b>Aplicar o reajuste contratual</b><span>Dentro da regra do contrato</span></div>
+                            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                        </div>
+                        <div class="rz-row rz-link" onclick="renovarContrato('${con.id}')">
+                            <div class="rz-ic"><svg data-lucide="refresh-cw"></svg></div>
+                            <div class="rz-tx"><b>Renovar o contrato</b><span>Nova vigência e novo valor</span></div>
+                            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                        </div>
+                        <div class="rz-row" style="opacity:.55">
+                            <div class="rz-ic"><svg data-lucide="sparkles"></svg></div>
+                            <div class="rz-tx"><b>✨ Negociar acima do índice</b><span>Chega com a Fase de Indicadores do roadmap — depende da faixa de mercado, que ainda não existe no banco</span></div>
+                        </div>
+                        <div class="rz-row rz-link" onclick="fcTrocarChip('resumo')">
+                            <div class="rz-ic"><svg data-lucide="clock"></svg></div>
+                            <div class="rz-tx"><b>Manter e revisar depois</b><span>Não decide agora — o alerta de reajuste continua acompanhando</span></div>
+                        </div>
                     </div>
                 </div>
 

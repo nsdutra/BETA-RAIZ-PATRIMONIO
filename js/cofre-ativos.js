@@ -1,6 +1,24 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.54.0 · 20/09/2026
+// Versão: 1.55.0 · 21/09/2026
+//
+// v1.55.0 (Entrega A.7, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0 / ESP v1.3.0 §8) — chip "Financeiro" da Ficha do ativo vira
+// "Performance" (ativos-markup.js v1.44.0 trocou só o rótulo; id interno
+// data-fa-aba="financeiro" não mudou). montarFinanceiroAtivo() reescrita:
+// saiu o grid de Movimentações (era fn_fluxo_financeiro_ativo, últimos 6
+// meses — ESP C5: "o chip Performance não tem grid de movimentações",
+// operação virou coisa só do Financeiro por competência); entraram os 2
+// KPIs do ano (Recebido/Saídas), o gráfico "Recebimento mês a mês" novo
+// (fn_resultado_mensal, p_nivel='ativo' — já existia desde A.1) e o grid
+// de 10 campos com a mediana da carteira pra comparar (fn_performance_
+// ativo.rentabilidade_mediana_carteira_pct, também já existia desde A.1 —
+// nenhuma migration nesta entrega). O contador do chip (badge numérico)
+// saiu: não tem mais lista de pendência aqui pra contar. Card "Revisão
+// anual de valor" (ESP §8.1/C6) fica de fora — critério de pronto próprio
+// (Entrega R.4), depende da Fase B1.1 (índice IVG-R) que ainda não existe;
+// R.3 (v1.54.0, abaixo) já deixou só o esqueleto de início do ciclo, sem
+// sugestão de IA, pela mesma razão.
 //
 // v1.54.0 (Fase R / Entrega R.3, 20/09/2026) — "Iniciar revisão anual" no
 // ⋮ da ficha do ativo (abrirAcoesAtivo): abre Sheet de formulário pedindo a
@@ -676,7 +694,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.54.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.55.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1842,107 +1860,112 @@ async function montarContratosAtivo(a) {
 }
 
 // ============================================================================
-// FINANCEIRO (NOVO, v1.10.0, pedido explícito, 01/09/2026) — "adicione a
-// um ativo um novo chip de fluxo financeiro onde é possível ver as
-// entradas e saídas daquele ativo". Só LEITURA aqui (fn_fluxo_financeiro_
-// ativo, cofre-api.js) — os 2 botões de ação são pontes pro App, nunca
-// duplicam o formulário de despesa (abrirNovaDespesa já existe lá,
-// mesmo princípio de abrirGestaoImovel logo abaixo).
+// PERFORMANCE (Entrega A.7, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0 / ESP v1.3.0 §8) — chip "Financeiro" (nome interno inalterado,
+// data-fa-aba="financeiro") virou "Performance": 2 KPIs do ano, gráfico de
+// recebimento mês a mês e o grid de 10 campos com a mediana da carteira
+// pra comparar (C4). O grid de Movimentações que existia aqui saiu (C5) —
+// é operação, mora no Financeiro por competência (ESP §10.1); o botão
+// "Mais ações" deste chip (abrirAcoesFinanceiroAtivo) continua igual,
+// levando pra lá. Card "Revisão anual de valor" (C6) fica fora — critério
+// de pronto próprio, Entrega R.4, depende de indicador_valores (Fase B1.1)
+// que ainda não existe (mesma razão da R.3 já ter deixado só o esqueleto
+// sem sugestão de IA).
 // ============================================================================
 async function montarFinanceiroAtivo(a) {
     const painelResumo = document.getElementById('fa-financeiro-resumo');
-    const painelLista = document.getElementById('fa-financeiro-lista');
-    if (!painelResumo || !painelLista) return;
+    const painelGrafico = document.getElementById('fa-financeiro-grafico');
+    const painelGrid = document.getElementById('fa-financeiro-grid');
+    if (!painelResumo || !painelGrafico || !painelGrid) return;
 
     painelResumo.innerHTML = `<p class="rz-desc" style="grid-column:1/-1">Carregando...</p>`;
-    painelLista.innerHTML = '';
+    painelGrafico.innerHTML = '';
+    painelGrid.innerHTML = '';
 
-    const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const fmtData = (iso) => iso ? formatarDataBR(iso) : '—';
+    const ano = new Date().getFullYear();
+    const [perf, mensal] = await Promise.all([
+        api.buscarPerformanceAtivo(a.id, ano),
+        api.buscarResultadoMensalAtivo(a.id, estado.clienteId, ano),
+    ]);
 
-    const fluxo = await api.buscarFluxoFinanceiroAtivo(a.id);
-
-    // v1.41.0 (16/09/2026, BUG REAL reportado pelo Nicola — "chip
-    // financeiro não fica vermelho pelo atraso") — faAtualizarContador()
-    // pro chip Financeiro nunca tinha sido chamada (só Contratos e
-    // Anexos tinham). O elemento #fa-chip-n-financeiro nem existia no
-    // markup (ativos-markup.js). Contador = itens em aberto (não pago/
-    // isento); warn quando algum está atrasado — mesmo critério de
-    // "atrasado" usado na lista abaixo (status OU vencimento < hoje).
-    const hojeContador = new Date().toISOString().slice(0, 10);
-    const itensEmAberto = fluxo.itens.filter(it => it.status !== 'realizado' && it.status !== 'isento');
-    const temAtrasado = itensEmAberto.some(it => it.status === 'atrasado' || (it.vencimento && it.vencimento < hojeContador));
-    faAtualizarContador('financeiro', itensEmAberto.length, temAtrasado);
-
-    // v1.17.0 (fatia 3) — KPIs no formato único (.rz-kpi, REGRAS §9) e
-    // lista em .rz-row com status nas 5 semânticas via renderStatus().
-    // "Em atraso" agora é calculado (entrada aberta com vencimento
-    // passado), antes tudo aberto era "A receber" cinza.
-    painelResumo.innerHTML = `
-        <div class="rz-kpi rz-in"><small>Entradas · 6 meses</small><b>${fmtMoeda(fluxo.totalEntradas6m)}</b></div>
-        <div class="rz-kpi"><small>Saídas · 6 meses</small><b>${fmtMoeda(fluxo.totalSaidas6m)}</b></div>`;
-
-    if (!fluxo.itens.length) {
-        painelLista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="wallet"></i></div><p>Nenhum lançamento pra este ativo nos últimos 6 meses.</p></div>`;
-    } else {
-        const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-neu">${escapeHtml(t || c)}</span>`;
-        const hoje = new Date().toISOString().slice(0, 10);
-        painelLista.innerHTML = fluxo.itens.map(it => {
-            const ehEntrada = it.direcao === 'entrada';
-            // v1.17.1 — a RPC (fix_v1, 03/09) agora devolve 'atrasado' e
-            // 'isento' pra mensalidade, e vencimento de verdade; o cálculo
-            // por data fica como segunda rede (lançamentos só têm
-            // previsto/realizado).
-            const pago = it.status === 'realizado';
-            const isento = it.status === 'isento';
-            const atrasado = !pago && !isento && (it.status === 'atrasado' || (it.vencimento && it.vencimento < hoje));
-            const status = pago ? r('ok', 'Pago') : isento ? r('neu', 'Isento') : (atrasado ? r('bad', 'Em atraso') : r('run', ehEntrada ? 'A receber' : 'A pagar'));
-            const icone = pago ? (ehEntrada ? 'arrow-down-left' : 'arrow-up-right') : isento ? 'minus-circle' : (atrasado ? 'alarm-clock' : 'clock');
-            // v1.23.0 (pedido explícito do Nicola, 05/09: "na aba
-            // Financeiro no ativo, está sem o menu de 3 pontinhos pra
-            // tratar cada item") — ⋮ por linha, ponte pro App: entrada
-            // abre rzAcoesMensalidade (o MESMO sheet Dar baixa/Recibo/
-            // Estornar/Excluir de Financeiro e da ficha do contrato,
-            // v1.116); saída abre abrirEditarDespesa (mesmo destino do
-            // toque na linha de Financeiro › Saídas). A RPC já devolve o
-            // id de cada item (mensalidades.id / lancamentos.id).
-            // CORRIGIDO (pedido explícito, 18/09/2026, rodada 8, "no chip
-            // financeiro do ativo, permitir dar baixa ou excluir uma
-            // despesa, e se clicar nela, vai pra aba financeira") — a linha
-            // inteira ficou clicável (data-fin-acao/data-fin-dir migraram
-            // do <button> pro div.rz-row; o ⋮ virou só visual) e a entrada
-            // (mensalidade) agora também troca pra aba Financeiro
-            // (tab-mensal) antes de abrir a sheet — antes só a saída
-            // (despesa) fazia isso; a entrada abria rzAcoesMensalidade por
-            // cima da ficha do ativo, sem sair dela.
-            return `
-                <div class="rz-row" data-fin-acao="${it.id}" data-fin-dir="${it.direcao}" style="cursor:pointer">
-                    <div class="rz-ic${atrasado ? ' rz-bad' : ''}"><i data-lucide="${icone}"></i></div>
-                    <div class="rz-tx">
-                        <b>${escapeHtml(it.descricao || '')}</b>
-                        <span>${it.fornecedor ? escapeHtml(it.fornecedor) + ' · ' : ''}${fmtData(it.data_pagamento || it.vencimento)}</span>
-                    </div>
-                    <div class="rz-rt">
-                        <b class="${ehEntrada ? 'rz-in' : 'rz-out'}">${ehEntrada ? '+ ' : '− '}${fmtMoeda(it.valor)}</b>
-                        ${status}
-                    </div>
-                    <button type="button" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button>
-                </div>`;
-        }).join('');
-        painelLista.querySelectorAll('[data-fin-acao]').forEach(row => row.addEventListener('click', () => {
-            const id = row.getAttribute('data-fin-acao');
-            if (typeof window.switchTab !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
-            window.switchTab('tab-mensal');
-            if (row.getAttribute('data-fin-dir') === 'entrada') {
-                if (typeof window.rzAcoesMensalidade === 'function') window.rzAcoesMensalidade(id);
-                else mostrarToast('Ação só disponível dentro do app principal.', 'erro');
-            } else {
-                if (typeof window.abrirEditarDespesa === 'function') window.abrirEditarDespesa(id);
-                else mostrarToast('Ação só disponível dentro do app principal.', 'erro');
-            }
-        }));
+    if (!perf) {
+        painelResumo.innerHTML = `<p class="rz-desc" style="grid-column:1/-1;color:var(--danger)">Não foi possível carregar a performance agora.</p>`;
+        return;
     }
+
+    painelResumo.innerHTML = montarKpisPerformanceAtivo(perf);
+    painelGrafico.innerHTML = montarGraficoRecebimentoAtivo(mensal);
+    painelGrid.innerHTML = montarGridPerformanceAtivo(perf);
     refrescarIcones();
+}
+
+function fmtMoedaAtivo(v) { return Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function fmtPctAtivo(v) { return v == null ? '—' : `${v}%`; }
+
+// 2 KPIs do ano (ESP §8, ponto 1) — mesmo formato único .rz-kpi (REGRAS
+// §9) já usado no resto da ficha; troca o recorte de 6 meses que existia
+// aqui (fn_fluxo_financeiro_ativo) pelo ano corrente, direto de
+// fn_performance_ativo — mesma chamada que já alimenta o gráfico e o grid,
+// nenhuma 2ª fonte de dado pro mesmo período.
+function montarKpisPerformanceAtivo(perf) {
+    return `
+        <div class="rz-kpi rz-in"><small>Recebido no ano</small><b>${fmtMoedaAtivo(perf.receita_ano)}</b></div>
+        <div class="rz-kpi"><small>Saídas no ano</small><b>${fmtMoedaAtivo(perf.saidas_ano)}</b></div>`;
+}
+
+// Gráfico "Recebimento mês a mês" (ESP §8, ponto 2 — novo). Mesmo desenho
+// de barras de montarGraficoMensal() (resultados.js), simplificado: aqui
+// é sempre recebimento (nunca negativo), então 1 cor só, sem linha de
+// média nem rótulo de pico/vale.
+function montarGraficoRecebimentoAtivo(mensal) {
+    const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    if (!mensal || !mensal.length || !mensal.some(m => Number(m.recebido) > 0)) {
+        return `<div class="rz-card"><div class="rz-card-h"><h3>Recebimento mês a mês</h3></div><p class="rz-desc" style="margin-top:8px">Sem recebimento neste ano.</p></div>`;
+    }
+    const valores = mensal.map(m => Number(m.recebido) || 0);
+    const max = Math.max(...valores, 0) || 1;
+    const barras = mensal.map((m, i) => {
+        const alturaPct = Math.max(2, (valores[i] / max) * 100);
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
+            <div title="${NOMES_MES[m.mes - 1]}: ${fmtMoedaAtivo(valores[i])}" style="width:70%;height:${alturaPct}%;border-radius:3px 3px 0 0;background:var(--sprout)"></div>
+            <small style="font-size:9.5px;color:var(--muted);margin-top:3px">${NOMES_MES[m.mes - 1]}</small>
+        </div>`;
+    }).join('');
+    return `<div class="rz-card">
+        <div class="rz-card-h"><h3>Recebimento mês a mês</h3></div>
+        <div style="height:120px;display:flex;align-items:flex-end;gap:3px;margin-top:14px">${barras}</div>
+    </div>`;
+}
+
+// Grid de 10 campos (ESP §8, ponto 3 / C4-C5). Mesma anatomia .rz-kv de
+// montarPerformanceGrid() (resultados.js) — a "Rentabilidade" carrega a
+// mediana da carteira JUNTO na mesma linha (não é um 11º campo: é o
+// mesmo campo com o número de comparação ao lado, que é o que "pra
+// comparar" pede), honestamente omitida quando o ativo é não-comercial
+// (fn_performance_ativo já devolve null nesse caso, mesma regra da
+// ESP §4.3 aplicada em Resultados). "Dias alugado/vago" saem null pra
+// ativo de finalidade diferente de long_stay — mesma honestidade, "—" em
+// vez de inventar.
+function montarGridPerformanceAtivo(perf) {
+    const kv = (r, v) => `<div><small>${r}</small><b>${v}</b></div>`;
+    const rentabilidadeTxt = perf.rentabilidade_pct == null ? '—'
+        : `${fmtPctAtivo(perf.rentabilidade_pct)}${perf.rentabilidade_mediana_carteira_pct != null ? ` · carteira ${fmtPctAtivo(perf.rentabilidade_mediana_carteira_pct)}` : ''}`;
+    const linhas = [
+        kv('Resultado líquido', fmtMoedaAtivo(perf.resultado_liquido)),
+        kv('Rentabilidade', rentabilidadeTxt),
+        kv('Receita do ano', fmtMoedaAtivo(perf.receita_ano)),
+        kv('Patrimônio', fmtMoedaAtivo(perf.patrimonio) + (perf.patrimonio_revisado_em ? ` <small style="font-weight:400">· revisado ${formatarDataBR(perf.patrimonio_revisado_em)}</small>` : '')),
+        kv('Dias alugado no ano', perf.dias_alugado != null ? `${perf.dias_alugado} dias` : '—'),
+        kv('Dias vago no ano', perf.dias_vago != null ? `${perf.dias_vago} dias` : '—'),
+        kv('Tributos', fmtMoedaAtivo(perf.tributos)),
+        kv('Manutenção', fmtMoedaAtivo(perf.manutencao)),
+        kv('Seguros', fmtMoedaAtivo(perf.seguros)),
+        kv('Inadimplência', fmtMoedaAtivo(perf.inadimplencia_valor)),
+    ];
+    return `<div class="rz-card">
+        <div class="rz-card-h"><h3>Performance</h3></div>
+        <div class="rz-kv">${linhas.join('')}</div>
+    </div>`;
 }
 
 // Ponte pro App — mesmo princípio de abrirGestaoImovel() logo abaixo:

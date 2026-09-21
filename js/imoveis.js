@@ -1,7 +1,14 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.5.0 · 11/09/2026
+// Versão: 1.5.1 · 21/09/2026
+//
+// v1.5.1 — CORRIGIDO (QUA-01 — mesmo bug achado em contratos.js v1.13.1,
+// reportado por Nicola): box Financeiro da Ficha do imóvel ordenava
+// mensalidadesDoImovel comparando a string bruta "referencia" (formato
+// "MM/YYYY") com localeCompare, agrupando por mês (todo "12/*" antes de
+// todo "11/*") em vez de decrescente real por competência. Fix: chave
+// "AAAAMM", mesmo padrão do fix em contratos.js. Client-side only.
 //
 // v1.5.0 — PAREI DE CHUTAR. Este bug ("Editar dados do imóvel não abre")
 // já me enganou 3 vezes: cada tentativa corrigiu um problema real, mas
@@ -81,7 +88,7 @@
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
 
-export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -1533,8 +1540,15 @@ export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versõe
                 : montarBoxSemContratoFicha(imo, finalizados);
 
             const idsContratosDoImovel = todosDoImovel.map(c => c.id);
+            // v1.5.1 — CORRIGIDO (mesmo padrão achado em contratos.js): ordenação
+            // por "referencia" (MM/YYYY) direto por localeCompare agrupava por
+            // mês em vez de decrescente real por competência (AAAAMM).
+            const chaveCompetenciaImovel = (ref) => {
+                const [m, a] = (ref || '').split('/');
+                return `${a || '0000'}${(m || '00').padStart(2, '0')}`;
+            };
             const mensalidadesDoImovel = mensalidades.filter(m => idsContratosDoImovel.includes(m.contratoId))
-                .slice().sort((a, b) => (b.referencia || '').localeCompare(a.referencia || '')).slice(0, 3);
+                .slice().sort((a, b) => chaveCompetenciaImovel(b.referencia).localeCompare(chaveCompetenciaImovel(a.referencia))).slice(0, 3);
 
             // v1.49.0 — CORRIGIDO: box Financeiro compactado (ocupa menos
             // altura — linhas mais finas, sem borda por item) e ganhou

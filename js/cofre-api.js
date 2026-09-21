@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.41.0 · 20/09/2026
+// Versão: 1.42.0 · 21/09/2026
+//
+// v1.42.0 (Entrega A.7, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0 / ESP v1.3.0 §8) — 2 funções novas pro chip "Performance" da
+// ficha do ativo (renomeado de "Financeiro" em cofre-ativos.js/ativos-
+// markup.js): buscarPerformanceAtivo() (fn_performance_ativo, já existia
+// desde A.1 — só não tinha wrapper aqui) e buscarResultadoMensalAtivo()
+// (fn_resultado_mensal com p_nivel='ativo', mesma função que resultados.js
+// já usa pra carteira/empreendimento). buscarFluxoFinanceiroAtivo() segue
+// existindo (nada a ver com Performance) — nenhuma outra tela usa, mas
+// não foi removida por não ser desta entrega.
 //
 // v1.41.0 (Fase R / Entrega R.3, 20/09/2026) — iniciarRevisaoValorAtivo(),
 // nova: wrapper de fn_revisao_valor_ativo_iniciar (migration revisao_valor_
@@ -375,7 +385,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.41.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.42.0'; // v-check (21/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -966,6 +976,40 @@ export async function buscarFluxoFinanceiroAtivo(ativoId) {
 // sempre (não tem mais ramo pra propriedade_imovel — dado já migrado,
 // ver migration da sessão). Comentário antigo (v1.11.0) que dizia
 // "decide sozinha entre as 2 tabelas" ficou desatualizado, corrigido.
+// v1.42.0 (Entrega A.7, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0) — chip "Performance" da ficha do ativo (antes "Financeiro").
+// fn_performance_ativo (já existia, Entrega A.1) devolve os 10 campos do
+// grid numa chamada só, já incluindo rentabilidade_mediana_carteira_pct
+// (comparação com a carteira, ESP §8/C4) — nenhum cálculo de mediana
+// feito aqui, tudo vem pronto do banco (CAN-03).
+export async function buscarPerformanceAtivo(ativoId, ano) {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_performance_ativo', { p_ativo_id: ativoId, p_ano: ano });
+        if (error) throw error;
+        return (data && data[0]) || null;
+    } catch (e) {
+        console.warn('[cofre-api] buscarPerformanceAtivo falhou:', e);
+        return null;
+    }
+}
+
+// v1.42.0 (Entrega A.7) — gráfico "Recebimento mês a mês" do chip
+// Performance. Mesma fn_resultado_mensal que a aba Resultados (carteira/
+// empreendimento) já consome (resultados.js) — p_nivel='ativo' já existia
+// nela desde a Entrega A.1, feito sob medida pra esta tela.
+export async function buscarResultadoMensalAtivo(ativoId, clienteId, ano) {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_resultado_mensal', {
+            p_cliente_id: clienteId, p_ano: ano, p_nivel: 'ativo', p_id: ativoId,
+        });
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.warn('[cofre-api] buscarResultadoMensalAtivo falhou:', e);
+        return [];
+    }
+}
+
 export async function buscarPropriedadeDoAtivo(ativoId) {
     try {
         const { data, error } = await dbAuth.rpc('fn_propriedade_do_ativo', { p_ativo_id: ativoId });
