@@ -6,8 +6,48 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.221.0
-   LINHAS: 15450
+   VERSÃO: Beta v1.222.0
+   LINHAS: 15521
+   DATA: 21/09/2026 (Entrega A.3 — Tela Resultados nova, PLANO_IMPLEMENTACAO_
+   RESULTADOS_MERCADO_FISCAL v2.0.0)
+   NOVIDADES (Beta v1.222.0) — Entrega A.3: Resultados vira tela só de
+   performance (ESP_RESULTADOS_MERCADO_FISCAL §4, REGRAS_EXPERIENCIA_RAIZ
+   §13). Novo módulo js/resultados.js (fatia lazy UI-05, v1.0.0):
+   (1) Cabeçalho some de seletor/segmento/chip — vira descrição + lupa
+   (sheet Filtros: Período 2024·2025·2026, Abrangência Carteira·
+   Empreendimento·Imóvel, Contexto Tudo·Comercial·Família) + Exportar
+   (share, reaproveita 100% baixarRelatorioPdfLocal/exportarRelatorioSocioPDF
+   já existentes). Resumo do filtro em chip de leitura abaixo do cabeçalho;
+   lupa ganha rz-dot rz-warn fora do padrão. Abrangência Imóvel não fica na
+   tela — aplica e abre a ficha do ativo direto no chip Performance.
+   (2) Conteúdo por abrangência (Carteira consome a fn_performance_carteira
+   nova desta entrega — migration resultados_performance_carteira_v1, mesmo
+   desenho de fn_performance_empreendimento; Empreendimento consome a já
+   existente): KPIs do período (Resultado do ano/Custo·ano em Família ·
+   Patrimônio · Rentabilidade, some em Família · Ocupação/Ativos em uso) →
+   Indicadores → Resultado mês a mês (gráfico de barras, linha tracejada na
+   média) → Sua carteira × indicador (gráfico) → Dependência de locatário
+   (barras horizontais, top 6 + "Outros N locatários" sempre neutro) →
+   Reajustes no ano (calendário de 12 barras por VALOR, toque abre os
+   contratos do mês) → Performance (grid de 10 campos).
+   (3) DECISÃO DE ESCOPO REGISTRADA (demanda 45cc9f88): o card Indicadores e
+   o gráfico "carteira × indicador" nascem no lugar certo (posição, regra de
+   sumir em Família) mas em ESTADO VAZIO HONESTO — confirmado ao vivo no
+   banco que não existe hoje nenhuma fonte real de índice de mercado
+   (indicador_series/valores só nascem na Fase B1, que não é pré-requisito
+   de A.3; nem sequer uma fonte mais simples existe — contratos.reajuste é
+   só o nome do índice em texto, sem valor). Fecha quando B1.2 entregar dado
+   real — o próprio PLANO já antecipa isso.
+   (4) Conteúdo antigo (rz-seg Desempenho/Distribuição/Relatórios, filtros
+   de imóvel/período, tabela Mês a Mês) foi para #tab-relatorios-legado,
+   ESCONDIDO (.hidden) mas intocado — renderRelatorios()/
+   montarResumoResultados() continuam sendo chamados (MANIFESTO DAD-01;
+   removido só na Entrega A.5, depois de validado em tela pelo Nicola).
+   (5) Migration resultados_performance_carteira_v1 (nova função só, RLS
+   authenticated/service_role, search_path travado) — advisor
+   authenticated_security_definer_function_executable 181→182, delta
+   exatamente explicado (a função nova), sem crescer nenhum outro advisor.
+   ------------------------------------------------------------------
    DATA: 20/09/2026 (Entrega AL.6 — feedback do Nicola sobre a AL.5, 3 prints)
    NOVIDADES (Beta v1.221.0) — Entrega AL.6, feedback do Nicola sobre a tela
    de alertas recém-entregue na AL.5 (3 prints: sheet "Item de controle
@@ -157,31 +197,8 @@
    aditivo, sem PUBLIC (mesma convenção do resto do Motor).
    ------------------------------------------------------------------
    DATA: 20/09/2026 (Entrega 0.1 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
-   NOVIDADES (Beta v1.217.0) — Entrega 0.1 do plano de execução da frente
-   Resultados/Mercado/Fiscal (ESPECIFICACAO+ARQUITETURA v1.3.0, conferidas
-   ao vivo no banco em 20/09/2026). Campo "CIB (NFS-e)" na ficha do ativo,
-   categoria imóvel (preenchimento manual — decisão do Nicola, é o dado
-   que a Reforma Tributária exige pra emitir NFS-e de locação a partir de
-   01/12/2026; sem OCR, sem integração): cofre-ativos.js v1.53.0
-   (renderizarBlocoImovel/lerBlocoImovel/salvarEdicaoAtivo/salvarAtivo/
-   montarDadosAtivo, nos 2 ramos avulso e vinculado) + cofre-api.js
-   v1.40.0 (criarImovelEAtivo grava `cib` já na criação). Corrigido nesta
-   entrega: 3 comentários/texto obsoletos dizendo que `pg_net` não está
-   instalado no projeto (linhas do card "Cenário econômico" em Resultados
-   e do mount de Configurações) — conferido ao vivo, a extensão JÁ está
-   instalada; o texto ao usuário também foi ajustado pra não afirmar mais
-   um bloqueio de infraestrutura que não existe (demanda 326aecaf).
-   Corrigido de passagem (QUA-01, mesmo padrão de deslize já visto neste
-   app): o IMPORTMAP tinha `cofre-api.js?v=1.38.0` desde antes desta
-   sessão, enquanto o arquivo já estava em 1.39.0 — corrigido junto com o
-   bump desta entrega. IMPORTMAP: cofre-ativos.js →1.53.0, cofre-api.js
-   →1.40.0. Migrations aplicadas direto no Supabase nesta sessão (fora
-   deste arquivo): resultados_fix_apurar_distribuicao_ativo_id_v1,
-   fiscal_cofre_ativos_cib_v1, fiscal_parametros_correcao_art261_v1.
    ------------------------------------------------------------------
-   DATA: 19/09/2026 (rodada 10, entrega 4)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.216.0 … v1.216.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.217.0 … v1.217.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -205,7 +222,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.41.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.54.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.41.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.54.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3036,55 +3053,77 @@
 
         <!-- ================= ABA: RELATÓRIOS/MÉTRICAS ================= -->
 
-        <!-- v1.123.0 (fatia Resultados, prints do Nicola 05/09) — tela
-             migrada pra gramática: .rz-seg, .rz-card, botão exportar no
-             catálogo. JS intocado (renderRelatorios, montarResumoResultados,
-             baixarRelatorioPdfLocal, filtro-imovel, filtro-periodo,
-             tabela-mensal-resultados — todos os ids preservados). -->
+        <!-- Entrega A.3 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0,
+             REGRAS_EXPERIENCIA §13) — tela nova, construída inteira por
+             js/resultados.js dentro de #resultados-novo-mount: cabeçalho
+             (descrição + lupa de Filtros + Exportar) sem seletor/segmento/
+             chip fixo, tudo que era controle virou filtro na lupa. -->
         <section id="tab-relatorios" class="tab-content">
 
-            <div class="rz-seg">
-                <button class="rz-on" onclick="switchTab('tab-relatorios')">Desempenho</button>
-                <button onclick="switchTab('tab-socios')">Distribuição</button>
-                <button onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
-            </div>
+            <div id="resultados-novo-mount"></div>
 
-            <!-- Hero: KPIs consolidados + Diagnóstico tributário (v1.91.0).
-                 Cenário econômico (IPCA/Selic) pendente — não é mais
-                 infraestrutura (pg_net já está instalado, conferido ao
-                 vivo em 20/09/2026 — comentário anterior estava obsoleto,
-                 demanda 326aecaf), falta só a Edge Function de captura e
-                 as tabelas indicador_series/indicador_valores (Fase B1 do
-                 PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0). -->
-            <div id="resultados-resumo-mount" class="mb-4">
-                <p class="text-xs text-slate-400 text-center py-6">Carregando resumo...</p>
-            </div>
+            <!-- v1.123.0 (fatia Resultados, prints do Nicola 05/09) — tela
+                 migrada pra gramática: .rz-seg, .rz-card, botão exportar no
+                 catálogo. JS intocado (renderRelatorios, montarResumoResultados,
+                 baixarRelatorioPdfLocal, filtro-imovel, filtro-periodo,
+                 tabela-mensal-resultados — todos os ids preservados).
+                 CONGELADO na Entrega A.3 (21/09/2026): a tela visível agora é
+                 #resultados-novo-mount, acima. Este bloco fica ESCONDIDO
+                 (.hidden), de propósito — não apagado — porque
+                 renderRelatorios()/montarResumoResultados() continuam sendo
+                 chamados por vários ganchos de recarga espalhados pelo app
+                 (ex.: depois de salvar mensalidade/contrato/imóvel em outras
+                 telas) e removê-los agora quebraria esses call sites sem
+                 necessidade. Sai de vez na Entrega A.5, só depois de o
+                 Nicola validar a tela nova (MANIFESTO DAD-01) — mesma
+                 régua que renderImoveis()/renderContratos() já seguiram
+                 quando as fatias deles saíram do índex. -->
+            <div id="tab-relatorios-legado" class="hidden">
 
-            <!-- Filtros — sem rótulo "FILTRAR" em caixa alta (REGRAS §6) -->
-            <div class="rz-card mb-4">
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-1">Imóvel</label>
-                        <input type="hidden" id="filtro-imovel" value="todos">
-                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('filtro-imovel').value = id || 'todos'; document.getElementById('filtro-imovel-resumo').textContent = resumo; renderRelatorios(); }, true)" id="filtro-imovel-resumo" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded mt-0.5 text-[13px] bg-gray-50 text-left truncate">Todos os Imóveis</button>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-1">Período</label>
-                        <select id="filtro-periodo" onchange="renderRelatorios()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded mt-0.5 text-[13px] bg-gray-50">
-                            <option value="todos">Todo o Período Histórico</option>
-                            <option value="ano-atual">Desde o início de 2026</option>
-                            <option value="1-mes">Último Mês</option>
-                            <option value="3-meses">Últimos 3 Meses</option>
-                            <option value="12-meses">Últimos 12 Meses</option>
-                        </select>
+                <div class="rz-seg">
+                    <button class="rz-on" onclick="switchTab('tab-relatorios')">Desempenho</button>
+                    <button onclick="switchTab('tab-socios')">Distribuição</button>
+                    <button onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
+                </div>
+
+                <!-- Hero: KPIs consolidados + Diagnóstico tributário (v1.91.0).
+                     Cenário econômico (IPCA/Selic) pendente — não é mais
+                     infraestrutura (pg_net já está instalado, conferido ao
+                     vivo em 20/09/2026 — comentário anterior estava obsoleto,
+                     demanda 326aecaf), falta só a Edge Function de captura e
+                     as tabelas indicador_series/indicador_valores (Fase B1 do
+                     PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0). -->
+                <div id="resultados-resumo-mount" class="mb-4">
+                    <p class="text-xs text-slate-400 text-center py-6">Carregando resumo...</p>
+                </div>
+
+                <!-- Filtros — sem rótulo "FILTRAR" em caixa alta (REGRAS §6) -->
+                <div class="rz-card mb-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">Imóvel</label>
+                            <input type="hidden" id="filtro-imovel" value="todos">
+                            <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('filtro-imovel').value = id || 'todos'; document.getElementById('filtro-imovel-resumo').textContent = resumo; renderRelatorios(); }, true)" id="filtro-imovel-resumo" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded mt-0.5 text-[13px] bg-gray-50 text-left truncate">Todos os Imóveis</button>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">Período</label>
+                            <select id="filtro-periodo" onchange="renderRelatorios()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded mt-0.5 text-[13px] bg-gray-50">
+                                <option value="todos">Todo o Período Histórico</option>
+                                <option value="ano-atual">Desde o início de 2026</option>
+                                <option value="1-mes">Último Mês</option>
+                                <option value="3-meses">Últimos 3 Meses</option>
+                                <option value="12-meses">Últimos 12 Meses</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
+
+                <p style="font-size:13px;font-weight:700;color:var(--pine);margin:0 0 8px">Mês a Mês</p>
+                <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[11px] mb-4"></div>
+
+                <!-- v1.136 (A.4) — botão de exportar saiu daqui: toda exportação mora no segmento Relatórios -->
+
             </div>
-
-            <p style="font-size:13px;font-weight:700;color:var(--pine);margin:0 0 8px">Mês a Mês</p>
-            <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[11px] mb-4"></div>
-
-            <!-- v1.136 (A.4) — botão de exportar saiu daqui: toda exportação mora no segmento Relatórios -->
 
         </section>
 
@@ -3598,7 +3637,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.221.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.222.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8820,6 +8859,23 @@
         ].forEach(nome => { window[nome] = (...args) => carregarImoveis().then(m => m[nome](...args)); });
 
         // =====================================================================
+        // Entrega A.3 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0) —
+        // RESULTADOS vive em js/resultados.js (mesmo desenho de Imóveis/
+        // Contratos acima): carregarResultados() importa 1x; ponte window[nome]
+        // pro HTML estático (onclick="" gerado pelo próprio módulo — sheet
+        // Filtros, Exportar, calendário de reajustes).
+        // =====================================================================
+        let __rzResModulo = null;
+        function carregarResultados() {
+            if (__rzResModulo) return Promise.resolve(__rzResModulo);
+            return import('./js/resultados.js').then(m => (__rzResModulo = m));
+        }
+        [
+            'renderResultados', 'abrirResultadosFiltros', 'escolherResultadosFiltro', 'escolherResultadosAlvo',
+            'limparResultadosFiltros', 'aplicarResultadosFiltros', 'abrirResultadosExportar', 'abrirResultadosMesReajuste',
+        ].forEach(nome => { window[nome] = (...args) => carregarResultados().then(m => m[nome](...args)); });
+
+        // =====================================================================
         // R8 (fatia 1, Beta v1.138.0) — FINANCEIRO VIVE EM js/financeiro.js
         // Módulo ES carregado sob demanda (import() no switchTab), mesmo
         // padrão de Ativos (ativos-boot.js) e Tipos (cadastros.js). Decisão
@@ -8976,6 +9032,21 @@
             // só busca quando a pessoa realmente abre Resultados.
             if (tabId === 'tab-relatorios' && typeof montarResumoResultados === 'function') {
                 montarResumoResultados();
+            }
+            // Entrega A.3 — tela nova de Resultados (js/resultados.js), sob
+            // demanda, mesmo padrão das outras fatias lazy (UI-05). O alvo
+            // visível de tab-relatorios agora é #resultados-novo-mount; o
+            // conteúdo antigo (rz-seg Desempenho/Distribuição/Relatórios,
+            // filtros, tabela mês a mês) fica em #tab-relatorios-legado,
+            // escondido (.hidden) mas intocado — renderRelatorios()/
+            // montarResumoResultados() continuam sendo chamados normalmente
+            // (inclusive pelos ganchos de recarga depois de salvar dado em
+            // outras telas), só não aparecem mais pra ninguém. Removido só
+            // na Entrega A.5, depois de validado em tela (MANIFESTO DAD-01).
+            if (tabId === 'tab-relatorios') {
+                carregarResultados()
+                    .then(m => m.renderResultados())
+                    .catch(err => console.warn('[resultados] Falha ao carregar módulo:', err.message));
             }
             // v1.96.0 (pedido explícito) — Partes: mesmo padrão de
             // lazy-load, só busca quando a pessoa abre a aba de verdade.

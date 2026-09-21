@@ -4,6 +4,36 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.217.0) — Entrega 0.1 do plano de execução da frente
+Resultados/Mercado/Fiscal (ESPECIFICACAO+ARQUITETURA v1.3.0, conferidas
+ao vivo no banco em 20/09/2026). Campo "CIB (NFS-e)" na ficha do ativo,
+categoria imóvel (preenchimento manual — decisão do Nicola, é o dado
+que a Reforma Tributária exige pra emitir NFS-e de locação a partir de
+01/12/2026; sem OCR, sem integração): cofre-ativos.js v1.53.0
+(renderizarBlocoImovel/lerBlocoImovel/salvarEdicaoAtivo/salvarAtivo/
+montarDadosAtivo, nos 2 ramos avulso e vinculado) + cofre-api.js
+v1.40.0 (criarImovelEAtivo grava `cib` já na criação). Corrigido nesta
+entrega: 3 comentários/texto obsoletos dizendo que `pg_net` não está
+instalado no projeto (linhas do card "Cenário econômico" em Resultados
+e do mount de Configurações) — conferido ao vivo, a extensão JÁ está
+instalada; o texto ao usuário também foi ajustado pra não afirmar mais
+um bloqueio de infraestrutura que não existe (demanda 326aecaf).
+Corrigido de passagem (QUA-01, mesmo padrão de deslize já visto neste
+app): o IMPORTMAP tinha `cofre-api.js?v=1.38.0` desde antes desta
+sessão, enquanto o arquivo já estava em 1.39.0 — corrigido junto com o
+bump desta entrega. IMPORTMAP: cofre-ativos.js →1.53.0, cofre-api.js
+→1.40.0. Migrations aplicadas direto no Supabase nesta sessão (fora
+deste arquivo): resultados_fix_apurar_distribuicao_ativo_id_v1,
+fiscal_cofre_ativos_cib_v1, fiscal_parametros_correcao_art261_v1.
+------------------------------------------------------------------
+DATA: 19/09/2026 (rodada 10, entrega 4)
+------------------------------------------------------------------
+Versões anteriores (v1.216.0 … v1.216.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.216.0) — novo ajuste pedido pelo Nicola em cima da
 entrega anterior (v1.215.0), ainda na mesma tela: "a descrição do card
 de ativos na lista de ativos ainda não está legal. coloque na 1a linha
