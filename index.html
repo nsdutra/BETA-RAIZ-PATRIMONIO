@@ -6,11 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.229.0
-   LINHAS: 15507
-   DATA: 21/09/2026 (demanda ac549b98 — inconsistências vistas na massa demo
-   durante gravação das Pílulas + SEG-02: fechamento das 43 funções
-   SECURITY DEFINER sem checagem interna de tenant, uma migration só)
+   VERSÃO: Beta v1.230.0
+   LINHAS: 15502
+   DATA: 21/09/2026 (demanda b46e30fa — checklist do soft launch, item
+   crítico: lista de Ativos fora da gramática de chips e agrupador)
+   NOVIDADES (Beta v1.230.0) — CORRIGIDO (demanda b46e30fa): registrada
+   como "lista de imóveis", mas tab-imoveis está desligada desde v1.108.0
+   (decisão do Nicola) e não é mais vista por nenhum usuário — quem abre
+   depois do cadastro é a lista de Ativos. Confirmado com o Nicola e
+   redirecionado: js/cofre-ativos.js v1.55.0→v1.56.0 — chips de tipo
+   (Todos/Imóveis/Veículos/Outros) trocados pra `.rz-chip`/`.rz-n` (fecha
+   de vez a 5011173d) e cabeçalho de grupo por empreendimento trocado de
+   `uppercase tracking-wide` (proibido) pra `.rz-group`, sentence case,
+   mesmo padrão da lista de Contratos. Conteúdo do card não mudou.
    NOVIDADES (Beta v1.229.0) — CORRIGIDO (demanda ac549b98, achado nas
    Pílulas): js/contratos.js v1.13.1→v1.13.2 e js/financeiro.js
    v1.10.0→v1.10.1 — valores em R$ mostrados sem formatação pt-BR em 3
@@ -74,21 +82,8 @@
    ------------------------------------------------------------------
    DATA: 21/09/2026 (pedido explícito ao vivo, testando A.3/A.4: "o icone i
    deve entrar em todos os cards desta tela")
-   NOVIDADES (Beta v1.225.0) — js/resultados.js v1.1.0→v1.2.0: o ícone (i)
-   de explicação (nascido nesta sessão nos 2 cards de calendário) agora
-   está em TODOS os cards da tela de Resultados — Indicadores, Resultado
-   mês a mês, Sua carteira × indicador, Dependência de locatário e
-   Performance ganham o mesmo botão/Sheet; ponte window[nome] ganha 5
-   nomes novos (abrirInfoIndicadores, abrirInfoResultadoMensal,
-   abrirInfoGraficoIndicador, abrirInfoConcentracao,
-   abrirInfoPerformanceGrid). O bloco de KPIs (.rz-kpis) fica de fora —
-   não é `.rz-card` na anatomia do DESIGN_SYSTEM (§5), só os cards de
-   verdade ganham o ícone.
    ------------------------------------------------------------------
-   DATA: 21/09/2026 (Entrega A.4 — Visão Geral nova, PLANO_IMPLEMENTACAO_
-   RESULTADOS_MERCADO_FISCAL v2.0.0)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.224.0 … v1.224.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.225.0 … v1.225.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -112,7 +107,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.1","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.55.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.1","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.56.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3542,7 +3537,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.229.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.230.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

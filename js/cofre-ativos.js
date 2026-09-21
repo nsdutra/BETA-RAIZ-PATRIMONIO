@@ -1,6 +1,30 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.55.0 · 21/09/2026
+// Versão: 1.56.0 · 21/09/2026
+//
+// v1.56.0 (demanda b46e30fa — registrada como "lista de imóveis no padrão
+// das demais listas", mas tab-imoveis/imoveis.js está desligada desde
+// v1.108.0 (decisão do Nicola, "não vejo sentido existir estas telas
+// antigas mais") e nunca chega a ser vista por um usuário real — quem
+// realmente abre depois do cadastro é a lista de Ativos. Confirmado com o
+// Nicola e redirecionado o escopo pra cá): renderChipsAtivos() e o
+// cabeçalho de grupo de renderAtivosLista() ainda usavam Tailwind cru fora
+// da gramática. Corrigido: (1) chips de tipo (Todos/Imóveis/Veículos/
+// Outros) trocados de botão com classes condicionais + style inline pra
+// `.rz-chip`/`.rz-chip.rz-on` + contador em `.rz-n`, mesmo padrão já usado
+// em contratos.js (filtrarContratosPorChip) — fecha de vez a demanda
+// 5011173d (que já tinha corrigido só o wrap do container em
+// ativos-markup.js v1.38.0, não o botão em si); (2) cabeçalho de grupo por
+// empreendimento trocado de `uppercase tracking-wide` (proibido pelo
+// DESIGN_SYSTEM §2: "NUNCA caixa alta em rótulo") pra `.rz-group`
+// (12px/--sage/sentence case), mesmo padrão de contratos.js (lista de
+// contratos agrupada por empreendimento). Conteúdo do card de ativo
+// (ativoCardHtml, decidido em várias rodadas com o Nicola — v1.44.0/
+// v1.51.0/v1.52.0) NÃO foi alterado, só a chrome ao redor. QUA-01: mesmo
+// padrão uppercase/tracking-wide achado também em imoveis.js (tela morta,
+// fora de escopo), cofre-controles.js e vitrine.js — registrado como
+// pendência separada, não corrigido nesta rodada (fora do pedido "olhar
+// pra ativos").
 //
 // v1.55.0 (Entrega A.7, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
 // v2.0.0 / ESP v1.3.0 §8) — chip "Financeiro" da Ficha do ativo vira
@@ -694,7 +718,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.55.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.56.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1049,10 +1073,8 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         return x.localeCompare(y);
     });
     container.innerHTML = nomesGrupos.map(nome => `
-        <div class="mb-1">
-            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 px-1 mb-2 mt-4 first:mt-0">${escapeHtml(nome)} <span class="text-slate-400">(${grupos[nome].length})</span></p>
-            <div class="space-y-2">${grupos[nome].map(ativoCardHtml).join('')}</div>
-        </div>
+        <div class="rz-group">${escapeHtml(nome)} · ${grupos[nome].length}</div>
+        <div class="space-y-2">${grupos[nome].map(ativoCardHtml).join('')}</div>
     `).join('');
 
     const vazio = document.getElementById('ativos-estado-vazio');
@@ -1112,7 +1134,7 @@ function renderChipsAtivos() {
     wrap.innerHTML = GRUPOS_CHIP_TIPO.map((g, i) => {
         const qtd = g.tipos ? estado.ativos.filter(a => g.tipos.includes(a.tipo_ativo)).length : estado.ativos.length;
         const ativo = i === chipAtivoAtual;
-        return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="flex-none text-[11px] font-bold px-3 py-1.5 rounded-full transition ${ativo ? 'text-white' : 'bg-white text-slate-600 border border-slate-300'}" ${ativo ? 'style="background:var(--pine)"' : ''}>${escapeHtml(g.rotulo)} · ${qtd}</button>`;
+        return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${ativo ? ' rz-on' : ''}">${escapeHtml(g.rotulo)} <span class="rz-n">${qtd}</span></button>`;
     }).join('');
     // v1.9.0 (02/09/2026, pedido explícito: "os chips devem correr na
     // horizontal mas sem deixar a mostra a rolagem") — a barra em si já
