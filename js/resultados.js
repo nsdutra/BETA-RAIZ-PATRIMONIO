@@ -1,8 +1,21 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.1.0 (21/09/2026 — correções e pedido do Nicola
-// testando a Entrega A.3 ao vivo)
+// VERSÃO: Beta v1.2.0 (21/09/2026 — pedido explícito ao vivo: "o icone i
+// deve entrar em todos os cards desta tela")
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.2.0):
+//   — Ícone (i) (mesmo botão/Sheet dos 2 cards de calendário, entrega
+//     anterior) agora em TODOS os cards da tela: Indicadores, Resultado
+//     mês a mês, Sua carteira × indicador, Dependência de locatário,
+//     Performance — 5 nomes novos exportados (abrirInfoIndicadores,
+//     abrirInfoResultadoMensal, abrirInfoGraficoIndicador,
+//     abrirInfoConcentracao, abrirInfoPerformanceGrid) + bridge em
+//     index.html. Botão extraído em botaoInfoCard() (era HTML duplicado
+//     em cada função de card) — Reajustes/Revisionais passam a usar o
+//     mesmo helper, sem mudança de comportamento. Não entra no bloco de
+//     KPIs (.rz-kpis): não é `.rz-card` na anatomia do DESIGN_SYSTEM
+//     (§5) — só os cards de verdade ganham o ícone.
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.1.0):
 //   — BUG REAL corrigido: chip de ano (Período) nunca marcava depois do
@@ -85,7 +98,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.2.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -107,6 +120,18 @@ function filtroForaDoPadrao() {
 }
 
 function pctFmt(v) { return v == null ? '—' : `${v}%`; }
+
+// v1.2.0 (21/09/2026, pedido explícito ao vivo: "o icone i deve entrar em
+// todos os cards desta tela") — botão (i) reaproveitado por TODOS os
+// `.rz-card` desta tela (antes só existia em Reajustes/Revisionais).
+// Mesmo padrão de explicarStatusConciliacao() (financeiro.js): ícone
+// sozinho no cabeçalho do card, abre Sheet explicando direto (não é o
+// `⋮`/Sheet de ações do §5 da gramática — é a mesma exceção informativa
+// já aceita nos 2 cards de calendário na entrega anterior). Não entra no
+// bloco de KPIs (.rz-kpis): não é `.rz-card` na anatomia do DESIGN_SYSTEM.
+function botaoInfoCard(onclick) {
+    return `<button type="button" onclick="${onclick}" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button>`;
+}
 
 // ---------------------------------------------------------------------
 // Boot — chamado por switchTab('tab-relatorios') via carregarResultados()
@@ -368,7 +393,7 @@ function montarCardIndicadores() {
     // 45cc9f88). Nasce no lugar certo (logo após a ocupação), sem dado
     // fabricado.
     return `<div class="rz-card">
-        <div class="rz-card-h"><b>Indicadores</b></div>
+        <div class="rz-card-h" style="justify-content:space-between"><b>Indicadores</b>${botaoInfoCard('abrirInfoIndicadores()')}</div>
         <div class="rz-empty" style="padding:14px 8px">
             <div class="rz-ic"><svg data-lucide="trending-up"></svg></div>
             <p>IPCA, IGP-M e Selic — a captura automática desses índices ainda não foi construída; entra na Fase de Indicadores do roadmap.</p>
@@ -377,7 +402,7 @@ function montarCardIndicadores() {
 }
 
 function montarGraficoMensal(mensal) {
-    if (!mensal || !mensal.length) return `<div class="rz-card"><b>Resultado mês a mês</b><p class="rz-desc" style="margin-top:8px">Sem lançamentos no período.</p></div>`;
+    if (!mensal || !mensal.length) return `<div class="rz-card"><div class="rz-card-h" style="justify-content:space-between"><b>Resultado mês a mês</b>${botaoInfoCard('abrirInfoResultadoMensal()')}</div><p class="rz-desc" style="margin-top:8px">Sem lançamentos no período.</p></div>`;
     const valores = mensal.map(m => Number(m.resultado) || 0);
     const max = Math.max(...valores, 0);
     const min = Math.min(...valores, 0);
@@ -396,7 +421,7 @@ function montarGraficoMensal(mensal) {
         </div>`;
     }).join('');
     return `<div class="rz-card">
-        <div class="rz-card-h"><b>Resultado mês a mês</b></div>
+        <div class="rz-card-h" style="justify-content:space-between"><b>Resultado mês a mês</b>${botaoInfoCard('abrirInfoResultadoMensal()')}</div>
         <div style="height:130px;display:flex;align-items:flex-end;gap:3px;position:relative;margin-top:14px">
             <div style="position:absolute;left:0;right:0;bottom:${mediaPct}%;border-top:1px dashed var(--sage)"></div>
             ${barras}
@@ -407,7 +432,7 @@ function montarGraficoMensal(mensal) {
 function montarGraficoIndicador() {
     if (filtro.contexto === 'familia') return ''; // ESP §4.3
     return `<div class="rz-card">
-        <div class="rz-card-h"><b>Sua carteira × indicador</b></div>
+        <div class="rz-card-h" style="justify-content:space-between"><b>Sua carteira × indicador</b>${botaoInfoCard('abrirInfoGraficoIndicador()')}</div>
         <div class="rz-empty" style="padding:14px 8px">
             <div class="rz-ic"><svg data-lucide="line-chart"></svg></div>
             <p>A comparação com IPCA/IGP-M/IVG-R chega junto com a captura de indicadores do roadmap — ainda não há série de mercado no banco pra comparar.</p>
@@ -448,7 +473,10 @@ function montarConcentracao(linhas) {
             <div class="rz-prog"><i style="width:${Math.min(100, restoPct)}%;background:var(--sage)"></i></div>
         </div>` : '';
     return `<div class="rz-card">
-        <div class="rz-card-h"><b>Dependência de locatário</b>${concentrada ? '<span class="rz-st rz-bad">Concentrada</span>' : ''}</div>
+        <div class="rz-card-h" style="justify-content:space-between">
+            <span style="display:flex;align-items:center;gap:8px"><b>Dependência de locatário</b>${concentrada ? '<span class="rz-st rz-bad">Concentrada</span>' : ''}</span>
+            ${botaoInfoCard('abrirInfoConcentracao()')}
+        </div>
         <div style="margin-top:10px">${rows}${rowOutros}</div>
     </div>`;
 }
@@ -471,9 +499,7 @@ function montarCalendario12Meses(meses, { titulo, classeBarra, infoOnclick }) {
     }).join('');
     const nota = alerta ? `<p class="rz-desc" style="margin-top:8px;color:var(--warning)">${NOMES_MES[alerta.mes - 1]} concentra ${formatarMoedaBR(alerta.valor_total)} dos ${formatarMoedaBR(total)} do ano.</p>` : '';
     return `<div class="rz-card">
-        <div class="rz-card-h" style="justify-content:space-between"><b>${titulo}</b>
-            <button type="button" onclick="${infoOnclick}" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button>
-        </div>
+        <div class="rz-card-h" style="justify-content:space-between"><b>${titulo}</b>${botaoInfoCard(infoOnclick)}</div>
         <div style="height:110px;display:flex;align-items:flex-end;gap:3px;margin-top:10px">${barras}</div>
         ${nota}
     </div>`;
@@ -488,9 +514,7 @@ function montarRevisionaisCalendario(meses) {
         // ainda mostra o card (nunca fica menos informativo que Reajustes),
         // mas com estado vazio honesto — não tem contrato terminando no ano.
         return `<div class="rz-card">
-            <div class="rz-card-h" style="justify-content:space-between"><b>Revisional / Renovação</b>
-                <button type="button" onclick="abrirInfoRevisionais()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button>
-            </div>
+            <div class="rz-card-h" style="justify-content:space-between"><b>Revisional / Renovação</b>${botaoInfoCard('abrirInfoRevisionais()')}</div>
             <p class="rz-desc" style="margin-top:8px">Nenhum contrato termina em ${filtro.ano}.</p>
         </div>`;
     }
@@ -584,6 +608,73 @@ export function abrirInfoRevisionais() {
         }</div></div></div>`);
 }
 
+// v1.2.0 (21/09/2026, pedido explícito ao vivo: "o icone i deve entrar em
+// todos os cards desta tela") — mesmo padrão das 2 funções acima
+// (rz-kv/rz-full dentro de Sheet), uma por card que ainda não tinha.
+export function abrirInfoIndicadores() {
+    const itens = [
+        ['Indicadores', 'Os índices de mercado que orientam reajuste de aluguel e comparação de rentabilidade — IPCA, IGP-M e Selic.'],
+        ['Por que está vazio', 'A captura automática desses índices ainda não foi construída (Fase de Indicadores do roadmap); quando estiver pronta, os valores aparecem aqui, no mesmo lugar.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Sobre o card Indicadores') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
+export function abrirInfoResultadoMensal() {
+    const itens = [
+        ['Resultado mês a mês', 'A diferença entre o que entrou (aluguéis recebidos) e o que saiu (despesas, tributos, repasses) em cada mês do ano escolhido no filtro.'],
+        ['Linha pontilhada', 'A média do ano — ajuda a ver quais meses ficaram acima ou abaixo do normal.'],
+        ['Barra vermelha', 'Mês em que saiu mais dinheiro do que entrou (resultado negativo).'],
+        ['Números no topo', 'O maior e o menor resultado do ano, em destaque.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Sobre o card Resultado mês a mês') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
+export function abrirInfoGraficoIndicador() {
+    const itens = [
+        ['Sua carteira × indicador', 'Compara a rentabilidade da carteira com um índice de mercado (IPCA, IGP-M ou IVG-R) no mesmo período — mostra se o patrimônio está rendendo acima ou abaixo do mercado.'],
+        ['Por que está vazio', 'Mesma razão do card Indicadores: ainda não há série de índice de mercado no banco pra comparar; chega junto com a Fase de Indicadores do roadmap.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Sobre o card Sua carteira × indicador') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
+export function abrirInfoConcentracao() {
+    const itens = [
+        ['Dependência de locatário', 'Quanto do total recebido no ano vem de cada locatário — mostra se a carteira depende demais de poucos inquilinos.'],
+        ['Barra de progresso', 'A fatia (%) que aquele locatário representa do total recebido no ano.'],
+        ['Concentrada', 'Selo vermelho quando um único locatário responde por 30% ou mais do total recebido no ano — risco maior se ele atrasar ou sair.'],
+        ['Outros N locatários', 'Os locatários menores, agrupados — nunca conta como risco, mesmo somados.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Sobre o card Dependência de locatário') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
+export function abrirInfoPerformanceGrid() {
+    const itens = [
+        ['Resultado líquido', 'Receita do ano menos despesas, tributos e repasses — o que sobrou de fato.'],
+        ['Rentabilidade', 'O resultado do ano dividido pelo valor de mercado da carteira — some em Família.'],
+        ['Receita do ano', 'Tudo o que foi efetivamente recebido no ano (aluguéis pagos).'],
+        ['Patrimônio', 'Soma do valor de mercado dos ativos considerados neste recorte.'],
+        ['Tempo médio alugado / vago', 'Média de dias que os imóveis passaram alugados e vagos no período.'],
+        ['Tributos, Manutenção, Seguros', 'Total gasto no ano em cada categoria de despesa.'],
+        ['Inadimplência', 'Total ainda em atraso, considerando os contratos deste recorte.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Sobre o card Performance') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
 function montarPerformanceGrid(perf) {
     if (!perf) return '';
     const kv = (r, v) => `<div><small>${r}</small><b>${v}</b></div>`;
@@ -601,7 +692,7 @@ function montarPerformanceGrid(perf) {
         kv('Inadimplência', formatarMoedaBR(perf.inadimplencia_valor || 0)),
     ].filter(Boolean);
     return `<div class="rz-card">
-        <div class="rz-card-h"><b>Performance</b></div>
+        <div class="rz-card-h" style="justify-content:space-between"><b>Performance</b>${botaoInfoCard('abrirInfoPerformanceGrid()')}</div>
         <div class="rz-kv">${linhas.join('')}</div>
     </div>`;
 }

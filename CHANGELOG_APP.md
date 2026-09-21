@@ -4,6 +4,81 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.220.0) — Entrega AL.5, a partir de 4 prints do app
+(Sheet do alerta "Fechamento mensal pendente", "Mais opções", alerta
+agrupado "4 ocorrências · Contrato", "Item de controle vencendo"),
+REGRAS_EXPERIENCIA_RAIZ v3.17.0 (§14):
+(1) Itens de controle (cofre_item_vencendo) passam a agrupar por
+NATUREZA (documento/manutenção/seguro/taxa/tributo — "mesma
+criticidade", pedido literal) em vez de por ativo — novo modo
+`agrupamento='por_natureza'` no catálogo (migration
+alertas_agrupamento_natureza_v1/v2, aditiva, `por_natureza` somado ao
+CHECK existente). Tocar no card do grupo abre a lista dos itens
+agrupados (abrirListaAlertasNatureza, sheet novo, 1 .rz-row por item);
+tocar num item dessa lista abre o Alerta aberto de sempre
+(abrirAlertaDetalheSheet) — nada novo aqui, reaproveitado. (2) A 1ª
+linha da descrição (avulso OU resumo de grupo) passa a nomear o OBJETO
+do alerta — "condomínio", "revisão periódica" — em vez do título livre
+digitado na criação do item: subtituloAlertaMotor/tituloResumoPorNatureza
+agora preferem `cofre_controle_subtipos.nome` (novo `subtipo_nome` no
+detalhe de fn_alertas_listar, fonte fn_diario_cofre_item_vencendo v4).
+(3) O par "Ver/tratar" (botão nível 1) + "Mais opções"/"Compartilhar"
+(nível 3) da v1.219.0 virou UMA lista de ações só, no estilo do print
+"Mais opções" (ícone + verbo, sem chrome de botão) — Tratar → Marcar
+como visto/Adiar (natureza-gated) → Compartilhar (quando o banco
+devolve texto) → Dispensar (sempre por último, vermelha). Elimina o
+sheet separado abrirAlertaMenuMarcas (CAN-05) — a lista fica embutida
+no próprio sheet do alerta; rzOrdenarAcoes/rzAcaoItemHtml extraídas de
+dentro de abrirSheetAcoes pra virar fonte única da linha (CAN-03), sem
+duplicar marcação nem a checagem de bloqueio por licença.
+Migration aplicada direto no Supabase nesta sessão (fora deste
+arquivo): alertas_agrupamento_natureza_v1 (fn_diario_cofre_item_
+vencendo v4 + fn_alertas_listar, ambas recriadas por mudança de tipo de
+retorno) e alertas_agrupamento_natureza_v2 (CHECK de
+alerta_tipos.agrupamento + UPDATE do catálogo).
+------------------------------------------------------------------
+DATA: 20/09/2026 (correção pós-teste da AL.3/AL.4 — feedback do Nicola)
+------------------------------------------------------------------
+Versões anteriores (v1.219.0 … v1.219.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.219.0) — 3 achados do Nicola testando ao vivo a
+central de alertas (empresa Albuquerque Silva Participações), todos
+QUA-01 (raiz + varredura, não só o caso testado): (1) tituloAlertaMotor/
+subtituloAlertaMotor caíam no `default` (mostrava o código bruto do
+banco, ex. "concentracao_locatario" literal) pra 8 tipos nascidos na
+Fase AL.2 que nunca entraram nesses switches — cadastrados agora com
+texto próprio; concentracao_locatario ganha locatário + % + valor/mês
+(o pedido explícito: "qual concentração?"). (2) cib_pendente (único
+tipo `por_tipo` fora de ACAO_GRUPO_POR_TIPO/tituloResumoPorTipo) gerava
+o card agrupado genérico e inclicável ("9 alertas", sem onClick real) —
+corrigido, e de passagem corrigido o bug maior por trás (afetava os
+outros 6+ tipos por_tipo): o subtítulo do resumo caía sempre no texto
+fixo "Toque pra ver no app" (frase de bot, não de app) em vez de nomear
+a entidade. Grupos por_entidade (cofre_item_vencendo, revisao_valor_
+pendente) invertidos pro padrão pedido: 1ª linha = quantidade + resumo,
+2ª linha = entidade afetada (mesma gramática de .rz-row §8, não é
+componente novo). (3) abrirAlertaDetalheSheet (sheet do alerta aberto)
+tinha tipografia inline fora do catálogo rz-* (style="color:var(--pine)
+/--sage" em texto de corpo — REGRAS §16) e empilhava 2-3 botões
+rz-btn-2 rz-wide como itens de menu (zero nível 1, violando §0 regra 3
+e o fluxo "conteúdo → ação contextual → Compartilhar" do §14): corpo
+agora em .rz-desc, "Ação sugerida" em par rótulo/valor .rz-kv (mesmo
+padrão de abrirFichaParte), "Ver/tratar" vira o único botão nível 1,
+"Mais opções"/Compartilhar viram nível 3 — sem tocar no conteúdo do
+menu "Mais opções" em si, que o Nicola já confirmou correto.
+------------------------------------------------------------------
+DATA: 20/09/2026 (Entrega AL.3 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
+------------------------------------------------------------------
+Versões anteriores (v1.218.0 … v1.218.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.218.0) — Entrega AL.3 (App: central de alertas
 unificada) da frente Resultados/Mercado/Fiscal. Chips de tema na tela de
 Alertas passam a ser por `alerta_tipos.dominio` (financeiro/documental/

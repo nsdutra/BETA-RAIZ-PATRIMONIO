@@ -6,8 +6,44 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.223.0
-   LINHAS: 15508
+   VERSÃO: Beta v1.225.0
+   LINHAS: 15575
+   DATA: 21/09/2026 (pedido explícito ao vivo, testando A.3/A.4: "o icone i
+   deve entrar em todos os cards desta tela")
+   NOVIDADES (Beta v1.225.0) — js/resultados.js v1.1.0→v1.2.0: o ícone (i)
+   de explicação (nascido nesta sessão nos 2 cards de calendário) agora
+   está em TODOS os cards da tela de Resultados — Indicadores, Resultado
+   mês a mês, Sua carteira × indicador, Dependência de locatário e
+   Performance ganham o mesmo botão/Sheet; ponte window[nome] ganha 5
+   nomes novos (abrirInfoIndicadores, abrirInfoResultadoMensal,
+   abrirInfoGraficoIndicador, abrirInfoConcentracao,
+   abrirInfoPerformanceGrid). O bloco de KPIs (.rz-kpis) fica de fora —
+   não é `.rz-card` na anatomia do DESIGN_SYSTEM (§5), só os cards de
+   verdade ganham o ícone.
+   ------------------------------------------------------------------
+   DATA: 21/09/2026 (Entrega A.4 — Visão Geral nova, PLANO_IMPLEMENTACAO_
+   RESULTADOS_MERCADO_FISCAL v2.0.0)
+   NOVIDADES (Beta v1.224.0) — Entrega A.4: a aba Visão Geral ganha o
+   seletor de universo Tudo·Comercial·Família (.rz-seg, topo da aba, acima
+   dos KPIs — REGRAS §7), MESMO recorte e MESMA regra de banco da aba
+   Resultados (ESP_RESULTADOS_MERCADO_FISCAL §3.1: "o recorte é parâmetro
+   da função, nunca filtro no cliente"). Achado real nesta entrega: a ESP
+   exigia isso, mas fn_alertas_listar não tinha p_uso e o PLANO da A.4
+   dizia "Migrations: Nenhuma" — conflito genuíno, resolvido com o Nicola
+   via pergunta direta (AskUserQuestion); decisão explícita: "Migration
+   pequena em fn_alertas_listar (recomendado)". Migration
+   resultados_alertas_listar_p_uso_v1/v2/v3 (mais cedo na mesma sessão) deu
+   a fn_alertas_listar o parâmetro p_uso que faltava. Nesta versão:
+   escolherGeralUniverso() troca o seletor e REFAZ as 3 buscas
+   (fn_resumo_resultados, fn_alertas_listar, quebra por tipo de ativo) com
+   o novo p_uso — nunca um filtro sobre array já buscado. Os 4 KPIs do
+   hero (Patrimônio · Recebido no mês · Em atraso · Ocupação) e a lista
+   "Precisa de atenção" passam a refletir o universo escolhido. V5 (ESP
+   §3.1): em Família, "Recebido no mês" e "Ocupação" trocam de rótulo pra
+   "Custo no mês"/"Ativos em uso" (mesma relabelagem que
+   js/resultados.js/montarKpis() já faz pro card de Resultados — aqui só o
+   texto do <small> troca, os <b> dos KPIs continuam fixos no DOM).
+   ------------------------------------------------------------------
    DATA: 21/09/2026 (correções e pedido do Nicola testando a Entrega A.3 ao vivo)
    NOVIDADES (Beta v1.223.0) — Nicola testou a Entrega A.3 (Resultados) ao
    vivo em produção e mandou 3 achados/pedidos no mesmo teste, todos em
@@ -119,69 +155,8 @@
    alertas_acao_sugerida_resolucao_primeiro_v1.
    ------------------------------------------------------------------
    DATA: 20/09/2026 (Entrega AL.5 — 4 prints do app, pedido do Nicola)
-   NOVIDADES (Beta v1.220.0) — Entrega AL.5, a partir de 4 prints do app
-   (Sheet do alerta "Fechamento mensal pendente", "Mais opções", alerta
-   agrupado "4 ocorrências · Contrato", "Item de controle vencendo"),
-   REGRAS_EXPERIENCIA_RAIZ v3.17.0 (§14):
-   (1) Itens de controle (cofre_item_vencendo) passam a agrupar por
-   NATUREZA (documento/manutenção/seguro/taxa/tributo — "mesma
-   criticidade", pedido literal) em vez de por ativo — novo modo
-   `agrupamento='por_natureza'` no catálogo (migration
-   alertas_agrupamento_natureza_v1/v2, aditiva, `por_natureza` somado ao
-   CHECK existente). Tocar no card do grupo abre a lista dos itens
-   agrupados (abrirListaAlertasNatureza, sheet novo, 1 .rz-row por item);
-   tocar num item dessa lista abre o Alerta aberto de sempre
-   (abrirAlertaDetalheSheet) — nada novo aqui, reaproveitado. (2) A 1ª
-   linha da descrição (avulso OU resumo de grupo) passa a nomear o OBJETO
-   do alerta — "condomínio", "revisão periódica" — em vez do título livre
-   digitado na criação do item: subtituloAlertaMotor/tituloResumoPorNatureza
-   agora preferem `cofre_controle_subtipos.nome` (novo `subtipo_nome` no
-   detalhe de fn_alertas_listar, fonte fn_diario_cofre_item_vencendo v4).
-   (3) O par "Ver/tratar" (botão nível 1) + "Mais opções"/"Compartilhar"
-   (nível 3) da v1.219.0 virou UMA lista de ações só, no estilo do print
-   "Mais opções" (ícone + verbo, sem chrome de botão) — Tratar → Marcar
-   como visto/Adiar (natureza-gated) → Compartilhar (quando o banco
-   devolve texto) → Dispensar (sempre por último, vermelha). Elimina o
-   sheet separado abrirAlertaMenuMarcas (CAN-05) — a lista fica embutida
-   no próprio sheet do alerta; rzOrdenarAcoes/rzAcaoItemHtml extraídas de
-   dentro de abrirSheetAcoes pra virar fonte única da linha (CAN-03), sem
-   duplicar marcação nem a checagem de bloqueio por licença.
-   Migration aplicada direto no Supabase nesta sessão (fora deste
-   arquivo): alertas_agrupamento_natureza_v1 (fn_diario_cofre_item_
-   vencendo v4 + fn_alertas_listar, ambas recriadas por mudança de tipo de
-   retorno) e alertas_agrupamento_natureza_v2 (CHECK de
-   alerta_tipos.agrupamento + UPDATE do catálogo).
    ------------------------------------------------------------------
-   DATA: 20/09/2026 (correção pós-teste da AL.3/AL.4 — feedback do Nicola)
-   NOVIDADES (Beta v1.219.0) — 3 achados do Nicola testando ao vivo a
-   central de alertas (empresa Albuquerque Silva Participações), todos
-   QUA-01 (raiz + varredura, não só o caso testado): (1) tituloAlertaMotor/
-   subtituloAlertaMotor caíam no `default` (mostrava o código bruto do
-   banco, ex. "concentracao_locatario" literal) pra 8 tipos nascidos na
-   Fase AL.2 que nunca entraram nesses switches — cadastrados agora com
-   texto próprio; concentracao_locatario ganha locatário + % + valor/mês
-   (o pedido explícito: "qual concentração?"). (2) cib_pendente (único
-   tipo `por_tipo` fora de ACAO_GRUPO_POR_TIPO/tituloResumoPorTipo) gerava
-   o card agrupado genérico e inclicável ("9 alertas", sem onClick real) —
-   corrigido, e de passagem corrigido o bug maior por trás (afetava os
-   outros 6+ tipos por_tipo): o subtítulo do resumo caía sempre no texto
-   fixo "Toque pra ver no app" (frase de bot, não de app) em vez de nomear
-   a entidade. Grupos por_entidade (cofre_item_vencendo, revisao_valor_
-   pendente) invertidos pro padrão pedido: 1ª linha = quantidade + resumo,
-   2ª linha = entidade afetada (mesma gramática de .rz-row §8, não é
-   componente novo). (3) abrirAlertaDetalheSheet (sheet do alerta aberto)
-   tinha tipografia inline fora do catálogo rz-* (style="color:var(--pine)
-   /--sage" em texto de corpo — REGRAS §16) e empilhava 2-3 botões
-   rz-btn-2 rz-wide como itens de menu (zero nível 1, violando §0 regra 3
-   e o fluxo "conteúdo → ação contextual → Compartilhar" do §14): corpo
-   agora em .rz-desc, "Ação sugerida" em par rótulo/valor .rz-kv (mesmo
-   padrão de abrirFichaParte), "Ver/tratar" vira o único botão nível 1,
-   "Mais opções"/Compartilhar viram nível 3 — sem tocar no conteúdo do
-   menu "Mais opções" em si, que o Nicola já confirmou correto.
-   ------------------------------------------------------------------
-   DATA: 20/09/2026 (Entrega AL.3 — PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0)
-   ------------------------------------------------------------------
-   Versões anteriores (v1.218.0 … v1.218.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.220.0 … v1.220.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -205,7 +180,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.41.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.54.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.1.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.12.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.41.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.54.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.43.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1716,11 +1691,26 @@
             <div class="rz-tabhead">
                 <p>Seu patrimônio hoje: o que entrou, o que atrasou e o que pede atenção.</p>
             </div>
+            <!-- Entrega A.4 (21/09/2026, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+                 v2.0.0 + ESP_RESULTADOS_MERCADO_FISCAL §3.1) — seletor de universo
+                 Tudo·Comercial·Família, .rz-seg (3 posições, REGRAS §7), MESMO
+                 recorte da aba Resultados e MESMA regra de banco: o recorte é
+                 SEMPRE parâmetro de função (p_uso em fn_resumo_resultados/
+                 fn_alertas_listar), nunca filtro no cliente sobre dado já
+                 buscado (ESP §3.1: "o recorte é parâmetro da função, nunca
+                 filtro no cliente"). Decisão explícita do Nicola (AskUserQuestion,
+                 conflito real entre a ESP e o "Migrations: Nenhuma" do PLANO):
+                 "Migration pequena em fn_alertas_listar (recomendado)" — ver
+                 migration resultados_alertas_listar_p_uso_v1/v2/v3. Preenchido/
+                 mantido por renderVisaoGeral() e escolherGeralUniverso();
+                 estado próprio (geralUniversoFiltro), independente do contexto
+                 da aba Resultados e do filtro de severidade logo abaixo. -->
+            <div id="geral-seg-universo" class="rz-seg"></div>
             <div class="rz-kpis">
                 <div class="rz-kpi rz-hero"><small>Patrimônio sob gestão</small><b id="geral-patrimonio-total">—</b></div>
-                <div class="rz-kpi rz-in"><small>Recebido no mês</small><b id="geral-recebido-mes">—</b></div>
+                <div class="rz-kpi rz-in"><small id="geral-recebido-mes-label">Recebido no mês</small><b id="geral-recebido-mes">—</b></div>
                 <div class="rz-kpi rz-bad"><small>Em atraso</small><b id="geral-inadimplentes">0</b></div>
-                <div class="rz-kpi" style="grid-column:1/-1"><small>Ocupação</small><b id="geral-ocupacao-pct">—</b></div>
+                <div class="rz-kpi" style="grid-column:1/-1"><small id="geral-ocupacao-pct-label">Ocupação</small><b id="geral-ocupacao-pct">—</b></div>
             </div>
 
             <!-- v1.195.0 (17/09/2026, pedido explícito: "apresente uma
@@ -3620,7 +3610,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.223.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.225.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8860,6 +8850,11 @@
             // novo Revisional/Renovação + ícone (i) de explicação nos dois
             // calendários (Reajustes e Revisional/Renovação).
             'abrirResultadosMesRevisional', 'abrirInfoReajustes', 'abrirInfoRevisionais',
+            // v1.2.0 (pedido explícito ao vivo, 21/09/2026: "o icone i deve
+            // entrar em todos os cards desta tela") — 5 nomes novos, 1 por
+            // card que ainda não tinha o ícone (i).
+            'abrirInfoIndicadores', 'abrirInfoResultadoMensal', 'abrirInfoGraficoIndicador',
+            'abrirInfoConcentracao', 'abrirInfoPerformanceGrid',
         ].forEach(nome => { window[nome] = (...args) => carregarResultados().then(m => m[nome](...args)); });
 
         // =====================================================================
@@ -10577,6 +10572,13 @@
                 listaEl.innerHTML = `<div id="geral-atencao-fundidos"></div>`;
             }
 
+            // Entrega A.4 — seletor de universo; estado sticky (não reseta
+            // pra "Tudo" a cada vez que a aba reabre, mesmo padrão do
+            // filtro de severidade logo abaixo).
+            const segUnivEl = document.getElementById('geral-seg-universo');
+            if (segUnivEl) segUnivEl.innerHTML = segGeralUniversoHtml(geralUniversoFiltro);
+            aplicarRotulosGeralUniverso(geralUniversoFiltro === 'familia');
+
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
             // v1.95.0 — 1 função só, dispara as 4 buscas assíncronas da
@@ -10636,15 +10638,38 @@
         // nunca apareciam na tela inicial (contrato vencido, atraso,
         // reajuste, documento pendente, aguardando assinatura, ativo vendido
         // com contrato).
+        // Entrega A.4 (21/09/2026) — quebra por tipo é uma query direta
+        // (não RPC), então o recorte de universo tem que ser replicado
+        // aqui à mão. Critério = EXATAMENTE o de fn_resumo_resultados
+        // (conferido no código-fonte da função: soma_valor_mercado usa
+        // "uso = p_uso", igualdade estrita — ativo com uso NULL não entra
+        // em nenhum dos dois recortes, nem Comercial nem Família). Usar o
+        // critério mais permissivo de fn_alertas_listar aqui (que inclui
+        // uso IS NULL em "nao_comercial") quebraria o invariante "soma dos
+        // 3 tiles bate com o hero" justamente nesse caso de borda — o
+        // hero vem de fn_resumo_resultados, então o critério dele é quem
+        // manda pra esta query, não o de fn_alertas_listar.
+        function construirQueryQuebraTipoGeral(p_uso) {
+            const q = dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
+            return p_uso ? q.eq('uso', p_uso) : q;
+        }
+
         async function carregarDadosAssincronosVisaoGeral() {
             if (!CLIENTE_ID_SUPABASE) return;
 
             const wrapper = document.getElementById('geral-atencao-fundidos');
+            // Entrega A.4 (ESP §3.1) — o recorte é parâmetro da função,
+            // nunca filtro no cliente: as 3 buscas abaixo recebem p_uso
+            // (ou o equivalente pra quebra por tipo, que não é RPC) e
+            // são refeitas de verdade a cada troca do seletor
+            // (escolherGeralUniverso), nunca um .filter() sobre dado já
+            // buscado.
+            const p_uso = GERAL_USO_POR_CONTEXTO[geralUniversoFiltro];
 
             const [resResumo, resAlertas, resPorTipo] = await Promise.allSettled([
-                dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE }),
+                dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso }),
                 pessoaIdLogada
-                    ? dbAuth.rpc('fn_alertas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada })
+                    ? dbAuth.rpc('fn_alertas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada, p_uso })
                     : Promise.resolve({ data: [], error: null }),
                 // v1.195.0 (17/09/2026) — quebra executiva por tipo de
                 // ativo (pedido explícito, ver markup #geral-quebra-tipo-
@@ -10652,7 +10677,7 @@
                 // pra somar soma_valor_mercado (status='ativo'), nunca
                 // outro escopo — é o que faz o texto "em sintonia com o
                 // board no topo" ser verdade, não só visual.
-                dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo')
+                construirQueryQuebraTipoGeral(p_uso)
             ]);
 
             // --- KPIs do hero (Patrimônio sob gestão / Recebido / Ocupação) ---
@@ -10986,6 +11011,48 @@
         let alertasContagemPorCategoria = new Map();
         let geralVisiveisTodos = []; // v1.187.0 — bruto da Visão Geral; renderizarPontosAtencaoGeral() deriva daqui
         let geralSeveridadeFiltro = 'todas'; // v1.187.0 — estado próprio, independente do da tela de Alertas
+
+        // Entrega A.4 (21/09/2026) — seletor de universo Tudo·Comercial·
+        // Família da Visão Geral. Mesmo mapa contexto→p_uso que
+        // js/resultados.js usa (CONTEXTO_USO/CONTEXTO_ROTULO), reescrito
+        // aqui porque a Visão Geral vive no escopo clássico do index.html
+        // (window), não no módulo ES de resultados.js — não dá pra
+        // importar a constante direto sem reestruturar o boot dos dois
+        // (mesma razão já documentada acima em GRUPOS_CHIP_TIPO/v1.195.0).
+        let geralUniversoFiltro = 'tudo'; // 'tudo' | 'comercial' | 'familia'
+        const GERAL_USO_POR_CONTEXTO = { tudo: null, comercial: 'comercial', familia: 'nao_comercial' };
+        const GERAL_UNIVERSO_ROTULO = { tudo: 'Tudo', comercial: 'Comercial', familia: 'Família' };
+
+        function segGeralUniversoHtml(atual) {
+            return ['tudo', 'comercial', 'familia'].map(v =>
+                `<button onclick="escolherGeralUniverso('${v}')" class="${v === atual ? 'rz-on' : ''}">${GERAL_UNIVERSO_ROTULO[v]}</button>`
+            ).join('');
+        }
+
+        // V5 (ESP §3.1) — em Família, "Recebido no mês" e "Ocupação" mudam
+        // de sentido (não há aluguel nem locação recebida/ocupada — mostram
+        // custo e ativos em uso). Mesma relabelagem que
+        // js/resultados.js/montarKpis() já faz pro card de Resultados;
+        // aqui os <b> dos KPIs são fixos no DOM (nunca remontados), então
+        // só o <small> rotulado por id troca de texto.
+        function aplicarRotulosGeralUniverso(familia) {
+            const lblRecebido = document.getElementById('geral-recebido-mes-label');
+            if (lblRecebido) lblRecebido.textContent = familia ? 'Custo no mês' : 'Recebido no mês';
+            const lblOcupacao = document.getElementById('geral-ocupacao-pct-label');
+            if (lblOcupacao) lblOcupacao.textContent = familia ? 'Ativos em uso' : 'Ocupação';
+        }
+
+        function escolherGeralUniverso(v) {
+            if (v === geralUniversoFiltro) return;
+            geralUniversoFiltro = v;
+            const seg = document.getElementById('geral-seg-universo');
+            if (seg) seg.innerHTML = segGeralUniversoHtml(geralUniversoFiltro);
+            aplicarRotulosGeralUniverso(geralUniversoFiltro === 'familia');
+            // Refetch de verdade — nunca filtro sobre o array já buscado
+            // (ESP §3.1): re-chama fn_resumo_resultados/fn_alertas_listar
+            // com o novo p_uso.
+            carregarDadosAssincronosVisaoGeral();
+        }
 
         // AL.3 (20/09/2026, Motor de Alertas) — REGRAS_EXPERIENCIA v3.16.0 §14:
         // "chips (dominio): tema do alerta" — os chips passam a ler
