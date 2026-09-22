@@ -1,7 +1,56 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.13.0 · 21/09/2026
+// Versão: 1.15.0 · 21/09/2026
+//
+// v1.15.0 (21/09/2026) — 2 correções (QUA-01, achadas revisando o v1.14.0
+// nesta mesma entrega, antes de qualquer uso real):
+//   · financeiroRenderCabecalho chamava fechamentoAtualizarCard() só pra
+//     aba==='conciliacao' — mas o botão dedicado de Fechar/Abrir (cadeado,
+//     REGRAS §11.1) vive nos 3 chips (Recebimentos · Saídas · Fechamento).
+//     Flipar o mês (ou abrir o app) em Recebimentos/Saídas deixava esse
+//     botão com o estado do mês errado (ou vazio) até o usuário visitar
+//     Fechamento ao menos 1x na sessão. Agora chama nas 3 abas sempre —
+//     fechamentoAtualizarCard já redesenha os 3 botões de uma vez
+//     (FECHAMENTO_IDS_BOTAO em fechamento.js), então não duplica nada.
+//   · rzAcoesMensalidade/rzAcoesDespesa (⋮ de um item "Pago"/"realizado")
+//     continuavam oferecendo Estornar e "Não incluir na contabilidade"
+//     mesmo com a competência fechada — o trigger de banco
+//     (fn_trg_bloquear_edicao_competencia_fechada) já barrava a gravação,
+//     mas só depois do toque, com um erro cru. Agora as duas ações somem do
+//     menu quando window.RZ_FIN_COMPETENCIA_FECHADA (ponte de
+//     fechamento.js) é true — sobra só Recibo/Ver detalhe e Resumo da
+//     conciliação (leitura), exatamente o "permitir apenas geração de
+//     recibo e ver detalhes, nunca alterar" pedido pra competência fechada
+//     (REGRAS §11.1).
+//
+// v1.14.0 (Entrega F.3 redesenho + F.4, pedido explícito do Nicola — ver
+// changelog completo no header do index.html, Beta v1.237.0) — resumo do
+// que mudou aqui:
+//   - financeiroChipsNivelHtml/financeiroRedesenharChipsNivel: .rz-chips
+//     virou .rz-seg (mesmo componente da Visão Geral); CORRIGIDO (QUA-01)
+//     bug real no contador da badge de Fechamento (comparava `x.status`,
+//     campo que não existe em extrato_fingerprints — sempre 0).
+//   - financeiroMudarCompetencia: Conciliação passa a recarregar a LISTA
+//     no flip de mês (montarAbaFinanceiro), não só o card — reverte a
+//     decisão da F.1/F.2 (comentário antigo removido).
+//   - carregarConciliacaoUnificada: escopo de mês (igual
+//     fn_financeiro_totalizador_fechamento) + só pendente/não controlado,
+//     direto na query — troca a busca de "últimos 200 lançamentos de
+//     qualquer mês".
+//   - renderConciliacaoUnificada: reescrita — sem segmento/chip de tela
+//     (só sobrou o <select> "Tipo" do modal Buscar), sem agrupamento por
+//     competência (1 mês só), sem hero (conc-hero-*, saiu do HTML — quem
+//     resume agora são os 4 KPIs do chip Fechamento, js/fechamento.js).
+//     filtrarConciliacaoChip() e alternarGrupoConciliacao() removidas
+//     (dead code — telas que alimentavam saíram do HTML).
+//   - renderMensalidades/renderSaidas: linha "Pago"/"realizado" ganha
+//     rótulo curto de origem (Manual/Extrato) + aviso "Fora da
+//     contabilidade" quando incluirContabilidade===false.
+//   - rzAcoesMensalidade/rzAcoesDespesa: novo item de ⋮ "Não incluir na
+//     contabilidade" / "Incluir na contabilidade", codigo
+//     financeiro.contabilidade_ajustar (ACE-03) — chama a nova
+//     alternarIncluirContabilidade() (RPC fn_financeiro_incluir_contabilidade).
 //
 // v1.13.0 (Entrega F.3 — achado do Nicola, 21/09/2026: "uma vez que tem o
 // chip do mês no topo, não precisa mais ter os agrupamentos e filtros por
@@ -520,7 +569,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.13.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.15.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -597,7 +646,11 @@ function financeiroCompetenciaLabel(iso) {
 
 /** Flip ‹ › do card de competência — reage em qual das 3 abas estiver
  * ativa agora (Entrega F.2: Fechamento também tem o card, ver
- * financeiroRenderCabecalho e js/fechamento.js). */
+ * financeiroRenderCabecalho e js/fechamento.js).
+ * Entrega F.4 (21/09/2026, pedido explícito — REVERTE a decisão da F.1/F.2
+ * registrada aqui antes) — Conciliação deixou de ter filtro de competência
+ * próprio: agora ela também recarrega a LISTA no flip de mês (não só o
+ * card), igual Recebimentos/Saídas. */
 export function financeiroMudarCompetencia(delta) {
     if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
     const [ano, mes] = financeiroCompetenciaAtual.split('-').map(Number);
@@ -605,17 +658,23 @@ export function financeiroMudarCompetencia(delta) {
     financeiroDefinirCompetencia(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
     if (document.getElementById('tab-mensal')?.classList.contains('active')) montarAbaFinanceiro('tab-mensal');
     else if (document.getElementById('tab-saidas')?.classList.contains('active')) montarAbaFinanceiro('tab-saidas');
-    // Entrega F.2 — Fechamento também tem o card de competência agora
-    // (REGRAS §11.1), mas SÓ redesenha o card (financeiroRenderCabecalho),
-    // nunca recarrega a lista de conciliação (continua com filtro próprio,
-    // independente — decisão da F.1).
-    else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) financeiroRenderCabecalho('conciliacao');
+    else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) montarAbaFinanceiro('tab-conciliacao');
 }
 
-/** Camada de chips Recebimentos · Saídas · Fechamento — 1 cópia por aba
+/** Seletor de nível Recebimentos · Saídas · Fechamento — 1 cópia por aba
  * (tab-mensal/tab-saidas/tab-conciliacao), cada uma sempre com a SUA
  * própria opção marcada .rz-on (não é um estado compartilhado — quem
- * decide qual está "ativa" é em qual das 3 seções esta cópia vive). */
+ * decide qual está "ativa" é em qual das 3 seções esta cópia vive).
+ * Entrega F.4 (21/09/2026, pedido explícito — "deve seguir o padrao do
+ * seletor da tela de visao geral") — virou .rz-seg (era .rz-chips desde a
+ * F.1). Fechamento desligado por rotina continua "bloqueado com motivo"
+ * (REGRAS §7/§11 — semântica de chip, não de segmento), só que agora como
+ * opção .rz-off dentro do próprio .rz-seg (CSS genérico, não mais preso a
+ * .rz-chip). CORRIGIDO (QUA-01, achado revisando esta função): o contador
+ * da badge comparava `x.status`, campo que não existe em
+ * extrato_fingerprints (é `status_conciliacao`) — a badge nunca mostrava
+ * nada de verdade. Agora conta em cima do próprio cache, que desde esta
+ * entrega só guarda pendente+não controlado (ver carregarConciliacaoUnificada). */
 function financeiroChipsNivelHtml(aba) {
     const fechamentoOff = financeiroRotinaFechamentoLigada === false;
     const itens = [
@@ -624,10 +683,10 @@ function financeiroChipsNivelHtml(aba) {
         { chave: 'conciliacao', rotulo: 'Fechamento', tab: 'tab-conciliacao', off: fechamentoOff },
     ];
     return itens.map(it => {
-        const classes = ['rz-chip', it.chave === aba ? 'rz-on' : '', it.off ? 'rz-off' : ''].filter(Boolean).join(' ');
+        const classes = [it.chave === aba ? 'rz-on' : '', it.off ? 'rz-off' : ''].filter(Boolean).join(' ');
         const onclick = it.off ? 'rzTocarChipFechamentoDesligado()' : `switchTab('${it.tab}')`;
-        const contador = (it.chave === 'conciliacao' && conciliacaoUniCache.length)
-            ? ` <span class="rz-n">${conciliacaoUniCache.filter(x => x.status === 'pendente').length}</span>` : '';
+        const contador = (it.chave === 'conciliacao' && conciliacaoUniCache.filter(x => x.status_conciliacao === 'pendente').length)
+            ? ` <span class="rz-n">${conciliacaoUniCache.filter(x => x.status_conciliacao === 'pendente').length}</span>` : '';
         return `<button type="button" class="${classes}" onclick="${onclick}">${it.rotulo}${contador}</button>`;
     }).join('');
 }
@@ -706,7 +765,15 @@ function financeiroRenderCabecalho(aba) {
     // Entrega F.2 — card de Fechar/Reabrir dentro do chip Fechamento
     // (REGRAS §11.1). Ponte global pra js/fechamento.js, módulo isolado
     // (mesmo padrão de mostrarToast/abrirSheetAcoes usados aqui).
-    if (aba === 'conciliacao' && typeof fechamentoAtualizarCard === 'function') fechamentoAtualizarCard();
+    // CORRIGIDO v1.15.0 (QUA-01, achado nesta mesma entrega) — antes só
+    // chamava pra aba==='conciliacao'; o botão dedicado (cadeado) vive nos
+    // 3 chips (REGRAS §11.1), então precisa ser redesenhado nos 3, não só
+    // quando o usuário abre Fechamento — senão Recebimentos/Saídas ficavam
+    // com o cadeado do estado errado (ou vazio) até visitar Fechamento
+    // pelo menos 1x na sessão. fechamentoAtualizarCard já redesenha os 3
+    // botões de uma vez (FECHAMENTO_IDS_BOTAO), então chamar aqui pras 3
+    // abas não duplica nada.
+    if (typeof fechamentoAtualizarCard === 'function') fechamentoAtualizarCard();
 }
 
         let gruposInadimplenciaAbertos = null; // v1.179.1 — idem, cortinas de Atrasados
@@ -846,14 +913,30 @@ function financeiroRenderCabecalho(aba) {
             if (d.status === 'realizado') {
                 const acoesRealizado = [
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
-                    { icone: 'undo-2', titulo: 'Estornar pagamento', sub: 'Volta pra "a pagar"', tipo: 'bad', aoTocar: () => estornarPagamentoDespesa(id) },
                 ];
+                // CORRIGIDO v1.15.0 — mesma regra de rzAcoesMensalidade
+                // acima (REGRAS §11.1: competência fechada só permite ver
+                // detalhes, nunca alterar).
+                const compFechada = typeof window !== 'undefined' && window.RZ_FIN_COMPETENCIA_FECHADA === true;
+                if (!compFechada) {
+                    acoesRealizado.push({ icone: 'undo-2', titulo: 'Estornar pagamento', sub: 'Volta pra "a pagar"', tipo: 'bad', aoTocar: () => estornarPagamentoDespesa(id) });
+                }
                 // v1.179.5 — mesmo critério de rzAcoesMensalidade: só
                 // aparece quando esta despesa veio de fato de uma
                 // conciliação de extrato (origem_tipo='extrato' — despesa
                 // criada pelo formulário normal não tem isso).
                 if (d.origemTipo === 'extrato') {
                     acoesRealizado.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacaoPorDestino('lancamento', id) });
+                }
+                // Entrega F.3/F.4 — mesma ação/mesma regra de rzAcoesMensalidade.
+                if (!compFechada) {
+                    acoesRealizado.push({
+                        icone: d.incluirContabilidade === false ? 'plus-circle' : 'ban',
+                        titulo: d.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Não incluir na contabilidade',
+                        sub: 'Controla o pacote enviado ao contador no fechamento',
+                        codigo: 'financeiro.contabilidade_ajustar',
+                        aoTocar: () => alternarIncluirContabilidade('lancamento', id),
+                    });
                 }
                 abrirSheetAcoes({ titulo: escapeHtmlSaidas(d.descricao || 'Despesa'), sub, acoes: acoesRealizado });
                 return;
@@ -862,6 +945,33 @@ function financeiroRenderCabecalho(aba) {
                 { icone: 'check', titulo: 'Dar baixa / editar', sub: 'Abre o formulário completo', aoTocar: () => abrirEditarDespesa(id) },
                 { icone: 'trash-2', titulo: 'Excluir despesa', tipo: 'bad', aoTocar: () => excluirDespesa(id) },
             ] });
+        }
+
+        // Entrega F.3/F.4 (21/09/2026, pedido explícito) — alterna o flag
+        // incluir_contabilidade de 1 mensalidade/lançamento, via RPC central
+        // (fn_financeiro_incluir_contabilidade — valida a funcionalidade
+        // financeiro.contabilidade_ajustar de novo no banco, nunca confia só
+        // no `codigo` do sheet). Usada por rzAcoesMensalidade/rzAcoesDespesa
+        // acima. Item fora da contabilidade nunca some da lista (continua
+        // "baixado" normalmente) — só sai do pacote enviado ao contador no
+        // fechamento (fn_fechamento_calcular_contabil).
+        export async function alternarIncluirContabilidade(tipo, id) {
+            const lista = tipo === 'mensalidade' ? mensalidades : lancamentos;
+            const item = lista.find(x => x.id === id);
+            if (!item) return;
+            const novoValor = item.incluirContabilidade === false;
+            mostrarCarregamentoGlobal(novoValor ? 'Incluindo na contabilidade…' : 'Excluindo da contabilidade…');
+            try {
+                const { error } = await dbAuth.rpc('fn_financeiro_incluir_contabilidade', { p_tipo: tipo, p_id: id, p_incluir: novoValor });
+                if (error) throw error;
+                item.incluirContabilidade = novoValor;
+                esconderCarregamentoGlobal();
+                if (typeof mostrarToast === 'function') mostrarToast(novoValor ? 'Incluído no pacote da contabilidade.' : 'Não entra mais no pacote da contabilidade.', 'success');
+                if (tipo === 'mensalidade') renderMensalidades(); else renderSaidas();
+            } catch (e) {
+                esconderCarregamentoGlobal();
+                if (typeof mostrarToast === 'function') mostrarToast('Não consegui atualizar: ' + e.message, 'danger');
+            }
         }
 
         export function renderSaidas() {
@@ -939,6 +1049,13 @@ function financeiroRenderCabecalho(aba) {
             // PAGO"/"PIX TRANSF"/TED etc. na Conciliação
             // (limparRotuloConciliacao), aplicada aqui também.
             const rsS = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+            // Entrega F.3/F.4 — mesmo rótulo curto de origem de renderMensalidades().
+            const origemSaidaHtml = (d) => {
+                const partes = [];
+                partes.push(d.origemTipo === 'extrato' ? 'Extrato' : 'Manual');
+                if (d.incluirContabilidade === false) partes.push('Fora da contabilidade');
+                return ' · ' + partes.join(' · ');
+            };
             const cards = itens.map(d => {
                 const atrasada = estaAtrasadaDespesa(d);
                 const pago = d.status === 'realizado';
@@ -948,7 +1065,7 @@ function financeiroRenderCabecalho(aba) {
                 return `
                     <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
                         <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${pago ? origemSaidaHtml(d) : ''}</span></div>
                         <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;
@@ -2451,8 +2568,7 @@ function financeiroRenderCabecalho(aba) {
         // marcar_nao_controlado/estornar_vinculo.
         // ============================================================================
         let conciliacaoUniCache = [];
-        let conciliacaoUniSegmento = 'tudo';
-        let conciliacaoUniChip = 'todos';
+        let conciliacaoUniSegmento = 'tudo'; // só o <select> "Tipo" do modal Buscar/Filtrar usa isso agora (Entrega F.4 — chip de segmento saiu da tela)
         let despesaOrigemFingerprintId = null; // v2 — setado quando "Nova despesa" é aberta a partir da conciliação; salvarDespesa() usa isso pra vincular o fingerprint de volta
 
         // v1.5.0 (Etapa 7/8 da conciliação) — a função que morava aqui
@@ -2472,16 +2588,29 @@ function financeiroRenderCabecalho(aba) {
         // abrirAcoesConciliacaoLinha). Mapa por fingerprint_id.
         let conciliacaoUniSugestoes = {};
 
+        // Entrega F.4 (21/09/2026, pedido explícito) — a lista de Conciliação
+        // deixou de trazer os últimos 200 lançamentos de qualquer mês: agora
+        // segue a MESMA competência do card do topo (financeiroCompetenciaAtual)
+        // e só traz o que ainda precisa de atenção (pendente/não controlado —
+        // igual escopo de fn_financeiro_totalizador_fechamento, mesmo campo
+        // `data` usado lá). O que já foi conciliado/baixado aparece em
+        // Recebimentos/Saídas (mensalidade paga/lançamento realizado), não
+        // mais aqui — ver renderMensalidades/renderSaidas.
         export async function carregarConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
             if (!lista) return;
             lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
             try {
+                const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+                const [ano, mes] = comp.split('-').map(Number);
+                const inicioMes = `${ano}-${String(mes).padStart(2, '0')}-01`;
+                const fimMes = `${mes === 12 ? ano + 1 : ano}-${String(mes === 12 ? 1 : mes + 1).padStart(2, '0')}-01`;
                 const { data, error } = await dbAuth.from('extrato_fingerprints')
                     .select('id, data, valor, direcao, razao_social, documento_original, status_conciliacao, destino_tipo, destino_id, observacao_usuario, chave, regra_codigo')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
-                    .order('data', { ascending: false })
-                    .limit(200);
+                    .in('status_conciliacao', ['pendente', 'nao_controlado'])
+                    .gte('data', inicioMes).lt('data', fimMes)
+                    .order('data', { ascending: false });
                 if (error) throw error;
                 conciliacaoUniCache = data || [];
 
@@ -2510,7 +2639,6 @@ function financeiroRenderCabecalho(aba) {
         export function limparBuscaConciliacao() {
             document.getElementById('conc-busca-texto').value = '';
             document.getElementById('conc-busca-tipo').value = 'tudo';
-            document.getElementById('conc-filtro-competencia').value = 'todos';
             document.getElementById('conc-filtro-locatario').value = 'todos';
             document.getElementById('conc-filtro-empreendimento').value = 'todos';
             document.getElementById('conc-filtro-categoria').value = 'todos';
@@ -2530,18 +2658,11 @@ function financeiroRenderCabecalho(aba) {
         // Preenche os selects a partir dos contratos/lançamentos já
         // carregados — mesma fonte que Recebimentos/Saídas usam.
         function popularFiltrosConciliacao() {
-            const selComp = document.getElementById('conc-filtro-competencia');
             const selLoc = document.getElementById('conc-filtro-locatario');
             const selEmp = document.getElementById('conc-filtro-empreendimento');
             const selAtivo = document.getElementById('conc-filtro-ativo');
             const selForn = document.getElementById('conc-filtro-fornecedor');
-            if (!selComp) return;
-            const competencias = [...new Set(conciliacaoUniCache.map(f => f.data ? (() => { const [a, m] = f.data.split('-'); return `${m}/${a}`; })() : null).filter(Boolean))]
-                .sort((a, b) => { const [ma, aa] = a.split('/'); const [mb, ab] = b.split('/'); return (ab + mb).localeCompare(aa + ma); });
-            const vComp = selComp.value;
-            selComp.innerHTML = '<option value="todos">Todas</option>' + competencias.map(c => `<option value="${c}">${c}</option>`).join('');
-            selComp.value = competencias.includes(vComp) ? vComp : 'todos';
-
+            if (!selLoc) return;
             const locatarios = [...new Set(contratos.map(c => c.locatario).filter(Boolean))].sort();
             const vLoc = selLoc.value;
             selLoc.innerHTML = '<option value="todos">Todos</option>' + locatarios.map(l => `<option value="${escapeHtmlSaidas(l)}">${escapeHtmlSaidas(l)}</option>`).join('');
@@ -2563,23 +2684,20 @@ function financeiroRenderCabecalho(aba) {
             selForn.value = fornecedoresUsados.some(([id]) => id === vForn) ? vForn : 'todos';
         }
 
+        // Entrega F.4 (21/09/2026) — o segmento Tudo/Entradas/Saídas
+        // (#conc-uni-seg) saiu da tela; esta função continua existindo só
+        // pelo <select> "Tipo" do modal Buscar/Filtrar (conc-busca-tipo),
+        // que ainda decide quais campos condicionais mostrar
+        // (atualizarCamposTipoConciliacao) e filtra por direção.
         export function filtrarConciliacaoSegmento(seg) {
             conciliacaoUniSegmento = seg;
-            document.querySelectorAll('#conc-uni-seg .conc-seg-btn').forEach(b => {
-                const on = b.dataset.seg === seg;
-                b.style.background = on ? 'var(--pine)' : 'transparent';
-                b.style.color = on ? '#fff' : 'var(--pine)';
-            });
             renderConciliacaoUnificada();
         }
 
-        export function filtrarConciliacaoChip(chip) {
-            conciliacaoUniChip = chip;
-            document.querySelectorAll('#conc-uni-chips .rz-chip').forEach(b => {
-                b.classList.toggle('rz-on', b.dataset.chip === chip);
-            });
-            renderConciliacaoUnificada();
-        }
+        // filtrarConciliacaoChip() removida (Entrega F.4) — os chips de
+        // status (Todos/Pendentes/Conciliados/Não controlado) saíram da
+        // tela: a lista já só traz pendente+não controlado (ver
+        // carregarConciliacaoUnificada), não tem mais o que filtrar por chip.
 
         // v1.6.3 — Etapa 8, pedido explícito do Nicola testando no celular
         // ("o que significa pendente?"): legenda dos 4 status/chips, num
@@ -2632,21 +2750,10 @@ function financeiroRenderCabecalho(aba) {
             return (semRef.trim() || texto.trim() || razaoSocial);
         }
 
-        // v1.6.5 — achado do Nicola: agrupamento por competência, mesmo
-        // padrão de Recebimentos (renderMensalidades) — antes a lista de
-        // Conciliação era uma faixa só, sem separação por mês.
-        let gruposConciliacaoAbertos = null;
-
-        export function alternarGrupoConciliacao(ref) {
-            const grupoId = 'grupo-conc-' + ref.replace('/', '-');
-            const el = document.getElementById(grupoId);
-            const seta = document.getElementById(grupoId + '-seta');
-            if (!el) return;
-            el.classList.toggle('hidden');
-            const aberto = !el.classList.contains('hidden');
-            if (seta) seta.style.transform = `rotate(${aberto ? 180 : 0}deg)`;
-            if (aberto) gruposConciliacaoAbertos.add(ref); else gruposConciliacaoAbertos.delete(ref);
-        }
+        // v1.6.5 — agrupamento por competência (alternarGrupoConciliacao)
+        // REMOVIDO na Entrega F.4 (21/09/2026, pedido explícito — "perder o
+        // agrupamento de competencia"): a lista já é 1 competência só (a do
+        // card do topo), não tem mais o que agrupar/expandir por mês.
 
         // Uma linha (as 3 variações — automática, com sugestão, ou simples)
         // — extraída da função de render pra poder ser reusada por grupo.
@@ -2700,35 +2807,30 @@ function financeiroRenderCabecalho(aba) {
             </div>`;
         }
 
+        // Entrega F.4 (21/09/2026, pedido explícito) — reescrita: a lista já
+        // chega do banco escopada à competência do card do topo e só com
+        // pendente/não controlado (carregarConciliacaoUnificada); esta
+        // função ficou só com os filtros de busca (texto/locatário/
+        // empreendimento/categoria/ativo/fornecedor) e virou lista FLAT —
+        // sem agrupar por competência (só sobra 1 mês) e sem chip de status
+        // (só sobram 2 status possíveis, ambos sempre visíveis). O hero
+        // "Conciliação do período" saiu (ver index.html) — quem resume agora
+        // são os 4 KPIs do chip Fechamento (fin-kpi-fech-*, js/fechamento.js
+        // fechamentoAtualizarKpis), nunca somados aqui no cliente.
         function renderConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
             if (!lista) return;
 
-            // v1.179.0 — achado do Nicola: lupa de filtro — texto livre +
-            // campos condicionais por direção (entrada usa locatário/
-            // empreendimento/competência; saída usa categoria/ativo/
-            // fornecedor). Só valem pra linha já CONCILIADA (destino_id
-            // aponta pra mensalidade/lançamento real) — pendente ainda não
-            // sabe a quem pertence, não tem o que cruzar.
-            // v1.179.5 — "não o chip de status" (nota antiga desta versão)
-            // foi revertido a pedido do Nicola: hero agora reflete o chip
-            // também, igual Recebimentos/Saídas sempre fizeram — ver bloco
-            // mais abaixo.
             const termoConc = (document.getElementById('conc-busca-texto')?.value || '').trim().toLowerCase();
-            const fCompConc = document.getElementById('conc-filtro-competencia')?.value || 'todos';
             const fLocConc = document.getElementById('conc-filtro-locatario')?.value || 'todos';
             const fEmpConc = document.getElementById('conc-filtro-empreendimento')?.value || 'todos';
             const fCatConc = document.getElementById('conc-filtro-categoria')?.value || 'todos';
             const fAtivoConc = document.getElementById('conc-filtro-ativo')?.value || 'todos';
             const fFornConc = document.getElementById('conc-filtro-fornecedor')?.value || 'todos';
 
-            const filtradosSemChip = conciliacaoUniCache.filter(f => {
+            const filtrados = conciliacaoUniCache.filter(f => {
                 if (conciliacaoUniSegmento !== 'tudo' && f.direcao !== conciliacaoUniSegmento) return false;
                 if (termoConc && !(f.razao_social || '').toLowerCase().includes(termoConc)) return false;
-                if (fCompConc !== 'todos') {
-                    const ref = f.data ? (() => { const [a, m] = f.data.split('-'); return `${m}/${a}`; })() : null;
-                    if (ref !== fCompConc) return false;
-                }
                 if ((fLocConc !== 'todos' || fEmpConc !== 'todos') && f.direcao === 'entrada') {
                     const men = f.destino_tipo === 'mensalidade' ? mensalidades.find(m => m.id === f.destino_id) : null;
                     const con = men ? contratos.find(c => c.id === men.contratoId) : null;
@@ -2745,74 +2847,20 @@ function financeiroRenderCabecalho(aba) {
                 return true;
             });
 
-            // v1.179.5 — achado do Nicola: totalizador do hero tinha que
-            // refletir SÓ segmento+filtros de busca, nunca o chip de status
-            // (decisão de propósito da v1.179.0, comentário acima) — mas
-            // Recebimentos/Saídas SEMPRE recalculam o hero pelo conjunto
-            // filtrado pelo chip também (conferido: filtradasComChip
-            // alimenta kTotRecebido em renderMensalidades()). Conciliação
-            // era a exceção, não o padrão — alinhado agora: filtrados (com
-            // chip) é que gera o hero, igual as outras duas abas.
-            const filtrados = conciliacaoUniChip === 'todos' ? filtradosSemChip : filtradosSemChip.filter(f => f.status_conciliacao === conciliacaoUniChip);
-
-            const total = filtrados.length;
-            const pendentes = filtrados.filter(f => f.status_conciliacao === 'pendente').length;
-            const conciliados = filtrados.filter(f => f.status_conciliacao === 'conciliado').length;
-            // v1.178.9 — achado do Nicola: resumo padronizado — hero verde
-            // (.rz-kpi.rz-hero) em vez do texto pequeno "X de Y" que ficava
-            // ao lado do título.
-            const elResumo = document.getElementById('conc-hero-resumo');
-            const elPendentes = document.getElementById('conc-hero-pendentes');
-            const elConciliados = document.getElementById('conc-hero-conciliados');
-            if (elResumo) elResumo.textContent = total ? `${conciliados} de ${total} conciliados` : '—';
-            if (elPendentes) elPendentes.textContent = pendentes;
-            if (elConciliados) elConciliados.textContent = conciliados;
+            // Badge do chip Fechamento (financeiroChipsNivelHtml) conta em
+            // cima do cache cheio (não do filtrado) — atualiza aqui porque é
+            // esta função que dá o "aviso de chegada" dos dados do mês.
+            financeiroRedesenharChipsNivel();
 
             if (!filtrados.length) {
-                lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma linha nesse filtro.</p>`;
+                lista.innerHTML = `<p class="text-xs text-center py-4" style="color:var(--sage)">Nenhuma pendência de conciliação nesta competência.</p>`;
                 return;
             }
 
-            // Agrupa por competência (mês/ano da data do banco), mais
-            // recente primeiro — mesmo padrão de renderMensalidades().
-            const grupos = {};
-            filtrados.forEach(f => {
-                const ref = f.data ? (() => { const [ano, mes] = f.data.split('-'); return `${mes}/${ano}`; })() : 'Sem data';
-                (grupos[ref] = grupos[ref] || []).push(f);
-            });
-            const competenciasOrdenadas = Object.keys(grupos).sort((a, b) => {
-                if (a === 'Sem data') return 1; if (b === 'Sem data') return -1;
-                const [ma, aa] = a.split('/'), [mb, ab] = b.split('/');
-                return (ab + mb).localeCompare(aa + ma);
-            });
-
-            if (gruposConciliacaoAbertos === null) {
-                gruposConciliacaoAbertos = new Set(competenciasOrdenadas.length > 0 ? [competenciasOrdenadas[0]] : []);
-            }
-
-            lista.innerHTML = competenciasOrdenadas.map(ref => {
-                const itensGrupo = grupos[ref];
-                // v1.179.0 — achado do Nicola: agrupador no mesmo padrão dos
-                // outros — mas aqui com entrada e saída lado a lado (a
-                // competência mistura as duas direções), respeitando os
-                // filtros/chips já aplicados em cima de itensGrupo.
-                const entradaItens = itensGrupo.filter(f => f.direcao === 'entrada');
-                const saidaItens = itensGrupo.filter(f => f.direcao === 'saida');
-                const valorEntrada = entradaItens.reduce((s, f) => s + Math.abs(parseFloat(f.valor)), 0);
-                const valorSaida = saidaItens.reduce((s, f) => s + Math.abs(parseFloat(f.valor)), 0);
-                const partesResumo = [];
-                if (entradaItens.length) partesResumo.push(`Entrada ${formatarMoedaBR(valorEntrada)} (${entradaItens.length} ite${entradaItens.length > 1 ? 'ns' : 'm'})`);
-                if (saidaItens.length) partesResumo.push(`Saída ${formatarMoedaBR(valorSaida)} (${saidaItens.length} ite${saidaItens.length > 1 ? 'ns' : 'm'})`);
-                const resumo = partesResumo.join(' · ');
-                const grupoId = 'grupo-conc-' + ref.replace('/', '-');
-                const aberto = gruposConciliacaoAbertos.has(ref);
-                return `
-                    <div class="rz-group" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="alternarGrupoConciliacao('${ref}')">
-                        <span style="flex:1">${ref} · ${resumo}</span>
-                        <svg data-lucide="chevron-down" id="${grupoId}-seta" style="width:16px;height:16px;transform:rotate(${aberto ? '180' : '0'}deg)"></svg>
-                    </div>
-                    <div id="${grupoId}" class="rz-card rz-list ${aberto ? '' : 'hidden'}">${itensGrupo.map(linhaConciliacaoUniHtml).join('')}</div>`;
-            }).join('');
+            // Mais recente primeiro — sem agrupador (Entrega F.4: 1 mês só,
+            // não tem por que colapsar/expandir).
+            const ordenados = [...filtrados].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+            lista.innerHTML = `<div class="rz-card rz-list">${ordenados.map(linhaConciliacaoUniHtml).join('')}</div>`;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -3315,8 +3363,20 @@ function financeiroRenderCabecalho(aba) {
             if (men.status === 'Pago') {
                 const acoesPago = [
                     { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', codigo: 'recibo.gerar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
-                    { icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "a receber"', tipo: 'bad', codigo: 'mensal.estornar', aoTocar: () => estornarMensalidade(men.id) },
                 ];
+                // CORRIGIDO v1.15.0 (REGRAS §11.1, achado nesta mesma
+                // entrega) — competência fechada permite só "gerar recibo e
+                // ver detalhes, nunca alterar" (pedido explícito). O trigger
+                // fn_trg_bloquear_edicao_competencia_fechada já barra a
+                // GRAVAÇÃO de Estornar/incluir_contabilidade no banco; sem
+                // este `if`, o menu continuava oferecendo as duas ações como
+                // se fossem dar certo, só falhando (com um erro cru) depois
+                // do toque. window.RZ_FIN_COMPETENCIA_FECHADA vem de
+                // fechamento.js (ponte, módulos isolados).
+                const compFechada = typeof window !== 'undefined' && window.RZ_FIN_COMPETENCIA_FECHADA === true;
+                if (!compFechada) {
+                    acoesPago.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "a receber"', tipo: 'bad', codigo: 'mensal.estornar', aoTocar: () => estornarMensalidade(men.id) });
+                }
                 // v1.179.5 — pedido do Nicola: "Resumo da conciliação" em
                 // todo item conciliado, não só na aba Conciliação — só
                 // aparece quando esta mensalidade veio de fato de uma
@@ -3325,6 +3385,22 @@ function financeiroRenderCabecalho(aba) {
                 // formulário não passa por ali, não tem o que resumir).
                 if (men.chaveTransacaoOrigem) {
                     acoesPago.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacaoPorDestino('mensalidade', men.id) });
+                }
+                // Entrega F.3/F.4 (21/09/2026, pedido explícito) — todo item
+                // baixado entra no pacote do contador por padrão; esta ação
+                // permite desmarcar (ou remarcar) 1 item, controlada pela
+                // funcionalidade financeiro.contabilidade_ajustar (ACE-03) —
+                // rzMostrarBloqueio(a.codigo) barra sozinho quem não tem
+                // acesso, mesmo padrão das outras ações com `codigo`. Some
+                // com a competência fechada (ver comentário acima).
+                if (!compFechada) {
+                    acoesPago.push({
+                        icone: men.incluirContabilidade === false ? 'plus-circle' : 'ban',
+                        titulo: men.incluirContabilidade === false ? 'Incluir na contabilidade' : 'Não incluir na contabilidade',
+                        sub: 'Controla o pacote enviado ao contador no fechamento',
+                        codigo: 'financeiro.contabilidade_ajustar',
+                        aoTocar: () => alternarIncluirContabilidade('mensalidade', men.id),
+                    });
                 }
                 abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: acoesPago });
                 return;
@@ -3466,6 +3542,17 @@ function financeiroRenderCabecalho(aba) {
                 const p = (m.referencia || '').split('/');
                 return p.length === 2 ? `${String(con.vencimentoDia || 15).padStart(2, '0')}/${p[0]}/${p[1]}` : '';
             };
+            // Entrega F.3/F.4 (21/09/2026, pedido explícito — "deve entrar
+            // na aba de recebimento com status de baixado e suas
+            // informações da conciliação, manual ou via extrato") — rótulo
+            // curto de origem, direto na linha (detalhe completo — modo,
+            // regra, canal — continua no toque, "Resumo da conciliação").
+            const origemMensalHtml = (m) => {
+                const partes = [];
+                partes.push(m.chaveTransacaoOrigem ? 'Extrato' : 'Manual');
+                if (m.incluirContabilidade === false) partes.push('Fora da contabilidade');
+                return ' · ' + partes.join(' · ');
+            };
             const itens = filtradasComChip.slice().sort((a, b) => {
                 const conA = contratos.find(c => c.id === a.contratoId);
                 const conB = contratos.find(c => c.id === b.contratoId);
@@ -3480,7 +3567,7 @@ function financeiroRenderCabecalho(aba) {
                 if (men.status === 'Pago') {
                     return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
                         <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}${origemMensalHtml(men)}</span></div>
                         <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${rsM('ok', 'Pago')}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;

@@ -1,6 +1,124 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.0.0 · 21/09/2026
+// Versão: 1.2.1 · 21/09/2026
+//
+// v1.2.1 (21/09/2026) — 2 correções (QUA-01, achadas nesta mesma entrega,
+// revisando o v1.2.0 antes de considerar pronto, nenhuma reportada por uso
+// real):
+//   · fechamentoRenderCorpo passa a espelhar window.RZ_FIN_COMPETENCIA_FECHADA
+//     (boolean) toda vez que resolve o estado — financeiro.js usa isso pra
+//     tirar Estornar/"Não incluir na contabilidade" do ⋮ de Recebimentos/
+//     Saídas quando a competência do item está fechada (REGRAS §11.1: só
+//     Recibo e Ver detalhes continuam ali; o trigger de banco já bloqueava a
+//     GRAVAÇÃO, mas o menu continuava oferecendo a ação como se desse certo).
+//   · O comentário "COMO É CHAMADO" abaixo (linha ~122 da v1.2.0) dizia que
+//     fechamentoAtualizarCard() só era chamado de dentro de
+//     financeiroRenderCabecalho('conciliacao') — exatamente o oposto do que
+//     o changelog do v1.2.0 prometia ("botão dedicado visível nos 3 chips...
+//     não só aqui"): o botão existia no HTML das 3 abas, mas só era
+//     REDESENHADO quando o usuário abria o chip Fechamento — flipar o mês
+//     em Recebimentos/Saídas deixava o cadeado com o estado do mês anterior
+//     (ou vazio, no boot). Corrigido do lado de financeiro.js
+//     (financeiroRenderCabecalho passa a chamar fechamentoAtualizarCard()
+//     nas 3 abas, não só 'conciliacao' — ver financeiro.js v1.15.0).
+//
+// v1.2.0 (21/09/2026) — Entrega F.3 (redesenhada) — Compartilhamento com o
+// contador, decisão do Nicola (21/09/2026, substitui o desenho anterior de
+// token/link de acesso ao sistema — ver REGRAS_EXPERIENCIA_RAIZ v3.22.0
+// §11.1 e Demanda do backlog do mecanismo de token, registrada para uma
+// fase posterior de acesso direto do contador).
+//   · Fechar/Reabrir a competência SAI do ⋮ e ganha um botão dedicado
+//     (cadeado), visível nos 3 chips de nível superior do Financeiro
+//     (Recebimentos · Saídas · Fechamento) — não só aqui. O ícone e o
+//     rótulo alternam sozinhos: aberto → "lock" ("Fechar competência");
+//     fechado → "lock-open" ("Abrir competência"). Tocar o botão vai direto
+//     ao Sheet de formulário de sempre (fechar pede observação opcional,
+//     reabrir exige motivo) — sem mais passar pelo Sheet de ações
+//     intermediário, que só tinha essa opção.
+//   · O ⋮ do card passa a abrir só "Compartilhar com o contador" — nova
+//     ação desta entrega.
+//   · Compartilhar com o contador: o usuário escolhe 1+ competências JÁ
+//     FECHADAS (nunca fecha mais de uma de uma vez — cada competência
+//     continua fechando sozinha, um retrato por vez) e o contador
+//     cadastrado (prestadores.tipo='contador', mesmo padrão de
+//     administradora/síndico/manutencista — reaproveita a tabela
+//     existente, sem tabela nova). Cada competência vira um PDF, montado
+//     com jsPDF (já carregado no app, mesmo padrão de
+//     baixarRelatorioPdfLocal() no index.html) a partir do bloco
+//     'contabil' do fechamento_snapshot — nunca recalculado, então editar
+//     um lançamento depois de fechar não muda o PDF.
+//   · Envio é "compartilhamento nativo": quando o navegador suporta
+//     navigator.share() com arquivo (a maioria dos celulares), abre
+//     direto a folha de compartilhamento do sistema com o(s) PDF(s)
+//     anexados de verdade — inclusive pra WhatsApp. Sem esse suporte
+//     (a maioria dos desktops), baixa o(s) PDF(s) e abre wa.me (número do
+//     contador) ou mailto: (e-mail do contador) só com o texto-resumo,
+//     porque nenhum dos dois esquemas de URL consegue anexar arquivo —
+//     o rótulo do botão avisa "anexe o PDF baixado".
+//   · O QUE ENTRA NO PACOTE (decisão do Nicola, 21/09/2026): todo item
+//     baixado (pago/recebido), seja a baixa manual ou por conciliação de
+//     extrato — não exige mais conciliação bancária. Fica de fora só o
+//     que a própria empresa desmarcar manualmente (⋮ da linha de
+//     Recebimentos/Saídas, "Não incluir na contabilidade" — ver
+//     financeiro.js v1.5.0, coluna incluir_contabilidade). Repasses
+//     entram como uma 3ª lista (extrato_fingerprints.destino_tipo=
+//     'repasse'). Tudo isso é calculado no banco
+//     (fn_fechamento_calcular_contabil) e gravado como um 2º bloco do
+//     mesmo snapshot ('contabil') no momento do fechar — não existe
+//     como consulta em tempo real.
+//   · Retificação: como o snapshot é imutável, corrigir um lançamento de
+//     uma competência já fechada exige reabrir → editar → fechar de novo
+//     (o botão dedicado é o mesmo dos dois passos). Um trigger no banco
+//     (fn_trg_bloquear_edicao_competencia_fechada, migration
+//     fechamento_pacote_contador_v1) bloqueia UPDATE em mensalidades/
+//     lancamentos de competência fechada mesmo fora deste módulo —
+//     inclusive edição direta de tela, sem passar por nenhuma função
+//     daqui. Só permite ver detalhe e gerar recibo, nunca alterar.
+//   · Novo bloco de KPIs no card do Fechamento (fn_financeiro_totalizador_
+//     fechamento): pendente / não controlado / recebido / pago da
+//     competência, mesmo padrão visual dos 4 KPIs de Recebimentos/Saídas.
+//   · CORRIGIDO (achado revisando esta mesma entrega, antes de qualquer
+//     uso real): o cadastro de contador (prestadores.tipo='contador') não
+//     tinha NENHUM caminho de tela — o <select> "Atua como prestador?" da
+//     tela de Partes (index.html, abrirFormParteSheet — hoje o único lugar
+//     que cria/edita administradora/síndico/manutencista, desde que as 3
+//     abas antigas foram fundidas em Partes na v1.119.0) só tinha essas 3
+//     opções. Adicionado "Contador" ao <select> — salva em partes.tipo_
+//     prestador e espelha pra prestadores.tipo via sincronizarPrestadorDaParte,
+//     mesmo mecanismo dos outros 3 papéis. O aviso desta função também
+//     apontava pro destino errado ("Empresa › Rotinas") — corrigido pra
+//     "Partes › Prestadores".
+//
+// v1.1.0 (21/09/2026) — Entrega F3.1 (Chip Fiscal e checklist de CIB),
+// PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0, FASE F3. Objetivo:
+// a empresa vê o que falta pra emitir NFS-e quando a obrigatoriedade
+// chegar, SEM emitir nada ainda e SEM nenhum texto afirmar que o cliente é
+// contribuinte. Sem migration nova (reaproveita os tipos/funções de AL.2):
+//   · Chip "Fiscal" novo no card de competência do Fechamento (ao lado do
+//     status "Fechado"), só aparece com a rotina nfse_competencia ligada
+//     (fn_rotinas_empresa_listar — mesmo padrão de
+//     financeiroVerificarRotinaFechamento em financeiro.js, checado aqui
+//     de novo porque os módulos são isolados de propósito, sem import
+//     direto). Mostra "Fiscal OK" (verde) quando não há pendência, ou a
+//     contagem (âmbar) quando há.
+//   · Toque no chip abre um checklist por imóvel com 2 perguntas: CIB
+//     preenchido? (fn_diario_cib_pendente, MESMA função que já alimenta o
+//     alerta de estado cib_pendente da AL.2 — fonte única, nunca diverge
+//     do que a Central de Alertas mostra) e o contrato ativo do imóvel tem
+//     documento do locatário? (contratos.cpf — rótulo "CPF/CNPJ" na ficha
+//     do contrato, campo obrigatório lá; consulta nova, client-side, sem
+//     RPC — não existe alerta de estado pra isso ainda, natureza puramente
+//     de cadastro). Cada item do checklist navega pro lugar de sempre pra
+//     corrigir (CIB: switchTab('tab-ativos') + abrirFichaAtivoNoChip(id,
+//     'resumo'), mesmo destino do case 'ativo/ficha' de
+//     rzAbrirDestinoAlerta; documento: abrirFichaContrato(id), mesmo
+//     destino do case 'contrato/ficha') — nenhuma edição inline nova,
+//     nenhuma duplicação da UX de edição que a AL.3/AL.6 já resolveram
+//     pros alertas.
+//   · Fiscal é status DA CARTEIRA (não da competência selecionada) —
+//     verificado 1x por sessão (fechamentoRotinaFiscalLigada !== null),
+//     igual ao padrão de financeiroRotinaFechamentoLigada — não refaz a
+//     consulta a cada troca de mês no card.
 //
 // Entrega F.2 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0,
 // REGRAS_EXPERIENCIA_RAIZ v3.19.0 §11.1) — módulo novo: fechar/reabrir a
@@ -14,9 +132,11 @@
 // contra dado real antes de congelar num snapshot imutável — este módulo
 // NÃO toca em calcularExtratoSocio().
 //
-// Migration: fechamento_estrutura_v1 — fn_fechamento_verificar/fechar/
-// reabrir + tabela fechamento_snapshot (imutável, RLS leitura-tenant/
-// escrita-só-RPC).
+// Migrations: fechamento_estrutura_v1 (fn_fechamento_verificar/fechar/
+// reabrir + tabela fechamento_snapshot) e fechamento_pacote_contador_v1
+// (v1.2.0 — incluir_contabilidade, bloco 'contabil', fn_pacote_contador_
+// montar, fn_financeiro_totalizador_fechamento, fn_fechamento_listar_
+// fechadas, gatilho de bloqueio de edição).
 //
 // COMO É CHAMADO:
 //   · financeiro.js chama a ponte global fechamentoAtualizarCard() de
@@ -29,18 +149,34 @@
 //     'YYYY-MM-01') toda vez que muda; este módulo só lê essa variável.
 //   · onclick do HTML estático (#fin-fechamento-card) chama
 //     fechamentoAbrirAcoes() via ponte global instalada no index.html
-//     (mesmo padrão de carregarFinanceiro/carregarResultados).
+//     (mesmo padrão de carregarFinanceiro/carregarResultados); o chip
+//     Fiscal (v1.1.0) chama fechamentoAbrirChecklistFiscal() e o botão
+//     dedicado (v1.2.0, nos 3 chips) chama fechamentoAlternarBotao() pela
+//     mesma ponte.
 //
 // ESTADO GLOBAL LIDO/ESCRITO DAQUI: dbAuth, CLIENTE_ID_SUPABASE,
-// pessoaIdLogada, mostrarToast, abrirSheetAcoes, abrirSheetForm,
-// renderStatus, formatarMoedaBR, switchTab (todos já globais no
-// index.html clássico — mesmo acesso que financeiro.js já faz).
+// pessoaIdLogada, mostrarToast, abrirSheetAcoes, abrirSheetForm, abrirSheet,
+// rzSheetCabecalho, fecharSheet, rzEsc, renderStatus, formatarMoedaBR,
+// switchTab, abrirFichaContrato, window.abrirFichaAtivoNoChip,
+// window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
+// mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.2.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
-let fechamentoUltimoEstado = null; // último resultado de fn_fechamento_verificar (cache pro Sheet de ações)
+let fechamentoUltimoEstado = null; // último resultado de fn_fechamento_verificar (cache pro Sheet de ações e pro botão dedicado)
 let fechamentoCarregando = false;
+
+// v1.1.0 (Entrega F3.1) — status fiscal é da CARTEIRA, não da competência
+// selecionada: verificado 1x por sessão, igual financeiroRotinaFechamentoLigada.
+let fechamentoRotinaFiscalLigada = null; // null = não verificado ainda; true/false = ligada/desligada
+let fechamentoFiscalPendencias = { cib: [], documentos: [] };
+
+const FECHAMENTO_IDS_BOTAO = ['fin-botao-fechamento-mensal', 'fin-botao-fechamento-saidas', 'fin-botao-fechamento-conciliacao'];
+const FECHAMENTO_IDS_KPI = {
+    pendente: 'fin-kpi-fech-pendente', naoControlado: 'fin-kpi-fech-nao-controlado',
+    recebido: 'fin-kpi-fech-recebido', pago: 'fin-kpi-fech-pago',
+};
 
 function fechamentoCompetenciaAtual() {
     if (typeof window !== 'undefined' && window.RZ_FIN_COMPETENCIA) return window.RZ_FIN_COMPETENCIA;
@@ -56,13 +192,14 @@ function fechamentoMoeda(v) {
     return (typeof formatarMoedaBR === 'function') ? formatarMoedaBR(Number(v || 0)) : `R$ ${Number(v || 0).toFixed(2)}`;
 }
 
-/** Desenha o card de competência do Fechamento (status + corpo). Chamado
- * 1x por abertura da aba Fechamento e por flip de competência
- * (financeiroRenderCabecalho('conciliacao'), ver financeiro.js). */
+/** Desenha o card de competência do Fechamento (status + corpo + botão
+ * dedicado + KPIs). Chamado 1x por abertura da aba Fechamento e por flip
+ * de competência (financeiroRenderCabecalho('conciliacao'), ver
+ * financeiro.js) — e também precisa redesenhar o botão dedicado nas
+ * outras 2 abas (Recebimentos/Saídas), que não têm corpo/status próprios. */
 export async function fechamentoAtualizarCard() {
     const elStatus = document.getElementById('fin-fechamento-status');
     const elCorpo = document.getElementById('fin-fechamento-corpo');
-    if (!elStatus && !elCorpo) return; // aba ainda não montada
     if (elCorpo) elCorpo.textContent = 'Verificando…';
     if (elStatus) elStatus.innerHTML = '';
     fechamentoCarregando = true;
@@ -82,11 +219,173 @@ export async function fechamentoAtualizarCard() {
     } finally {
         fechamentoCarregando = false;
     }
+    fechamentoRenderBotaoDedicado(); // v1.2.0 — nos 3 chips, não só aqui
+    fechamentoAtualizarKpis(); // v1.2.0 — não bloqueia o corpo acima
+    fechamentoAtualizarFiscal(); // v1.1.0 — não bloqueia o corpo acima; 1x por sessão (guard interno)
+}
+
+/** v1.2.0 — botão dedicado (cadeado) de Fechar/Abrir, presente nos 3 chips
+ * de nível superior do Financeiro (Recebimentos · Saídas · Fechamento) —
+ * REGRAS §11.1: sai do ⋮, vira ação de 1 toque só, direto no Sheet de
+ * formulário (sem o Sheet de ações intermediário, que só tinha essa
+ * opção). */
+function fechamentoRenderBotaoDedicado() {
+    const linha = fechamentoUltimoEstado;
+    FECHAMENTO_IDS_BOTAO.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!linha || linha.status === 'sem_rotina') { el.innerHTML = ''; return; }
+        const fechada = linha.status === 'concluido';
+        const icone = fechada ? 'lock-open' : 'lock';
+        const titulo = fechada ? 'Abrir competência' : 'Fechar competência';
+        el.innerHTML = `<button type="button" class="rz-ico-btn" onclick="fechamentoAlternarBotao()" title="${titulo}" aria-label="${titulo}"><svg data-lucide="${icone}"></svg></button>`;
+    });
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/** v1.2.0 — clique do botão dedicado: vai direto pro Sheet de formulário
+ * certo, conforme o estado atual (nunca os dois juntos, REGRAS §11.1). */
+export function fechamentoAlternarBotao() {
+    if (fechamentoCarregando) return;
+    const linha = fechamentoUltimoEstado;
+    if (!linha || linha.status === 'sem_rotina') {
+        if (typeof mostrarToast === 'function') mostrarToast(linha?.motivo_bloqueio || 'Fechamento indisponível para esta empresa.', 'info');
+        return;
+    }
+    if (linha.status === 'concluido') fechamentoAbrirSheetReabrir();
+    else fechamentoAbrirSheetFechar();
+}
+
+/** v1.2.0 — os 4 KPIs (pendente/não controlado/recebido/pago) do chip
+ * Fechamento, mesmo padrão visual dos KPIs de Recebimentos/Saídas — nunca
+ * somado no cliente, sempre de fn_financeiro_totalizador_fechamento. */
+async function fechamentoAtualizarKpis() {
+    const algumEl = document.getElementById(FECHAMENTO_IDS_KPI.pendente);
+    if (!algumEl) return; // aba Fechamento ainda não montada nesta sessão
+    Object.values(FECHAMENTO_IDS_KPI).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '...'; });
+    try {
+        const { data, error } = await dbAuth.rpc('fn_financeiro_totalizador_fechamento', {
+            p_cliente_id: CLIENTE_ID_SUPABASE,
+            p_competencia: fechamentoCompetenciaAtual(),
+        });
+        if (error) throw error;
+        const l = (data && data[0]) || {};
+        const setar = (id, qtde, valor) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = `${fechamentoMoeda(valor)} (${qtde || 0})`;
+        };
+        setar(FECHAMENTO_IDS_KPI.pendente, l.pendente_qtde, l.pendente_valor);
+        setar(FECHAMENTO_IDS_KPI.naoControlado, l.nao_controlado_qtde, l.nao_controlado_valor);
+        setar(FECHAMENTO_IDS_KPI.recebido, l.recebido_qtde, l.recebido_valor);
+        setar(FECHAMENTO_IDS_KPI.pago, l.pago_qtde, l.pago_valor);
+    } catch (e) {
+        console.error('[fechamento] fn_financeiro_totalizador_fechamento', e);
+        Object.values(FECHAMENTO_IDS_KPI).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = 'R$ 0 (0)'; });
+    }
+}
+
+/** Entrega F3.1 — verifica se a rotina nfse_competencia está ligada e, se
+ * sim, busca as duas pendências do checklist (CIB e documento do
+ * locatário). Verificado 1x por sessão (status é da carteira, não da
+ * competência) — troca de mês no card NÃO refaz esta consulta. */
+async function fechamentoAtualizarFiscal() {
+    if (fechamentoRotinaFiscalLigada !== null) { fechamentoRenderFiscalChip(); return; }
+    try {
+        const { data: rotinas, error: eRot } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
+        if (eRot) throw eRot;
+        const linhaRotina = (rotinas || []).find(r => r.codigo === 'nfse_competencia');
+        fechamentoRotinaFiscalLigada = !!(linhaRotina && linhaRotina.ligada);
+    } catch (e) {
+        console.error('[fechamento] fn_rotinas_empresa_listar (fiscal)', e);
+        fechamentoRotinaFiscalLigada = false; // falha de rede: chip some, nunca mostra pendência não confirmada
+        fechamentoRenderFiscalChip();
+        return;
+    }
+    if (!fechamentoRotinaFiscalLigada) { fechamentoRenderFiscalChip(); return; }
+
+    try {
+        const [cib, contratosAtivos] = await Promise.all([
+            dbAuth.rpc('fn_diario_cib_pendente', { p_cliente_id: CLIENTE_ID_SUPABASE }),
+            dbAuth.from('contratos').select('id, locatario, cpf, imovel_id')
+                .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo').not('imovel_id', 'is', null),
+        ]);
+        if (cib.error) throw cib.error;
+        if (contratosAtivos.error) throw contratosAtivos.error;
+
+        fechamentoFiscalPendencias.cib = (cib.data || []).map(r => ({ id: r.ativo_id, nome: r.ativo_nome || 'Imóvel' }));
+
+        const semDocumento = (contratosAtivos.data || []).filter(c => !c.cpf || !String(c.cpf).trim());
+        const imovelIds = [...new Set(semDocumento.map(c => c.imovel_id).filter(Boolean))];
+        let enderecoPorImovel = new Map();
+        if (imovelIds.length) {
+            const { data: imoveisRows, error: eImo } = await dbAuth.from('imoveis')
+                .select('id, endereco_rua, endereco_num').in('id', imovelIds);
+            if (eImo) throw eImo;
+            enderecoPorImovel = new Map((imoveisRows || []).map(i => [i.id, [i.endereco_rua, i.endereco_num].filter(Boolean).join(', ')]));
+        }
+        fechamentoFiscalPendencias.documentos = semDocumento.map(c => ({
+            id: c.id,
+            nome: c.locatario || 'Locatário',
+            endereco: enderecoPorImovel.get(c.imovel_id) || '',
+        }));
+    } catch (e) {
+        console.error('[fechamento] checklist fiscal (cib/documentos)', e);
+        fechamentoFiscalPendencias = { cib: [], documentos: [] }; // não mostra número que não confirmou
+    }
+    fechamentoRenderFiscalChip();
+}
+
+function fechamentoRenderFiscalChip() {
+    const el = document.getElementById('fin-fiscal-chip');
+    if (!el) return;
+    if (!fechamentoRotinaFiscalLigada) { el.innerHTML = ''; return; } // regra F3.1: chip só aparece com a rotina ligada
+    const total = fechamentoFiscalPendencias.cib.length + fechamentoFiscalPendencias.documentos.length;
+    const pill = (typeof renderStatus === 'function')
+        ? renderStatus(total === 0 ? 'ok' : 'warn', total === 0 ? 'Fiscal OK' : `Fiscal · ${total}`)
+        : `<span class="rz-st rz-${total === 0 ? 'ok' : 'warn'}">${total === 0 ? 'Fiscal OK' : `Fiscal · ${total}`}</span>`;
+    el.innerHTML = `<button type="button" onclick="fechamentoAbrirChecklistFiscal()" style="background:none;border:none;padding:0;cursor:pointer" aria-label="Ver checklist fiscal">${pill}</button>`;
+}
+
+/** Entrega F3.1 — checklist por imóvel: CIB preenchido? contrato ativo com
+ * documento do locatário? Nunca afirma que o cliente é contribuinte —
+ * só mostra o que falta pra quando a obrigatoriedade de NFS-e chegar. */
+export function fechamentoAbrirChecklistFiscal() {
+    if (typeof abrirSheet !== 'function') return;
+    const { cib, documentos } = fechamentoFiscalPendencias;
+    const rzEscSafe = (typeof rzEsc === 'function') ? rzEsc : (s) => String(s ?? '');
+    const linha = (icone, titulo, sub, onClick) => `
+        <div class="rz-row rz-link" onclick="${onClick}">
+            <div class="rz-ic rz-bad"><svg data-lucide="${icone}"></svg></div>
+            <div class="rz-tx"><b>${rzEscSafe(titulo)}</b>${sub ? `<span>${rzEscSafe(sub)}</span>` : ''}</div>
+            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+        </div>`;
+    const secao = (titulo, itens, html) => `
+        <div style="margin-bottom:14px">
+            <div class="text-xs font-bold text-slate-600" style="margin-bottom:6px">${rzEscSafe(titulo)} (${itens.length})</div>
+            ${itens.length ? `<div class="rz-card rz-list">${html}</div>` : `<p class="text-xs" style="color:var(--sage)">Nenhuma pendência.</p>`}
+        </div>`;
+    const corpoCib = cib.map(a => linha('file-text', a.nome, 'CIB não preenchido', `fecharSheet(); switchTab('tab-ativos'); if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip('${a.id}', 'resumo')`)).join('');
+    const corpoDoc = documentos.map(c => linha('user-x', c.nome, [c.endereco, 'sem CPF/CNPJ do locatário'].filter(Boolean).join(' · '), `fecharSheet(); if (typeof window.abrirFichaContrato === 'function') window.abrirFichaContrato('${c.id}')`)).join('');
+    const corpo = `
+        <p class="rz-desc" style="margin-bottom:14px">O que falta pra emitir NFS-e quando a obrigatoriedade chegar — nada é emitido a partir daqui.</p>
+        ${secao('CIB pendente', cib, corpoCib)}
+        ${secao('Contrato sem documento do locatário', documentos, corpoDoc)}
+    `;
+    abrirSheet(rzSheetCabecalho('Checklist fiscal', 'Preparação — sem emissão nesta etapa') + `<div class="rz-sh-b">${corpo}</div>`);
 }
 
 function fechamentoRenderCorpo(linha) {
     const elStatus = document.getElementById('fin-fechamento-status');
     const elCorpo = document.getElementById('fin-fechamento-corpo');
+    // CORRIGIDO (achado nesta entrega, QUA-01) — o ⋮ de Recebimentos/Saídas
+    // (rzAcoesMensalidade/rzAcoesDespesa, financeiro.js) precisa saber se a
+    // competência em tela está fechada, pra parar de oferecer
+    // Estornar/"Não incluir na contabilidade" nesse caso (REGRAS §11.1: só
+    // Recibo e Ver detalhes continuam disponíveis — o trigger de banco já
+    // bloqueia a gravação, mas o menu não devia nem oferecer a ação).
+    // Espelhado em window, mesmo padrão de window.RZ_FIN_COMPETENCIA —
+    // módulos isolados não se importam.
+    if (typeof window !== 'undefined') window.RZ_FIN_COMPETENCIA_FECHADA = !!(linha && linha.status === 'concluido');
     if (!linha) { if (elCorpo) elCorpo.textContent = ''; return; }
 
     if (linha.status === 'sem_rotina') {
@@ -130,32 +429,16 @@ function fechamentoResumoPendencia(linha) {
     return partes.join(' · ') || null;
 }
 
-/** ⋮ do card — abre Sheet de ações com Fechar OU Reabrir, conforme o
- * último estado verificado (REGRAS §11.1: nunca os dois juntos). */
-export async function fechamentoAbrirAcoes() {
+/** v1.2.0 — ⋮ do card passa a abrir só "Compartilhar com o contador"
+ * (Fechar/Reabrir saiu daqui, ver fechamentoAlternarBotao acima). */
+export function fechamentoAbrirAcoes() {
     if (typeof abrirSheetAcoes !== 'function') return;
-    if (fechamentoCarregando) return;
-    if (!fechamentoUltimoEstado) await fechamentoAtualizarCard();
-    const linha = fechamentoUltimoEstado;
-    if (!linha || linha.status === 'sem_rotina') {
-        if (typeof mostrarToast === 'function') mostrarToast(linha?.motivo_bloqueio || 'Fechamento indisponível para esta empresa.', 'info');
-        return;
-    }
-    if (linha.status === 'concluido') {
-        abrirSheetAcoes({
-            titulo: 'Fechamento da competência',
-            acoes: [
-                { icone: 'lock-open', titulo: 'Reabrir a competência', aoTocar: fechamentoAbrirSheetReabrir },
-            ],
-        });
-    } else {
-        abrirSheetAcoes({
-            titulo: 'Fechamento da competência',
-            acoes: [
-                { icone: 'lock', titulo: 'Fechar a competência', sub: fechamentoResumoPendencia(linha) || undefined, aoTocar: fechamentoAbrirSheetFechar },
-            ],
-        });
-    }
+    abrirSheetAcoes({
+        titulo: 'Fechamento da competência',
+        acoes: [
+            { icone: 'send', titulo: 'Compartilhar com o contador', aoTocar: fechamentoAbrirCompartilharContador },
+        ],
+    });
 }
 
 function fechamentoAbrirSheetFechar() {
@@ -189,7 +472,7 @@ function fechamentoAbrirSheetReabrir() {
     if (!ocorrenciaId) return;
     abrirSheetForm({
         titulo: 'Reabrir a competência',
-        sub: 'Desfaz o fechamento — o retrato anterior continua registrado, e um novo é gerado no próximo fechamento. Explique o motivo.',
+        sub: 'Desfaz o fechamento — o retrato anterior continua registrado, e um novo é gerado no próximo fechamento (inclusive o pacote do contador). Explique o motivo.',
         rotuloSalvar: 'Reabrir a competência',
         corpo: `<label class="text-xs font-bold text-slate-600">Motivo da reabertura</label>
                 <textarea id="fechamento-motivo" class="w-full p-2.5 border rounded-lg text-sm mt-1" rows="3" placeholder="Ex.: preciso corrigir um lançamento deste mês"></textarea>`,
@@ -206,4 +489,227 @@ function fechamentoAbrirSheetReabrir() {
             fechamentoAtualizarCard();
         },
     });
+}
+
+// ----------------------------------------------------------------------------
+// v1.2.0 — Compartilhar com o contador (Entrega F.3 redesenhada)
+// ----------------------------------------------------------------------------
+
+/** Sheet: escolher contador cadastrado + canal + 1 ou mais competências
+ * já fechadas. Sem contador cadastrado ou sem competência fechada, avisa
+ * e não abre (nada de sheet vazio). */
+export async function fechamentoAbrirCompartilharContador() {
+    if (typeof abrirSheetForm !== 'function') return;
+
+    let contadores = [];
+    try {
+        const { data, error } = await dbAuth.from('prestadores')
+            .select('id, nome, whatsapp, email')
+            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('tipo', 'contador');
+        if (error) throw error;
+        contadores = data || [];
+    } catch (e) {
+        console.error('[fechamento] buscar contador cadastrado', e);
+        if (typeof mostrarToast === 'function') mostrarToast('Não consegui buscar o contador cadastrado agora.', 'danger');
+        return;
+    }
+    if (!contadores.length) {
+        // CORRIGIDO — o rótulo original apontava pra "Empresa › Rotinas",
+        // destino errado: contador se cadastra em Partes (chip Prestadores,
+        // campo "Atua como prestador?" → Contador), mesma tela de
+        // administradora/síndico/manutencista (index.html, abrirFormParteSheet).
+        if (typeof mostrarToast === 'function') mostrarToast('Nenhum contador cadastrado ainda. Cadastre em Partes › Prestadores (Atua como prestador? → Contador).', 'info');
+        return;
+    }
+
+    let fechadas = [];
+    try {
+        const { data, error } = await dbAuth.rpc('fn_fechamento_listar_fechadas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_limite: 12 });
+        if (error) throw error;
+        fechadas = data || [];
+    } catch (e) {
+        console.error('[fechamento] listar competências fechadas', e);
+        if (typeof mostrarToast === 'function') mostrarToast('Não consegui listar as competências fechadas agora.', 'danger');
+        return;
+    }
+    if (!fechadas.length) {
+        if (typeof mostrarToast === 'function') mostrarToast('Nenhuma competência fechada ainda.', 'info');
+        return;
+    }
+
+    const rzEscSafe = (typeof rzEsc === 'function') ? rzEsc : (s) => String(s ?? '');
+    const rotuloMes = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    const opcoesContador = contadores.map(c => `<option value="${c.id}">${rzEscSafe(c.nome)}</option>`).join('');
+    const opcoesCompetencia = fechadas.map((f, i) => `
+        <label class="rz-row" style="cursor:pointer">
+            <input type="checkbox" class="fechamento-comp-check" value="${f.competencia}" ${i === 0 ? 'checked' : ''} style="margin-right:10px">
+            <div class="rz-tx"><b>${rzEscSafe(rotuloMes(f.competencia))}</b></div>
+        </label>`).join('');
+
+    abrirSheetForm({
+        titulo: 'Compartilhar com o contador',
+        sub: 'Gera 1 PDF por competência selecionada, a partir do retrato já fechado (nunca recalculado).',
+        rotuloSalvar: 'Gerar e compartilhar',
+        corpo: `
+            <label class="text-xs font-bold text-slate-600">Contador</label>
+            <select id="fechamento-contador-sel" class="w-full p-2.5 border rounded-lg text-sm mt-1 mb-3">${opcoesContador}</select>
+            <label class="text-xs font-bold text-slate-600">Canal</label>
+            <select id="fechamento-canal-sel" class="w-full p-2.5 border rounded-lg text-sm mt-1 mb-3">
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">E-mail</option>
+            </select>
+            <label class="text-xs font-bold text-slate-600">Competências</label>
+            <div class="rz-card rz-list mt-1">${opcoesCompetencia}</div>
+        `,
+        aoSalvar: async (corpoEl) => {
+            const contadorId = corpoEl.querySelector('#fechamento-contador-sel')?.value;
+            const canal = corpoEl.querySelector('#fechamento-canal-sel')?.value || 'whatsapp';
+            const comps = [...corpoEl.querySelectorAll('.fechamento-comp-check:checked')].map(el => el.value);
+            if (!comps.length) { if (typeof mostrarToast === 'function') mostrarToast('Selecione ao menos uma competência.', 'danger'); return false; }
+            await fechamentoGerarEcompartilhar(contadorId, canal, comps);
+        },
+    });
+}
+
+/** Monta 1 pacote por competência (fn_pacote_contador_montar, lendo o
+ * bloco 'contabil' do snapshot), gera os PDFs (jsPDF) e compartilha:
+ * navigator.share() com os arquivos de verdade quando o navegador
+ * suporta (a maioria dos celulares — inclusive pra WhatsApp); senão baixa
+ * o(s) PDF(s) e abre wa.me/mailto só com o texto-resumo, avisando que o
+ * PDF precisa ser anexado à mão (nenhum dos dois esquemas de URL
+ * consegue anexar arquivo — limitação do próprio navegador/protocolo,
+ * não do Raiz). */
+async function fechamentoGerarEcompartilhar(contadorId, canal, competencias) {
+    if (typeof mostrarToast === 'function') mostrarToast('Gerando pacote…', 'info');
+    const pacotes = [];
+    let contadorInfo = null;
+    for (const comp of competencias) {
+        try {
+            const { data, error } = await dbAuth.rpc('fn_pacote_contador_montar', {
+                p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_contador_prestador_id: contadorId,
+            });
+            if (error) throw error;
+            const linha = data && data[0];
+            if (!linha) continue;
+            contadorInfo = contadorInfo || { nome: linha.contador_nome, whatsapp: linha.contador_whatsapp, email: linha.contador_email };
+            pacotes.push(linha);
+        } catch (e) {
+            console.error('[fechamento] montar pacote do contador', comp, e);
+            if (typeof mostrarToast === 'function') mostrarToast(`Erro ao montar o pacote de ${comp}: ${e.message}`, 'danger');
+        }
+    }
+    if (!pacotes.length) return;
+
+    let arquivos;
+    try {
+        arquivos = pacotes.map(p => fechamentoMontarPdfPacote(p));
+    } catch (e) {
+        console.error('[fechamento] montar PDF do pacote', e);
+        if (typeof mostrarToast === 'function') mostrarToast('Não consegui montar o PDF agora.', 'danger');
+        return;
+    }
+
+    let compartilhouNativo = false;
+    if (typeof navigator !== 'undefined' && navigator.canShare) {
+        try {
+            const files = arquivos.map(a => new File([a.blob], a.nome, { type: 'application/pdf' }));
+            if (navigator.canShare({ files })) {
+                await navigator.share({ files, title: 'Pacote do contador', text: fechamentoTextoResumo(pacotes) });
+                compartilhouNativo = true;
+            }
+        } catch (e) {
+            compartilhouNativo = false; // usuário cancelou ou o navegador recusou — segue pro fallback abaixo
+        }
+    }
+
+    if (!compartilhouNativo) {
+        arquivos.forEach(a => a.pdf.save(a.nome));
+        const texto = encodeURIComponent(fechamentoTextoResumo(pacotes) + `\n\n(${arquivos.length > 1 ? 'PDFs baixados' : 'PDF baixado'} — anexe antes de enviar)`);
+        if (canal === 'whatsapp') {
+            const numero = (contadorInfo?.whatsapp || '').replace(/\D/g, '');
+            if (!numero) { if (typeof mostrarToast === 'function') mostrarToast('Contador sem WhatsApp cadastrado — PDF baixado, envie manualmente.', 'info'); return; }
+            window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
+        } else {
+            const email = contadorInfo?.email || '';
+            if (!email) { if (typeof mostrarToast === 'function') mostrarToast('Contador sem e-mail cadastrado — PDF baixado, envie manualmente.', 'info'); return; }
+            window.open(`mailto:${email}?subject=${encodeURIComponent('Pacote do fechamento')}&body=${texto}`, '_blank');
+        }
+    }
+    if (typeof mostrarToast === 'function') mostrarToast('Pacote pronto.', 'success');
+}
+
+function fechamentoOrigemRotulo(o) {
+    if (!o || o === 'manual') return 'Manual';
+    if (o === 'extrato') return 'Extrato bancário';
+    if (String(o).startsWith('automatico:')) return 'Automático · ' + String(o).split(':')[1];
+    return String(o);
+}
+
+/** Constrói o PDF do pacote a partir do bloco 'contabil' do snapshot
+ * (linha.dados.recebimentos/saidas/repasses) — mesmo padrão de
+ * baixarRelatorioPdfLocal() no index.html (jsPDF puro, sem
+ * html2canvas). */
+function fechamentoMontarPdfPacote(linha) {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const margin = 12;
+    let y = 15;
+    const mesRotulo = new Date(linha.competencia + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const nomeEmpresa = (typeof CONFIG_CLIENTE !== 'undefined' && CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) ? CONFIG_CLIENTE.nomeEmpresa : 'RAIZ PATRIMÔNIO';
+
+    pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(14); pdf.setTextColor(26, 54, 93);
+    pdf.text(`${nomeEmpresa.toUpperCase()} — PACOTE DO CONTADOR`, margin, y);
+    pdf.setFont('Helvetica', 'normal'); pdf.setFontSize(10); pdf.setTextColor(113, 128, 150);
+    y += 7; pdf.text(`Competência: ${mesRotulo}`, margin, y);
+    y += 5; pdf.text(`Fechado em: ${new Date(linha.fechado_em).toLocaleString('pt-BR')}`, margin, y);
+    y += 3; pdf.line(margin, y + 2, pdf.internal.pageSize.getWidth() - margin, y + 2);
+    y += 10;
+
+    const dados = linha.dados || {};
+    const recebimentos = dados.recebimentos || [];
+    const saidas = dados.saidas || [];
+    const repasses = dados.repasses || [];
+
+    const totalRec = recebimentos.reduce((s, i) => s + Number(i.valor || 0), 0);
+    const totalSai = saidas.reduce((s, i) => s + Number(i.valor || 0), 0);
+    const totalRep = repasses.reduce((s, i) => s + Number(i.valor || 0), 0);
+    pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(26, 54, 93);
+    pdf.text(`Recebido: ${fechamentoMoeda(totalRec)}   ·   Pago: ${fechamentoMoeda(totalSai)}   ·   Repasses: ${fechamentoMoeda(totalRep)}`, margin, y);
+    y += 10;
+
+    const secao = (titulo, itens, colunas) => {
+        if (y > 265) { pdf.addPage(); y = 15; }
+        pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(26, 54, 93);
+        pdf.text(`${titulo} (${itens.length})`, margin, y); y += 6;
+        pdf.setFont('Helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(45, 55, 72);
+        if (!itens.length) { pdf.text('Nenhum lançamento.', margin, y); y += 8; return; }
+        itens.forEach(it => {
+            if (y > 275) { pdf.addPage(); y = 15; }
+            pdf.text(colunas(it), margin, y);
+            y += 5.5;
+        });
+        y += 5;
+    };
+
+    secao('Recebimentos', recebimentos, (i) =>
+        `${i.data_pgto ? new Date(i.data_pgto).toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(i.valor)}  ·  ${fechamentoOrigemRotulo(i.origem)}`);
+    secao('Saídas', saidas, (i) =>
+        `${i.data_pagamento ? new Date(i.data_pagamento).toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(i.valor)}  ·  ${i.categoria || ''}  ·  ${fechamentoOrigemRotulo(i.origem)}`);
+    secao('Repasses', repasses, (i) =>
+        `${i.data ? new Date(i.data).toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(i.valor)}  ·  ${i.razao_social || ''}`);
+
+    const nomeArquivo = `pacote-contador-${linha.competencia}.pdf`;
+    return { pdf, blob: pdf.output('blob'), nome: nomeArquivo };
+}
+
+function fechamentoTextoResumo(pacotes) {
+    const linhas = pacotes.map(p => {
+        const mes = new Date(p.competencia + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        const dados = p.dados || {};
+        const totalRec = (dados.recebimentos || []).reduce((s, i) => s + Number(i.valor || 0), 0);
+        const totalSai = (dados.saidas || []).reduce((s, i) => s + Number(i.valor || 0), 0);
+        return `${mes}: recebido ${fechamentoMoeda(totalRec)}, pago ${fechamentoMoeda(totalSai)}`;
+    });
+    return `Pacote do fechamento:\n${linhas.join('\n')}`;
 }
