@@ -1,7 +1,20 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.4.0 (22/09/2026 — demanda 60284322, navegação por rodapé)
+// VERSÃO: Beta v1.5.0 (22/09/2026 — demanda 8ac32623)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.5.0) — demanda 8ac32623 (achado do Nicola em revisão
+// de telas, 21/09/2026):
+//   — Patrimônio (card de KPIs e card Performance) passa a mostrar em
+//     formato compacto ("R$ 41,9 mi"), reusando formatarValorCompacto que
+//     a Visão Geral (index.html) já usa — mesmo formato em vez de um 2º
+//     jeito de abreviar dinheiro (CAN-03).
+//   — 4ª caixa de KPI: Inadimplência (valor em atraso no período) — opção
+//     escolhida pelo Nicola entre as apresentadas (pergunta de múltipla
+//     escolha). Mesmo campo inadimplencia_valor que o card Performance já
+//     mostrava mais abaixo — fonte única.
+//   — "Resultado mês a mês": legenda nova pra linha tracejada (média do
+//     período), que antes só era explicada no Sheet do ícone (i).
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.4.0):
 //   — resetarResultadosParaAbaInicial() nova (demanda 60284322 — "navegação
@@ -137,7 +150,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.4.0';
+export const VERSAO = '1.5.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -159,6 +172,20 @@ function filtroForaDoPadrao() {
 }
 
 function pctFmt(v) { return v == null ? '—' : `${v}%`; }
+
+// v1.5.0 (demanda 8ac32623) — "Patrimônio" em milhões (mesmo padrão
+// compacto "R$ 41,9 mi" que a Visão Geral já usa em formatarValorCompacto,
+// index.html) — reusa a MESMA função em vez de reinventar um 2º formato
+// compacto (CAN-03, "não duplicar regra"). formatarValorCompacto é uma
+// function de topo de um <script> clássico (não módulo), então vira
+// window.formatarValorCompacto — acessível daqui. Fallback defensivo pro
+// formato cheio se por algum motivo não existir (nunca deveria acontecer
+// em produção; só protege contra o script principal ainda não ter
+// terminado de carregar num cenário incomum).
+function formatarPatrimonioCompacto(v) {
+    if (typeof window.formatarValorCompacto === 'function') return window.formatarValorCompacto(v);
+    return formatarMoedaBR(v || 0);
+}
 
 // v1.3.0 (B1.2) — sinal explícito (+/-), 2 casas, vírgula — mesmo padrão
 // já usado em fn_revisao_valor_sugerir (R.4) e fn_simular_reajuste_
@@ -441,6 +468,12 @@ function montarKpis(resumo, perf) {
     const saidasAno = perf ? perf.saidas_ano : (resumo ? resumo.saidas_ano : null);
     const patrimonio = perf ? perf.patrimonio : (resumo ? resumo.soma_valor_mercado : null);
     const rentabilidade = perf ? perf.rentabilidade_pct : (resumo ? resumo.yield_ano_pct : null);
+    // v1.5.0 (demanda 8ac32623) — 4ª caixa: Inadimplência (valor em atraso
+    // no período — decisão do Nicola entre as opções propostas). Mesmo
+    // campo inadimplencia_valor que o card "Performance" já usa mais
+    // abaixo (montarPerformanceGrid) — fonte única, nunca 2 contas
+    // diferentes pra "quanto está em atraso" na mesma tela.
+    const inadimplencia = perf ? perf.inadimplencia_valor : (resumo ? resumo.inadimplencia_valor : null);
     // Carteira usa fn_resumo_resultados.ocupacao_pct direto; Empreendimento
     // não tem esse campo pronto (fn_performance_empreendimento só devolve
     // dias_alugado_medio/dias_vago_medio) — deriva o % localmente, mesma
@@ -455,9 +488,10 @@ function montarKpis(resumo, perf) {
     const heroClasse = !familia && Number(resultadoAno) < 0 ? ' rz-bad' : '';
 
     const cards = [`<div class="rz-kpi rz-hero${heroClasse}"><small>${heroLabel}</small><b>${heroValor}</b></div>`];
-    cards.push(`<div class="rz-kpi"><small>Patrimônio</small><b>${formatarMoedaBR(patrimonio || 0)}</b></div>`);
+    cards.push(`<div class="rz-kpi"><small>Patrimônio</small><b>${formatarPatrimonioCompacto(patrimonio)}</b></div>`);
     if (!familia) cards.push(`<div class="rz-kpi"><small>Rentabilidade</small><b>${pctFmt(rentabilidade)}</b></div>`);
     cards.push(`<div class="rz-kpi"><small>${familia ? 'Ativos em uso' : 'Ocupação'}</small><b>${pctFmt(ocupacaoValor)}</b></div>`);
+    cards.push(`<div class="rz-kpi${Number(inadimplencia) > 0 ? ' rz-bad' : ''}"><small>Inadimplência</small><b>${formatarMoedaBR(inadimplencia || 0)}</b></div>`);
 
     return `<div class="rz-kpis">${cards.join('')}</div>`;
 }
@@ -505,12 +539,20 @@ function montarGraficoMensal(mensal) {
             <small style="font-size:9.5px;color:var(--muted);margin-top:3px">${NOMES_MES[m.mes - 1]}</small>
         </div>`;
     }).join('');
+    // v1.5.0 (demanda 8ac32623) — legenda nova: a linha tracejada (média
+    // do período) não tinha nenhuma explicação na própria tela (só no
+    // Sheet do ícone i, que nem todo mundo abre). Legenda curta, mesmo
+    // estilo .rz-desc já usado no resto do card — não virou componente
+    // novo (CAN-03/UI-05).
     return `<div class="rz-card">
         <div class="rz-card-h" style="justify-content:space-between"><b>Resultado mês a mês</b>${botaoInfoCard('abrirInfoResultadoMensal()')}</div>
         <div style="height:130px;display:flex;align-items:flex-end;gap:3px;position:relative;margin-top:14px">
             <div style="position:absolute;left:0;right:0;bottom:${mediaPct}%;border-top:1px dashed var(--sage)"></div>
             ${barras}
         </div>
+        <p class="rz-desc" style="margin-top:10px;font-size:10.5px;display:flex;align-items:center;gap:5px">
+            <span style="display:inline-block;width:12px;border-top:1px dashed var(--sage)"></span> Média do período
+        </p>
     </div>`;
 }
 
@@ -813,7 +855,7 @@ function montarPerformanceGrid(perf) {
         kv('Resultado líquido', formatarMoedaBR(perf.resultado_liquido || 0)),
         familia ? '' : kv('Rentabilidade', pctFmt(perf.rentabilidade_pct)),
         kv('Receita do ano', formatarMoedaBR(perf.receita_ano || 0)),
-        kv('Patrimônio', formatarMoedaBR(perf.patrimonio || 0)),
+        kv('Patrimônio', formatarPatrimonioCompacto(perf.patrimonio)),
         kv('Tempo médio alugado', perf.dias_alugado_medio != null ? `${Math.round(perf.dias_alugado_medio)} dias` : '—'),
         kv('Tempo médio vago', perf.dias_vago_medio != null ? `${Math.round(perf.dias_vago_medio)} dias` : '—'),
         kv('Tributos', formatarMoedaBR(perf.tributos || 0)),
