@@ -1,6 +1,28 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.30.0 · 19/09/2026 (rodada 10)
+// Versão: 1.31.0 · 22/09/2026
+//
+// v1.31.0 (demanda be42b19f, "Padronizar componente de Parte em todo o
+// app", achado do Nicola em revisão de telas, 21/09/2026) — Ficha e
+// formulário de Parte (abrirFichaParte/abrirEditarParte, nascidas em
+// 18/09/2026) passam a usar os componentes compartilhados novos
+// (comum-partes.js + comum-endereco.js, mesmos que Configurações ›
+// Partes usa em index.html): endereço vira bloco estruturado (CEP com
+// busca automática, rua/número/bairro/cidade/UF) em vez de 1 campo de
+// texto livre; formulário ganha profissão/estado civil, que não
+// existiam aqui. abrirFichaParte() ganha um resumo de verdade (.rz-kv,
+// abrirSheet) em vez de espremer tudo numa linha de subtítulo do menu de
+// ações — cai pra sheetAcoes simples se abrirSheet não existir (defensivo).
+// Corrigidos junto (bugs reais encontrados nesta revisão, não só o pedido
+// original): api.buscarParte()/api.atualizarParte() (cofre-api.js
+// v1.44.0) eram chamadas mas nunca tinham sido escritas; o clique na
+// linha de uma parte (data-action="abrir-ficha-parte", 18/09/2026) nunca
+// tinha um case no despachante (cofre-app.js v1.35.0) — os dois eram a
+// causa real de "clicar numa parte não abre nada" e "editar abre
+// formulário incompleto" (demanda). migration
+// partes_endereco_estruturado_v1 (colunas endereco_rua/num/comp/bairro/
+// cidade/uf/cep/codigo_ibge_municipio em `partes`, mesmo padrão de
+// cofre_ativos; `endereco` texto livre mantido, não apagado — DAD-04).
 //
 // v1.29.0 — CORRIGIDO (achado do Nicola: "no ativo da Faria Lima tem um
 // alerta vermelho mas sem item em alerta aparente") — ver changelog
@@ -396,7 +418,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.30.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.31.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -408,6 +430,13 @@ import {
     numeroWhatsAppComDDI,
     inicializarCatalogoTiposAtivo, listarTiposPorCategoria,
 } from './cofre-validacoes.js';
+// v1.31.0 (demanda be42b19f, "componente único de Parte") — Ficha e
+// formulário de uma Parte passam a montar seus campos com o MESMO
+// componente que Configurações › Partes usa (comum-partes.js, novo) +
+// o bloco de endereço estruturado (comum-endereco.js, já existia — seu
+// próprio header já previa "partes" como consumidor futuro).
+import { renderizarBlocoDadosParte, lerBlocoDadosParte, renderizarResumoParte, formatarEnderecoParte } from './comum-partes.js';
+import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
 // v1.20.2 (E0.2 / A8) — cache separado do catalogo FILTRADO pelo tipo de
@@ -1470,22 +1499,57 @@ export function acionarParteItemDireto(whatsapp) {
 // Chamada por data-action="abrir-ficha-parte" (linha da parte, abaixo, e
 // contratos.js — atalho "Editar locatário"/fiador), então funciona de
 // qualquer tela sem import cruzado (mesmo padrão de abrir-documento).
+// v1.31.0 (demanda be42b19f, item 4 — "clicar numa parte listada deveria
+// abrir um resumo com a maioria dos dados dela") — antes cabia tudo numa
+// linha só de subtítulo do menu de ações (sheetAcoes); passa a abrir a
+// MESMA gramática de ficha só-leitura usada em Configurações › Partes
+// (abrirSheet + rzSheetCabecalho + .rz-kv, index.html), com
+// renderizarResumoParte() (comum-partes.js) montando o card — Editar/
+// Acionar continuam logo abaixo, como ações da própria ficha (não um
+// sheet de menu separado). Cai pra sheetAcoes simples se abrirSheet não
+// existir por algum motivo (defensivo, mesmo padrão de abrirSheetForm
+// abaixo).
 export async function abrirFichaParte(parteId) {
     if (!parteId) { mostrarToast('Parte não encontrada.', 'erro'); return; }
     let p;
     try { p = await api.buscarParte(parteId); } catch (err) { mostrarToast('Erro ao carregar a parte: ' + (err.message || String(err)), 'erro'); return; }
     if (!p) { mostrarToast('Parte não encontrada.', 'erro'); return; }
-    const linhasInfo = [p.documento, p.whatsapp, p.email, p.endereco].filter(Boolean);
-    sheetAcoes({
-        titulo: p.nome || 'Parte',
-        sub: linhasInfo.length ? linhasInfo.join(' · ') : 'Sem dados de contato cadastrados ainda',
-        acoes: [
-            { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.controles.editar', sub: 'Nome, documento, telefone, e-mail, endereço', aoTocar: () => abrirEditarParte(parteId) },
-            ...(p.whatsapp ? [{ icone: 'message-circle', titulo: 'Acionar por WhatsApp', aoTocar: () => acionarParteWhatsAppDireto(p.whatsapp) }] : []),
-            ...(p.email ? [{ icone: 'mail', titulo: 'Acionar por e-mail', aoTocar: () => acionarParteEmailDireto(p.email) }] : []),
-        ]
-    });
+
+    if (typeof window.abrirSheet !== 'function' || typeof window.rzSheetCabecalho !== 'function') {
+        const linhasInfo = [p.documento, p.whatsapp, p.email, formatarEnderecoParte(p)].filter(Boolean);
+        sheetAcoes({
+            titulo: p.nome || 'Parte',
+            sub: linhasInfo.length ? linhasInfo.join(' · ') : 'Sem dados de contato cadastrados ainda',
+            acoes: [
+                { icone: 'pencil', titulo: 'Editar dados', codigo: 'cofre.controles.editar', sub: 'Nome, documento, telefone, e-mail, endereço', aoTocar: () => abrirEditarParte(parteId) },
+                ...(p.whatsapp ? [{ icone: 'message-circle', titulo: 'Acionar por WhatsApp', aoTocar: () => acionarParteWhatsAppDireto(p.whatsapp) }] : []),
+                ...(p.email ? [{ icone: 'mail', titulo: 'Acionar por e-mail', aoTocar: () => acionarParteEmailDireto(p.email) }] : []),
+            ]
+        });
+        return;
+    }
+
+    window.abrirSheet(window.rzSheetCabecalho(p.nome || 'Parte', p.documento ? `${p.doc_tipo || ''} ${p.documento}`.trim() : '') + `
+        <div class="rz-sh-b">
+            <div class="rz-card">
+                <div class="rz-card-h"><h3>Dados</h3><button type="button" onclick="window.__rzPartesItem_editar('${parteId}')" class="rz-more" aria-label="Editar"><svg data-lucide="pencil"></svg></button></div>
+                ${renderizarResumoParte(p)}
+            </div>
+            <div style="display:flex;gap:8px;margin-top:4px">
+                ${p.whatsapp ? `<button type="button" onclick="window.__rzPartesItem_whatsapp('${escapeHtml(p.whatsapp)}')" style="flex:1;background:var(--tile);color:var(--success);font-weight:bold;font-size:12.5px;padding:9px;border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px"><svg data-lucide="message-circle" style="width:14px;height:14px"></svg> WhatsApp</button>` : ''}
+                ${p.email ? `<button type="button" onclick="window.__rzPartesItem_email('${escapeHtml(p.email)}')" style="flex:1;background:var(--tile);color:var(--pine);font-weight:bold;font-size:12.5px;padding:9px;border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px"><svg data-lucide="mail" style="width:14px;height:14px"></svg> E-mail</button>` : ''}
+            </div>
+        </div>`);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+// Bridges pro onclick inline do sheet acima — este módulo é sempre
+// dinamicamente importado (nunca <script> clássico), então os onclick
+// (resolvidos em tempo de clique, contra o escopo global) precisam de um
+// window.* pra achar as funções do módulo. Mesmo padrão já usado por
+// comum-endereco.js (window.rzConsultarCepBloco etc.).
+window.__rzPartesItem_editar = (parteId) => abrirEditarParte(parteId);
+window.__rzPartesItem_whatsapp = (whatsapp) => acionarParteWhatsAppDireto(whatsapp);
+window.__rzPartesItem_email = (email) => acionarParteEmailDireto(email);
 
 // Acionar genérico (fora do contexto de "cotação de renovação" de
 // acionarParteItemDireto, acima, que é específico do item em foco) — usado
@@ -1501,6 +1565,16 @@ export function acionarParteEmailDireto(email) {
     window.open(`mailto:${email}`, '_blank', 'noopener');
 }
 
+// v1.31.0 (demanda be42b19f, item 3 — "Editar abre formulário incompleto:
+// sem endereço e demais atributos") — corpo passa a ser montado por
+// renderizarBlocoDadosParte()/renderizarBlocoEndereco() (mesmos 2
+// componentes agora usados em Configurações › Partes, index.html), em vez
+// de 5 campos escritos à mão aqui — ganha profissão/estado civil e o
+// bloco de endereço estruturado (CEP/rua/número/bairro/cidade/UF, com
+// busca automática por CEP) de graça, sem duplicar HTML. Grava as duas
+// formas de endereço: as colunas estruturadas (edição) + `endereco`
+// texto (compatibilidade — quem ainda só lê essa coluna continua
+// funcionando; partes_endereco_estruturado_v1).
 export async function abrirEditarParte(parteId) {
     if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
     let p;
@@ -1509,25 +1583,28 @@ export async function abrirEditarParte(parteId) {
     window.abrirSheetForm({
         titulo: 'Editar parte',
         sub: p.nome || '',
-        corpo: `
-            <div class="rz-f"><label>Nome <i>*</i></label><input type="text" id="pf-nome" maxlength="200" value="${escapeHtml(p.nome || '')}"></div>
-            <div class="rz-f"><label>Documento (CPF/CNPJ)</label><input type="text" id="pf-documento" maxlength="20" value="${escapeHtml(p.documento || '')}"></div>
-            <div class="rz-f"><label>WhatsApp</label><input type="tel" id="pf-whatsapp" maxlength="20" value="${escapeHtml(p.whatsapp || '')}"></div>
-            <div class="rz-f"><label>E-mail</label><input type="email" id="pf-email" maxlength="200" value="${escapeHtml(p.email || '')}"></div>
-            <div class="rz-f"><label>Endereço</label><input type="text" id="pf-endereco" maxlength="300" value="${escapeHtml(p.endereco || '')}"></div>
-        `,
+        corpo: renderizarBlocoDadosParte('pf', p, { mostrarProfissaoEstadoCivil: true })
+             + renderizarBlocoEndereco('pf', p, { mostrarBotaoCopiar: false }),
         rotuloSalvar: 'Salvar',
         aoSalvar: async () => {
-            const nome = document.getElementById('pf-nome').value.trim();
-            if (!nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
+            const dados = lerBlocoDadosParte('pf');
+            if (!dados.nome) { mostrarToast('Nome não pode ficar vazio.', 'erro'); return false; }
+            // Bloco de endereço nasce PRÉ-preenchido com o que `p` já tinha
+            // (renderizarBlocoEndereco recebeu `p` acima), então uma parte
+            // que já veio do formulário novo mantém seus campos ao reabrir.
+            // Mas uma parte ANTIGA (só tem `.endereco` texto livre, colunas
+            // estruturadas nunca preenchidas) mostra o bloco em branco — se
+            // salvar sem tocar nele, formatado fica vazio; nesse caso
+            // preserva o `.endereco` antigo em vez de apagar (mesmo
+            // cuidado já tomado em index.html/salvarParteSheet e em
+            // contratos.js/salvarDadosNovoContratoPopup, mesma demanda).
+            const enderecoEstruturado = lerBlocoEndereco('pf');
+            const formatado = formatarEnderecoParte(enderecoEstruturado);
+            const patchEndereco = formatado
+                ? { ...enderecoEstruturado, endereco: formatado }
+                : { endereco: p.endereco || null }; // bloco em branco — mantém o texto antigo, não mexe nas colunas estruturadas
             try {
-                await api.atualizarParte(parteId, {
-                    nome,
-                    documento: document.getElementById('pf-documento').value.trim() || null,
-                    whatsapp: document.getElementById('pf-whatsapp').value.trim() || null,
-                    email: document.getElementById('pf-email').value.trim() || null,
-                    endereco: document.getElementById('pf-endereco').value.trim() || null,
-                });
+                await api.atualizarParte(parteId, { ...dados, ...patchEndereco });
                 mostrarToast('Parte atualizada.');
                 window.dispatchEvent(new CustomEvent('cofre:recarregar-partes'));
                 return true;

@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.43.0 · 22/09/2026
+// Versão: 1.44.0 · 22/09/2026
+//
+// v1.44.0 (demanda be42b19f, "componente único de Parte") — buscarParte()/
+// atualizarParte() novas: BUG REAL achado por mim revisando o pedido do
+// Nicola — abrirFichaParte()/abrirEditarParte() (cofre-controles.js,
+// 18/09/2026) já chamavam api.buscarParte()/api.atualizarParte(), mas
+// essas 2 funções nunca tinham sido escritas neste arquivo (teriam
+// estourado "is not a function" assim que o clique chegasse até elas —
+// corrigido junto com o despachante, cofre-app.js v1.35.0, antes de
+// entregar).
 //
 // v1.43.0 (Entrega R.4, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0
 // / ESP v1.3.0 §8.1) — 2 funções novas pro card "Revisão anual de valor" da
@@ -396,7 +405,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.43.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.44.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1165,6 +1174,28 @@ export async function materializarPartePadrao(clienteId, partePadraoId) {
 // Partes do item de controle quando a parte ainda não existe.
 export async function criarParteRapida(clienteId, nome) {
     return await dbAuth.from('partes').insert({ cliente_id: clienteId, nome }).select('id, nome').single();
+}
+
+// v1.44.0 (demanda be42b19f, item 3/4 — BUG REAL achado por mim revisando
+// o pedido do Nicola de padronizar o componente de Parte): abrirFichaParte()
+// e abrirEditarParte() (cofre-controles.js v1.18.0, 18/09/2026) já chamavam
+// api.buscarParte()/api.atualizarParte() — mas essas duas funções nunca
+// tinham sido escritas aqui. Antes da correção do despachante (cofre-app.js
+// v1.35.0, mesma demanda), o clique nem chegava a executar esse código; com
+// o despachante corrigido, teria estourado "api.buscarParte is not a
+// function" — corrigido junto, antes de entregar, pra não trocar um bug
+// mudo por outro. select('*') traz também as colunas de endereço
+// estruturado novas (partes_endereco_estruturado_v1) sem precisar listar
+// campo a campo.
+export async function buscarParte(parteId) {
+    const { data, error } = await dbAuth.from('partes').select('*').eq('id', parteId).maybeSingle();
+    if (error) throw error;
+    return data;
+}
+
+export async function atualizarParte(parteId, patch) {
+    const { error } = await dbAuth.from('partes').update(patch).eq('id', parteId);
+    if (error) throw error;
 }
 
 // E15.2 ("A2") — mesmo padrão de listarPartesCliente/criarParteRapida,

@@ -1,7 +1,32 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.15.0 · 22/09/2026
+// Versão: 1.16.0 · 22/09/2026
+//
+// v1.16.0 (demanda be42b19f, "Padronizar componente de Parte em todo o
+// app", achado do Nicola em revisão de telas, 21/09/2026) — 2 itens desta
+// demanda vivem aqui (os outros: cofre-controles.js/cofre-api.js/
+// cofre-app.js/comum-partes.js novo — ver changelog deles):
+//   (1) "Dados Novo Contrato" (abrirDadosNovoContratoPopup): campo
+//   "Endereço atual do locatário" era 1 textarea de texto livre — passa a
+//   usar o bloco de endereço estruturado (comum-endereco.js), mesmo
+//   componente que Configurações › Partes e o Item de Controle já usam.
+//   salvarDadosNovoContratoPopup() concatena os campos estruturados num
+//   texto só (locatario_endereco_atual continua sendo 1 coluna de texto,
+//   sem migration nesta tela) — e, editando um contrato existente sem
+//   tocar no bloco, MANTÉM o endereço já salvo em vez de apagar (bloco
+//   nasce em branco de propósito: não dá pra reconstituir rua/número a
+//   partir do texto livre antigo).
+//   (2) montarChipsPartesContrato() (chip "Partes" do popup "Detalhes do
+//   Contrato" — aberto tanto de contratos finalizados quanto do botão
+//   "Detalhes" do contrato ATIVO, index.html): os chips de Locatário/
+//   Fiador/Divisão eram <span>, sem nenhum onclick ("editar locador hoje
+//   não abre nada" — exatamente o relato do Nicola). Viram <button>,
+//   despachando o mesmo evento cofre:abrir-ficha-parte que o chip
+//   "Partes" da ficha nova usa (agora com listener de verdade,
+//   index.html) — Locatário e Fiador já vêm com parte_id resolvido na
+//   própria consulta; Divisão abre o popup de rateio (demanda 44f30857
+//   item 4).
 //
 // v1.15.0 (demanda 44f30857, achado do Nicola em revisão de telas,
 // 21/09/2026) — aba Contratos, 4 correções (item 1, título removido da
@@ -299,7 +324,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.15.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.16.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1017,6 +1042,26 @@ export function reabrirFichaSeFor(contratoId) {
 
             const admOpts = document.getElementById('con-administradora').innerHTML;
 
+            // v1.15.0 (demanda be42b19f, item 1 — "campo de Parte não usa o
+            // padrão novo, que já tem endereço") — o campo "Endereço atual
+            // do locatário" desta tela era 1 textarea de texto livre
+            // (rua+número+bairro+cidade+UF+CEP tudo concatenado à mão);
+            // passa a usar o MESMO bloco estruturado que Configurações ›
+            // Partes e o Item de Controle já usam (comum-endereco.js —
+            // CEP com busca automática, campos separados). Escopo só do
+            // campo de endereço, de propósito — o resto desta tela (layout
+            // geral, remover Histórico) é a demanda c75076ed, separada.
+            // `con-locatario-endereco`/`locatario_endereco_atual` continua
+            // sendo 1 texto só no banco (placeholder de minuta) — o bloco
+            // estruturado só melhora a DIGITAÇÃO; salvarDadosNovoContratoPopup
+            // concatena os campos estruturados num texto só, mesmo formato
+            // de sempre, sem migration nenhuma nesta tela.
+            let blocoEnderecoLocatario = `<textarea id="dnc-endereco" required rows="3" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">${(con?.locatarioEnderecoAtual || '').replace(/</g, '&lt;')}</textarea>`; // fallback se o import falhar
+            try {
+                const { renderizarBlocoEndereco } = await import('./comum-endereco.js');
+                blocoEnderecoLocatario = renderizarBlocoEndereco('dnc', {}, { mostrarBotaoCopiar: false });
+            } catch (err) { console.warn('[contratos] Falha ao carregar bloco de endereço, usando campo simples:', err.message); }
+
             const modal = document.createElement('div');
             modal.id = 'modal-campo-contrato';
             modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
@@ -1111,17 +1156,50 @@ export function reabrirFichaSeFor(contratoId) {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
-        export function salvarDadosNovoContratoPopup(imovelId, contratoId) {
+        // v1.15.0 (demanda be42b19f, item 1) — vira async pra poder ler o
+        // bloco de endereço estruturado (import dinâmico, mesmo padrão do
+        // popup acima). 'dnc-endereco' saiu da lista simples de
+        // obrigatórios — quando o bloco estruturado carrega, esse id não
+        // existe mais como elemento único; a checagem de endereço abaixo é
+        // separada, e EDITANDO um contrato existente sem mexer no bloco
+        // (campos ficam em branco de propósito — não dá pra reconstituir
+        // rua/número/bairro a partir do texto livre antigo) o endereço
+        // salvo antes é MANTIDO, nunca apagado.
+        export async function salvarDadosNovoContratoPopup(imovelId, contratoId) {
             // Validação simples (os "required" no HTML não bloqueiam
             // sozinhos porque este popup não é um <form> — mesma checagem
             // que os demais campos obrigatórios desta ficha já fazem).
-            const camposObrigatorios = ['dnc-locatario', 'dnc-cpf', 'dnc-whatsapp', 'dnc-email', 'dnc-endereco', 'dnc-profissao', 'dnc-estado-civil', 'dnc-inicio', 'dnc-fim', 'dnc-valor', 'dnc-vencimento-dia', 'dnc-reajuste'];
+            const camposObrigatorios = ['dnc-locatario', 'dnc-cpf', 'dnc-whatsapp', 'dnc-email', 'dnc-profissao', 'dnc-estado-civil', 'dnc-inicio', 'dnc-fim', 'dnc-valor', 'dnc-vencimento-dia', 'dnc-reajuste'];
             for (const campoId of camposObrigatorios) {
                 const el = document.getElementById(campoId);
                 if (!el || !el.value || !el.value.toString().trim()) {
                     alert('⚠️ Preencha todos os campos obrigatórios (*).');
                     el?.focus();
                     return;
+                }
+            }
+            const conAtual = contratoId ? contratos.find(c => c.id === contratoId) : null;
+            // Endereço: bloco estruturado (dnc-rua/cep/...) quando o import
+            // deu certo, texto simples (dnc-endereco) no fallback. Exige
+            // preenchimento só quando NÃO há endereço salvo antes (contrato
+            // novo, ou existente que nunca teve endereço) — editar sem
+            // tocar no bloco preserva o que já estava salvo.
+            let enderecoLocatarioFinal = conAtual?.locatarioEnderecoAtual || '';
+            if (document.getElementById('dnc-endereco')) {
+                const texto = document.getElementById('dnc-endereco').value.trim();
+                if (texto) enderecoLocatarioFinal = texto;
+                else if (!enderecoLocatarioFinal) { alert('⚠️ Preencha o endereço do locatário.'); document.getElementById('dnc-endereco').focus(); return; }
+            } else if (document.getElementById('dnc-rua') || document.getElementById('dnc-cep')) {
+                try {
+                    const { lerBlocoEndereco } = await import('./comum-endereco.js');
+                    const { formatarEnderecoParte } = await import('./comum-partes.js');
+                    const estruturado = lerBlocoEndereco('dnc');
+                    const formatado = formatarEnderecoParte(estruturado);
+                    if (formatado) enderecoLocatarioFinal = formatado;
+                    else if (!enderecoLocatarioFinal) { alert('⚠️ Preencha o endereço do locatário (ao menos rua e cidade).'); return; }
+                } catch (err) {
+                    console.warn('[contratos] Falha ao ler bloco de endereço estruturado:', err.message);
+                    if (!enderecoLocatarioFinal) { alert('⚠️ Não consegui carregar o campo de endereço. Recarregue a página e tente de novo.'); return; }
                 }
             }
 
@@ -1149,7 +1227,7 @@ export function reabrirFichaSeFor(contratoId) {
             formatarMascaraDocumento();
             document.getElementById('con-whatsapp').value = document.getElementById('dnc-whatsapp').value.trim();
             document.getElementById('con-email').value = document.getElementById('dnc-email').value.trim();
-            document.getElementById('con-locatario-endereco').value = document.getElementById('dnc-endereco').value.trim();
+            document.getElementById('con-locatario-endereco').value = enderecoLocatarioFinal;
             document.getElementById('con-locatario-profissao').value = document.getElementById('dnc-profissao').value.trim();
             document.getElementById('con-locatario-estado-civil').value = document.getElementById('dnc-estado-civil').value;
             document.getElementById('con-inicio').value = document.getElementById('dnc-inicio').value;
@@ -1580,22 +1658,44 @@ export function reabrirFichaSeFor(contratoId) {
         // v1.17.0 (NOVO) — busca as 3 fontes em paralelo e monta os chips.
         // Sem ação de clicar (só exibição) — os 3 fluxos de escrita
         // continuam nos próprios popups de sempre.
+        // v1.15.0 (demanda be42b19f, item 2 — achado do Nicola: "editar
+        // uma parte (ex. 'editar locador') hoje não abre nada") — os 3
+        // tipos de chip eram <span>, sem onclick nenhum ("Sem ação de
+        // clicar" dizia o comentário original de propósito, mas esta tela
+        // (abrirDetalhesContrato) também é aberta a partir do botão
+        // "Detalhes" do contrato ATIVO, index.html, não só de contratos
+        // finalizados — então "sem ação" virou o próprio bug relatado).
+        // Locatário e Fiador viram <button>, despachando o MESMO evento
+        // 'cofre:abrir-ficha-parte' que o chip "Partes" da ficha nova usa
+        // (agora com listener de verdade em index.html, corrigido nesta
+        // mesma demanda) — os dois já vêm com parte_id resolvido nesta
+        // consulta, sem precisar de uma 2ª função só pra isso. Divisão
+        // (recebe X%) abre o popup de rateio já existente
+        // (abrirAcoesDistribuicaoContrato, demanda 44f30857 item 4) — não
+        // é edição de UMA parte, mas é a ação equivalente disponível hoje.
         export async function montarChipsPartesContrato(con) {
             const mount = document.getElementById('mdt-partes');
             if (!mount) return;
             try {
-                const [fiadoresRes, divisaoRes] = await Promise.all([
-                    dbAuth.from('partes_papeis').select('partes(nome)').eq('entidade_tipo', 'contrato').eq('entidade_id', con.id).eq('papel', 'fiador').eq('ativo', true),
+                const [locatarioRes, fiadoresRes, divisaoRes] = await Promise.all([
+                    dbAuth.from('partes_papeis').select('parte_id').eq('entidade_tipo', 'contrato').eq('entidade_id', con.id).eq('papel', 'locatario').eq('ativo', true).limit(1).maybeSingle(),
+                    dbAuth.from('partes_papeis').select('parte_id, partes(nome)').eq('entidade_tipo', 'contrato').eq('entidade_id', con.id).eq('papel', 'fiador').eq('ativo', true),
                     dbAuth.from('divisao_repasse_contrato').select('nome_externo, percentual, pessoas(nome)').eq('contrato_id', con.id)
                 ]);
+                const chipBtn = (rotulo, onclick) => `<button type="button" onclick="${onclick}" class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${rotulo}</button>`;
+                const chipSpan = (rotulo) => `<span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${rotulo}</span>`;
+                const abrirParteJs = (parteId) => `window.dispatchEvent(new CustomEvent('cofre:abrir-ficha-parte', { detail: { id: '${parteId}' } }))`;
                 const chips = [];
-                if (con.locatario) chips.push(`<span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtmlSaidas(con.locatario)} · Locatário</span>`);
+                if (con.locatario) {
+                    const rot = `${escapeHtmlSaidas(con.locatario)} · Locatário`;
+                    chips.push(locatarioRes.data?.parte_id ? chipBtn(rot, abrirParteJs(locatarioRes.data.parte_id)) : chipSpan(rot));
+                }
                 (fiadoresRes.data || []).forEach(f => {
-                    if (f.partes?.nome) chips.push(`<span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtmlSaidas(f.partes.nome)} · Fiador</span>`);
+                    if (f.partes?.nome && f.parte_id) chips.push(chipBtn(`${escapeHtmlSaidas(f.partes.nome)} · Fiador`, abrirParteJs(f.parte_id)));
                 });
                 (divisaoRes.data || []).forEach(d => {
                     const nome = d.pessoas?.nome || d.nome_externo;
-                    if (nome) chips.push(`<span class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-300">${escapeHtmlSaidas(nome)} · Recebe ${Number(d.percentual)}%</span>`);
+                    if (nome) chips.push(chipBtn(`${escapeHtmlSaidas(nome)} · Recebe ${Number(d.percentual)}%`, `abrirAcoesDistribuicaoContrato('${con.id}')`));
                 });
                 mount.innerHTML = chips.length ? chips.join('') : `<span class="text-[11px]" style="color:var(--sage)">Nenhuma parte cadastrada ainda.</span>`;
             } catch (err) {

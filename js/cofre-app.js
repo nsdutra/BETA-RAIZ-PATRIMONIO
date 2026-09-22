@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.34.0 · 22/09/2026
+// Versão: 1.35.0 · 22/09/2026
+//
+// v1.35.0 (demanda be42b19f — BUG REAL achado por mim revisando o pedido
+// do Nicola de padronizar o componente de Parte) — case novo
+// 'abrir-ficha-parte' → controles.abrirFichaParte(). O data-action já
+// existia na linha de cada parte dentro do item de controle
+// (montarPartesItemControle, cofre-controles.js v1.18.0, 18/09/2026), mas
+// nunca teve case correspondente aqui — o clique não fazia NADA, nem
+// erro no console. Era a causa real do "clicar numa parte listada
+// deveria abrir um resumo" (a função abrirFichaParte já existia e já
+// era completa).
 //
 // v1.34.0 (demanda 44f30857, item 2) — case novo 'fa-info-performance' →
 // ativos.abrirInfoPerformanceAtivo() (cofre-ativos.js v1.60.0), ícone (i)
@@ -303,7 +313,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.34.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.35.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -644,6 +654,16 @@ document.addEventListener('click', async (ev) => {
         // contato-item saíram, 1 novo no lugar (atalho de WhatsApp, que
         // migrou pra dentro da lista de Partes).
         case 'acionar-parte-item-direto': controles.acionarParteItemDireto(alvo.dataset.whatsapp); break;
+        // v1.35.0 (demanda be42b19f, item 4 — BUG REAL achado por mim
+        // revisando o pedido do Nicola "clicar numa parte listada deveria
+        // abrir um resumo"): montarPartesItemControle() (cofre-controles.js
+        // v1.18.0, 18/09/2026) já marca cada linha com
+        // data-action="abrir-ficha-parte" — mas este despachante nunca
+        // teve o case correspondente, então o clique não fazia NADA (nem
+        // erro no console). abrirFichaParte() já existe e já é completa
+        // (dados + Editar/Acionar por WhatsApp/e-mail) — só faltava esta
+        // linha pra ligar o clique a ela.
+        case 'abrir-ficha-parte': await controles.abrirFichaParte(alvo.dataset.id); break;
 
         // ---- criação assistida (deep link contexto=imovel sem ativo ainda)
         case 'fechar-criacao-assistida': fecharModal('modal-criacao-assistida'); break;

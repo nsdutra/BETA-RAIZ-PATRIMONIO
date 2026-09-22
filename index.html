@@ -6,11 +6,41 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.240.0
-   LINHAS: 15749
-   DATA: 22/09/2026 (demanda 44f30857 — Contratos: título, ícones (i), menu
-   financeiro, rateio, layout de ocorrência — achado do Nicola em revisão de
-   telas, 21/09/2026)
+   VERSÃO: Beta v1.241.0
+   LINHAS: 15833
+   DATA: 22/09/2026 (demanda be42b19f — Padronizar componente de Parte em
+   todo o app — achado do Nicola em revisão de telas, 21/09/2026)
+   NOVIDADES (Beta v1.241.0) — demanda be42b19f (componente único de Parte):
+   Achado do Nicola: o formulário/visualizador de uma Parte (locatário,
+   fiador, proprietário, prestador) não era único — cada tela reimplementava
+   o seu, incompleto de um jeito diferente. Componente novo (comum-partes.js
+   + o bloco de endereço já existente, comum-endereco.js) reusado em 3
+   pontos de entrada; 2 bugs reais de fiação (clique morto, função nunca
+   escrita) corrigidos por trás:
+   (1) BUG REAL — "editar locador" no chip Partes do contrato não abria
+   nada: abrirFichaParteDoContrato() (contratos.js, 18/09/2026) já
+   despachava o evento cofre:abrir-ficha-parte, mas NENHUM listener pra
+   esse evento existia em lugar nenhum do app. Adicionado aqui (boot).
+   (2) BUG REAL — mesma causa, outro caminho: a linha de uma parte dentro
+   do Item de Controle (data-action="abrir-ficha-parte",
+   cofre-controles.js) nunca teve case no despachante (cofre-app.js
+   v1.35.0) — corrigido. E api.buscarParte()/api.atualizarParte()
+   (cofre-api.js v1.44.0) eram chamadas por abrirFichaParte()/
+   abrirEditarParte() mas nunca tinham sido escritas — corrigidas junto,
+   antes que o fix do despachante trocasse um bug mudo por um erro em
+   tela.
+   (3) Configurações › Partes (abrirFormParteSheet/salvarParteSheet): campo
+   "Endereço" de texto livre vira o bloco estruturado (CEP com busca
+   automática, rua/número/bairro/cidade/UF) — mesmo componente que a ficha
+   do ativo já usa.
+   (4) "Dados Novo Contrato" (contratos.js v1.16.0): mesmo bloco estruturado
+   no endereço do locatário, no lugar da textarea de texto livre.
+   (5) Ficha/edição de Parte do Item de Controle (cofre-controles.js
+   v1.31.0): ganha o resumo de verdade (.rz-kv) e o mesmo bloco de
+   endereço, além de profissão/estado civil, que faltavam.
+   migration partes_endereco_estruturado_v1 (colunas endereco_rua/num/
+   comp/bairro/cidade/uf/cep/codigo_ibge_municipio em `partes`, mesmo
+   padrão de cofre_ativos; `endereco` texto livre mantido — DAD-04).
    NOVIDADES (Beta v1.240.0) — demanda 44f30857 (Contratos, 5 itens):
    (1) Removido o título "Contratos de Locação Ativos" acima da lista —
    redundante, os chips logo abaixo já dão o contexto (mesmo padrão das
@@ -144,25 +174,8 @@
    nenhum texto afirma que a empresa é contribuinte, e não emite nada
    (emissão real de NFS-e é fase futura, fora de escopo aqui). Sem
    migration — reaproveita os tipos/funções que a AL.2 já publicou.
-   NOVIDADES (Beta v1.235.0) — Entrega F.3: achado do Nicola — "uma vez que
-   tem o chip do mês no topo, não precisa mais ter os agrupamentos e
-   filtros por competência" (aba Financeiro, Recebimentos ou Saídas).
-   Recebimentos e Saídas perdem o agrupamento colapsável por mês e o
-   filtro de competência do "Buscar" (o <select> escondido) — a lista
-   passa a mostrar só a competência já selecionada no card do topo
-   (mesma fonte dos 4 KPIs desde a Entrega F.1), como lista simples, sem
-   grupos. Reverte a decisão registrada na F.1 de manter os dois
-   independentes (ver nota grande em js/financeiro.js): aquela cautela
-   era porque o <select> só aceitava competência já carregada, o que
-   esvaziaria a lista ao navegar pra um mês futuro/vazio pelo <select>;
-   sem mais <select>, quem manda é só o card, e mês vazio mostra a lista
-   vazia mesmo (mesmo comportamento que os KPIs já tinham desde a F.1).
-   Atrasados (tab-inadimplencia, segmento próprio) e Fechamento/
-   Conciliação (tab-conciliacao, decisão da F.1 continua valendo —
-   precisa ver vários meses de uma vez) NÃO mudam. Sem migration — só UI/
-   front (js/financeiro.js, index.html).
    ------------------------------------------------------------------
-   Versões anteriores (v1.234.0 … v1.234.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.235.0 … v1.235.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -186,7 +199,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.15.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.43.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.34.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.60.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.16.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.35.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.60.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.31.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3654,7 +3667,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.240.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.241.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -7599,6 +7612,28 @@
                         }
                     });
                 }).catch(err => console.warn('[raiz-eventos] Falha ao carregar módulo:', err.message));
+            }
+
+            // v1.240.0 (demanda be42b19f — BUG REAL achado por mim revisando
+            // o pedido do Nicola de padronizar o componente de Parte):
+            // abrirFichaParteDoContrato() (contratos.js, 18/09/2026 — atalho
+            // "Editar locatário"/fiador no chip Partes do contrato) já
+            // despachava o evento 'cofre:abrir-ficha-parte' quando resolvia
+            // o parte_id — mas NENHUM listener pra esse evento existia em
+            // lugar nenhum do app. Clicar em "Editar locatário" não fazia
+            // NADA (nem erro), exatamente o "hoje não abre nada" que a
+            // demanda relatou. cofre-controles.js já tem abrirFichaParte()
+            // completa (mesma usada no item de controle, agora também com
+            // endereço estruturado — v1.31.0); só faltava alguém escutando.
+            if (!window.__rzListenerAbrirFichaParteLigado) {
+                window.__rzListenerAbrirFichaParteLigado = true;
+                window.addEventListener('cofre:abrir-ficha-parte', (ev) => {
+                    const parteId = ev?.detail?.id;
+                    if (!parteId) return;
+                    import('./js/cofre-controles.js')
+                        .then(m => m.abrirFichaParte(parteId))
+                        .catch(err => console.warn('[partes] Falha ao abrir ficha da parte:', err.message));
+                });
             }
 
             // ============================================================================
@@ -15361,13 +15396,28 @@
         // FORMULÁRIO — abrirSheetForm; campos base sempre, campos de
         // prestador aparecem quando o papel escolhido pede (pedido: "a
         // depender do papel os campos são ajustados em tela").
-        function abrirFormParteSheet(parteId) {
+        // v1.240.0 (demanda be42b19f, item 5 — "formulário fora do padrão
+        // novo, endereço fora do padrão") — vira async pra poder importar
+        // comum-endereco.js (E6.2) antes de montar o corpo; o campo único
+        // "Endereço" (texto livre) sai, entra o bloco estruturado
+        // (renderizarBlocoEndereco — CEP com busca automática, rua/número/
+        // bairro/cidade/UF), o MESMO componente que a ficha do ativo já
+        // usa. Resto do formulário (nome, documento, prestador, profissão/
+        // estado civil) continua igual — já era o "padrão novo" que os
+        // outros pontos de entrada (Item de Controle, chip Partes do
+        // contrato) estavam atrás.
+        async function abrirFormParteSheet(parteId) {
             if (typeof abrirSheetForm !== 'function') return;
             const pt = parteId ? partesCliente.find(x => x.id === parteId) : null;
             const v = (campo) => rzEsc((pt && pt[campo]) || '');
             const tipoPrest = pt?.tipo_prestador || '';
             const campo = (rot, id, val, tipo = 'text', extra = '') =>
                 `<div><label class="block text-xs font-bold text-gray-600">${rot}</label><input type="${tipo}" id="${id}" value="${val}" ${extra} class="w-full p-2 border rounded mt-1 text-sm"></div>`;
+            let blocoEndereco = `${campo('Endereço', 'parte-endereco', v('endereco'))}`; // fallback se o import falhar
+            try {
+                const { renderizarBlocoEndereco } = await import('./js/comum-endereco.js');
+                blocoEndereco = renderizarBlocoEndereco('parte', pt || {}, { mostrarBotaoCopiar: false });
+            } catch (err) { console.warn('[partes] Falha ao carregar bloco de endereço, usando campo simples:', err.message); }
             abrirSheetForm({
                 titulo: pt ? 'Editar parte' : 'Nova parte',
                 sub: pt ? pt.nome : 'Locatário, fiador, proprietário, prestador…',
@@ -15405,7 +15455,7 @@
                                 ${['Solteiro(a)','Casado(a)','Divorciado(a)','Viúvo(a)','União estável'].map(o => `<option ${pt?.estado_civil === o ? 'selected' : ''}>${o}</option>`).join('')}
                             </select></div>
                     </div>
-                    ${campo('Endereço', 'parte-endereco', v('endereco'))}`,
+                    ${blocoEndereco}`,
                 aoSalvar: (el) => salvarParteSheet(el, parteId || null)
             });
             rzIcones();
@@ -15428,6 +15478,39 @@
                 if (tipoDoc === 'CNPJ' && !validarCNPJ(documento)) { mostrarToast('CNPJ inválido.', 'danger'); return false; }
             }
             const tipoPrestador = g('parte-tipo-prestador') || null;
+            // v1.240.0 (demanda be42b19f, item 5) — lê o bloco de endereço
+            // estruturado (quando renderizado; o fallback do campo simples
+            // "parte-endereco" continua funcionando se o import falhou) e
+            // grava as 2 formas: colunas estruturadas (edição futura) +
+            // `endereco` texto (compatibilidade — telas que ainda só leem
+            // essa coluna continuam funcionando, partes_endereco_
+            // estruturado_v1). O bloco estruturado nasce em branco pra
+            // parte que nunca foi editada por ele (não dá pra reconstituir
+            // rua/número a partir do texto livre antigo) — se a pessoa
+            // salvar sem preencher, MANTÉM o endereço já cadastrado em vez
+            // de apagar (bug real que eu mesmo quase reintroduzi: 1ª versão
+            // desta função zerava `endereco` toda vez que o bloco ficava em
+            // branco).
+            const ptAtual = parteId ? partesCliente.find(x => x.id === parteId) : null;
+            let enderecoEstruturado = {};
+            let enderecoTexto = g('parte-endereco'); // fallback
+            if (el.querySelector('#parte-rua') || el.querySelector('#parte-cep')) {
+                try {
+                    const { lerBlocoEndereco } = await import('./js/comum-endereco.js');
+                    const { formatarEnderecoParte } = await import('./js/comum-partes.js');
+                    enderecoEstruturado = lerBlocoEndereco('parte');
+                    const formatado = formatarEnderecoParte(enderecoEstruturado);
+                    if (formatado) {
+                        enderecoTexto = formatado;
+                    } else {
+                        // bloco em branco — não sobrescreve o que já existia
+                        enderecoEstruturado = {};
+                        enderecoTexto = ptAtual?.endereco || '';
+                    }
+                } catch (err) { console.warn('[partes] Falha ao ler bloco de endereço estruturado:', err.message); }
+            } else if (!enderecoTexto && ptAtual?.endereco) {
+                enderecoTexto = ptAtual.endereco; // fallback simples também deixado em branco preserva o valor antigo
+            }
             const linha = {
                 cliente_id: CLIENTE_ID_SUPABASE,
                 nome,
@@ -15436,7 +15519,8 @@
                 nome_fantasia: g('parte-nome-fantasia') || null,
                 whatsapp: g('parte-whatsapp') || null,
                 email: g('parte-email') || null,
-                endereco: g('parte-endereco') || null,
+                ...enderecoEstruturado,
+                endereco: enderecoTexto || null,
                 profissao: g('parte-profissao') || null,
                 estado_civil: g('parte-estado-civil') || null,
                 contato_nome: g('parte-contato-nome') || null,
