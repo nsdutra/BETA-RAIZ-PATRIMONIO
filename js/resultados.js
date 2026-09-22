@@ -1,8 +1,37 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.2.0 (21/09/2026 — pedido explícito ao vivo: "o icone i
-// deve entrar em todos os cards desta tela")
+// VERSÃO: Beta v1.3.0 (22/09/2026 — Entrega B1.2, PLANO_IMPLEMENTACAO_
+// RESULTADOS_MERCADO_FISCAL v2.0.0)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.3.0):
+//   — Card "Indicadores" e gráfico "Sua carteira × indicador" saem do
+//     estado vazio (que dizia "a captura automática ainda não foi
+//     construída") e passam a mostrar dado real: a B1.1 (22/09/2026,
+//     mesma rodada) já capturou IPCA/IGP-M/Selic/IVG-R/INCC-DI/CDI do
+//     BCB SGS (migration mercado_reajuste_simulador_v1 adiciona as
+//     funções de leitura — fn_indicadores_resumo, fn_carteira_
+//     indicador_series — este arquivo só passa a chamá-las).
+//   — Card Indicadores: IPCA/IGP-M/Selic, acumulado 12 meses (mesmos 3
+//     nomeados no texto que já existia aqui).
+//   — Gráfico "Sua carteira × indicador": base 100, eixo único (ESP
+//     §13.1 R9), comparando com o IPCA (índice mais comum nos contratos
+//     cadastrados — decisão revisável, mesmo padrão de "propor e
+//     documentar" da R.4); linha do indicador tracejada/cinza com
+//     rótulo direto (R10), corta no último mês já capturado — não
+//     inventa valor futuro. Fórmula documentada no changelog da
+//     migration (fn_carteira_indicador_series): índice da carteira usa
+//     o patrimônio do ano como referência fixa (o banco não guarda
+//     patrimônio mês a mês) — mesma limitação já assumida no fator de
+//     ocupação da R.4.
+//   — Escopo desta entrega (ver ENTREGA_20260922_indicadoresSimuladorB1_2.md
+//     §3): só resultados.js (Card Indicadores + gráfico, exatamente o
+//     que a B1.2 nomeia como "Arquivos do produto") e o bloco "Pelo
+//     contrato" da ficha do contrato (contratos.js, chip Renovação —
+//     simulador pelo índice do contrato). O bloco "Pelo mercado" (faixa
+//     estimada/confiança/situação) e "✨ Negociar acima do índice" NÃO
+//     entram aqui — dependem de uma fonte de dado de mercado comparável
+//     que ainda não existe (registrado como ideia de produto separada).
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.2.0):
 //   — Ícone (i) (mesmo botão/Sheet dos 2 cards de calendário, entrega
@@ -98,7 +127,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.2.0';
+export const VERSAO = '1.3.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -120,6 +149,18 @@ function filtroForaDoPadrao() {
 }
 
 function pctFmt(v) { return v == null ? '—' : `${v}%`; }
+
+// v1.3.0 (B1.2) — sinal explícito (+/-), 2 casas, vírgula — mesmo padrão
+// já usado em fn_revisao_valor_sugerir (R.4) e fn_simular_reajuste_
+// contrato (B1.2), só que calculado aqui porque o card lista 3 índices
+// de uma vez (fn_indicadores_resumo não formata texto, devolve número).
+function pctSinal(v) {
+    if (v == null) return '—';
+    const n = Number(v);
+    return (n >= 0 ? '+' : '') + n.toFixed(2).replace('.', ',') + '%';
+}
+
+const NOME_CURTO_INDICADOR = { ipca: 'IPCA', igpm: 'IGP-M', selic: 'Selic', ivgr: 'IVG-R', inccdi: 'INCC-DI', cdi: 'CDI' };
 
 // v1.2.0 (21/09/2026, pedido explícito ao vivo: "o icone i deve entrar em
 // todos os cards desta tela") — botão (i) reaproveitado por TODOS os
@@ -304,7 +345,14 @@ async function renderizarConteudo() {
     const alvoId = filtro.abrangencia === 'empreendimento' ? filtro.alvoId : null;
 
     try {
-        const [resumoR, perfR, mensalR, concR, reajR, revR] = await Promise.all([
+        // v1.3.0 (B1.2) — 2 chamadas novas, só no contexto que mostra os 2
+        // cards (mesma guarda que montarCardIndicadores()/montarGraficoIndicador()
+        // já usam: nada disso renderiza em Família — ESP §4.3). Sempre no
+        // nível carteira (fn_carteira_indicador_series é por cliente_id, não
+        // por empreendimento/imóvel — decisão documentada no changelog
+        // acima): olhar o índice de mercado contra UM imóvel só não faz
+        // sentido, a leitura é sempre da carteira.
+        const [resumoR, perfR, mensalR, concR, reajR, revR, indR, graficoIndR] = await Promise.all([
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
                 : Promise.resolve({ data: null }),
@@ -323,6 +371,8 @@ async function renderizarConteudo() {
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
                 : Promise.resolve({ data: [] }),
+            filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_indicadores_resumo'),
+            filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_carteira_indicador_series', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_codigo: 'ipca' }),
         ]);
         if (resumoR.error) throw resumoR.error;
         if (perfR.error) throw perfR.error;
@@ -330,6 +380,8 @@ async function renderizarConteudo() {
         if (concR.error) throw concR.error;
         if (reajR.error) throw reajR.error;
         if (revR.error) throw revR.error;
+        if (indR.error) throw indR.error;
+        if (graficoIndR.error) throw graficoIndR.error;
 
         const resumo = Array.isArray(resumoR.data) ? resumoR.data[0] : resumoR.data;
         const perf = Array.isArray(perfR.data) ? perfR.data[0] : perfR.data;
@@ -337,12 +389,14 @@ async function renderizarConteudo() {
         const concentracao = concR.data || [];
         const reajustes = reajR.data || [];
         const revisionais = revR.data || [];
+        const indicadores = indR.data || [];
+        const graficoIndicador = graficoIndR.data || [];
 
         alvo.innerHTML = [
             montarKpis(resumo, perf),
-            montarCardIndicadores(),
+            montarCardIndicadores(indicadores),
             montarGraficoMensal(mensal),
-            montarGraficoIndicador(),
+            montarGraficoIndicador(graficoIndicador, 'ipca'),
             filtro.abrangencia === 'carteira' ? montarConcentracao(concentracao) : '',
             filtro.abrangencia === 'carteira' ? montarReajustesCalendario(reajustes) : '',
             filtro.abrangencia === 'carteira' ? montarRevisionaisCalendario(revisionais) : '',
@@ -386,18 +440,27 @@ function montarKpis(resumo, perf) {
     return `<div class="rz-kpis">${cards.join('')}</div>`;
 }
 
-function montarCardIndicadores() {
+function montarCardIndicadores(indicadores) {
     if (filtro.contexto === 'familia') return ''; // ESP §4.3 — não renderiza em Família
-    // Estado vazio honesto (§0.7 do REGRAS): sem indicador_series/valores
-    // no banco ainda (Fase B1, fora dos pré-requisitos de A.3 — demanda
-    // 45cc9f88). Nasce no lugar certo (logo após a ocupação), sem dado
-    // fabricado.
+    // v1.3.0 (B1.2) — dado real (fn_indicadores_resumo, migration
+    // mercado_reajuste_simulador_v1). Fallback defensivo abaixo (não deve
+    // acontecer na prática: IPCA/IGP-M/Selic sempre voltam da função,
+    // com acumulado_12m_pct eventualmente nulo se faltar histórico) —
+    // mesmo texto de vazio honesto de antes, adaptado.
+    if (!indicadores || !indicadores.length) {
+        return `<div class="rz-card">
+            <div class="rz-card-h" style="justify-content:space-between"><b>Indicadores</b>${botaoInfoCard('abrirInfoIndicadores()')}</div>
+            <div class="rz-empty" style="padding:14px 8px">
+                <div class="rz-ic"><svg data-lucide="trending-up"></svg></div>
+                <p>Sem índice de mercado disponível no momento.</p>
+            </div>
+        </div>`;
+    }
     return `<div class="rz-card">
         <div class="rz-card-h" style="justify-content:space-between"><b>Indicadores</b>${botaoInfoCard('abrirInfoIndicadores()')}</div>
-        <div class="rz-empty" style="padding:14px 8px">
-            <div class="rz-ic"><svg data-lucide="trending-up"></svg></div>
-            <p>IPCA, IGP-M e Selic — a captura automática desses índices ainda não foi construída; entra na Fase de Indicadores do roadmap.</p>
-        </div>
+        <div class="rz-kv">${indicadores.map(ind => `
+            <div><small>${rzEsc(NOME_CURTO_INDICADOR[ind.codigo] || ind.nome)}</small><b>${pctSinal(ind.acumulado_12m_pct)} <span style="font-weight:400;color:var(--muted);font-size:10.5px">12m</span></b></div>
+        `).join('')}</div>
     </div>`;
 }
 
@@ -429,14 +492,58 @@ function montarGraficoMensal(mensal) {
     </div>`;
 }
 
-function montarGraficoIndicador() {
+// v1.3.0 (B1.2) — dado real (fn_carteira_indicador_series). SVG desenhado
+// à mão (mesmo espírito de montarGraficoMensal, que já monta barras em
+// divs cruas) — sem lib nova, sem componente .rz-* novo (CAN-03). Base
+// 100, eixo único (ESP §13.1 R9); linha do indicador tracejada/cinza com
+// rótulo direto (R10), corta no último mês com dado capturado (não
+// interpola nem projeta o que ainda não foi lido do BC).
+function montarGraficoIndicador(serie, codigoIndicador) {
     if (filtro.contexto === 'familia') return ''; // ESP §4.3
+    const nomeIndicador = NOME_CURTO_INDICADOR[codigoIndicador] || (codigoIndicador || '').toUpperCase();
+    if (!serie || serie.length < 2) {
+        return `<div class="rz-card">
+            <div class="rz-card-h" style="justify-content:space-between"><b>Sua carteira × indicador</b>${botaoInfoCard('abrirInfoGraficoIndicador()')}</div>
+            <p class="rz-desc" style="margin-top:8px">Sem patrimônio ou resultado suficiente no período pra montar a comparação com ${rzEsc(nomeIndicador)}.</p>
+        </div>`;
+    }
+    const valores = serie.flatMap(p => [p.carteira_indice, p.indicador_indice]).filter(v => v != null).map(Number);
+    const max = Math.max(...valores), min = Math.min(...valores);
+    const amplitude = (max - min) || 1;
+    const W = 300, H = 108, PAD = 4;
+    const passo = (W - PAD * 2) / (serie.length - 1);
+    const x = (i) => PAD + i * passo;
+    const y = (v) => H - 14 - ((Number(v) - min) / amplitude) * (H - 14 - PAD);
+
+    const pontosCarteira = serie.map((p, i) => `${x(i).toFixed(1)},${y(p.carteira_indice).toFixed(1)}`).join(' ');
+    // a série do indicador só corta no FIM (mês ainda não capturado) — não
+    // tem buraco no meio, então pega os pontos válidos a partir do início.
+    let ultimoIndicador = -1;
+    const pontosIndicador = [];
+    for (let i = 0; i < serie.length; i++) {
+        if (serie[i].indicador_indice == null) break;
+        pontosIndicador.push(`${x(i).toFixed(1)},${y(serie[i].indicador_indice).toFixed(1)}`);
+        ultimoIndicador = i;
+    }
+    const iUltimoCarteira = serie.length - 1;
+    const rotuloCarteira = `<text x="${(x(iUltimoCarteira) - 2).toFixed(1)}" y="${(y(serie[iUltimoCarteira].carteira_indice) - 4).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--sprout)" font-weight="700">Sua carteira</text>`;
+    const rotuloIndicador = ultimoIndicador >= 0
+        ? `<text x="${(x(ultimoIndicador) - 2).toFixed(1)}" y="${(y(serie[ultimoIndicador].indicador_indice) + 10).toFixed(1)}" font-size="8" text-anchor="end" fill="var(--muted)" font-weight="700">${rzEsc(nomeIndicador)}</text>`
+        : '';
+    const rotuloMesInicio = `<text x="${x(0).toFixed(1)}" y="${H - 2}" font-size="8" fill="var(--muted)">${NOMES_MES[(serie[0].mes || 1) - 1]}</text>`;
+    const rotuloMesFim = `<text x="${x(iUltimoCarteira).toFixed(1)}" y="${H - 2}" font-size="8" text-anchor="end" fill="var(--muted)">${NOMES_MES[(serie[iUltimoCarteira].mes || 12) - 1]}</text>`;
+
     return `<div class="rz-card">
         <div class="rz-card-h" style="justify-content:space-between"><b>Sua carteira × indicador</b>${botaoInfoCard('abrirInfoGraficoIndicador()')}</div>
-        <div class="rz-empty" style="padding:14px 8px">
-            <div class="rz-ic"><svg data-lucide="line-chart"></svg></div>
-            <p>A comparação com IPCA/IGP-M/IVG-R chega junto com a captura de indicadores do roadmap — ainda não há série de mercado no banco pra comparar.</p>
-        </div>
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:118px;margin-top:6px" preserveAspectRatio="none">
+            <polyline points="${pontosCarteira}" fill="none" stroke="var(--sprout)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+            ${pontosIndicador.length > 1 ? `<polyline points="${pontosIndicador.join(' ')}" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>` : ''}
+            ${rotuloCarteira}
+            ${rotuloIndicador}
+            ${rotuloMesInicio}
+            ${rotuloMesFim}
+        </svg>
+        <p class="rz-desc" style="margin-top:2px">Base 100 no início do período · ${rzEsc(nomeIndicador)} até o último mês já capturado do Banco Central.</p>
     </div>`;
 }
 
@@ -614,7 +721,7 @@ export function abrirInfoRevisionais() {
 export function abrirInfoIndicadores() {
     const itens = [
         ['Indicadores', 'Os índices de mercado que orientam reajuste de aluguel e comparação de rentabilidade — IPCA, IGP-M e Selic.'],
-        ['Por que está vazio', 'A captura automática desses índices ainda não foi construída (Fase de Indicadores do roadmap); quando estiver pronta, os valores aparecem aqui, no mesmo lugar.'],
+        ['Fonte', 'Banco Central do Brasil (Sistema Gerenciador de Séries Temporais — SGS), acumulado dos últimos 12 meses capturados.'],
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Indicadores') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
@@ -637,8 +744,9 @@ export function abrirInfoResultadoMensal() {
 
 export function abrirInfoGraficoIndicador() {
     const itens = [
-        ['Sua carteira × indicador', 'Compara a rentabilidade da carteira com um índice de mercado (IPCA, IGP-M ou IVG-R) no mesmo período — mostra se o patrimônio está rendendo acima ou abaixo do mercado.'],
-        ['Por que está vazio', 'Mesma razão do card Indicadores: ainda não há série de índice de mercado no banco pra comparar; chega junto com a Fase de Indicadores do roadmap.'],
+        ['Sua carteira × indicador', 'Compara o resultado da carteira com o IPCA no mesmo período, os dois em base 100 — mostra se o patrimônio está rendendo acima ou abaixo do índice.'],
+        ['Linha tracejada e cinza', 'O IPCA acumulado, mês a mês — só até o último mês já capturado do Banco Central; não projeta o que ainda não saiu.'],
+        ['Limite da conta', 'O índice da carteira usa o patrimônio consolidado do período como referência (o banco não guarda o patrimônio mês a mês) — é uma aproximação da rentabilidade mensal, não uma conta exata mês a mês.'],
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Sua carteira × indicador') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${

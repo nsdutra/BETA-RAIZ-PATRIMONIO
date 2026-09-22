@@ -1,7 +1,26 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.13.2 · 21/09/2026
+// Versão: 1.14.0 · 22/09/2026
+//
+// v1.14.0 (Entrega B1.2, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
+// v2.0.0, migration mercado_reajuste_simulador_v1) — chip Renovação ›
+// "Pelo contrato": "Acumulado 12m" e "Valor reajustado (estimado)" saem
+// do "—" fixo e passam a chamar fn_simular_reajuste_contrato
+// (montarSimulacaoReajusteContrato(), nova, chamada logo depois de
+// montarDistribuicaoContrato() em abrirFichaContrato) — sempre pelo
+// ÍNDICE CADASTRADO no contrato (con.reajuste, texto livre mapeado pra
+// uma série do BCB capturada pela B1.1), nunca o mais favorável (ESP
+// §13.5 C3). É só simulação — quem aplica de verdade continua sendo
+// fn_contrato_reajustar (A.6, ação "Aplicar o reajuste contratual"). O
+// card de atenção do aniversário (≤30 dias) ganha o número simulado na
+// frase ("...o aluguel vai de X para Y"), completando o mockup da ESP
+// §7. Textos de "Pelo mercado" e "✨ Negociar acima do índice" corrigidos
+// (não diziam mais a verdade depois da B1.1: os índices JÁ existem no
+// banco — o que falta é uma fonte de imóvel comparável pra estimar
+// faixa/confiança, não a série de índice) — ambos continuam vazios,
+// fora do escopo desta entrega (ideia registrada em separado, demanda
+// 1afb0d06).
 //
 // v1.13.2 — CORRIGIDO (demanda ac549b98, achado gravando as Pílulas de
 // demonstração): ao criar um contrato novo, a 1ª entrada de histórico
@@ -256,7 +275,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.13.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.14.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1904,7 +1923,7 @@ export function reabrirFichaSeFor(contratoId) {
                     ${(diasParaAniversario !== null && diasParaAniversario <= 30) ? `
                     <div class="rz-card rz-atencao">
                         <div class="rz-card-h"><h3>Aniversário do contrato em ${diasParaAniversario <= 0 ? 'até hoje' : diasParaAniversario + (diasParaAniversario === 1 ? ' dia' : ' dias')}</h3>${rs('warn', 'Reajuste')}</div>
-                        <p class="rz-desc">O contrato completa 12 meses em ${formatarDataBR(proxAniversarioStr)}. Pelo índice cadastrado${con.reajuste ? ' (' + escapeHtmlSaidas(con.reajuste) + ')' : ''}, a regra do contrato permite reajustar o aluguel a partir dessa data.</p>
+                        <p class="rz-desc" id="fc-reaj-alerta-texto" data-aniversario="${escapeHtmlSaidas(formatarDataBR(proxAniversarioStr))}">O contrato completa 12 meses em ${formatarDataBR(proxAniversarioStr)}. Pelo índice cadastrado${con.reajuste ? ' (' + escapeHtmlSaidas(con.reajuste) + ')' : ''}, a regra do contrato permite reajustar o aluguel a partir dessa data.</p>
                     </div>` : ''}
                     <div class="rz-card">
                         <div class="rz-card-h"><h3>Pelo contrato</h3></div>
@@ -1912,16 +1931,16 @@ export function reabrirFichaSeFor(contratoId) {
                             ${kv('Aluguel atual', `${formatarMoedaBR(con.valor)}/mês`)}
                             ${kv('Índice cadastrado', escapeHtmlSaidas(con.reajuste || '—'))}
                             ${kv('Próximo aniversário', proxAniversarioStr ? formatarDataBR(proxAniversarioStr) : '—')}
-                            ${kv('Acumulado 12m', '—')}
-                            ${kv('Valor reajustado (estimado)', '—')}
+                            ${kv('Acumulado 12m', '<span id="fc-reaj-acumulado">—</span>')}
+                            ${kv('Valor reajustado (estimado)', '<span id="fc-reaj-valor-estimado">—</span>')}
                         </div>
-                        <p class="rz-desc" style="margin-top:6px">Acumulado do índice e valor reajustado dependem da série de mercado — ver "Pelo mercado" abaixo.</p>
+                        <p class="rz-desc" id="fc-reaj-memoria" style="margin-top:6px">Calculando pelo índice cadastrado...</p>
                     </div>
                     <div class="rz-card">
                         <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo mercado</h3><span style="opacity:.6" title="Estimativa por IA">✨</span></div>
                         <div class="rz-empty" style="padding:14px 8px">
                             <div class="rz-ic"><svg data-lucide="line-chart"></svg></div>
-                            <p>Faixa estimada, confiança e situação de mercado chegam com a Fase de Indicadores do roadmap — ainda não há série de índice (IPCA/IGP-M/Selic/IVG-R) no banco pra estimar.</p>
+                            <p>Faixa estimada, confiança e situação de mercado ainda não foram construídas — item separado do roadmap (não depende só dos índices já capturados do Banco Central, precisa de uma fonte de imóveis comparáveis).</p>
                         </div>
                     </div>
                     <div class="rz-card">
@@ -1938,7 +1957,7 @@ export function reabrirFichaSeFor(contratoId) {
                         </div>
                         <div class="rz-row" style="opacity:.55">
                             <div class="rz-ic"><svg data-lucide="sparkles"></svg></div>
-                            <div class="rz-tx"><b>✨ Negociar acima do índice</b><span>Chega com a Fase de Indicadores do roadmap — depende da faixa de mercado, que ainda não existe no banco</span></div>
+                            <div class="rz-tx"><b>✨ Negociar acima do índice</b><span>Depende da faixa estimada de mercado ("Pelo mercado" acima) — item separado do roadmap, ainda não construído</span></div>
                         </div>
                         <div class="rz-row rz-link" onclick="fcTrocarChip('resumo')">
                             <div class="rz-ic"><svg data-lucide="clock"></svg></div>
@@ -1987,6 +2006,7 @@ export function reabrirFichaSeFor(contratoId) {
             if (abreArquivos) montarDocumentosContrato(con.id);
             montarOcorrenciasContrato(con.id); // v1.1.0 — A.10
             montarDistribuicaoContrato(con.id); // NOVO (19/09/2026, rodada 10)
+            montarSimulacaoReajusteContrato(con.id); // v1.14.0 (B1.2)
         }
 
         // NOVO (19/09/2026, rodada 10, pedido explícito: "visão de
@@ -2034,6 +2054,65 @@ export function reabrirFichaSeFor(contratoId) {
             abrirSheetAcoes({ titulo: 'Distribuição', sub: con.locatario || '', acoes: [
                 { icone: 'pencil', titulo: 'Editar divisão', codigo: 'contratos.editar', sub: 'Sócios, percentuais e partes externas', aoTocar: () => editarContrato(con.id) },
             ] });
+        }
+
+        // ===================================================================
+        // v1.14.0 (B1.2, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0,
+        // migration mercado_reajuste_simulador_v1) — chip Renovação › "Pelo
+        // contrato": Acumulado 12m / Valor reajustado (estimado) saem do "—"
+        // fixo e passam a chamar fn_simular_reajuste_contrato, sempre pelo
+        // ÍNDICE CADASTRADO no contrato (nunca o mais favorável — ESP §13.5
+        // C3). É só simulação: quem aplica de verdade é fn_contrato_reajustar
+        // (A.6, ação "Aplicar o reajuste contratual" — nível 1, único da
+        // tela). Fora do escopo aqui: "Pelo mercado" (faixa/confiança/
+        // situação) e "Negociar acima do índice" — dependem de imóvel
+        // comparável, que ainda não existe (ideia registrada em separado,
+        // demanda 1afb0d06).
+        // ===================================================================
+        function fmtSinalPctContrato(v) {
+            if (v == null) return null;
+            const n = Number(v);
+            return (n >= 0 ? '+' : '') + n.toFixed(2).replace('.', ',') + '%';
+        }
+
+        export async function montarSimulacaoReajusteContrato(contratoId) {
+            const elAcumulado = document.getElementById('fc-reaj-acumulado');
+            const elValor = document.getElementById('fc-reaj-valor-estimado');
+            const elMemoria = document.getElementById('fc-reaj-memoria');
+            const elAlerta = document.getElementById('fc-reaj-alerta-texto');
+            if (!elAcumulado || fichaContratoAtualId !== contratoId) return;
+            try {
+                const { data, error } = await dbAuth.rpc('fn_simular_reajuste_contrato', { p_contrato_id: contratoId });
+                if (error) throw error;
+                const sim = Array.isArray(data) ? data[0] : data;
+                if (!sim) return;
+
+                elAcumulado.textContent = fmtSinalPctContrato(sim.acumulado_12m_pct) || '—';
+                elValor.textContent = sim.valor_reajustado != null ? formatarMoedaBR(sim.valor_reajustado) : '—';
+
+                // Memória de cálculo aberta — mesmo padrão de transparência já
+                // usado na revisão de valor do ativo (R.4): mostra o texto que
+                // a própria função devolveu, nunca reconstrói o raciocínio
+                // em JS (a explicação vive na função, não duplicada aqui).
+                if (elMemoria) {
+                    const linhas = Array.isArray(sim.memoria_calculo) ? sim.memoria_calculo : [];
+                    if (linhas.length) { elMemoria.textContent = linhas.join(' '); elMemoria.style.display = ''; }
+                    else { elMemoria.style.display = 'none'; }
+                }
+
+                // Card de atenção (aniversário ≤30 dias): completa a leitura
+                // da IA com o número simulado ("...o aluguel vai de X para
+                // Y"), mesma frase do mockup (ESP §7) — sem citar "faixa
+                // estimada de mercado", que não faz parte desta entrega.
+                if (elAlerta && sim.acumulado_12m_pct != null && sim.valor_reajustado != null) {
+                    const dataAniversario = elAlerta.dataset.aniversario || '';
+                    const indiceRotulo = sim.indice_nome ? sim.indice_nome.split(' — ')[0] : (sim.indice_texto_cadastrado || '');
+                    elAlerta.textContent = `O contrato completa 12 meses em ${dataAniversario}. Pelo índice cadastrado (${indiceRotulo}), o aluguel vai de ${formatarMoedaBR(sim.valor_atual)} para ${formatarMoedaBR(sim.valor_reajustado)}.`;
+                }
+            } catch (err) {
+                if (elMemoria) elMemoria.textContent = 'Não consegui simular o reajuste agora.';
+                console.warn('Falha ao simular reajuste do contrato (não bloqueando):', err.message);
+            }
         }
 
         // ===================================================================
