@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.42.0 · 21/09/2026
+// Versão: 1.43.0 · 22/09/2026
+//
+// v1.43.0 (Entrega R.4, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0
+// / ESP v1.3.0 §8.1) — 2 funções novas pro card "Revisão anual de valor" da
+// ficha do ativo (cofre-ativos.js v1.58.0): buscarSugestaoRevisaoValor()
+// (fn_revisao_valor_sugerir, LEITURA — resolve sozinha a ocorrência aberto
+// do ativo quando existe, devolve null quando não há revisão em andamento,
+// e o card some) e aplicarRevisaoValor() (fn_revisao_valor_aplicar,
+// ESCREVE — grava valor_referencia + valor_revisado_em e dá baixa na
+// ocorrência; nunca chamada sozinha pelo card, sempre uma decisão explícita
+// do usuário — sugestão aceita, editada ou "manter o valor", RV5).
+// migration revisao_valor_funcoes_v1.
 //
 // v1.42.0 (Entrega A.7, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
 // v2.0.0 / ESP v1.3.0 §8) — 2 funções novas pro chip "Performance" da
@@ -385,7 +396,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.42.0'; // v-check (21/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.43.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1008,6 +1019,39 @@ export async function buscarResultadoMensalAtivo(ativoId, clienteId, ano) {
         console.warn('[cofre-api] buscarResultadoMensalAtivo falhou:', e);
         return [];
     }
+}
+
+// Entrega R.4 (22/09/2026) — sugestão da IA pra revisão anual de valor
+// (ESP §8.1). p_ocorrencia_id omitido: a função resolve sozinha a
+// ocorrência 'aberto' do item revisao_valor_ativo do ativo — devolve null
+// quando não há revisão iniciada (⋮ "Iniciar revisão anual", R.3) ou já
+// toda tratada, e o card simplesmente não aparece na ficha (sem erro).
+export async function buscarSugestaoRevisaoValor(ativoId) {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_revisao_valor_sugerir', {
+            p_ativo_id: ativoId, p_ocorrencia_id: null,
+        });
+        if (error) throw error;
+        return (data && data[0]) || null;
+    } catch (e) {
+        console.warn('[cofre-api] buscarSugestaoRevisaoValor falhou:', e);
+        return null;
+    }
+}
+
+// Entrega R.4 (22/09/2026) — confirma o valor da revisão anual (sugestão
+// aceita, editada à mão, ou "manter o valor" — p_origem diferencia os 3 pra
+// auditoria, REGRAS §15.3/ESP RV5: nunca aplicada sozinha). Grava
+// cofre_ativos.valor_referencia/valor_revisado_em e dá baixa na ocorrência;
+// a próxima ocorrência anual nasce sozinha (mesmo motor de
+// fn_cofre_gerar_proximas_ocorrencias que já roda todo dia pro resto do
+// Cofre — RV6 sem duplicar essa lógica aqui).
+export async function aplicarRevisaoValor(ocorrenciaId, valor, origem) {
+    const { data, error } = await dbAuth.rpc('fn_revisao_valor_aplicar', {
+        p_ocorrencia_id: ocorrenciaId, p_valor: valor, p_origem: origem,
+    });
+    if (error) throw error;
+    return data;
 }
 
 export async function buscarPropriedadeDoAtivo(ativoId) {

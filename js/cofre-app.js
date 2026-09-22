@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.5 · 18/09/2026 (rodada 4)
+// Versão: 1.33.0 · 22/09/2026
+//
+// v1.33.0 (Entrega R.4) — 3 cases novos pro card "Revisão anual de valor"
+// do chip Performance da ficha do ativo (cofre-ativos.js v1.58.0):
+// 'fa-revisar-valor' → abrirRevisarValor() (abre o sheet com a sugestão da
+// IA já calculada, RV4); 'fa-revisao-adiar' → adiarRevisaoValor(); 'fa-
+// revisao-manter' → manterValorRevisao(). Nenhuma leva dataset — as 3
+// funções leem o estado local do módulo (`revisaoValorAtual`, carregado
+// junto com o resto da Performance).
 //
 // v1.32.5 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo deve ser
 // possivel editar o nome. Tanto nos anexos de contrato, quanto ativos, itens
@@ -291,7 +299,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.32.5'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.33.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -542,6 +550,12 @@ document.addEventListener('click', async (ev) => {
         // toque na linha de contrato (abre na aba Contratos do App)
         case 'fa-seg-arquivos': ativos.faTrocarSegArquivos(alvo.dataset.faSeg); break;
         case 'fa-abrir-contrato-app': ativos.abrirContratoNoApp(alvo.dataset.contratoId); break;
+        // Entrega R.4 (22/09/2026) — card "Revisão anual de valor" do chip
+        // Performance (cofre-ativos.js v1.58.0): as 3 ações leem o estado
+        // local `revisaoValorAtual` do módulo, sem precisar de dataset.
+        case 'fa-revisar-valor': ativos.abrirRevisarValor(); break;
+        case 'fa-revisao-adiar': await ativos.adiarRevisaoValor(); break;
+        case 'fa-revisao-manter': await ativos.manterValorRevisao(); break;
         case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
         case 'fa-iniciar-contratacao': ativos.iniciarContratacaoDoAtivo(); break;
         // v1.24.0 — ⋮ dos cards da ficha (sem rodapé)

@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.44.0 · 21/09/2026
+// Versão: 1.45.0 · 22/09/2026
+// CHANGELOG v1.45.0 — Entrega R.4 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
+// FISCAL v2.0.0 / ESP v1.3.0 §8.1) — #fa-painel-financeiro ganha o 4º bloco
+// que o comentário da v1.44.0 já reservava: #fa-financeiro-revisao, onde
+// cofre-ativos.js v1.58.0 renderiza o card "Revisão anual de valor" (sugestão
+// da IA + memória de cálculo) quando o ativo tem uma revisão em andamento
+// (⋮ "Iniciar revisão anual", R.3) — vazio quando não tem, sem placeholder.
+//
 // CHANGELOG v1.44.0 — Entrega A.7 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
 // FISCAL v2.0.0 / ESP v1.3.0 §8): chip "Financeiro" da Ficha do ativo vira
 // "Performance" (id interno data-fa-aba="financeiro" e o painel
@@ -396,7 +403,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.44.0'; // v-check (21/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.45.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -871,6 +878,7 @@ export const ATIVOS_MARKUP = `<style>
         <div id="fa-financeiro-resumo" class="rz-kpis"></div>
         <div id="fa-financeiro-grafico"></div>
         <div id="fa-financeiro-grid"></div>
+        <div id="fa-financeiro-revisao"></div>
     </div>
 
     <!-- ===== Painel: Arquivos (Documentos · Fotos) ===== -->

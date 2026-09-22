@@ -1,6 +1,28 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.57.0 · 21/09/2026
+// Versão: 1.58.0 · 22/09/2026
+//
+// v1.58.0 (Entrega R.4, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0
+// / ESP v1.3.0 §8.1) — card "Revisão anual de valor" completo no chip
+// Performance da ficha do ativo (C6, ficava de fora desde a v1.55.0 à
+// espera da B1.1). montarFinanceiroAtivo() busca api.buscarSugestaoRevisaoValor
+// (fn_revisao_valor_sugerir) em paralelo com performance/mensal e preenche o
+// novo #fa-financeiro-revisao (ativos-markup.js v1.45.0) via
+// montarCardRevisaoValor() — nada quando o ativo não tem uma revisão em
+// andamento (⋮ "Iniciar revisão anual", R.3). Sugestão da IA (IVG-R 12m ×
+// fator de ocupação, memória de cálculo aberta) nunca aplicada sozinha
+// (REGRAS §15.3/RV5): 3 ações no card, todas terminando numa decisão
+// explícita do usuário — "Revisar valor" (abrirRevisarValor, sheet com o
+// número já calculado, editável) grava via api.aplicarRevisaoValor com
+// origem 'sugestao_ia' ou 'editado_manual'; "Manter o valor"
+// (manterValorRevisao) grava o valor atual como confirmado, origem
+// 'manter_valor'; "Adiar 30 dias" (adiarRevisaoValor) reusa
+// api.reagendarOcorrencia (já existente, cofre-controles.js) — não muda
+// valor, só empurra a data. Vocabulário (RV7): nunca "avaliação", "laudo"
+// ou "valor de mercado" — só "valor cadastrado" e "sugestão", mesmo texto
+// que a função devolve. `revisaoValorAtual` (estado local do módulo,
+// mesmo padrão de `ativoAtualId`) guarda a última sugestão carregada pra
+// as 3 ações lerem sem 2ª consulta.
 //
 // v1.57.0 (demanda b46e30fa, continuação — pedido explícito do Nicola após a
 // v1.56.0: "minha intenção é sim levar o cartão do ativo pro padrão por
@@ -744,7 +766,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.57.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -790,6 +812,10 @@ function ehImovelAvulso(tipo, entidadeOrigemTipo) {
 let ativoAtualId = null;
 let _catalogoTiposAtivoCarregado = false;
 let _empreendimentosCache = null; // E15.2 — lista pro seletor, invalidada ao criar um novo
+// Entrega R.4 — última sugestão de revisão de valor carregada pelo card
+// (montarFinanceiroAtivo); as 3 ações do card (abrirRevisarValor,
+// manterValorRevisao, adiarRevisaoValor) leem daqui, sem 2ª consulta.
+let revisaoValorAtual = null;
 
 // E5 — busca o catálogo (ativo_tipos + ativo_tipos_campos) uma vez por
 // sessão. Falha não trava nada: obterCamposPorTipo/listarTiposPorCategoria
@@ -1926,16 +1952,23 @@ async function montarFinanceiroAtivo(a) {
     const painelResumo = document.getElementById('fa-financeiro-resumo');
     const painelGrafico = document.getElementById('fa-financeiro-grafico');
     const painelGrid = document.getElementById('fa-financeiro-grid');
+    const painelRevisao = document.getElementById('fa-financeiro-revisao');
     if (!painelResumo || !painelGrafico || !painelGrid) return;
 
     painelResumo.innerHTML = `<p class="rz-desc" style="grid-column:1/-1">Carregando...</p>`;
     painelGrafico.innerHTML = '';
     painelGrid.innerHTML = '';
+    if (painelRevisao) painelRevisao.innerHTML = '';
+    revisaoValorAtual = null;
 
     const ano = new Date().getFullYear();
-    const [perf, mensal] = await Promise.all([
+    // Entrega R.4 — sugestão de revisão de valor busca junto (mesmo Promise.
+    // all), sempre; não muda o carregamento de perf/mensal se falhar (ver
+    // buscarSugestaoRevisaoValor, devolve null em qualquer erro).
+    const [perf, mensal, revisao] = await Promise.all([
         api.buscarPerformanceAtivo(a.id, ano),
         api.buscarResultadoMensalAtivo(a.id, estado.clienteId, ano),
+        api.buscarSugestaoRevisaoValor(a.id),
     ]);
 
     if (!perf) {
@@ -1946,6 +1979,10 @@ async function montarFinanceiroAtivo(a) {
     painelResumo.innerHTML = montarKpisPerformanceAtivo(perf);
     painelGrafico.innerHTML = montarGraficoRecebimentoAtivo(mensal);
     painelGrid.innerHTML = montarGridPerformanceAtivo(perf);
+    if (painelRevisao) {
+        revisaoValorAtual = revisao || null;
+        painelRevisao.innerHTML = revisao ? montarCardRevisaoValor(revisao) : '';
+    }
     refrescarIcones();
 }
 
@@ -2016,6 +2053,124 @@ function montarGridPerformanceAtivo(perf) {
         <div class="rz-card-h"><h3>Performance</h3></div>
         <div class="rz-kv">${linhas.join('')}</div>
     </div>`;
+}
+
+function fmtSinalPctAtivo(v) {
+    if (v == null) return '';
+    const n = Number(v);
+    const sinal = n > 0 ? '+' : '';
+    return `${sinal}${n.toFixed(1).replace('.', ',')}%`;
+}
+
+// ============================================================================
+// REVISÃO ANUAL DE VALOR (Entrega R.4, ESP §8.1/C6) — card no chip
+// Performance, só aparece quando o ativo tem uma revisão em andamento
+// (`rev` vem null de fn_revisao_valor_sugerir quando não tem, e
+// montarFinanceiroAtivo nem chama esta função). Sugestão da IA + memória
+// de cálculo já ABERTA (mesma mecânica do reajuste/renovação, ESP §7 —
+// nunca "quanto vale?", sempre um número proposto pronto pra confirmar,
+// corrigir ou adiar). Vocabulário (RV7): "valor cadastrado"/"sugestão",
+// nunca "avaliação"/"laudo"/"valor de mercado" — a própria função no banco
+// já devolve os textos da memória de cálculo nesse vocabulário; aqui só
+// formata valor/data/selo de prazo.
+// ============================================================================
+function montarCardRevisaoValor(rev) {
+    const r = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${c}">${escapeHtml(t)}</span>`;
+    const dias = diasAte(rev.data_prevista_atual);
+    const pill = dias == null ? '' : dias < 0 ? r('bad', `há ${Math.abs(dias)}d`) : dias === 0 ? r('warn', 'Vence hoje') : r('run', `Em ${dias}d`);
+    const valorAtualTxt = rev.valor_atual != null ? fmtMoedaAtivo(rev.valor_atual) : '—';
+    const revisadoTxt = rev.valor_revisado_em ? ` <small style="font-weight:400">· revisado ${formatarDataBR(rev.valor_revisado_em)}</small>` : '';
+    const temSugestao = rev.valor_sugerido != null && Number(rev.sugestao_pct) !== 0;
+    const sugestaoLinha = temSugestao
+        ? `<div><small>Sugestão da IA ✨</small><b>${fmtMoedaAtivo(rev.valor_sugerido)}</b> <small style="font-weight:600">${fmtSinalPctAtivo(rev.sugestao_pct)}</small></div>`
+        : '';
+    const memoria = (rev.memoria_calculo || []).map(m => `<li>${escapeHtml(m)}</li>`).join('');
+    return `<div class="rz-card">
+        <div class="rz-card-h" style="justify-content:space-between"><h3>Revisão anual de valor</h3>${pill}</div>
+        <p class="rz-desc" style="margin-top:2px">Item de controle do ativo · anual · a IA já prepara a sugestão</p>
+        <div class="rz-kv" style="margin-top:10px">
+            <div><small>Valor cadastrado</small><b>${valorAtualTxt}</b>${revisadoTxt}</div>
+            ${sugestaoLinha}
+        </div>
+        ${memoria ? `<div class="rz-desc" style="margin-top:10px"><b style="display:block;margin-bottom:4px;color:var(--ink)">Como a IA chegou aí</b><ul style="margin:0;padding-left:18px">${memoria}</ul></div>` : ''}
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
+            <button class="rz-btn rz-btn-1 rz-sm" data-action="fa-revisar-valor">Revisar valor</button>
+            <button class="rz-btn rz-btn-3 rz-sm" data-action="fa-revisao-adiar">Adiar 30 dias</button>
+            <button class="rz-btn rz-btn-3 rz-sm" data-action="fa-revisao-manter">Manter o valor</button>
+        </div>
+    </div>`;
+}
+
+// "Revisar valor" (RV4 — ação abre o sheet direto, com a sugestão já
+// calculada). Campo editável pré-preenchido com a sugestão (ou o valor
+// cadastrado, quando não há sugestão — IVG-R ainda sem histórico); origem
+// gravada em fn_revisao_valor_aplicar diferencia se o usuário aceitou o
+// número da IA ou editou (auditoria, não afeta o resultado).
+export function abrirRevisarValor() {
+    const rev = revisaoValorAtual;
+    if (!rev) return;
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Ação só disponível dentro do app principal.', 'erro'); return; }
+    const valorInicial = rev.valor_sugerido ?? rev.valor_atual ?? '';
+    const memoria = (rev.memoria_calculo || []).map(m => `<li>${escapeHtml(m)}</li>`).join('');
+    const corpo = `
+        <div class="rz-f">
+            <label>Valor</label>
+            <input type="number" step="0.01" id="fa-revisao-valor" value="${valorInicial}">
+            <span class="rz-hint">Valor cadastrado hoje: ${rev.valor_atual != null ? fmtMoedaAtivo(rev.valor_atual) : '—'}</span>
+        </div>
+        ${memoria ? `<div class="rz-desc" style="margin-top:4px"><b style="display:block;margin-bottom:4px;color:var(--ink)">Como a IA chegou aí</b><ul style="margin:0;padding-left:18px">${memoria}</ul></div>` : ''}
+    `;
+    window.abrirSheetForm({
+        titulo: 'Revisar valor', sub: estado.ativoEmFoco?.nome_exibicao, corpo, rotuloSalvar: 'Confirmar',
+        aoSalvar: async () => {
+            const valor = Number(document.getElementById('fa-revisao-valor')?.value);
+            if (!valor || valor <= 0) { mostrarToast('Informe um valor válido.', 'erro'); return false; }
+            const origem = rev.valor_sugerido != null && valor === Number(rev.valor_sugerido) ? 'sugestao_ia' : 'editado_manual';
+            try {
+                await api.aplicarRevisaoValor(rev.ocorrencia_id, valor, origem);
+                mostrarToast('Revisão aplicada.', 'sucesso');
+                await montarFinanceiroAtivo(estado.ativoEmFoco);
+                return true;
+            } catch (err) {
+                mostrarToast('Falha ao aplicar: ' + err.message, 'erro');
+                return false;
+            }
+        }
+    });
+}
+
+// "Manter o valor" (ação terciária, um toque — RV6: mesmo assim grava a
+// data de revisão e dá baixa na ocorrência, senão o alerta voltaria amanhã
+// como se nada tivesse sido revisado).
+export async function manterValorRevisao() {
+    const rev = revisaoValorAtual;
+    if (!rev) return;
+    if (rev.valor_atual == null) { mostrarToast('Cadastre um valor pro ativo antes de confirmar a revisão.', 'erro'); return; }
+    try {
+        await api.aplicarRevisaoValor(rev.ocorrencia_id, rev.valor_atual, 'manter_valor');
+        mostrarToast('Valor mantido — revisão confirmada.', 'sucesso');
+        await montarFinanceiroAtivo(estado.ativoEmFoco);
+    } catch (err) {
+        mostrarToast('Falha ao confirmar: ' + err.message, 'erro');
+    }
+}
+
+// "Adiar 30 dias" (ação terciária, um toque — reusa api.reagendarOcorrencia,
+// já existente pra qualquer ocorrência do Cofre, cofre-controles.js v1.x —
+// não duplica lógica, só empurra data_prevista_atual; não toca no valor).
+export async function adiarRevisaoValor() {
+    const rev = revisaoValorAtual;
+    if (!rev) return;
+    const base = rev.data_prevista_atual ? new Date(rev.data_prevista_atual + 'T00:00:00') : new Date();
+    base.setDate(base.getDate() + 30);
+    const novaData = base.toISOString().slice(0, 10);
+    try {
+        await api.reagendarOcorrencia(rev.ocorrencia_id, novaData);
+        mostrarToast('Revisão adiada em 30 dias.', 'sucesso');
+        await montarFinanceiroAtivo(estado.ativoEmFoco);
+    } catch (err) {
+        mostrarToast('Falha ao adiar: ' + err.message, 'erro');
+    }
 }
 
 // Ponte pro App — mesmo princípio de abrirGestaoImovel() logo abaixo:
