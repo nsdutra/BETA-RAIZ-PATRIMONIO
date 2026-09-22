@@ -6,10 +6,33 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.239.0
-   LINHAS: 15735
-   DATA: 22/09/2026 (demanda 60284322 + Fase 1 do wrapper de escrita/evento
-   local — achados do Nicola em revisão de telas, 21/09/2026)
+   VERSÃO: Beta v1.240.0
+   LINHAS: 15749
+   DATA: 22/09/2026 (demanda 44f30857 — Contratos: título, ícones (i), menu
+   financeiro, rateio, layout de ocorrência — achado do Nicola em revisão de
+   telas, 21/09/2026)
+   NOVIDADES (Beta v1.240.0) — demanda 44f30857 (Contratos, 5 itens):
+   (1) Removido o título "Contratos de Locação Ativos" acima da lista —
+   redundante, os chips logo abaixo já dão o contexto (mesmo padrão das
+   outras abas, nenhuma tem título acima da lista).
+   (2) Chip "Renovação" › card "Pelo contrato" (ficha do contrato) e card
+   "Performance" (ficha do ativo) ganham botão (i) explicando cada métrica
+   exibida (abrirInfoReajusteContrato em contratos.js v1.15.0,
+   abrirInfoPerformanceAtivo em cofre-ativos.js v1.60.0) — sheet/modal com
+   texto curto por métrica, mesmo padrão dos 2 módulos.
+   (3) Ficha do contrato › card "Cobranças": o ⋮ de cada mensalidade
+   disparava também o clique da linha inteira (herdado do fix de
+   18/09/2026 que tornou a linha clicável) — "Dar baixa"/"Excluir"
+   navegavam pra Financeiro antes de agir. O ⋮ ganhou handler próprio
+   (event.stopPropagation()) — agora age direto, de qualquer aba.
+   (4) "Editar a distribuição do aluguel entre proprietários" abria o
+   formulário inteiro de editar contrato — passa a abrir direto o popup
+   "Alterações" de divisão societária (abrirAlteracoesDivisaoSocietaria,
+   já usado pela ficha do imóvel), nos mesmos moldes da tela de rateio de
+   propriedade do imóvel — sem duplicar formulário.
+   (5) Clicar numa ocorrência já concluída do contrato (ex.: tipo
+   "Assinatura") — o campo "Descrição" dividia a grade de 2 colunas com
+   os campos curtos e ficava espremido; ganhou largura total (.rz-full).
    NOVIDADES (Beta v1.239.0) — demanda 60284322 + Fase 1 do wrapper:
    (1) Navegação por rodapé sempre reseta a aba (demanda 60284322): os 5
    botões do rodapé (Visão Geral, Ativos, Contratos, Financeiro, Resultados)
@@ -138,23 +161,8 @@
    Conciliação (tab-conciliacao, decisão da F.1 continua valendo —
    precisa ver vários meses de uma vez) NÃO mudam. Sem migration — só UI/
    front (js/financeiro.js, index.html).
-   NOVIDADES (Beta v1.234.0) — Entrega F.2: fechar/reabrir a competência
-   (REGRAS_EXPERIENCIA_RAIZ v3.19.0 §11.1) — o chip Fechamento ganha o
-   MESMO card de competência de Recebimentos/Saídas, agora com status
-   ("Fechado") e ⋮ (Sheet de ações: Fechar/Reabrir — zero superfície nova,
-   card + Sheet de ações já existiam). Fechar é permitido mesmo com
-   pendência (recebimento/saída em aberto ou atraso naquele mês — "fechar
-   dinheiro não é aprovar dinheiro"); reabrir sempre pede o motivo. Módulo
-   novo js/fechamento.js (migration fechamento_estrutura_v1:
-   fn_fechamento_verificar/fechar/reabrir + tabela fechamento_snapshot,
-   retrato imutável — trigger bloqueia UPDATE/DELETE mesmo pra quem
-   escreve como dono da função; RLS leitura-tenant, escrita só RPC).
-   ESCOPO DESTA ENTREGA (decisão do Nicola, 21/09/2026): só o retrato
-   financeiro (Previsto/Recebido/Pago); o retrato de Distribuição (extrato
-   de sócio) fica pra uma entrega seguinte — calcularExtratoSocio()
-   continua onde está, sem mudança nesta rodada.
    ------------------------------------------------------------------
-   Versões anteriores (v1.233.0 … v1.233.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.234.0 … v1.234.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -178,7 +186,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.14.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.43.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.33.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.59.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.15.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.43.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.34.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.60.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2693,7 +2701,12 @@
                  aviso no topo da tela de contratos") — banner-revisao-
                  contratos removido; lógica correspondente saiu de
                  contratos.js (v1.4.0, renderContratos()). -->
-            <h2 class="text-lg font-bold raiz-text-pine mb-4">Contratos de Locação Ativos</h2>
+            <!-- v1.240.0 (22/09/2026, demanda 44f30857, item 1 — achado do
+                 Nicola: "remover o título 'Contratos de Locação Ativos'")
+                 — título removido; os chips logo abaixo (contratos-chips)
+                 já dão o contexto da tela, mesmo padrão das outras abas
+                 (Ativos/Resultados/Financeiro não têm título redundante
+                 acima da lista). -->
 
             <div id="contratos-chips" class="rz-chips"></div>
             <div id="lista-contratos" class="mb-6"></div>
@@ -3641,7 +3654,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.239.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.240.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8867,7 +8880,8 @@
             'montarOcorrenciasContrato', 'abrirAcoesOcorrenciaContrato', 'salvarBaixaOcorrenciaContrato', 'salvarReagendarOcorrenciaContrato', // v1.159.0 — A.10
             'abrirOcorrenciaContrato', 'abrirDetalheOcorrenciaContrato', // v1.194.0 — linha fechada/cancelada agora também abre (resumo só-leitura)
             'montarDistribuicaoContrato', 'abrirAcoesDistribuicaoContrato', // NOVO v1.11.0 (rodada 10) — card "Distribuição" no Resumo
-            'renovarContrato', 'calcularPctRenovacaoPopup', 'calcularValorRenovacaoPopup', 'salvarRenovacaoContratoPopup'
+            'renovarContrato', 'calcularPctRenovacaoPopup', 'calcularValorRenovacaoPopup', 'salvarRenovacaoContratoPopup',
+            'abrirInfoReajusteContrato' // v1.15.0 (demanda 44f30857, item 2) — ícone (i) do card "Pelo contrato"
         ].forEach(nome => { window[nome] = (...args) => carregarContratos().then(m => m[nome](...args)); });
 
         // =====================================================================

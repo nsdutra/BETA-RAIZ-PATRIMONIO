@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.59.0 · 22/09/2026
+// Versão: 1.60.0 · 22/09/2026
+//
+// v1.60.0 (demanda 44f30857, item 2 — achado do Nicola: "chip Performance
+// (tela do ativo)... incluir um botão/ícone 'i' explicando as métricas
+// exibidas") — abrirInfoPerformanceAtivo() nova (export), ícone (i) no
+// header do card "Performance" (montarGridPerformanceAtivo), 1 explicação
+// por campo do grid. Usa modalGenerico (cofre-ui.js) — a UI nativa do
+// Cofre — não o abrirSheet do app principal. Case novo 'fa-info-
+// performance' em cofre-app.js v1.34.0.
 //
 // v1.59.0 (22/09/2026 — Fase 1 do wrapper de escrita/evento local, backlog
 // discutido em sessão anterior: "tela desatualizada após criar/editar/
@@ -777,7 +785,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -2067,10 +2075,34 @@ function montarGridPerformanceAtivo(perf) {
         kv('Seguros', fmtMoedaAtivo(perf.seguros)),
         kv('Inadimplência', fmtMoedaAtivo(perf.inadimplencia_valor)),
     ];
+    // v1.60.0 (demanda 44f30857, item 2) — ícone (i) explicando as 10
+    // métricas do card, mesmo padrão já usado em Resultados (resultados.js,
+    // botaoInfoCard) — só que aqui abre modalGenerico (cofre-ui.js), a UI
+    // nativa do Cofre, em vez do abrirSheet do app principal (os 2
+    // convivem — cada módulo usa a UI que já tinha).
     return `<div class="rz-card">
-        <div class="rz-card-h"><h3>Performance</h3></div>
+        <div class="rz-card-h" style="justify-content:space-between"><h3>Performance</h3><button type="button" data-action="fa-info-performance" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button></div>
         <div class="rz-kv">${linhas.join('')}</div>
     </div>`;
+}
+
+// v1.60.0 (demanda 44f30857, item 2 — achado do Nicola: "chip Performance
+// (tela do ativo)... incluir um botão/ícone 'i' explicando as métricas
+// exibidas") — 1 explicação por campo do grid acima, mesmo texto/tom das
+// info-sheets já escritas em resultados.js.
+export function abrirInfoPerformanceAtivo() {
+    const itens = [
+        ['Resultado líquido', 'Recebido menos saídas deste ativo no ano corrente.'],
+        ['Rentabilidade', 'O resultado do ano dividido pelo valor de mercado do ativo. "carteira" ao lado é a mediana de todos os ativos comerciais desta carteira, pra comparar — some quando o ativo é não-comercial.'],
+        ['Receita do ano', 'Tudo o que foi efetivamente recebido no ano (aluguéis pagos).'],
+        ['Patrimônio', 'O valor de mercado cadastrado para este ativo.'],
+        ['Dias alugado / vago no ano', 'Quantos dias, dentro do ano corrente, o ativo passou alugado e vago — só calculado para imóveis de uso long stay.'],
+        ['Tributos, Manutenção, Seguros', 'Total gasto no ano em cada categoria de despesa deste ativo.'],
+        ['Inadimplência', 'Total ainda em atraso nos contratos deste ativo.'],
+    ];
+    modalGenerico('Sobre o card Performance', `<div class="rz-card"><div class="rz-kv">${
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+    }</div></div>`);
 }
 
 function fmtSinalPctAtivo(v) {

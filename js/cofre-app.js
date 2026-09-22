@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.33.0 · 22/09/2026
+// Versão: 1.34.0 · 22/09/2026
+//
+// v1.34.0 (demanda 44f30857, item 2) — case novo 'fa-info-performance' →
+// ativos.abrirInfoPerformanceAtivo() (cofre-ativos.js v1.60.0), ícone (i)
+// do card Performance do chip Performance da ficha do ativo.
 //
 // v1.33.0 (Entrega R.4) — 3 cases novos pro card "Revisão anual de valor"
 // do chip Performance da ficha do ativo (cofre-ativos.js v1.58.0):
@@ -299,7 +303,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.33.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.34.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -556,6 +560,8 @@ document.addEventListener('click', async (ev) => {
         case 'fa-revisar-valor': ativos.abrirRevisarValor(); break;
         case 'fa-revisao-adiar': await ativos.adiarRevisaoValor(); break;
         case 'fa-revisao-manter': await ativos.manterValorRevisao(); break;
+        // demanda 44f30857, item 2 (22/09/2026) — ícone (i) do card Performance
+        case 'fa-info-performance': ativos.abrirInfoPerformanceAtivo(); break;
         case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
         case 'fa-iniciar-contratacao': ativos.iniciarContratacaoDoAtivo(); break;
         // v1.24.0 — ⋮ dos cards da ficha (sem rodapé)

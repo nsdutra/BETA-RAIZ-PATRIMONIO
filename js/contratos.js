@@ -1,7 +1,31 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.14.0 · 22/09/2026
+// Versão: 1.15.0 · 22/09/2026
+//
+// v1.15.0 (demanda 44f30857, achado do Nicola em revisão de telas,
+// 21/09/2026) — aba Contratos, 4 correções (item 1, título removido da
+// lista, ficou no index.html — ver changelog dele):
+//   (2) chip "Renovação" › card "Pelo contrato" ganha botão (i) explicando
+//   cada métrica (abrirInfoReajusteContrato()) — mesmo padrão já usado no
+//   card "Performance" do ativo (cofre-ativos.js v1.60.0, mesma demanda).
+//   (3) Ficha do contrato, card "Cobranças": o ⋮ de cada mensalidade
+//   disparava o onclick do rz-row inteiro (switchTab('tab-mensal') +
+//   rzAcoesMensalidade), então "Dar baixa"/"Excluir" sempre navegavam pra
+//   Financeiro antes de agir — ganhou onclick próprio com
+//   event.stopPropagation(), rzAcoesMensalidade() funciona de qualquer aba.
+//   (4) "Editar a distribuição do aluguel entre proprietários"
+//   (abrirAcoesDistribuicaoContrato) abria o formulário inteiro de editar
+//   contrato só pra chegar numa seção de rateio — passa a abrir direto o
+//   popup "Alterações" de divisão societária (abrirAlteracoesDivisaoSocietaria,
+//   index.html), o mesmo já usado pela ficha do imóvel — sem duplicar
+//   formulário. salvarDivisaoContratoPopup() agora também atualiza o card
+//   "Distribuição" da ficha do contrato quando salvo por esse caminho.
+//   (5) abrirDetalheOcorrenciaContrato() (ex.: clicar numa ocorrência já
+//   concluída de tipo "Assinatura"): o campo "Descrição" (texto livre)
+//   dividia a grade de 2 colunas com os campos curtos (Tipo, Status,
+//   datas) e ficava espremido — ganhou .rz-full (mesma classe que .rz-kv
+//   já define pra isso), agora ocupa a linha inteira.
 //
 // v1.14.0 (Entrega B1.2, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
 // v2.0.0, migration mercado_reajuste_simulador_v1) — chip Renovação ›
@@ -275,7 +299,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.14.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.15.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1685,6 +1709,11 @@ export function reabrirFichaSeFor(contratoId) {
                 mostrarToast('Divisão do contrato salva!', 'success');
                 registrarLog('imoveis.divisao', { contratoId }); // v1.131
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
+                // v1.15.0 (demanda 44f30857, item 4) — o popup agora também é
+                // aberto a partir da ficha do CONTRATO (card "Distribuição"),
+                // não só da ficha do imóvel; sem isto o card ficava com o
+                // valor antigo até a próxima navegação.
+                if (fichaContratoAtualId === contratoId) montarDistribuicaoContrato(contratoId);
             } catch (err) {
                 esconderCarregamentoGlobal();
                 alert('❌ Não consegui salvar: ' + (err.message || String(err)));
@@ -1896,24 +1925,31 @@ export function reabrirFichaSeFor(contratoId) {
                              a mesma sheet (Dar baixa/Recibo/Estornar/
                              Excluir) já usada em Financeiro › Recebimentos
                              (fatia 5); nenhuma lógica nova.
-                             CORRIGIDO (pedido explícito, 18/09/2026, rodada
-                             8, "se clicar nela, vai pra aba financeira") —
-                             a linha inteira ficou clicável (onclick no
-                             div.rz-row; o ⋮ continua ali só visualmente,
-                             o clique nele borbulha pro mesmo onclick — não
-                             duplica chamada porque não tem handler próprio
-                             mais) e agora troca pra aba Financeiro
-                             (tab-mensal) ANTES de abrir a sheet — antes o
-                             ⋮ abria a sheet por cima da ficha do contrato
-                             sem trocar de aba, então "Ver no Financeiro"
-                             (dentro da própria sheet) não fazia sentido
-                             igual. -->
+                             CORRIGIDO v1.116.0→18/09/2026 (rodada 8, "se
+                             clicar nela, vai pra aba financeira") — a linha
+                             inteira virou clicável, trocando pra Financeiro
+                             antes de abrir a sheet.
+                             CORRIGIDO DE NOVO v1.15.0 (demanda 44f30857,
+                             item 3 — achado do Nicola, 21/09/2026: "Dar
+                             baixa"/"Excluir" no ⋮ deveriam agir direto,
+                             não navegar) — o fix de 18/09 foi longe demais:
+                             fez até o ⋮ (que só deveria agir no lugar)
+                             navegar, porque o clique nele borbulhava pro
+                             onclick da linha. Agora o ⋮ tem handler PRÓPRIO
+                             (event.stopPropagation() + rzAcoesMensalidade
+                             direto, sem trocar de aba) — só o clique no
+                             RESTO da linha (fora do ⋮) continua indo pra
+                             Financeiro. rzAcoesMensalidade/as ações do
+                             menu (Dar baixa/Excluir/Estornar) não dependem
+                             de tab-mensal estar visível — leem/escrevem no
+                             array global mensalidades, o mesmo em
+                             qualquer aba. -->
                         ${ultimasSeis.length ? ultimasSeis.map(m => `
                         <div class="rz-row" onclick="switchTab('tab-mensal'); rzAcoesMensalidade('${m.id}')" style="cursor:pointer">
                             <div class="rz-ic${classeMensal(m)}"><svg data-lucide="${iconeMensal(m)}"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(m.referencia || '—')}</b><span>${dataVencMensal(m)}</span></div>
                             <div class="rz-rt"><b>${formatarMoedaBR(m.valorConfirmado)}</b>${statusMensal(m)}</div>
-                            <button type="button" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                            <button type="button" class="rz-more" aria-label="Mais ações" onclick="event.stopPropagation(); rzAcoesMensalidade('${m.id}')"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>Nenhum recebimento lançado ainda. Eles nascem na aba Financeiro a cada competência.</p></div>`}
 
                     </div>
@@ -1926,7 +1962,7 @@ export function reabrirFichaSeFor(contratoId) {
                         <p class="rz-desc" id="fc-reaj-alerta-texto" data-aniversario="${escapeHtmlSaidas(formatarDataBR(proxAniversarioStr))}">O contrato completa 12 meses em ${formatarDataBR(proxAniversarioStr)}. Pelo índice cadastrado${con.reajuste ? ' (' + escapeHtmlSaidas(con.reajuste) + ')' : ''}, a regra do contrato permite reajustar o aluguel a partir dessa data.</p>
                     </div>` : ''}
                     <div class="rz-card">
-                        <div class="rz-card-h"><h3>Pelo contrato</h3></div>
+                        <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo contrato</h3><button type="button" onclick="abrirInfoReajusteContrato()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0"><svg data-lucide="info" style="width:14px;height:14px"></svg></button></div>
                         <div class="rz-kv">
                             ${kv('Aluguel atual', `${formatarMoedaBR(con.valor)}/mês`)}
                             ${kv('Índice cadastrado', escapeHtmlSaidas(con.reajuste || '—'))}
@@ -2048,11 +2084,25 @@ export function reabrirFichaSeFor(contratoId) {
             }
         }
 
+        // v1.15.0 (demanda 44f30857, item 4) — CORRIGIDO: "Editar divisão"
+        // abria o formulário INTEIRO de editar contrato (editarContrato),
+        // só pra chegar numa seção de rateio no meio de um form gigante —
+        // achado do Nicola em revisão de tela. Passa a abrir DIRETO o popup
+        // "Alterações" de divisão societária (abrirAlteracoesDivisaoSocietaria,
+        // index.html) — o MESMO popup que a ficha do imóvel já usa pro card
+        // "Divisão Societária" ("nos moldes da tela de rateio de propriedade
+        // do imóvel"), sem duplicar formulário nenhum. O popup mostra as 2
+        // seções (Divisão do Imóvel e Divisão do Contrato) — mantido assim de
+        // propósito: deixa claro que são 2 rateios distintos, e quem entra
+        // pela ficha do contrato pode querer ajustar os dois.
         export function abrirAcoesDistribuicaoContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con || typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({ titulo: 'Distribuição', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: 'Editar divisão', codigo: 'contratos.editar', sub: 'Sócios, percentuais e partes externas', aoTocar: () => editarContrato(con.id) },
+                { icone: 'pencil', titulo: 'Editar divisão', codigo: 'contratos.editar', sub: 'Sócios, percentuais e partes externas', aoTocar: () => {
+                    if (typeof abrirAlteracoesDivisaoSocietaria === 'function') abrirAlteracoesDivisaoSocietaria(con.imovelId, con.id);
+                    else editarContrato(con.id); // fallback defensivo, não deveria acontecer em produção
+                } },
             ] });
         }
 
@@ -2113,6 +2163,27 @@ export function reabrirFichaSeFor(contratoId) {
                 if (elMemoria) elMemoria.textContent = 'Não consegui simular o reajuste agora.';
                 console.warn('Falha ao simular reajuste do contrato (não bloqueando):', err.message);
             }
+        }
+
+        // v1.15.0 (demanda 44f30857, item 2 — achado do Nicola: "chip
+        // Reajuste (tela do contrato)... incluir um botão/ícone 'i'
+        // explicando as métricas exibidas") — mesmo padrão das info-sheets
+        // já usadas em resultados.js (abrirInfoReajustes etc.): abrirSheet/
+        // rzSheetCabecalho são globais do app principal, acessíveis daqui
+        // sem import (mesma razão de dbAuth/mostrarToast já serem usados
+        // livremente neste arquivo).
+        export function abrirInfoReajusteContrato() {
+            const itens = [
+                ['Aluguel atual', 'O valor de aluguel cadastrado neste contrato hoje.'],
+                ['Índice cadastrado', 'O índice de reajuste escrito no contrato (texto livre, ex.: "IPCA", "IGP-M") — o simulador só reconhece IPCA, IGP-M, INCC-DI, IVG-R, Selic e CDI.'],
+                ['Próximo aniversário', 'A data em que o contrato completa 12 meses e a regra contratual permite reajustar.'],
+                ['Acumulado 12m', 'A variação do índice cadastrado nos últimos 12 meses capturados (fonte: Banco Central) — sempre o mesmo índice do contrato, nunca outro mais favorável.'],
+                ['Valor reajustado (estimado)', 'Aluguel atual × (1 + acumulado 12m). É uma simulação — só é aplicado de verdade quando você confirma "Aplicar o reajuste contratual".'],
+            ];
+            abrirSheet(rzSheetCabecalho('Sobre o card "Pelo contrato"') +
+                `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                }</div></div></div>`);
         }
 
         // ===================================================================
@@ -2192,6 +2263,13 @@ export function reabrirFichaSeFor(contratoId) {
             abrirDetalheOcorrenciaContrato(ocorrenciaId);
         }
 
+        // v1.15.0 (demanda 44f30857, item 5) — CORRIGIDO: achado do Nicola
+        // clicando numa ocorrência já concluída (ex. tipo "Assinatura") —
+        // o campo Descrição (texto livre, pode ser longo) dividia a mesma
+        // grade de 2 colunas dos campos curtos (Tipo, Status, datas...),
+        // então ficava espremido numa metade da linha. Mesma classe .rz-full
+        // que .rz-kv já define pra isso (grid-column:1/-1) — reaproveitada,
+        // não um componente novo — só faltava marcar a linha da Descrição.
         export function abrirDetalheOcorrenciaContrato(ocorrenciaId) {
             const oc = ocorrenciasContratoAtual.find(o => o.id === ocorrenciaId);
             if (!oc) return;
@@ -2206,9 +2284,9 @@ export function reabrirFichaSeFor(contratoId) {
                 oc.valor_a_receber ? ['Valor', formatarMoedaBR(oc.valor_a_receber)] : null,
                 oc.percentual_reajuste ? ['% de reajuste', `${oc.percentual_reajuste}%`] : null,
                 oc.receber_ate ? ['A receber até', formatarDataBR(oc.receber_ate)] : null,
-                oc.tratamento_descricao ? ['Descrição', oc.tratamento_descricao] : null,
+                oc.tratamento_descricao ? ['Descrição', oc.tratamento_descricao, true] : null,
             ].filter(Boolean);
-            const corpo = `<div class="rz-kv">${linhas.map(([r, v]) => `<div><small>${rzEsc(r)}</small><b>${rzEsc(String(v))}</b></div>`).join('')}</div>`;
+            const corpo = `<div class="rz-kv">${linhas.map(([r, v, cheio]) => `<div${cheio ? ' class="rz-full"' : ''}><small>${rzEsc(r)}</small><b>${rzEsc(String(v))}</b></div>`).join('')}</div>`;
             abrirSheetForm({ titulo: rot, sub: con?.locatario || '', corpo, semRodape: true });
         }
 
