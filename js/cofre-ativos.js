@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.58.0 · 22/09/2026
+// Versão: 1.59.0 · 22/09/2026
+//
+// v1.59.0 (22/09/2026 — Fase 1 do wrapper de escrita/evento local, backlog
+// discutido em sessão anterior: "tela desatualizada após criar/editar/
+// excluir, cross, todo o app"; decisão do Nicola pra esta entrega, via
+// AskUserQuestion: "Utilitário + 1 piloto testado"). salvarEdicaoAtivo()
+// agora também chama emitirEscrita('ativo', {...}) (js/raiz-eventos.js,
+// novo) logo depois do já existente cofre:recarregar-ativos — o evento
+// novo é pra fora do Cofre (index.html, Visão Geral), o antigo continua
+// só pro Cofre por dentro. Nenhum outro ponto de escrita deste arquivo
+// (salvarAtivo/excluirAtivoAtual/marcarAtivoVendidoAtual, etc.) foi
+// tocado — o piloto é só este 1 fluxo, de propósito (ver ENTREGA).
 //
 // v1.58.0 (Entrega R.4, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0
 // / ESP v1.3.0 §8.1) — card "Revisão anual de valor" completo no chip
@@ -766,7 +777,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.58.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.59.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -781,6 +792,13 @@ import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControl
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
 // learnings: bridge window[nome] só serve fire-and-forget).
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
+// v1.59.0 (Fase 1 do wrapper de escrita, demanda de arquitetura discutida
+// em sessão anterior) — emitirEscrita() é o evento padrão pra "algo mudou
+// que módulos DE FORA do Cofre podem precisar saber" (cofre:recarregar-
+// ativos continua existindo do jeito que está, só serve o Cofre por
+// dentro). Piloto único desta entrega: salvarEdicaoAtivo() (ver
+// changelog do topo do arquivo).
+import { emitirEscrita } from './raiz-eventos.js';
 
 // E6.2 — único critério usado em todo o arquivo pra decidir se um ativo
 // "imóvel" é avulso (sem tabela imoveis por trás) ou vinculado. Função só
@@ -2806,6 +2824,11 @@ export async function salvarEdicaoAtivo() {
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, acao: 'editar_ativo' });
         mostrarToast('Ativo atualizado');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+        // v1.59.0 (Fase 1 do wrapper de escrita, piloto) — index.html escuta
+        // isto pra saber que precisa refazer `imoveis` (array legado, só
+        // atualizado no boot) e redesenhar a Visão Geral se ela estiver
+        // aberta agora — ver aoEscrever('ativo', ...) em index.html.
+        emitirEscrita('ativo', { id: a.id, acao: 'editar' });
         await abrirFichaAtivo(a.id); // "Salvar edição → voltar para a ficha atualizada" (§9.2)
         return true;
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); return false; }

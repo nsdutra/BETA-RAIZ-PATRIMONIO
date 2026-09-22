@@ -4,6 +4,33 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.233.0) — Entrega F.1: card de competência (‹ Mês/Ano ›)
+sozinho no topo de Recebimentos e Saídas (REGRAS_EXPERIENCIA_RAIZ
+v3.18.0 §11: "a competência vem primeiro porque qualifica tudo que vem
+depois"); .rz-seg (Recebimentos/Saídas/Conciliação) virou .rz-chips
+(Recebimentos/Saídas/Fechamento — REGRAS §7: "NUNCA chips e segmento
+pra mesma decisão", chip Fechamento fica desabilitado com motivo quando
+a rotina fechamento_mensal está desligada, leva a Empresa › Rotinas);
+os 4 KPIs de cada aba (Previsto/Recebido/Em atraso/A receber em
+Recebimentos; Previsto/Pago/Vencido/A pagar em Saídas) passaram a vir
+de fn_financeiro_totalizadores (banco, migration
+fechamento_totalizadores_v1), nunca mais de soma no cliente — fecha
+parte da demanda a247bddf ("resultado calculado em 3 lugares"). Os
+chips internos de status (Pago/Pendente/Atrasado em Recebimentos,
+Pago/A pagar/Vencido em Saídas, Tudo/Entradas/Saídas +
+Pendentes/Conciliados/Não controlado em Fechamento) e as 3 listas
+continuam exatamente como estavam — nenhuma coluna/campo de linha
+mudou (ajuste explícito do Nicola, 20/09/2026). Card de competência
+fica de fora do chip Fechamento nesta entrega, de propósito (ver
+nota grande no topo de js/financeiro.js) — entra de verdade na
+Entrega F.2 (Fechamento da competência).
+------------------------------------------------------------------
+Versões anteriores (v1.232.0 … v1.232.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.220.0) — Entrega AL.5, a partir de 4 prints do app
 (Sheet do alerta "Fechamento mensal pendente", "Mais opções", alerta
 agrupado "4 ocorrências · Contrato", "Item de controle vencendo"),

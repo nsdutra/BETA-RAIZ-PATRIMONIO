@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.15.0 · 21/09/2026
+// Versão: 1.16.0 · 22/09/2026
+//
+// v1.16.0 (22/09/2026) — resetarFinanceiroParaAbaInicial() nova (demanda
+// 60284322, "navegação por rodapé sempre reseta a aba"): financeiroCompetencia
+// Atual (module-scoped, ver declaração abaixo) ficava preso no mês pra onde
+// a pessoa tinha navegado (‹ Mês/Ano ›) — voltar pro Financeiro pelo rodapé
+// depois de visitar outra aba continuava mostrando esse mês, não o mês
+// corrente. Chamada por index.html (irParaAbaRodape) antes de
+// switchTab('tab-mensal'); só zera o estado — quem redesenha é o gancho que
+// o próprio switchTab já dispara (montarAbaFinanceiro).
 //
 // v1.15.0 (21/09/2026) — 2 correções (QUA-01, achadas revisando o v1.14.0
 // nesta mesma entrega, antes de qualquer uso real):
@@ -569,7 +578,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.15.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.16.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -581,6 +590,11 @@ export function montarAbaFinanceiro(tabId) {
     // (renderPendenciasExtrato() removida — painel legado retirado).
     else if (tabId === 'tab-conciliacao') { financeiroRenderCabecalho('conciliacao'); carregarConciliacaoUnificada(); }
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// v1.16.0 (demanda 60284322) — ver changelog do topo do arquivo.
+export function resetarFinanceiroParaAbaInicial() {
+    financeiroCompetenciaAtual = null;
 }
 
 // ============================================================================

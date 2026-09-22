@@ -1,8 +1,18 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.3.0 (22/09/2026 — Entrega B1.2, PLANO_IMPLEMENTACAO_
-// RESULTADOS_MERCADO_FISCAL v2.0.0)
+// VERSÃO: Beta v1.4.0 (22/09/2026 — demanda 60284322, navegação por rodapé)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.4.0):
+//   — resetarResultadosParaAbaInicial() nova (demanda 60284322 — "navegação
+//     por rodapé sempre reseta a aba", achado do Nicola em revisão de
+//     telas): antes, o filtro aplicado (ano/abrangência/contexto/alvo)
+//     ficava preso entre trocas de aba pelo rodapé — voltar pra Resultados
+//     depois de ir noutro empreendimento/ano continuava mostrando o
+//     último filtro escolhido, não o padrão (Carteira, ano corrente,
+//     Tudo). Chamada por index.html (irParaAbaRodape) antes de
+//     switchTab('tab-relatorios'); só reseta o estado — quem redesenha é
+//     o gancho que o próprio switchTab já dispara.
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.3.0):
 //   — Card "Indicadores" e gráfico "Sua carteira × indicador" saem do
@@ -127,7 +137,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.3.0';
+export const VERSAO = '1.4.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -291,6 +301,18 @@ export function escolherResultadosAlvo(id, nome) {
 export function limparResultadosFiltros() {
     rascunho = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', alvoId: null, alvoNome: null };
     reescreverCorpoFiltros();
+}
+
+// v1.4.0 (22/09/2026, demanda 60284322 — "navegação por rodapé sempre
+// reseta a aba") — diferente de limparResultadosFiltros() (que só mexe no
+// RASCUNHO dentro do sheet Filtros), esta reseta o filtro JÁ APLICADO
+// (`filtro`, module-scoped, sobrevive entre trocas de aba — ver comentário
+// da declaração acima). Chamada por index.html (irParaAbaRodape) ANTES do
+// switchTab, só o reset em si — quem redesenha é o gancho que o próprio
+// switchTab('tab-relatorios') já dispara (carregarResultados().then(m =>
+// m.renderResultados())), sem duplicar render aqui.
+export function resetarResultadosParaAbaInicial() {
+    filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', alvoId: null, alvoNome: null };
 }
 
 export function aplicarResultadosFiltros() {

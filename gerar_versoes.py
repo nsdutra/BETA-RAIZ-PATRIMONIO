@@ -45,8 +45,12 @@
 # v1.0 (06/09/2026) — gera versoes.json (a verdade do que
 # deveria estar no ar) a partir dos headers dos arquivos do app. Rodado por
 # Claude a cada entrega; o Deploy_Raiz.ps1 v2.10 publica e compara com o site.
+# gerar_versoes.py v1.15 (22/09/2026) — ARQ ganha js/raiz-eventos.js (Fase 1
+# do wrapper de escrita/evento local — utilitário novo, já com 1 consumidor
+# real: cofre-ativos.js v1.59.0, piloto da demanda registrada em sessão
+# anterior).
 import re, os, json, sys, datetime, io
-ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/fechamento.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/comum-endereco.js','js/resultados.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
+ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/fechamento.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/comum-endereco.js','js/resultados.js','js/raiz-eventos.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
 out = {'app': 'patrimonio', 'gerado_em': datetime.datetime.now().isoformat(timespec='seconds'), 'arquivos': {}, 'detalhes': {}}
 for f in ARQ:
     s = io.open(f, encoding='utf-8').read()

@@ -6,12 +6,38 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.237.0
-   LINHAS: 15648
-   DATA: 21/09/2026 (Entrega F.3 (redesenho, pedido explícito do Nicola) +
-   F.4 — Pacote do contador via WhatsApp/e-mail do próprio usuário +
-   reorganização de Financeiro/Fechamento/Conciliação,
-   PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0, FASE F)
+   VERSÃO: Beta v1.239.0
+   LINHAS: 15735
+   DATA: 22/09/2026 (demanda 60284322 + Fase 1 do wrapper de escrita/evento
+   local — achados do Nicola em revisão de telas, 21/09/2026)
+   NOVIDADES (Beta v1.239.0) — demanda 60284322 + Fase 1 do wrapper:
+   (1) Navegação por rodapé sempre reseta a aba (demanda 60284322): os 5
+   botões do rodapé (Visão Geral, Ativos, Contratos, Financeiro, Resultados)
+   chamavam switchTab(tabId) direto — trocavam a SEÇÃO visível, mas não
+   sabiam nada do estado interno de cada módulo, então "sobrava" a última
+   visita (ficha do ativo aberta, mês navegado em Financeiro, filtro
+   aplicado em Resultados). Os 5 botões passam a chamar irParaAbaRodape
+   (tabId) nova função, que resolve o reset de cada aba (só quem sabe o
+   que precisa voltar ao padrão é o módulo dono do estado) antes de
+   chamar switchTab: Ativos via fecharFichaAtivo() (cofre-ativos.js, já
+   existia); Resultados/Financeiro via resetarResultadosParaAbaInicial()/
+   resetarFinanceiroParaAbaInicial() (novas, resultados.js v1.4.0/
+   financeiro.js v1.16.0); Visão Geral já reconstrói tudo do zero a cada
+   entrada (nada a fazer); Contratos: a ficha já fecha sozinha ao trocar
+   de aba, e o filtro da lista fica de propósito (é filtro de busca).
+   (2) Fase 1 do wrapper de escrita + evento local (backlog discutido em
+   sessão anterior: "tela desatualizada após criar/editar/excluir, cross,
+   todo o app"; decisão do Nicola pra esta entrega — "Utilitário + 1
+   piloto testado"): js/raiz-eventos.js (novo) — emitirEscrita/aoEscrever/
+   executarEscrita, evento local padronizado pra módulos que não se
+   conhecem avisarem uns aos outros que algo mudou. Piloto único: editar
+   um ativo (salvarEdicaoAtivo, cofre-ativos.js v1.59.0) agora também
+   emite emitirEscrita('ativo', ...) — index.html assina 1x no boot e
+   refaz `imoveis` (array legado que só carregava 1x no boot, nunca de
+   novo) e redesenha a Visão Geral se ela estiver aberta na hora (contador
+   "Total/Alugados/Vagos" ficava desatualizado até um F5). Adoção do
+   wrapper no resto do app (Contratos, Financeiro, Resultados) fica pra
+   rodada dedicada futura.
    NOVIDADES (Beta v1.237.0) — Entrega F.3/F.4:
    (1) Compartilhamento com o contador: no fechamento, ⋮ ganha "Compartilhar
    com o contador" — escolhe o contador (papel novo, prestadores.tipo=
@@ -127,28 +153,8 @@
    financeiro (Previsto/Recebido/Pago); o retrato de Distribuição (extrato
    de sócio) fica pra uma entrega seguinte — calcularExtratoSocio()
    continua onde está, sem mudança nesta rodada.
-   NOVIDADES (Beta v1.233.0) — Entrega F.1: card de competência (‹ Mês/Ano ›)
-   sozinho no topo de Recebimentos e Saídas (REGRAS_EXPERIENCIA_RAIZ
-   v3.18.0 §11: "a competência vem primeiro porque qualifica tudo que vem
-   depois"); .rz-seg (Recebimentos/Saídas/Conciliação) virou .rz-chips
-   (Recebimentos/Saídas/Fechamento — REGRAS §7: "NUNCA chips e segmento
-   pra mesma decisão", chip Fechamento fica desabilitado com motivo quando
-   a rotina fechamento_mensal está desligada, leva a Empresa › Rotinas);
-   os 4 KPIs de cada aba (Previsto/Recebido/Em atraso/A receber em
-   Recebimentos; Previsto/Pago/Vencido/A pagar em Saídas) passaram a vir
-   de fn_financeiro_totalizadores (banco, migration
-   fechamento_totalizadores_v1), nunca mais de soma no cliente — fecha
-   parte da demanda a247bddf ("resultado calculado em 3 lugares"). Os
-   chips internos de status (Pago/Pendente/Atrasado em Recebimentos,
-   Pago/A pagar/Vencido em Saídas, Tudo/Entradas/Saídas +
-   Pendentes/Conciliados/Não controlado em Fechamento) e as 3 listas
-   continuam exatamente como estavam — nenhuma coluna/campo de linha
-   mudou (ajuste explícito do Nicola, 20/09/2026). Card de competência
-   fica de fora do chip Fechamento nesta entrega, de propósito (ver
-   nota grande no topo de js/financeiro.js) — entra de verdade na
-   Entrega F.2 (Fechamento da competência).
    ------------------------------------------------------------------
-   Versões anteriores (v1.232.0 … v1.232.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.233.0 … v1.233.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -172,7 +178,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.15.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.13.2","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.42.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.32.5","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.57.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.44.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.14.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.43.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.33.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.59.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.30.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.4.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1541,7 +1547,7 @@
 
     <nav id="bottom-nav-bar" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40" style="padding-bottom:env(safe-area-inset-bottom)">
 
-        <button onclick="switchTab('tab-geral')" id="btn-tab-geral" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+        <button onclick="irParaAbaRodape('tab-geral')" id="btn-tab-geral" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="layout-dashboard" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Visão Geral</span>
         </button>
@@ -1554,7 +1560,7 @@
              v1.90.0 — passou a ser também a porta de entrada de Imóveis
              (ver segmento Imóveis/Ativos dentro desta seção e de
              tab-imoveis) — mesmo ícone, mesma tela, só ganhou o vizinho. -->
-        <button onclick="switchTab('tab-ativos')" id="btn-tab-ativos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+        <button onclick="irParaAbaRodape('tab-ativos')" id="btn-tab-ativos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="boxes" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Ativos</span>
         </button>
@@ -1564,12 +1570,12 @@
              Financeiro — ordem exata do protótipo (Visão geral · Ativos ·
              Contratos · Financeiro · Resultados). Só trocou de lugar no
              HTML, a tela em si (tab-contratos) não foi tocada. -->
-        <button onclick="switchTab('tab-contratos')" id="btn-tab-contratos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+        <button onclick="irParaAbaRodape('tab-contratos')" id="btn-tab-contratos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="file-text" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Contratos</span>
         </button>
 
-        <button onclick="switchTab('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+        <button onclick="irParaAbaRodape('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="wallet" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Financeiro</span>
         </button>
@@ -1584,7 +1590,7 @@
              está numa dessas telas — sem isso, o destaque da barra ficaria
              errado ao entrar nelas. -->
 
-        <button onclick="switchTab('tab-relatorios')" id="btn-tab-relatorios" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+        <button onclick="irParaAbaRodape('tab-relatorios')" id="btn-tab-relatorios" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="bar-chart-3" style="width:21px;height:21px"></svg>
             <span class="text-[10px] font-bold">Resultados</span>
         </button>
@@ -3635,7 +3641,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.237.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.239.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -7550,6 +7556,38 @@
 
             }
 
+            // v1.239.0 (22/09/2026 — Fase 1 do wrapper de escrita, piloto:
+            // ver js/raiz-eventos.js e cofre-ativos.js v1.59.0, changelog de
+            // ambos) — assina 1x por boot o evento padrão de escrita pra
+            // 'ativo'. Ativos (Cofre) escreve sem saber que `imoveis` (array
+            // legado, só carregado neste boot — ver bloco logo acima) ou a
+            // Visão Geral existem; este é o único lugar que sabe disso.
+            // Colocado FORA do try/catch acima (não depende de ter dado
+            // certo ou não buscar imóveis na 1ª vez). Refaz `imoveis`
+            // sempre; só REDESENHA a Visão Geral se ela estiver aberta
+            // agora — as outras abas não dependem de `imoveis` e já se
+            // resolvem sozinhas (switchTab busca de novo a cada entrada).
+            // Guard por window.* (não por `let` de escopo de função) de
+            // propósito: este bloco de boot pode rodar de novo num
+            // re-login, e um listener duplicado dispararia o refresh 2x a
+            // cada escrita — inofensivo, mas desnecessário.
+            if (!window.__rzListenerEscritaAtivoLigado) {
+                window.__rzListenerEscritaAtivoLigado = true;
+                import('./js/raiz-eventos.js').then(({ aoEscrever }) => {
+                    aoEscrever('ativo', async () => {
+                        try {
+                            imoveis = await carregarImoveisSupabase();
+                            localStorage.setItem(chaveLocal('imoveis'), JSON.stringify(imoveis));
+                            if (document.getElementById('tab-geral')?.classList.contains('active')) {
+                                renderVisaoGeral();
+                            }
+                        } catch (err) {
+                            console.warn('[raiz-eventos] Falha ao atualizar imoveis após escrita de ativo:', err.message);
+                        }
+                    });
+                }).catch(err => console.warn('[raiz-eventos] Falha ao carregar módulo:', err.message));
+            }
+
             // ============================================================================
             // ETAPA 3 (migração de dados) — SERVIÇOS (síndico, manutencista,
             // administradora) também já vêm do Supabase, de forma independente do
@@ -9170,6 +9208,55 @@
             // adicionado novos <svg data-lucide="..."> ainda não inicializados.
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
+        }
+
+        // v1.238.0 (22/09/2026, demanda 60284322 — "navegação por rodapé
+        // sempre reseta a aba") — achado do Nicola revisando telas: ir de
+        // Ativos → outra aba → Ativos de novo pelo RODAPÉ não volta pra
+        // lista, continua na ficha aberta; o mesmo pro mês navegado em
+        // Financeiro e pro filtro aplicado em Resultados — switchTab()
+        // sozinho troca a SEÇÃO visível, mas não sabe nada sobre o estado
+        // interno de cada módulo (ficha aberta do Cofre, mês do card de
+        // competência, filtro aplicado), então esse estado "sobra" da
+        // visita anterior. Os 5 botões do rodapé passam a chamar esta
+        // função em vez de switchTab() direto — cada aba resolve seu
+        // PRÓPRIO reset (só quem sabe o que precisa voltar ao padrão é o
+        // módulo dono do estado), sempre ANTES de switchTab() pra já
+        // entrar limpo, sem "piscar" o estado antigo:
+        //   · Ativos — Cofre é um módulo embutido com router próprio
+        //     (mudarTela, cofre-navegacao.js), que switchTab() não toca;
+        //     fecharFichaAtivo() (cofre-ativos.js) já existe e faz
+        //     exatamente esse reset. Só chama se o Cofre já foi
+        //     inicializado alguma vez (senão a 1ª abertura já nasce na
+        //     lista — nada a fazer, e importar o módulo cedo demais
+        //     rodaria efeito colateral fora de hora).
+        //   · Resultados/Financeiro — filtro/financeiroCompetenciaAtual são
+        //     module-scoped (sobrevivem ao próprio import, que só roda 1x
+        //     por sessão) — resetarResultadosParaAbaInicial()/
+        //     resetarFinanceiroParaAbaInicial() (novas nesta entrega) só
+        //     zeram o estado; quem redesenha é o gancho que switchTab()
+        //     já dispara pra essas abas (renderResultados()/
+        //     montarAbaFinanceiro()) — sem duplicar render aqui. Só chama
+        //     se o módulo já foi carregado (__rzResModulo/__rzFinModulo);
+        //     se ainda não foi, não há estado nenhum pra resetar.
+        //   · Visão Geral — renderVisaoGeral() já reconstrói tudo do zero
+        //     a cada entrada (linha ~9164 acima) — nada a resetar.
+        //   · Contratos — a FICHA fecha sozinha ao trocar de aba (não tem
+        //     router interno como o Cofre); o filtro da LISTA (<select>/
+        //     checkbox) fica de propósito — é filtro de busca, não "resto
+        //     da visita anterior", mesmo tratamento de qualquer outro
+        //     filtro de lista do app (fora do escopo desta demanda).
+        function irParaAbaRodape(tabId) {
+            if (tabId === 'tab-ativos' && document.querySelector('#ativos-mount-point #app-cofre')) {
+                import('./js/cofre-ativos.js')
+                    .then(m => { if (typeof m.fecharFichaAtivo === 'function') m.fecharFichaAtivo(); })
+                    .catch(err => console.warn('[nav-rodape] Falha ao resetar Ativos:', err.message));
+            } else if (tabId === 'tab-relatorios' && __rzResModulo) {
+                if (typeof __rzResModulo.resetarResultadosParaAbaInicial === 'function') __rzResModulo.resetarResultadosParaAbaInicial();
+            } else if (tabId === 'tab-mensal' && __rzFinModulo) {
+                if (typeof __rzFinModulo.resetarFinanceiroParaAbaInicial === 'function') __rzFinModulo.resetarFinanceiroParaAbaInicial();
+            }
+            switchTab(tabId);
         }
 
         // Mostra a barra inferior + garante que o ícone certo já nasce
