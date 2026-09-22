@@ -6,10 +6,45 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.241.0
-   LINHAS: 15833
-   DATA: 22/09/2026 (demanda be42b19f — Padronizar componente de Parte em
-   todo o app — achado do Nicola em revisão de telas, 21/09/2026)
+   VERSÃO: Beta v1.242.0
+   LINHAS: 15680
+   DATA: 22/09/2026 (demanda c75076ed — Tela "Novo contrato" no padrão do
+   sistema + remover Histórico do formulário de criação — achado do Nicola
+   em revisão de telas, 21/09/2026)
+   NOVIDADES (Beta v1.242.0) — demanda c75076ed (Tela "Novo contrato"):
+   Achado do Nicola: "a tela de criação de novo contrato está fora do
+   padrão visual atual do sistema (gramática única)". O formulário
+   #form-contrato-wrapper (usado tanto para CRIAR quanto para EDITAR um
+   contrato, ~500 linhas) usava classes Tailwind de cor soltas (text-
+   gray-600, bg-gray-50, bg-slate-50, border-slate-300…) e classes legado
+   já listadas como proibidas no DESIGN_SYSTEM §6 (raiz-campo-altura-
+   contrato) em vez do catálogo rz-*, e vivia num z-index aposentado
+   (z-[65] — DESIGN_SYSTEM §5 lista 65 entre os "aposentados: antigos
+   popups Tipo A/B/C").
+   (1) Todo campo do formulário passa a usar .rz-f/.rz-f2 (mesmo
+   componente que comum-endereco.js, comum-partes.js e Configurações ›
+   Partes já usam) — label + input sem classe Tailwind de cor, 44px de
+   altura padrão, foco --sprout. As caixas destacadas (Rateio, Documentos,
+   Histórico, Observação, painel de reajuste) passam a usar .rz-card (a
+   mesma anatomia de card do resto do app) em vez de bg-slate-50/border-
+   slate-300. z-[65] (aposentado) vira z-[97] — o mesmo z-index real que
+   .rz-veil já usa em todo outro Sheet do app (ver <style> .rz-veil;
+   96/95/70/65 continuam aposentados, nenhum novo caso os usa).
+   Nenhum id, handler onclick/oninput ou lógica de validação mudou — é
+   troca de classe/marcação pura, então validarWhatsappContrato(),
+   validarEmailContrato(), formatarMascaraDocumento(), o cálculo de
+   reajuste, o rateio societário e o upload de documentos continuam
+   funcionando exatamente como antes.
+   (2) "Remover o componente de Histórico do formulário de criação (só
+   faz sentido depois que o contrato já existe)": a caixa de Histórico
+   ganha o wrapper #con-historico-bloco, escondido por cancelarEdicaoContrato()
+   (contrato novo) e mostrado por editarContrato() (contrato existente) —
+   mesmo mecanismo que #secao-avancada-contrato (painel de reajuste) já
+   usava para a mesma distinção criar/editar. Nada foi apagado: quem edita
+   um contrato continua vendo o Histórico normalmente.
+   Campo "Endereço atual do locatário" (que be42b19f já havia trocado
+   pelo bloco estruturado nesta mesma tela) não mudou nesta entrega — só a
+   moldura ao redor dele.
    NOVIDADES (Beta v1.241.0) — demanda be42b19f (componente único de Parte):
    Achado do Nicola: o formulário/visualizador de uma Parte (locatário,
    fiador, proprietário, prestador) não era único — cada tela reimplementava
@@ -159,23 +194,8 @@
    transação de DDL que já referencia o valor novo) ·
    fechamento_pacote_contador_v1_fix_grants_public (correção do item 6a
    acima).
-   NOVIDADES (Beta v1.236.0) — Entrega F3.1: chip "Fiscal" no card de
-   competência do Fechamento (js/fechamento.js), visível só quando a
-   rotina nfse_competencia está ligada (Empresa › Rotinas). Mostra "Fiscal
-   OK" (verde) ou a contagem de pendências (âmbar); toque abre um
-   checklist por imóvel com 2 perguntas: CIB preenchido? (reaproveita
-   fn_diario_cib_pendente, mesma função que já alimenta o alerta de
-   estado cib_pendente da Entrega AL.2 — fonte única, nunca diverge do
-   que a Central de Alertas mostra) e o contrato ativo tem documento do
-   locatário (CPF/CNPJ)? (consulta nova client-side, sem RPC — natureza
-   de cadastro, sem alerta de estado equivalente ainda). Cada item do
-   checklist navega pro lugar de sempre pra corrigir (ficha do ativo/
-   ficha do contrato) — nenhuma edição inline nova. Preparação apenas:
-   nenhum texto afirma que a empresa é contribuinte, e não emite nada
-   (emissão real de NFS-e é fase futura, fora de escopo aqui). Sem
-   migration — reaproveita os tipos/funções que a AL.2 já publicou.
    ------------------------------------------------------------------
-   Versões anteriores (v1.235.0 … v1.235.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.236.0 … v1.236.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -199,7 +219,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.16.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.35.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.60.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.31.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.17.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.35.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.60.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.31.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2218,7 +2238,7 @@
                  de baixo, painel branco com cantos em cima, título Bricolage
                  e X .rz-x dentro do painel (era título branco "suspenso" sobre
                  o fundo escuro), rodapé Cancelar | Salvar contrato. -->
-            <div id="form-contrato-wrapper" class="hidden fixed inset-0 z-[65] overflow-y-auto" style="background:rgba(23,33,30,.5)">
+            <div id="form-contrato-wrapper" class="hidden fixed inset-0 z-[97] overflow-y-auto" style="background:rgba(23,33,30,.5)">
 
                 <div class="min-h-full flex items-end justify-center">
 
@@ -2241,90 +2261,51 @@
 
                 
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Imóvel <span style="color:var(--danger)">*</span></label>
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Imóvel <i>*</i></label>
                         <input type="hidden" id="con-imovel" required value="">
-
-                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('con-imovel').value = id; document.getElementById('con-imovel-resumo').textContent = resumo || '-- Escolha o Imóvel --'; sugerirDescontoEnergia(); exibirDivisaoImovelNoContrato(id); })" id="con-imovel-resumo" class="raiz-campo-altura-contrato w-full p-2 border rounded mt-1 text-sm bg-gray-50 text-left truncate">-- Escolha o Imóvel --</button>
-
+                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('con-imovel').value = id; document.getElementById('con-imovel-resumo').textContent = resumo || '-- Escolha o Imóvel --'; sugerirDescontoEnergia(); exibirDivisaoImovelNoContrato(id); })" id="con-imovel-resumo" style="width:100%;height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font-size:14px;background:#fff;color:var(--ink);text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">-- Escolha o Imóvel --</button>
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Status</label>
-
-                        <select id="con-status" class="raiz-campo-altura-contrato w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
+                    <div class="rz-f">
+                        <label>Status</label>
+                        <select id="con-status">
                             <option value="Assinando">Assinando</option>
-
                             <option value="Ativo">Ativo</option>
-
                             <option value="Suspenso">Suspenso</option>
-
                             <option value="Finalizado">Finalizado</option>
-
                         </select>
-
                     </div>
-
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Nome do Locatário <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="con-locatario" required class="w-full p-2 border rounded mt-1 text-sm">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Nome do Locatário <i>*</i></label>
+                        <input type="text" id="con-locatario" required>
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">CPF/CNPJ <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="con-cpf" required oninput="formatarMascaraDocumento()" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm">
-
+                    <div class="rz-f">
+                        <label>CPF/CNPJ <i>*</i></label>
+                        <input type="text" id="con-cpf" required oninput="formatarMascaraDocumento()" placeholder="Só digitar os números">
                         <p id="con-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
                     </div>
-
                 </div>
 
-                <div>
-
-                    <label class="block text-xs font-bold text-gray-600">Pessoa de Contato</label>
-
-                    <input type="text" id="con-contato-nome" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Nome de quem responde pelo contrato">
-
+                <div class="rz-f">
+                    <label>Pessoa de Contato</label>
+                    <input type="text" id="con-contato-nome" placeholder="Nome de quem responde pelo contrato">
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">WhatsApp <span style="color:var(--danger)">*</span></label>
-
-                        <input type="tel" id="con-whatsapp" required oninput="aplicarMascaraTelefone(this); validarWhatsappContrato();" class="w-full p-2 border rounded mt-1 text-sm" placeholder="(11) 91234-5678">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>WhatsApp <i>*</i></label>
+                        <input type="tel" id="con-whatsapp" required oninput="aplicarMascaraTelefone(this); validarWhatsappContrato();" placeholder="(11) 91234-5678">
                         <p id="con-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">E-mail <span style="color:var(--danger)">*</span></label>
-
-                        <input type="email" id="con-email" required oninput="validarEmailContrato()" class="w-full p-2 border rounded mt-1 text-sm" placeholder="nome@email.com">
-
+                    <div class="rz-f">
+                        <label>E-mail <i>*</i></label>
+                        <input type="email" id="con-email" required oninput="validarEmailContrato()" placeholder="nome@email.com">
                         <p id="con-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-
                     </div>
-
                 </div>
 
                 <!-- v1.46.0 — CORRIGIDO (achado real do inventário de
@@ -2338,34 +2319,24 @@
                      editado e salvo no App, esses 3 valores eram apagados em
                      silêncio (contratoDados não os incluía). Corrigido nos
                      dois pontos: UI aqui + contratoDados no saveContrato(). -->
-                <div>
-
-                    <label class="block text-xs font-bold text-gray-600">Endereço atual do locatário <span style="color:var(--danger)">*</span></label>
-
+                <div class="rz-f">
+                    <label>Endereço atual do locatário <i>*</i></label>
                     <!-- CORRIGIDO (v1.55.0 — pedido explícito): virou textarea
                          maior — o endereço que o interessado digita no link
                          público (rua+número+complemento+bairro+cidade+UF+CEP,
                          tudo concatenado em 1 texto só) não cabia inteiro
                          num input de 1 linha só. -->
-                    <textarea id="con-locatario-endereco" required rows="2" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Rua, número, bairro, cidade"></textarea>
-
+                    <textarea id="con-locatario-endereco" required rows="2" placeholder="Rua, número, bairro, cidade"></textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Profissão <span style="color:var(--danger)">*</span></label>
-
-                        <input type="text" id="con-locatario-profissao" required class="w-full p-2 border rounded mt-1 text-sm">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Profissão <i>*</i></label>
+                        <input type="text" id="con-locatario-profissao" required>
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Estado civil <span style="color:var(--danger)">*</span></label>
-
-                        <select id="con-locatario-estado-civil" required class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
+                    <div class="rz-f">
+                        <label>Estado civil <i>*</i></label>
+                        <select id="con-locatario-estado-civil" required>
                             <option value="">-- Selecione --</option>
                             <option value="Solteiro(a)">Solteiro(a)</option>
                             <option value="Casado(a)">Casado(a)</option>
@@ -2373,78 +2344,46 @@
                             <option value="Viúvo(a)">Viúvo(a)</option>
                             <option value="União estável">União estável</option>
                         </select>
-
                     </div>
-
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Dia Vencimento <span style="color:var(--danger)">*</span></label>
-
-                        <input type="number" id="con-vencimento-dia" required min="1" max="31" class="w-full p-2 border rounded mt-1 text-sm">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Dia Vencimento <i>*</i></label>
+                        <input type="number" id="con-vencimento-dia" required min="1" max="31">
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Aluguel Antecipado?</label>
-
-                        <select id="con-antecipado" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
+                    <div class="rz-f">
+                        <label>Aluguel Antecipado?</label>
+                        <select id="con-antecipado">
                             <option value="Sim">Sim (paga na própria competência)</option>
-
                             <option value="Não">Não (paga no mês seguinte)</option>
-
                         </select>
-
                     </div>
-
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Início Vigência <span style="color:var(--danger)">*</span></label>
-
-                        <input type="date" id="con-inicio" required class="w-full p-2 border rounded mt-1 text-sm">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Início Vigência <i>*</i></label>
+                        <input type="date" id="con-inicio" required>
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Fim Vigência <span style="color:var(--danger)">*</span></label>
-
-                        <input type="date" id="con-fim" required class="w-full p-2 border rounded mt-1 text-sm">
-
+                    <div class="rz-f">
+                        <label>Fim Vigência <i>*</i></label>
+                        <input type="date" id="con-fim" required>
                     </div>
-
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Aluguel (R$) <span style="color:var(--danger)">*</span></label>
-
-                        <div class="flex items-center gap-1 mt-1">
-                            <input type="number" step="0.01" id="con-valor" required oninput="atualizarValorLiquidoEsperado()" class="w-full p-2 border rounded text-sm">
-                            <button type="button" id="btn-toggle-reajuste-contrato" onclick="alternarPainelReajusteContrato()" title="Registrar reajuste" class="hidden raiz-btn-toggle-mini flex-none w-8 h-8 flex items-center justify-center bg-slate-100 border border-slate-300 rounded-full font-bold text-slate-600"><svg data-lucide="more-horizontal" style="width:15px;height:15px"></svg></button>
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Aluguel (R$) <i>*</i></label>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <input type="number" step="0.01" id="con-valor" required oninput="atualizarValorLiquidoEsperado()" style="flex:1">
+                            <button type="button" id="btn-toggle-reajuste-contrato" onclick="alternarPainelReajusteContrato()" title="Registrar reajuste" class="hidden raiz-btn-toggle-mini" style="flex:none;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--tile);border:1px solid var(--line);border-radius:999px;color:var(--muted)"><svg data-lucide="more-horizontal" style="width:15px;height:15px"></svg></button>
                         </div>
-
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Desconto Energia (%)</label>
-
-                        <input type="number" id="con-desconto-energia" value="0" class="w-full p-2 border rounded mt-1 text-sm">
-
+                    <div class="rz-f">
+                        <label>Desconto Energia (%)</label>
+                        <input type="number" id="con-desconto-energia" value="0">
                     </div>
-
                 </div>
 
                 <!-- v1.41.2 — cortina de reajuste: só existe (e só faz sentido)
@@ -2456,72 +2395,40 @@
                      Mensal: sem botões Salvar/Fechar próprios, os campos
                      alimentam direto o valor do contrato; quem persiste é o
                      "Salvar Contrato" no fim do formulário. -->
-                <div id="secao-avancada-contrato" class="hidden bg-slate-50 p-3 rounded-xl border-2 border-slate-300 space-y-3">
-
+                <div id="secao-avancada-contrato" class="hidden rz-card" style="border-color:var(--sprout)">
                     <p class="rz-group" style="margin-top:0">Registrar reajuste ou alteração</p>
-
-                    <div class="grid grid-cols-2 gap-2">
-
-                        <div>
-
-                            <label class="block text-[11px] font-bold text-gray-600">Novo Valor</label>
-
-                            <input type="number" step="0.01" id="con-valor-anterior" value="" oninput="calcularReajustePorNovoValor()" placeholder="Só se for reajustar" class="w-full p-1.5 border rounded mt-1 text-xs">
-
+                    <div class="rz-f2">
+                        <div class="rz-f">
+                            <label>Novo Valor</label>
+                            <input type="number" step="0.01" id="con-valor-anterior" value="" oninput="calcularReajustePorNovoValor()" placeholder="Só se for reajustar">
                         </div>
-
-                        <div>
-
-                            <label class="block text-[11px] font-bold text-gray-600">% Reajuste</label>
-
-                            <input type="number" step="0.01" id="con-reajuste-aplicado" value="" oninput="calcularNovoValorPorReajuste()" placeholder="Ex: 5.5" class="w-full p-1.5 border rounded mt-1 text-xs">
-
+                        <div class="rz-f">
+                            <label>% Reajuste</label>
+                            <input type="number" step="0.01" id="con-reajuste-aplicado" value="" oninput="calcularNovoValorPorReajuste()" placeholder="Ex: 5.5">
                         </div>
-
                     </div>
-
-                    <div>
-
-                        <label class="block text-[11px] font-bold text-gray-600">Vigência da alteração <span id="con-vigente-desde-obrig" style="color:var(--danger)">*</span></label>
-
-                        <input type="date" id="con-vigente-desde" class="w-full p-1.5 border rounded mt-1 text-xs">
-
+                    <div class="rz-f" style="margin-bottom:0">
+                        <label>Vigência da alteração <i id="con-vigente-desde-obrig">*</i></label>
+                        <input type="date" id="con-vigente-desde">
                     </div>
-
                 </div>
 
                 <p class="rz-group" style="margin-top:0">Locatário paga</p>
-
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">IPTU</label>
-
-                        <select id="con-iptu-locatario" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>IPTU</label>
+                        <select id="con-iptu-locatario">
                             <option value="Não">Não</option>
-
                             <option value="Sim">Sim</option>
-
                         </select>
-
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Condomínio</label>
-
-                        <select id="con-condominio-locatario" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
+                    <div class="rz-f">
+                        <label>Condomínio</label>
+                        <select id="con-condominio-locatario">
                             <option value="Não">Não</option>
-
                             <option value="Sim">Sim</option>
-
                         </select>
-
                     </div>
-
                 </div>
 
                 <!-- v1.41.4 — os campos "IPTU sim/não" e "Condomínio sim/não"
@@ -2533,153 +2440,96 @@
                      sugerirDescontoEnergia(), chamada quando o imóvel é
                      escolhido. Ao editar um contrato já existente, o valor
                      salvo no contrato prevalece (não é sobrescrito de novo). -->
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Valor IPTU (R$)</label>
-
-                        <input type="number" id="con-iptu-valor" value="0" class="w-full p-2 border rounded mt-1 text-sm">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Valor IPTU (R$)</label>
+                        <input type="number" id="con-iptu-valor" value="0">
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Valor Condomínio (R$)</label>
-
-                        <input type="number" id="con-condominio-valor" value="0" class="w-full p-2 border rounded mt-1 text-sm">
-
+                    <div class="rz-f">
+                        <label>Valor Condomínio (R$)</label>
+                        <input type="number" id="con-condominio-valor" value="0">
                     </div>
-
                 </div>
 
-                <div class="grid grid-cols-2 gap-2">
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Forma de Pagamento</label>
-
-                        <select id="con-forma-pagamento" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Forma de Pagamento</label>
+                        <select id="con-forma-pagamento">
                             <option value="PIX">PIX</option>
-
                             <option value="Boleto">Boleto</option>
-
                             <option value="Depósito">Depósito</option>
-
                         </select>
-
                     </div>
-
-                    <div>
-
-                        <label class="block text-xs font-bold text-gray-600">Índice de Reajuste</label>
-
-                        <select id="con-reajuste" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
+                    <div class="rz-f">
+                        <label>Índice de Reajuste</label>
+                        <select id="con-reajuste">
                             <option value="IPCA">IPCA</option>
-
                             <option value="IGP-M">IGP-M</option>
-
                         </select>
-
                     </div>
-
                 </div>
 
-                <div id="con-divisao-imovel-info" class="hidden p-2.5 bg-slate-50 border-2 border-slate-300 rounded-xl text-[11px] space-y-1.5">
-                    <div class="flex items-center justify-between">
+                <div id="con-divisao-imovel-info" class="hidden rz-card" style="font-size:11px">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
                         <p class="rz-group" style="margin-top:0">Rateio deste contrato</p>
-                        <button type="button" onclick="adicionarSocioContrato()" title="Adicionar sócio" class="w-6 h-6 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                        <button type="button" onclick="adicionarSocioContrato()" title="Adicionar sócio" style="width:24px;height:24px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
                     </div>
-                    <p class="text-[10px] text-slate-400">Vem preenchido com a divisão cadastrada no imóvel — pode ajustar só para este contrato, se for o caso.</p>
-                    <div id="con-divisao-imovel-lista" class="space-y-1"></div>
+                    <p style="font-size:10px;color:var(--muted)">Vem preenchido com a divisão cadastrada no imóvel — pode ajustar só para este contrato, se for o caso.</p>
+                    <div id="con-divisao-imovel-lista" style="display:flex;flex-direction:column;gap:4px"></div>
                 </div>
 
-                <div>
-
-                    <label class="block text-xs font-bold text-gray-600">Administradora Terceirizada</label>
-
-                    <select id="con-administradora" onchange="atualizarValorLiquidoEsperado()" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-
+                <div class="rz-f">
+                    <label>Administradora Terceirizada</label>
+                    <select id="con-administradora" onchange="atualizarValorLiquidoEsperado()">
                         <option value="">-- Nenhuma (gestão direta) --</option>
-
                     </select>
-
-                    <p id="con-valor-liquido-info" class="text-[11px] text-gray-400 mt-0.5"></p>
-
+                    <p id="con-valor-liquido-info" style="font-size:11px;color:var(--muted);margin-top:2px"></p>
                 </div>
 
-                <div class="bg-slate-50 p-3 rounded-xl border-2 border-slate-300 space-y-3">
-
-                    <span class="block text-xs font-bold text-gray-600">Documentos do Contrato (até 5 por tipo)</span>
-
+                <div class="rz-card space-y-3">
+                    <span class="rz-group" style="margin-top:0">Documentos do Contrato (até 5 por tipo)</span>
                     <div>
-
-                        <div class="flex items-center justify-between">
-
-                            <label class="text-[11px] font-bold text-gray-500"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Contrato</label>
-
+                        <div style="display:flex;align-items:center;justify-content:space-between">
+                            <label style="font-size:11px;font-weight:700;color:var(--muted)"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Contrato</label>
                             <input type="file" id="con-doc-input-Contrato" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="processarMultiplosDocumentos(this, 'Contrato')" class="hidden">
-
-                            <button type="button" onclick="document.getElementById('con-doc-input-Contrato').click()" title="Anexar" class="w-7 h-7 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-
+                            <button type="button" onclick="document.getElementById('con-doc-input-Contrato').click()" title="Anexar" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                         </div>
-
-                        <div id="con-doc-preview-Contrato" class="mt-1 space-y-1 text-[11px]"></div>
-
+                        <div id="con-doc-preview-Contrato" class="mt-1 space-y-1" style="font-size:11px"></div>
                     </div>
-
                     <div>
-
-                        <div class="flex items-center justify-between">
-
-                            <label class="text-[11px] font-bold text-gray-500"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Aditivo</label>
-
+                        <div style="display:flex;align-items:center;justify-content:space-between">
+                            <label style="font-size:11px;font-weight:700;color:var(--muted)"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Aditivo</label>
                             <input type="file" id="con-doc-input-Aditivo" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="processarMultiplosDocumentos(this, 'Aditivo')" class="hidden">
-
-                            <button type="button" onclick="document.getElementById('con-doc-input-Aditivo').click()" title="Anexar" class="w-7 h-7 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-
+                            <button type="button" onclick="document.getElementById('con-doc-input-Aditivo').click()" title="Anexar" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                         </div>
-
-                        <div id="con-doc-preview-Aditivo" class="mt-1 space-y-1 text-[11px]"></div>
-
+                        <div id="con-doc-preview-Aditivo" class="mt-1 space-y-1" style="font-size:11px"></div>
                     </div>
-
                     <div>
-
-                        <div class="flex items-center justify-between">
-
-                            <label class="text-[11px] font-bold text-gray-500"><svg data-lucide="paperclip" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Outros</label>
-
+                        <div style="display:flex;align-items:center;justify-content:space-between">
+                            <label style="font-size:11px;font-weight:700;color:var(--muted)"><svg data-lucide="paperclip" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Outros</label>
                             <input type="file" id="con-doc-input-Outros" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="processarMultiplosDocumentos(this, 'Outros')" class="hidden">
-
-                            <button type="button" onclick="document.getElementById('con-doc-input-Outros').click()" title="Anexar" class="w-7 h-7 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-
+                            <button type="button" onclick="document.getElementById('con-doc-input-Outros').click()" title="Anexar" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                         </div>
-
-                        <div id="con-doc-preview-Outros" class="mt-1 space-y-1 text-[11px]"></div>
-
+                        <div id="con-doc-preview-Outros" class="mt-1 space-y-1" style="font-size:11px"></div>
                     </div>
-
                 </div>
 
-                <div class="bg-slate-50 rounded-xl border-2 border-slate-300 overflow-hidden">
-
-                    <div class="flex items-center justify-between p-2 border-b-2 border-slate-300">
-
-                        <span class="text-xs font-bold text-slate-600"><svg data-lucide="history" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Histórico <span id="con-historico-contador" class="text-slate-400 font-normal">(0)</span></span>
-
-                        <button type="button" onclick="alternarTodosHistoricosContrato()" id="btn-alternar-historicos-contrato" class="text-[10px] text-slate-500 underline">Abrir todos</button>
-
+                <!-- v1.241.0 (demanda c75076ed — "remover o componente de
+                     Histórico do formulário de criação, só faz sentido
+                     depois que o contrato já existe") — a caixa inteira
+                     ganha o wrapper #con-historico-bloco, escondido/mostrado
+                     por cancelarEdicaoContrato()/editarContrato() com o
+                     MESMO mecanismo que #secao-avancada-contrato já usava
+                     (hidden = contrato novo; visível = editando um contrato
+                     existente, que já tem pelo menos 1 histórico real). -->
+                <div id="con-historico-bloco" class="hidden rz-card" style="padding:0;overflow:hidden">
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)">
+                        <span style="font-size:12px;font-weight:700;color:var(--muted)"><svg data-lucide="history" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Histórico <span id="con-historico-contador" style="font-weight:400;color:var(--muted)">(0)</span></span>
+                        <button type="button" onclick="alternarTodosHistoricosContrato()" id="btn-alternar-historicos-contrato" style="font-size:10px;color:var(--muted);text-decoration:underline;background:none;border:none">Abrir todos</button>
                     </div>
-
-                    <div id="con-historico-lista" class="p-2 space-y-1 max-h-64 overflow-y-auto">
-
-                        <p class="text-[11px] text-gray-400 italic">O primeiro histórico ("assinatura") será criado automaticamente ao salvar este contrato.</p>
-
+                    <div id="con-historico-lista" class="space-y-1" style="padding:8px 12px;max-height:256px;overflow-y:auto">
+                        <p style="font-size:11px;color:var(--muted);font-style:italic">O primeiro histórico ("assinatura") será criado automaticamente ao salvar este contrato.</p>
                     </div>
-
                 </div>
 
                 <!-- v1.41.0 (Fase 1) — Caixa de observação sempre em branco. Se o
@@ -2689,12 +2539,9 @@
                      anotar algo no histórico). v1.41.2: removido "(opcional)" e
                      formatação padronizada nas cores do resto do formulário
                      (era destacada em âmbar, chamava atenção demais). -->
-                <div class="bg-slate-50 p-3 rounded-xl border-2 border-slate-300">
-
-                    <label class="block text-xs font-bold text-gray-600">Observação</label>
-
-                    <textarea id="con-observacao-nova" rows="2" placeholder="Escreva aqui uma observação para ficar registrada no histórico deste contrato..." class="w-full p-2 border rounded mt-1 text-sm bg-white"></textarea>
-
+                <div class="rz-card rz-f" style="margin-bottom:0">
+                    <label>Observação</label>
+                    <textarea id="con-observacao-nova" rows="2" placeholder="Escreva aqui uma observação para ficar registrada no histórico deste contrato..."></textarea>
                 </div>
 
                 <div class="rz-sh-f" style="padding-left:0;padding-right:0;margin-top:8px">
@@ -3667,7 +3514,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.241.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.242.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

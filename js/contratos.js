@@ -1,7 +1,23 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.16.0 · 22/09/2026
+// Versão: 1.17.0 · 22/09/2026
+//
+// v1.17.0 (demanda c75076ed, "Tela 'Novo contrato' no padrão do sistema +
+// remover Histórico do formulário de criação", achado do Nicola em
+// revisão de telas, 21/09/2026) — o grosso desta entrega é HTML
+// (index.html v1.242.0, form-contrato-wrapper: .rz-f/.rz-f2/.rz-card no
+// lugar de Tailwind de cor + classes raiz-* legado, z-[65] aposentado
+// vira z-[97]). Aqui em contratos.js só o item 2 (esconder o Histórico ao
+// criar):
+//   - editarContrato(): logo após renderHistoricoContratoInline(con),
+//     remove 'hidden' de #con-historico-bloco (contrato existente — o
+//     histórico já tem pelo menos 1 item real, faz sentido mostrar).
+//   - cancelarEdicaoContrato(): logo após renderHistoricoContratoInline
+//     (null), adiciona 'hidden' em #con-historico-bloco (contrato novo —
+//     "o primeiro histórico só nasce ao salvar", não faz sentido mostrar
+//     a caixa vazia). Mesmo mecanismo que #secao-avancada-contrato
+//     (painel de reajuste) já usava para a mesma distinção criar/editar.
 //
 // v1.16.0 (demanda be42b19f, "Padronizar componente de Parte em todo o
 // app", achado do Nicola em revisão de telas, 21/09/2026) — 2 itens desta
@@ -324,7 +340,7 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 
-export const VERSAO = '1.16.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.17.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3771,6 +3787,13 @@ export function reabrirFichaSeFor(contratoId) {
 
             renderHistoricoContratoInline(con);
 
+            // v1.17.0 (demanda c75076ed, item 2 — "remover o componente de
+            // Histórico do formulário de criação, só faz sentido depois que
+            // o contrato já existe") — mesmo mecanismo de #secao-avancada-
+            // -contrato (linha acima): mostra ao EDITAR, esconde ao criar
+            // (ver cancelarEdicaoContrato).
+            document.getElementById('con-historico-bloco')?.classList.remove('hidden');
+
             document.getElementById('form-contrato-titulo').innerText = "Editar contrato";
 
             document.getElementById('form-contrato-wrapper').classList.remove('hidden');
@@ -3874,6 +3897,12 @@ export function reabrirFichaSeFor(contratoId) {
             if (btnReajuste) { btnReajuste.classList.add('hidden'); btnReajuste.classList.remove('ativo'); }
 
             renderHistoricoContratoInline(null);
+
+            // v1.17.0 (demanda c75076ed, item 2) — contrato novo não tem
+            // histórico ainda (o primeiro item só nasce ao salvar); esconde
+            // a caixa inteira em vez de mostrar vazia. editarContrato() é
+            // quem mostra de novo, ao abrir um contrato já existente.
+            document.getElementById('con-historico-bloco')?.classList.add('hidden');
 
             document.getElementById('form-contrato-wrapper').classList.add('hidden');
 
