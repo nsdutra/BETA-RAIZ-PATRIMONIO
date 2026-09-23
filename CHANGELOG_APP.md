@@ -4,6 +4,24 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.252.0) — demanda 976fcbf6 (frente fiscal da Reforma
+Tributária, Fase 3 — check-up PF e PJ; decisões D1 e D3 do Nicola,
+23/09/2026). Tela nova ⚙️ › Empresa › Fiscal (js/fiscal.js v1.0.0, fatia
+lazy): resultado do check-up (PJ: prontidão para a NFS-e; PF: um status
+por titular — Abaixo do limite · Atenção · Possível enquadramento),
+titulares com regra/estimativa/orientação/quando validar, dados que
+faltam, emissão (quem emite, contador, rotina) e ⋮ com Registrar
+check-up, Ver regras usadas e troca do ano. Aqui: section tab-fiscal,
+item de menu (código fiscal.checkup, com cadeado quando o plano/perfil
+não inclui), TAB_CODIGO_VER, carregarFiscal() e pontes; ponte nova
+fechamentoAbrirChecklistFiscalAtualizado (js/fechamento.js v1.6.1).
+------------------------------------------------------------------
+Versões anteriores (v1.251.0 … v1.251.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.251.0) — demanda 976fcbf6 (frente fiscal da Reforma
 Tributária, Fase 2 — base fiscal nos dados; decisões D2 e D6 do Nicola,
 23/09/2026). Módulos: js/fechamento.js v1.6.0 (checklist fiscal lido de

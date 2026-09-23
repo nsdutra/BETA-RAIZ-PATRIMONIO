@@ -1,6 +1,15 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.8.0 · 23/09/2026
+// Versão: 1.9.0 · 23/09/2026
+//
+// v1.9.0 (achado do Nicola, 23/09/2026 — Albuquerque): o checklist fiscal
+// completa QUALQUER pendência ali mesmo (CPF/CNPJ do locatário ou da
+// empresa, destinação, município pelo CEP, CIB) pela função única
+// window.fiscalCompletarPendencia (js/fiscal.js v1.3.0 → banco
+// fn_fiscal_pendencia_completar). Antes, só o documento do locatário era
+// no contexto; o resto levava a outra tela sem caminho de volta. Grupo
+// Empresa passa a mostrar também "CPF/CNPJ da empresa não confere"
+// (empresa_documento_invalido, novo no banco).
 //
 // v1.8.0 (frente fiscal, Fase 7 — demanda 976fcbf6; decisão D3): pacote do
 // contador com o bloco FISCAL do fechamento (fn_pacote_contador_montar agora
@@ -277,7 +286,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -532,7 +541,7 @@ function fechamentoRenderFiscalChip() {
  * agrupado por Empresa · Locatário · Imóvel. Nunca afirma que a empresa é
  * contribuinte — só mostra o que falta. Nada é emitido a partir daqui. */
 const FECHAMENTO_FISCAL_GRUPOS = [
-    { chave: 'empresa', titulo: 'Empresa', tipos: ['empresa_sem_documento', 'empresa_sem_municipio'] },
+    { chave: 'empresa', titulo: 'Empresa', tipos: ['empresa_sem_documento', 'empresa_documento_invalido', 'empresa_sem_municipio'] },
     { chave: 'tomador', titulo: 'Documento do locatário', tipos: ['tomador_sem_documento', 'tomador_documento_invalido'] },
     { chave: 'imovel', titulo: 'Imóvel', tipos: ['imovel_sem_destinacao', 'imovel_sem_municipio', 'imovel_sem_cib'] },
 ];
@@ -561,7 +570,7 @@ export function fechamentoAbrirChecklistFiscal() {
             <div class="rz-card rz-list">${itens.map(([i, p]) => linhaHtml(p, i)).join('')}</div>`;
     }).join('');
     const vazio = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-check-2"></svg></div><p class="rz-desc">Nenhuma pendência de cadastro para a NFS-e.</p></div>`;
-    const dica = podeEditarContrato ? 'Toque num locatário para preencher o CPF/CNPJ aqui mesmo.' : '';
+    const dica = 'Toque numa linha para completar o dado aqui mesmo.'; // v1.9.0
     const corpo = `
         <p class="rz-desc">O que falta no cadastro para emitir a NFS-e quando a obrigatoriedade chegar. Nada é emitido a partir daqui.${dica ? ' ' + dica : ''}</p>
         ${pend.length ? secoes : vazio}`;
@@ -575,6 +584,14 @@ export function fechamentoAbrirChecklistFiscal() {
 export function fechamentoTratarPendenciaFiscal(i) {
     const p = (window.RZ_FIN_FISCAL_PEND || [])[i];
     if (!p) return;
+    // v1.9.0 — completar no contexto, qualquer campo (função única do fiscal.js)
+    if (typeof window.fiscalCompletarPendencia === 'function' && p.campo) {
+        window.fiscalCompletarPendencia(p, async () => {
+            await fechamentoAtualizarFiscal(true);
+            fechamentoAbrirChecklistFiscalAtualizado(); // relê e volta ao checklist
+        });
+        return;
+    }
     const podeEditarContrato = (typeof podeUsar === 'function') ? !!podeUsar('contratos.editar')?.ok : true;
     if (p.entidade_tipo === 'contrato' && podeEditarContrato && typeof abrirSheetForm === 'function') {
         fechamentoAbrirFormDocumentoTomador(p);

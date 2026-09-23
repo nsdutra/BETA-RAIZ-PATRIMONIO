@@ -1,6 +1,27 @@
 // ============================================================================
 // js/fiscal.js — Raiz Patrimônio · Fiscal (check-up da Reforma Tributária)
-// Versão: 1.2.0 · 23/09/2026
+// Versão: 1.3.0 · 23/09/2026
+//
+// v1.3.0 (achados do Nicola testando na Albuquerque, 23/09/2026, com prints):
+//   · Fiscal da competência: sem ⋮ no topo e sem o cartão de avisos
+//     ("obrigatória a partir de…", "Só consulta" — são acesso e alerta, que
+//     já têm lugar próprio). As funções viram 6 botões logo abaixo do mês,
+//     no mesmo formato dos 6 do Financeiro (.rz-fin-quad): Preparar ·
+//     Cadastro · Anexar XML · Contador · Quem emite · Check-up. Sem o plano,
+//     o botão aparece indisponível com o motivo (mesma regra de sempre).
+//     O "‹ Financeiro" saiu: o voltar agora é o do app (index.html v1.257.0 —
+//     botão de voltar do celular e atalho "‹ Voltar" no topo).
+//   · Linha "Falta dado": cada pendência vira uma ação "Completar …" que abre
+//     o campo ali mesmo (antes levava ao checklist sem dizer o quê).
+//     fiscalCompletarPendencia(p, depois) é a função única de completar no
+//     contexto — usada também pelo checklist (fechamento.js v1.9.0) e pelo
+//     alerta (index.html). Grava por fn_fiscal_pendencia_completar
+//     (migration fiscal_pendencia_completar_v1): CPF/CNPJ do locatário ou da
+//     empresa, destinação, município (pelo CEP, ViaCEP → código IBGE) e CIB.
+//   · Check-up: sem ⋮ no topo — Registrar check-up, Ver regras usadas e a
+//     troca do ano viram o cartão "Ações", no mesmo formato de Emissão; os 4
+//     textos (regra, estimativa, o que fazer, quando validar) viram linhas de
+//     lista (antes, texto grande em negrito fora do padrão).
 //
 // v1.2.0 (frente fiscal, Fase 6 — demanda 976fcbf6): fiscalCompetenciaMontar
 // ganha o 2º parâmetro abrirMensalidadeId — com ele, a tela já abre as ações
@@ -65,7 +86,7 @@
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
 
-export const VERSAO = '1.2.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const FIS_ROTULO_RESULTADO = {
     verde: { sem: 'ok', txt: 'Abaixo do limite' },
@@ -136,16 +157,15 @@ async function fisCarregarEmissao() {
 function fisCabecalho() {
     const ano = fisAno || fisAnoAtual();
     return `
-        <div class="rz-tabhead">
-            <p class="rz-desc">Check-up da Reforma Tributária · ${ano}. Estimativa com os dados do Raiz; valide com seu contador.</p>
-            <button type="button" class="rz-more" onclick="fiscalAbrirAcoes()" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
-        </div>`;
+        <p class="rz-desc">Check-up da Reforma Tributária · ${ano}. Estimativa com os dados do Raiz; valide com seu contador.</p>`;
 }
 
 function fisBlocosTexto(t) {
     if (!t) return '';
-    const bloco = (titulo, txt) => txt ? `<div class="rz-kv"><div class="rz-full"><small>${fisEsc(titulo)}</small><b>${fisEsc(txt)}</b></div></div>` : '';
-    return bloco('Regra', t.regra) + bloco('Estimativa do sistema', t.estimativa) + bloco('O que fazer', t.orientacao) + bloco('Quando validar', t.validar);
+    const linha = (icone, titulo, txt) => txt ? `<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="${icone}"></svg></div><div class="rz-tx"><b>${fisEsc(titulo)}</b><span>${fisEsc(txt)}</span></div></div>` : '';
+    const corpo = linha('book-open', 'Regra', t.regra) + linha('calculator', 'Estimativa do sistema', t.estimativa)
+        + linha('list-checks', 'O que fazer', t.orientacao) + linha('user-check', 'Quando validar', t.validar);
+    return corpo ? `<div class="rz-card rz-list">${corpo}</div>` : '';
 }
 
 function fisRender() {
@@ -169,8 +189,8 @@ function fisRender() {
                     <div><small>Pendências que impedem a nota</small><b>${emp.pendencias_bloqueiam ?? 0}</b></div>
                     <div><small>Pedem atenção</small><b>${emp.pendencias_atencao ?? 0}</b></div>
                 </div>
-                ${fisBlocosTexto(emp.textos)}
-            </div>`;
+            </div>
+            ${fisBlocosTexto(emp.textos)}`;
     } else {
         const cont = { verde: 0, amarelo: 0, vermelho: 0 };
         tit.forEach(t => { cont[t.resultado] = (cont[t.resultado] || 0) + 1; });
@@ -244,7 +264,30 @@ function fisRender() {
 
     const rodape = `<p class="rz-desc">${fisEsc(d.frase_fixa || '')}${fisUltimoRetrato ? ` Último check-up registrado em ${fisEsc(fisData(fisUltimoRetrato.criado_em))} (ano ${fisUltimoRetrato.ano}).` : ''}</p>`;
 
-    el.innerHTML = fisCabecalho() + resultado + titulares + faltamHtml + emissao + rodape;
+    const anoAtual = fisAno || fisAnoAtual();
+    const outroAno = anoAtual === fisAnoAtual() ? fisAnoAtual() + 1 : fisAnoAtual();
+    const bloqueioCk = (typeof podeUsar === 'function') ? podeUsar('fiscal.checkup') : { ok: true };
+    const acoesCk = `
+        <div class="rz-card rz-list">
+            <div class="rz-card-h"><h3>Ações</h3></div>
+            <div class="rz-row rz-link" onclick="fiscalRegistrarComPorta()">
+                <div class="rz-ic"><svg data-lucide="${bloqueioCk.ok ? 'camera' : 'lock'}"></svg></div>
+                <div class="rz-tx"><b>Registrar check-up</b><span>${fisEsc(bloqueioCk.ok ? 'Guarda o resultado de hoje com as regras usadas' : (bloqueioCk.textoCurto || 'Não incluído no plano'))}</span></div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg>
+            </div>
+            <div class="rz-row rz-link" onclick="fiscalAbrirRegras()">
+                <div class="rz-ic"><svg data-lucide="book-open"></svg></div>
+                <div class="rz-tx"><b>Ver regras usadas</b><span>Versão e fonte de cada regra</span></div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg>
+            </div>
+            <div class="rz-row rz-link" onclick="fiscalTrocarAno()">
+                <div class="rz-ic"><svg data-lucide="calendar"></svg></div>
+                <div class="rz-tx"><b>Analisar ${outroAno}</b><span>${outroAno > fisAnoAtual() ? 'Projeção com a receita deste ano como ano anterior' : 'Voltar ao ano atual'}</span></div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg>
+            </div>
+        </div>`;
+
+    el.innerHTML = fisCabecalho() + resultado + titulares + faltamHtml + emissao + acoesCk + rodape;
     if (typeof rzIcones === 'function') rzIcones();
 }
 
@@ -284,6 +327,19 @@ export function fiscalAbrirAcoes() {
         { icone: 'book-open', titulo: 'Ver regras usadas', sub: 'Versão e fonte de cada regra', aoTocar: fiscalAbrirRegras },
         { icone: 'calendar', titulo: `Analisar ${outro}`, sub: outro > fisAnoAtual() ? 'Projeção com a receita deste ano como ano anterior' : 'Voltar ao ano atual', aoTocar: () => { fisAno = outro; fiscalMontar(); } },
     ] });
+}
+
+/** v1.3.0 — cartão Ações: troca o ano analisado (este ⇄ próximo). */
+export function fiscalTrocarAno() {
+    const atual = fisAno || fisAnoAtual();
+    fisAno = atual === fisAnoAtual() ? fisAnoAtual() + 1 : fisAnoAtual();
+    fiscalMontar();
+}
+
+/** v1.3.0 — cartão Ações: registrar respeita a porta (cadeado com motivo). */
+export function fiscalRegistrarComPorta() {
+    if (typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio('fiscal.checkup')) return;
+    fiscalRegistrar();
 }
 
 export async function fiscalRegistrar() {
@@ -427,11 +483,7 @@ export function fiscalCompetenciaAba(aba) {
 
 function fcTopo() {
     return `
-        <button type="button" class="rz-back" onclick="switchTab('tab-mensal')"><svg data-lucide="chevron-left"></svg> Financeiro</button>
-        <div class="rz-tabhead">
-            <p class="rz-desc">Notas fiscais (NFS-e) dos aluguéis do mês.</p>
-            <button type="button" class="rz-more" onclick="fiscalCompetenciaAcoes()" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
-        </div>
+        <p class="rz-desc">Notas fiscais (NFS-e) dos aluguéis do mês.</p>
         <div class="rz-mes-bar">
             <button type="button" class="rz-ico-btn" onclick="fiscalCompetenciaMudar(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
             <span class="rz-mes-centro"><b class="rz-mes-label">${fisEsc(fcRotuloComp(fcComp || fcHojeComp()))}</b></span>
@@ -439,29 +491,34 @@ function fcTopo() {
         </div>`;
 }
 
-function fcCabecalho(d) {
-    const pf = d.natureza === 'pf';
-    const desde = d.obrigatoria_desde ? fisData(d.obrigatoria_desde) : null;
-    let obrig;
-    if (!desde) obrig = 'Ainda não há data de obrigatoriedade para o seu regime.';
-    else if (d.obrigatoria_nesta_competencia) obrig = `${pf ? 'Documento fiscal' : 'NFS-e'} obrigatória nesta competência (desde ${desde}).`;
-    else obrig = `${pf ? 'Documento fiscal' : 'NFS-e'} obrigatória a partir de ${desde}. Até lá, dá para preparar e registrar em teste.`;
-    const gat = d.gatilho === 'recebimento' ? 'A nota é preparada depois do pagamento registrado.' : '';
+// v1.3.0 — os 6 botões abaixo do mês (mesmo formato dos 6 do Financeiro).
+function fcBotoes(d) {
+    const k = d.kpis || {};
+    const docs = Array.isArray(d.documentos) ? d.documentos : [];
+    const nPreparar = Number(k.a_preparar || 0);
+    const nFalta = Number(k.falta_dado || 0);
+    const rasc = docs.filter(x => x.status === 'preparada' && !x.enviado_contador_em).length;
+    const bloq = (typeof podeUsar === 'function') ? podeUsar(FC_COD) : { ok: true };
+    const trava = bloq.ok ? null : (bloq.textoCurto || 'Não incluído no plano');
     const resp = FIS_RESPONSAVEIS.find(x => x.v === d.responsavel_emissao);
-    const bloqueio = d.pode_agir ? '' : `
-        <div class="rz-row"><div class="rz-ic rz-warn"><svg data-lucide="lock"></svg></div>
-            <div class="rz-tx"><b>Só consulta</b><span>${fisEsc(d.motivo_bloqueio || 'Seu plano ou perfil não inclui documentos fiscais.')}</span></div></div>`;
-    return `
-        <div class="rz-card rz-list">
-            <div class="rz-row"><div class="rz-ic${d.obrigatoria_nesta_competencia ? '' : ' rz-neu'}"><svg data-lucide="calendar-check"></svg></div>
-                <div class="rz-tx"><b>${fisEsc(obrig)}</b>${gat ? `<span>${fisEsc(gat)}</span>` : ''}</div></div>
-            <div class="rz-row rz-link" onclick="fiscalEditarResponsavel(fiscalCompetenciaMontar)">
-                <div class="rz-ic"><svg data-lucide="user-check"></svg></div>
-                <div class="rz-tx"><b>Quem emite a nota</b><span>${fisEsc(resp ? resp.l : 'Ainda não definido — toque para definir')}</span></div>
-                <svg data-lucide="chevron-right" class="rz-chev"></svg>
-            </div>
-            ${bloqueio}
-        </div>`;
+    const quad = ({ icone, estado = '', titulo, explicacao, onclick, off = false }) => `
+        <button type="button" class="rz-fin-quad${off ? ' rz-off' : ''}" onclick="${onclick}"${off ? ' aria-disabled="true"' : ''}>
+            <div class="rz-ic${estado ? ' rz-' + estado : ''}"><svg data-lucide="${off ? 'lock' : icone}"></svg></div>
+            <div class="rz-tx"><b>${fisEsc(titulo)}</b><small>${fisEsc(explicacao)}</small></div>
+        </button>`;
+    return `<div class="rz-fin-quad-grid">
+        ${quad({ icone: 'files', estado: nPreparar ? 'warn' : 'ok', titulo: 'Preparar', off: !!trava,
+                 explicacao: trava || (nPreparar ? `${nPreparar} nota(s) a preparar` : 'Nada a preparar'), onclick: 'fiscalCompetenciaPrepararTodos()' })}
+        ${quad({ icone: 'list-checks', estado: nFalta ? 'bad' : 'ok', titulo: 'Cadastro',
+                 explicacao: nFalta ? `${nFalta} com dado faltando` : 'Nada faltando no mês', onclick: "fiscalCompetenciaAba('cadastro')" })}
+        ${quad({ icone: 'file-code-2', titulo: 'Anexar XML', off: !!trava,
+                 explicacao: trava || 'Nota emitida fora do Raiz', onclick: 'fiscalCompetenciaAnexarXml()' })}
+        ${quad({ icone: 'send', estado: rasc ? 'warn' : '', titulo: 'Contador', off: !!trava,
+                 explicacao: trava || (rasc ? `${rasc} rascunho(s) a enviar` : 'Nenhum rascunho a enviar'), onclick: 'fiscalCompetenciaEnviarContador()' })}
+        ${quad({ icone: 'user-check', titulo: 'Quem emite',
+                 explicacao: resp ? resp.l : 'Toque para definir', onclick: 'fiscalEditarResponsavel(fiscalCompetenciaMontar)' })}
+        ${quad({ icone: 'landmark', titulo: 'Check-up', explicacao: 'Reforma Tributária', onclick: "switchTab('tab-fiscal')" })}
+    </div>`;
 }
 
 function fcRender() {
@@ -479,14 +536,12 @@ function fcRender() {
             <div class="rz-kpi"><small>Preparadas${k.com_contador ? ' · com o contador' : ''}</small><b>${Number(k.preparada || 0) + Number(k.com_contador || 0)}</b></div>
             <div class="rz-kpi rz-in"><small>Emitidas</small><b>${k.emitida || 0}</b></div>
         </div>
-        <p class="rz-desc">${k.total || 0} recebimento(s) no mês · ${k.aguardando_recebimento || 0} aguardando pagamento · ${k.sem_nota || 0} sem nota.</p>
-        ${nPreparar ? `<button type="button" class="rz-btn rz-btn-1 rz-wide" onclick="fiscalCompetenciaPrepararTodos()"><svg data-lucide="${d.pode_agir ? 'files' : 'lock'}"></svg> Preparar todos (${nPreparar})</button>` : ''}`;
+        <p class="rz-desc">${k.total || 0} recebimento(s) no mês · ${k.aguardando_recebimento || 0} aguardando pagamento · ${k.sem_nota || 0} sem nota.</p>`;
 
     const seg = `
         <div class="rz-seg">
             <button type="button" class="${fcAba === 'recebimentos' ? 'rz-on' : ''}" onclick="fiscalCompetenciaAba('recebimentos')">Recebimentos</button>
             <button type="button" class="${fcAba === 'notas' ? 'rz-on' : ''}" onclick="fiscalCompetenciaAba('notas')">Notas (${docs.length})</button>
-            <button type="button" onclick="fiscalCompetenciaAba('cadastro')">Cadastro</button>
         </div>`;
 
     let lista;
@@ -503,7 +558,7 @@ function fcRender() {
     } else {
         lista = `<div class="rz-card rz-list">${rec.length ? rec.map((r, i) => {
             const st = FC_STATUS[r.status_fiscal] || FC_STATUS.a_preparar;
-            const extra = r.status_fiscal === 'falta_dado' && r.pendencias?.length ? ` · ${fisEsc(r.pendencias[0])}`
+            const extra = r.status_fiscal === 'falta_dado' && r.pendencias?.length ? ` · ${fisEsc(fcPendTexto(r.pendencias[0]))}`
                 : (r.numero ? ` · nota nº ${fisEsc(r.numero)}` : '');
             return `<div class="rz-row rz-link" onclick="fiscalCompetenciaAbrirRecebimento(${i})">
                 <div class="rz-ic${st.sem === 'bad' ? ' rz-bad' : (st.sem === 'warn' ? ' rz-warn' : '')}"><svg data-lucide="${st.ic}"></svg></div>
@@ -513,23 +568,26 @@ function fcRender() {
         }).join('') : fisVazio('calendar', 'Nenhum recebimento nesta competência.')}</div>`;
     }
 
-    el.innerHTML = fcTopo() + fcCabecalho(d) + kpis + seg + lista;
+    el.innerHTML = fcTopo() + fcBotoes(d) + kpis + seg + lista;
     fcIcones();
 }
 
-// ---------------------------------------------------------------- ⋮ da tela
-export function fiscalCompetenciaAcoes() {
-    const d = fcDados || {}, k = d.kpis || {};
-    const prep = (d.documentos || []).filter(x => x.status === 'preparada' && !x.enviado_contador_em);
-    const acoes = [
-        { icone: 'file-code-2', titulo: 'Anexar XML de uma nota', sub: 'Registra a nota emitida e liga ao recebimento', codigo: FC_COD, aoTocar: () => fcEscolherXml() },
-    ];
-    if (Number(k.a_preparar || 0)) acoes.push({ icone: 'files', titulo: `Preparar todos (${k.a_preparar})`, sub: 'Um rascunho por recebimento pago', codigo: FC_COD, aoTocar: fiscalCompetenciaPrepararTodos });
-    if (prep.length) acoes.push({ icone: 'send', titulo: `Marcar ${prep.length} rascunho(s) como enviados ao contador`, sub: 'Registra a data de envio', codigo: FC_COD, aoTocar: () => fcEnviarContador(prep.map(x => x.documento_id)) });
-    acoes.push({ icone: 'list-checks', titulo: 'Pendências de cadastro', sub: 'O que falta para a nota', aoTocar: () => fiscalCompetenciaAba('cadastro') });
-    acoes.push({ icone: 'landmark', titulo: 'Check-up fiscal', sub: 'Reforma Tributária', aoTocar: () => switchTab('tab-fiscal') });
-    abrirSheetAcoes({ titulo: 'Fiscal da competência', sub: fcRotuloComp(fcComp), acoes });
+// ------------------------------------------------ botões da tela (v1.3.0)
+export function fiscalCompetenciaAnexarXml() { fcEscolherXml(); }
+
+export function fiscalCompetenciaEnviarContador() {
+    if (fcBloqueado()) return;
+    const prep = (fcDados?.documentos || []).filter(x => x.status === 'preparada' && !x.enviado_contador_em);
+    if (!prep.length) { mostrarToast('Nenhum rascunho a enviar. Para mandar o pacote do mês, use Financeiro › Contador.', 'info'); return; }
+    abrirSheetForm({
+        titulo: `Marcar ${prep.length} rascunho(s) como enviados`, sub: fcRotuloComp(fcComp), rotuloSalvar: 'Marcar como enviados',
+        corpo: `<p class="rz-desc">Registra a data de envio ao contador. Para mandar os arquivos (PDF com os campos de cada nota, planilha e XML), use Financeiro › Contador — ele já marca sozinho.</p>`,
+        aoSalvar: async () => { await fcEnviarContador(prep.map(x => x.documento_id)); return true; },
+    });
 }
+
+// v1.3.0 — pendência pode vir como objeto {tipo, entidade_tipo, entidade_id, detalhe, campo} ou texto (versão antiga do banco)
+function fcPendTexto(p) { return typeof p === 'string' ? p : (p?.detalhe || ''); }
 
 // ------------------------------------------------------------ preparar (D7)
 export function fiscalCompetenciaPrepararTodos() {
@@ -576,7 +634,13 @@ export function fiscalCompetenciaAbrirRecebimento(i) {
             acoes.push(semNota);
             break;
         case 'falta_dado':
-            acoes.push({ icone: 'list-checks', titulo: 'Completar o cadastro', sub: (r.pendencias || []).join(' · ') || 'Ver o que falta', aoTocar: () => fiscalCompetenciaAba('cadastro') });
+            (r.pendencias || []).forEach(p => {
+                if (typeof p === 'string') { acoes.push({ icone: 'list-checks', titulo: 'Completar o cadastro', sub: p, aoTocar: () => fiscalCompetenciaAba('cadastro') }); return; }
+                const c = FC_CAMPO_PEND[p.campo];
+                acoes.push(c
+                    ? { icone: c.icone, titulo: c.acao, sub: p.detalhe, aoTocar: () => fiscalCompletarPendencia(p, () => fiscalCompetenciaMontar()) }
+                    : { icone: 'list-checks', titulo: 'Ver no checklist', sub: p.detalhe, aoTocar: () => fiscalCompetenciaAba('cadastro') });
+            });
             acoes.push(semNota);
             break;
         case 'preparada': case 'com_contador':
@@ -801,4 +865,67 @@ async function fcEnviarXml(file) {
         mostrarToast('O arquivo foi para o Cofre, mas não consegui ler a nota agora.', 'danger');
     }
     fiscalCompetenciaMontar();
+}
+
+// ============================================================================
+// v1.3.0 — COMPLETAR PENDÊNCIA NO CONTEXTO (função única: linha da tela,
+// checklist do fechamento e alerta). Grava por fn_fiscal_pendencia_completar.
+// ============================================================================
+const FC_CAMPO_PEND = {
+    documento: { acao: 'Completar CPF/CNPJ do locatário', icone: 'user' },
+    cnpj: { acao: 'Corrigir CPF/CNPJ da empresa', icone: 'building-2' },
+    destinacao: { acao: 'Informar a destinação do imóvel', icone: 'home' },
+    codigo_ibge_municipio: { acao: 'Informar o município do imóvel (pelo CEP)', icone: 'map-pin' },
+    municipio_sede_ibge: { acao: 'Informar o município da empresa (pelo CEP)', icone: 'map-pin' },
+    cib: { acao: 'Informar o CIB do imóvel', icone: 'hash' },
+};
+
+/** p = {entidade_tipo, entidade_id, campo, detalhe, titulo?}; depois() roda depois de salvar. */
+export function fiscalCompletarPendencia(p, depois) {
+    if (!p || typeof abrirSheetForm !== 'function') return;
+    const c = FC_CAMPO_PEND[p.campo];
+    if (!c) { mostrarToast('Este dado se completa no cadastro.', 'info'); return; }
+    const municipio = p.campo === 'codigo_ibge_municipio' || p.campo === 'municipio_sede_ibge';
+    let corpo;
+    if (p.campo === 'destinacao') {
+        corpo = `<div class="rz-f"><label for="fcp-valor">Destinação <i>*</i></label><select id="fcp-valor">
+                    <option value="">Escolha…</option><option value="residencial">Residencial</option><option value="nao_residencial">Não residencial</option></select>
+                 <span class="rz-hint">Define o código do serviço (NBS) na nota.</span></div>`;
+    } else if (municipio) {
+        corpo = `<div class="rz-f"><label for="fcp-cep">CEP <i>*</i></label><input id="fcp-cep" inputmode="numeric" maxlength="9" placeholder="00000-000">
+                 <span class="rz-hint">O código do município (IBGE) vem do CEP.</span></div>
+                 <div class="rz-f"><label for="fcp-ibge">Ou o código IBGE (7 dígitos)</label><input id="fcp-ibge" inputmode="numeric" maxlength="7"></div>`;
+    } else if (p.campo === 'cib') {
+        corpo = `<div class="rz-f"><label for="fcp-valor">CIB <i>*</i></label><input id="fcp-valor" maxlength="30" autocomplete="off">
+                 <span class="rz-hint">Cadastro Imobiliário Brasileiro (não é o código do município).</span></div>`;
+    } else {
+        corpo = `<div class="rz-f"><label for="fcp-valor">CPF ou CNPJ <i>*</i></label><input id="fcp-valor" maxlength="18" autocomplete="off" placeholder="Só números (CNPJ pode ter letras)">
+                 ${p.entidade_tipo === 'contrato' ? '<span class="rz-hint">Fica no cadastro do locatário em Partes e vale para todos os contratos dele.</span>' : ''}</div>`;
+    }
+    abrirSheetForm({
+        titulo: c.acao, sub: p.titulo || p.detalhe || '', rotuloSalvar: 'Salvar',
+        corpo: corpo + (p.detalhe ? `<p class="rz-desc">${fisEsc(p.detalhe)}</p>` : ''),
+        aoSalvar: async (el) => {
+            const valor = { valor: (el.querySelector('#fcp-valor')?.value || '').trim() };
+            if (municipio) {
+                const ibge = (el.querySelector('#fcp-ibge')?.value || '').replace(/\D/g, '');
+                const cep = (el.querySelector('#fcp-cep')?.value || '').replace(/\D/g, '');
+                if (ibge) { valor.valor = ibge; if (cep) valor.cep = cep; }
+                else {
+                    if (cep.length !== 8) { mostrarToast('Informe o CEP (8 dígitos) ou o código IBGE.', 'info'); return false; }
+                    let r = { ok: false };
+                    try { const m = await import('./comum-endereco.js'); r = await m.consultarCep(cep); } catch (e) { r = { ok: false }; }
+                    if (!r.ok || !r.codigo_ibge_municipio) { mostrarToast('Não achei esse CEP. Confira ou informe o código IBGE.', 'info'); return false; }
+                    Object.assign(valor, { valor: r.codigo_ibge_municipio, cep, uf: r.uf, cidade: r.endereco_cidade });
+                }
+            } else if (!valor.valor) { mostrarToast('Preencha o valor.', 'info'); return false; }
+            const { error } = await dbAuth.rpc('fn_fiscal_pendencia_completar', {
+                p_cliente_id: CLIENTE_ID_SUPABASE, p_entidade_tipo: p.entidade_tipo, p_entidade_id: p.entidade_id, p_campo: p.campo, p_valor: valor,
+            });
+            if (error) { mostrarToast(error.message || 'Não consegui salvar.', 'danger'); return false; }
+            mostrarToast(valor.cidade ? `Salvo: ${valor.cidade}${valor.uf ? '/' + valor.uf : ''}.` : 'Salvo.', 'success');
+            if (typeof depois === 'function') setTimeout(() => depois(), 0);
+            return true;
+        },
+    });
 }
