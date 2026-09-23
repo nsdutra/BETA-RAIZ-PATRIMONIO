@@ -4,6 +4,26 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.254.0) — demanda 976fcbf6 (frente fiscal da Reforma
+Tributária, Fase 5; decisão D7 do Nicola — preparação em lote). Tela
+nova "Fiscal da competência" (js/fiscal.js v1.1.0): o botão Fiscal do
+Financeiro (js/financeiro.js v1.22.0) passa a abri-la no mês em que o
+Financeiro está. Lista cada recebimento com o status fiscal (a
+preparar · falta dado · preparada · com o contador · emitida ·
+aguardando pagamento · não gera nota), KPIs, "Preparar todos (N)",
+rascunho com os campos na ordem do Emissor Nacional (copiar por campo
+ou tudo), registrar nota emitida, anexar o XML da NFS-e (vai para o
+Cofre e é lido pela Edge cofre-extrair-documento 1.9), descartar,
+cancelar e "não gera nota". Aqui: section tab-fiscal-competencia,
+TAB_PARENT_MAP (acende Financeiro), TAB_CODIGO_VER (mensal.ver),
+abrirFiscalCompetencia() e as pontes novas.
+------------------------------------------------------------------
+Versões anteriores (v1.253.0 … v1.253.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.253.0) — pedido do Nicola (23/09/2026, 02:31):
 (1) BUG — parte cadastrada como prestador (contador, imobiliária,
 síndico, manutencista) não podia ser excluída ("tem vínculo" logo após

@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.7.0 (23/09/2026 — demanda 43448a36)
+// VERSÃO: Beta v1.8.0 (23/09/2026 — pedido do Nicola, 13:01)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.8.0) — pedido do Nicola (23/09, 13:01): filtrando só
+// Família, os cards Dependência de locatário, Reajustes, Revisional/Renovação
+// e Performance não fazem sentido (são de carteira alugada) — saem da tela e
+// as 3 consultas deles nem rodam. Em Tudo e Comercial continuam iguais.
 // NOVIDADES (Beta v1.7.0) — demanda 43448a36 (teste reprovado pelo Nicola
 // em 23/09, Albuquerque): em Família o cartão "Ativos em uso" ficava sempre
 // "—" (ocupação só existe para long stay) e dava a impressão de que os
@@ -168,7 +172,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.7.0';
+export const VERSAO = '1.8.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -410,6 +414,8 @@ async function renderizarConteudo() {
     const p_uso = CONTEXTO_USO[filtro.contexto];
     const nivel = filtro.abrangencia; // 'carteira' | 'empreendimento'
     const alvoId = filtro.abrangencia === 'empreendimento' ? filtro.alvoId : null;
+    // v1.8.0 — cards de carteira alugada só fora de Família (Tudo e Comercial)
+    const cardsLocacao = filtro.abrangencia === 'carteira' && filtro.contexto !== 'familia';
 
     try {
         // v1.3.0 (B1.2) — 2 chamadas novas, só no contexto que mostra os 2
@@ -427,15 +433,15 @@ async function renderizarConteudo() {
                 ? dbAuth.rpc('fn_performance_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
                 : dbAuth.rpc('fn_performance_empreendimento', { p_empreendimento_id: alvoId, p_ano: filtro.ano }),
             dbAuth.rpc('fn_resultado_mensal', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso }),
-            filtro.abrangencia === 'carteira'
+            cardsLocacao
                 ? dbAuth.rpc('fn_carteira_concentracao', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano })
                 : Promise.resolve({ data: [] }),
-            filtro.abrangencia === 'carteira'
+            cardsLocacao
                 ? dbAuth.rpc('fn_carteira_reajustes_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
                 : Promise.resolve({ data: [] }),
             // v1.1.0 — card novo, mesmo desenho do de reajustes, mas pelo
             // mês de TÉRMINO do contrato (fn_carteira_revisionais_*, nova).
-            filtro.abrangencia === 'carteira'
+            cardsLocacao
                 ? dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
                 : Promise.resolve({ data: [] }),
             filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_indicadores_resumo'),
@@ -464,10 +470,10 @@ async function renderizarConteudo() {
             montarCardIndicadores(indicadores),
             montarGraficoMensal(mensal),
             montarGraficoIndicador(graficoIndicador, 'ipca'),
-            filtro.abrangencia === 'carteira' ? montarConcentracao(concentracao) : '',
-            filtro.abrangencia === 'carteira' ? montarReajustesCalendario(reajustes) : '',
-            filtro.abrangencia === 'carteira' ? montarRevisionaisCalendario(revisionais) : '',
-            montarPerformanceGrid(perf),
+            cardsLocacao ? montarConcentracao(concentracao) : '',
+            cardsLocacao ? montarReajustesCalendario(reajustes) : '',
+            cardsLocacao ? montarRevisionaisCalendario(revisionais) : '',
+            filtro.contexto !== 'familia' ? montarPerformanceGrid(perf) : '', // v1.8.0
         ].filter(Boolean).join('');
 
         if (typeof rzIcones === 'function') rzIcones();
