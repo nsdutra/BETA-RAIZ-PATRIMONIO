@@ -6,9 +6,20 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.251.0
-   LINHAS: 15637
-   DATA: 23/09/2026 (demanda 976fcbf6 — frente fiscal, Fase 2)
+   VERSÃO: Beta v1.252.0
+   LINHAS: 15654
+   DATA: 23/09/2026 (demanda 976fcbf6 — frente fiscal, Fase 3)
+   NOVIDADES (Beta v1.252.0) — demanda 976fcbf6 (frente fiscal da Reforma
+   Tributária, Fase 3 — check-up PF e PJ; decisões D1 e D3 do Nicola,
+   23/09/2026). Tela nova ⚙️ › Empresa › Fiscal (js/fiscal.js v1.0.0, fatia
+   lazy): resultado do check-up (PJ: prontidão para a NFS-e; PF: um status
+   por titular — Abaixo do limite · Atenção · Possível enquadramento),
+   titulares com regra/estimativa/orientação/quando validar, dados que
+   faltam, emissão (quem emite, contador, rotina) e ⋮ com Registrar
+   check-up, Ver regras usadas e troca do ano. Aqui: section tab-fiscal,
+   item de menu (código fiscal.checkup, com cadeado quando o plano/perfil
+   não inclui), TAB_CODIGO_VER, carregarFiscal() e pontes; ponte nova
+   fechamentoAbrirChecklistFiscalAtualizado (js/fechamento.js v1.6.1).
    NOVIDADES (Beta v1.251.0) — demanda 976fcbf6 (frente fiscal da Reforma
    Tributária, Fase 2 — base fiscal nos dados; decisões D2 e D6 do Nicola,
    23/09/2026). Módulos: js/fechamento.js v1.6.0 (checklist fiscal lido de
@@ -72,27 +83,8 @@
    v1.248.0 (porta de licença compartilhada) foi desfeito.
    (v1.248.0 — 22/09/2026, soft launch · show stoppers — demandas
    8b2d37d7 (C4), 70159adb (C3 fatia mínima) e 728eda15 (C10))
-   NOVIDADES (Beta v1.248.0) — porta de licença compartilhada:
-   (1) A porta (FUNCIONALIDADES_LIBERADAS, carregarFuncionalidadesLiberadas,
-   podeUsar, rzMostrarBloqueio) saiu deste bloco de script para
-   js/comum-licenca.js v1.4.0, porque o cofre.html nunca a teve: lá,
-   window.podeUsar não existia, todo gate defensivo do Cofre caía no
-   permissivo e "Novo ativo" abria o formulário sem cadeado, com o erro cru
-   do Postgres no fim. Aqui as 3 funções viram fachadas síncronas do módulo
-   (mesma RPC, regra e textos; nenhum dos pontos que chamam podeUsar() mudou).
-   Antes de o módulo carregar, o comportamento é o do Map vazio de antes.
-   (2) CSS [data-rz-codigo].rz-off (opaco + 🔒): o módulo aplica o cadeado a
-   qualquer botão com data-rz-codigo (ACE-04), com o motivo no title.
-   Banco (aplicado via MCP, nesta ordem): c3_porta_amigos_v1 (porta única
-   fn_porta_interna, cota por estoque no Essencial, ia.usar composto em
-   ações de IA, triggers com a mensagem do design system, trava de pessoas)
-   e c10_perfil_socio_consulta_v1 (perfil consulta só lê; pessoas sem
-   escalada de perfil; corrige o INSERT em pessoas que falhava com
-   "permission denied for table plataforma_operadores").
-   Base: v1.247.0 do repositório (GitHub, 22/09 23:46) — o zip anexado na
-   sessão estava em v1.242.0; nada das v1.243.0–v1.247.0 foi desfeito.
    ------------------------------------------------------------------
-   Versões anteriores (v1.247.0 … v1.247.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.248.0 … v1.248.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -116,7 +108,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.21.0","./js/fechamento.js":"./js/fechamento.js?v=1.6.0","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.21.0","./js/fechamento.js":"./js/fechamento.js?v=1.6.1","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3272,6 +3264,11 @@
         <section id="tab-licenca" class="tab-content hidden">
             <div id="mount-licenca"></div>
         </section>
+        <!-- v1.252.0 (frente fiscal, Fase 3) — ⚙️ › Empresa › Fiscal.
+             Populado por js/fiscal.js (fiscalMontar), fatia lazy. -->
+        <section id="tab-fiscal" class="tab-content hidden">
+            <div id="mount-fiscal"></div>
+        </section>
 
         <!-- v1.199.0 (bc9df144, item 11) — Gerenciador de links da vitrine,
              migrado do app-dev pra cá (App > Conta > Empresa), só admin
@@ -3387,7 +3384,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.251.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.252.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8534,7 +8531,7 @@
         // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
         // motivo, fica onde está. Abas sem código não são gateadas.
         const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver', 'tab-regras-conciliacao': 'conciliacao.configurar',
-            'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar' };
+            'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar', 'tab-fiscal': 'fiscal.checkup' };
         // v1.136 (A.4) — catálogo de relatórios: cada linha tem código próprio
         // (relatorios.resultados / .distribuicao) → cadeado por plano/perfil.
         function renderCatalogoRelatorios() {
@@ -8798,8 +8795,21 @@
          'fechamentoAlternarBotao', // Entrega F.3/F.4 (v1.2.0) — onclick do botão dedicado (cadeado), injetado via innerHTML nos 3 chips (fechamentoRenderBotaoDedicado)
          'fechamentoAbrirCompartilharContador', // v1.4.0 (demanda 0e40951a) — onclick do quadrante "Contador" (financeiroQuadrantesHtml, financeiro.js)
          'fechamentoTratarPendenciaFiscal', // v1.251.0 (fechamento.js v1.6.0) — onclick das linhas do checklist fiscal
+         'fechamentoAbrirChecklistFiscalAtualizado', // v1.252.0 (fechamento.js v1.6.1) — chamado pela tela Fiscal
         ].forEach(nome => {
             window[nome] = (...args) => rzPonteModulo(carregarFechamento, nome, args);
+        });
+
+        // v1.252.0 (frente fiscal, Fase 3) — FISCAL VIVE EM js/fiscal.js
+        // Mesmo padrão de carregarFechamento: módulo ES sob demanda e ponte
+        // window[nome] pros onclick que o módulo desenha via innerHTML.
+        let __rzFiscalModulo = null;
+        function carregarFiscal() {
+            if (__rzFiscalModulo) return Promise.resolve(__rzFiscalModulo);
+            return import('./js/fiscal.js').then(m => (__rzFiscalModulo = m));
+        }
+        ['fiscalAbrirAcoes', 'fiscalAbrirTitular', 'fiscalTratarFaltante', 'fiscalEditarResponsavel', 'fiscalAbrirRegras', 'fiscalRegistrar'].forEach(nome => {
+            window[nome] = (...args) => rzPonteModulo(carregarFiscal, nome, args);
         });
 
         function switchTab(tabId) {
@@ -8896,6 +8906,12 @@
             }
             if (tabId === 'tab-licenca' && typeof inicializarLicenca === 'function') {
                 inicializarLicenca();
+            }
+            // v1.252.0 (frente fiscal, Fase 3) — Fiscal sob demanda.
+            if (tabId === 'tab-fiscal') {
+                carregarFiscal()
+                    .then(m => m.fiscalMontar())
+                    .catch(err => console.warn('[fiscal] Falha ao carregar módulo:', err.message));
             }
             // v1.91.0 (pedido explícito) — "Resumo" novo no topo de
             // Resultados (fn_resumo_resultados/fn_leitura_tributaria_sinais,
@@ -9231,6 +9247,7 @@
                     ]},
                     { titulo: 'Empresa', acoes: [
                         { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
+                        { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // v1.252.0 — frente fiscal, Fase 3
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
                         { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },

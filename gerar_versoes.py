@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# gerar_versoes.py v1.17 (23/09/2026) — ARQ ganha js/fiscal.js (frente fiscal,
+# Fase 3 — tela ⚙️ › Empresa › Fiscal, check-up da Reforma Tributária;
+# demanda 976fcbf6).
 # gerar_versoes.py v1.16 (22/09/2026) — ARQ ganha js/comum-partes.js
 # (demanda be42b19f — componente único de Parte, nasce junto com o 1º
 # grupo de consumidores: Configurações › Partes, Item de Controle, "Dados
@@ -54,7 +57,7 @@
 # real: cofre-ativos.js v1.59.0, piloto da demanda registrada em sessão
 # anterior).
 import re, os, json, sys, datetime, io
-ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/fechamento.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/comum-endereco.js','js/comum-partes.js','js/resultados.js','js/raiz-eventos.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
+ARQ = ['index.html','sw.js','js/cadastros.js','js/financeiro.js','js/fechamento.js','js/contratos.js','js/minutas.js','js/vitrine.js','js/imoveis.js','js/cofre-api.js','js/cofre-app.js','js/cofre-ativos.js','js/cofre-controles.js','js/cofre-documentos.js','js/cofre-imagem.js','js/cofre-estado.js','js/cofre-navegacao.js','js/cofre-ui.js','js/cofre-validacoes.js','js/comum-licenca.js','js/comum-minha-empresa.js','js/comum-pessoas.js','js/comum-sobre.js','js/comum-endereco.js','js/comum-partes.js','js/resultados.js','js/raiz-eventos.js','js/fiscal.js','js/ativos/ativos-boot.js','js/ativos/ativos-markup.js']
 out = {'app': 'patrimonio', 'gerado_em': datetime.datetime.now().isoformat(timespec='seconds'), 'arquivos': {}, 'detalhes': {}}
 for f in ARQ:
     s = io.open(f, encoding='utf-8').read()

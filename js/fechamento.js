@@ -1,6 +1,13 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.6.0 · 23/09/2026
+// Versão: 1.6.1 · 23/09/2026
+//
+// v1.6.1 (frente fiscal, Fase 3 — demanda 976fcbf6) — nova exportação
+// fechamentoAbrirChecklistFiscalAtualizado(): relê as pendências no banco
+// (fn_fiscal_pendencias_cadastro) e abre o checklist, independentemente de a
+// rotina "NFS-e da competência" estar ligada. Chamada pela tela Fiscal
+// (js/fiscal.js, card "Dados que faltam"), que pode abrir antes de o
+// Financeiro ter carregado o estado fiscal da sessão.
 //
 // v1.6.0 (frente fiscal, Fase 2 — demanda 976fcbf6; decisões D2 e D6 do
 // Nicola, 23/09/2026):
@@ -241,7 +248,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -437,6 +444,20 @@ async function fechamentoAtualizarFiscal(forcar = false) {
         fechamentoFiscalPendencias = []; // não mostra número que não confirmou
     }
     fechamentoRenderFiscalChip();
+}
+
+/** v1.6.1 — relê as pendências e abre o checklist (sem depender da rotina). */
+export async function fechamentoAbrirChecklistFiscalAtualizado() {
+    try {
+        const { data, error } = await dbAuth.rpc('fn_fiscal_pendencias_cadastro', { p_cliente_id: CLIENTE_ID_SUPABASE });
+        if (error) throw error;
+        fechamentoFiscalPendencias = data || [];
+    } catch (e) {
+        console.error('[fechamento] fn_fiscal_pendencias_cadastro', e);
+        if (typeof mostrarToast === 'function') mostrarToast('Não consegui carregar as pendências agora.', 'danger');
+        return;
+    }
+    fechamentoAbrirChecklistFiscal();
 }
 
 // v1.5.0 (demanda 7bdcb8d4) — o chip Fiscal virou o botão "Fiscal" dos 6

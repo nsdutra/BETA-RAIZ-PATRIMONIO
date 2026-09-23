@@ -4,6 +4,32 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.248.0) — porta de licença compartilhada:
+(1) A porta (FUNCIONALIDADES_LIBERADAS, carregarFuncionalidadesLiberadas,
+podeUsar, rzMostrarBloqueio) saiu deste bloco de script para
+js/comum-licenca.js v1.4.0, porque o cofre.html nunca a teve: lá,
+window.podeUsar não existia, todo gate defensivo do Cofre caía no
+permissivo e "Novo ativo" abria o formulário sem cadeado, com o erro cru
+do Postgres no fim. Aqui as 3 funções viram fachadas síncronas do módulo
+(mesma RPC, regra e textos; nenhum dos pontos que chamam podeUsar() mudou).
+Antes de o módulo carregar, o comportamento é o do Map vazio de antes.
+(2) CSS [data-rz-codigo].rz-off (opaco + 🔒): o módulo aplica o cadeado a
+qualquer botão com data-rz-codigo (ACE-04), com o motivo no title.
+Banco (aplicado via MCP, nesta ordem): c3_porta_amigos_v1 (porta única
+fn_porta_interna, cota por estoque no Essencial, ia.usar composto em
+ações de IA, triggers com a mensagem do design system, trava de pessoas)
+e c10_perfil_socio_consulta_v1 (perfil consulta só lê; pessoas sem
+escalada de perfil; corrige o INSERT em pessoas que falhava com
+"permission denied for table plataforma_operadores").
+Base: v1.247.0 do repositório (GitHub, 22/09 23:46) — o zip anexado na
+sessão estava em v1.242.0; nada das v1.243.0–v1.247.0 foi desfeito.
+------------------------------------------------------------------
+Versões anteriores (v1.247.0 … v1.247.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.247.0) — demanda 0e40951a, complemento (pedido
 explícito do Nicola, em resposta à pergunta feita na entrega anterior
 sobre o quadrante "Adicionar" não ter ação real em Recebimentos/
