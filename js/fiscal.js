@@ -1,6 +1,10 @@
 // ============================================================================
 // js/fiscal.js — Raiz Patrimônio · Fiscal (check-up da Reforma Tributária)
-// Versão: 1.0.0 · 23/09/2026
+// Versão: 1.0.1 · 23/09/2026
+//
+// v1.0.1 — card Emissão: sem contador cadastrado, a linha "Contador" abre
+// direto o cadastro já como Contador (window.abrirCadastroContador,
+// index.html v1.253.0); com contador, continua levando a Partes.
 //
 // v1.0.0 (frente fiscal, Fase 3 — demanda 976fcbf6; decisões D1 e D3 do
 // Nicola, 23/09/2026) — tela secundária ⚙️ › Empresa › Fiscal. Fatia lazy
@@ -30,7 +34,7 @@
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.0.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const FIS_ROTULO_RESULTADO = {
     verde: { sem: 'ok', txt: 'Abaixo do limite' },
@@ -195,9 +199,9 @@ function fisRender() {
                 <div class="rz-tx"><b>Quem emite a nota</b><span>${fisEsc(resp ? resp.l : 'Ainda não definido')}</span></div>
                 <svg data-lucide="chevron-right" class="rz-chev"></svg>
             </div>
-            <div class="rz-row rz-link" onclick="switchTab('tab-partes')">
+            <div class="rz-row rz-link" onclick="${e.contador ? "switchTab('tab-partes')" : 'abrirCadastroContador()'}">
                 <div class="rz-ic"><svg data-lucide="briefcase"></svg></div>
-                <div class="rz-tx"><b>Contador</b><span>${fisEsc(e.contador || 'Nenhum cadastrado — cadastre em Partes › Prestadores')}</span></div>
+                <div class="rz-tx"><b>Contador</b><span>${fisEsc(e.contador || 'Nenhum cadastrado — toque para cadastrar')}</span></div>
                 <svg data-lucide="chevron-right" class="rz-chev"></svg>
             </div>
             <div class="rz-row rz-link" onclick="switchTab('tab-minha-empresa')">

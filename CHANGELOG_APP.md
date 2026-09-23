@@ -4,6 +4,38 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.248.1) — demanda 80c3068e (bug reportado pelo
+Nicola com prints: "As telas alteradas foram radicalmente impactadas
+negativamente no UI. Edicao de imoveis, partes e aba financeira").
+CAUSA RAIZ: o comentário CSS da v1.245.0 (bloco .rz-fin-quad) abria
+com /* e fechava com o terminador de comentário HTML (seta dupla
+"- - >"), não com o fechamento CSS. O navegador só encerrava o
+comentário no próximo */ ("16. IA"), engolindo em silêncio TODAS as
+regras no meio: .rz-fin-quad-grid/.rz-fin-quad* (quadrantes do
+Financeiro viraram lista crua), .rz-f, .rz-f label/input/select/
+textarea e .rz-f2 (todo formulário da gramática única perdeu borda/
+label: Dar baixa, Editar ativo, Minha Empresa, Novo recebimento).
+Correção: terminador trocado pelo */ CSS. Nenhuma regra CSS mudou —
+só voltaram a valer. Mesmo defeito corrigido em js/ativos/
+ativos-markup.js v1.46.1 (engolia .raiz-sem-scrollbar). Varredura em
+todos os <style> do index.html e js/: só esses 2 casos existiam.
+JUNTO (mesma demanda): as 7 pontes window[nome] -> módulo
+(vitrine/minutas/contratos/imóveis/resultados/financeiro/fechamento)
+eram carregarX().then(m => m[nome](...)) sem .catch — erro dentro do
+módulo virava toque que "não faz nada", sem toast. Nova
+rzPonteModulo(): loga no console + toast com o nome da função e
+repassa o erro.
+Base: v1.248.0 do repositório (GitHub, gerado 22/09 23:48) — nada da
+v1.248.0 (porta de licença compartilhada) foi desfeito.
+(v1.248.0 — 22/09/2026, soft launch · show stoppers — demandas
+8b2d37d7 (C4), 70159adb (C3 fatia mínima) e 728eda15 (C10))
+------------------------------------------------------------------
+Versões anteriores (v1.248.1 … v1.248.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.248.0) — porta de licença compartilhada:
 (1) A porta (FUNCIONALIDADES_LIBERADAS, carregarFuncionalidadesLiberadas,
 podeUsar, rzMostrarBloqueio) saiu deste bloco de script para

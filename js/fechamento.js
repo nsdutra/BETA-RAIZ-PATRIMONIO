@@ -1,6 +1,11 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.6.1 · 23/09/2026
+// Versão: 1.6.2 · 23/09/2026
+//
+// v1.6.2 (pedido do Nicola, 23/09/2026) — "Compartilhar com o contador" sem
+// contador cadastrado não para mais num aviso: leva direto a Partes com o
+// formulário de parte nova já como Contador (window.abrirCadastroContador,
+// index.html v1.253.0).
 //
 // v1.6.1 (frente fiscal, Fase 3 — demanda 976fcbf6) — nova exportação
 // fechamentoAbrirChecklistFiscalAtualizado(): relê as pendências no banco
@@ -248,7 +253,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -713,7 +718,8 @@ export async function fechamentoAbrirCompartilharContador() {
         // destino errado: contador se cadastra em Partes (chip Prestadores,
         // campo "Atua como prestador?" → Contador), mesma tela de
         // administradora/síndico/manutencista (index.html, abrirFormParteSheet).
-        if (typeof mostrarToast === 'function') mostrarToast('Nenhum contador cadastrado ainda. Cadastre em Partes › Prestadores (Atua como prestador? → Contador).', 'info');
+        if (typeof mostrarToast === 'function') mostrarToast('Nenhum contador cadastrado ainda — cadastre agora.', 'info');
+        if (typeof window.abrirCadastroContador === 'function') window.abrirCadastroContador();
         return;
     }
 

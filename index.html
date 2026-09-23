@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.252.0
-   LINHAS: 15654
-   DATA: 23/09/2026 (demanda 976fcbf6 — frente fiscal, Fase 3)
+   VERSÃO: Beta v1.253.0
+   LINHAS: 15656
+   DATA: 23/09/2026 (bug de exclusão de parte prestadora + atalho do contador)
+   NOVIDADES (Beta v1.253.0) — pedido do Nicola (23/09/2026, 02:31):
+   (1) BUG — parte cadastrada como prestador (contador, imobiliária,
+   síndico, manutencista) não podia ser excluída ("tem vínculo" logo após
+   criar): o papel técnico do espelho em prestadores contava como vínculo.
+   excluirParte() agora chama fn_parte_excluir (regra no banco: ignora o
+   espelho, diz o vínculo real quando existe, apaga parte + espelho).
+   (2) Botão Contador do Financeiro sem contador cadastrado leva direto a
+   Partes com o formulário já em "Contador" (abrirCadastroContador,
+   abrirFormParteSheet ganha { tipoPrestador }). Mesmo atalho na tela
+   Fiscal. Módulos: js/fechamento.js v1.6.2, js/fiscal.js v1.0.1.
    NOVIDADES (Beta v1.252.0) — demanda 976fcbf6 (frente fiscal da Reforma
    Tributária, Fase 3 — check-up PF e PJ; decisões D1 e D3 do Nicola,
    23/09/2026). Tela nova ⚙️ › Empresa › Fiscal (js/fiscal.js v1.0.0, fatia
@@ -58,33 +68,8 @@
    aparece no botão "Abrir competência". CORRIGIDO junto: a aba Saídas
    tinha um </div> sobrando desde a v1.245.0, que fechava um container
    acima da section.
-   NOVIDADES (Beta v1.248.1) — demanda 80c3068e (bug reportado pelo
-   Nicola com prints: "As telas alteradas foram radicalmente impactadas
-   negativamente no UI. Edicao de imoveis, partes e aba financeira").
-   CAUSA RAIZ: o comentário CSS da v1.245.0 (bloco .rz-fin-quad) abria
-   com /* e fechava com o terminador de comentário HTML (seta dupla
-   "- - >"), não com o fechamento CSS. O navegador só encerrava o
-   comentário no próximo */ ("16. IA"), engolindo em silêncio TODAS as
-   regras no meio: .rz-fin-quad-grid/.rz-fin-quad* (quadrantes do
-   Financeiro viraram lista crua), .rz-f, .rz-f label/input/select/
-   textarea e .rz-f2 (todo formulário da gramática única perdeu borda/
-   label: Dar baixa, Editar ativo, Minha Empresa, Novo recebimento).
-   Correção: terminador trocado pelo */ CSS. Nenhuma regra CSS mudou —
-   só voltaram a valer. Mesmo defeito corrigido em js/ativos/
-   ativos-markup.js v1.46.1 (engolia .raiz-sem-scrollbar). Varredura em
-   todos os <style> do index.html e js/: só esses 2 casos existiam.
-   JUNTO (mesma demanda): as 7 pontes window[nome] -> módulo
-   (vitrine/minutas/contratos/imóveis/resultados/financeiro/fechamento)
-   eram carregarX().then(m => m[nome](...)) sem .catch — erro dentro do
-   módulo virava toque que "não faz nada", sem toast. Nova
-   rzPonteModulo(): loga no console + toast com o nome da função e
-   repassa o erro.
-   Base: v1.248.0 do repositório (GitHub, gerado 22/09 23:48) — nada da
-   v1.248.0 (porta de licença compartilhada) foi desfeito.
-   (v1.248.0 — 22/09/2026, soft launch · show stoppers — demandas
-   8b2d37d7 (C4), 70159adb (C3 fatia mínima) e 728eda15 (C10))
    ------------------------------------------------------------------
-   Versões anteriores (v1.248.0 … v1.248.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.248.1 … v1.248.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -108,7 +93,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.21.0","./js/fechamento.js":"./js/fechamento.js?v=1.6.1","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.21.0","./js/fechamento.js":"./js/fechamento.js?v=1.6.2","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.0.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3384,7 +3369,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.252.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.253.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -15196,7 +15181,11 @@
         // estado civil) continua igual — já era o "padrão novo" que os
         // outros pontos de entrada (Item de Controle, chip Partes do
         // contrato) estavam atrás.
-        async function abrirFormParteSheet(parteId) {
+        // v1.253.0 — 2º parâmetro opcional { tipoPrestador } pré-seleciona
+        // "Atua como prestador?" numa parte NOVA (usado por
+        // abrirCadastroContador, vindo do botão Contador do Financeiro e da
+        // tela Fiscal quando não há contador cadastrado).
+        async function abrirFormParteSheet(parteId, opcoes = {}) {
             if (typeof abrirSheetForm !== 'function') return;
             let pt = parteId ? partesCliente.find(x => x.id === parteId) : null;
             // v1.244.0 (demanda 176b3145 — padronizar experiência de Parte
@@ -15217,7 +15206,7 @@
                 } catch (err) { console.warn('[partes] Falha ao buscar parte direto do banco:', err.message); }
             }
             const v = (campo) => rzEsc((pt && pt[campo]) || '');
-            const tipoPrest = pt?.tipo_prestador || '';
+            const tipoPrest = pt?.tipo_prestador || (!pt && opcoes?.tipoPrestador) || '';
             const campo = (rot, id, val, tipo = 'text', extra = '') =>
                 `<div><label class="block text-xs font-bold text-gray-600">${rot}</label><input type="${tipo}" id="${id}" value="${val}" ${extra} class="w-full p-2 border rounded mt-1 text-sm"></div>`;
             let blocoEndereco = `${campo('Endereço', 'parte-endereco', v('endereco'))}`; // fallback se o import falhar
@@ -15226,8 +15215,8 @@
                 blocoEndereco = renderizarBlocoEndereco('parte', pt || {}, { mostrarBotaoCopiar: false });
             } catch (err) { console.warn('[partes] Falha ao carregar bloco de endereço, usando campo simples:', err.message); }
             abrirSheetForm({
-                titulo: pt ? 'Editar parte' : 'Nova parte',
-                sub: pt ? pt.nome : 'Locatário, fiador, proprietário, prestador…',
+                titulo: pt ? 'Editar parte' : (tipoPrest === 'contador' ? 'Cadastrar contador' : 'Nova parte'),
+                sub: pt ? pt.nome : (tipoPrest === 'contador' ? 'WhatsApp e e-mail são o destino do pacote do contador' : 'Locatário, fiador, proprietário, prestador…'),
                 rotuloSalvar: pt ? 'Salvar' : 'Cadastrar',
                 corpo: `
                     ${campo('Nome *', 'parte-nome', v('nome'), 'text', 'required')}
@@ -15267,6 +15256,14 @@
             });
             rzIcones();
         }
+        // v1.253.0 — atalho único "cadastrar contador": abre Partes (chip
+        // Prestadores) e o formulário de parte nova já como Contador.
+        function abrirCadastroContador() {
+            if (typeof partesFiltroPapel !== 'undefined') partesFiltroPapel = 'prestadores';
+            switchTab('tab-partes');
+            setTimeout(() => abrirFormParteSheet(null, { tipoPrestador: 'contador' }), 0);
+        }
+        window.abrirCadastroContador = abrirCadastroContador;
         function ajustarCamposPrestadorParte() {
             const tipo = document.getElementById('parte-tipo-prestador')?.value || '';
             const wrap = document.getElementById('parte-campos-prestador');
@@ -15502,20 +15499,25 @@
             }
         }
 
+        // v1.253.0 (bug reportado pelo Nicola, 23/09/2026: contador recém-
+        // criado não excluía — "fala que tem vínculo mas tinha acabado de
+        // criar"). CAUSA: o papel técnico 'prestador' (espelho da parte em
+        // prestadores, criado por sincronizarPrestadorDaParte) contava como
+        // vínculo — TODA parte prestadora ficava impossível de excluir. Agora
+        // a regra mora no banco (fn_parte_excluir): ignora o espelho, recusa
+        // com o motivo exato quando há vínculo real e apaga parte + espelho
+        // juntos. O pré-bloqueio local por papeisPorParte saiu (era a causa).
         async function excluirParte(id) {
             const pt = partesCliente.find(x => x.id === id); if (!pt) return;
-            const papeis = papeisPorParte[id] || [];
-            if (papeis.length) { mostrarToast(`Esta parte tem ${papeis.length} papel(is) ativo(s) — remova os vínculos antes de excluir.`, 'danger'); abrirFichaParte(id); return; }
             if (!confirm(`Excluir "${pt.nome}"? Esta ação não pode ser desfeita.`)) return;
             try {
-                const { error } = await dbAuth.from('partes').delete().eq('id', id);
+                const { error } = await dbAuth.rpc('fn_parte_excluir', { p_parte_id: id });
                 if (error) throw error;
-                registrarLog('partes.excluir', { parteId: id, nome: pt.nome });
                 mostrarToast('Parte excluída.', 'success');
                 emitirEscritaGlobal('parte', { id, acao: 'excluir' });
                 await carregarPartes();
             } catch (err) {
-                mostrarToast('Não consegui excluir: ' + (err.message || String(err)), 'danger');
+                mostrarToast(err.message || String(err), 'danger');
             }
         }
 
