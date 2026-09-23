@@ -1,7 +1,19 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.5.0 (22/09/2026 — demanda 8ac32623)
+// VERSÃO: Beta v1.6.0 (22/09/2026 — demanda 8d5585a3)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.6.0) — demanda 8d5585a3 (achado do Nicola):
+//   — Todo valor em R$ exibido nesta tela (formatarMoedaBR) passa a usar
+//     `{ semCentavos: true }` — sem casas decimais. formatarMoedaBR() em
+//     si ganhou esse 2º parâmetro opcional (index.html), default
+//     inalterado, pra não afetar nenhuma das outras telas que já a usam
+//     (regra DESIGN_SYSTEM §2: valor monetário SEMPRE via
+//     formatarMoedaBR(), nunca .toFixed(2) — a variação fica dentro da
+//     função, nunca bypassada).
+//   — "Resultado mês a mês": removida a linha tracejada da média do
+//     período e a legenda que a explicava (v1.5.0) — os números de
+//     maior/menor no topo das barras continuam.
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.5.0) — demanda 8ac32623 (achado do Nicola em revisão
 // de telas, 21/09/2026):
@@ -150,7 +162,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.5.0';
+export const VERSAO = '1.6.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -184,7 +196,7 @@ function pctFmt(v) { return v == null ? '—' : `${v}%`; }
 // terminado de carregar num cenário incomum).
 function formatarPatrimonioCompacto(v) {
     if (typeof window.formatarValorCompacto === 'function') return window.formatarValorCompacto(v);
-    return formatarMoedaBR(v || 0);
+    return formatarMoedaBR(v || 0, { semCentavos: true });
 }
 
 // v1.3.0 (B1.2) — sinal explícito (+/-), 2 casas, vírgula — mesmo padrão
@@ -484,14 +496,14 @@ function montarKpis(resumo, perf) {
             : null);
 
     const heroLabel = familia ? 'Custo · ano' : 'Resultado do ano';
-    const heroValor = familia ? formatarMoedaBR(saidasAno || 0) : formatarMoedaBR(resultadoAno || 0);
+    const heroValor = familia ? formatarMoedaBR(saidasAno || 0, { semCentavos: true }) : formatarMoedaBR(resultadoAno || 0, { semCentavos: true });
     const heroClasse = !familia && Number(resultadoAno) < 0 ? ' rz-bad' : '';
 
     const cards = [`<div class="rz-kpi rz-hero${heroClasse}"><small>${heroLabel}</small><b>${heroValor}</b></div>`];
     cards.push(`<div class="rz-kpi"><small>Patrimônio</small><b>${formatarPatrimonioCompacto(patrimonio)}</b></div>`);
     if (!familia) cards.push(`<div class="rz-kpi"><small>Rentabilidade</small><b>${pctFmt(rentabilidade)}</b></div>`);
     cards.push(`<div class="rz-kpi"><small>${familia ? 'Ativos em uso' : 'Ocupação'}</small><b>${pctFmt(ocupacaoValor)}</b></div>`);
-    cards.push(`<div class="rz-kpi${Number(inadimplencia) > 0 ? ' rz-bad' : ''}"><small>Inadimplência</small><b>${formatarMoedaBR(inadimplencia || 0)}</b></div>`);
+    cards.push(`<div class="rz-kpi${Number(inadimplencia) > 0 ? ' rz-bad' : ''}"><small>Inadimplência</small><b>${formatarMoedaBR(inadimplencia || 0, { semCentavos: true })}</b></div>`);
 
     return `<div class="rz-kpis">${cards.join('')}</div>`;
 }
@@ -526,33 +538,27 @@ function montarGraficoMensal(mensal) {
     const max = Math.max(...valores, 0);
     const min = Math.min(...valores, 0);
     const amplitude = (max - min) || 1;
-    const media = valores.reduce((s, v) => s + v, 0) / valores.length;
-    const mediaPct = Math.max(0, Math.min(100, ((media - min) / amplitude) * 100));
     const iMax = valores.indexOf(max), iMin = valores.indexOf(min);
     const barras = mensal.map((m, i) => {
         const alturaPct = Math.max(2, ((valores[i] - min) / amplitude) * 100);
         const neg = valores[i] < 0;
-        const rotulo = (i === iMax || i === iMin) ? `<span style="position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:700;color:var(--muted)">${formatarMoedaBR(valores[i]).replace('R$', '').trim()}</span>` : '';
+        const rotulo = (i === iMax || i === iMin) ? `<span style="position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:700;color:var(--muted)">${formatarMoedaBR(valores[i], { semCentavos: true }).replace('R$', '').trim()}</span>` : '';
         return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative">
             ${rotulo}
-            <div title="${NOMES_MES[m.mes - 1]}: ${formatarMoedaBR(valores[i])}" style="width:70%;height:${alturaPct}%;border-radius:3px 3px 0 0;background:${neg ? 'var(--danger)' : 'var(--sprout)'}"></div>
+            <div title="${NOMES_MES[m.mes - 1]}: ${formatarMoedaBR(valores[i], { semCentavos: true })}" style="width:70%;height:${alturaPct}%;border-radius:3px 3px 0 0;background:${neg ? 'var(--danger)' : 'var(--sprout)'}"></div>
             <small style="font-size:9.5px;color:var(--muted);margin-top:3px">${NOMES_MES[m.mes - 1]}</small>
         </div>`;
     }).join('');
-    // v1.5.0 (demanda 8ac32623) — legenda nova: a linha tracejada (média
-    // do período) não tinha nenhuma explicação na própria tela (só no
-    // Sheet do ícone i, que nem todo mundo abre). Legenda curta, mesmo
-    // estilo .rz-desc já usado no resto do card — não virou componente
-    // novo (CAN-03/UI-05).
+    // v1.6.0 (demanda 8d5585a3 — achado do Nicola, "no card resultado mes a
+    // mes, retirar a linha pontilhada do meio das barras") — a linha
+    // tracejada da média do período (e a legenda que a v1.5.0/8ac32623
+    // tinha acrescentado pra explicá-la) saíram; os números de topo (maior/
+    // menor do ano) continuam sendo a referência visual do card.
     return `<div class="rz-card">
         <div class="rz-card-h" style="justify-content:space-between"><b>Resultado mês a mês</b>${botaoInfoCard('abrirInfoResultadoMensal()')}</div>
         <div style="height:130px;display:flex;align-items:flex-end;gap:3px;position:relative;margin-top:14px">
-            <div style="position:absolute;left:0;right:0;bottom:${mediaPct}%;border-top:1px dashed var(--sage)"></div>
             ${barras}
         </div>
-        <p class="rz-desc" style="margin-top:10px;font-size:10.5px;display:flex;align-items:center;gap:5px">
-            <span style="display:inline-block;width:12px;border-top:1px dashed var(--sage)"></span> Média do período
-        </p>
     </div>`;
 }
 
@@ -631,7 +637,7 @@ function montarConcentracao(linhas) {
         <div style="margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:3px">
                 <b style="font-weight:600;color:${l.concentrado ? 'var(--danger)' : 'var(--ink)'};flex:1;min-width:0">${rzEsc(l.locatario || '—')}</b>
-                <span style="color:${l.concentrado ? 'var(--danger)' : 'var(--muted)'};flex:none;white-space:nowrap">${l.percentual_pct}% · ${formatarMoedaBR(l.valor_ano)}</span>
+                <span style="color:${l.concentrado ? 'var(--danger)' : 'var(--muted)'};flex:none;white-space:nowrap">${l.percentual_pct}% · ${formatarMoedaBR(l.valor_ano, { semCentavos: true })}</span>
             </div>
             <div class="rz-prog"><i style="width:${Math.min(100, l.percentual_pct)}%;${l.concentrado ? 'background:var(--danger)' : ''}"></i></div>
         </div>`).join('');
@@ -639,7 +645,7 @@ function montarConcentracao(linhas) {
         <div>
             <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:3px">
                 <b style="font-weight:600;color:var(--muted);flex:1;min-width:0">Outros ${resto.length} locatário${resto.length > 1 ? 's' : ''}</b>
-                <span style="color:var(--muted);flex:none;white-space:nowrap">${restoPct}% · ${formatarMoedaBR(restoValor)}</span>
+                <span style="color:var(--muted);flex:none;white-space:nowrap">${restoPct}% · ${formatarMoedaBR(restoValor, { semCentavos: true })}</span>
             </div>
             <div class="rz-prog"><i style="width:${Math.min(100, restoPct)}%;background:var(--sage)"></i></div>
         </div>` : '';
@@ -668,7 +674,7 @@ function montarCalendario12Meses(meses, { titulo, classeBarra, infoOnclick }) {
             <small style="font-size:9.5px;color:var(--muted)">${NOMES_MES[i]}</small>
         </div>`;
     }).join('');
-    const nota = alerta ? `<p class="rz-desc" style="margin-top:8px;color:var(--warning)">${NOMES_MES[alerta.mes - 1]} concentra ${formatarMoedaBR(alerta.valor_total)} dos ${formatarMoedaBR(total)} do ano.</p>` : '';
+    const nota = alerta ? `<p class="rz-desc" style="margin-top:8px;color:var(--warning)">${NOMES_MES[alerta.mes - 1]} concentra ${formatarMoedaBR(alerta.valor_total, { semCentavos: true })} dos ${formatarMoedaBR(total, { semCentavos: true })} do ano.</p>` : '';
     return `<div class="rz-card">
         <div class="rz-card-h" style="justify-content:space-between"><b>${titulo}</b>${botaoInfoCard(infoOnclick)}</div>
         <div style="height:110px;display:flex;align-items:flex-end;gap:3px;margin-top:10px">${barras}</div>
@@ -713,7 +719,7 @@ export async function abrirResultadosMesReajuste(mes) {
             <div class="rz-row rz-link" onclick="fecharSheet(); abrirFichaContrato('${c.contrato_id}')">
                 <div class="rz-ic"><svg data-lucide="file-text"></svg></div>
                 <div class="rz-tx"><b>${rzEsc(c.locatario || '—')}</b><span>${rzEsc(c.ativo_nome || '')} · ${rzEsc(c.indice || 'índice não informado')}</span></div>
-                <div class="rz-rt"><b>${formatarMoedaBR(c.valor)}</b></div>
+                <div class="rz-rt"><b>${formatarMoedaBR(c.valor, { semCentavos: true })}</b></div>
                 <svg data-lucide="chevron-right" class="rz-chev"></svg>
             </div>`).join('')}</div>`;
         if (typeof rzIcones === 'function') rzIcones();
@@ -738,7 +744,7 @@ export async function abrirResultadosMesRevisional(mes) {
             <div class="rz-row rz-link" onclick="fecharSheet(); abrirFichaContrato('${c.contrato_id}')">
                 <div class="rz-ic"><svg data-lucide="file-text"></svg></div>
                 <div class="rz-tx"><b>${rzEsc(c.locatario || '—')}</b><span>${rzEsc(c.ativo_nome || '')} · termina em ${formatarDataBR(c.fim)}</span></div>
-                <div class="rz-rt"><b>${formatarMoedaBR(c.valor)}</b></div>
+                <div class="rz-rt"><b>${formatarMoedaBR(c.valor, { semCentavos: true })}</b></div>
                 <svg data-lucide="chevron-right" class="rz-chev"></svg>
             </div>`).join('')}</div>`;
         if (typeof rzIcones === 'function') rzIcones();
@@ -796,7 +802,6 @@ export function abrirInfoIndicadores() {
 export function abrirInfoResultadoMensal() {
     const itens = [
         ['Resultado mês a mês', 'A diferença entre o que entrou (aluguéis recebidos) e o que saiu (despesas, tributos, repasses) em cada mês do ano escolhido no filtro.'],
-        ['Linha pontilhada', 'A média do ano — ajuda a ver quais meses ficaram acima ou abaixo do normal.'],
         ['Barra vermelha', 'Mês em que saiu mais dinheiro do que entrou (resultado negativo).'],
         ['Números no topo', 'O maior e o menor resultado do ano, em destaque.'],
     ];
@@ -852,16 +857,16 @@ function montarPerformanceGrid(perf) {
     const kv = (r, v) => `<div><small>${r}</small><b>${v}</b></div>`;
     const familia = filtro.contexto === 'familia';
     const linhas = [
-        kv('Resultado líquido', formatarMoedaBR(perf.resultado_liquido || 0)),
+        kv('Resultado líquido', formatarMoedaBR(perf.resultado_liquido || 0, { semCentavos: true })),
         familia ? '' : kv('Rentabilidade', pctFmt(perf.rentabilidade_pct)),
-        kv('Receita do ano', formatarMoedaBR(perf.receita_ano || 0)),
+        kv('Receita do ano', formatarMoedaBR(perf.receita_ano || 0, { semCentavos: true })),
         kv('Patrimônio', formatarPatrimonioCompacto(perf.patrimonio)),
         kv('Tempo médio alugado', perf.dias_alugado_medio != null ? `${Math.round(perf.dias_alugado_medio)} dias` : '—'),
         kv('Tempo médio vago', perf.dias_vago_medio != null ? `${Math.round(perf.dias_vago_medio)} dias` : '—'),
-        kv('Tributos', formatarMoedaBR(perf.tributos || 0)),
-        kv('Manutenção', formatarMoedaBR(perf.manutencao || 0)),
-        kv('Seguros', formatarMoedaBR(perf.seguros || 0)),
-        kv('Inadimplência', formatarMoedaBR(perf.inadimplencia_valor || 0)),
+        kv('Tributos', formatarMoedaBR(perf.tributos || 0, { semCentavos: true })),
+        kv('Manutenção', formatarMoedaBR(perf.manutencao || 0, { semCentavos: true })),
+        kv('Seguros', formatarMoedaBR(perf.seguros || 0, { semCentavos: true })),
+        kv('Inadimplência', formatarMoedaBR(perf.inadimplencia_valor || 0, { semCentavos: true })),
     ].filter(Boolean);
     return `<div class="rz-card">
         <div class="rz-card-h" style="justify-content:space-between"><b>Performance</b>${botaoInfoCard('abrirInfoPerformanceGrid()')}</div>

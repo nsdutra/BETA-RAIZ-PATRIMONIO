@@ -1,6 +1,54 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.2.1 · 21/09/2026
+// Versão: 1.4.0 · 22/09/2026
+//
+// v1.4.0 (demanda 0e40951a — redesenho do Financeiro, pedido explícito do
+// Nicola) — fechamentoRenderBotaoDedicado(): (1) ícone do botão
+// Fechar/Abrir competência estava INVERTIDO (mostrava cadeado aberto pra
+// competência FECHADA e cadeado fechado pra ABERTA — o desenho descrevia a
+// ação, não o estado; corrigido pra refletir o estado de verdade). (2)
+// alvo trocou de um ícone solto (.rz-ico-btn, ids fin-botao-fechamento-*)
+// pra uma célula do grid 2x2 novo (.rz-fin-quad, ids
+// fin-quad-fechamento-*) — ver financeiroQuadrantesHtml(), financeiro.js
+// v1.18.0, e o card de competência (index.html v1.245.0), que perdeu o
+// chip "Fiscal" e a mensagem aberta/fechada por pedido explícito ("no
+// componente da compentencia nao deve ter tag de fiscal, nem msg de
+// aberta ou fechada") — o checklist fiscal continua acessível pelo ⋮
+// (fechamentoAbrirAcoes), só saiu do CARD.
+//
+// v1.3.0 (22/09/2026 — Fase 1 do wrapper de escrita, rollout Financeiro —
+// pedido do Nicola 22/09/2026, ver js/raiz-eventos.js v1.0.0 e o piloto em
+// cofre-ativos.js v1.59.0/index.html v1.239.0): fechamento.js passa a
+// chamar emitirEscrita('competencia', {...}) logo depois de CADA escrita
+// real confirmada no banco, pra módulos de fora saberem que uma competência
+// mudou de estado:
+//   · fechamentoAbrirSheetFechar() — dentro do aoSalvar do Sheet, logo
+//     depois de fn_fechamento_fechar não dar erro. acao: 'fechar'.
+//   · fechamentoAbrirSheetReabrir() — dentro do aoSalvar do Sheet, logo
+//     depois de fn_fechamento_reabrir não dar erro. acao: 'reabrir'.
+//   · fechamentoGerarEcompartilhar() CONFERIDA e deixada de fora: a RPC que
+//     ela chama (fn_pacote_contador_montar) MONTA o pacote a partir do
+//     bloco 'contabil' já gravado no fechamento_snapshot (imutável desde o
+//     fechar) — não achei nenhum insert/update de um registro novo de
+//     "compartilhamento" nem no client nem indício de tabela pra isso; o
+//     resto da função é só gerar PDF (client-side, jsPDF) e compartilhar
+//     (navigator.share ou wa.me/mailto) — nada disso é escrita de entidade.
+//     Se um dia existir um registro de "compartilhado em X, por Y" no
+//     banco, esta função passa a ser candidata a emitir também.
+//   · Listener próprio (aoEscrever, guard window.__rzListenerEscritaFecha
+//     mentoLigado) registrado dentro de fechamentoAtualizarCard() — não há
+//     um "boot" único e separado neste módulo (mesma situação de
+//     financeiro.js — funções soltas, sem classe/inicializador); esta é a
+//     função chamada toda vez que o card do Fechamento precisa refletir o
+//     estado atual (abrir a aba, trocar de mês, ou depois de fechar/
+//     reabrir), então é o ponto mais natural. Guard evita registrar de novo
+//     a cada chamada (ela roda várias vezes por sessão). Ao ouvir
+//     'competencia', só rechama fechamentoAtualizarCard() — redundante com
+//     a chamada direta que fechar/reabrir já fazem (dobra o refresh nesses
+//     2 casos, inofensivo), mas cobre o caso de outro módulo vir a escrever
+//     nessa entidade no futuro sem financeiro.js precisar saber.
+//   · Zero mudança de lógica de negócio, RPC, payload ou texto de tela —
+//     só a chamada nova de emitirEscrita() e o import do módulo.
 //
 // v1.2.1 (21/09/2026) — 2 correções (QUA-01, achadas nesta mesma entrega,
 // revisando o v1.2.0 antes de considerar pronto, nenhuma reportada por uso
@@ -162,7 +210,13 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.2.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+
+// v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
+// é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
+// precisar saber" (ver changelog do topo). aoEscrever usado só pelo listener
+// interno registrado em fechamentoAtualizarCard(), logo abaixo.
+import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 
 let fechamentoUltimoEstado = null; // último resultado de fn_fechamento_verificar (cache pro Sheet de ações e pro botão dedicado)
 let fechamentoCarregando = false;
@@ -172,7 +226,10 @@ let fechamentoCarregando = false;
 let fechamentoRotinaFiscalLigada = null; // null = não verificado ainda; true/false = ligada/desligada
 let fechamentoFiscalPendencias = { cib: [], documentos: [] };
 
-const FECHAMENTO_IDS_BOTAO = ['fin-botao-fechamento-mensal', 'fin-botao-fechamento-saidas', 'fin-botao-fechamento-conciliacao'];
+// v1.4.0 (demanda 0e40951a, redesenho do Financeiro) — ids trocados de
+// fin-botao-fechamento-* (ícone solto) pra fin-quad-fechamento-* (célula do
+// grid 2x2 novo, ver financeiroQuadrantesHtml em financeiro.js).
+const FECHAMENTO_IDS_BOTAO = ['fin-quad-fechamento-mensal', 'fin-quad-fechamento-saidas', 'fin-quad-fechamento-conciliacao'];
 const FECHAMENTO_IDS_KPI = {
     pendente: 'fin-kpi-fech-pendente', naoControlado: 'fin-kpi-fech-nao-controlado',
     recebido: 'fin-kpi-fech-recebido', pago: 'fin-kpi-fech-pago',
@@ -198,6 +255,15 @@ function fechamentoMoeda(v) {
  * financeiro.js) — e também precisa redesenhar o botão dedicado nas
  * outras 2 abas (Recebimentos/Saídas), que não têm corpo/status próprios. */
 export async function fechamentoAtualizarCard() {
+    // v1.3.0 (Fase 1 do wrapper de escrita) — assina 1x por boot o evento
+    // padrão de escrita pra 'competencia' (ver changelog do topo). Guard
+    // por window.* de propósito: fechamentoAtualizarCard roda várias vezes
+    // por sessão (abrir a aba, trocar de mês, fechar/reabrir), um listener
+    // duplicado dispararia o refresh 2x+ a cada escrita.
+    if (!window.__rzListenerEscritaFechamentoLigado) {
+        window.__rzListenerEscritaFechamentoLigado = true;
+        aoEscrever('competencia', () => { fechamentoAtualizarCard(); });
+    }
     const elStatus = document.getElementById('fin-fechamento-status');
     const elCorpo = document.getElementById('fin-fechamento-corpo');
     if (elCorpo) elCorpo.textContent = 'Verificando…';
@@ -236,9 +302,25 @@ function fechamentoRenderBotaoDedicado() {
         if (!el) return;
         if (!linha || linha.status === 'sem_rotina') { el.innerHTML = ''; return; }
         const fechada = linha.status === 'concluido';
-        const icone = fechada ? 'lock-open' : 'lock';
+        // v1.4.0 (demanda 0e40951a, pedido explícito do Nicola: "Inverta o
+        // desenho do abrir e fechar compentencia") — o desenho de antes
+        // mostrava lock-open (cadeado ABERTO) quando a competência estava
+        // FECHADA, e lock (cadeado FECHADO) quando estava ABERTA — o ícone
+        // descrevia a AÇÃO ("toque pra abrir"/"toque pra fechar"), não o
+        // ESTADO atual, invertido do que o desenho de um cadeado sugere à
+        // primeira vista. Agora o ícone reflete o estado de verdade:
+        // fechada → cadeado fechado; aberta → cadeado aberto. O título
+        // (rótulo da ação) continua o mesmo, sem mudança de comportamento.
+        const icone = fechada ? 'lock' : 'lock-open';
         const titulo = fechada ? 'Abrir competência' : 'Fechar competência';
-        el.innerHTML = `<button type="button" class="rz-ico-btn" onclick="fechamentoAlternarBotao()" title="${titulo}" aria-label="${titulo}"><svg data-lucide="${icone}"></svg></button>`;
+        const explicacao = fechada ? 'Competência fechada — reabrir pra corrigir' : 'Registra o retrato deste mês';
+        // v1.4.0 — célula do grid 2x2 (.rz-fin-quad, index.html), mesmo
+        // conteúdo de um quadrante normal de financeiroQuadrantesHtml()
+        // (financeiro.js) — ícone à esquerda + título + explicação.
+        el.innerHTML = `<button type="button" class="rz-fin-quad" onclick="fechamentoAlternarBotao()">` +
+            `<div class="rz-ic"><svg data-lucide="${icone}"></svg></div>` +
+            `<div class="rz-tx"><b>${titulo}</b><small>${explicacao}</small></div>` +
+        `</button>`;
     });
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -433,12 +515,18 @@ function fechamentoResumoPendencia(linha) {
  * (Fechar/Reabrir saiu daqui, ver fechamentoAlternarBotao acima). */
 export function fechamentoAbrirAcoes() {
     if (typeof abrirSheetAcoes !== 'function') return;
-    abrirSheetAcoes({
-        titulo: 'Fechamento da competência',
-        acoes: [
-            { icone: 'send', titulo: 'Compartilhar com o contador', aoTocar: fechamentoAbrirCompartilharContador },
-        ],
-    });
+    // v1.4.0 (demanda 0e40951a) — "Checklist fiscal" (chip #fin-fiscal-chip
+    // que morava solto no card de competência) voltou a viver aqui — o
+    // pedido explícito do Nicola foi tirar a TAG do card, não a
+    // funcionalidade. Só aparece se a rotina nfse_competencia estiver
+    // ligada (mesma regra de sempre — fechamentoRotinaFiscalLigada).
+    const acoes = [];
+    if (fechamentoRotinaFiscalLigada) {
+        const total = fechamentoFiscalPendencias.cib.length + fechamentoFiscalPendencias.documentos.length;
+        acoes.push({ icone: 'file-check-2', titulo: 'Checklist fiscal', sub: total === 0 ? 'Tudo certo' : `${total} pendência(s)`, aoTocar: fechamentoAbrirChecklistFiscal });
+    }
+    acoes.push({ icone: 'send', titulo: 'Compartilhar com o contador', aoTocar: fechamentoAbrirCompartilharContador });
+    abrirSheetAcoes({ titulo: 'Fechamento da competência', acoes });
 }
 
 function fechamentoAbrirSheetFechar() {
@@ -460,6 +548,8 @@ function fechamentoAbrirSheetFechar() {
                 p_pessoa_id: fechamentoPessoaLogada(),
             });
             if (error) { if (typeof mostrarToast === 'function') mostrarToast('Erro ao fechar: ' + error.message, 'danger'); return false; }
+            // v1.3.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+            emitirEscrita('competencia', { competencia: fechamentoCompetenciaAtual(), acao: 'fechar' });
             if (typeof mostrarToast === 'function') mostrarToast('Competência fechada.', 'success');
             fechamentoAtualizarCard();
         },
@@ -485,6 +575,8 @@ function fechamentoAbrirSheetReabrir() {
                 p_pessoa_id: fechamentoPessoaLogada(),
             });
             if (error) { if (typeof mostrarToast === 'function') mostrarToast('Erro ao reabrir: ' + error.message, 'danger'); return false; }
+            // v1.3.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+            emitirEscrita('competencia', { competencia: fechamentoCompetenciaAtual(), acao: 'reabrir', ocorrenciaId });
             if (typeof mostrarToast === 'function') mostrarToast('Competência reaberta.', 'success');
             fechamentoAtualizarCard();
         },

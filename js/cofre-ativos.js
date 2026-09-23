@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.60.0 · 22/09/2026
+// Versão: 1.61.0 · 22/09/2026
+//
+// v1.61.0 (BUG REAL, achado do Nicola testando o piloto do wrapper v1.59.0:
+// "editei, salvei, refletiu na ficha — mas reabri a edição sem mexer em
+// nada e o valor dentro do form estava o antigo"). salvarEdicaoAtivo()
+// agora aplica `Object.assign(a, patch)` no objeto local logo após o
+// `api.atualizarAtivo()` confirmar — antes disso, só o banco era
+// atualizado; o objeto local (mesma referência de `estado.ativos`, usado
+// direto por alternarEditarAtivo() pra preencher o form) ficava
+// desatualizado até o listener assíncrono de `cofre:recarregar-ativos`
+// terminar, o que só acontecia DEPOIS do `abrirFichaAtivo()` seguinte já
+// ter rodado. Ver comentário completo na função.
 //
 // v1.60.0 (demanda 44f30857, item 2 — achado do Nicola: "chip Performance
 // (tela do ativo)... incluir um botão/ícone 'i' explicando as métricas
@@ -785,7 +796,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.60.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -2853,6 +2864,23 @@ export async function salvarEdicaoAtivo() {
     }
     try {
         await api.atualizarAtivo(a.id, patch);
+        // v1.61.0 — BUG REAL achado pelo Nicola testando o wrapper: editar um
+        // ativo, salvar, reabrir a MESMA edição sem fazer mais nada e o form
+        // mostrava o valor ANTIGO. Causa: `a` aqui é a MESMA referência que
+        // vive dentro de `estado.ativos` (abrirFichaAtivo monta `a` via
+        // `estado.ativos.find(...)`, ver linha ~1655, e só cai pro fetch de
+        // rede se não achar no array local) — só o banco era atualizado, o
+        // objeto local nunca era. `cofre:recarregar-ativos` (linha abaixo) é
+        // fire-and-forget: o listener recarrega `estado.ativos` de forma
+        // assíncrona, mas o `await abrirFichaAtivo(a.id)` logo depois roda
+        // ANTES desse recarregamento terminar — então ele lia o array ainda
+        // velho. A ficha em si não mostrava o sintoma porque os painéis
+        // (montarDadosAtivo etc.) buscam alguns dados direto do banco; o
+        // FORM de edição (alternarEditarAtivo) não — ele confia direto nos
+        // campos de `a`. Fix: aplica o mesmo `patch` já confirmado no banco
+        // também no objeto local, na hora — não depende mais de esperar o
+        // recarregamento assíncrono pra ficar consistente.
+        Object.assign(a, patch);
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, acao: 'editar_ativo' });
         mostrarToast('Ativo atualizado');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));

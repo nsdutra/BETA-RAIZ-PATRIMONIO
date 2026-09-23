@@ -6,11 +6,75 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.242.0
-   LINHAS: 15680
-   DATA: 22/09/2026 (demanda c75076ed — Tela "Novo contrato" no padrão do
-   sistema + remover Histórico do formulário de criação — achado do Nicola
-   em revisão de telas, 21/09/2026)
+   VERSÃO: Beta v1.246.0
+   LINHAS: 15671
+   DATA: 22/09/2026 (demanda 0e40951a — redesenho do Financeiro)
+   NOVIDADES (Beta v1.246.0) — demanda 0e40951a (pedido explícito do
+   Nicola: "Reorganizar os botoes de forma a ter a competencia no alto...
+   Depois, titulo da tela. Depois, para as funcoes, extrato, adicionar,
+   abrir/fechar compentencia, compartilhar com contador: colocar a
+   esquerda o botão e uma explicação da funcao na frente. Colocar 2
+   botoes a direita e dois a esquerda como se fosse 4 quadrantes...
+   Inverta o desenho do abrir e fechar compentencia. No componente da
+   compentencia nao deve ter tag de fiscal, nem msg de aberta ou
+   fechada"): as 3 abas do grupo Financeiro (Recebimentos/Saídas/
+   Fechamento) seguem agora a MESMA ordem: card de competência → chips
+   Recebimentos·Saídas·Fechamento → título da tela → grid 2x2 de funções
+   (.rz-fin-quad-grid, CSS novo) — cada quadrante com ícone à esquerda +
+   título + explicação que QUEBRA linha de propósito (nunca nowrap/
+   ellipsis — corrige o achado "mensagens estão saindo da tela" na
+   Conciliação). Card de competência (aba Fechamento) perdeu a tag
+   "Fiscal" e a mensagem aberta/fechada — só barra de mês + ⋮ (checklist
+   fiscal e estado fechada/aberta continuam acessíveis, só saíram do
+   card). Ícone de Fechar/Abrir competência corrigido (estava mostrando
+   cadeado aberto pra competência FECHADA). Ver changelog de
+   financeiro.js v1.18.0/fechamento.js v1.4.0 pro resto do rollout.
+   NOVIDADES (Beta v1.245.0) — demanda 176b3145 (pedido explícito do
+   Nicola: "ao clicar no menu tres pontos deve ter a opção de adicionar e
+   nao editar... se tiver uma parte cadastrada, ao clicar nela ja entra
+   no form pra edição... eliminar telas intermediárias"):
+   (1) abrirFormParteSheet() ganhou um fallback pra buscar a parte direto
+   no banco quando `partesCliente` ainda não foi carregado nesta sessão
+   (array é lazy-load, só busca ao abrir a aba Partes) — sem isto o form
+   abriria em branco como "Nova parte" mesmo editando uma parte real, e
+   salvar sobrescreveria os dados dela (mesmo fix em salvarParteSheet,
+   pro endereço não ser apagado). (2) Lista de Configurações › Partes:
+   clicar numa linha vai direto pro form de edição (antes abria a Ficha,
+   uma tela intermediária); o ⋮ continua oferecendo "Abrir ficha" pra
+   quem quiser só ver. (3) Listener global 'cofre:abrir-ficha-parte'
+   (chips do popup Detalhes do Contrato, "Editar/Adicionar locatário",
+   linhas de parte num item de controle — cobre TODOS de uma vez, ver
+   cofre-app.js v1.37.0 pro caso do item de controle) passa a abrir o
+   form de edição direto também. (4) contratos.js v1.19.0: "Editar
+   locatário" virou dinâmico "Adicionar locatário"/"Editar locatário",
+   mesmo padrão que "Adicionar/Editar fiador" já usava. (5) Fase 1 do
+   wrapper de escrita (js/raiz-eventos.js) chega em Pessoas/Partes:
+   salvarParteSheet/salvarEmpreendimentosDaParte/excluirParte/
+   gravarPapelParte emitem 'parte' agora (helper emitirEscritaGlobal,
+   import dinâmico — script clássico não é módulo); listener próprio
+   recarrega a aba Partes se ela já tiver sido aberta nesta sessão.
+   NOVIDADES (Beta v1.244.0) — demanda 472927ba:
+   Achado ao vivo do Nicola (master na Rumo, plano Plus): o item "Versões"
+   do menu Conta mostrava "Não incluído no plano". Causa: o item usava
+   codigo: 'dev.acessar' (só existe no plano gestao_master, e abre a aba
+   DEV inteira) pra gatear uma tela que é só informativa (versão de
+   arquivo/diagnóstico de cache-deploy, sem dado de outra empresa). O
+   banco já tinha sido ajustado numa migration anterior com a
+   funcionalidade nova sistema.versoes.ver, liberada em todos os planos
+   ativos e nos perfis admin/master/master_plataforma — faltava só trocar
+   o codigo do item de menu (linha ~9293) de 'dev.acessar' pra
+   'sistema.versoes.ver'. O código 'dev.acessar' que gateia a aba
+   tab-developer inteira (linha ~8610, TAB_CODIGO_VER) NÃO foi tocado —
+   é um controle diferente e deve continuar restrito ao gestao_master.
+   NOVIDADES (Beta v1.243.0) — demanda 8d5585a3:
+   formatarMoedaBR() ganhou um 2º parâmetro opcional `{ semCentavos: true }`
+   (default inalterado — sempre 2 casas, como sempre foi) pra que
+   js/resultados.js pudesse exibir os valores em R$ sem centavos sem violar
+   a regra DESIGN_SYSTEM §2 ("valor monetário SEMPRE via formatarMoedaBR(),
+   NUNCA .toFixed(2)"). Nenhuma das ~47 outras chamadas no app foi afetada
+   — só resultados.js passa a pedir semCentavos. Ver changelog de
+   resultados.js v1.6.0 pra também a remoção da linha pontilhada do card
+   "Resultado mês a mês".
    NOVIDADES (Beta v1.242.0) — demanda c75076ed (Tela "Novo contrato"):
    Achado do Nicola: "a tela de criação de novo contrato está fora do
    padrão visual atual do sistema (gramática única)". O formulário
@@ -45,157 +109,8 @@
    Campo "Endereço atual do locatário" (que be42b19f já havia trocado
    pelo bloco estruturado nesta mesma tela) não mudou nesta entrega — só a
    moldura ao redor dele.
-   NOVIDADES (Beta v1.241.0) — demanda be42b19f (componente único de Parte):
-   Achado do Nicola: o formulário/visualizador de uma Parte (locatário,
-   fiador, proprietário, prestador) não era único — cada tela reimplementava
-   o seu, incompleto de um jeito diferente. Componente novo (comum-partes.js
-   + o bloco de endereço já existente, comum-endereco.js) reusado em 3
-   pontos de entrada; 2 bugs reais de fiação (clique morto, função nunca
-   escrita) corrigidos por trás:
-   (1) BUG REAL — "editar locador" no chip Partes do contrato não abria
-   nada: abrirFichaParteDoContrato() (contratos.js, 18/09/2026) já
-   despachava o evento cofre:abrir-ficha-parte, mas NENHUM listener pra
-   esse evento existia em lugar nenhum do app. Adicionado aqui (boot).
-   (2) BUG REAL — mesma causa, outro caminho: a linha de uma parte dentro
-   do Item de Controle (data-action="abrir-ficha-parte",
-   cofre-controles.js) nunca teve case no despachante (cofre-app.js
-   v1.35.0) — corrigido. E api.buscarParte()/api.atualizarParte()
-   (cofre-api.js v1.44.0) eram chamadas por abrirFichaParte()/
-   abrirEditarParte() mas nunca tinham sido escritas — corrigidas junto,
-   antes que o fix do despachante trocasse um bug mudo por um erro em
-   tela.
-   (3) Configurações › Partes (abrirFormParteSheet/salvarParteSheet): campo
-   "Endereço" de texto livre vira o bloco estruturado (CEP com busca
-   automática, rua/número/bairro/cidade/UF) — mesmo componente que a ficha
-   do ativo já usa.
-   (4) "Dados Novo Contrato" (contratos.js v1.16.0): mesmo bloco estruturado
-   no endereço do locatário, no lugar da textarea de texto livre.
-   (5) Ficha/edição de Parte do Item de Controle (cofre-controles.js
-   v1.31.0): ganha o resumo de verdade (.rz-kv) e o mesmo bloco de
-   endereço, além de profissão/estado civil, que faltavam.
-   migration partes_endereco_estruturado_v1 (colunas endereco_rua/num/
-   comp/bairro/cidade/uf/cep/codigo_ibge_municipio em `partes`, mesmo
-   padrão de cofre_ativos; `endereco` texto livre mantido — DAD-04).
-   NOVIDADES (Beta v1.240.0) — demanda 44f30857 (Contratos, 5 itens):
-   (1) Removido o título "Contratos de Locação Ativos" acima da lista —
-   redundante, os chips logo abaixo já dão o contexto (mesmo padrão das
-   outras abas, nenhuma tem título acima da lista).
-   (2) Chip "Renovação" › card "Pelo contrato" (ficha do contrato) e card
-   "Performance" (ficha do ativo) ganham botão (i) explicando cada métrica
-   exibida (abrirInfoReajusteContrato em contratos.js v1.15.0,
-   abrirInfoPerformanceAtivo em cofre-ativos.js v1.60.0) — sheet/modal com
-   texto curto por métrica, mesmo padrão dos 2 módulos.
-   (3) Ficha do contrato › card "Cobranças": o ⋮ de cada mensalidade
-   disparava também o clique da linha inteira (herdado do fix de
-   18/09/2026 que tornou a linha clicável) — "Dar baixa"/"Excluir"
-   navegavam pra Financeiro antes de agir. O ⋮ ganhou handler próprio
-   (event.stopPropagation()) — agora age direto, de qualquer aba.
-   (4) "Editar a distribuição do aluguel entre proprietários" abria o
-   formulário inteiro de editar contrato — passa a abrir direto o popup
-   "Alterações" de divisão societária (abrirAlteracoesDivisaoSocietaria,
-   já usado pela ficha do imóvel), nos mesmos moldes da tela de rateio de
-   propriedade do imóvel — sem duplicar formulário.
-   (5) Clicar numa ocorrência já concluída do contrato (ex.: tipo
-   "Assinatura") — o campo "Descrição" dividia a grade de 2 colunas com
-   os campos curtos e ficava espremido; ganhou largura total (.rz-full).
-   NOVIDADES (Beta v1.239.0) — demanda 60284322 + Fase 1 do wrapper:
-   (1) Navegação por rodapé sempre reseta a aba (demanda 60284322): os 5
-   botões do rodapé (Visão Geral, Ativos, Contratos, Financeiro, Resultados)
-   chamavam switchTab(tabId) direto — trocavam a SEÇÃO visível, mas não
-   sabiam nada do estado interno de cada módulo, então "sobrava" a última
-   visita (ficha do ativo aberta, mês navegado em Financeiro, filtro
-   aplicado em Resultados). Os 5 botões passam a chamar irParaAbaRodape
-   (tabId) nova função, que resolve o reset de cada aba (só quem sabe o
-   que precisa voltar ao padrão é o módulo dono do estado) antes de
-   chamar switchTab: Ativos via fecharFichaAtivo() (cofre-ativos.js, já
-   existia); Resultados/Financeiro via resetarResultadosParaAbaInicial()/
-   resetarFinanceiroParaAbaInicial() (novas, resultados.js v1.4.0/
-   financeiro.js v1.16.0); Visão Geral já reconstrói tudo do zero a cada
-   entrada (nada a fazer); Contratos: a ficha já fecha sozinha ao trocar
-   de aba, e o filtro da lista fica de propósito (é filtro de busca).
-   (2) Fase 1 do wrapper de escrita + evento local (backlog discutido em
-   sessão anterior: "tela desatualizada após criar/editar/excluir, cross,
-   todo o app"; decisão do Nicola pra esta entrega — "Utilitário + 1
-   piloto testado"): js/raiz-eventos.js (novo) — emitirEscrita/aoEscrever/
-   executarEscrita, evento local padronizado pra módulos que não se
-   conhecem avisarem uns aos outros que algo mudou. Piloto único: editar
-   um ativo (salvarEdicaoAtivo, cofre-ativos.js v1.59.0) agora também
-   emite emitirEscrita('ativo', ...) — index.html assina 1x no boot e
-   refaz `imoveis` (array legado que só carregava 1x no boot, nunca de
-   novo) e redesenha a Visão Geral se ela estiver aberta na hora (contador
-   "Total/Alugados/Vagos" ficava desatualizado até um F5). Adoção do
-   wrapper no resto do app (Contratos, Financeiro, Resultados) fica pra
-   rodada dedicada futura.
-   NOVIDADES (Beta v1.237.0) — Entrega F.3/F.4:
-   (1) Compartilhamento com o contador: no fechamento, ⋮ ganha "Compartilhar
-   com o contador" — escolhe o contador (papel novo, prestadores.tipo=
-   'contador', mesmo padrão de administradora/síndico/manutencista) e o
-   canal (WhatsApp/e-mail já cadastrados nele), marca 1+ competências
-   FECHADAS, e o app monta 1 PDF por competência (jsPDF, mesmo padrão de
-   baixarRelatorioPdfLocal) com o conteúdo do bloco contábil do snapshot
-   (fn_pacote_contador_montar) — abre o compartilhamento nativo do
-   aparelho (navigator.share, quando suportado) ou baixa o(s) PDF(s) e
-   abre wa.me/mailto com o resumo em texto, pro próprio usuário confirmar
-   e enviar. SEM token/link pro contador acessar o sistema (mecanismo
-   antigo, nunca chegou a ser construído — solução descartada, registrada
-   como pendência de backlog, DEM). Cada competência é fechada 1 de cada
-   vez (sem mudança); só a geração/compartilhamento do pacote aceita
-   escolher mais de uma de uma vez.
-   (2) Retificação: mensalidade/lançamento de competência FECHADA agora
-   trava edição de verdade (trigger de banco, não só a tela) — precisa
-   reabrir o fechamento antes (item "Ver detalhe"/recibo continuam
-   liberados). Reabrir invalida o pacote contábil daquela competência
-   (fechar de novo gera um snapshot novo).
-   (3) O que entra no pacote contábil: todo item baixado (pago/recebido,
-   manual ou conciliado) e repasse conciliado, por padrão
-   (incluir_contabilidade=true) — ⋮ "Não incluir na contabilidade" desmarca
-   1 item por vez (funcionalidade financeiro.contabilidade_ajustar, ACE-03).
-   (4) Conciliação: perdeu o filtro/agrupamento de competência PRÓPRIO —
-   segue o card do topo, igual Recebimentos/Saídas (decisão da F.1/F.2
-   revertida aqui, a pedido). Só mostra pendências de conciliação
-   (pendente/não controlado); o que já foi baixado aparece em Recebimentos/
-   Saídas, com a origem (Manual/Extrato) na própria linha. Segmento Tudo/
-   Entradas/Saídas e chips Todos/Pendentes/Conciliados/Não controlado
-   saíram da tela (não fazem mais sentido com 1 competência só). "Extrato
-   bancário" e o botão dedicado de Fechar/Abrir competência (cadeado —
-   saiu do ⋮, virou 1 toque) passam a existir nos 3 chips (Recebimentos ·
-   Saídas · Fechamento), não só em Fechamento.
-   (5) O seletor Recebimentos/Saídas/Fechamento virou .rz-seg (era .rz-chips
-   desde a F.1) — mesmo componente da Visão Geral. O card de competência
-   (‹ Mês ›) ficou mais baixo, na mesma altura do seletor. O resumo da
-   aba Fechamento virou 4 KPIs (Pendente/Não controlado/Recebido/Pago),
-   mesmo padrão de Recebimentos/Saídas — troca o hero "Conciliação do
-   período".
-   (6) CORRIGIDO (QUA-01, achados revisando esta mesma entrega antes de
-   qualquer uso real, nenhum reportado por uso real): (a) 3 das 7 funções
-   novas tinham "REVOKE ... FROM anon" em vez de "FROM PUBLIC" — não
-   fechava o acesso de verdade, porque toda função nasce com EXECUTE
-   concedido a PUBLIC e anon herda dele (migration
-   fechamento_pacote_contador_v1_fix_grants_public); (b) o botão dedicado
-   de Fechar/Abrir só era redesenhado quando o usuário abria o chip
-   Fechamento — Recebimentos/Saídas podiam mostrar o cadeado do mês
-   errado até visitar Fechamento (financeiro.js v1.15.0); (c) o ⋮ de um
-   item pago/realizado continuava oferecendo Estornar/"Não incluir na
-   contabilidade" mesmo com a competência fechada — o trigger já barrava
-   a gravação, mas só depois do toque, com erro cru; agora as duas ações
-   somem do menu nesse caso (financeiro.js v1.15.0, fechamento.js v1.2.1);
-   (d) o <select> "Atua como prestador?" da tela de Partes não tinha a
-   opção "Contador" — sem ela, ninguém conseguia cadastrar um contador de
-   verdade pela tela (index.html, abrirFormParteSheet).
-   Migrations (3, nesta ordem): fechamento_pacote_contador_v1 (colunas
-   incluir_contabilidade em mensalidades/lancamentos/extrato_fingerprints;
-   trigger de bloqueio de edição em competência fechada;
-   fn_fechamento_calcular_contabil/fn_pacote_contador_montar/
-   fn_financeiro_totalizador_fechamento/fn_fechamento_listar_fechadas/
-   fn_financeiro_incluir_contabilidade/fn_competencia_esta_fechada;
-   fn_fechamento_fechar e fn_atualizar_mensalidades_vencidas alterados) ·
-   fechamento_pacote_contador_v1_enum_contador (tipo_prestador_enum ganha
-   'contador' — ALTER TYPE ... ADD VALUE isolado, não roda na mesma
-   transação de DDL que já referencia o valor novo) ·
-   fechamento_pacote_contador_v1_fix_grants_public (correção do item 6a
-   acima).
    ------------------------------------------------------------------
-   Versões anteriores (v1.236.0 … v1.236.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.241.0 … v1.241.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -219,7 +134,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.16.0","./js/fechamento.js":"./js/fechamento.js?v=1.2.1","./js/contratos.js":"./js/contratos.js?v=1.17.0","./js/minutas.js":"./js/minutas.js?v=1.0.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.35.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.60.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.31.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.20.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.5.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.18.0","./js/fechamento.js":"./js/fechamento.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.19.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.61.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.32.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -802,6 +717,26 @@
         .rz-act .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
         .rz-act small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
         .rz-act.rz-bad{color:var(--danger)}
+        /* v1.245.0 (demanda 0e40951a, pedido explícito do Nicola: "colocar
+           2 botoes a direita e dois a esquerda como se fosse 4 quadrantes,
+           1 pra cada função... o botão a esquerda e uma explicação da
+           funcao na frente") — grid de 4 "quadrantes" de função (Extrato/
+           Adicionar/Fechar-Reabrir competência/Compartilhar com contador),
+           mesmo conteúdo de .rz-act (ícone à esquerda + título + explicação)
+           só que 2 colunas fixas em vez de lista vertical. A explicação
+           QUEBRA linha de propósito (nunca nowrap/ellipsis, diferente de
+           .rz-row) — correção direta do achado "mensagens estão saindo da
+           tela" na aba Conciliação/Fechamento. Usado nas 3 abas do grupo
+           Financeiro (Recebimentos/Saídas/Fechamento) — ver
+           financeiroQuadrantesHtml(), js/financeiro.js. -->
+        .rz-fin-quad-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+        .rz-fin-quad{display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:var(--r-ctl);background:var(--card);border:1px solid var(--line);text-align:left;cursor:pointer;min-width:0}
+        .rz-fin-quad .rz-ic{width:32px;height:32px;border-radius:9px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
+        .rz-fin-quad .rz-ic svg{width:16px;height:16px}
+        .rz-fin-quad .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
+        .rz-fin-quad .rz-tx{min-width:0;flex:1}
+        .rz-fin-quad .rz-tx b{display:block;font-size:12.5px;font-weight:700;line-height:1.2}
+        .rz-fin-quad .rz-tx small{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px;line-height:1.3;white-space:normal;overflow-wrap:break-word}
         .rz-f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
         .rz-f label{font-size:12px;font-weight:600;color:var(--muted)}
         .rz-f label i{color:var(--danger);font-style:normal}
@@ -2621,25 +2556,17 @@
                  inferior, continua escondido. -->
             <button id="btn-voltar-financeiro" onclick="voltarDoFinanceiroFiltrado()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
 
-            <!-- CORRIGIDO (v1.52.0 — pedido explícito): pill Lista/Atrasos
-                 removida; título "Recebimentos" removido, virou descrição
-                 curta à esquerda dos ícones, mesmo padrão de Imóveis. -->
-            <div class="flex items-center gap-2 mb-4">
-
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa. Importe extratos e concilie no chip Fechamento.</p>
-
-                <!-- v1.6.5 — achado do Nicola: "+" tirado — abria um menu de
-                     Importar/Reprocessar/Painel de conciliação, tudo
-                     redundante agora que Conciliação é aba própria (não
-                     existe "criar recebimento avulso" pra justificar um
-                     "+" aqui). rzAcoesRecebimentos() removida junto. -->
+            <!-- demanda 0e40951a (pedido explícito do Nicola, 22/09/2026) —
+                 "Depois, titulo da tela" (competência → chips → título →
+                 4 quadrantes). Lupa de busca fica ao lado do título — as
+                 outras 3 ações (Extrato/Adicionar/Fechar/Contador) saíram
+                 daqui, viraram os quadrantes abaixo. -->
+            <div class="flex items-center gap-2 mb-3">
+                <h2 class="flex-1 text-left" style="font-family:var(--font-title);font-size:17px;font-weight:700;color:var(--ink)">Recebimentos</h2>
                 <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <!-- Entrega F.4 (21/09/2026, pedido explícito) — "Extrato
-                     bancário" e "Fechar/Abrir competência" (botão dedicado)
-                     passam a existir nos 3 chips, não só em Fechamento. -->
-                <button onclick="abrirAcoesImportarConciliacao()" class="rz-ico-btn rz-ia" title="Extrato bancário" aria-label="Extrato bancário"><svg data-lucide="file-down"></svg></button>
-                <span id="fin-botao-fechamento-mensal"></span>
             </div>
+            <p class="text-[11px] text-gray-500 mb-3" style="white-space:normal;overflow-wrap:break-word">Acompanhe recebimentos e dê baixa. Importe extratos e concilie no chip Fechamento.</p>
+            <div id="fin-quadrantes-mensal"></div>
 
             <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
                  · Recebido · Em atraso · A receber), sempre vindos de
@@ -2697,57 +2624,39 @@
                  (§2) já documentadas. A lista de Conciliação abaixo
                  continua com filtro de competência próprio, independente
                  deste card (decisão da F.1, ver nota em financeiro.js). -->
+            <!-- demanda 0e40951a (pedido explícito do Nicola, 22/09/2026:
+                 "No componente da compentencia nao deve ter tag de fiscal,
+                 nem msg de aberta ou fechada") — card perdeu o chip Fiscal
+                 (#fin-fiscal-chip) e a mensagem de status
+                 (#fin-fechamento-status): sobra só a barra de mês + ⋮. O
+                 checklist fiscal e o estado fechada/aberta continuam
+                 acessíveis (⋮ → fechamentoAbrirAcoes, e o quadrante
+                 Fechar/Reabrir abaixo já mostra o estado pelo ícone). -->
             <div class="rz-card mb-4" id="fin-fechamento-card">
                 <div class="flex items-center justify-between gap-2">
-                    <!-- Entrega F.4 (21/09/2026, pedido explícito) — vira
-                         .rz-mes-bar (mesma altura do seletor Recebimentos/
-                         Saídas/Fechamento), ocupando o espaço à esquerda;
-                         status/fiscal/⋮ continuam à direita, fora da barra. -->
                     <div class="rz-mes-bar" style="flex:1;margin-bottom:0">
                         <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
                         <b id="fin-competencia-label-conciliacao" class="rz-mes-label">—</b>
                         <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <span id="fin-fiscal-chip"></span>
-                        <span id="fin-fechamento-status"></span>
-                        <!-- Entrega F.3 (21/09/2026) — ⋮ agora só abre
-                             "Compartilhar com o contador" (Fechar/Reabrir
-                             saiu daqui, virou o botão dedicado nos 3 chips,
-                             ver fin-botao-fechamento-conciliacao no
-                             cabeçalho abaixo). -->
-                        <button type="button" class="rz-more" onclick="fechamentoAbrirAcoes()" aria-label="Ações do fechamento"><svg data-lucide="ellipsis-vertical"></svg></button>
-                    </div>
+                    <button type="button" class="rz-more" onclick="fechamentoAbrirAcoes()" aria-label="Ações do fechamento"><svg data-lucide="ellipsis-vertical"></svg></button>
                 </div>
                 <div id="fin-fechamento-corpo" class="text-xs text-slate-500 mt-2">Verificando…</div>
             </div>
-            <!-- Entrega F3.1 (21/09/2026) — chip "Fiscal" (#fin-fiscal-chip
-                 acima): só aparece com a rotina nfse_competencia ligada
-                 (js/fechamento.js, fechamentoAtualizarFiscal). Toque abre o
-                 checklist por imóvel (CIB preenchido? contrato com
-                 documento do locatário?) via fechamentoAbrirChecklistFiscal.
-                 Sem emissão de NFS-e nesta entrega — só preparação. -->
 
             <!-- Entrega F.4 (21/09/2026, pedido explícito) — .rz-chips virou
                  .rz-seg, mesmo componente de Recebimentos/Saídas. -->
             <div class="rz-seg" id="fin-chips-nivel-conciliacao"></div>
 
-            <!-- v1.179.0 — achado do Nicola: botão Importar virou redondo
-                 (.rz-ico-btn, mesmo padrão de Localizar/+ nas outras abas),
-                 na mesma posição — ícone de importação de sempre (file-down),
-                 mantém o selo .rz-ia. Lupa nova ao lado, à esquerda dele. -->
-            <!-- v1.179.4 — achado do Nicola: botões (busca + importar)
-                 estavam ABAIXO do resumo hero, único caso entre as 3 abas —
-                 Recebimentos e Saídas sempre tiveram os botões ACIMA.
-                 Reordenado pra bater com o padrão das outras duas. -->
-            <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
-            <div class="flex items-center gap-2 mb-4">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
+            <!-- demanda 0e40951a — competência → chips → título → 4
+                 quadrantes, mesmo padrão das outras 2 abas. -->
+            <div class="flex items-center gap-2 mb-3 mt-3">
+                <h2 class="flex-1 text-left" style="font-family:var(--font-title);font-size:17px;font-weight:700;color:var(--ink)">Fechamento</h2>
                 <button id="btn-conc-busca" onclick="abrirBuscaConciliacao()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button onclick="abrirAcoesImportarConciliacao()" class="rz-ico-btn rz-ia" title="Extrato bancário" aria-label="Extrato bancário"><svg data-lucide="file-down"></svg></button>
-                <!-- Entrega F.4 — botão dedicado, mesmo padrão dos outros 2 chips. -->
-                <span id="fin-botao-fechamento-conciliacao"></span>
             </div>
+            <p class="text-[11px] text-gray-500 mb-3" style="white-space:normal;overflow-wrap:break-word">Importe o extrato bancário e concilie pagamentos e despesas automaticamente.</p>
+            <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
+            <div id="fin-quadrantes-conciliacao"></div>
 
             <!-- Entrega F.4 (21/09/2026, pedido explícito) — "o card resumo
                  da tela de fechamento/conciliação deve ter o mesmo padrão
@@ -2872,14 +2781,16 @@
                  chip Financeiro da ficha do ativo). -->
             <button id="btn-voltar-saidas" onclick="voltarDasSaidasFiltradas()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
 
-            <div class="flex items-center gap-2 mb-4">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Despesas e saídas do patrimônio — pagas e a pagar.</p>
+            <!-- demanda 0e40951a — competência → chips → título → 4
+                 quadrantes (Extrato/Adicionar/Fechar-Reabrir/Contador),
+                 mesmo padrão de Recebimentos/Fechamento. "Nova despesa"
+                 (antes botão dedicado à parte) virou o quadrante Adicionar. -->
+            <div class="flex items-center gap-2 mb-3">
+                <h2 class="flex-1 text-left" style="font-family:var(--font-title);font-size:17px;font-weight:700;color:var(--ink)">Saídas</h2>
                 <button id="btn-saidas-busca" onclick="abrirBuscaSaidas()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
-                <!-- Entrega F.4 — "Extrato bancário" e botão dedicado de
-                     Fechar/Abrir competência, mesmo padrão dos outros 2 chips. -->
-                <button onclick="abrirAcoesImportarConciliacao()" class="rz-ico-btn rz-ia" title="Extrato bancário" aria-label="Extrato bancário"><svg data-lucide="file-down"></svg></button>
-                <span id="fin-botao-fechamento-saidas"></span>
-                <button id="btn-nova-despesa" onclick="abrirNovaDespesa()" title="Nova despesa" class="rz-ico-btn rz-primary" aria-label="Nova despesa"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            </div>
+            <p class="text-[11px] text-gray-500 mb-3" style="white-space:normal;overflow-wrap:break-word">Despesas e saídas do patrimônio — pagas e a pagar.</p>
+            <div id="fin-quadrantes-saidas"></div>
             </div>
 
             <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
@@ -3514,7 +3425,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.242.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.246.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6487,13 +6398,23 @@
 
         // apareciam sem tratamento na tela após recarregar a página.
 
-        function formatarMoedaBR(valor) {
+        // v1.243.0 (demanda 8d5585a3 — "na aba de Resultados eliminar as
+        // casas decimais dos componentes em reais") — ganhou 2º parâmetro
+        // opcional `{ semCentavos: true }`, DEFAULT inalterado (sempre 2
+        // casas, como sempre foi) pra não afetar nenhuma das outras ~47
+        // chamadas já existentes no app (Contratos, Financeiro, etc. — regra
+        // do DESIGN_SYSTEM §2: "valor monetário SEMPRE via formatarMoedaBR(),
+        // NUNCA .toFixed(2)" continua valendo; a variação de casas decimais
+        // fica dentro da própria função, nunca bypassada por chamador).
+        function formatarMoedaBR(valor, opcoes) {
 
             const n = parseFloat(valor);
 
-            if (isNaN(n)) return 'R$ 0,00';
+            const casas = (opcoes && opcoes.semCentavos) ? 0 : 2;
 
-            return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (isNaN(n)) return casas === 0 ? 'R$ 0' : 'R$ 0,00';
+
+            return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
 
         }
 
@@ -7469,17 +7390,31 @@
             // o parte_id — mas NENHUM listener pra esse evento existia em
             // lugar nenhum do app. Clicar em "Editar locatário" não fazia
             // NADA (nem erro), exatamente o "hoje não abre nada" que a
-            // demanda relatou. cofre-controles.js já tem abrirFichaParte()
-            // completa (mesma usada no item de controle, agora também com
-            // endereço estruturado — v1.31.0); só faltava alguém escutando.
+            // demanda relatou.
+            // v1.244.0 (demanda 176b3145, pedido explícito do Nicola,
+            // 22/09/2026: "ao clicar no menu tres pontos deve ter a opção
+            // de adicionar e nao editar... se tiver uma parte cadastrada,
+            // ao clicar nela ja entra no form pra edição... eliminar telas
+            // intermediárias") — este listener abria a FICHA (resumo +
+            // vínculos, cofre-controles.js abrirFichaParte) como tela
+            // intermediária antes de chegar no Editar. Passa a abrir o
+            // form de edição direto (abrirFormParteSheet, mesmo formulário
+            // usado por Configurações › Partes) — cobre de uma vez todo
+            // clique que já chega aqui com um parte_id resolvido (chips
+            // "Partes" do popup Detalhes do Contrato, "Editar locatário",
+            // linhas de parte dentro de um item de controle).
             if (!window.__rzListenerAbrirFichaParteLigado) {
                 window.__rzListenerAbrirFichaParteLigado = true;
                 window.addEventListener('cofre:abrir-ficha-parte', (ev) => {
                     const parteId = ev?.detail?.id;
                     if (!parteId) return;
-                    import('./js/cofre-controles.js')
-                        .then(m => m.abrirFichaParte(parteId))
-                        .catch(err => console.warn('[partes] Falha ao abrir ficha da parte:', err.message));
+                    if (typeof abrirFormParteSheet === 'function') {
+                        abrirFormParteSheet(parteId);
+                    } else {
+                        import('./js/cofre-controles.js')
+                            .then(m => m.abrirFichaParte(parteId))
+                            .catch(err => console.warn('[partes] Falha ao abrir a parte:', err.message));
+                    }
                 });
             }
 
@@ -8896,6 +8831,7 @@
         }
         ['fechamentoAtualizarCard', 'fechamentoAbrirAcoes', 'fechamentoAbrirChecklistFiscal',
          'fechamentoAlternarBotao', // Entrega F.3/F.4 (v1.2.0) — onclick do botão dedicado (cadeado), injetado via innerHTML nos 3 chips (fechamentoRenderBotaoDedicado)
+         'fechamentoAbrirCompartilharContador', // v1.4.0 (demanda 0e40951a) — onclick do quadrante "Contador" (financeiroQuadrantesHtml, financeiro.js)
         ].forEach(nome => {
             window[nome] = (...args) => carregarFechamento().then(m => m[nome](...args));
         });
@@ -9340,7 +9276,7 @@
                     ]},
                     { titulo: 'Conta', acoes: [
                         { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
-                        { icone: 'package-check', titulo: 'Versões', sub: 'O que está no ar × o que está rodando', codigo: 'dev.acessar', aoTocar: abrirVersoesDev }, // v1.132
+                        { icone: 'package-check', titulo: 'Versões', sub: 'O que está no ar × o que está rodando', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
                         { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => window.open('https://wa.me/5511947461828', '_blank') },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
@@ -15029,6 +14965,30 @@
 
         }
 
+        // v1.244.0 (Fase 1 do wrapper de escrita, rollout Pessoas/Partes —
+        // pedido do Nicola 22/09/2026) — helper pra chamar emitirEscrita()
+        // (js/raiz-eventos.js) de dentro do script clássico (não-módulo)
+        // do index.html, mesmo padrão de import dinâmico já usado no
+        // listener 'cofre:abrir-ficha-parte' acima (linha ~7411). Usado
+        // por salvarParteSheet/salvarEmpreendimentosDaParte/excluirParte/
+        // gravarPapelParte, todos abaixo.
+        function emitirEscritaGlobal(entidade, detalhe) {
+            import('./js/raiz-eventos.js')
+                .then(({ emitirEscrita }) => emitirEscrita(entidade, detalhe))
+                .catch(err => console.warn('[raiz-eventos] Falha ao emitir escrita:', err.message));
+        }
+        // Consumo — se a aba Configurações › Partes estiver montada
+        // (partesCliente já carregado ao menos 1x nesta sessão), qualquer
+        // escrita em 'parte' vinda de OUTRO lugar do app (ex.: editar o
+        // locatário direto pelo contrato) recarrega a lista, sem precisar
+        // reabrir a aba manualmente pra ver o dado novo.
+        if (!window.__rzListenerEscritaParteLigado) {
+            window.__rzListenerEscritaParteLigado = true;
+            import('./js/raiz-eventos.js').then(({ aoEscrever }) => {
+                aoEscrever('parte', () => { if (typeof carregarPartes === 'function' && partesCliente.length) carregarPartes(); });
+            }).catch(err => console.warn('[raiz-eventos] Falha ao carregar módulo:', err.message));
+        }
+
         // ---- PARTES (v1.96.0, pedido explícito, 01/09/2026) ----
         // ===================================================================
         // v1.117.0 (fatia 7b-i) — PARTES UNIFICADA. Pedido explícito:
@@ -15147,7 +15107,7 @@
                 const resumoPapeis = papeis.length ? [...new Set(papeis.map(pp => PARTES_ROTULO_PAPEL[pp] || pp))].join(' · ') : 'Sem papel atribuído';
                 const doc = pt.documento ? `${pt.doc_tipo || 'Doc'} ${pt.documento}` : '';
                 return `
-                <div class="rz-row rz-link" onclick="abrirFichaParte('${pt.id}')">
+                <div class="rz-row rz-link" onclick="abrirFormParteSheet('${pt.id}')">
                     <div class="rz-ic"><svg data-lucide="${icone}"></svg></div>
                     <div class="rz-tx"><b>${rzEsc(pt.nome)}${pt.nome_fantasia ? ' · ' + rzEsc(pt.nome_fantasia) : ''}</b><span>${rzEsc([doc, resumoPapeis].filter(Boolean).join(' · '))}</span></div>
                     <button type="button" onclick="event.stopPropagation(); abrirAcoesParte('${pt.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
@@ -15255,7 +15215,24 @@
         // contrato) estavam atrás.
         async function abrirFormParteSheet(parteId) {
             if (typeof abrirSheetForm !== 'function') return;
-            const pt = parteId ? partesCliente.find(x => x.id === parteId) : null;
+            let pt = parteId ? partesCliente.find(x => x.id === parteId) : null;
+            // v1.244.0 (demanda 176b3145 — padronizar experiência de Parte
+            // em todos os locais) — parteId pode chegar aqui vindo de uma
+            // tela que NUNCA carregou `partesCliente` (esse array só é
+            // buscado ao abrir a aba Configurações › Partes — lazy-load
+            // v1.96.0), ex.: clicar direto no locatário/fiador de um
+            // contrato, ou numa parte de item de controle, sem nunca ter
+            // passado pela aba Partes na sessão. Sem este fallback, o form
+            // abria em branco como "Nova parte" mesmo sendo uma edição — e
+            // salvar SOBRESCREVERIA a parte existente com campos vazios
+            // (risco real de perda de dado). Busca a parte direto no banco
+            // se não achou no array local.
+            if (parteId && !pt) {
+                try {
+                    const { data } = await dbAuth.from('partes').select('*').eq('id', parteId).maybeSingle();
+                    pt = data || null;
+                } catch (err) { console.warn('[partes] Falha ao buscar parte direto do banco:', err.message); }
+            }
             const v = (campo) => rzEsc((pt && pt[campo]) || '');
             const tipoPrest = pt?.tipo_prestador || '';
             const campo = (rot, id, val, tipo = 'text', extra = '') =>
@@ -15338,7 +15315,17 @@
             // de apagar (bug real que eu mesmo quase reintroduzi: 1ª versão
             // desta função zerava `endereco` toda vez que o bloco ficava em
             // branco).
-            const ptAtual = parteId ? partesCliente.find(x => x.id === parteId) : null;
+            // v1.244.0 (demanda 176b3145) — mesmo fallback de
+            // abrirFormParteSheet acima: sem `partesCliente` carregado,
+            // ptAtual ficaria null e o endereço já cadastrado seria
+            // apagado por engano (ver comentário logo abaixo).
+            let ptAtual = parteId ? partesCliente.find(x => x.id === parteId) : null;
+            if (parteId && !ptAtual) {
+                try {
+                    const { data } = await dbAuth.from('partes').select('*').eq('id', parteId).maybeSingle();
+                    ptAtual = data || null;
+                } catch (err) { console.warn('[partes] Falha ao buscar parte direto do banco:', err.message); }
+            }
             let enderecoEstruturado = {};
             let enderecoTexto = g('parte-endereco'); // fallback
             if (el.querySelector('#parte-rua') || el.querySelector('#parte-cep')) {
@@ -15389,6 +15376,7 @@
                 // e prestador_vinculo apontam pra ela, não pra partes.
                 if (tipoPrestador) await sincronizarPrestadorDaParte(idFinal, linha, tipoPrestador);
                 mostrarToast(parteId ? 'Parte atualizada.' : 'Parte cadastrada.', 'success');
+                emitirEscritaGlobal('parte', { id: idFinal, acao: parteId ? 'editar' : 'criar' });
                 await carregarPartes();
             } catch (err) {
                 mostrarToast('Não consegui salvar: ' + (err.message || String(err)), 'danger');
@@ -15474,6 +15462,7 @@
                 }
                 registrarLog('partes.empreendimentos', { parteId, prestadorId, qtd: marcados.size });
                 mostrarToast('Empreendimentos atualizados.', 'success');
+                emitirEscritaGlobal('parte', { id: parteId, acao: 'editar-empreendimentos' });
                 abrirFichaParte(parteId);
             } catch (err) {
                 mostrarToast('Não consegui salvar: ' + (err.message || String(err)), 'danger');
@@ -15522,6 +15511,7 @@
                 if (error) throw error;
                 registrarLog('partes.papel_adicionado', { parteId, papel, entTipo, entId });
                 mostrarToast('Papel adicionado.', 'success');
+                emitirEscritaGlobal('parte', { id: parteId, acao: 'adicionar-papel' });
                 await carregarPartes();
                 abrirFichaParte(parteId);
             } catch (err) {
@@ -15539,6 +15529,7 @@
                 if (error) throw error;
                 registrarLog('partes.excluir', { parteId: id, nome: pt.nome });
                 mostrarToast('Parte excluída.', 'success');
+                emitirEscritaGlobal('parte', { id, acao: 'excluir' });
                 await carregarPartes();
             } catch (err) {
                 mostrarToast('Não consegui excluir: ' + (err.message || String(err)), 'danger');

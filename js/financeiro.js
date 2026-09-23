@@ -1,7 +1,70 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.16.0 · 22/09/2026
+// Versão: 1.18.0 · 22/09/2026
+//
+// v1.18.0 (demanda 0e40951a — redesenho do Financeiro, pedido explícito do
+// Nicola: "Reorganizar os botoes... colocar a esquerda o botão e uma
+// explicação da funcao na frente. Colocar 2 botoes a direita e dois a
+// esquerda como se fosse 4 quadrantes") — financeiroQuadrantesHtml() nova:
+// grid 2x2 (Extrato/Adicionar/Fechar-Reabrir/Contador) substitui a fileira
+// de ícones soltos que existia nos 3 cabeçalhos (Recebimentos/Saídas/
+// Fechamento). "Adicionar" é contextual — só Saídas tem criação manual de
+// verdade (Recebimentos nasce do contrato, decisão já registrada na
+// v1.6.5; Fechamento é conciliação, não criação) — as outras 2 orientam
+// pra onde a coisa nasce de verdade em vez de simular uma ação que não
+// existe. Texto da explicação QUEBRA linha de propósito (era a causa do
+// achado "mensagens saindo da tela" — .rz-fin-quad, index.html v1.245.0,
+// usa white-space:normal, nunca nowrap/ellipsis). O 3º quadrante
+// (Fechar/Reabrir, com o ícone de cadeado corrigido) é preenchido por
+// js/fechamento.js v1.4.0 — ver changelog de lá. Card de competência
+// (index.html) perdeu a tag "Fiscal" e a mensagem aberta/fechada por
+// pedido explícito — checklist fiscal voltou pro ⋮ (fechamentoAbrirAcoes).
+//
+// v1.17.0 (22/09/2026 — Fase 1 do wrapper de escrita, rollout Financeiro —
+// pedido do Nicola 22/09/2026, ver js/raiz-eventos.js v1.0.0 e o piloto em
+// cofre-ativos.js v1.59.0/index.html v1.239.0): financeiro.js passa a
+// chamar emitirEscrita() logo depois de CADA escrita real confirmada no
+// banco, pra módulos de fora (Visão Geral, Resultados, Contratos, etc.)
+// saberem que algo mudou sem precisar conhecer este arquivo:
+//   · entidade 'despesa' (tabela lancamentos, direcao='saida'):
+//     salvarDespesa (criar/editar), confirmarPagamentoDespesa, estornar
+//     PagamentoDespesa, excluirDespesa, alternarIncluirContabilidade
+//     (ramo tipo!=='mensalidade').
+//   · entidade 'mensalidade' (tabela mensalidades): liquidarMensalidade,
+//     estornarMensalidade, excluirLancamentoMensal, alternarIncluirContabi
+//     lidade (ramo tipo==='mensalidade').
+//   · entidade 'conciliacao' (extrato_fingerprints + o que cada confirmação
+//     grava do outro lado): conciliarTransacoes (import em lote),
+//     confirmarVincularConciliacaoRecebimento, confirmarVincularConciliacao
+//     Saida, confirmarCriarSaidaConciliacao, confirmarNaoControlarConcilia
+//     cao, confirmarEstornarConciliacaoSaida, criarRepasseDireto (marcar
+//     como repasse). confirmarSugestaoConciliacao e confirmarMarcarComoRe
+//     passe são só despachantes (delegam pra uma destas) — não emitem elas
+//     mesmas, pra não duplicar o evento.
+//   · entidade 'recibo': salvarObservacaoRecibo.
+//   · gerarProximasCompetencias (só monta rótulos MM/AAAA pro <select>, não
+//     escreve nada) e atualizarCamposTipoConciliacao (só mostra/esconde
+//     campos condicionais do modal Buscar) CONFERIDAS e deixadas de fora —
+//     não são escrita de entidade nenhuma.
+//   · Listener próprio (aoEscrever, guard window.__rzListenerEscritaFinan
+//     ceiroLigado) registrado dentro de montarAbaFinanceiro() — 1x por
+//     boot, redesenha só a aba do Financeiro que estiver ativa agora
+//     quando qualquer uma das 4 entidades acima for escrita (inclusive por
+//     este próprio módulo — redundante com os renders diretos que cada
+//     função já faz, mas inofensivo, e cobre o caso de outro módulo vir a
+//     escrever nelas no futuro).
+//   · AUDITORIA (bug do tipo achado em cofre-ativos.js v1.61.0 — objeto
+//     local editado só sobrevive até o próximo recarregamento assíncrono
+//     terminar): verificado em TODAS as funções de escrita deste arquivo —
+//     nenhuma reabre uma tela reaproveitando a mesma referência de objeto
+//     sem antes esperar (await) a atualização, local (mutação direta antes
+//     do fetch, ex. liquidarMensalidade/estornarMensalidade/salvarObserva
+//     caoRecibo) ou remota (reload completo do array, ex. salvarDespesa/
+//     confirmarPagamentoDespesa/excluirLancamentoMensal). Nenhum fix desse
+//     tipo foi necessário neste arquivo.
+//   · Zero mudança de lógica de negócio, RPC, payload ou texto de tela —
+//     só a chamada nova de emitirEscrita() e o import do módulo.
 //
 // v1.16.0 (22/09/2026) — resetarFinanceiroParaAbaInicial() nova (demanda
 // 60284322, "navegação por rodapé sempre reseta a aba"): financeiroCompetencia
@@ -578,10 +641,37 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.16.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.18.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+
+// v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
+// é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
+// precisar saber" (ver changelog do topo). aoEscrever usado só pelo listener
+// interno registrado em montarAbaFinanceiro(), logo abaixo.
+import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
+    // v1.17.0 (Fase 1 do wrapper de escrita) — assina 1x por boot o evento
+    // padrão de escrita pras 4 entidades que este módulo emite (despesa/
+    // mensalidade/conciliacao/recibo — ver changelog do topo). Guard por
+    // window.* de propósito: montarAbaFinanceiro roda a cada troca de aba,
+    // um listener duplicado dispararia o refresh 2x a cada escrita (mesmo
+    // cuidado do listener 'ativo' em index.html). Sem um "boot" único e
+    // separado neste módulo (é só um objeto de funções soltas, sem classe/
+    // inicializador), este é o ponto mais natural: primeira função chamada
+    // sempre que a aba Financeiro é aberta. Só redesenha a aba que estiver
+    // ATIVA agora — as outras já se resolvem sozinhas ao serem abertas
+    // (montarAbaFinanceiro busca de novo a cada entrada).
+    if (!window.__rzListenerEscritaFinanceiroLigado) {
+        window.__rzListenerEscritaFinanceiroLigado = true;
+        aoEscrever('*', (detalhe) => {
+            if (!['despesa', 'mensalidade', 'conciliacao', 'recibo'].includes(detalhe.entidade)) return;
+            if (document.getElementById('tab-mensal')?.classList.contains('active')) { financeiroRenderCabecalho('mensal'); renderMensalidades(); }
+            else if (document.getElementById('tab-inadimplencia')?.classList.contains('active')) { renderInadimplencia(); }
+            else if (document.getElementById('tab-saidas')?.classList.contains('active')) { financeiroRenderCabecalho('saidas'); renderSaidas(); }
+            else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) { financeiroRenderCabecalho('conciliacao'); carregarConciliacaoUnificada(); }
+        });
+    }
     if (tabId === 'tab-mensal') { financeiroRenderCabecalho('mensal'); renderMensalidades(); }
     else if (tabId === 'tab-inadimplencia') { renderInadimplencia(); }
     else if (tabId === 'tab-saidas') { financeiroRenderCabecalho('saidas'); renderSaidas(); }
@@ -713,6 +803,47 @@ function financeiroRedesenharChipsNivel() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+// ============================================================================
+// v1.18.0 (demanda 0e40951a — redesenho do Financeiro, pedido explícito do
+// Nicola 22/09/2026): "Reorganizar os botoes... para as funcoes, extrato,
+// adicionar, abrir/fechar compentencia, compartilhar com contador: colocar
+// a esquerda o botão e uma explicação da funcao na frente. Colocar 2
+// botoes a direita e dois a esquerda como se fosse 4 quadrantes, 1 pra
+// cada função. As 4 funcoes sao aplicaveis as 3 telas." Substitui a fileira
+// de ícones soltos (.rz-ico-btn) que existia nos 3 cabeçalhos — grid 2x2
+// (.rz-fin-quad-grid, index.html) com ícone+título+explicação por célula,
+// texto QUEBRANDO linha de propósito (era a causa do achado "mensagens
+// saindo da tela"). O 3º quadrante (Fechar/Reabrir) é preenchido por
+// js/fechamento.js (fechamentoRenderBotaoDedicado, mesmo id
+// fin-quad-fechamento-${aba}) — módulos isolados, mesmo padrão de ponte já
+// usado pro card de competência (ver financeiroRenderCabecalho).
+//
+// "Adicionar" é contextual: Saídas tem criação manual de verdade
+// (abrirNovaDespesa); Recebimentos NÃO tem — mensalidade nasce do
+// contrato (decisão registrada na v1.6.5, "não existe criar recebimento
+// avulso pra justificar um + aqui") — e Fechamento também não (é
+// conciliação, não criação). Pra essas 2, o quadrante orienta pra onde a
+// coisa nasce de verdade, em vez de simular uma ação que não existe.
+function financeiroQuadrantesHtml(aba) {
+    const quad = (icone, iaClasse, titulo, explicacao, onclick) => `
+        <button type="button" class="rz-fin-quad" onclick="${onclick}">
+            <div class="rz-ic${iaClasse ? ' ' + iaClasse : ''}"><svg data-lucide="${icone}"></svg></div>
+            <div class="rz-tx"><b>${titulo}</b><small>${explicacao}</small></div>
+        </button>`;
+    const extrato = quad('file-down', 'rz-ia', 'Extrato', 'Importar extrato bancário', 'abrirAcoesImportarConciliacao()');
+    let adicionar;
+    if (aba === 'saidas') {
+        adicionar = quad('plus', null, 'Adicionar', 'Nova despesa avulsa', 'abrirNovaDespesa()');
+    } else if (aba === 'mensal') {
+        adicionar = quad('plus', null, 'Adicionar', 'Recebimento nasce do contrato', "switchTab('tab-contratos')");
+    } else {
+        adicionar = quad('plus', null, 'Adicionar', 'Concilie o extrato importado abaixo', 'abrirAcoesImportarConciliacao()');
+    }
+    const fechamento = `<span id="fin-quad-fechamento-${aba}"></span>`; // preenchido por fechamento.js
+    const contador = quad('send', null, 'Contador', 'Compartilhar competência fechada', 'fechamentoAbrirCompartilharContador()');
+    return `<div class="rz-fin-quad-grid">${extrato}${adicionar}${fechamento}${contador}</div>`;
+}
+
 // REGRAS §11/§7 ("regra 9 do §0"): chip que representa uma rotina desligada
 // aparece desabilitado, com o motivo, e leva a Empresa › Rotinas — mesmo
 // destino/padrão já usado pelos 5 alertas de rotina de escopo empresa
@@ -774,6 +905,10 @@ function financeiroRenderCabecalho(aba) {
     if (elLabel) elLabel.textContent = financeiroCompetenciaLabel(financeiroCompetenciaAtual);
     const elChips = document.getElementById(`fin-chips-nivel-${aba}`);
     if (elChips) elChips.innerHTML = financeiroChipsNivelHtml(aba);
+    // v1.18.0 (demanda 0e40951a) — grid 2x2 de funções, ver
+    // financeiroQuadrantesHtml() acima.
+    const elQuad = document.getElementById(`fin-quadrantes-${aba}`);
+    if (elQuad) elQuad.innerHTML = financeiroQuadrantesHtml(aba);
     if (financeiroRotinaFechamentoLigada === null) financeiroVerificarRotinaFechamento();
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
     // Entrega F.2 — card de Fechar/Reabrir dentro do chip Fechamento
@@ -979,6 +1114,8 @@ function financeiroRenderCabecalho(aba) {
                 const { error } = await dbAuth.rpc('fn_financeiro_incluir_contabilidade', { p_tipo: tipo, p_id: id, p_incluir: novoValor });
                 if (error) throw error;
                 item.incluirContabilidade = novoValor;
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita(tipo === 'mensalidade' ? 'mensalidade' : 'despesa', { id, acao: 'incluir_contabilidade' });
                 esconderCarregamentoGlobal();
                 if (typeof mostrarToast === 'function') mostrarToast(novoValor ? 'Incluído no pacote da contabilidade.' : 'Não entra mais no pacote da contabilidade.', 'success');
                 if (tipo === 'mensalidade') renderMensalidades(); else renderSaidas();
@@ -1349,6 +1486,10 @@ function financeiroRenderCabecalho(aba) {
             }
 
             mostrarCarregamentoGlobal('Salvando...');
+            // v1.17.0 (Fase 1 do wrapper de escrita) — id capturado fora do
+            // if/editar/senão/criar pra poder emitir emitirEscrita() depois
+            // dos dois caminhos com o id certo (ver changelog do topo).
+            let idParaEventoDespesa = despesaEmEdicaoId || null;
             try {
                 let parteId = (fornecedorSel && fornecedorSel !== '__novo__') ? fornecedorSel : null;
 
@@ -1390,6 +1531,7 @@ function financeiroRenderCabecalho(aba) {
                         origem_id: despesaOrigemFingerprintId || null,
                     }).select('id').single();
                     if (error) throw error;
+                    idParaEventoDespesa = criado.id;
                     if (despesaOrigemFingerprintId) {
                         const { error: erroVinculo } = await dbAuth.from('extrato_fingerprints').update({
                             status_conciliacao: 'conciliado', destino_tipo: 'lancamento', destino_id: criado.id, conciliado_em: new Date().toISOString(),
@@ -1419,6 +1561,8 @@ function financeiroRenderCabecalho(aba) {
                 }
 
                 lancamentos = await carregarLancamentosSupabase();
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('despesa', { id: idParaEventoDespesa, acao: despesaEmEdicaoId ? 'editar' : 'criar' });
                 esconderCarregamentoGlobal();
                 mostrarToast('Despesa salva.', 'success');
                 fecharPopupDespesa();
@@ -1443,6 +1587,8 @@ function financeiroRenderCabecalho(aba) {
                 }).eq('id', id);
                 if (error) throw error;
                 lancamentos = await carregarLancamentosSupabase();
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('despesa', { id, acao: 'confirmar_pagamento' });
                 esconderCarregamentoGlobal();
                 mostrarToast('Pagamento confirmado.', 'success');
                 fecharPopupDespesa();
@@ -1468,6 +1614,8 @@ function financeiroRenderCabecalho(aba) {
                 // atualiza a tela de conciliação, se estiver aberta.
                 await atualizarConciliacaoSeAberta();
                 lancamentos = await carregarLancamentosSupabase();
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('despesa', { id, acao: 'estornar_pagamento' });
                 esconderCarregamentoGlobal();
                 mostrarToast('Pagamento estornado.', 'success');
                 fecharPopupDespesa();
@@ -1487,6 +1635,8 @@ function financeiroRenderCabecalho(aba) {
                 const { error } = await dbAuth.from('lancamentos').delete().eq('id', id);
                 if (error) throw error;
                 lancamentos = lancamentos.filter(d => d.id !== id);
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('despesa', { id, acao: 'excluir' });
                 esconderCarregamentoGlobal();
                 mostrarToast('Despesa excluída.', 'success');
                 fecharPopupDespesa();
@@ -1801,6 +1951,8 @@ function financeiroRenderCabecalho(aba) {
             try {
                 await sincronizarMensalidadeSupabase(mensalidades[idx]);
                 localStorage.setItem(chaveLocal('mensalidades'), JSON.stringify(mensalidades));
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('mensalidade', { id: menId, acao: 'baixar' });
                 esconderCarregamentoGlobal();
                 mostrarToast("Pagamento registrado com sucesso!", 'success');
                 renderMensalidades();
@@ -1851,7 +2003,13 @@ function financeiroRenderCabecalho(aba) {
                 // Etapa 3) reseta o fingerprint sozinho quando saveAll grava o status
                 // (encadeado com .then — saveAll não é aguardada aqui, mesmo padrão
                 // já usado nesta função antes desta mudança).
-                saveAll(true, "Pagamento estornado.", ['mensalidades']).then(() => atualizarConciliacaoSeAberta());
+                // v1.17.0 (Fase 1 do wrapper de escrita) — saveAll aqui é
+                // fire-and-forget (já era antes desta mudança); emite só
+                // depois de confirmado (dentro do .then), ver changelog do topo.
+                saveAll(true, "Pagamento estornado.", ['mensalidades']).then(() => {
+                    atualizarConciliacaoSeAberta();
+                    emitirEscrita('mensalidade', { id: menId, acao: 'estornar' });
+                });
 
             }
 
@@ -2471,6 +2629,13 @@ function financeiroRenderCabecalho(aba) {
                     mensalidades: idsMensalidadesAlteradas,
                 });
             }
+
+            // v1.17.0 (Fase 1 do wrapper de escrita) — emite mesmo quando
+            // rotasTocadas ficou vazia: gravarFingerprintsExtratoSupabase()
+            // e fn_conciliacao_aplicar() (acima) já escreveram no banco
+            // nesse caso também (fingerprints + o que o motor de regras
+            // resolveu sozinho). Ver changelog do topo.
+            emitirEscrita('conciliacao', { acao: 'importar', qtdConciliados, qtdRepasses, qtdPendencias });
 
             alert(
 
@@ -3128,6 +3293,8 @@ function financeiroRenderCabecalho(aba) {
                     dataReal: formatarDataBR(f.data), timestamp: Date.now(), chaveTransacaoOrigem: f.chave || null
                 };
                 await sincronizarRepasseSupabase(rep);
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('conciliacao', { id: fingerprintId, acao: 'marcar_repasse' });
                 esconderCarregamentoGlobal(); mostrarToast('Repasse registrado!', 'success');
                 registrarLog('conciliacao.marcar_repasse', { fingerprintId, socio: primeiroNomeFormatado });
                 await carregarConciliacaoUnificada();
@@ -3148,6 +3315,8 @@ function financeiroRenderCabecalho(aba) {
                 // esse campo (diferente de regra_codigo), seguro fazer aqui.
                 await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', fingerprintId);
                 mensalidades = await carregarMensalidadesSupabase();
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('conciliacao', { id: fingerprintId, acao: 'vincular_recebimento', mensalidadeId });
                 esconderCarregamentoGlobal(); mostrarToast('Vinculado!', 'success');
                 registrarLog('conciliacao.vincular_recebimento', { fingerprintId, mensalidadeId });
                 await carregarConciliacaoUnificada();
@@ -3204,6 +3373,8 @@ function financeiroRenderCabecalho(aba) {
                 // busca em `lancamentos` (array em memória), que nunca era
                 // recarregado depois de vincular/criar saída aqui.
                 lancamentos = await carregarLancamentosSupabase();
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('conciliacao', { id: fingerprintId, acao: 'vincular_saida', lancamentoId });
                 esconderCarregamentoGlobal(); mostrarToast('Vinculado!', 'success');
                 registrarLog('conciliacao.vincular_saida', { fingerprintId, lancamentoId });
                 await carregarConciliacaoUnificada();
@@ -3218,6 +3389,8 @@ function financeiroRenderCabecalho(aba) {
                 if (error) throw error;
                 await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', fingerprintId);
                 lancamentos = await carregarLancamentosSupabase();
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('conciliacao', { id: fingerprintId, acao: 'criar_saida' });
                 esconderCarregamentoGlobal(); mostrarToast('Saída criada!', 'success');
                 registrarLog('conciliacao.criar_saida', { fingerprintId, categoria });
                 await carregarConciliacaoUnificada();
@@ -3240,6 +3413,8 @@ function financeiroRenderCabecalho(aba) {
                 const { error } = await dbAuth.rpc('fn_extrato_marcar_nao_controlado', { p_fingerprint_id: fingerprintId, p_observacao: observacao || null });
                 if (error) throw error;
                 await dbAuth.from('extrato_fingerprints').update({ canal: 'app' }).eq('id', fingerprintId);
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('conciliacao', { id: fingerprintId, acao: 'nao_controlado' });
                 esconderCarregamentoGlobal(); mostrarToast('Marcado como não controlado.', 'success');
                 registrarLog('conciliacao.nao_controlado', { fingerprintId });
                 await carregarConciliacaoUnificada();
@@ -3257,6 +3432,8 @@ function financeiroRenderCabecalho(aba) {
                 try {
                     const { error } = await dbAuth.rpc('fn_extrato_estornar_vinculo', { p_fingerprint_id: fingerprintId });
                     if (error) throw error;
+                    // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                    emitirEscrita('conciliacao', { id: fingerprintId, acao: 'estornar' });
                     esconderCarregamentoGlobal(); mostrarToast('Estornado.', 'success');
                     registrarLog('conciliacao.estornar_saida', { fingerprintId });
                     await carregarConciliacaoUnificada();
@@ -3302,6 +3479,8 @@ function financeiroRenderCabecalho(aba) {
                 mensalidades = mensalidades.filter(m => m.id !== menId);
                 registrarLog('mensal.excluir', { mensalidadeId: menId, referencia: men.referencia });
                 localStorage.setItem(chaveLocal('mensalidades'), JSON.stringify(mensalidades));
+                // v1.17.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+                emitirEscrita('mensalidade', { id: menId, acao: 'excluir' });
 
                 esconderCarregamentoGlobal();
                 mostrarToast("Lançamento excluído.", 'success');
@@ -3699,7 +3878,12 @@ function financeiroRenderCabecalho(aba) {
             if (novoTexto === (men.observacaoRecibo || '')) return; // nada mudou, não gasta uma gravação à toa
             men.observacaoRecibo = novoTexto;
             document.getElementById('pdf-obs-texto').innerHTML = novoTexto ? ` Vale ressaltar que ${novoTexto}.` : '';
-            saveAll(true, "Observação do recibo salva.", ['mensalidades']);
+            // v1.17.0 (Fase 1 do wrapper de escrita) — saveAll aqui é
+            // fire-and-forget (já era antes desta mudança); emite só depois
+            // de confirmado (dentro do .then), ver changelog do topo.
+            saveAll(true, "Observação do recibo salva.", ['mensalidades']).then(() => {
+                emitirEscrita('recibo', { id: men.id, acao: 'observacao' });
+            });
         }
 
         export function fecharModalOpcoes() { fecharSheet(); } // v1.121.0 — o modal virou sheet

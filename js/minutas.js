@@ -1,7 +1,47 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.0.0 · 06/09/2026
+// Versão: 1.1.0 · 22/09/2026
+//
+// v1.1.0 (Fase 1 do wrapper de escrita, rollout Contratos+Minutas — pedido
+// do Nicola 22/09/2026) — adoção do utilitário js/raiz-eventos.js (piloto
+// único até aqui era cofre-ativos.js). Funções que persistem de verdade
+// ganham emitirEscrita():
+//   · salvarMinuta() → 'minuta' / acao 'editar' (cadastro OU edição do
+//     modelo — mesmo popup pros dois casos, id resolvido depois do upload).
+//   · excluirMinuta() → 'minuta' / acao 'excluir'.
+//   · confirmarMinutizacao() → 'minuta' / acao 'gerar-de-contrato-real'
+//     (CONFIRMADO que persiste: sobe o .docx gerado pro Storage e chama
+//     saveAll(..., ['minutasContrato']), que grava a linha nova — não é só
+//     leitura/preview como o nome sugeria à primeira vista).
+//   · gerarMinutaNoCofre() → DUAS entidades, porque são DUAS escritas
+//     diferentes na mesma operação: 'minuta' / acao 'gerar-no-cofre' (a
+//     minuta preenchida foi gerada) E 'documento' / acao 'criar-via-minuta'
+//     (cofre_documentos ganhou uma linha nova, vinculada ao contrato via
+//     cofre_documento_vinculos — é um documento novo no Cofre, entidade
+//     diferente de 'minuta').
+//   · gerarMinutaContrato() → NÃO ganhou emit próprio: ela só resolve qual
+//     minuta usar e delega 100% pra gerarMinutaNoCofre() (await), que já
+//     emite os dois eventos acima — duplicar aqui disparava o mesmo evento
+//     2x pela mesma escrita.
+//   · confirmarMinutizacao() confirmado como o único outro ponto de escrita
+//     real do wizard "Gerar de um contrato real" (os passos anteriores —
+//     processarArquivoMinutizacao, detecção de placeholders — só leem/
+//     calculam, nada é persistido até a confirmação).
+// BUG DO cofre-ativos.js (objeto local ficava velho até um recarregamento
+// assíncrono terminar) — VERIFICADO E NÃO ENCONTRADO aqui: salvarMinuta()
+// substitui o objeto inteiro no array (`minutasContrato[idx] = dados`, não
+// uma mutação parcial de referência velha) e nenhuma das funções de escrita
+// deste arquivo reabre a MESMA tela de edição logo depois de salvar (o
+// sheet fecha via cancelarEdicaoMinuta()) — o padrão que causou o bug no
+// Cofre de Ativos não se aplica aqui. Nenhuma correção foi necessária.
+// LISTENER (module boot, guarda window.__rzListenerEscritaMinutaLigado):
+// aoEscrever('minuta', ...) chama renderMinutas() — mesmo padrão já usado
+// em index.html após saveAll (rzMinSeCarregado('renderMinutas')) pros
+// saves que passam por saveAll; cobre também gerarMinutaNoCofre(), que não
+// passa por saveAll e por isso não tinha esse retorno hoje (ainda que essa
+// ação específica não mude a LISTA de modelos, o listener é genérico —
+// reage a qualquer 'minuta', de qualquer origem, presente ou futura).
 //
 // R8 — FRAGMENTAÇÃO, FATIA 3 (A.8). Terceiro corte do index.html (Beta
 // v1.142.0), mesmo método do financeiro.js/contratos.js: ES module SOB
@@ -30,12 +70,23 @@
 // Indentação de origem mantida (template literals). Strict verificado.
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: manter igual ao header
+import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
+
+export const VERSAO = '1.1.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
     renderMinutas();
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// v1.1.0 (Fase 1 do wrapper de escrita) — registra 1x por carregamento do
+// módulo (guarda por window.*, mesmo mecanismo do piloto em index.html,
+// pra não duplicar o listener). renderMinutas() já se protege sozinha se
+// #lista-minutas não existir no DOM (fora da aba Minutas).
+if (!window.__rzListenerEscritaMinutaLigado) {
+    window.__rzListenerEscritaMinutaLigado = true;
+    aoEscrever('minuta', () => { renderMinutas(); });
 }
 
         export function escaparAtributoHtmlMinz(texto) {
@@ -230,6 +281,7 @@ export function montarAbaMinutas() {
                     minutaNome: dados.nome, escopo: dados.escopo,
                     quantidadeSugestoes: __minzEstado.sugestoes.length, quantidadeConfirmadas: confirmadas.length,
                 });
+                emitirEscrita('minuta', { id: dados.id, acao: 'gerar-de-contrato-real' }); // v1.1.0 — Fase 1 do wrapper de escrita
 
                 __minzEstado = null;
                 document.getElementById('form-minutizar-wrapper').classList.add('hidden');
@@ -444,6 +496,7 @@ export function montarAbaMinutas() {
             cancelarEdicaoMinuta();
 
             registrarLog(id ? 'minutas.editar' : 'minutas.criar', { minutaNome: dados.nome, escopo: dados.escopo });
+            emitirEscrita('minuta', { id: dados.id, acao: 'editar' }); // v1.1.0 — Fase 1 do wrapper de escrita (cria OU edita, mesmo popup)
 
             saveAll(true, "Minuta salva com sucesso!", ['minutasContrato']);
         }
@@ -485,6 +538,7 @@ export function montarAbaMinutas() {
             minutasContrato = minutasContrato.filter(m => m.id !== id);
 
             registrarLog('minutas.excluir', { minutaId: id });
+            emitirEscrita('minuta', { id, acao: 'excluir' }); // v1.1.0 — Fase 1 do wrapper de escrita
 
             saveAll(true, "Minuta excluída.", ['minutasContrato']);
         }
@@ -1199,6 +1253,13 @@ export function montarAbaMinutas() {
                     status: 'ativo'
                 }).select('id').single();
                 if (errDoc) throw errDoc;
+                // v1.1.0 (Fase 1 do wrapper de escrita) — DUAS entidades,
+                // porque são duas escritas diferentes nesta mesma operação:
+                // a minuta foi gerada ('minuta') E um documento novo nasceu
+                // no Cofre ('documento', entidade separada — quem escuta só
+                // 'minuta' nunca saberia que o Cofre também mudou).
+                emitirEscrita('minuta', { id: minuta.id, contratoId: con.id, acao: 'gerar-no-cofre' });
+                emitirEscrita('documento', { id: docInserido.id, contratoId: con.id, acao: 'criar-via-minuta' });
 
                 await dbAuth.from('cofre_documento_vinculos').insert({
                     cliente_id: CLIENTE_ID_SUPABASE,

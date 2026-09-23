@@ -1,6 +1,47 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.20.0 · 19/09/2026 (rodada 10)
+// Versão: 2.21.0 · 22/09/2026
+//
+// v2.21.0 (22/09/2026 — Fase 1 do wrapper de escrita, rollout Cofre de
+// Documentos/Controles — pedido do Nicola 22/09/2026). Este é o módulo de
+// maior volume de escrita do rollout (upload, categorização, editar nome,
+// excluir, vincular/excluir arquivado). Adota emitirEscrita() (js/raiz-
+// eventos.js, piloto em cofre-ativos.js v1.59.0/salvarEdicaoAtivo) em TODO
+// ponto de escrita de documento já existente, sempre ao lado do
+// window.dispatchEvent('cofre:recarregar-documentos') que já havia — nenhum
+// evento antigo saiu, este é adicional, pra fora do Cofre:
+//   salvarUpload/salvarConfirmacaoUpload  → emitirEscrita('documento', { id, acao: 'criar' })
+//   editarNomeDocumentoAtual              → emitirEscrita('documento', { id, acao: 'editar-nome' })
+//   categorizarDocumentoAtual             → emitirEscrita('documento', { id, acao: 'categorizar' })
+//   excluirDocumentoAtual                 → emitirEscrita('documento', { id, acao: 'excluir' })
+//   vincularDocumentoArquivado            → emitirEscrita('documento', { id, acao: 'vincular' })
+//   excluirDocumentoArquivadoDeVez        → emitirEscrita('documento', { id, acao: 'excluir-definitivo' })
+//   salvarCategoria                       → emitirEscrita('config-documento', { acao: 'criar-categoria' })
+//     (achado ao ler: isto grava uma CATEGORIA do catálogo/configuração —
+//     api.criarCategoria — não a categorização de um documento específico;
+//     por isso entidade separada 'config-documento', não 'documento'.)
+// BUG DE OBJETO LOCAL DESATUALIZADO (mesma classe do achado em
+// cofre-ativos.js v1.61.0) — PROCURADO E NÃO ENCONTRADO aqui:
+// editarNomeDocumentoAtual()/categorizarDocumentoAtual() já faziam
+// `d.nome_exibicao = nome`/`d.categoria_id = c.id` no objeto local (mesma
+// referência de estado.documentos) ANTES desta rodada — já sincronizavam
+// na hora, sem esperar o recarregamento assíncrono. Nenhum fix de bug
+// necessário neste arquivo.
+// LISTENER NOVO (module-level, guarda por window.__rzListenerEscritaDocumentoLigado
+// — mesmo padrão do piloto em index.html): escuta aoEscrever('documento', ...)
+// logo depois do listener já existente de 'cofre:recarregar-documentos' (ver
+// abaixo) — não há um único "ponto de montagem" da tela de Documentos (Home/
+// lista/ficha variam conforme a navegação do Cofre, cofre-navegacao.js), então
+// o alvo escolhido foi o mesmo já coberto por aquele listener antigo (box
+// "Documentos da empresa", fora da árvore de telas do Cofre) + a Ficha do
+// Documento (#modal-ficha-doc), se estiver aberta com o MESMO id que escreveu
+// — reabre via abrirFichaDocumento(docAtualId), com guarda de modal visível
+// pra não REABRIR uma ficha que a pessoa já fechou.
+// FORA DO ESCOPO desta rodada (achado ao ler, mas não tocado — ficam pra uma
+// rodada dedicada futura, pra não expandir o escopo pedido): anexarArquivoEntidade()
+// (anexo programático, ex.: reajuste contratual) e confirmarVincularAgora()
+// (fluxo "Vincular agora" de documento em triagem) também escrevem documento/
+// vínculo mas não estavam na lista desta entrega.
 //
 // v2.19.0 — 2 achados do Nicola:
 //   (1) "o menu de editar o nome do arquivo está ficando sob a tela do
@@ -425,7 +466,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.20.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.21.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -451,6 +492,14 @@ import {
     classificarStatusVinculo, rotuloStatusVinculo, rotuloTipoAtivo, iconeAtivo, rotuloTipoControle,
     BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK, BADGE_ALERTA, numeroWhatsAppComDDI,
 } from './cofre-validacoes.js';
+// v2.21.0 (Fase 1 do wrapper de escrita, rollout Cofre de Documentos/
+// Controles) — emitirEscrita() é o evento padrão pra "algo mudou que
+// módulos DE FORA do Cofre podem precisar saber" (cofre:recarregar-
+// documentos continua existindo do jeito que está, só serve o Cofre por
+// dentro — ver changelog do topo do arquivo). aoEscrever() usado pelo
+// listener module-level logo abaixo do bloco de "cofre:recarregar-
+// documentos" já existente.
+import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 
 // D-2 (revisão DS) — helper local: mesma regra que chipStatusVinculoHtml()
 // de cofre-ui.js, mas retornando só a classe (as 2 chamadas deste arquivo
@@ -1618,9 +1667,12 @@ export async function salvarConfirmacaoUpload() {
     mostrarToast(partes.join(' · ') + ' ✅');
     avisos.forEach(a => mostrarToast('Atenção — ' + a, 'aviso'));
     fecharModal('modal-confirmar-upload');
+    const documentoIdSalvo = up.documentoId; // capturado antes de `up = null` (linha abaixo)
     up = null;
     window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
     if (itemCriado) window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+    // v2.21.0 (Fase 1 do wrapper de escrita) — evento novo pra fora do Cofre.
+    emitirEscrita('documento', { id: documentoIdSalvo, acao: 'criar' });
 }
 
 function marcarErroConfirmacao(msg) {
@@ -1846,6 +1898,7 @@ export async function editarNomeDocumentoAtual() {
                 await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { documento_id: docAtualId, acao: 'editar_nome_documento' });
                 mostrarToast('Nome atualizado.');
                 window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+                emitirEscrita('documento', { id: docAtualId, acao: 'editar-nome' }); // v2.21.0
                 await abrirFichaDocumento(docAtualId);
             } catch (e) { mostrarToast('Erro: ' + e.message, 'erro'); return false; }
         }
@@ -1877,6 +1930,7 @@ export async function categorizarDocumentoAtual() {
                 if (d) d.categoria_id = c.id;
                 mostrarToast(`Categoria: ${c.nome}`);
                 window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+                emitirEscrita('documento', { id: docAtualId, acao: 'categorizar' }); // v2.21.0
                 await abrirFichaDocumento(docAtualId);
             } catch (e) { mostrarToast('Erro: ' + e.message, 'erro'); }
         }
@@ -1892,6 +1946,7 @@ export async function excluirDocumentoAtual() {
         mostrarToast('Documento excluído.');
         fecharFichaDoc();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+        emitirEscrita('documento', { id: docAtualId, acao: 'excluir' }); // v2.21.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1961,6 +2016,7 @@ export async function vincularDocumentoArquivado(id) {
         await abrirFichaDocumento(id);
         abrirVincularAgora();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+        emitirEscrita('documento', { id, acao: 'vincular' }); // v2.21.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1973,6 +2029,7 @@ export async function excluirDocumentoArquivadoDeVez(id) {
         mostrarToast('Documento excluído de vez.');
         arquivadosCache = arquivadosCache.filter(x => x.id !== id);
         renderizarDocumentosArquivados();
+        emitirEscrita('documento', { id, acao: 'excluir-definitivo' }); // v2.21.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -2030,6 +2087,11 @@ export async function salvarCategoria() {
         document.getElementById('cat-nome').value = ''; document.getElementById('cat-grupo').value = '';
         estado.categorias = await api.listarCategorias(estado.clienteId);
         renderizarCategorias();
+        // v2.21.0 — isto grava uma CATEGORIA do catálogo/configuração
+        // (api.criarCategoria), não a categorização de um documento
+        // específico (isso é categorizarDocumentoAtual, entidade
+        // 'documento' acima) — entidade separada de propósito.
+        emitirEscrita('config-documento', { acao: 'criar-categoria' });
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -2164,6 +2226,26 @@ export async function montarBoxDocumentosEmpresa() {
 // que contratos.js já faz pro card Anexos do Contrato. Checagem por DOM
 // (em vez de guardar um "aba ativa" à parte) — sem custo quando a aba
 // Minha Empresa não está montada.
+// v2.21.0 (Fase 1 do wrapper de escrita) — escuta emitirEscrita('documento',
+// ...) 1x por carga do módulo (guarda por window.*, mesmo padrão do piloto
+// em index.html/cofre-ativos.js v1.59.0 — aqui é defensivo: um módulo ES só
+// roda uma vez mesmo, mas segue a convenção pedida). Sem um único "ponto de
+// montagem" da tela de Documentos (Home/lista/ficha variam conforme a
+// navegação do Cofre — cofre-navegacao.js), o alvo é o mesmo já coberto pelo
+// listener de 'cofre:recarregar-documentos' logo abaixo (box "Documentos da
+// empresa") + a Ficha do Documento (#modal-ficha-doc), SE estiver aberta com
+// o mesmo id — guarda por modal visível pra não reabrir uma ficha já fechada.
+if (!window.__rzListenerEscritaDocumentoLigado) {
+    window.__rzListenerEscritaDocumentoLigado = true;
+    aoEscrever('documento', (detalhe) => {
+        if (document.getElementById('me-documentos')) renderizarDocumentosEmpresa();
+        const fichaAberta = !document.getElementById('modal-ficha-doc')?.classList.contains('hidden');
+        if (fichaAberta && docAtualId && (!detalhe?.id || detalhe.id === docAtualId)) {
+            abrirFichaDocumento(docAtualId);
+        }
+    });
+}
+
 window.addEventListener('cofre:recarregar-documentos', () => {
     if (document.getElementById('me-documentos')) renderizarDocumentosEmpresa();
 });

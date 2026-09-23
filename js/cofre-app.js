@@ -1,6 +1,31 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.35.0 · 22/09/2026
+// Versão: 1.37.0 · 22/09/2026
+//
+// v1.37.0 (demanda 176b3145 — padronizar experiência de Parte em todos
+// os locais, pedido explícito do Nicola) — case 'abrir-ficha-parte' não
+// abre mais a Ficha (view) como tela intermediária: chama
+// window.abrirFormParteSheet() (index.html) direto, o mesmo form de
+// edição da aba Configurações › Partes. Ver changelog de index.html
+// v1.244.0 pra o resto do rollout desta demanda (lista de Partes, chip
+// Partes do contrato, listener cofre:abrir-ficha-parte).
+//
+// v1.36.0 — BUG REAL achado ao vivo pelo Nicola testando o wrapper de
+// escrita (22/09/2026): "alterei o tipo empreendimento de um ativo, e
+// não refletiu na lista de imóveis". Causa: o listener de
+// 'cofre:recarregar-ativos' já recarregava `estado.ativos` certo, mas a
+// LISTA (renderAtivosLista, cofre-ativos.js) não agrupa/exibe a partir
+// desse array — ela lê `resumoImoveisPorId`, um Map de cofre-ativos.js
+// carregado 1x só no boot ('cofre:dados-carregados') com empreendimento/
+// status/tipo/finalidade/foto/contrato principal de cada imóvel, nunca
+// invalidado depois de uma escrita. Mesma classe de bug de
+// estado.ativoEmFoco (fix v1.61.0 de cofre-ativos.js) e do chip "Fiscal
+// OK" (fechamento.js) — variável de módulo cacheada 1x que nunca
+// reseta. Fix: o listener agora chama carregarResumoImoveisParaCards()
+// (cofre-ativos.js, já existia, exportada) em vez de renderAtivosLista()
+// solto — ela recarrega o Map E re-renderiza a lista sozinha, preservando
+// o filtro/chip que a pessoa tinha selecionado (bônus: a chamada antiga
+// também resetava o filtro a cada edição, sem querer).
 //
 // v1.35.0 (demanda be42b19f — BUG REAL achado por mim revisando o pedido
 // do Nicola de padronizar o componente de Parte) — case novo
@@ -313,7 +338,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.35.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.37.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -663,7 +688,19 @@ document.addEventListener('click', async (ev) => {
         // erro no console). abrirFichaParte() já existe e já é completa
         // (dados + Editar/Acionar por WhatsApp/e-mail) — só faltava esta
         // linha pra ligar o clique a ela.
-        case 'abrir-ficha-parte': await controles.abrirFichaParte(alvo.dataset.id); break;
+        // v1.36.0 (demanda 176b3145, pedido explícito do Nicola,
+        // 22/09/2026 — padronizar a experiência de Parte em todos os
+        // locais: "ao clicar nela já entra no form pra edição... eliminar
+        // telas intermediárias") — a Ficha (view + vínculos) era uma tela
+        // intermediária antes do Editar. Passa a abrir o form de edição
+        // direto (window.abrirFormParteSheet, index.html — mesmo form da
+        // aba Configurações › Partes); abrirFichaParte() (cofre-controles.js)
+        // fica como fallback se por algum motivo o global não existir
+        // ainda (index.html não carregado nessa ordem).
+        case 'abrir-ficha-parte':
+            if (typeof window.abrirFormParteSheet === 'function') await window.abrirFormParteSheet(alvo.dataset.id);
+            else await controles.abrirFichaParte(alvo.dataset.id);
+            break;
 
         // ---- criação assistida (deep link contexto=imovel sem ativo ainda)
         case 'fechar-criacao-assistida': fecharModal('modal-criacao-assistida'); break;
@@ -884,7 +921,22 @@ window.addEventListener('cofre:recarregar-documentos', async () => {
 });
 window.addEventListener('cofre:recarregar-ativos', async () => {
     estado.ativos = await api.listarAtivos(estado.clienteId);
-    ativos.renderAtivosLista();
+    // v1.XX.0 — BUG REAL achado ao vivo pelo Nicola (22/09/2026): editou o
+    // empreendimento de um ativo, salvou, e a "lista de imóveis" continuou
+    // mostrando o ativo no grupo antigo. Causa: a LISTA não agrupa/exibe a
+    // partir de `estado.ativos` (que este listener já recarregava certo) —
+    // ela lê `resumoImoveisPorId` (cofre-ativos.js), um Map carregado 1x só
+    // (carregarResumoImoveisParaCards(), disparado em 'cofre:dados-carregados'
+    // no boot) com empreendimento/status/tipo/finalidade/foto/contrato
+    // principal de cada imóvel — e nada nunca mandava recarregar esse Map
+    // depois de uma escrita. Mesma classe de bug já vista em
+    // estado.ativoEmFoco (fix v1.61.0) e no chip "Fiscal OK" (fechamento.js)
+    // — cache de módulo que nunca invalida. Fix: chama
+    // carregarResumoImoveisParaCards() aqui (já re-renderiza a lista sozinha,
+    // preservando o filtro/chip atual — troca o antigo `ativos.
+    // renderAtivosLista()` sem argumentos, que também tinha o efeito colateral
+    // de resetar o filtro a cada edição).
+    await ativos.carregarResumoImoveisParaCards();
     docs.montarHome();
 });
 // E14.4 — 'cofre:recarregar-contatos' removido: só reatribuía

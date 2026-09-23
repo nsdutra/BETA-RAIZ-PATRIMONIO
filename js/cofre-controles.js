@@ -1,6 +1,53 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.31.0 · 22/09/2026
+// Versão: 1.32.0 · 22/09/2026
+//
+// v1.32.0 (22/09/2026 — Fase 1 do wrapper de escrita, rollout Cofre de
+// Documentos/Controles — pedido do Nicola 22/09/2026). Este é o módulo de
+// maior volume de escrita do rollout (item de controle, partes, ocorrência).
+// Adota emitirEscrita() (js/raiz-eventos.js, piloto em cofre-ativos.js
+// v1.59.0/salvarEdicaoAtivo) em TODO ponto de escrita já identificado, ao
+// lado dos window.dispatchEvent('cofre:recarregar-...') que já existiam —
+// nenhum evento antigo saiu, este é adicional, pra fora do Cofre:
+//   salvarPartesItemAtual      → emitirEscrita('controle', { id, acao: 'editar-partes' })
+//   excluirDocumentoDoItem     → emitirEscrita('controle', { id, acao: 'excluir-documento' })
+//   salvarEdicaoItem           → emitirEscrita('controle', { id, acao: 'editar' })
+//   excluirItemControleAtual   → emitirEscrita('controle', { id, acao: 'excluir' })
+//   salvarItemControle         → emitirEscrita('controle', { id, acao: 'criar' })
+//     (só cria — não edita item existente, formulário próprio de criação —
+//     por isso 'criar', não 'criar-ou-editar')
+//   criarItemControleDeDocumento → emitirEscrita('controle', { id, acao: 'criar-de-documento' })
+//   confirmarTratarOcorrencia    → emitirEscrita('controle', { id, ocorrenciaId, acao: 'tratar-ocorrencia' })
+//   confirmarReagendarOcorrencia → emitirEscrita('controle', { id, ocorrenciaId, acao: 'reagendar-ocorrencia' })
+//   confirmarEstornarOcorrencia  → emitirEscrita('controle', { id, ocorrenciaId, acao: 'estornar-ocorrencia' })
+//     (`id` = id do ITEM de controle dono da ocorrência — itemEmFoco.id —
+//     não o id da ocorrência em si, que vai à parte em `ocorrenciaId`; é o
+//     que um listener precisa pra saber qual ficha de item recarregar)
+// Config (catálogo, entidade separada 'config-controle', prioridade baixa
+// per pedido — cobertas mesmo assim, deu tempo):
+//   salvarSubtipoControle   → emitirEscrita('config-controle', { acao: 'criar-subtipo' | 'editar-subtipo' })
+//   excluirSubtipoControle  → emitirEscrita('config-controle', { id, acao: 'excluir-subtipo' })
+//   salvarModeloControle    → emitirEscrita('config-controle', { acao: 'criar-modelo' | 'editar-modelo' })
+//   excluirModeloControle   → emitirEscrita('config-controle', { id, acao: 'excluir-modelo' })
+//     (editarSubtipoControle/editarModeloControle, apesar do nome, só
+//     preenchem o formulário — NÃO chamam a API; quem escreve de verdade é
+//     salvarSubtipoControle/salvarModeloControle, cobertos acima nos dois
+//     ramos criar/editar — por isso os dois "editar*" ficaram de fora)
+// BUG DE OBJETO LOCAL DESATUALIZADO (mesma classe do achado em cofre-
+// ativos.js v1.61.0/salvarEdicaoAtivo) — PROCURADO E NÃO ENCONTRADO aqui:
+// salvarEdicaoItem() usa `item = itemEmFoco` (mesma referência de estado),
+// mas nunca reabre um FORM de edição direto em cima de `item` logo depois
+// de salvar — chama recarregarFichaItemControle() (await), que já REATRIBUI
+// `itemEmFoco` inteiro a partir de um novo `api.buscarItemControlePorId()`
+// antes de renderizar de novo. Mesmo padrão em confirmarTratar/Reagendar/
+// EstornarOcorrencia. Nenhum fix de bug necessário neste arquivo.
+// LISTENER NOVO (module-level, guarda por window.__rzListenerEscritaControleLigado
+// — mesmo padrão do piloto em index.html): registrado logo depois do
+// listener já existente de 'cofre:recarregar-partes' (mesmo bloco de
+// listeners module-level) — escuta aoEscrever('controle', ...) e, se a
+// Ficha do Item de Controle estiver aberta (itemEmFoco) com o MESMO id
+// (ou sem id no detalhe), chama recarregarFichaItemControle() pra
+// refletir sem F5.
 //
 // v1.31.0 (demanda be42b19f, "Padronizar componente de Parte em todo o
 // app", achado do Nicola em revisão de telas, 21/09/2026) — Ficha e
@@ -418,7 +465,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.31.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.32.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -437,6 +484,13 @@ import {
 // próprio header já previa "partes" como consumidor futuro).
 import { renderizarBlocoDadosParte, lerBlocoDadosParte, renderizarResumoParte, formatarEnderecoParte } from './comum-partes.js';
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
+// v1.32.0 (Fase 1 do wrapper de escrita, rollout Cofre de Documentos/
+// Controles) — emitirEscrita() é o evento padrão pra "algo mudou que
+// módulos DE FORA do Cofre podem precisar saber" (cofre:recarregar-eventos/
+// -documentos/-partes continuam existindo do jeito que estão, só servem o
+// Cofre por dentro — ver changelog do topo do arquivo). aoEscrever() usado
+// pelo listener module-level, perto de 'cofre:recarregar-partes'.
+import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 
 let subtiposCache = null; // carregado 1x por sessão; catálogo muda pouco
 // v1.20.2 (E0.2 / A8) — cache separado do catalogo FILTRADO pelo tipo de
@@ -883,6 +937,7 @@ export async function salvarPartesItemAtual() {
         mostrarToast('Partes do item salvas.');
         fecharModal('modal-generico');
         await montarPartesItemControle(item);
+        emitirEscrita('controle', { id: item.id, acao: 'editar-partes' }); // v1.32.0
     } catch (err) {
         mostrarToast('Erro ao salvar: ' + (err.message || String(err)), 'erro');
     }
@@ -1154,12 +1209,14 @@ export function carregarNovoDocumentoItem() {
 export async function excluirDocumentoDoItem(vinculoId) {
     if (!vinculoId) { mostrarToast('Vínculo não encontrado.', 'erro'); return; }
     if (!confirm('Remover este documento do item?\n\nO documento continua guardado no Cofre — só desvincula dele (some da lista "Em triagem" só quando for vinculado a outra coisa).')) return;
+    const item = itemEmFoco;
     try {
         await api.removerVinculo(vinculoId);
         estado.documentos = await api.listarDocumentos(estado.clienteId);
         renderizarDocumentosItemControle();
         mostrarToast('Documento desvinculado.');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+        emitirEscrita('controle', { id: item?.id, acao: 'excluir-documento' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1228,6 +1285,7 @@ export async function confirmarTratarOcorrencia(ocorrenciaId) {
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.ocorrencias.tratar', { ativoId: estado.ativoEmFoco?.id, ocorrenciaId });
         mostrarToast('Ocorrência tratada ✅');
         ocorrenciaEmAcao = null;
+        const itemId = itemEmFoco?.id; // capturado antes de recarregarFichaItemControle() reatribuir itemEmFoco
         await recarregarFichaItemControle();
         // BUG FIX (25/08/2026, achado pelo usuário) — faltava isto aqui e
         // nas 4 funções vizinhas (reagendar/estornar/excluir item/excluir
@@ -1238,6 +1296,7 @@ export async function confirmarTratarOcorrencia(ocorrenciaId) {
         // disparavam — os outros 5 pontos de mudança de ocorrência nunca
         // dispararam desde que o evento foi criado.
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+        emitirEscrita('controle', { id: itemId, ocorrenciaId, acao: 'tratar-ocorrencia' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1250,8 +1309,10 @@ export async function confirmarReagendarOcorrencia(ocorrenciaId) {
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.ocorrencias.reagendar', { ativoId: estado.ativoEmFoco?.id, ocorrenciaId, novaData });
         mostrarToast('Ocorrência reagendada ✅');
         ocorrenciaEmAcao = null;
+        const itemId = itemEmFoco?.id;
         await recarregarFichaItemControle();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
+        emitirEscrita('controle', { id: itemId, ocorrenciaId, acao: 'reagendar-ocorrencia' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1262,8 +1323,10 @@ export async function confirmarEstornarOcorrencia(ocorrenciaId) {
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.ocorrencias.estornar', { ativoId: estado.ativoEmFoco?.id, ocorrenciaId });
         mostrarToast('Ocorrência estornada ✅');
         ocorrenciaEmAcao = null;
+        const itemId = itemEmFoco?.id;
         await recarregarFichaItemControle();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
+        emitirEscrita('controle', { id: itemId, ocorrenciaId, acao: 'estornar-ocorrencia' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1373,6 +1436,7 @@ export async function salvarEdicaoItem() {
         fecharEditarItem();
         await recarregarFichaItemControle();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+        emitirEscrita('controle', { id: item.id, acao: 'editar' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1453,6 +1517,7 @@ export async function excluirItemControleAtual() {
             : 'Item de controle excluído.');
         voltarFichaItemControle();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // BUG FIX 25/08/2026 — ver nota em confirmarTratarOcorrencia
+        emitirEscrita('controle', { id: item.id, acao: 'excluir' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1619,6 +1684,25 @@ export async function abrirEditarParte(parteId) {
 // contratos.js. contratos.js tem seu próprio listener pro chip Partes do
 // contrato (montarChipsPartesContrato).
 window.addEventListener('cofre:recarregar-partes', () => { if (itemEmFoco) montarPartesItemControle(itemEmFoco); });
+
+// v1.32.0 (Fase 1 do wrapper de escrita) — escuta emitirEscrita('controle',
+// ...) 1x por carga do módulo (guarda por window.*, mesmo padrão do piloto
+// em index.html/cofre-ativos.js v1.59.0 — aqui é defensivo: um módulo ES só
+// roda uma vez mesmo, mas segue a convenção pedida). Se a Ficha do Item de
+// Controle estiver aberta (itemEmFoco) com o MESMO id que escreveu (ou sem
+// id no detalhe — ex.: config-controle não usa esta entidade, então na
+// prática sempre há id aqui), recarrega a ficha inteira
+// (recarregarFichaItemControle, já reatribui itemEmFoco do banco) — cobre
+// editar partes, tratar/reagendar/estornar ocorrência e editar o próprio
+// item refletindo sem F5 em qualquer outra ficha aberta da mesma entidade.
+if (!window.__rzListenerEscritaControleLigado) {
+    window.__rzListenerEscritaControleLigado = true;
+    aoEscrever('controle', (detalhe) => {
+        if (itemEmFoco && (!detalhe?.id || detalhe.id === itemEmFoco.id)) {
+            recarregarFichaItemControle();
+        }
+    });
+}
 
 // ============================================================================
 // CRIAR ITEM DE CONTROLE (formulário na ficha do ativo)
@@ -1803,6 +1887,7 @@ export async function salvarItemControle() {
         itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
         renderizarListaControles();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // atualiza Home/Visão Geral com as novas ocorrências
+        emitirEscrita('controle', { id: item.id, acao: 'criar' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -1838,6 +1923,7 @@ export async function criarItemControleDeDocumento(p) {
     if (estado.ativoEmFoco && p.ativoId === estado.ativoEmFoco.id) {
         try { itensDoAtivoAtual = await api.listarItensControleAtivo(p.ativoId); renderizarListaControles(); } catch (e) { /* lista atualiza ao reabrir */ }
     }
+    emitirEscrita('controle', { id: item.id, acao: 'criar-de-documento' }); // v1.32.0
     return item;
 }
 
@@ -1994,18 +2080,22 @@ export async function salvarSubtipoControle() {
     const documentoEsperado = document.getElementById('subtipo-documento-esperado').checked;
     if (!nome) { mostrarToast('Informe um nome.', 'erro'); return; }
     try {
+        let acao;
         if (subtipoEmEdicao) {
             await api.atualizarSubtipoControle(subtipoEmEdicao, nome, documentoEsperado);
             mostrarToast('Subtipo atualizado ✅');
             cancelarEdicaoSubtipo();
+            acao = 'editar-subtipo';
         } else {
             await api.criarSubtipoControle(estado.clienteId, tipo, nome, documentoEsperado);
             mostrarToast('Subtipo criado ✅');
             document.getElementById('subtipo-nome').value = '';
             document.getElementById('subtipo-documento-esperado').checked = false;
+            acao = 'criar-subtipo';
         }
         subtiposCache = await api.listarSubtiposControle(estado.clienteId);
         renderizarSubtiposControle();
+        emitirEscrita('config-controle', { acao }); // v1.32.0 (baixa prioridade — catálogo, não item)
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -2050,6 +2140,7 @@ export async function excluirSubtipoControle(id) {
         if (subtipoEmEdicao === id) cancelarEdicaoSubtipo();
         subtiposCache = await api.listarSubtiposControle(estado.clienteId);
         renderizarSubtiposControle();
+        emitirEscrita('config-controle', { id, acao: 'excluir-subtipo' }); // v1.32.0 (baixa prioridade)
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -2193,18 +2284,22 @@ export async function salvarModeloControle() {
         frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia,
     };
     try {
+        let acao;
         if (modeloEmEdicao) {
             await api.atualizarModeloItemControle(modeloEmEdicao, payload);
             mostrarToast('Modelo atualizado ✅');
             cancelarEdicaoModelo();
+            acao = 'editar-modelo';
         } else {
             await api.criarModeloItemControle({ ...payload, cliente_id: estado.clienteId });
             mostrarToast('Modelo criado ✅');
             document.getElementById('modelo-titulo').value = '';
             document.getElementById('modelo-freq-intervalo').value = '';
+            acao = 'criar-modelo';
         }
         modelosCache = await api.listarModelosItemControle(estado.clienteId);
         renderizarModelosControle();
+        emitirEscrita('config-controle', { acao }); // v1.32.0 (baixa prioridade — catálogo, não item)
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 
@@ -2255,6 +2350,7 @@ export async function excluirModeloControle(id) {
         if (modeloEmEdicao === id) cancelarEdicaoModelo();
         modelosCache = await api.listarModelosItemControle(estado.clienteId);
         renderizarModelosControle();
+        emitirEscrita('config-controle', { id, acao: 'excluir-modelo' }); // v1.32.0 (baixa prioridade)
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

@@ -1,7 +1,50 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.17.0 · 22/09/2026
+// Versão: 1.19.0 · 22/09/2026
+//
+// v1.19.0 (demanda 176b3145 — padronizar experiência de Parte em todos os
+// locais, pedido explícito do Nicola) — abrirAcoesPartesContrato()/
+// abrirAcoesLocatarioContrato(): "Editar locatário" era rótulo fixo mesmo
+// quando o contrato ainda não tinha locatário (con.locatario vazio) —
+// agora "Adicionar locatário"/"Editar locatário" dinâmico, mesmo padrão
+// que "Adicionar/Editar fiador" já usava aqui do lado (serviu de
+// referência). Ver changelog de index.html v1.244.0/cofre-app.js v1.37.0
+// pro resto do rollout desta demanda (o clique num locatário/fiador
+// existente agora vai direto pro form de edição, sem passar pela Ficha
+// como tela intermediária).
+//
+// v1.18.0 (Fase 1 do wrapper de escrita, rollout Contratos+Minutas — pedido
+// do Nicola 22/09/2026) — adoção do utilitário js/raiz-eventos.js (piloto
+// único até aqui era cofre-ativos.js, ver changelog dele/de raiz-eventos.js)
+// em TODA função deste arquivo que persiste escrita de verdade no banco:
+// salvarFiadoresStandalone, excluirContrato, salvarReajusteContratoPopup,
+// salvarAlterarStatusContrato (inclusive o ramo de exclusão inline, que
+// duplicava a mesma operação de excluirContrato sem avisar ninguém),
+// salvarDadosNovoContratoPopup (cria OU edita — mesmo emitirEscrita nos
+// dois casos, id resolvido depois do saveContrato()), salvarObservacaoContrato
+// (ganhou um 6º parâmetro opcional `acaoEmitir`, default 'observacao' —
+// salvarDadosLocatarioContrato/salvarDetalhesContrato passam 'editar-
+// locatario'/'editar-detalhes' nessa chamada em vez de cada um emitir por
+// conta própria, senão a mesma gravação disparava o evento 2x, uma vez
+// genérico e outra específico), salvarDivisaoContratoPopup,
+// salvarBaixaOcorrenciaContrato, salvarReagendarOcorrenciaContrato,
+// salvarRenovacaoContratoPopup. Todas emitem a MESMA entidade 'contrato'
+// (raiz:escrita), só o `detalhe.acao` muda — quem ouve se inscreve 1x.
+// BUG DO cofre-ativos.js (objeto local ficava velho até um recarregamento
+// assíncrono terminar) — VERIFICADO EM CADA UMA DAS 12 FUNÇÕES ACIMA E NÃO
+// ENCONTRADO: este arquivo já mutava `con` (Object.assign/atribuição direta
+// de campo) IMEDIATAMENTE após a escrita confirmada, bem antes desta
+// entrega, em todas elas — o mesmo padrão que o fix do cofre-ativos.js
+// introduziu lá já era o padrão daqui. Nenhuma correção de bug foi
+// necessária, só a instrumentação do evento.
+// LISTENER (module boot, guarda window.__rzListenerEscritaContratoLigado):
+// aoEscrever('contrato', ...) chama renderContratos() — a ÚNICA lacuna real
+// encontrada (a ficha aberta já se auto-recarrega, chamada direta logo
+// após cada emitirEscrita acima — reagir a ela também no listener dobraria
+// o fetch de fiadores/ocorrências à toa; a LISTA, porém, só era redesenhada
+// ao entrar na aba ou usar a busca — uma escrita feita de outro ponto da
+// tela, ex. a partir da ficha do imóvel, nunca a atualizava sem F5).
 //
 // v1.17.0 (demanda c75076ed, "Tela 'Novo contrato' no padrão do sistema +
 // remover Histórico do formulário de criação", achado do Nicola em
@@ -339,8 +382,9 @@
 // ============================================================================
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
+import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.17.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.19.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -350,6 +394,21 @@ export function montarAbaContratos() {
 /** Recarrega a ficha se ela estiver aberta neste contrato (usado pelo index). */
 export function reabrirFichaSeFor(contratoId) {
     if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+}
+
+// v1.18.0 (Fase 1 do wrapper de escrita) — registra 1x por carregamento do
+// módulo (módulo ES é singleton por URL; guarda por window.* de propósito,
+// mesmo mecanismo já usado em index.html pro piloto de 'ativo', pra não
+// duplicar o listener num cenário de re-import). A ficha aberta já se
+// auto-recarrega (chamada direta logo após cada emitirEscrita('contrato',
+// ...) abaixo) — reagir a ela AQUI TAMBÉM dobraria o fetch de fiadores/
+// ocorrências à toa a cada salvamento. O que faltava mesmo era a LISTA:
+// renderContratos() só rodava ao entrar na aba (montarAbaContratos) ou usar
+// a busca (linha ~3984) — uma escrita feita de outro ponto do app (ex.: a
+// partir da ficha do imóvel/ativo) nunca a atualizava sem F5.
+if (!window.__rzListenerEscritaContratoLigado) {
+    window.__rzListenerEscritaContratoLigado = true;
+    aoEscrever('contrato', () => { renderContratos(); });
 }
 
         // Mostra (só leitura) a divisão de sócios já cadastrada no imóvel, para
@@ -479,6 +538,7 @@ export function reabrirFichaSeFor(contratoId) {
                     p_linhas: linhas
                 });
                 if (error) throw error;
+                emitirEscrita('contrato', { id: contratoId, acao: 'editar-fiadores' }); // v1.18.0 — Fase 1 do wrapper de escrita
                 document.getElementById('modal-fiadores-standalone')?.remove();
                 if (document.getElementById('dnc-fiadores-lista') && typeof fecharSheet === 'function') fecharSheet(); // v1.128 — sheet
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
@@ -759,6 +819,7 @@ export function reabrirFichaSeFor(contratoId) {
                 contratos = contratos.filter(c => c.id !== id);
 
                 registrarLog('contratos.excluir', { contratoId: id, locatario: con.locatario });
+                emitirEscrita('contrato', { id, acao: 'excluir' }); // v1.18.0 — Fase 1 do wrapper de escrita
 
                 esconderCarregamentoGlobal();
                 mostrarToast('Contrato excluído com sucesso.', 'success');
@@ -901,6 +962,7 @@ export function reabrirFichaSeFor(contratoId) {
                     p_percentual: pct, p_vigencia: vigencia, p_observacao: obs || null, p_documento_id: docId,
                 });
                 if (error) throw error;
+                emitirEscrita('contrato', { id: contratoId, acao: 'reajuste' }); // v1.18.0 — Fase 1 do wrapper de escrita
 
                 // v1.177.0 — Parte G do plano de conciliação: sem isto, os
                 // recebimentos futuros já gerados (horizonte de 90 dias)
@@ -1279,6 +1341,14 @@ export function reabrirFichaSeFor(contratoId) {
             const salvou = saveContrato({ preventDefault: () => {} });
             if (salvou === false) return;
 
+            // v1.18.0 (Fase 1 do wrapper de escrita) — esta tela cria OU
+            // edita (mesmo popup, ver comentário v1.15.0 acima); um único
+            // emitirEscrita cobre os dois casos. Mesmo cálculo de idFinal
+            // já usado logo abaixo pra achar o registro recém-criado
+            // quando `contratoId` veio vazio (contrato novo).
+            const idFinalEmit = contratoId || contratos[contratos.length - 1]?.id;
+            if (idFinalEmit) emitirEscrita('contrato', { id: idFinalEmit, acao: 'criar-ou-editar' });
+
             // Descrição/observação vira histórico à parte (mesmo padrão dos
             // demais popups desta ficha) — saveContrato() não tem campo de
             // observação livre, só o diff estruturado.
@@ -1348,6 +1418,13 @@ export function reabrirFichaSeFor(contratoId) {
 
                     contratos = contratos.filter(c => c.id !== contratoId);
                     registrarLog('contratos.excluir', { contratoId, locatario: con.locatario });
+                    // v1.18.0 (Fase 1 do wrapper de escrita) — este ramo faz a
+                    // MESMA exclusão de excluirContrato() (linha ~805), só que
+                    // inline (chega aqui quando não há pendência financeira a
+                    // decidir); sem emitir aqui, essa exclusão nunca avisava
+                    // ninguém, diferente do caminho que passa por
+                    // excluirContrato() de verdade.
+                    emitirEscrita('contrato', { id: contratoId, acao: 'excluir' });
 
                     esconderCarregamentoGlobal();
                     fecharModalCampoContrato();
@@ -1364,6 +1441,7 @@ export function reabrirFichaSeFor(contratoId) {
                 const statusDb = mapStatusContratoAntigoParaSupabase(acao);
                 const { error } = await dbAuth.from('contratos').update({ status: statusDb }).eq('id', contratoId);
                 if (error) throw error;
+                emitirEscrita('contrato', { id: contratoId, acao: 'status' }); // v1.18.0 — Fase 1 do wrapper de escrita
 
                 const statusAntigo = con.status;
                 con.status = acao;
@@ -1498,11 +1576,19 @@ export function reabrirFichaSeFor(contratoId) {
         // então a coluna literal "__local" ia direto pro update() e o
         // PostgREST rejeitava. Corrigido: __local agora é um parâmetro
         // SEPARADO, nunca entra no objeto que vai pro banco.
-        export async function salvarObservacaoContrato(contratoId, patchDb, localPatch, textoObs, tituloLog) {
+        // v1.18.0 (Fase 1 do wrapper de escrita) — ganhou o 6º parâmetro
+        // `acaoEmitir` (default 'observacao'): esta função é a persistência
+        // REAL usada por salvarDadosLocatarioContrato ('editar-locatario')
+        // e salvarDetalhesContrato ('editar-detalhes') — cada chamador passa
+        // o acao mais específico dele aqui, em vez de emitir por conta
+        // própria, senão a mesma gravação disparava emitirEscrita('contrato',
+        // ...) duas vezes (uma genérica, uma específica) pra um único save.
+        export async function salvarObservacaoContrato(contratoId, patchDb, localPatch, textoObs, tituloLog, acaoEmitir = 'observacao') {
             mostrarCarregamentoGlobal('Salvando...');
             try {
                 const { error } = await dbAuth.from('contratos').update(patchDb).eq('id', contratoId);
                 if (error) throw error;
+                emitirEscrita('contrato', { id: contratoId, acao: acaoEmitir });
 
                 const con = contratos.find(c => c.id === contratoId);
                 if (con && localPatch) Object.assign(con, localPatch);
@@ -1590,7 +1676,7 @@ export function reabrirFichaSeFor(contratoId) {
                 locatarioEstadoCivil: patch.locatario_estado_civil || '',
             };
             const obs = document.getElementById('mdl-obs').value.trim();
-            salvarObservacaoContrato(contratoId, patch, localPatch, obs, 'Dados do locatário atualizados');
+            salvarObservacaoContrato(contratoId, patch, localPatch, obs, 'Dados do locatário atualizados', 'editar-locatario'); // v1.18.0
         }
 
         export function abrirDetalhesContrato(contratoId) {
@@ -1743,7 +1829,7 @@ export function reabrirFichaSeFor(contratoId) {
                 formaPagamento: patch.forma_pagamento, reajuste: patch.reajuste,
             };
             const obs = document.getElementById('mdt-obs').value.trim();
-            salvarObservacaoContrato(contratoId, patch, localPatch, obs, 'Detalhes do contrato atualizados');
+            salvarObservacaoContrato(contratoId, patch, localPatch, obs, 'Detalhes do contrato atualizados', 'editar-detalhes'); // v1.18.0
         }
 
         // "Outros contratos" — lista os FINALIZADOS deste imóvel, mais
@@ -1819,6 +1905,7 @@ export function reabrirFichaSeFor(contratoId) {
                     p_contrato_id: contratoId, p_linhas: linhasDivisao
                 });
                 if (error) throw error;
+                emitirEscrita('contrato', { id: contratoId, acao: 'divisao' }); // v1.18.0 — Fase 1 do wrapper de escrita
                 con.divisaoRepasse = validas.map(d => ({ nome: d.nome, percentual: parseFloat(d.pct) || 0 }));
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
@@ -2432,6 +2519,7 @@ export function reabrirFichaSeFor(contratoId) {
                     status_execucao: 'concluido', tratado_em: new Date().toISOString(), tratado_por: pessoaIdLogada || null, tratamento_descricao: descricao,
                 }).eq('id', ocorrenciaId);
                 if (error) throw error;
+                emitirEscrita('contrato', { id: fichaContratoAtualId, ocorrenciaId, acao: 'baixa-ocorrencia' }); // v1.18.0 — Fase 1 do wrapper de escrita
                 esconderCarregamentoGlobal(); fecharSheet(); mostrarToast('Baixa registrada!', 'success');
                 registrarLog('cofre.ocorrencias.tratar', { ocorrenciaId, contratoId: fichaContratoAtualId });
                 montarOcorrenciasContrato(fichaContratoAtualId);
@@ -2445,6 +2533,7 @@ export function reabrirFichaSeFor(contratoId) {
             try {
                 const { error } = await dbAuth.from('cofre_ocorrencias_controle').update({ data_prevista_atual: data }).eq('id', ocorrenciaId);
                 if (error) throw error;
+                emitirEscrita('contrato', { id: fichaContratoAtualId, ocorrenciaId, acao: 'reagendar-ocorrencia' }); // v1.18.0 — Fase 1 do wrapper de escrita
                 esconderCarregamentoGlobal(); fecharSheet(); mostrarToast('Reagendada!', 'success');
                 registrarLog('cofre.ocorrencias.reagendar', { ocorrenciaId, contratoId: fichaContratoAtualId, data });
                 montarOcorrenciasContrato(fichaContratoAtualId);
@@ -2517,6 +2606,7 @@ export function reabrirFichaSeFor(contratoId) {
                     p_vigencia: vigencia, p_observacao: obs || null, p_documento_id: docId,
                 });
                 if (error) throw error;
+                emitirEscrita('contrato', { id: contratoId, acao: 'renovar' }); // v1.18.0 — Fase 1 do wrapper de escrita
 
                 // v1.X (10/09/2026) — fim mudou: garante os recebimentos até
                 // 90 dias à frente também (insert-only, nunca mexe no que já
@@ -2622,19 +2712,28 @@ export function reabrirFichaSeFor(contratoId) {
             }
         }
 
+        // v1.19.0 (demanda 176b3145, pedido explícito do Nicola, 22/09/2026:
+        // "ao clicar no menu tres pontos deve ter a opção de adicionar e
+        // nao editar") — "Editar locatário" era um rótulo FIXO, mesmo
+        // quando o contrato ainda não tinha locatário nenhum (con.locatario
+        // vazio) — igual ao bug que "Adicionar/Editar fiador" já não tinha
+        // (temFiador já decidia o rótulo certo aqui do lado, serviu de
+        // referência pro fix).
         export function abrirAcoesPartesContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             const temFiador = (window.__fiadoresFichaAtual || []).length > 0;
+            const temLocatario = !!con.locatario;
             abrirSheetAcoes({ titulo: 'Partes', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
+                { icone: 'pencil', titulo: temLocatario ? 'Editar locatário' : 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
                 { icone: 'user-plus', titulo: temFiador ? 'Editar fiadores' : 'Adicionar fiador', codigo: 'contratos.editar', sub: 'Garantias exigidas pela minuta', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
             ] });
         }
 
         export function abrirAcoesLocatarioContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
+            const temLocatario = !!con.locatario;
             abrirSheetAcoes({ titulo: con.locatario || 'Locatário', sub: 'Locatário', acoes: [
-                { icone: 'pencil', titulo: 'Editar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
+                { icone: 'pencil', titulo: temLocatario ? 'Editar locatário' : 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
             ] });
         }
 
