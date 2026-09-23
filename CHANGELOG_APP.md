@@ -4,6 +4,41 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.247.0) — demanda 0e40951a, complemento (pedido
+explícito do Nicola, em resposta à pergunta feita na entrega anterior
+sobre o quadrante "Adicionar" não ter ação real em Recebimentos/
+Fechamento: "O quadrante 'Adicionar' deve permitir adicionar um
+recebimento ou uma despesas. Como adicionar um recebimento e uma
+funcionalidade nova, adicione esta possibilidade tb no card financeiro
+do contrato. Ao criar um recebimento, perguntar se ja quer entrar
+recebido ou a receber. Se for recebido entrar com a baixa finalizada, e
+se for em aberto, inclui-lo no ha receber."): NOVA funcionalidade —
+criar recebimento avulso (js/financeiro.js v1.19.0,
+abrirNovoRecebimento) — decisão anterior "não existe criar recebimento
+avulso" (v1.6.5) revertida a pedido explícito. Form (abrirSheetForm):
+contrato (seletor quando não vem pré-selecionado — mensalidade sem
+contrato_id não aparece em nenhuma lista do app)/competência/valor +
+segmentado "A receber"/"Já recebido": "Já recebido" grava a baixa já
+finalizada (status='pago'+data/banco) num único INSERT; "A receber"
+grava status='pendente' (bucket comum de qualquer mensalidade
+pendente). 2 pontos de entrada: (1) quadrante "Adicionar" — DEIXOU de
+ser contextual por aba, abre um menu novo (abrirAcoesAdicionarFinanceiro
+— Novo recebimento/Nova despesa), mesmo quadrante nas 3 abas; (2) card
+"Financeiro" da Ficha do contrato (js/contratos.js v1.20.0,
+abrirAcoesCobrancasContrato) — nova ação "Adicionar recebimento", já
+com o contrato certo. contratos.js ganhou também um listener novo pra
+'mensalidade' (nunca existia) — o card "Financeiro" da Ficha se
+recarrega sozinho quando o recebimento nasce de fora dela (reaproveita
+reabrirFichaSeFor(), já existente). Window-bridge (lista de
+financeiro.js) ganhou os 5 nomes novos. Ver changelog de financeiro.js
+v1.19.0/contratos.js v1.20.0 pro detalhe técnico completo.
+------------------------------------------------------------------
+Versões anteriores (v1.246.0 … v1.246.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.246.0) — demanda 0e40951a (pedido explícito do
 Nicola: "Reorganizar os botoes de forma a ter a competencia no alto...
 Depois, titulo da tela. Depois, para as funcoes, extrato, adicionar,

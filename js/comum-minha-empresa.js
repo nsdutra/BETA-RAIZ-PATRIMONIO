@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.6.0 · 20/09/2026
+// Versão: 1.7.0 · 23/09/2026
+//
+// v1.7.0 (frente fiscal, Fase 2 — demanda 976fcbf6) — card "Perfil fiscal e
+// societário" ganha "Inscrição municipal" (clientes.inscricao_municipal,
+// coluna nova, opcional; até 30 caracteres, conferido também no banco).
+// Mesmo salvar de sempre (salvarDadosEmpresa). Quem emite a nota
+// (fiscal_responsavel_emissao) fica para a tela Fiscal, fases seguintes.
 //
 // v1.6.0 (Fase R / Entrega R.2, 20/09/2026) — Card "Rotinas": lista as 5
 // rotinas de empresa do catálogo (cofre_controle_subtipos, tipo='rotina',
@@ -82,7 +88,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.6.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -347,6 +353,10 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             <div class="rz-f"><label>Regime tributário</label>
                 <select id="cme-regime">${opts(REGIMES, dados.regime_tributario)}</select>
             </div>
+            <div class="rz-f"><label>Inscrição municipal</label>
+                <input type="text" id="cme-im" maxlength="30" placeholder="Se a prefeitura exigir" value="${val(dados.inscricao_municipal)}">
+                <span class="rz-hint">Opcional na NFS-e nacional; alguns municípios pedem.</span>
+            </div>
             <div class="rz-f" style="margin-bottom:0"><label>Distribuição de lucros</label>
                 <select id="cme-modelo">${opts(MODELOS, dados.modelo_distribuicao_lucros)}</select>
                 <span class="rz-hint">Alimenta a leitura tributária em Resultados e os sinais da reforma.</span>
@@ -418,6 +428,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             cidade_recibo_fonte: g('cme-cidade-recibo-fonte'),
             papel_na_locacao: g('cme-papel') || null,
             regime_tributario: g('cme-regime') || null,
+            inscricao_municipal: g('cme-im') || null,
             modelo_distribuicao_lucros: g('cme-modelo') || null,
         };
         try {

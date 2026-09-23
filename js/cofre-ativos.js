@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.62.0 · 22/09/2026
+// Versão: 1.63.0 · 23/09/2026
+//
+// v1.63.0 (frente fiscal, Fase 2 — demanda 976fcbf6) — campo "Destinação
+// (NFS-e)" na edição do imóvel: Residencial · Não residencial · "Pelo tipo".
+// Define o código do serviço (NBS) na nota e o redutor social; NÃO é a
+// finalidade de uso (comercial × não comercial, contábil). O banco
+// (trg_cofre_ativos_destinacao) já preenche pelo tipo — Apartamento/Casa/
+// Cobertura residencial; Sala/Loja/Galpão/Vaga/Conjunto não residencial —
+// e respeita a escolha manual (origem 'manual'), que não é mais
+// sobrescrita quando o tipo muda. "Pelo tipo" devolve a decisão ao tipo.
+// Só na EDIÇÃO: na criação o banco já deriva pelo tipo escolhido (o RPC de
+// criação não muda nesta entrega).
+//
+// Versão anterior: 1.62.0 · 22/09/2026
 //
 // v1.62.0 (demanda 8b2d37d7, C4 do soft launch) — a trava da cota de ativos
 // entra na PORTA DE ENTRADA do formulário, não nos botões: abrirFormAtivo()
@@ -808,7 +821,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1023,6 +1036,7 @@ function renderizarBlocoImovel(prefixo, v = {}) {
             <label>Aluguel esperado (R$)</label>
             <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}">
         </div>
+        ${v.id ? renderizarCampoDestinacao(prefixo, v) : ''}
         <div class="rz-f">
             <label>CIB (NFS-e)</label>
             <input type="text" id="${prefixo}cib" value="${escapeHtml(v.cib || '')}" placeholder="Cadastro do imóvel na NFS-e nacional">
@@ -1032,6 +1046,27 @@ function renderizarBlocoImovel(prefixo, v = {}) {
             <textarea id="${prefixo}observacao" rows="2">${escapeHtml(v.observacao || '')}</textarea>
         </div>
     `;
+}
+
+// v1.63.0 — destinação (residencial × não residencial) para a NFS-e.
+// Valor '' = "pelo tipo" (o banco deriva de ativo_tipos.destinacao_padrao).
+const DESTINACOES_ATIVO = [
+    { v: 'residencial', l: 'Residencial' },
+    { v: 'nao_residencial', l: 'Não residencial' },
+];
+function renderizarCampoDestinacao(prefixo, v) {
+    const manual = v.destinacao_origem === 'manual';
+    const atualPeloTipo = !manual && v.destinacao ? DESTINACOES_ATIVO.find(d => d.v === v.destinacao)?.l : null;
+    const rotuloTipo = atualPeloTipo ? `Pelo tipo do imóvel (hoje: ${atualPeloTipo.toLowerCase()})` : 'Pelo tipo do imóvel (sem padrão — escolha)';
+    const sel = (val) => (manual ? v.destinacao === val : val === '') ? ' selected' : '';
+    return `
+        <div class="rz-f">
+            <label>Destinação (NFS-e)</label>
+            <select id="${prefixo}destinacao">
+                <option value=""${sel('')}>${escapeHtml(rotuloTipo)}</option>
+                ${DESTINACOES_ATIVO.map(d => `<option value="${d.v}"${sel(d.v)}>${d.l}</option>`).join('')}
+            </select>
+        </div>`;
 }
 
 window.__ativoMudarFinalidadeUso = function (prefixo) {
@@ -1059,6 +1094,8 @@ function lerBlocoImovel(prefixo) {
             observacao: txt('observacao'),
             cib: txt('cib'),
         },
+        // v1.63.0 — undefined quando o campo não está na tela (criação)
+        destinacao: document.getElementById(prefixo + 'destinacao') ? (txt('destinacao') || null) : undefined,
         aluguelDesejado: num('aluguel-desejado'),
     };
 }
@@ -2867,7 +2904,7 @@ export async function salvarEdicaoAtivo() {
     // SEMPRE dados_especificos.
     if (ehCategoriaImovel(a.tipo_ativo)) {
         const enderecoLido = lerBlocoEndereco('fa-editar-endereco');
-        const { camposImovel, aluguelDesejado } = lerBlocoImovel('fa-editar-imovel-');
+        const { camposImovel, aluguelDesejado, destinacao } = lerBlocoImovel('fa-editar-imovel-');
         if (aluguelDesejado !== null) dados.aluguel_desejado = aluguelDesejado;
         // Onda 12 (16/09/2026, pedido explícito: "único caminho de
         // escrita, na tabela de ativos") — vinculado e avulso convergem:
@@ -2883,6 +2920,12 @@ export async function salvarEdicaoAtivo() {
             observacao: camposImovel.observacao,
             cib: camposImovel.cib,
         });
+        // v1.63.0 — destinação: escolha explícita vira 'manual'; "pelo tipo"
+        // manda null/null e o banco deriva de novo (trg_cofre_ativos_destinacao).
+        if (destinacao !== undefined) {
+            patch.destinacao = destinacao;
+            patch.destinacao_origem = destinacao ? 'manual' : null;
+        }
     } else {
         // não-imóvel: só empreendimento/valor, direto em cofre_ativos
         Object.assign(patch, empValLido);
@@ -2906,6 +2949,11 @@ export async function salvarEdicaoAtivo() {
         // também no objeto local, na hora — não depende mais de esperar o
         // recarregamento assíncrono pra ficar consistente.
         Object.assign(a, patch);
+        // v1.63.0 — "pelo tipo": o banco preencheu a destinação; traz o valor real.
+        if ('destinacao' in patch && patch.destinacao === null) {
+            const fresco = await api.buscarAtivoPorId(a.id).catch(() => null);
+            if (fresco) { a.destinacao = fresco.destinacao; a.destinacao_origem = fresco.destinacao_origem; }
+        }
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, acao: 'editar_ativo' });
         mostrarToast('Ativo atualizado');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));

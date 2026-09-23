@@ -1,6 +1,27 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.5.0 · 23/09/2026
+// Versão: 1.6.0 · 23/09/2026
+//
+// v1.6.0 (frente fiscal, Fase 2 — demanda 976fcbf6; decisões D2 e D6 do
+// Nicola, 23/09/2026):
+//   · Checklist fiscal passa a vir de UMA função do banco,
+//     fn_fiscal_pendencias_cadastro (a lógica em JS saiu). Resolve o achado
+//     A4: contratos novos entram (antes o filtro por imovel_id os deixava de
+//     fora), lê o documento da parte locatária (não só contratos.cpf) e o
+//     CIB passa a valer só para imóvel alugado (antes contava veículo).
+//     Grupos novos: Empresa (documento, município-sede) e Imóvel
+//     (destinação, município, CIB).
+//   · D6: tocar num locatário sem documento abre o campo CPF/CNPJ ali
+//     mesmo (Sheet de formulário) e grava por
+//     fn_contrato_tomador_documento_definir (parte + contrato, com dígito
+//     conferido). Sem permissão de editar contrato, a linha abre o contrato.
+//     Depois de salvar, o checklist volta atualizado. O mesmo locatário
+//     pode estar em vários contratos (1 cadastro em Partes): o documento
+//     vale para todos e o aviso diz quantos foram resolvidos.
+//   · D2: o contador é lido de Partes (fn_contadores_empresa) e o pacote vai
+//     com p_contador_parte_id. O banco ainda aceita o id antigo de
+//     prestadores, então a versão anterior deste arquivo continua
+//     funcionando até o deploy.
 //
 // v1.5.0 (demanda 7bdcb8d4, pedido explícito do Nicola 23/09/2026): o card
 // de competência perdeu o ⋮ ("nao deve ter menu de 3 pontinhos no seletor
@@ -220,7 +241,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -234,7 +255,7 @@ let fechamentoCarregando = false;
 // v1.1.0 (Entrega F3.1) — status fiscal é da CARTEIRA, não da competência
 // selecionada: verificado 1x por sessão, igual financeiroRotinaFechamentoLigada.
 let fechamentoRotinaFiscalLigada = null; // null = não verificado ainda; true/false = ligada/desligada
-let fechamentoFiscalPendencias = { cib: [], documentos: [] };
+let fechamentoFiscalPendencias = []; // v1.6.0 — linhas de fn_fiscal_pendencias_cadastro
 
 // v1.4.0 (demanda 0e40951a, redesenho do Financeiro) — ids trocados de
 // fin-botao-fechamento-* (ícone solto) pra fin-quad-fechamento-* (célula do
@@ -339,7 +360,7 @@ function fechamentoPublicarEstado() {
     }
     window.RZ_FIN_FISCAL = (fechamentoRotinaFiscalLigada === null) ? null : {
         ligada: !!fechamentoRotinaFiscalLigada,
-        total: fechamentoFiscalPendencias.cib.length + fechamentoFiscalPendencias.documentos.length,
+        total: fechamentoFiscalPendencias.length,
     };
     if (typeof window.financeiroRedesenharQuadrantes === 'function') window.financeiroRedesenharQuadrantes();
 }
@@ -386,52 +407,34 @@ async function fechamentoAtualizarKpis() {
 }
 
 /** Entrega F3.1 — verifica se a rotina nfse_competencia está ligada e, se
- * sim, busca as duas pendências do checklist (CIB e documento do
- * locatário). Verificado 1x por sessão (status é da carteira, não da
- * competência) — troca de mês no card NÃO refaz esta consulta. */
-async function fechamentoAtualizarFiscal() {
-    if (fechamentoRotinaFiscalLigada !== null) { fechamentoRenderFiscalChip(); return; }
-    try {
-        const { data: rotinas, error: eRot } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
-        if (eRot) throw eRot;
-        const linhaRotina = (rotinas || []).find(r => r.codigo === 'nfse_competencia');
-        fechamentoRotinaFiscalLigada = !!(linhaRotina && linhaRotina.ligada);
-    } catch (e) {
-        console.error('[fechamento] fn_rotinas_empresa_listar (fiscal)', e);
-        fechamentoRotinaFiscalLigada = false; // falha de rede: chip some, nunca mostra pendência não confirmada
-        fechamentoRenderFiscalChip();
-        return;
+ * sim, busca as pendências do checklist. Status da rotina é verificado 1x
+ * por sessão (é da carteira, não da competência). v1.6.0: as pendências vêm
+ * de fn_fiscal_pendencias_cadastro (fonte única); forcar=true relê só as
+ * pendências (depois de corrigir um cadastro pelo próprio checklist). */
+async function fechamentoAtualizarFiscal(forcar = false) {
+    if (fechamentoRotinaFiscalLigada !== null && !forcar) { fechamentoRenderFiscalChip(); return; }
+    if (fechamentoRotinaFiscalLigada === null) {
+        try {
+            const { data: rotinas, error: eRot } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
+            if (eRot) throw eRot;
+            const linhaRotina = (rotinas || []).find(r => r.codigo === 'nfse_competencia');
+            fechamentoRotinaFiscalLigada = !!(linhaRotina && linhaRotina.ligada);
+        } catch (e) {
+            console.error('[fechamento] fn_rotinas_empresa_listar (fiscal)', e);
+            fechamentoRotinaFiscalLigada = false; // falha de rede: botão fica neutro, nunca mostra pendência não confirmada
+            fechamentoRenderFiscalChip();
+            return;
+        }
     }
     if (!fechamentoRotinaFiscalLigada) { fechamentoRenderFiscalChip(); return; }
 
     try {
-        const [cib, contratosAtivos] = await Promise.all([
-            dbAuth.rpc('fn_diario_cib_pendente', { p_cliente_id: CLIENTE_ID_SUPABASE }),
-            dbAuth.from('contratos').select('id, locatario, cpf, imovel_id')
-                .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo').not('imovel_id', 'is', null),
-        ]);
-        if (cib.error) throw cib.error;
-        if (contratosAtivos.error) throw contratosAtivos.error;
-
-        fechamentoFiscalPendencias.cib = (cib.data || []).map(r => ({ id: r.ativo_id, nome: r.ativo_nome || 'Imóvel' }));
-
-        const semDocumento = (contratosAtivos.data || []).filter(c => !c.cpf || !String(c.cpf).trim());
-        const imovelIds = [...new Set(semDocumento.map(c => c.imovel_id).filter(Boolean))];
-        let enderecoPorImovel = new Map();
-        if (imovelIds.length) {
-            const { data: imoveisRows, error: eImo } = await dbAuth.from('imoveis')
-                .select('id, endereco_rua, endereco_num').in('id', imovelIds);
-            if (eImo) throw eImo;
-            enderecoPorImovel = new Map((imoveisRows || []).map(i => [i.id, [i.endereco_rua, i.endereco_num].filter(Boolean).join(', ')]));
-        }
-        fechamentoFiscalPendencias.documentos = semDocumento.map(c => ({
-            id: c.id,
-            nome: c.locatario || 'Locatário',
-            endereco: enderecoPorImovel.get(c.imovel_id) || '',
-        }));
+        const { data, error } = await dbAuth.rpc('fn_fiscal_pendencias_cadastro', { p_cliente_id: CLIENTE_ID_SUPABASE });
+        if (error) throw error;
+        fechamentoFiscalPendencias = data || [];
     } catch (e) {
-        console.error('[fechamento] checklist fiscal (cib/documentos)', e);
-        fechamentoFiscalPendencias = { cib: [], documentos: [] }; // não mostra número que não confirmou
+        console.error('[fechamento] fn_fiscal_pendencias_cadastro', e);
+        fechamentoFiscalPendencias = []; // não mostra número que não confirmou
     }
     fechamentoRenderFiscalChip();
 }
@@ -442,32 +445,98 @@ function fechamentoRenderFiscalChip() {
     fechamentoPublicarEstado();
 }
 
-/** Entrega F3.1 — checklist por imóvel: CIB preenchido? contrato ativo com
- * documento do locatário? Nunca afirma que o cliente é contribuinte —
- * só mostra o que falta pra quando a obrigatoriedade de NFS-e chegar. */
+/** Checklist fiscal (v1.6.0): o que falta no cadastro para a NFS-e sair,
+ * agrupado por Empresa · Locatário · Imóvel. Nunca afirma que a empresa é
+ * contribuinte — só mostra o que falta. Nada é emitido a partir daqui. */
+const FECHAMENTO_FISCAL_GRUPOS = [
+    { chave: 'empresa', titulo: 'Empresa', tipos: ['empresa_sem_documento', 'empresa_sem_municipio'] },
+    { chave: 'tomador', titulo: 'Documento do locatário', tipos: ['tomador_sem_documento', 'tomador_documento_invalido'] },
+    { chave: 'imovel', titulo: 'Imóvel', tipos: ['imovel_sem_destinacao', 'imovel_sem_municipio', 'imovel_sem_cib'] },
+];
+
 export function fechamentoAbrirChecklistFiscal() {
     if (typeof abrirSheet !== 'function') return;
-    const { cib, documentos } = fechamentoFiscalPendencias;
-    const rzEscSafe = (typeof rzEsc === 'function') ? rzEsc : (s) => String(s ?? '');
-    const linha = (icone, titulo, sub, onClick) => `
-        <div class="rz-row rz-link" onclick="${onClick}">
-            <div class="rz-ic rz-bad"><svg data-lucide="${icone}"></svg></div>
-            <div class="rz-tx"><b>${rzEscSafe(titulo)}</b>${sub ? `<span>${rzEscSafe(sub)}</span>` : ''}</div>
+    const esc = (typeof rzEsc === 'function') ? rzEsc : (s) => String(s ?? '');
+    const pend = fechamentoFiscalPendencias || [];
+    const podeEditarContrato = (typeof podeUsar === 'function') ? !!podeUsar('contratos.editar')?.ok : true;
+    const idx = new Map(pend.map((p, i) => [i, p]));
+    window.RZ_FIN_FISCAL_PEND = pend; // ponte do onclick (índice → linha), mesmo padrão dos demais window.RZ_FIN_*
+    const linhaHtml = (p, i) => {
+        const icone = p.entidade_tipo === 'contrato' ? 'user-x' : (p.entidade_tipo === 'empresa' ? 'building-2' : 'home');
+        const tom = p.gravidade === 'atencao' ? 'rz-warn' : 'rz-bad';
+        return `
+        <div class="rz-row rz-link" onclick="fechamentoTratarPendenciaFiscal(${i})">
+            <div class="rz-ic ${tom}"><svg data-lucide="${icone}"></svg></div>
+            <div class="rz-tx"><b>${esc(p.titulo)}</b><span>${esc(p.detalhe || '')}</span></div>
             <svg data-lucide="chevron-right" class="rz-chev"></svg>
         </div>`;
-    const secao = (titulo, itens, html) => `
-        <div style="margin-bottom:14px">
-            <div class="text-xs font-bold text-slate-600" style="margin-bottom:6px">${rzEscSafe(titulo)} (${itens.length})</div>
-            ${itens.length ? `<div class="rz-card rz-list">${html}</div>` : `<p class="text-xs" style="color:var(--sage)">Nenhuma pendência.</p>`}
-        </div>`;
-    const corpoCib = cib.map(a => linha('file-text', a.nome, 'CIB não preenchido', `fecharSheet(); switchTab('tab-ativos'); if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip('${a.id}', 'resumo')`)).join('');
-    const corpoDoc = documentos.map(c => linha('user-x', c.nome, [c.endereco, 'sem CPF/CNPJ do locatário'].filter(Boolean).join(' · '), `fecharSheet(); if (typeof window.abrirFichaContrato === 'function') window.abrirFichaContrato('${c.id}')`)).join('');
+    };
+    const secoes = FECHAMENTO_FISCAL_GRUPOS.map(g => {
+        const itens = [...idx.entries()].filter(([, p]) => g.tipos.includes(p.tipo));
+        if (!itens.length) return '';
+        return `<div class="rz-group">${esc(g.titulo)} (${itens.length})</div>
+            <div class="rz-card rz-list">${itens.map(([i, p]) => linhaHtml(p, i)).join('')}</div>`;
+    }).join('');
+    const vazio = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-check-2"></svg></div><p class="rz-desc">Nenhuma pendência de cadastro para a NFS-e.</p></div>`;
+    const dica = podeEditarContrato ? 'Toque num locatário para preencher o CPF/CNPJ aqui mesmo.' : '';
     const corpo = `
-        <p class="rz-desc" style="margin-bottom:14px">O que falta pra emitir NFS-e quando a obrigatoriedade chegar — nada é emitido a partir daqui.</p>
-        ${secao('CIB pendente', cib, corpoCib)}
-        ${secao('Contrato sem documento do locatário', documentos, corpoDoc)}
-    `;
-    abrirSheet(rzSheetCabecalho('Checklist fiscal', 'Preparação — sem emissão nesta etapa') + `<div class="rz-sh-b">${corpo}</div>`);
+        <p class="rz-desc">O que falta no cadastro para emitir a NFS-e quando a obrigatoriedade chegar. Nada é emitido a partir daqui.${dica ? ' ' + dica : ''}</p>
+        ${pend.length ? secoes : vazio}`;
+    abrirSheet(rzSheetCabecalho('Checklist fiscal', pend.length ? `${pend.length} pendência${pend.length > 1 ? 's' : ''}` : 'Tudo certo') + `<div class="rz-sh-b">${corpo}</div>`);
+    if (typeof rzIcones === 'function') rzIcones();
+}
+
+/** v1.6.0 — toque numa linha do checklist. Locatário sem documento (D6):
+ * campo CPF/CNPJ no próprio Sheet de formulário. Demais: leva ao cadastro
+ * certo (ficha do ativo, contrato ou Minha empresa). */
+export function fechamentoTratarPendenciaFiscal(i) {
+    const p = (window.RZ_FIN_FISCAL_PEND || [])[i];
+    if (!p) return;
+    const podeEditarContrato = (typeof podeUsar === 'function') ? !!podeUsar('contratos.editar')?.ok : true;
+    if (p.entidade_tipo === 'contrato' && podeEditarContrato && typeof abrirSheetForm === 'function') {
+        fechamentoAbrirFormDocumentoTomador(p);
+        return;
+    }
+    fecharSheet();
+    if (p.entidade_tipo === 'contrato') {
+        if (typeof window.abrirFichaContrato === 'function') window.abrirFichaContrato(p.entidade_id);
+    } else if (p.entidade_tipo === 'ativo') {
+        switchTab('tab-ativos');
+        if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(p.entidade_id, 'resumo');
+    } else {
+        switchTab('tab-minha-empresa');
+    }
+}
+
+function fechamentoAbrirFormDocumentoTomador(p) {
+    const esc = (typeof rzEsc === 'function') ? rzEsc : (s) => String(s ?? '');
+    abrirSheetForm({
+        titulo: 'Documento do locatário',
+        sub: p.titulo,
+        rotuloSalvar: 'Salvar documento',
+        corpo: `
+            <div class="rz-f">
+                <label for="fech-doc-tomador">CPF ou CNPJ <i>*</i></label>
+                <input type="text" id="fech-doc-tomador" inputmode="text" autocomplete="off" maxlength="18" placeholder="Só números (CNPJ pode ter letras)">
+            </div>
+            <p class="rz-desc">${esc(p.detalhe || '')}. Fica gravado no cadastro do locatário em Partes e vale para todos os contratos dele.</p>`,
+        aoSalvar: async (corpoEl) => {
+            const doc = (corpoEl.querySelector('#fech-doc-tomador')?.value || '').trim();
+            if (!doc) { mostrarToast('Informe o CPF ou CNPJ.', 'danger'); return false; }
+            const { data, error } = await dbAuth.rpc('fn_contrato_tomador_documento_definir', { p_contrato_id: p.entidade_id, p_documento: doc });
+            if (error) { mostrarToast(error.message || 'Não consegui salvar o documento.', 'danger'); return false; }
+            emitirEscrita('contrato', { id: p.entidade_id, acao: 'editar' });
+            const antes = fechamentoFiscalPendencias.filter(x => x.entidade_tipo === 'contrato').length;
+            await fechamentoAtualizarFiscal(true);
+            const resolvidos = antes - fechamentoFiscalPendencias.filter(x => x.entidade_tipo === 'contrato').length;
+            // o mesmo locatário pode estar em vários contratos (1 cadastro em Partes): o documento vale para todos
+            const txt = data?.reaproveitou_parte ? 'Documento salvo — o contrato passou a usar o cadastro que já existia em Partes.'
+                : (resolvidos > 1 ? `Documento salvo — vale para os ${resolvidos} contratos deste locatário.` : 'Documento salvo.');
+            mostrarToast(txt, 'success');
+            setTimeout(() => fechamentoAbrirChecklistFiscal(), 0); // volta ao checklist já atualizado
+            return true;
+        },
+    });
 }
 
 function fechamentoRenderCorpo(linha) {
@@ -536,7 +605,7 @@ export function fechamentoAbrirAcoes() {
     // ligada (mesma regra de sempre — fechamentoRotinaFiscalLigada).
     const acoes = [];
     if (fechamentoRotinaFiscalLigada) {
-        const total = fechamentoFiscalPendencias.cib.length + fechamentoFiscalPendencias.documentos.length;
+        const total = fechamentoFiscalPendencias.length;
         acoes.push({ icone: 'file-check-2', titulo: 'Checklist fiscal', sub: total === 0 ? 'Tudo certo' : `${total} pendência(s)`, aoTocar: fechamentoAbrirChecklistFiscal });
     }
     acoes.push({ icone: 'send', titulo: 'Compartilhar com o contador', aoTocar: fechamentoAbrirCompartilharContador });
@@ -609,11 +678,10 @@ export async function fechamentoAbrirCompartilharContador() {
 
     let contadores = [];
     try {
-        const { data, error } = await dbAuth.from('prestadores')
-            .select('id, nome, whatsapp, email')
-            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('tipo', 'contador');
+        // v1.6.0 (D2) — fonte única: Partes (fn_contadores_empresa). id = parte.
+        const { data, error } = await dbAuth.rpc('fn_contadores_empresa', { p_cliente_id: CLIENTE_ID_SUPABASE });
         if (error) throw error;
-        contadores = data || [];
+        contadores = (data || []).map(c => ({ id: c.parte_id, nome: c.nome, whatsapp: c.whatsapp, email: c.email }));
     } catch (e) {
         console.error('[fechamento] buscar contador cadastrado', e);
         if (typeof mostrarToast === 'function') mostrarToast('Não consegui buscar o contador cadastrado agora.', 'danger');
@@ -693,7 +761,7 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias) {
     for (const comp of competencias) {
         try {
             const { data, error } = await dbAuth.rpc('fn_pacote_contador_montar', {
-                p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_contador_prestador_id: contadorId,
+                p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_contador_parte_id: contadorId,
             });
             if (error) throw error;
             const linha = data && data[0];
