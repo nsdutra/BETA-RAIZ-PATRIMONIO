@@ -1,6 +1,16 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.4.0 · 22/09/2026
+// Versão: 1.5.0 · 23/09/2026
+//
+// v1.5.0 (demanda 7bdcb8d4, pedido explícito do Nicola 23/09/2026): o card
+// de competência perdeu o ⋮ ("nao deve ter menu de 3 pontinhos no seletor
+// de competencia") e o Checklist fiscal virou um dos 6 botões do Financeiro.
+// Este módulo deixou de desenhar a célula Fechar/Abrir e o chip Fiscal: agora
+// só publica o estado (fechamentoPublicarEstado → window.RZ_FIN_FECHAMENTO /
+// window.RZ_FIN_FISCAL) e pede o redesenho a financeiro.js v1.20.0
+// (financeiroRedesenharQuadrantes), que pinta os 6 botões e o cadeado do mês
+// a partir do mesmo estado. fechamentoAbrirAcoes() continua exportada (ponte
+// existente), mas nenhuma tela chama mais.
 //
 // v1.4.0 (demanda 0e40951a — redesenho do Financeiro, pedido explícito do
 // Nicola) — fechamentoRenderBotaoDedicado(): (1) ícone do botão
@@ -210,7 +220,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -229,7 +239,9 @@ let fechamentoFiscalPendencias = { cib: [], documentos: [] };
 // v1.4.0 (demanda 0e40951a, redesenho do Financeiro) — ids trocados de
 // fin-botao-fechamento-* (ícone solto) pra fin-quad-fechamento-* (célula do
 // grid 2x2 novo, ver financeiroQuadrantesHtml em financeiro.js).
-const FECHAMENTO_IDS_BOTAO = ['fin-quad-fechamento-mensal', 'fin-quad-fechamento-saidas', 'fin-quad-fechamento-conciliacao'];
+// v1.5.0 (demanda 7bdcb8d4) — FECHAMENTO_IDS_BOTAO saiu: o botão Fechar/Abrir
+// (e os outros 5) é desenhado por financeiro.js a partir do estado publicado
+// em window.RZ_FIN_FECHAMENTO / window.RZ_FIN_FISCAL (ver fechamentoPublicarEstado).
 const FECHAMENTO_IDS_KPI = {
     pendente: 'fin-kpi-fech-pendente', naoControlado: 'fin-kpi-fech-nao-controlado',
     recebido: 'fin-kpi-fech-recebido', pago: 'fin-kpi-fech-pago',
@@ -269,6 +281,10 @@ export async function fechamentoAtualizarCard() {
     if (elCorpo) elCorpo.textContent = 'Verificando…';
     if (elStatus) elStatus.innerHTML = '';
     fechamentoCarregando = true;
+    // v1.5.0 — competência nova ainda não verificada: botões voltam ao estado
+    // neutro ("Verificando…") em vez de mostrar o status do mês anterior.
+    if (typeof window !== 'undefined') window.RZ_FIN_FECHAMENTO = null;
+    fechamentoPublicarEstado();
     try {
         const { data, error } = await dbAuth.rpc('fn_fechamento_verificar', {
             p_cliente_id: CLIENTE_ID_SUPABASE,
@@ -285,44 +301,47 @@ export async function fechamentoAtualizarCard() {
     } finally {
         fechamentoCarregando = false;
     }
-    fechamentoRenderBotaoDedicado(); // v1.2.0 — nos 3 chips, não só aqui
+    fechamentoPublicarEstado(); // v1.5.0 — financeiro.js redesenha os 6 botões + cadeado
     fechamentoAtualizarKpis(); // v1.2.0 — não bloqueia o corpo acima
     fechamentoAtualizarFiscal(); // v1.1.0 — não bloqueia o corpo acima; 1x por sessão (guard interno)
 }
 
-/** v1.2.0 — botão dedicado (cadeado) de Fechar/Abrir, presente nos 3 chips
- * de nível superior do Financeiro (Recebimentos · Saídas · Fechamento) —
- * REGRAS §11.1: sai do ⋮, vira ação de 1 toque só, direto no Sheet de
- * formulário (sem o Sheet de ações intermediário, que só tinha essa
- * opção). */
-function fechamentoRenderBotaoDedicado() {
+/** v1.5.0 (demanda 7bdcb8d4, pedido explícito do Nicola 23/09/2026: "Os
+ * botoes devem sinalizar seus status... a depender do status da
+ * compentencia") — antes (v1.2.0–v1.4.0) este módulo desenhava sozinho a
+ * célula Fechar/Abrir (fechamentoRenderBotaoDedicado) e o chip Fiscal
+ * (fechamentoRenderFiscalChip). Agora são 6 botões que dependem do mesmo
+ * estado (Adicionar trava com a competência fechada, Contador fica verde,
+ * Fiscal e Atrasados mostram pendência), então o desenho foi pra UM lugar
+ * só — financeiroQuadrantesHtml(), js/financeiro.js — e este módulo só
+ * PUBLICA o estado em window e pede o redesenho (ponte window, módulos
+ * isolados — mesmo padrão de window.RZ_FIN_COMPETENCIA_FECHADA). */
+function fechamentoPublicarEstado() {
+    if (typeof window === 'undefined') return;
     const linha = fechamentoUltimoEstado;
-    FECHAMENTO_IDS_BOTAO.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (!linha || linha.status === 'sem_rotina') { el.innerHTML = ''; return; }
-        const fechada = linha.status === 'concluido';
-        // v1.4.0 (demanda 0e40951a, pedido explícito do Nicola: "Inverta o
-        // desenho do abrir e fechar compentencia") — o desenho de antes
-        // mostrava lock-open (cadeado ABERTO) quando a competência estava
-        // FECHADA, e lock (cadeado FECHADO) quando estava ABERTA — o ícone
-        // descrevia a AÇÃO ("toque pra abrir"/"toque pra fechar"), não o
-        // ESTADO atual, invertido do que o desenho de um cadeado sugere à
-        // primeira vista. Agora o ícone reflete o estado de verdade:
-        // fechada → cadeado fechado; aberta → cadeado aberto. O título
-        // (rótulo da ação) continua o mesmo, sem mudança de comportamento.
-        const icone = fechada ? 'lock' : 'lock-open';
-        const titulo = fechada ? 'Abrir competência' : 'Fechar competência';
-        const explicacao = fechada ? 'Competência fechada — reabrir pra corrigir' : 'Registra o retrato deste mês';
-        // v1.4.0 — célula do grid 2x2 (.rz-fin-quad, index.html), mesmo
-        // conteúdo de um quadrante normal de financeiroQuadrantesHtml()
-        // (financeiro.js) — ícone à esquerda + título + explicação.
-        el.innerHTML = `<button type="button" class="rz-fin-quad" onclick="fechamentoAlternarBotao()">` +
-            `<div class="rz-ic"><svg data-lucide="${icone}"></svg></div>` +
-            `<div class="rz-tx"><b>${titulo}</b><small>${explicacao}</small></div>` +
-        `</button>`;
-    });
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (linha && !fechamentoCarregando) {
+        const uf = linha.ultimo_fechamento || {};
+        const p = linha.pendencias || {};
+        window.RZ_FIN_FECHAMENTO = {
+            status: linha.status,
+            fechadoEm: uf.fechado_em || null,
+            motivo: linha.motivo_bloqueio || null,
+            pendencias: {
+                tem: !!p.tem_pendencia,
+                recebimentosEmAtraso: Number(p.recebimentos_em_atraso || 0),
+                saidasEmAtraso: Number(p.saidas_em_atraso || 0),
+            },
+        };
+    } else if (!linha && !fechamentoCarregando) {
+        // falha ao verificar: sai do "Verificando…" (estado neutro de aberta;
+        // o toque em Fechar já avisa que o fechamento está indisponível).
+        window.RZ_FIN_FECHAMENTO = { status: 'indisponivel', fechadoEm: null, motivo: null, pendencias: { tem: false, recebimentosEmAtraso: 0, saidasEmAtraso: 0 } };
+    }
+    window.RZ_FIN_FISCAL = (fechamentoRotinaFiscalLigada === null) ? null : {
+        ligada: !!fechamentoRotinaFiscalLigada,
+        total: fechamentoFiscalPendencias.cib.length + fechamentoFiscalPendencias.documentos.length,
+    };
+    if (typeof window.financeiroRedesenharQuadrantes === 'function') window.financeiroRedesenharQuadrantes();
 }
 
 /** v1.2.0 — clique do botão dedicado: vai direto pro Sheet de formulário
@@ -417,15 +436,10 @@ async function fechamentoAtualizarFiscal() {
     fechamentoRenderFiscalChip();
 }
 
+// v1.5.0 (demanda 7bdcb8d4) — o chip Fiscal virou o botão "Fiscal" dos 6
+// (financeiro.js); aqui só publica o estado.
 function fechamentoRenderFiscalChip() {
-    const el = document.getElementById('fin-fiscal-chip');
-    if (!el) return;
-    if (!fechamentoRotinaFiscalLigada) { el.innerHTML = ''; return; } // regra F3.1: chip só aparece com a rotina ligada
-    const total = fechamentoFiscalPendencias.cib.length + fechamentoFiscalPendencias.documentos.length;
-    const pill = (typeof renderStatus === 'function')
-        ? renderStatus(total === 0 ? 'ok' : 'warn', total === 0 ? 'Fiscal OK' : `Fiscal · ${total}`)
-        : `<span class="rz-st rz-${total === 0 ? 'ok' : 'warn'}">${total === 0 ? 'Fiscal OK' : `Fiscal · ${total}`}</span>`;
-    el.innerHTML = `<button type="button" onclick="fechamentoAbrirChecklistFiscal()" style="background:none;border:none;padding:0;cursor:pointer" aria-label="Ver checklist fiscal">${pill}</button>`;
+    fechamentoPublicarEstado();
 }
 
 /** Entrega F3.1 — checklist por imóvel: CIB preenchido? contrato ativo com

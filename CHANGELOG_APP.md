@@ -4,6 +4,37 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.245.0) — demanda 176b3145 (pedido explícito do
+Nicola: "ao clicar no menu tres pontos deve ter a opção de adicionar e
+nao editar... se tiver uma parte cadastrada, ao clicar nela ja entra
+no form pra edição... eliminar telas intermediárias"):
+(1) abrirFormParteSheet() ganhou um fallback pra buscar a parte direto
+no banco quando `partesCliente` ainda não foi carregado nesta sessão
+(array é lazy-load, só busca ao abrir a aba Partes) — sem isto o form
+abriria em branco como "Nova parte" mesmo editando uma parte real, e
+salvar sobrescreveria os dados dela (mesmo fix em salvarParteSheet,
+pro endereço não ser apagado). (2) Lista de Configurações › Partes:
+clicar numa linha vai direto pro form de edição (antes abria a Ficha,
+uma tela intermediária); o ⋮ continua oferecendo "Abrir ficha" pra
+quem quiser só ver. (3) Listener global 'cofre:abrir-ficha-parte'
+(chips do popup Detalhes do Contrato, "Editar/Adicionar locatário",
+linhas de parte num item de controle — cobre TODOS de uma vez, ver
+cofre-app.js v1.37.0 pro caso do item de controle) passa a abrir o
+form de edição direto também. (4) contratos.js v1.19.0: "Editar
+locatário" virou dinâmico "Adicionar locatário"/"Editar locatário",
+mesmo padrão que "Adicionar/Editar fiador" já usava. (5) Fase 1 do
+wrapper de escrita (js/raiz-eventos.js) chega em Pessoas/Partes:
+salvarParteSheet/salvarEmpreendimentosDaParte/excluirParte/
+gravarPapelParte emitem 'parte' agora (helper emitirEscritaGlobal,
+import dinâmico — script clássico não é módulo); listener próprio
+recarrega a aba Partes se ela já tiver sido aberta nesta sessão.
+------------------------------------------------------------------
+Versões anteriores (v1.244.0 … v1.244.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.244.0) — demanda 472927ba:
 Achado ao vivo do Nicola (master na Rumo, plano Plus): o item "Versões"
 do menu Conta mostrava "Não incluído no plano". Causa: o item usava

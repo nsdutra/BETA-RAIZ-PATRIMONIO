@@ -1,7 +1,20 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.19.0 · 22/09/2026
+// Versão: 1.20.0 · 23/09/2026
+//
+// v1.20.0 (demanda 7bdcb8d4, pedido explícito do Nicola 23/09/2026 com
+// prints): topo do Financeiro reorganizado (index.html v1.249.0) e os
+// botões de função passaram de 4 pra 6 — Extrato · Adicionar · Fechar/
+// Abrir competência · Contador · Fiscal (saiu do ⋮ do card de competência,
+// que deixou de existir) · Atrasados (tela que já existia, abrirTelaAtrasados).
+// Os botões sinalizam o status da competência pela cor do ícone e ficam
+// indisponíveis (.rz-off, toque explica) quando a ação não cabe — ex.:
+// Adicionar com a competência fechada. financeiroQuadrantesHtml() passou a
+// desenhar os 6 a partir do estado que js/fechamento.js v1.5.0 publica em
+// window.RZ_FIN_FECHAMENTO/RZ_FIN_FISCAL; novas: financeiroRedesenharQuadrantes()
+// (chamada por fechamento.js), financeiroRenderCadeadoCompetencia() (cadeado
+// ao lado do mês quando fechada), financeiroIrParaRotinas() (Fiscal desligado).
 //
 // v1.19.0 (demanda 0e40951a, complemento — pedido explícito do Nicola,
 // 22/09/2026, em resposta à pergunta feita na entrega anterior sobre o
@@ -673,7 +686,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.19.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.20.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -856,23 +869,123 @@ function financeiroRedesenharChipsNivel() {
 // foi revertida — abrirNovoRecebimento() abaixo é a funcionalidade nova.
 // O quadrante agora abre abrirAcoesAdicionarFinanceiro(), mesmo menu nas
 // 3 abas, com 2 ações (Novo recebimento / Nova despesa).
+// v1.20.0 (demanda 7bdcb8d4, pedido explícito do Nicola 23/09/2026: "Fazer
+// caber 6 botoes, trazendo a opcao fiscal para um dos botoes... Os botoes
+// devem sinalizar seus status (sinalizar com cor do icone ou do botao) a
+// depender do status da compentencia, ex nao posso adicionar mais itens se
+// ja ta fechada") — grid 3x2, mesma ordem nas 3 abas:
+//   Extrato · Adicionar · Fechar/Abrir competência · Contador · Fiscal · Atrasados
+// O ESTADO vem de js/fechamento.js, publicado em window (módulos isolados,
+// mesmo padrão de window.RZ_FIN_COMPETENCIA_FECHADA):
+//   window.RZ_FIN_FECHAMENTO — null enquanto verifica a competência; depois
+//     { status: 'aberto'|'concluido'|'sem_rotina', fechadoEm, motivo,
+//       pendencias: { tem, recebimentosEmAtraso, saidasEmAtraso } }
+//   window.RZ_FIN_FISCAL — null enquanto verifica; depois { ligada, total }
+// fechamento.js chama financeiroRedesenharQuadrantes() quando o estado muda.
+// Regras de status:
+//   · competência FECHADA → Adicionar indisponível (toque explica e aponta
+//     pro "Abrir competência"); Fechar vira "Abrir" com cadeado verde e a
+//     data do fechamento; Contador verde (pronto pra enviar).
+//   · ABERTA → Fechar com ícone de atenção se há atraso; Contador apagado
+//     (continua tocável: envia competências anteriores já fechadas).
+//   · rotina de fechamento desligada → Fechar e Contador indisponíveis,
+//     toque leva a Empresa › Rotinas (mesmo destino do chip Fechamento).
+//   · Fiscal: verde sem pendência, atenção com N pendências, indisponível
+//     com a rotina nfse_competencia desligada.
+//   · Atrasados: vermelho com o valor em atraso, verde quando não há.
+// Extrato fica sempre disponível: o import cobre várias datas e o banco já
+// bloqueia gravação em competência fechada (trigger), então travar aqui
+// esconderia o extrato dos outros meses.
 function financeiroQuadrantesHtml(aba) {
-    const quad = (icone, iaClasse, titulo, explicacao, onclick) => `
-        <button type="button" class="rz-fin-quad" onclick="${onclick}">
-            <div class="rz-ic${iaClasse ? ' ' + iaClasse : ''}"><svg data-lucide="${icone}"></svg></div>
-            <div class="rz-tx"><b>${titulo}</b><small>${explicacao}</small></div>
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const quad = ({ icone, estado = '', titulo, explicacao, onclick, off = false }) => `
+        <button type="button" class="rz-fin-quad${off ? ' rz-off' : ''}" onclick="${esc(onclick)}"${off ? ' aria-disabled="true"' : ''}>
+            <div class="rz-ic${estado ? ' rz-' + estado : ''}"><svg data-lucide="${icone}"></svg></div>
+            <div class="rz-tx"><b>${esc(titulo)}</b><small>${esc(explicacao)}</small></div>
         </button>`;
-    const extrato = quad('file-down', 'rz-ia', 'Extrato', 'Importar extrato bancário', 'abrirAcoesImportarConciliacao()');
-    // v1.19.0 (pedido explícito do Nicola, 22/09/2026 — "O quadrante
-    // 'Adicionar' deve permitir adicionar um recebimento ou uma despesa")
-    // — deixou de ser contextual por aba (Recebimentos/Fechamento só
-    // orientavam pra onde a coisa nasce de verdade, Saídas tinha a criação
-    // manual de despesa). Agora as 3 abas mostram o MESMO quadrante, que
-    // abre um menu de 2 ações — ver abrirAcoesAdicionarFinanceiro().
-    const adicionar = quad('plus', null, 'Adicionar', 'Recebimento ou despesa avulsa', 'abrirAcoesAdicionarFinanceiro()');
-    const fechamento = `<span id="fin-quad-fechamento-${aba}"></span>`; // preenchido por fechamento.js
-    const contador = quad('send', null, 'Contador', 'Compartilhar competência fechada', 'fechamentoAbrirCompartilharContador()');
-    return `<div class="rz-fin-quad-grid">${extrato}${adicionar}${fechamento}${contador}</div>`;
+    const aviso = (msg) => `mostrarToast('${String(msg).replace(/'/g, "\\'")}', 'info')`;
+
+    const est = (typeof window !== 'undefined') ? (window.RZ_FIN_FECHAMENTO || null) : null;
+    const fis = (typeof window !== 'undefined') ? (window.RZ_FIN_FISCAL || null) : null;
+    const rotinaOff = financeiroRotinaFechamentoLigada === false || est?.status === 'sem_rotina';
+    const fechada = est?.status === 'concluido';
+    const pend = est?.pendencias || null;
+
+    const extrato = quad({ icone: 'file-down', estado: 'ia', titulo: 'Extrato', explicacao: 'Importar extrato do banco', onclick: 'abrirAcoesImportarConciliacao()' });
+
+    const adicionar = fechada
+        ? quad({ icone: 'plus', titulo: 'Adicionar', explicacao: 'Competência fechada — reabra para lançar', off: true,
+                 onclick: aviso('Competência fechada. Toque em "Abrir competência" para lançar algo neste mês.') })
+        : quad({ icone: 'plus', titulo: 'Adicionar', explicacao: 'Recebimento ou despesa avulsa', onclick: 'abrirAcoesAdicionarFinanceiro()' });
+
+    let fechar;
+    if (rotinaOff) {
+        fechar = quad({ icone: 'lock-open', titulo: 'Fechar competência', explicacao: 'Rotina de fechamento desligada', off: true, onclick: 'rzTocarChipFechamentoDesligado()' });
+    } else if (!est) {
+        fechar = quad({ icone: 'lock-open', estado: 'mute', titulo: 'Fechar competência', explicacao: 'Verificando…', onclick: 'fechamentoAlternarBotao()' });
+    } else if (fechada) {
+        const quando = est.fechadoEm ? `Fechada em ${new Date(est.fechadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : 'Fechada';
+        fechar = quad({ icone: 'lock', estado: pend?.tem ? 'warn' : 'ok', titulo: 'Abrir competência', explicacao: `${quando} — reabrir pra corrigir`, onclick: 'fechamentoAlternarBotao()' });
+    } else {
+        fechar = quad({ icone: 'lock-open', estado: pend?.tem ? 'warn' : '', titulo: 'Fechar competência',
+                        explicacao: pend?.tem ? 'Há lançamentos em atraso' : 'Registra o retrato do mês', onclick: 'fechamentoAlternarBotao()' });
+    }
+
+    const contador = rotinaOff
+        ? quad({ icone: 'send', titulo: 'Contador', explicacao: 'Rotina de fechamento desligada', off: true, onclick: 'rzTocarChipFechamentoDesligado()' })
+        : quad({ icone: 'send', estado: fechada ? 'ok' : 'mute', titulo: 'Contador',
+                 explicacao: fechada ? 'Enviar esta competência' : 'Envia competências já fechadas', onclick: 'fechamentoAbrirCompartilharContador()' });
+
+    let fiscal;
+    if (!fis) {
+        fiscal = quad({ icone: 'file-check-2', estado: 'mute', titulo: 'Fiscal', explicacao: 'Verificando…', onclick: 'fechamentoAbrirChecklistFiscal()' });
+    } else if (!fis.ligada) {
+        fiscal = quad({ icone: 'file-check-2', titulo: 'Fiscal', explicacao: 'Rotina fiscal desligada', off: true, onclick: 'financeiroIrParaRotinas()' });
+    } else if (fis.total === 0) {
+        fiscal = quad({ icone: 'file-check-2', estado: 'ok', titulo: 'Fiscal', explicacao: 'Pronto para NFS-e', onclick: 'fechamentoAbrirChecklistFiscal()' });
+    } else {
+        fiscal = quad({ icone: 'file-check-2', estado: 'warn', titulo: 'Fiscal', explicacao: `${fis.total} pendência${fis.total > 1 ? 's' : ''} para NFS-e`, onclick: 'fechamentoAbrirChecklistFiscal()' });
+    }
+
+    const valorAtraso = Number(pend?.recebimentosEmAtraso || 0);
+    // sem rotina / falha de verificação: o banco não calculou pendências — neutro, nunca "nada em atraso"
+    const atrasados = (!est || est.status === 'sem_rotina' || est.status === 'indisponivel')
+        ? quad({ icone: 'alarm-clock', estado: 'mute', titulo: 'Atrasados', explicacao: 'Recebimentos em atraso', onclick: 'abrirTelaAtrasados()' })
+        : valorAtraso > 0
+            ? quad({ icone: 'alarm-clock', estado: 'bad', titulo: 'Atrasados', explicacao: `${formatarMoedaBR(valorAtraso)} em atraso`, onclick: 'abrirTelaAtrasados()' })
+            : quad({ icone: 'alarm-clock', estado: 'ok', titulo: 'Atrasados', explicacao: 'Nada em atraso neste mês', onclick: 'abrirTelaAtrasados()' });
+
+    return `<div class="rz-fin-quad-grid">${extrato}${adicionar}${fechar}${contador}${fiscal}${atrasados}</div>`;
+}
+
+// v1.20.0 — cadeado ao lado do mês (#fin-competencia-lock-*), só com a
+// competência fechada (pedido explícito). Mesmo estado dos botões.
+function financeiroRenderCadeadoCompetencia() {
+    const fechada = (typeof window !== 'undefined') && window.RZ_FIN_FECHAMENTO?.status === 'concluido';
+    ['mensal', 'saidas', 'conciliacao'].forEach(aba => {
+        const el = document.getElementById(`fin-competencia-lock-${aba}`);
+        if (el) el.classList.toggle('hidden', !fechada);
+    });
+}
+
+// v1.20.0 — chamado por js/fechamento.js (ponte window) sempre que o estado
+// da competência ou do fiscal muda. Redesenha os 6 botões das 3 abas (só as
+// já montadas) e o cadeado.
+export function financeiroRedesenharQuadrantes() {
+    ['mensal', 'saidas', 'conciliacao'].forEach(aba => {
+        const el = document.getElementById(`fin-quadrantes-${aba}`);
+        if (el) el.innerHTML = financeiroQuadrantesHtml(aba);
+    });
+    financeiroRenderCadeadoCompetencia();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// v1.20.0 — toque no Fiscal indisponível: leva a Empresa › Rotinas (mesmo
+// destino/padrão de rzTocarChipFechamentoDesligado).
+export function financeiroIrParaRotinas() {
+    if (typeof mostrarToast === 'function') mostrarToast('A rotina fiscal (NFS-e) está desligada. Ative em Empresa › Rotinas.', 'info');
+    switchTab('tab-minha-empresa');
+    setTimeout(() => document.getElementById('cme-rotinas-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 
 // v1.19.0 — menu do quadrante "Adicionar" (Recebimentos/Saídas/Fechamento):
@@ -1072,6 +1185,7 @@ async function financeiroVerificarRotinaFechamento() {
         financeiroRotinaFechamentoLigada = true; // falha de rede nunca trava o chip — só a rotina desligada de propósito trava
     }
     financeiroRedesenharChipsNivel();
+    financeiroRedesenharQuadrantes(); // v1.20.0 — Fechar/Contador dependem da rotina
 }
 
 export function rzTocarChipFechamentoDesligado() {
@@ -1121,6 +1235,7 @@ function financeiroRenderCabecalho(aba) {
     // financeiroQuadrantesHtml() acima.
     const elQuad = document.getElementById(`fin-quadrantes-${aba}`);
     if (elQuad) elQuad.innerHTML = financeiroQuadrantesHtml(aba);
+    financeiroRenderCadeadoCompetencia(); // v1.20.0 (demanda 7bdcb8d4)
     if (financeiroRotinaFechamentoLigada === null) financeiroVerificarRotinaFechamento();
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
     // Entrega F.2 — card de Fechar/Reabrir dentro do chip Fechamento
