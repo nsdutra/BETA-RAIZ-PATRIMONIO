@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.20.0 · 23/09/2026
+// Versão: 1.21.0 · 23/09/2026
+//
+// v1.21.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026: "o
+// botao extrato generalize para importar documento mas deixa a palavra
+// extrato. o fechar competencia, tente usar uma palavra so ou nao cortar o
+// texto. Mude o titulo da aba fechamento para conciliacao"): botão
+// "Importar" (explicação "Extrato ou outro documento") abre menu com
+// Importar extrato / Importar documento (upload com IA,
+// abrirUploadDocumentoNoApp) / Reprocessar; botão Fechar/Reabrir com
+// título de uma palavra; chip do seletor "Fechamento" → "Conciliação".
 //
 // v1.20.0 (demanda 7bdcb8d4, pedido explícito do Nicola 23/09/2026 com
 // prints): topo do Financeiro reorganizado (index.html v1.249.0) e os
@@ -686,7 +695,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.20.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.21.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -829,7 +838,7 @@ function financeiroChipsNivelHtml(aba) {
     const itens = [
         { chave: 'mensal', rotulo: 'Recebimentos', tab: 'tab-mensal' },
         { chave: 'saidas', rotulo: 'Saídas', tab: 'tab-saidas' },
-        { chave: 'conciliacao', rotulo: 'Fechamento', tab: 'tab-conciliacao', off: fechamentoOff },
+        { chave: 'conciliacao', rotulo: 'Conciliação', tab: 'tab-conciliacao', off: fechamentoOff }, // v1.21.0 — pedido explícito: "Mude o titulo da aba fechamento para conciliacao"
     ];
     return itens.map(it => {
         const classes = [it.chave === aba ? 'rz-on' : '', it.off ? 'rz-off' : ''].filter(Boolean).join(' ');
@@ -911,24 +920,25 @@ function financeiroQuadrantesHtml(aba) {
     const fechada = est?.status === 'concluido';
     const pend = est?.pendencias || null;
 
-    const extrato = quad({ icone: 'file-down', estado: 'ia', titulo: 'Extrato', explicacao: 'Importar extrato do banco', onclick: 'abrirAcoesImportarConciliacao()' });
+    // v1.21.0 (pedido explícito: "o botao extrato generalize para importar documento mas deixa a palavra extrato")
+    const extrato = quad({ icone: 'file-down', estado: 'ia', titulo: 'Importar', explicacao: 'Extrato ou outro documento', onclick: 'abrirAcoesImportarConciliacao()' });
 
     const adicionar = fechada
         ? quad({ icone: 'plus', titulo: 'Adicionar', explicacao: 'Competência fechada — reabra para lançar', off: true,
-                 onclick: aviso('Competência fechada. Toque em "Abrir competência" para lançar algo neste mês.') })
+                 onclick: aviso('Competência fechada. Toque em "Reabrir" para lançar algo neste mês.') })
         : quad({ icone: 'plus', titulo: 'Adicionar', explicacao: 'Recebimento ou despesa avulsa', onclick: 'abrirAcoesAdicionarFinanceiro()' });
 
     let fechar;
     if (rotinaOff) {
-        fechar = quad({ icone: 'lock-open', titulo: 'Fechar competência', explicacao: 'Rotina de fechamento desligada', off: true, onclick: 'rzTocarChipFechamentoDesligado()' });
+        fechar = quad({ icone: 'lock-open', titulo: 'Fechar', explicacao: 'Rotina de fechamento desligada', off: true, onclick: 'rzTocarChipFechamentoDesligado()' });
     } else if (!est) {
-        fechar = quad({ icone: 'lock-open', estado: 'mute', titulo: 'Fechar competência', explicacao: 'Verificando…', onclick: 'fechamentoAlternarBotao()' });
+        fechar = quad({ icone: 'lock-open', estado: 'mute', titulo: 'Fechar', explicacao: 'Verificando…', onclick: 'fechamentoAlternarBotao()' });
     } else if (fechada) {
         const quando = est.fechadoEm ? `Fechada em ${new Date(est.fechadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : 'Fechada';
-        fechar = quad({ icone: 'lock', estado: pend?.tem ? 'warn' : 'ok', titulo: 'Abrir competência', explicacao: `${quando} — reabrir pra corrigir`, onclick: 'fechamentoAlternarBotao()' });
+        fechar = quad({ icone: 'lock', estado: pend?.tem ? 'warn' : 'ok', titulo: 'Reabrir', explicacao: `${quando} — reabra pra corrigir`, onclick: 'fechamentoAlternarBotao()' });
     } else {
-        fechar = quad({ icone: 'lock-open', estado: pend?.tem ? 'warn' : '', titulo: 'Fechar competência',
-                        explicacao: pend?.tem ? 'Há lançamentos em atraso' : 'Registra o retrato do mês', onclick: 'fechamentoAlternarBotao()' });
+        fechar = quad({ icone: 'lock-open', estado: pend?.tem ? 'warn' : '', titulo: 'Fechar',
+                        explicacao: pend?.tem ? 'Competência com lançamentos em atraso' : 'Fecha a competência do mês', onclick: 'fechamentoAlternarBotao()' });
     }
 
     const contador = rotinaOff
@@ -3003,8 +3013,14 @@ function financeiroRenderCabecalho(aba) {
         // card cheio + um link separado, ocupando 2 blocos no topo da aba).
         export function abrirAcoesImportarConciliacao() {
             if (typeof abrirSheetAcoes !== 'function') return;
-            abrirSheetAcoes({ titulo: 'Extrato bancário', acoes: [
-                { icone: 'file-down', titulo: 'Importar extrato', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+            // v1.21.0 (pedido explícito: "o botao extrato generalize para
+            // importar documento mas deixa a palavra extrato") — menu virou
+            // "Importar" com 3 ações: extrato (conciliação, como antes),
+            // documento (comprovante/boleto/nota — mesmo upload com IA do
+            // Raiz IA, abrirUploadDocumentoNoApp em index.html) e reprocessar.
+            abrirSheetAcoes({ titulo: 'Importar', acoes: [
+                { icone: 'file-down', titulo: 'Importar extrato', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto — concilia os lançamentos', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+                { icone: 'file-plus', titulo: 'Importar documento', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto ou nota — a IA classifica e vincula', tipo: 'ia', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
                 { icone: 'refresh-cw', titulo: 'Reprocessar', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação de regras nas pendências, se algo mudou depois da importação', aoTocar: () => reprocessarConciliacaoPendente() },
             ] });
         }

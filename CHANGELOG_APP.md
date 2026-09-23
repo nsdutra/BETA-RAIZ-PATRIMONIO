@@ -4,6 +4,33 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.246.0) — demanda 0e40951a (pedido explícito do
+Nicola: "Reorganizar os botoes de forma a ter a competencia no alto...
+Depois, titulo da tela. Depois, para as funcoes, extrato, adicionar,
+abrir/fechar compentencia, compartilhar com contador: colocar a
+esquerda o botão e uma explicação da funcao na frente. Colocar 2
+botoes a direita e dois a esquerda como se fosse 4 quadrantes...
+Inverta o desenho do abrir e fechar compentencia. No componente da
+compentencia nao deve ter tag de fiscal, nem msg de aberta ou
+fechada"): as 3 abas do grupo Financeiro (Recebimentos/Saídas/
+Fechamento) seguem agora a MESMA ordem: card de competência → chips
+Recebimentos·Saídas·Fechamento → título da tela → grid 2x2 de funções
+(.rz-fin-quad-grid, CSS novo) — cada quadrante com ícone à esquerda +
+título + explicação que QUEBRA linha de propósito (nunca nowrap/
+ellipsis — corrige o achado "mensagens estão saindo da tela" na
+Conciliação). Card de competência (aba Fechamento) perdeu a tag
+"Fiscal" e a mensagem aberta/fechada — só barra de mês + ⋮ (checklist
+fiscal e estado fechada/aberta continuam acessíveis, só saíram do
+card). Ícone de Fechar/Abrir competência corrigido (estava mostrando
+cadeado aberto pra competência FECHADA). Ver changelog de
+financeiro.js v1.18.0/fechamento.js v1.4.0 pro resto do rollout.
+------------------------------------------------------------------
+Versões anteriores (v1.245.0 … v1.245.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.245.0) — demanda 176b3145 (pedido explícito do
 Nicola: "ao clicar no menu tres pontos deve ter a opção de adicionar e
 nao editar... se tiver uma parte cadastrada, ao clicar nela ja entra

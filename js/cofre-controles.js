@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.32.0 · 22/09/2026
+// Versão: 1.33.0 · 23/09/2026
+//
+// v1.33.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026 com
+// prints do item de controle Condomínio): ⋮ de Partes do item tinha só
+// "Editar partes", que abria o editor da lista (modal "Editar partes do
+// item" com "+ Adicionar parte" dentro) — tela intermediária. Agora o ⋮
+// tem "Adicionar parte" (form curto direto: parte + papel, grava na hora —
+// abrirAdicionarParteItem), "Gerar despesa" e "Remover parte"
+// (abrirRemoverParteItem). Editar os dados da parte continua sendo tocar
+// na linha (form da parte direto).
 //
 // v1.32.0 (22/09/2026 — Fase 1 do wrapper de escrita, rollout Cofre de
 // Documentos/Controles — pedido do Nicola 22/09/2026). Este é o módulo de
@@ -465,7 +474,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.32.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.33.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1146,12 +1155,111 @@ export function abrirAcoesDadosItem() {
         { icone: 'trash-2', titulo: 'Excluir item de vez', codigo: 'cofre.controles.desativar', sub: 'Some do banco. Bloqueado se houver ocorrência já tratada', tipo: 'bad', aoTocar: () => excluirItemControleAtual() },
     ] });
 }
-export function abrirAcoesPartesItem() {
+// v1.33.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026: "Ao
+// clicar no menu 3 pontinhos da parte, nao aparece opcao adicionar parte.
+// so editar... ao editar locatario ou parte ainda mostra tela de transicao")
+// — o ⋮ tinha só "Editar partes", que abria o editor da LISTA de vínculos
+// ("Editar partes do item", modal com "+ Adicionar parte" dentro): era a
+// tela intermediária. Agora:
+//   · "Adicionar parte" → formulário curto direto (qual parte + papel),
+//     grava na hora (abrirAdicionarParteItem);
+//   · editar os dados de uma parte = tocar na linha (já abria o form da
+//     parte direto — cofre-app.js, case 'abrir-ficha-parte');
+//   · "Remover parte" → escolhe qual e grava (abrirRemoverParteItem).
+// abrirEditarPartesItem (editor de lista) continua exportada, fora do ⋮.
+export async function abrirAcoesPartesItem() {
     const item = itemEmFoco; if (!item) return;
-    sheetAcoes({ titulo: 'Partes do item', sub: item.titulo, acoes: [
-        { icone: 'users', titulo: 'Editar partes', codigo: 'cofre.controles.editar', sub: 'Quem responde por este item', aoTocar: () => abrirEditarPartesItem() },
+    const atuais = await api.buscarPartesDoItemControle(item.id);
+    const acoes = [
+        { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'cofre.controles.editar', sub: 'Quem responde por este item', aoTocar: () => abrirAdicionarParteItem() },
         { icone: 'receipt', titulo: 'Gerar despesa', codigo: 'saidas.registrar', sub: 'Lançamento com a parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
-    ] });
+    ];
+    if (atuais.length) acoes.push({ icone: 'user-minus', titulo: 'Remover parte', codigo: 'cofre.controles.editar', tipo: 'bad', sub: 'Tira o vínculo; o cadastro da parte continua', aoTocar: () => abrirRemoverParteItem(atuais) });
+    sheetAcoes({ titulo: 'Partes do item', sub: item.titulo, acoes });
+}
+
+// v1.33.0 — "Adicionar parte" direto: escolhe uma parte já cadastrada (ou
+// cria uma nova só com o nome — mesmo criarParteRapida de antes) e o papel.
+// Sem nenhuma parte ainda, a parte padrão do subtipo (E14.3 — prefeitura,
+// órgão recolhedor) vem sugerida no topo da lista, como no editor antigo.
+export async function abrirAdicionarParteItem() {
+    const item = itemEmFoco; if (!item) return;
+    if (typeof window.abrirSheetForm !== 'function') { mostrarToast('Disponível só dentro do app principal.', 'erro'); return; }
+    if (partesClienteCache === null) partesClienteCache = await api.listarPartesCliente(estado.clienteId);
+    const atuais = await api.buscarPartesDoItemControle(item.id);
+    let padrao = null;
+    if (!atuais.length && item.subtipo_id) {
+        try { padrao = await api.resolverPartePadrao(item.subtipo_id, item.cofre_ativos?.codigo_ibge_municipio, item.cofre_ativos?.uf); } catch (_) { padrao = null; }
+    }
+    const optsPartes = [
+        '<option value="">— escolher —</option>',
+        padrao ? `<option value="__padrao__:${padrao.id}">★ ${escapeHtml(padrao.nome)} (sugerida)</option>` : '',
+        ...(partesClienteCache || []).map(p => `<option value="${p.id}">${escapeHtml(p.nome)}</option>`),
+        '<option value="__nova__">+ Cadastrar parte nova</option>',
+    ].join('');
+    const optsPapeis = PAPEIS_PARTE_ITEM.map(p => `<option value="${p.v}"${p.v === 'prestador' ? ' selected' : ''}>${escapeHtml(p.l)}</option>`).join('');
+    window.abrirSheetForm({
+        titulo: 'Adicionar parte',
+        sub: item.titulo || '',
+        rotuloSalvar: 'Adicionar',
+        corpo: `
+            <div class="rz-f"><label for="pia-parte">Parte <i>*</i></label><select id="pia-parte" onchange="window.__piaMudarParte(this.value)">${optsPartes}</select></div>
+            <div class="rz-f hidden" id="pia-wrap-nome"><label for="pia-nome">Nome da parte nova <i>*</i></label><input type="text" id="pia-nome" placeholder="Os demais dados você completa tocando na parte"></div>
+            <div class="rz-f"><label for="pia-papel">Papel neste item</label><select id="pia-papel">${optsPapeis}</select></div>`,
+        aoSalvar: async (el) => {
+            const escolha = el.querySelector('#pia-parte')?.value || '';
+            const papel = el.querySelector('#pia-papel')?.value || 'prestador';
+            const nomeNovo = (el.querySelector('#pia-nome')?.value || '').trim();
+            if (!escolha) { mostrarToast('Escolha a parte.', 'erro'); return false; }
+            if (escolha === '__nova__' && !nomeNovo) { mostrarToast('Informe o nome da parte nova.', 'erro'); return false; }
+            try {
+                let parteId = escolha;
+                if (escolha === '__nova__') {
+                    const { data: novaParte, error } = await api.criarParteRapida(estado.clienteId, nomeNovo);
+                    if (error) throw error;
+                    parteId = novaParte.id;
+                    partesClienteCache = null;
+                } else if (escolha.startsWith('__padrao__:')) {
+                    parteId = await api.materializarPartePadrao(estado.clienteId, escolha.slice('__padrao__:'.length));
+                    partesClienteCache = null;
+                }
+                const linhas = atuais.map(l => ({ parte_id: l.parte_id, papel: l.papel }));
+                if (linhas.some(l => l.parte_id === parteId && l.papel === papel)) { mostrarToast('Essa parte já está no item com esse papel.', 'erro'); return false; }
+                linhas.push({ parte_id: parteId, papel });
+                await api.salvarPartesItemControle(item.id, linhas);
+                mostrarToast('Parte adicionada.');
+                await montarPartesItemControle(item);
+                emitirEscrita('controle', { id: item.id, acao: 'editar-partes' });
+                return true;
+            } catch (err) {
+                mostrarToast('Erro ao adicionar: ' + (err.message || String(err)), 'erro');
+                return false;
+            }
+        },
+    });
+}
+window.__piaMudarParte = (valor) => {
+    const wrap = document.getElementById('pia-wrap-nome');
+    if (wrap) wrap.classList.toggle('hidden', valor !== '__nova__');
+    const papel = document.getElementById('pia-papel');
+    if (papel && String(valor).startsWith('__padrao__:')) papel.value = 'orgao_recolhedor'; // mesma regra do editor antigo (__piUsarPartePadrao)
+};
+
+// v1.33.0 — "Remover parte": escolher qual tira o vínculo e grava na hora
+// (o toque na parte é a confirmação; o cadastro da parte não é apagado).
+export function abrirRemoverParteItem(atuais) {
+    const item = itemEmFoco; if (!item || !atuais?.length) return;
+    sheetAcoes({ titulo: 'Remover qual parte?', sub: item.titulo, acoes: atuais.map((l, i) => ({
+        icone: 'user-minus', tipo: 'bad', titulo: l.nome || 'Parte', sub: rotuloPapelParteItem(l.papel),
+        aoTocar: async () => {
+            try {
+                await api.salvarPartesItemControle(item.id, atuais.filter((_, j) => j !== i).map(x => ({ parte_id: x.parte_id, papel: x.papel })));
+                mostrarToast('Parte removida do item.');
+                await montarPartesItemControle(item);
+                emitirEscrita('controle', { id: item.id, acao: 'editar-partes' });
+            } catch (err) { mostrarToast('Erro ao remover: ' + (err.message || String(err)), 'erro'); }
+        },
+    })) });
 }
 export function abrirAcoesDocsItem() {
     sheetAcoes({ titulo: 'Documentos do item', sub: itemEmFoco?.titulo || '', acoes: [
@@ -1159,8 +1267,8 @@ export function abrirAcoesDocsItem() {
     ] });
 }
 // E14.4 — abrirAcoesContatosItem/alternarMaisAcoesContatosItem
-// removidas (Contatos unificado com Partes; "Adicionar parte" já existe
-// dentro de "Editar partes", abrirAcoesPartesItem acima).
+// removidas (Contatos unificado com Partes). v1.33.0 — "Adicionar parte"
+// saiu de dentro de "Editar partes" e virou ação direta do ⋮ (acima).
 export const alternarMaisAcoesDadosItem = () => abrirAcoesDadosItem();
 export const alternarMaisAcoesDocItem = () => carregarNovoDocumentoItem();
 

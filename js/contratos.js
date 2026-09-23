@@ -1,7 +1,19 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.20.0 · 22/09/2026
+// Versão: 1.21.0 · 23/09/2026
+//
+// v1.21.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026: "Ao
+// clicar no menu 3 pontinhos da parte, nao aparece opcao adicionar parte.
+// so editar. ainda nao permite o clique na parte. ao editar locatario ou
+// parte ainda mostra tela de transicao") — card Partes da Ficha do
+// contrato, o que be42b19f/176b3145 não cobriram aqui: (1) tocar no
+// locatário abre o form da parte direto (abrirEditarLocatarioContrato);
+// tocar num fiador abre o form DAQUELE fiador (abrirFormFiadorContrato,
+// novo, gramática .rz-f) em vez da lista "Fiadores do contrato"; (2) todo
+// ⋮ de parte (card, locatário, fiador) tem "Adicionar parte", direto pro
+// form de fiador novo (adicionarParteContrato); (3) ⋮ do fiador ganhou
+// Editar/Remover DAQUELE fiador (índice), sem seletor no meio.
 //
 // v1.20.0 (demanda 0e40951a, complemento — pedido explícito do Nicola,
 // 22/09/2026: "adicione esta possibilidade tb no card financeiro do
@@ -399,7 +411,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.20.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.21.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2240,16 +2252,22 @@ if (!window.__rzListenerEscritaMensalidadeContratoLigado) {
                              ellipsis-vertical fingindo de seta, fora de
                              REGRAS §9); cada linha (locatário e cada
                              fiador) ganhou seu próprio ⋮. -->
-                        <div class="rz-row">
+                        <!-- v1.21.0 (demanda 3cc64651, pedido explícito do Nicola
+                             23/09/2026: "ainda nao permite o clique na parte...
+                             ao editar locatario ou parte ainda mostra tela de
+                             transicao") — linha volta a ser clicável e abre o
+                             FORMULÁRIO da parte direto (sem o ⋮ no meio); o ⋮
+                             continua, com Editar + Adicionar parte. -->
+                        <div class="rz-row rz-link" onclick="abrirEditarLocatarioContrato('${con.id}')">
                             <div class="rz-ic"><svg data-lucide="user"></svg></div>
                             <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário não informado')}</b><span>Locatário${con.cpf ? ' · ' + escapeHtmlSaidas((con.docTipo || 'CPF') + ' ' + con.cpf) : ''}</span></div>
-                            <button type="button" onclick="abrirAcoesLocatarioContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                            <button type="button" onclick="event.stopPropagation(); abrirAcoesLocatarioContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>
-                        ${fiadoresDaFicha.length ? fiadoresDaFicha.map(f => `
-                        <div class="rz-row">
+                        ${fiadoresDaFicha.length ? fiadoresDaFicha.map((f, iFiador) => `
+                        <div class="rz-row rz-link" onclick="abrirFormFiadorContrato('${con.id}', ${iFiador})">
                             <div class="rz-ic"><svg data-lucide="shield-check"></svg></div>
                             <div class="rz-tx"><b>${(f.nome || '').replace(/</g, '&lt;')}</b><span>Fiador · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}${f.estado_civil ? ' · ' + f.estado_civil : ''}${f.possui_imovel_proprio ? ' · imóvel em garantia' : ''}</span></div>
-                            <button type="button" onclick="abrirAcoesFiadorContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
+                            <button type="button" onclick="event.stopPropagation(); abrirAcoesFiadorContrato('${con.id}', ${iFiador})" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Adicione se a minuta exigir.</p></div>`}
 
                     </div>
@@ -2744,21 +2762,25 @@ if (!window.__rzListenerEscritaMensalidadeContratoLigado) {
             }
         }
 
-        // v1.19.0 (demanda 176b3145, pedido explícito do Nicola, 22/09/2026:
-        // "ao clicar no menu tres pontos deve ter a opção de adicionar e
-        // nao editar") — "Editar locatário" era um rótulo FIXO, mesmo
-        // quando o contrato ainda não tinha locatário nenhum (con.locatario
-        // vazio) — igual ao bug que "Adicionar/Editar fiador" já não tinha
-        // (temFiador já decidia o rótulo certo aqui do lado, serviu de
-        // referência pro fix).
+        // v1.21.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026:
+        // "Ao clicar no menu 3 pontinhos da parte, nao aparece opcao
+        // adicionar parte. so editar. ainda nao permite o clique na parte.
+        // ao editar locatario ou parte ainda mostra tela de transicao") —
+        // retoma o que be42b19f/176b3145 deixaram de fora NESTE card:
+        //   · tocar na linha abre o formulário da parte direto
+        //     (locatário → form da parte; fiador → form de 1 fiador);
+        //   · todo ⋮ de parte tem "Adicionar parte", que vai direto pro
+        //     formulário de cadastro (fiador novo), sem lista no meio;
+        //   · "Fiadores do contrato" (lista inteira num sheet) saiu deste
+        //     caminho — era a tela intermediária que 176b3145 já apontava.
+        //     abrirEdicaoFiadoresPopup continua existindo pra quem a chama
+        //     de fora (fluxo de criação).
         export function abrirAcoesPartesContrato(contratoId) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
-            const temFiador = (window.__fiadoresFichaAtual || []).length > 0;
-            const temLocatario = !!con.locatario;
-            abrirSheetAcoes({ titulo: 'Partes', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: temLocatario ? 'Editar locatário' : 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
-                { icone: 'user-plus', titulo: temFiador ? 'Editar fiadores' : 'Adicionar fiador', codigo: 'contratos.editar', sub: 'Garantias exigidas pela minuta', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
-            ] });
+            const acoes = [];
+            if (!con.locatario) acoes.push({ icone: 'user-plus', titulo: 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Quem aluga o imóvel', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') });
+            acoes.push({ icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => adicionarParteContrato(con.id) });
+            abrirSheetAcoes({ titulo: 'Partes', sub: con.locatario || '', acoes });
         }
 
         export function abrirAcoesLocatarioContrato(contratoId) {
@@ -2766,22 +2788,102 @@ if (!window.__rzListenerEscritaMensalidadeContratoLigado) {
             const temLocatario = !!con.locatario;
             abrirSheetAcoes({ titulo: con.locatario || 'Locatário', sub: 'Locatário', acoes: [
                 { icone: 'pencil', titulo: temLocatario ? 'Editar locatário' : 'Adicionar locatário', codigo: 'contratos.editar', sub: 'Telefone, e-mail, endereço, documento', aoTocar: () => abrirFichaParteDoContrato(con.id, 'locatario') },
+                { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => adicionarParteContrato(con.id) },
             ] });
         }
 
-        // v1.116.0 (pedido explícito, "edição à frente de cada parte") —
-        // ⋮ de cada linha de fiador. Não existe editor de 1 fiador só
-        // (a UI já existente, abrirEdicaoFiadoresPopup, edita a lista
-        // inteira de uma vez — reaproveitado aqui pra "Editar"). Remover
-        // é direto: chama o mesmo RPC (substituir_fiadores_contrato) que
-        // "Salvar" do popup usa, só que já filtrado, sem abrir tela.
-        export async function abrirAcoesFiadorContrato(contratoId) {
+        // v1.21.0 — ponte do toque na linha do locatário (abrirFichaParteDoContrato
+        // é interna do módulo).
+        export function abrirEditarLocatarioContrato(contratoId) {
+            return abrirFichaParteDoContrato(contratoId, 'locatario');
+        }
+
+        // v1.21.0 — "Adicionar parte" do contrato: sem locatário, o que falta
+        // é o locatário; com locatário, a parte que se acrescenta é fiador.
+        export function adicionarParteContrato(contratoId) {
+            const con = contratos.find(c => c.id === contratoId); if (!con) return;
+            if (!con.locatario) return abrirFichaParteDoContrato(contratoId, 'locatario');
+            return abrirFormFiadorContrato(contratoId, null);
+        }
+
+        // v1.21.0 — ⋮ de UM fiador (index = posição na lista, mesma ordem de
+        // contrato_fiadores.ordem usada pela ficha e por carregarFiadoresContrato).
+        export async function abrirAcoesFiadorContrato(contratoId, index) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             await carregarFiadoresContrato(contratoId);
-            abrirSheetAcoes({ titulo: 'Fiador', sub: con.locatario || '', acoes: [
-                { icone: 'pencil', titulo: 'Editar fiadores', codigo: 'contratos.editar', sub: 'Abre a lista completa de garantias', aoTocar: () => abrirEdicaoFiadoresPopup(con.id) },
-                { icone: 'trash-2', titulo: 'Remover fiador', codigo: 'contratos.editar', tipo: 'bad', aoTocar: () => abrirSeletorRemoverFiador(con.id) },
+            const i = Number.isInteger(index) ? index : 0;
+            const f = fiadoresContratoAtual[i];
+            abrirSheetAcoes({ titulo: f?.nome || 'Fiador', sub: 'Fiador', acoes: [
+                { icone: 'pencil', titulo: 'Editar fiador', codigo: 'contratos.editar', sub: 'Documento, cônjuge, contato, imóvel em garantia', aoTocar: () => abrirFormFiadorContrato(con.id, i) },
+                { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => abrirFormFiadorContrato(con.id, null) },
+                { icone: 'trash-2', titulo: 'Remover fiador', codigo: 'contratos.editar', tipo: 'bad', sub: f?.nome || '', aoTocar: () => removerFiadorDireto(con.id, i) },
             ] });
+        }
+
+        // v1.21.0 (demanda 3cc64651) — formulário de UM fiador, direto (novo
+        // quando index é null). Mesmos campos do editor antigo em lista
+        // (renderFiadoresPopup), na gramática única (.rz-f). Salvar regrava a
+        // lista inteira pelo mesmo RPC de sempre (substituir_fiadores_contrato
+        // — delete+insert por contrato), trocando só este fiador; os outros
+        // seguem intactos, na mesma ordem.
+        export async function abrirFormFiadorContrato(contratoId, index) {
+            if (typeof abrirSheetForm !== 'function') return;
+            if (contratoId && !idEhUuidValido(contratoId)) {
+                const conTmp = contratos.find(c => c.id === contratoId);
+                if (conTmp) { mostrarCarregamentoGlobal('Só um instante, ainda sincronizando...'); await aguardarIdRealDoContrato(conTmp); contratoId = conTmp.id; esconderCarregamentoGlobal(); }
+            }
+            await carregarFiadoresContrato(contratoId);
+            const novo = !Number.isInteger(index) || !fiadoresContratoAtual[index];
+            const f = novo ? Object.assign({}, FIADOR_CAMPO_VAZIO) : fiadoresContratoAtual[index];
+            const con = contratos.find(c => c.id === contratoId) || {};
+            const e = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            const campo = (rot, id, val, tipo = 'text', obrig = false) =>
+                `<div class="rz-f"><label for="${id}">${rot}${obrig ? ' <i>*</i>' : ''}</label><input type="${tipo}" id="${id}" value="${e(val)}"></div>`;
+            const sel = (rot, id, val, opcoes, vazio) =>
+                `<div class="rz-f"><label for="${id}">${rot}</label><select id="${id}"><option value="">${vazio}</option>${opcoes.map(o => `<option ${val === o ? 'selected' : ''}>${o}</option>`).join('')}</select></div>`;
+            const corpo = `
+                <div class="rz-f2">${campo('Nome completo', 'ff-nome', f.nome, 'text', true)}${campo('CPF/CNPJ', 'ff-cpf', f.cpf, 'text', true)}</div>
+                <div class="rz-f2">${campo('RG', 'ff-rg', f.rg)}${campo('Órgão expedidor', 'ff-rg-orgao', f.rg_orgao_expedidor)}</div>
+                <div class="rz-f2">${campo('Nacionalidade', 'ff-nacionalidade', f.nacionalidade)}${campo('Data de nascimento', 'ff-nascimento', f.data_nascimento, 'date')}</div>
+                <div class="rz-f2">${campo('Profissão', 'ff-profissao', f.profissao)}${sel('Estado civil', 'ff-estado-civil', f.estado_civil, ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União estável'], '— selecione —')}</div>
+                ${sel('Regime de bens', 'ff-regime', f.regime_bens, ['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens', 'Separação obrigatória de bens', 'Participação final nos aquestos'], '— se casado(a) —')}
+                <p class="rz-desc" style="font-size:11.5px;margin:0 0 8px">Cônjuge: assina junto se casado(a) fora de separação total/obrigatória (Art. 1.647 do Código Civil).</p>
+                <div class="rz-f2">${campo('Nome do cônjuge', 'ff-conj-nome', f.conjuge_nome)}${campo('CPF do cônjuge', 'ff-conj-cpf', f.conjuge_cpf)}</div>
+                <div class="rz-f2">${campo('RG do cônjuge', 'ff-conj-rg', f.conjuge_rg)}${campo('Profissão do cônjuge', 'ff-conj-prof', f.conjuge_profissao)}</div>
+                <div class="rz-f2">${campo('WhatsApp', 'ff-whatsapp', f.whatsapp)}${campo('E-mail', 'ff-email', f.email, 'email')}</div>
+                <div class="rz-f"><label for="ff-endereco">Endereço atual</label><textarea id="ff-endereco" rows="2">${e(f.endereco_atual)}</textarea></div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0 10px"><input type="checkbox" id="ff-possui-imovel" ${f.possui_imovel_proprio ? 'checked' : ''}> Possui imóvel próprio quitado (garantia)</label>
+                <div class="rz-f2">${campo('Matrícula do imóvel', 'ff-imovel-matricula', f.imovel_matricula)}${campo('Cartório de registro', 'ff-imovel-cartorio', f.imovel_cartorio_registro)}</div>
+                ${campo('Endereço do imóvel', 'ff-imovel-endereco', f.imovel_endereco)}`;
+            abrirSheetForm({
+                titulo: novo ? 'Novo fiador' : 'Editar fiador',
+                sub: novo ? (con.locatario ? `Contrato de ${con.locatario}` : 'Fiador do contrato') : (f.nome || ''),
+                corpo, rotuloSalvar: novo ? 'Adicionar' : 'Salvar',
+                aoSalvar: async (el) => {
+                    const v = (id) => (el.querySelector('#' + id)?.value || '').trim();
+                    const cpf = v('ff-cpf');
+                    const dados = {
+                        nome: v('ff-nome'), cpf, doc_tipo: cpf.replace(/\D/g, '').length > 11 ? 'CNPJ' : (f.doc_tipo || 'CPF'),
+                        rg: v('ff-rg'), rg_orgao_expedidor: v('ff-rg-orgao'), nacionalidade: v('ff-nacionalidade'), data_nascimento: v('ff-nascimento'),
+                        profissao: v('ff-profissao'), estado_civil: v('ff-estado-civil'), regime_bens: v('ff-regime'),
+                        conjuge_nome: v('ff-conj-nome'), conjuge_cpf: v('ff-conj-cpf'), conjuge_rg: v('ff-conj-rg'), conjuge_profissao: v('ff-conj-prof'),
+                        whatsapp: v('ff-whatsapp'), email: v('ff-email'), endereco_atual: v('ff-endereco'),
+                        possui_imovel_proprio: !!el.querySelector('#ff-possui-imovel')?.checked,
+                        imovel_matricula: v('ff-imovel-matricula'), imovel_cartorio_registro: v('ff-imovel-cartorio'), imovel_endereco: v('ff-imovel-endereco'),
+                    };
+                    if (!dados.nome || !dados.cpf) { mostrarToast('Nome e CPF/CNPJ do fiador são obrigatórios.', 'danger'); return false; }
+                    const lista = fiadoresContratoAtual.slice();
+                    if (novo) lista.push(dados); else lista[index] = Object.assign({}, lista[index], dados);
+                    const linhas = lista.filter(x => x.nome && x.cpf).map((x, i) => Object.assign({}, x, { ordem: i + 1 }));
+                    const { error } = await dbAuth.rpc('substituir_fiadores_contrato', { p_contrato_id: contratoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_linhas: linhas });
+                    if (error) { mostrarToast('Não consegui salvar o fiador: ' + error.message, 'danger'); return false; }
+                    fiadoresContratoAtual = lista;
+                    emitirEscrita('contrato', { id: contratoId, acao: 'editar-fiadores' });
+                    mostrarToast(novo ? 'Fiador adicionado.' : 'Fiador salvo.', 'success');
+                    if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                    return true;
+                },
+            });
         }
 
         export async function abrirSeletorRemoverFiador(contratoId) {
