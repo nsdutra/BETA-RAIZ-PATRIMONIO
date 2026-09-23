@@ -6,9 +6,37 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.246.0
-   LINHAS: 15671
-   DATA: 22/09/2026 (demanda 0e40951a — redesenho do Financeiro)
+   VERSÃO: Beta v1.247.0
+   LINHAS: 15666
+   DATA: 22/09/2026 (demanda 0e40951a, complemento — criar recebimento avulso)
+   NOVIDADES (Beta v1.247.0) — demanda 0e40951a, complemento (pedido
+   explícito do Nicola, em resposta à pergunta feita na entrega anterior
+   sobre o quadrante "Adicionar" não ter ação real em Recebimentos/
+   Fechamento: "O quadrante 'Adicionar' deve permitir adicionar um
+   recebimento ou uma despesas. Como adicionar um recebimento e uma
+   funcionalidade nova, adicione esta possibilidade tb no card financeiro
+   do contrato. Ao criar um recebimento, perguntar se ja quer entrar
+   recebido ou a receber. Se for recebido entrar com a baixa finalizada, e
+   se for em aberto, inclui-lo no ha receber."): NOVA funcionalidade —
+   criar recebimento avulso (js/financeiro.js v1.19.0,
+   abrirNovoRecebimento) — decisão anterior "não existe criar recebimento
+   avulso" (v1.6.5) revertida a pedido explícito. Form (abrirSheetForm):
+   contrato (seletor quando não vem pré-selecionado — mensalidade sem
+   contrato_id não aparece em nenhuma lista do app)/competência/valor +
+   segmentado "A receber"/"Já recebido": "Já recebido" grava a baixa já
+   finalizada (status='pago'+data/banco) num único INSERT; "A receber"
+   grava status='pendente' (bucket comum de qualquer mensalidade
+   pendente). 2 pontos de entrada: (1) quadrante "Adicionar" — DEIXOU de
+   ser contextual por aba, abre um menu novo (abrirAcoesAdicionarFinanceiro
+   — Novo recebimento/Nova despesa), mesmo quadrante nas 3 abas; (2) card
+   "Financeiro" da Ficha do contrato (js/contratos.js v1.20.0,
+   abrirAcoesCobrancasContrato) — nova ação "Adicionar recebimento", já
+   com o contrato certo. contratos.js ganhou também um listener novo pra
+   'mensalidade' (nunca existia) — o card "Financeiro" da Ficha se
+   recarrega sozinho quando o recebimento nasce de fora dela (reaproveita
+   reabrirFichaSeFor(), já existente). Window-bridge (lista de
+   financeiro.js) ganhou os 5 nomes novos. Ver changelog de financeiro.js
+   v1.19.0/contratos.js v1.20.0 pro detalhe técnico completo.
    NOVIDADES (Beta v1.246.0) — demanda 0e40951a (pedido explícito do
    Nicola: "Reorganizar os botoes de forma a ter a competencia no alto...
    Depois, titulo da tela. Depois, para as funcoes, extrato, adicionar,
@@ -75,42 +103,8 @@
    — só resultados.js passa a pedir semCentavos. Ver changelog de
    resultados.js v1.6.0 pra também a remoção da linha pontilhada do card
    "Resultado mês a mês".
-   NOVIDADES (Beta v1.242.0) — demanda c75076ed (Tela "Novo contrato"):
-   Achado do Nicola: "a tela de criação de novo contrato está fora do
-   padrão visual atual do sistema (gramática única)". O formulário
-   #form-contrato-wrapper (usado tanto para CRIAR quanto para EDITAR um
-   contrato, ~500 linhas) usava classes Tailwind de cor soltas (text-
-   gray-600, bg-gray-50, bg-slate-50, border-slate-300…) e classes legado
-   já listadas como proibidas no DESIGN_SYSTEM §6 (raiz-campo-altura-
-   contrato) em vez do catálogo rz-*, e vivia num z-index aposentado
-   (z-[65] — DESIGN_SYSTEM §5 lista 65 entre os "aposentados: antigos
-   popups Tipo A/B/C").
-   (1) Todo campo do formulário passa a usar .rz-f/.rz-f2 (mesmo
-   componente que comum-endereco.js, comum-partes.js e Configurações ›
-   Partes já usam) — label + input sem classe Tailwind de cor, 44px de
-   altura padrão, foco --sprout. As caixas destacadas (Rateio, Documentos,
-   Histórico, Observação, painel de reajuste) passam a usar .rz-card (a
-   mesma anatomia de card do resto do app) em vez de bg-slate-50/border-
-   slate-300. z-[65] (aposentado) vira z-[97] — o mesmo z-index real que
-   .rz-veil já usa em todo outro Sheet do app (ver <style> .rz-veil;
-   96/95/70/65 continuam aposentados, nenhum novo caso os usa).
-   Nenhum id, handler onclick/oninput ou lógica de validação mudou — é
-   troca de classe/marcação pura, então validarWhatsappContrato(),
-   validarEmailContrato(), formatarMascaraDocumento(), o cálculo de
-   reajuste, o rateio societário e o upload de documentos continuam
-   funcionando exatamente como antes.
-   (2) "Remover o componente de Histórico do formulário de criação (só
-   faz sentido depois que o contrato já existe)": a caixa de Histórico
-   ganha o wrapper #con-historico-bloco, escondido por cancelarEdicaoContrato()
-   (contrato novo) e mostrado por editarContrato() (contrato existente) —
-   mesmo mecanismo que #secao-avancada-contrato (painel de reajuste) já
-   usava para a mesma distinção criar/editar. Nada foi apagado: quem edita
-   um contrato continua vendo o Histórico normalmente.
-   Campo "Endereço atual do locatário" (que be42b19f já havia trocado
-   pelo bloco estruturado nesta mesma tela) não mudou nesta entrega — só a
-   moldura ao redor dele.
    ------------------------------------------------------------------
-   Versões anteriores (v1.241.0 … v1.241.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.242.0 … v1.242.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -134,7 +128,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.18.0","./js/fechamento.js":"./js/fechamento.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.19.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.61.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.32.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.19.0","./js/fechamento.js":"./js/fechamento.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.20.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.61.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.32.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3425,7 +3419,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.246.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.247.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8814,6 +8808,7 @@
             'abrirAcoesImportarConciliacao', // v1.178.9 — menu único Importar/Reprocessar
             'abrirBuscaConciliacao', 'fecharBuscaConciliacao', 'limparBuscaConciliacao', 'atualizarCamposTipoConciliacao', // v1.179.0 — lupa de filtro
             'financeiroMudarCompetencia', 'rzTocarChipFechamentoDesligado', // Entrega F.1 (21/09/2026) — card de competência + chip Fechamento
+            'abrirAcoesAdicionarFinanceiro', 'abrirNovoRecebimento', 'nrecAoTrocarContrato', 'nrecAlternarSituacao', 'salvarNovoRecebimento', // v1.246.0 — demanda 0e40951a, complemento: criar recebimento avulso
         ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
 
         // =====================================================================

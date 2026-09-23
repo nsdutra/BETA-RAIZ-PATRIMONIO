@@ -1,7 +1,39 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.18.0 · 22/09/2026
+// Versão: 1.19.0 · 22/09/2026
+//
+// v1.19.0 (demanda 0e40951a, complemento — pedido explícito do Nicola,
+// 22/09/2026, em resposta à pergunta feita na entrega anterior sobre o
+// quadrante "Adicionar" não ter ação real em Recebimentos/Fechamento):
+// NOVA funcionalidade — criar recebimento avulso, decisão anterior
+// registrada na v1.6.5 ("não existe criar recebimento avulso") revertida
+// a pedido explícito. abrirNovoRecebimento(contratoIdPreSelecionado) abre
+// um form (abrirSheetForm, mesmo padrão de rzAbrirBaixaMensalidade) com
+// contrato (seletor, quando não vem pré-selecionado)/competência/valor e
+// um segmentado "A receber"/"Já recebido" (nrecAlternarSituacao) — "Já
+// recebido" grava status='pago'+data_pgto/banco num único INSERT (a
+// baixa já sai finalizada, pedido explícito "se for recebido entrar com
+// a baixa finalizada"); "A receber" grava status='pendente' (pedido
+// explícito "se for em aberto, inclui-lo no a receber" — mesmo bucket
+// que qualquer mensalidade pendente, sem tratamento especial). Emite
+// emitirEscrita('mensalidade', ...) como qualquer outra escrita deste
+// arquivo (Fase 1 do wrapper). 2 pontos de entrada, pedido explícito
+// ("adicione esta possibilidade tb no card financeiro do contrato"):
+//   · financeiroQuadrantesHtml() — "Adicionar" DEIXOU de ser contextual
+//     por aba: abre abrirAcoesAdicionarFinanceiro() (menu novo, 2 ações —
+//     Novo recebimento / Nova despesa), mesmo quadrante nas 3 abas.
+//   · js/contratos.js v1.20.0 — abrirAcoesCobrancasContrato() (⋮ do card
+//     "Financeiro" da Ficha do contrato): nova ação "Adicionar
+//     recebimento", chama abrirNovoRecebimento(contratoId) já com o
+//     contrato certo (sem seletor) — ver changelog de lá pro listener
+//     'mensalidade' novo (reabre a Ficha sozinha, sem F5, quando o
+//     recebimento nasce de fora, ex.: pelo quadrante Adicionar).
+// DUPLICATA: replica no cliente a MESMA checagem que
+// fn_gerar_mensalidades_competencia já faz no banco (não deixa 2
+// mensalidades pro mesmo contrato/competência) — não é constraint de
+// banco (conferido: mensalidades não tem UNIQUE nenhum além da PK), só
+// aviso preventivo antes de gravar.
 //
 // v1.18.0 (demanda 0e40951a — redesenho do Financeiro, pedido explícito do
 // Nicola: "Reorganizar os botoes... colocar a esquerda o botão e uma
@@ -641,7 +673,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.18.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.19.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -818,12 +850,12 @@ function financeiroRedesenharChipsNivel() {
 // fin-quad-fechamento-${aba}) — módulos isolados, mesmo padrão de ponte já
 // usado pro card de competência (ver financeiroRenderCabecalho).
 //
-// "Adicionar" é contextual: Saídas tem criação manual de verdade
-// (abrirNovaDespesa); Recebimentos NÃO tem — mensalidade nasce do
-// contrato (decisão registrada na v1.6.5, "não existe criar recebimento
-// avulso pra justificar um + aqui") — e Fechamento também não (é
-// conciliação, não criação). Pra essas 2, o quadrante orienta pra onde a
-// coisa nasce de verdade, em vez de simular uma ação que não existe.
+// v1.19.0 (pedido explícito do Nicola, 22/09/2026, em resposta direto à
+// pergunta feita na entrega anterior) — "Adicionar" DEIXOU de ser
+// contextual: a decisão "não existe criar recebimento avulso" (v1.6.5)
+// foi revertida — abrirNovoRecebimento() abaixo é a funcionalidade nova.
+// O quadrante agora abre abrirAcoesAdicionarFinanceiro(), mesmo menu nas
+// 3 abas, com 2 ações (Novo recebimento / Nova despesa).
 function financeiroQuadrantesHtml(aba) {
     const quad = (icone, iaClasse, titulo, explicacao, onclick) => `
         <button type="button" class="rz-fin-quad" onclick="${onclick}">
@@ -831,17 +863,197 @@ function financeiroQuadrantesHtml(aba) {
             <div class="rz-tx"><b>${titulo}</b><small>${explicacao}</small></div>
         </button>`;
     const extrato = quad('file-down', 'rz-ia', 'Extrato', 'Importar extrato bancário', 'abrirAcoesImportarConciliacao()');
-    let adicionar;
-    if (aba === 'saidas') {
-        adicionar = quad('plus', null, 'Adicionar', 'Nova despesa avulsa', 'abrirNovaDespesa()');
-    } else if (aba === 'mensal') {
-        adicionar = quad('plus', null, 'Adicionar', 'Recebimento nasce do contrato', "switchTab('tab-contratos')");
-    } else {
-        adicionar = quad('plus', null, 'Adicionar', 'Concilie o extrato importado abaixo', 'abrirAcoesImportarConciliacao()');
-    }
+    // v1.19.0 (pedido explícito do Nicola, 22/09/2026 — "O quadrante
+    // 'Adicionar' deve permitir adicionar um recebimento ou uma despesa")
+    // — deixou de ser contextual por aba (Recebimentos/Fechamento só
+    // orientavam pra onde a coisa nasce de verdade, Saídas tinha a criação
+    // manual de despesa). Agora as 3 abas mostram o MESMO quadrante, que
+    // abre um menu de 2 ações — ver abrirAcoesAdicionarFinanceiro().
+    const adicionar = quad('plus', null, 'Adicionar', 'Recebimento ou despesa avulsa', 'abrirAcoesAdicionarFinanceiro()');
     const fechamento = `<span id="fin-quad-fechamento-${aba}"></span>`; // preenchido por fechamento.js
     const contador = quad('send', null, 'Contador', 'Compartilhar competência fechada', 'fechamentoAbrirCompartilharContador()');
     return `<div class="rz-fin-quad-grid">${extrato}${adicionar}${fechamento}${contador}</div>`;
+}
+
+// v1.19.0 — menu do quadrante "Adicionar" (Recebimentos/Saídas/Fechamento):
+// 2 ações, mesmo padrão de menu ⋮ (abrirSheetAcoes) usado no resto do app.
+export function abrirAcoesAdicionarFinanceiro() {
+    if (typeof abrirSheetAcoes !== 'function') return;
+    abrirSheetAcoes({ titulo: 'Adicionar', acoes: [
+        { icone: 'arrow-down-left', titulo: 'Novo recebimento', sub: 'Lança um recebimento avulso, vinculado a um contrato', aoTocar: () => abrirNovoRecebimento() },
+        { icone: 'arrow-up-right', titulo: 'Nova despesa', sub: 'Lança uma despesa avulsa', aoTocar: () => abrirNovaDespesa() },
+    ] });
+}
+
+// ============================================================================
+// v1.19.0 (demanda 0e40951a, complemento — pedido explícito do Nicola,
+// 22/09/2026, em resposta à pergunta feita na entrega anterior sobre o
+// quadrante "Adicionar"): "O quadrante 'Adicionar' deve permitir adicionar
+// um recebimento ou uma despesas. Como adicionar um recebimento e uma
+// funcionalidade nova, adicione esta possibilidade tb no card financeiro
+// do contrato. Ao criar um recebimento, perguntar se ja quer entrar
+// recebido ou a receber. Se for recebido entrar com a baixa finalizada, e
+// se for em aberto, inclui-lo no ha receber."
+//
+// abrirNovoRecebimento(contratoIdPreSelecionado) — 2 pontos de entrada:
+//   · Financeiro › Recebimentos/Saídas/Fechamento, quadrante Adicionar →
+//     abrirNovoRecebimento() SEM contrato (mostra um <select> com todos os
+//     contratos 'Ativo' — mensalidade sem contrato_id não aparece em
+//     nenhuma lista do app, ver renderMensalidades()/abrirFichaContrato()).
+//   · card "Financeiro" da Ficha do contrato (contratos.js,
+//     abrirAcoesCobrancasContrato) → abrirNovoRecebimento(contratoId) JÁ
+//     com o contrato certo, sem seletor.
+//
+// Grava direto em `mensalidades` (mesma tabela de sempre, sem RPC nova —
+// mesmo padrão de escrita client-side que liquidarMensalidade/
+// sincronizarMensalidadeSupabase já usam). Campos NÃO preenchidos aqui
+// (multa/taxa/energia/iptu/condominio, envio_log, chave_transacao_origem)
+// ficam null — só existem depois de uma baixa/conciliação de verdade,
+// mesmo comportamento de uma mensalidade nascida do cron/fn_gerar_
+// mensalidades_competencia. valor_confirmado é o ÚNICO campo de valor
+// da tabela (conferido no schema) — serve tanto de "previsto" (linha
+// pendente) quanto de "pago" (linha liquidada), exatamente como as
+// mensalidades que nascem do contrato.
+// "Já recebido" grava status='pago' + data_pgto/banco direto — SEM passar
+// por liquidarMensalidade() (que é pra dar baixa numa pendente já
+// existente) — "entrar com a baixa finalizada" é um único INSERT.
+// "A receber" grava status='pendente', data_pgto/banco null — dataVencMensal()
+// (renderMensalidades/abrirFichaContrato) já sabe calcular a data de
+// vencimento exibida a partir de referencia + con.vencimentoDia quando
+// data_pgto vem vazio (mesmo fallback usado pra mensalidade legada).
+// ============================================================================
+export async function abrirNovoRecebimento(contratoIdPreSelecionado) {
+    if (typeof abrirSheetForm !== 'function') return;
+    const con = contratoIdPreSelecionado ? contratos.find(c => c.id === contratoIdPreSelecionado) : null;
+
+    let campoContrato;
+    if (con) {
+        campoContrato = `<input type="hidden" id="nrec-contrato" value="${con.id}">
+            <div class="rz-f"><label>Contrato</label><div style="padding:8px 0 2px;font-size:13px;font-weight:bold;color:var(--pine)">${escapeHtmlSaidas(con.locatario || 'Locatário')}</div></div>`;
+    } else {
+        const ativos = contratos.filter(c => c.status === 'Ativo').slice()
+            .sort((a, b) => (a.locatario || '').localeCompare(b.locatario || ''));
+        if (!ativos.length) {
+            mostrarToast('Nenhum contrato ativo para lançar um recebimento.', 'danger');
+            return;
+        }
+        const optsContrato = `<option value="">— selecionar —</option>` + ativos.map(c => {
+            const imo = imoveis.find(i => i.id === c.imovelId);
+            const rotulo = `${escapeHtmlSaidas(c.locatario || 'Locatário')} — ${escapeHtmlSaidas(imo ? (imo.empreendimento || imo.enderecoRua || '') : '')}`;
+            return `<option value="${c.id}">${rotulo}</option>`;
+        }).join('');
+        campoContrato = `<div class="rz-f"><label>Contrato <i>*</i></label><select id="nrec-contrato" onchange="nrecAoTrocarContrato(this.value)">${optsContrato}</select></div>`;
+    }
+
+    const competenciaPadrao = dataParaCompetencia(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO());
+    const opcoesComp = [...new Set([competenciaPadrao, ...gerarProximasCompetencias(3)])];
+    const optsCompetencia = opcoesComp.map(c => `<option value="${c}" ${c === competenciaPadrao ? 'selected' : ''}>${c}</option>`).join('');
+
+    const corpo = `
+        ${campoContrato}
+        <div class="rz-f2">
+            <div class="rz-f"><label>Competência <i>*</i></label><select id="nrec-competencia">${optsCompetencia}</select></div>
+            <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" id="nrec-valor" value="${con?.valor ?? ''}"></div>
+        </div>
+        <div class="rz-f"><label>Situação <i>*</i></label>
+            <input type="hidden" id="nrec-situacao" value="receber">
+            <div class="rz-seg" id="nrec-seg-situacao">
+                <button type="button" class="rz-on" data-v="receber" onclick="nrecAlternarSituacao('receber')">A receber</button>
+                <button type="button" data-v="recebido" onclick="nrecAlternarSituacao('recebido')">Já recebido</button>
+            </div>
+        </div>
+        <div id="nrec-campos-baixa" class="hidden">
+            <div class="rz-f2">
+                <div class="rz-f"><label>Forma de recebimento</label><select id="nrec-banco"><option value="PIX">PIX</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="Transferência">Transferência</option><option value="Cheque">Cheque</option></select></div>
+                <div class="rz-f"><label>Data do recebimento <i>*</i></label><input type="date" id="nrec-data" value="${new Date().toISOString().slice(0, 10)}"></div>
+            </div>
+        </div>
+        <div class="rz-f"><label>Observação</label><input type="text" id="nrec-observacao" placeholder="Opcional"></div>`;
+
+    abrirSheetForm({
+        titulo: 'Novo recebimento', sub: con ? (con.locatario || '') : 'Recebimento avulso',
+        corpo, rotuloSalvar: 'Salvar',
+        aoSalvar: () => salvarNovoRecebimento(),
+    });
+}
+
+// Só usado quando o contrato NÃO veio pré-selecionado (seletor visível) —
+// pré-preenche o valor com o aluguel do contrato, mesmo padrão de sugestão
+// de valor de montarPopupDespesa() (sugestoes.valor).
+export function nrecAoTrocarContrato(contratoId) {
+    const con = contratos.find(c => c.id === contratoId);
+    const campoValor = document.getElementById('nrec-valor');
+    if (campoValor) campoValor.value = con?.valor ?? '';
+}
+
+export function nrecAlternarSituacao(v) {
+    const seg = document.getElementById('nrec-seg-situacao');
+    if (seg) seg.querySelectorAll('button').forEach(b => b.classList.toggle('rz-on', b.dataset.v === v));
+    const campo = document.getElementById('nrec-situacao');
+    if (campo) campo.value = v;
+    const camposBaixa = document.getElementById('nrec-campos-baixa');
+    if (camposBaixa) camposBaixa.classList.toggle('hidden', v !== 'recebido');
+}
+
+export async function salvarNovoRecebimento() {
+    const contratoId = document.getElementById('nrec-contrato')?.value;
+    const competencia = document.getElementById('nrec-competencia')?.value;
+    const valor = parseFloat(document.getElementById('nrec-valor')?.value);
+    const situacao = document.getElementById('nrec-situacao')?.value || 'receber';
+    const observacao = document.getElementById('nrec-observacao')?.value.trim();
+
+    if (!contratoId) { mostrarToast('Selecione o contrato.', 'danger'); return false; }
+    if (!competencia || isNaN(valor)) { mostrarToast('Preencha competência e valor.', 'danger'); return false; }
+
+    const con = contratos.find(c => c.id === contratoId);
+    if (!con) { mostrarToast('Contrato não encontrado.', 'danger'); return false; }
+
+    const competenciaISO = competenciaParaData(competencia);
+    // Mesma checagem que fn_gerar_mensalidades_competencia já faz no banco
+    // (não deixa 2 mensalidades pro mesmo contrato na mesma competência) —
+    // replicada aqui pra avisar ANTES de gravar (client-side, mensalidades
+    // já carregadas na sessão; não é constraint de banco).
+    if (mensalidades.some(m => m.contratoId === contratoId && m.referencia === competencia)) {
+        mostrarToast('Este contrato já tem um recebimento lançado nessa competência.', 'danger');
+        return false;
+    }
+
+    let banco = null, dataPgto = null;
+    if (situacao === 'recebido') {
+        banco = document.getElementById('nrec-banco')?.value || null;
+        dataPgto = document.getElementById('nrec-data')?.value || null;
+        if (!dataPgto) { mostrarToast('Informe a data do recebimento.', 'danger'); return false; }
+    }
+
+    mostrarCarregamentoGlobal('Salvando...');
+    try {
+        const linha = {
+            cliente_id: CLIENTE_ID_SUPABASE,
+            contrato_id: contratoId,
+            competencia: competenciaISO,
+            status: situacao === 'recebido' ? 'pago' : 'pendente',
+            banco,
+            data_pgto: dataPgto,
+            observacao: observacao || null,
+            valor_confirmado: valor,
+        };
+        const { data: criado, error } = await dbAuth.from('mensalidades').insert(linha).select('id').single();
+        if (error) throw error;
+
+        mensalidades = await carregarMensalidadesSupabase();
+        // v1.19.0 (Fase 1 do wrapper de escrita) — ver changelog do topo.
+        emitirEscrita('mensalidade', { id: criado.id, contratoId, acao: 'criar' });
+        esconderCarregamentoGlobal();
+        mostrarToast('Recebimento criado.', 'success');
+        renderMensalidades();
+        renderInadimplencia();
+        if (typeof renderSociosDistribricao === 'function') renderSociosDistribricao();
+    } catch (err) {
+        esconderCarregamentoGlobal();
+        mostrarToast('Erro ao criar recebimento: ' + err.message, 'danger');
+        logScreen('Erro ao criar recebimento manual: ' + err.message, true);
+        return false;
+    }
 }
 
 // REGRAS §11/§7 ("regra 9 do §0"): chip que representa uma rotina desligada

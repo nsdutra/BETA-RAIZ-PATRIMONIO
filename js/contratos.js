@@ -1,7 +1,22 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.19.0 · 22/09/2026
+// Versão: 1.20.0 · 22/09/2026
+//
+// v1.20.0 (demanda 0e40951a, complemento — pedido explícito do Nicola,
+// 22/09/2026: "adicione esta possibilidade tb no card financeiro do
+// contrato", referindo-se à nova função de criar recebimento avulso de
+// js/financeiro.js v1.19.0) — abrirAcoesCobrancasContrato() (⋮ do card
+// "Financeiro" da Ficha, fc-painel-cobrancas): nova ação "Adicionar
+// recebimento", chama window.abrirNovoRecebimento(contratoId) (módulo
+// isolado — financeiro.js, ver window[nome] em index.html) já com o
+// contrato certo, sem seletor. Listener novo (module boot, guarda
+// window.__rzListenerEscritaMensalidadeContratoLigado): este arquivo nunca
+// escutava a entidade 'mensalidade' (só emite/ouve a própria 'contrato') —
+// o card "Financeiro" da Ficha não se atualizava sozinho quando um
+// recebimento nascia de fora dela (ex.: pelo quadrante Adicionar em
+// Financeiro) — reabrirFichaSeFor() já existia (usada por outras 12
+// funções deste arquivo), só reaproveitada.
 //
 // v1.19.0 (demanda 176b3145 — padronizar experiência de Parte em todos os
 // locais, pedido explícito do Nicola) — abrirAcoesPartesContrato()/
@@ -384,7 +399,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.19.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.20.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -409,6 +424,17 @@ export function reabrirFichaSeFor(contratoId) {
 if (!window.__rzListenerEscritaContratoLigado) {
     window.__rzListenerEscritaContratoLigado = true;
     aoEscrever('contrato', () => { renderContratos(); });
+}
+
+// v1.20.0 (demanda 0e40951a, complemento) — este módulo nunca escutava
+// 'mensalidade' (só emite/ouve a própria 'contrato'): o card "Financeiro"
+// da Ficha (fc-painel-cobrancas, mensalidadesDoContrato) não se atualizava
+// sozinho quando um recebimento nascia de FORA da ficha (ex.: pelo
+// quadrante Adicionar em Financeiro). reabrirFichaSeFor() já existe (usada
+// por outras 12 funções deste arquivo) — só reaproveitada aqui.
+if (!window.__rzListenerEscritaMensalidadeContratoLigado) {
+    window.__rzListenerEscritaMensalidadeContratoLigado = true;
+    aoEscrever('mensalidade', () => { if (fichaContratoAtualId) reabrirFichaSeFor(fichaContratoAtualId); });
 }
 
         // Mostra (só leitura) a divisão de sócios já cadastrada no imóvel, para
@@ -2679,6 +2705,12 @@ if (!window.__rzListenerEscritaContratoLigado) {
             const con = contratos.find(c => c.id === contratoId); if (!con || typeof abrirSheetAcoes !== 'function') return;
             const imo = imoveis.find(i => i.id === con.imovelId);
             abrirSheetAcoes({ titulo: 'Cobranças', sub: con.locatario || '', acoes: [
+                // v1.20.0 (demanda 0e40951a, complemento — pedido explícito do
+                // Nicola, 22/09/2026: "adicione esta possibilidade tb no card
+                // financeiro do contrato") — abrirNovoRecebimento é de
+                // financeiro.js (módulo isolado, ver window[nome] em index.html);
+                // contratoId já vai pronto, o form abre sem seletor de contrato.
+                { icone: 'plus', titulo: 'Adicionar recebimento', sub: 'Lança um recebimento avulso para este contrato', aoTocar: () => { if (typeof window.abrirNovoRecebimento === 'function') window.abrirNovoRecebimento(contratoId); } },
                 { icone: 'wallet', titulo: 'Ver no Financeiro', codigo: 'mensal.ver', sub: 'Todas as competências deste imóvel', aoTocar: () => { document.getElementById('men-filtro-imovel').value = con.imovelId; document.getElementById('men-filtro-imovel-resumo').textContent = (imo ? imo.empreendimento : '-'); switchTab('tab-mensal'); renderMensalidades(); } },
             ] });
         }
