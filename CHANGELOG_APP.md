@@ -4,6 +4,285 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.242.0) — demanda c75076ed (Tela "Novo contrato"):
+Achado do Nicola: "a tela de criação de novo contrato está fora do
+padrão visual atual do sistema (gramática única)". O formulário
+#form-contrato-wrapper (usado tanto para CRIAR quanto para EDITAR um
+contrato, ~500 linhas) usava classes Tailwind de cor soltas (text-
+gray-600, bg-gray-50, bg-slate-50, border-slate-300…) e classes legado
+já listadas como proibidas no DESIGN_SYSTEM §6 (raiz-campo-altura-
+contrato) em vez do catálogo rz-*, e vivia num z-index aposentado
+(z-[65] — DESIGN_SYSTEM §5 lista 65 entre os "aposentados: antigos
+popups Tipo A/B/C").
+(1) Todo campo do formulário passa a usar .rz-f/.rz-f2 (mesmo
+componente que comum-endereco.js, comum-partes.js e Configurações ›
+Partes já usam) — label + input sem classe Tailwind de cor, 44px de
+altura padrão, foco --sprout. As caixas destacadas (Rateio, Documentos,
+Histórico, Observação, painel de reajuste) passam a usar .rz-card (a
+mesma anatomia de card do resto do app) em vez de bg-slate-50/border-
+slate-300. z-[65] (aposentado) vira z-[97] — o mesmo z-index real que
+.rz-veil já usa em todo outro Sheet do app (ver <style> .rz-veil;
+96/95/70/65 continuam aposentados, nenhum novo caso os usa).
+Nenhum id, handler onclick/oninput ou lógica de validação mudou — é
+troca de classe/marcação pura, então validarWhatsappContrato(),
+validarEmailContrato(), formatarMascaraDocumento(), o cálculo de
+reajuste, o rateio societário e o upload de documentos continuam
+funcionando exatamente como antes.
+(2) "Remover o componente de Histórico do formulário de criação (só
+faz sentido depois que o contrato já existe)": a caixa de Histórico
+ganha o wrapper #con-historico-bloco, escondido por cancelarEdicaoContrato()
+(contrato novo) e mostrado por editarContrato() (contrato existente) —
+mesmo mecanismo que #secao-avancada-contrato (painel de reajuste) já
+usava para a mesma distinção criar/editar. Nada foi apagado: quem edita
+um contrato continua vendo o Histórico normalmente.
+Campo "Endereço atual do locatário" (que be42b19f já havia trocado
+pelo bloco estruturado nesta mesma tela) não mudou nesta entrega — só a
+moldura ao redor dele.
+------------------------------------------------------------------
+Versões anteriores (v1.241.0 … v1.241.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.241.0) — demanda be42b19f (componente único de Parte):
+Achado do Nicola: o formulário/visualizador de uma Parte (locatário,
+fiador, proprietário, prestador) não era único — cada tela reimplementava
+o seu, incompleto de um jeito diferente. Componente novo (comum-partes.js
++ o bloco de endereço já existente, comum-endereco.js) reusado em 3
+pontos de entrada; 2 bugs reais de fiação (clique morto, função nunca
+escrita) corrigidos por trás:
+(1) BUG REAL — "editar locador" no chip Partes do contrato não abria
+nada: abrirFichaParteDoContrato() (contratos.js, 18/09/2026) já
+despachava o evento cofre:abrir-ficha-parte, mas NENHUM listener pra
+esse evento existia em lugar nenhum do app. Adicionado aqui (boot).
+(2) BUG REAL — mesma causa, outro caminho: a linha de uma parte dentro
+do Item de Controle (data-action="abrir-ficha-parte",
+cofre-controles.js) nunca teve case no despachante (cofre-app.js
+v1.35.0) — corrigido. E api.buscarParte()/api.atualizarParte()
+(cofre-api.js v1.44.0) eram chamadas por abrirFichaParte()/
+abrirEditarParte() mas nunca tinham sido escritas — corrigidas junto,
+antes que o fix do despachante trocasse um bug mudo por um erro em
+tela.
+(3) Configurações › Partes (abrirFormParteSheet/salvarParteSheet): campo
+"Endereço" de texto livre vira o bloco estruturado (CEP com busca
+automática, rua/número/bairro/cidade/UF) — mesmo componente que a ficha
+do ativo já usa.
+(4) "Dados Novo Contrato" (contratos.js v1.16.0): mesmo bloco estruturado
+no endereço do locatário, no lugar da textarea de texto livre.
+(5) Ficha/edição de Parte do Item de Controle (cofre-controles.js
+v1.31.0): ganha o resumo de verdade (.rz-kv) e o mesmo bloco de
+endereço, além de profissão/estado civil, que faltavam.
+migration partes_endereco_estruturado_v1 (colunas endereco_rua/num/
+comp/bairro/cidade/uf/cep/codigo_ibge_municipio em `partes`, mesmo
+padrão de cofre_ativos; `endereco` texto livre mantido — DAD-04).
+------------------------------------------------------------------
+Versões anteriores (v1.239.0 … v1.240.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.240.0) — demanda 44f30857 (Contratos, 5 itens):
+(1) Removido o título "Contratos de Locação Ativos" acima da lista —
+redundante, os chips logo abaixo já dão o contexto (mesmo padrão das
+outras abas, nenhuma tem título acima da lista).
+(2) Chip "Renovação" › card "Pelo contrato" (ficha do contrato) e card
+"Performance" (ficha do ativo) ganham botão (i) explicando cada métrica
+exibida (abrirInfoReajusteContrato em contratos.js v1.15.0,
+abrirInfoPerformanceAtivo em cofre-ativos.js v1.60.0) — sheet/modal com
+texto curto por métrica, mesmo padrão dos 2 módulos.
+(3) Ficha do contrato › card "Cobranças": o ⋮ de cada mensalidade
+disparava também o clique da linha inteira (herdado do fix de
+18/09/2026 que tornou a linha clicável) — "Dar baixa"/"Excluir"
+navegavam pra Financeiro antes de agir. O ⋮ ganhou handler próprio
+(event.stopPropagation()) — agora age direto, de qualquer aba.
+(4) "Editar a distribuição do aluguel entre proprietários" abria o
+formulário inteiro de editar contrato — passa a abrir direto o popup
+"Alterações" de divisão societária (abrirAlteracoesDivisaoSocietaria,
+já usado pela ficha do imóvel), nos mesmos moldes da tela de rateio de
+propriedade do imóvel — sem duplicar formulário.
+(5) Clicar numa ocorrência já concluída do contrato (ex.: tipo
+"Assinatura") — o campo "Descrição" dividia a grade de 2 colunas com
+os campos curtos e ficava espremido; ganhou largura total (.rz-full).
+NOVIDADES (Beta v1.239.0) — demanda 60284322 + Fase 1 do wrapper:
+(1) Navegação por rodapé sempre reseta a aba (demanda 60284322): os 5
+botões do rodapé (Visão Geral, Ativos, Contratos, Financeiro, Resultados)
+chamavam switchTab(tabId) direto — trocavam a SEÇÃO visível, mas não
+sabiam nada do estado interno de cada módulo, então "sobrava" a última
+visita (ficha do ativo aberta, mês navegado em Financeiro, filtro
+aplicado em Resultados). Os 5 botões passam a chamar irParaAbaRodape
+(tabId) nova função, que resolve o reset de cada aba (só quem sabe o
+que precisa voltar ao padrão é o módulo dono do estado) antes de
+chamar switchTab: Ativos via fecharFichaAtivo() (cofre-ativos.js, já
+existia); Resultados/Financeiro via resetarResultadosParaAbaInicial()/
+resetarFinanceiroParaAbaInicial() (novas, resultados.js v1.4.0/
+financeiro.js v1.16.0); Visão Geral já reconstrói tudo do zero a cada
+entrada (nada a fazer); Contratos: a ficha já fecha sozinha ao trocar
+de aba, e o filtro da lista fica de propósito (é filtro de busca).
+(2) Fase 1 do wrapper de escrita + evento local (backlog discutido em
+sessão anterior: "tela desatualizada após criar/editar/excluir, cross,
+todo o app"; decisão do Nicola pra esta entrega — "Utilitário + 1
+piloto testado"): js/raiz-eventos.js (novo) — emitirEscrita/aoEscrever/
+executarEscrita, evento local padronizado pra módulos que não se
+conhecem avisarem uns aos outros que algo mudou. Piloto único: editar
+um ativo (salvarEdicaoAtivo, cofre-ativos.js v1.59.0) agora também
+emite emitirEscrita('ativo', ...) — index.html assina 1x no boot e
+refaz `imoveis` (array legado que só carregava 1x no boot, nunca de
+novo) e redesenha a Visão Geral se ela estiver aberta na hora (contador
+"Total/Alugados/Vagos" ficava desatualizado até um F5). Adoção do
+wrapper no resto do app (Contratos, Financeiro, Resultados) fica pra
+rodada dedicada futura.
+------------------------------------------------------------------
+Versões anteriores (v1.237.0 … v1.237.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.237.0) — Entrega F.3/F.4:
+(1) Compartilhamento com o contador: no fechamento, ⋮ ganha "Compartilhar
+com o contador" — escolhe o contador (papel novo, prestadores.tipo=
+'contador', mesmo padrão de administradora/síndico/manutencista) e o
+canal (WhatsApp/e-mail já cadastrados nele), marca 1+ competências
+FECHADAS, e o app monta 1 PDF por competência (jsPDF, mesmo padrão de
+baixarRelatorioPdfLocal) com o conteúdo do bloco contábil do snapshot
+(fn_pacote_contador_montar) — abre o compartilhamento nativo do
+aparelho (navigator.share, quando suportado) ou baixa o(s) PDF(s) e
+abre wa.me/mailto com o resumo em texto, pro próprio usuário confirmar
+e enviar. SEM token/link pro contador acessar o sistema (mecanismo
+antigo, nunca chegou a ser construído — solução descartada, registrada
+como pendência de backlog, DEM). Cada competência é fechada 1 de cada
+vez (sem mudança); só a geração/compartilhamento do pacote aceita
+escolher mais de uma de uma vez.
+(2) Retificação: mensalidade/lançamento de competência FECHADA agora
+trava edição de verdade (trigger de banco, não só a tela) — precisa
+reabrir o fechamento antes (item "Ver detalhe"/recibo continuam
+liberados). Reabrir invalida o pacote contábil daquela competência
+(fechar de novo gera um snapshot novo).
+(3) O que entra no pacote contábil: todo item baixado (pago/recebido,
+manual ou conciliado) e repasse conciliado, por padrão
+(incluir_contabilidade=true) — ⋮ "Não incluir na contabilidade" desmarca
+1 item por vez (funcionalidade financeiro.contabilidade_ajustar, ACE-03).
+(4) Conciliação: perdeu o filtro/agrupamento de competência PRÓPRIO —
+segue o card do topo, igual Recebimentos/Saídas (decisão da F.1/F.2
+revertida aqui, a pedido). Só mostra pendências de conciliação
+(pendente/não controlado); o que já foi baixado aparece em Recebimentos/
+Saídas, com a origem (Manual/Extrato) na própria linha. Segmento Tudo/
+Entradas/Saídas e chips Todos/Pendentes/Conciliados/Não controlado
+saíram da tela (não fazem mais sentido com 1 competência só). "Extrato
+bancário" e o botão dedicado de Fechar/Abrir competência (cadeado —
+saiu do ⋮, virou 1 toque) passam a existir nos 3 chips (Recebimentos ·
+Saídas · Fechamento), não só em Fechamento.
+(5) O seletor Recebimentos/Saídas/Fechamento virou .rz-seg (era .rz-chips
+desde a F.1) — mesmo componente da Visão Geral. O card de competência
+(‹ Mês ›) ficou mais baixo, na mesma altura do seletor. O resumo da
+aba Fechamento virou 4 KPIs (Pendente/Não controlado/Recebido/Pago),
+mesmo padrão de Recebimentos/Saídas — troca o hero "Conciliação do
+período".
+(6) CORRIGIDO (QUA-01, achados revisando esta mesma entrega antes de
+qualquer uso real, nenhum reportado por uso real): (a) 3 das 7 funções
+novas tinham "REVOKE ... FROM anon" em vez de "FROM PUBLIC" — não
+fechava o acesso de verdade, porque toda função nasce com EXECUTE
+concedido a PUBLIC e anon herda dele (migration
+fechamento_pacote_contador_v1_fix_grants_public); (b) o botão dedicado
+de Fechar/Abrir só era redesenhado quando o usuário abria o chip
+Fechamento — Recebimentos/Saídas podiam mostrar o cadeado do mês
+errado até visitar Fechamento (financeiro.js v1.15.0); (c) o ⋮ de um
+item pago/realizado continuava oferecendo Estornar/"Não incluir na
+contabilidade" mesmo com a competência fechada — o trigger já barrava
+a gravação, mas só depois do toque, com erro cru; agora as duas ações
+somem do menu nesse caso (financeiro.js v1.15.0, fechamento.js v1.2.1);
+(d) o <select> "Atua como prestador?" da tela de Partes não tinha a
+opção "Contador" — sem ela, ninguém conseguia cadastrar um contador de
+verdade pela tela (index.html, abrirFormParteSheet).
+Migrations (3, nesta ordem): fechamento_pacote_contador_v1 (colunas
+incluir_contabilidade em mensalidades/lancamentos/extrato_fingerprints;
+trigger de bloqueio de edição em competência fechada;
+fn_fechamento_calcular_contabil/fn_pacote_contador_montar/
+fn_financeiro_totalizador_fechamento/fn_fechamento_listar_fechadas/
+fn_financeiro_incluir_contabilidade/fn_competencia_esta_fechada;
+fn_fechamento_fechar e fn_atualizar_mensalidades_vencidas alterados) ·
+fechamento_pacote_contador_v1_enum_contador (tipo_prestador_enum ganha
+'contador' — ALTER TYPE ... ADD VALUE isolado, não roda na mesma
+transação de DDL que já referencia o valor novo) ·
+fechamento_pacote_contador_v1_fix_grants_public (correção do item 6a
+acima).
+------------------------------------------------------------------
+Versões anteriores (v1.236.0 … v1.236.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.236.0) — Entrega F3.1: chip "Fiscal" no card de
+competência do Fechamento (js/fechamento.js), visível só quando a
+rotina nfse_competencia está ligada (Empresa › Rotinas). Mostra "Fiscal
+OK" (verde) ou a contagem de pendências (âmbar); toque abre um
+checklist por imóvel com 2 perguntas: CIB preenchido? (reaproveita
+fn_diario_cib_pendente, mesma função que já alimenta o alerta de
+estado cib_pendente da Entrega AL.2 — fonte única, nunca diverge do
+que a Central de Alertas mostra) e o contrato ativo tem documento do
+locatário (CPF/CNPJ)? (consulta nova client-side, sem RPC — natureza
+de cadastro, sem alerta de estado equivalente ainda). Cada item do
+checklist navega pro lugar de sempre pra corrigir (ficha do ativo/
+ficha do contrato) — nenhuma edição inline nova. Preparação apenas:
+nenhum texto afirma que a empresa é contribuinte, e não emite nada
+(emissão real de NFS-e é fase futura, fora de escopo aqui). Sem
+migration — reaproveita os tipos/funções que a AL.2 já publicou.
+------------------------------------------------------------------
+Versões anteriores (v1.235.0 … v1.235.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.235.0) — Entrega F.3: achado do Nicola — "uma vez que
+tem o chip do mês no topo, não precisa mais ter os agrupamentos e
+filtros por competência" (aba Financeiro, Recebimentos ou Saídas).
+Recebimentos e Saídas perdem o agrupamento colapsável por mês e o
+filtro de competência do "Buscar" (o <select> escondido) — a lista
+passa a mostrar só a competência já selecionada no card do topo
+(mesma fonte dos 4 KPIs desde a Entrega F.1), como lista simples, sem
+grupos. Reverte a decisão registrada na F.1 de manter os dois
+independentes (ver nota grande em js/financeiro.js): aquela cautela
+era porque o <select> só aceitava competência já carregada, o que
+esvaziaria a lista ao navegar pra um mês futuro/vazio pelo <select>;
+sem mais <select>, quem manda é só o card, e mês vazio mostra a lista
+vazia mesmo (mesmo comportamento que os KPIs já tinham desde a F.1).
+Atrasados (tab-inadimplencia, segmento próprio) e Fechamento/
+Conciliação (tab-conciliacao, decisão da F.1 continua valendo —
+precisa ver vários meses de uma vez) NÃO mudam. Sem migration — só UI/
+front (js/financeiro.js, index.html).
+------------------------------------------------------------------
+Versões anteriores (v1.234.0 … v1.234.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.234.0) — Entrega F.2: fechar/reabrir a competência
+(REGRAS_EXPERIENCIA_RAIZ v3.19.0 §11.1) — o chip Fechamento ganha o
+MESMO card de competência de Recebimentos/Saídas, agora com status
+("Fechado") e ⋮ (Sheet de ações: Fechar/Reabrir — zero superfície nova,
+card + Sheet de ações já existiam). Fechar é permitido mesmo com
+pendência (recebimento/saída em aberto ou atraso naquele mês — "fechar
+dinheiro não é aprovar dinheiro"); reabrir sempre pede o motivo. Módulo
+novo js/fechamento.js (migration fechamento_estrutura_v1:
+fn_fechamento_verificar/fechar/reabrir + tabela fechamento_snapshot,
+retrato imutável — trigger bloqueia UPDATE/DELETE mesmo pra quem
+escreve como dono da função; RLS leitura-tenant, escrita só RPC).
+ESCOPO DESTA ENTREGA (decisão do Nicola, 21/09/2026): só o retrato
+financeiro (Previsto/Recebido/Pago); o retrato de Distribuição (extrato
+de sócio) fica pra uma entrega seguinte — calcularExtratoSocio()
+continua onde está, sem mudança nesta rodada.
+------------------------------------------------------------------
+Versões anteriores (v1.233.0 … v1.233.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.233.0) — Entrega F.1: card de competência (‹ Mês/Ano ›)
 sozinho no topo de Recebimentos e Saídas (REGRAS_EXPERIENCIA_RAIZ
 v3.18.0 §11: "a competência vem primeiro porque qualifica tudo que vem
