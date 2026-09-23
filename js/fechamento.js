@@ -1,6 +1,16 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.9.0 · 23/09/2026
+// Versão: 1.10.0 · 23/09/2026
+//
+// v1.10.0 (achado do Nicola, 23/09/2026 — Albuquerque): com "Planilha" e
+// "XML" marcados, o WhatsApp recebeu só o texto, sem nenhum anexo. Causa:
+// navigator.share com vários arquivos de TIPOS diferentes (PDF + CSV + XML)
+// junto com texto — o WhatsApp do Android descarta os arquivos e fica só
+// com o texto. Correção: quando há mais de 1 arquivo, vai 1 ZIP só
+// (PDF + planilha + XMLs dentro, fechamentoMontarZip, sem biblioteca) e o
+// compartilhamento leva só o arquivo; o texto-resumo vai para a área de
+// transferência ("cole na conversa"). Só o PDF continua indo como PDF.
+// "Só baixar" não muda (baixa cada arquivo, como já funcionava).
 //
 // v1.9.0 (achado do Nicola, 23/09/2026 — Albuquerque): o checklist fiscal
 // completa QUALQUER pendência ali mesmo (CPF/CNPJ do locatário ou da
@@ -286,7 +296,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.9.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -902,22 +912,35 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opc
         return;
     }
 
+    // v1.10.0 — mais de 1 arquivo vira 1 ZIP (o WhatsApp descarta anexos de tipos misturados)
+    if (arquivos.length > 1) {
+        try {
+            const comps = pacotes.map(p => String(p.competencia).slice(0, 7)).join('_');
+            arquivos = [await fechamentoMontarZip(arquivos, `pacote-contador-${comps}.zip`)];
+        } catch (e) { console.warn('[fechamento] ZIP do pacote', e?.message); }
+    }
+    const textoResumo = fechamentoTextoResumo(pacotes);
     let compartilhouNativo = false;
     if (typeof navigator !== 'undefined' && navigator.canShare) {
         try {
             const files = arquivos.map(a => new File([a.blob], a.nome, { type: a.tipo || 'application/pdf' }));
             if (navigator.canShare({ files })) {
-                await navigator.share({ files, title: 'Pacote do contador', text: fechamentoTextoResumo(pacotes) });
+                // Só o arquivo: com texto junto, o WhatsApp do Android fica só com o texto.
+                try { await navigator.clipboard?.writeText(textoResumo); } catch (_) { /* sem permissão: segue sem copiar */ }
+                if (typeof mostrarToast === 'function') mostrarToast('Resumo copiado — cole na conversa, se quiser.', 'info');
+                await navigator.share({ files, title: 'Pacote do contador' });
                 compartilhouNativo = true;
             }
         } catch (e) {
-            compartilhouNativo = false; // usuário cancelou ou o navegador recusou — segue pro fallback abaixo
+            // usuário cancelou: não baixa nada; o navegador recusou: segue pro fallback abaixo
+            if (e?.name === 'AbortError') return;
+            compartilhouNativo = false;
         }
     }
 
     if (!compartilhouNativo) {
         arquivos.forEach(fechamentoBaixarArquivo);
-        const texto = encodeURIComponent(fechamentoTextoResumo(pacotes) + `\n\n(${arquivos.length > 1 ? 'PDFs baixados' : 'PDF baixado'} — anexe antes de enviar)`);
+        const texto = encodeURIComponent(textoResumo + `\n\n(${arquivos[0]?.nome?.endsWith('.zip') ? 'arquivo .zip baixado' : 'PDF baixado'} — anexe antes de enviar)`);
         if (canal === 'whatsapp') {
             const numero = (contadorInfo?.whatsapp || '').replace(/\D/g, '');
             if (!numero) { if (typeof mostrarToast === 'function') mostrarToast('Contador sem WhatsApp cadastrado — PDF baixado, envie manualmente.', 'info'); return; }
@@ -930,6 +953,52 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opc
     }
     await fechamentoMarcarRascunhosEnviados(pacotes);
     if (typeof mostrarToast === 'function') mostrarToast('Pacote pronto.', 'success');
+}
+
+// v1.10.0 — ZIP sem compressão (método STORE) com os arquivos do pacote.
+// Sem biblioteca: cabeçalho local + diretório central + CRC-32 (tabela).
+// Nomes em UTF-8 (bit 11). Suficiente para PDF/CSV/XML de poucos MB.
+let FECH_CRC_TAB = null;
+function fechamentoCrc32(bytes) {
+    if (!FECH_CRC_TAB) {
+        FECH_CRC_TAB = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); FECH_CRC_TAB[n] = c >>> 0; }
+    }
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) crc = FECH_CRC_TAB[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+async function fechamentoMontarZip(arquivos, nomeZip) {
+    const enc = new TextEncoder();
+    const agora = new Date();
+    const dosHora = (agora.getHours() << 11) | (agora.getMinutes() << 5) | (agora.getSeconds() >> 1);
+    const dosData = ((agora.getFullYear() - 1980) << 9) | ((agora.getMonth() + 1) << 5) | agora.getDate();
+    const partes = []; const central = []; let offset = 0; const usados = new Set();
+    for (const a of arquivos) {
+        let nome = a.nome; let i = 2;
+        while (usados.has(nome)) nome = a.nome.replace(/(\.[^.]*)?$/, `-${i++}$1`);
+        usados.add(nome);
+        const nomeB = enc.encode(nome);
+        const dados = new Uint8Array(await a.blob.arrayBuffer());
+        const crc = fechamentoCrc32(dados);
+        const loc = new DataView(new ArrayBuffer(30));
+        loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true); loc.setUint16(8, 0, true);
+        loc.setUint16(10, dosHora, true); loc.setUint16(12, dosData, true); loc.setUint32(14, crc, true);
+        loc.setUint32(18, dados.length, true); loc.setUint32(22, dados.length, true); loc.setUint16(26, nomeB.length, true); loc.setUint16(28, 0, true);
+        partes.push(new Uint8Array(loc.buffer), nomeB, dados);
+        const cen = new DataView(new ArrayBuffer(46));
+        cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true); cen.setUint16(10, 0, true);
+        cen.setUint16(12, dosHora, true); cen.setUint16(14, dosData, true); cen.setUint32(16, crc, true);
+        cen.setUint32(20, dados.length, true); cen.setUint32(24, dados.length, true); cen.setUint16(28, nomeB.length, true);
+        cen.setUint32(42, offset, true);
+        central.push(new Uint8Array(cen.buffer), nomeB);
+        offset += 30 + nomeB.length + dados.length;
+    }
+    const tamCentral = central.reduce((s, b) => s + b.length, 0);
+    const fim = new DataView(new ArrayBuffer(22));
+    fim.setUint32(0, 0x06054b50, true); fim.setUint16(8, arquivos.length, true); fim.setUint16(10, arquivos.length, true);
+    fim.setUint32(12, tamCentral, true); fim.setUint32(16, offset, true);
+    return { blob: new Blob([...partes, ...central, new Uint8Array(fim.buffer)], { type: 'application/zip' }), nome: nomeZip, tipo: 'application/zip' };
 }
 
 // v1.8.0 — baixa 1 arquivo do pacote (PDF, CSV ou XML) sem depender do jsPDF.

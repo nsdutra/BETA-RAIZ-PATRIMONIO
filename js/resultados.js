@@ -1,8 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.6.0 (22/09/2026 — demanda 8d5585a3)
+// VERSÃO: Beta v1.7.0 (23/09/2026 — demanda 43448a36)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.7.0) — demanda 43448a36 (teste reprovado pelo Nicola
+// em 23/09, Albuquerque): em Família o cartão "Ativos em uso" ficava sempre
+// "—" (ocupação só existe para long stay) e dava a impressão de que os
+// ativos sem aluguel (terreno, carros, jet-ski) estavam fora do recorte.
+// Agora mostra "Ativos" com a QUANTIDADE do recorte — o mesmo universo do
+// Patrimônio e da Visão Geral.
 // NOVIDADES (Beta v1.6.0) — demanda 8d5585a3 (achado do Nicola):
 //   — Todo valor em R$ exibido nesta tela (formatarMoedaBR) passa a usar
 //     `{ semCentavos: true }` — sem casas decimais. formatarMoedaBR() em
@@ -162,7 +168,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.6.0';
+export const VERSAO = '1.7.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -502,7 +508,10 @@ function montarKpis(resumo, perf) {
     const cards = [`<div class="rz-kpi rz-hero${heroClasse}"><small>${heroLabel}</small><b>${heroValor}</b></div>`];
     cards.push(`<div class="rz-kpi"><small>Patrimônio</small><b>${formatarPatrimonioCompacto(patrimonio)}</b></div>`);
     if (!familia) cards.push(`<div class="rz-kpi"><small>Rentabilidade</small><b>${pctFmt(rentabilidade)}</b></div>`);
-    cards.push(`<div class="rz-kpi"><small>${familia ? 'Ativos em uso' : 'Ocupação'}</small><b>${pctFmt(ocupacaoValor)}</b></div>`);
+    const totalAtivos = perf ? perf.total_ativos : (resumo ? resumo.total_imoveis : null); // v1.7.0
+    cards.push(familia
+        ? `<div class="rz-kpi"><small>Ativos</small><b>${totalAtivos ?? '—'}</b></div>`
+        : `<div class="rz-kpi"><small>Ocupação</small><b>${pctFmt(ocupacaoValor)}</b></div>`);
     cards.push(`<div class="rz-kpi${Number(inadimplencia) > 0 ? ' rz-bad' : ''}"><small>Inadimplência</small><b>${formatarMoedaBR(inadimplencia || 0, { semCentavos: true })}</b></div>`);
 
     return `<div class="rz-kpis">${cards.join('')}</div>`;

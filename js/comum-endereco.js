@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-endereco.js — Raiz Patrimônio · Componente de endereço
-// Versão: 1.0.0 · 15/09/2026
+// Versão: 1.1.0 · 23/09/2026
+//
+// v1.1.0 (pedido do Nicola, 23/09/2026 — frente fiscal): o código IBGE do
+// município deixa de ser campo oculto e aparece no bloco, com a nota "Vem do
+// CEP · usado na nota fiscal (NFS-e)". A busca do CEP passa a rodar sozinha
+// quando o CEP fica com 8 dígitos (antes só pelo botão Buscar) e SEMPRE
+// atualiza o IBGE (antes só gravava se viesse valor). Leitura guarda só
+// dígitos no IBGE. Campo e nota com classes .rz-f/.rz-hint (sem estilo solto).
 //
 // v1.0.0 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2. Um componente no Design
 // System, três consumidores previstos: ficha do ativo (cofre_ativos, colunas
@@ -22,7 +29,7 @@
 // IDs dos campos: `${prefixo}-cep`, `${prefixo}-rua`, etc.
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: lido por Dev › Versões — manter igual ao header
 
 const UF_OPCOES = ['', 'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
     'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
@@ -51,7 +58,8 @@ export function renderizarBlocoEndereco(prefixo, valores = {}, opcoes = {}) {
         <div class="rz-f" style="max-width:180px">
             <label>CEP</label>
             <div style="display:flex;gap:8px">
-                <input type="text" id="${prefixo}-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${val(v.cep)}" style="flex:1">
+                <input type="text" id="${prefixo}-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${val(v.cep)}" style="flex:1"
+                    oninput="window.rzCepDigitado && window.rzCepDigitado('${prefixo}')">
                 <button type="button" id="${prefixo}-btn-cep" onclick="window.rzConsultarCepBloco && window.rzConsultarCepBloco('${prefixo}')"
                     class="text-xs font-bold px-3 rounded-lg" style="background:var(--tile);color:var(--pine)">Buscar</button>
             </div>
@@ -67,7 +75,11 @@ export function renderizarBlocoEndereco(prefixo, valores = {}, opcoes = {}) {
             <div class="rz-f" style="flex:1"><label>Cidade</label><input type="text" id="${prefixo}-cidade" value="${val(v.endereco_cidade)}"></div>
             <div class="rz-f" style="max-width:90px"><label>UF</label><select id="${prefixo}-uf">${opcoesUF}</select></div>
         </div>
-        <input type="hidden" id="${prefixo}-ibge" value="${val(v.codigo_ibge_municipio)}">
+        <div class="rz-f">
+            <label for="${prefixo}-ibge">Código do município (IBGE)</label>
+            <input type="text" id="${prefixo}-ibge" inputmode="numeric" maxlength="7" placeholder="7 dígitos" value="${val(v.codigo_ibge_municipio)}">
+            <span class="rz-hint">Vem do CEP ao buscar. Usado na nota fiscal (NFS-e) — confira se o CEP estiver vazio.</span>
+        </div>
         ${mostrarCopiar ? `<button type="button" onclick="window.rzAbrirCopiarEndereco && window.rzAbrirCopiarEndereco('${prefixo}')"
             class="text-xs font-bold flex items-center gap-1" style="color:var(--sage)">
             <svg data-lucide="copy" style="width:13px;height:13px"></svg> Usar endereço de outro ativo
@@ -98,7 +110,7 @@ export function lerBlocoEndereco(prefixo) {
         endereco_bairro: g('bairro') || null,
         endereco_cidade: g('cidade') || null,
         uf: g('uf').toUpperCase() || null,
-        codigo_ibge_municipio: g('ibge') || null,
+        codigo_ibge_municipio: g('ibge').replace(/\D/g, '') || null,
     };
 }
 
@@ -156,8 +168,19 @@ window.rzConsultarCepBloco = async function (prefixo) {
     set('bairro', r.endereco_bairro);
     set('cidade', r.endereco_cidade);
     set('uf', r.uf);
-    set('ibge', r.codigo_ibge_municipio);
-    if (elStatus) elStatus.textContent = '';
+    // v1.1.0 — o IBGE sempre acompanha o CEP (é o município da nota fiscal)
+    const elIbge = document.getElementById(`${prefixo}-ibge`);
+    if (elIbge) elIbge.value = r.codigo_ibge_municipio || '';
+    if (elStatus) elStatus.textContent = r.codigo_ibge_municipio ? `Município: ${r.endereco_cidade || ''}${r.uf ? '/' + r.uf : ''} · IBGE ${r.codigo_ibge_municipio}` : '';
+};
+
+// v1.1.0 — busca sozinha quando o CEP completa 8 dígitos (1 vez por CEP)
+window.rzCepDigitado = function (prefixo) {
+    const el = document.getElementById(`${prefixo}-cep`);
+    const dig = (el?.value || '').replace(/\D/g, '');
+    if (dig.length !== 8 || el.dataset.rzCepBuscado === dig) return;
+    el.dataset.rzCepBuscado = dig;
+    window.rzConsultarCepBloco(prefixo);
 };
 
 // ============================================================================

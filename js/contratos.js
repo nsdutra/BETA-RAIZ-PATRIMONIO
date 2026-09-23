@@ -1,7 +1,18 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.21.0 · 23/09/2026
+// Versão: 1.22.0 · 23/09/2026
+//
+// v1.22.0 (demanda e19d6739, testes reprovados pelo Nicola em 23/09/2026):
+// (1) dar baixa numa mensalidade no Financeiro levava o usuário para a
+// ficha de um contrato. Causa: o ouvinte de 'mensalidade' reabria a ficha
+// sempre que fichaContratoAtualId estava preenchido — e ele fica "velho"
+// quando se sai da ficha pelo rodapé ou pelo voltar do celular;
+// abrirFichaContrato() faz switchTab. Agora só redesenha se a ficha for a
+// tela visível. (2) Editar o nome da parte locatária não mudava a ficha
+// nem a lista: contratos.locatario é cópia em texto. O salvar da parte
+// (index.html v1.258.0) propaga para os contratos e emite 'parte' com
+// contratoIds; aqui a lista e a ficha visível se redesenham.
 //
 // v1.21.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026: "Ao
 // clicar no menu 3 pontinhos da parte, nao aparece opcao adicionar parte.
@@ -411,7 +422,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.21.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.22.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -446,7 +457,21 @@ if (!window.__rzListenerEscritaContratoLigado) {
 // por outras 12 funções deste arquivo) — só reaproveitada aqui.
 if (!window.__rzListenerEscritaMensalidadeContratoLigado) {
     window.__rzListenerEscritaMensalidadeContratoLigado = true;
-    aoEscrever('mensalidade', () => { if (fichaContratoAtualId) reabrirFichaSeFor(fichaContratoAtualId); });
+    aoEscrever('mensalidade', () => {
+        // v1.22.0 — só redesenha a ficha se ela for a tela VISÍVEL (abrirFichaContrato faz switchTab)
+        if (fichaContratoAtualId && document.getElementById('tab-contrato-ficha')?.classList.contains('active')) reabrirFichaSeFor(fichaContratoAtualId);
+    });
+}
+// v1.22.0 (e19d6739) — edição de Parte propaga o nome para contratos.locatario
+// (index.html salvarParteSheet) e avisa com detalhe.contratoIds.
+if (!window.__rzListenerEscritaParteContratoLigado) {
+    window.__rzListenerEscritaParteContratoLigado = true;
+    aoEscrever('parte', (d) => {
+        const ids = (d && d.contratoIds) || [];
+        if (!ids.length) return;
+        if (typeof renderContratos === 'function') renderContratos();
+        if (fichaContratoAtualId && ids.includes(fichaContratoAtualId) && document.getElementById('tab-contrato-ficha')?.classList.contains('active')) abrirFichaContrato(fichaContratoAtualId);
+    });
 }
 
         // Mostra (só leitura) a divisão de sócios já cadastrada no imóvel, para

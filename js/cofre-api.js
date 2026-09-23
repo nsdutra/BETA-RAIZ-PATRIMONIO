@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.44.0 · 22/09/2026
+// Versão: 1.45.0 · 23/09/2026
+//
+// v1.45.0 (demanda 43448a36, decisão do Nicola de 22/09: ativo sem
+// finalidade de uso entra em Família) — criarImovelEAtivo não grava mais
+// 'long_stay' quando a finalidade vem vazia (o imóvel ia para Comercial sem
+// ninguém escolher). Vazio fica vazio.
 //
 // v1.44.0 (demanda be42b19f, "componente único de Parte") — buscarParte()/
 // atualizarParte() novas: BUG REAL achado por mim revisando o pedido do
@@ -405,7 +410,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.44.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.45.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1337,7 +1342,7 @@ export async function criarImovelEAtivo(clienteId, nomeExibicao, tipoAtivo, imov
         valor_referencia: imovelDados.valor_mercado ?? null,
         valor_referencia_em: imovelDados.valor_mercado != null ? new Date().toISOString().slice(0, 10) : null,
         area_m2: imovelDados.tamanho ?? null,
-        finalidade_uso: imovelDados.finalidade_uso || 'long_stay',
+        finalidade_uso: imovelDados.finalidade_uso || null, // v1.45.0 (43448a36): vazio = Família
         situacao_uso: imovelDados.status || null,
         observacao: imovelDados.descricao || null,
         cib: imovelDados.cib || null,

@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.253.0) — pedido do Nicola (23/09/2026, 02:31):
+(1) BUG — parte cadastrada como prestador (contador, imobiliária,
+síndico, manutencista) não podia ser excluída ("tem vínculo" logo após
+criar): o papel técnico do espelho em prestadores contava como vínculo.
+excluirParte() agora chama fn_parte_excluir (regra no banco: ignora o
+espelho, diz o vínculo real quando existe, apaga parte + espelho).
+(2) Botão Contador do Financeiro sem contador cadastrado leva direto a
+Partes com o formulário já em "Contador" (abrirCadastroContador,
+abrirFormParteSheet ganha { tipoPrestador }). Mesmo atalho na tela
+Fiscal. Módulos: js/fechamento.js v1.6.2, js/fiscal.js v1.0.1.
+------------------------------------------------------------------
+Versões anteriores (v1.252.0 … v1.252.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.252.0) — demanda 976fcbf6 (frente fiscal da Reforma
 Tributária, Fase 3 — check-up PF e PJ; decisões D1 e D3 do Nicola,
 23/09/2026). Tela nova ⚙️ › Empresa › Fiscal (js/fiscal.js v1.0.0, fatia

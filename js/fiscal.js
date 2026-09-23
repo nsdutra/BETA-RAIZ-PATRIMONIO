@@ -1,6 +1,13 @@
 // ============================================================================
 // js/fiscal.js — Raiz Patrimônio · Fiscal (check-up da Reforma Tributária)
-// Versão: 1.3.0 · 23/09/2026
+// Versão: 1.4.0 · 23/09/2026
+//
+// v1.4.0 (pedido do Nicola, 23/09/2026): os 4 textos do check-up (regra,
+// estimativa, o que fazer, quando validar) ganham contexto — cartão "Como
+// o check-up chegou a este resultado" — e aparecem INTEIROS (classe
+// .rz-wrap, index.html v1.258.0: sem corte com "…"). Nome dos rótulos mais
+// claros ("A regra da lei", "O que o Raiz calculou", "O que fazer agora",
+// "Quando falar com o contador").
 //
 // v1.3.0 (achados do Nicola testando na Albuquerque, 23/09/2026, com prints):
 //   · Fiscal da competência: sem ⋮ no topo e sem o cartão de avisos
@@ -86,7 +93,7 @@
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
 
-export const VERSAO = '1.3.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const FIS_ROTULO_RESULTADO = {
     verde: { sem: 'ok', txt: 'Abaixo do limite' },
@@ -162,10 +169,10 @@ function fisCabecalho() {
 
 function fisBlocosTexto(t) {
     if (!t) return '';
-    const linha = (icone, titulo, txt) => txt ? `<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="${icone}"></svg></div><div class="rz-tx"><b>${fisEsc(titulo)}</b><span>${fisEsc(txt)}</span></div></div>` : '';
-    const corpo = linha('book-open', 'Regra', t.regra) + linha('calculator', 'Estimativa do sistema', t.estimativa)
-        + linha('list-checks', 'O que fazer', t.orientacao) + linha('user-check', 'Quando validar', t.validar);
-    return corpo ? `<div class="rz-card rz-list">${corpo}</div>` : '';
+    const linha = (icone, titulo, txt) => txt ? `<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="${icone}"></svg></div><div class="rz-tx rz-wrap"><b>${fisEsc(titulo)}</b><span>${fisEsc(txt)}</span></div></div>` : '';
+    const corpo = linha('book-open', 'A regra da lei', t.regra) + linha('calculator', 'O que o Raiz calculou', t.estimativa)
+        + linha('list-checks', 'O que fazer agora', t.orientacao) + linha('user-check', 'Quando falar com o contador', t.validar);
+    return corpo ? `<div class="rz-card rz-list"><div class="rz-card-h"><h3>Como o check-up chegou a este resultado</h3></div>${corpo}</div>` : '';
 }
 
 function fisRender() {

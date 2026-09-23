@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.63.0 · 23/09/2026
+// Versão: 1.64.0 · 23/09/2026
+//
+// v1.64.0 (demanda 43448a36, teste reprovado pelo Nicola em 23/09/2026:
+// "o campo finalidade de uso deve aparecer na tela de edição de todos os
+// ativos") — "Finalidade de uso" sai do bloco de imóvel para um campo
+// único (renderizarCampoFinalidadeUso) que aparece em TODO ativo, no criar
+// e no editar. Sem finalidade = Família (cofre_ativos.uso é coluna gerada:
+// long/short stay, arrendamento e revenda = comercial; o resto e o vazio =
+// não comercial). O app nunca grava 'uso'.
 //
 // v1.63.0 (frente fiscal, Fase 2 — demanda 976fcbf6) — campo "Destinação
 // (NFS-e)" na edição do imóvel: Residencial · Não residencial · "Pelo tipo".
@@ -821,7 +829,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.63.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -959,8 +967,22 @@ const SITUACOES_USO_ATIVO = [
     { v: 'reservado', l: 'Reservado' }, { v: 'assinando', l: 'Assinando' }, { v: 'manutencao', l: 'Manutenção' }, { v: 'em_breve', l: 'Em breve' },
 ];
 
+// v1.64.0 (demanda 43448a36) — finalidade de uso vale para TODO ativo.
+function renderizarCampoFinalidadeUso(prefixo, v = {}) {
+    const optSel = (val) => val === (v.finalidade_uso || '') ? ' selected' : '';
+    return `
+        <div class="rz-f">
+            <label>Finalidade de uso</label>
+            <select id="${prefixo}finalidade-uso" onchange="window.__ativoMudarFinalidadeUso('${prefixo}')">
+                <option value=""${optSel('')}>— não informado —</option>
+                ${FINALIDADES_USO_ATIVO.map(f => `<option value="${f.v}"${optSel(f.v)}>${f.l}</option>`).join('')}
+            </select>
+            <span class="rz-hint">Aluguel (long ou short stay), arrendamento e revenda contam como Comercial; o resto, e o vazio, como Família.</span>
+        </div>`;
+}
+
 // Universal — qualquer tipo de ativo.
-function renderizarBlocoEmpreendimentoValor(prefixo, v = {}, empreendimentos = []) {
+function renderizarBlocoEmpreendimentoValor(prefixo, v = {}, empreendimentos = [], { comFinalidade = false } = {}) {
     return `
         <div class="rz-f">
             <label>Empreendimento</label>
@@ -975,6 +997,7 @@ function renderizarBlocoEmpreendimentoValor(prefixo, v = {}, empreendimentos = [
             <label>Valor de referência (R$)</label>
             <input type="number" step="0.01" id="${prefixo}valor-referencia" value="${v.valor_referencia ?? ''}">
         </div>
+        ${comFinalidade ? renderizarCampoFinalidadeUso(prefixo, v) : ''}
     `;
 }
 
@@ -995,11 +1018,15 @@ async function lerBlocoEmpreendimentoValor(prefixo, clienteId) {
     }
     const valorEl = document.getElementById(prefixo + 'valor-referencia');
     const valorReferencia = valorEl?.value?.trim() ? parseFloat(valorEl.value.trim()) : null;
-    return {
+    const lido = {
         empreendimento_id: empreendimentoId || null,
         valor_referencia: valorReferencia,
         valor_referencia_em: valorReferencia !== null ? new Date().toISOString().slice(0, 10) : null,
     };
+    // v1.64.0 — só existe aqui quando o ativo não é imóvel (imóvel lê em lerBlocoImovel).
+    const selFinalidade = document.getElementById(prefixo + 'finalidade-uso');
+    if (selFinalidade) lido.finalidade_uso = selFinalidade.value || null;
+    return lido;
 }
 
 // Só categoria imóvel. Aluguel esperado (achado no teste real: pergunta
@@ -1018,13 +1045,7 @@ function renderizarBlocoImovel(prefixo, v = {}) {
             <label>Área (m²)</label>
             <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}">
         </div>
-        <div class="rz-f">
-            <label>Finalidade de uso</label>
-            <select id="${prefixo}finalidade-uso" onchange="window.__ativoMudarFinalidadeUso('${prefixo}')">
-                <option value=""${optSel('', 'finalidade_uso')}>— não informado —</option>
-                ${FINALIDADES_USO_ATIVO.map(f => `<option value="${f.v}"${optSel(f.v, 'finalidade_uso')}>${f.l}</option>`).join('')}
-            </select>
-        </div>
+        ${renderizarCampoFinalidadeUso(prefixo, v)}
         <div class="rz-f">
             <label>Situação de uso</label>
             <select id="${prefixo}situacao-uso">
@@ -1575,7 +1596,7 @@ export function atualizarCamposEstruturadosAtivo() {
     // E15.2 (achado no teste real, 16/09/2026) — empreendimento/valor de
     // referência valem pra QUALQUER tipo de ativo, não só imóvel.
     const wrapEmpVal = document.getElementById('at-empreendimento-valor-wrapper');
-    if (wrapEmpVal) wrapEmpVal.innerHTML = renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || []);
+    if (wrapEmpVal) wrapEmpVal.innerHTML = renderizarBlocoEmpreendimentoValor('at-empval-', {}, _empreendimentosCache || [], { comFinalidade: !ehCategoriaImovel(tipo) });
 
     // v1.32.0 (E6.2) — bloco de endereço estruturado, categoria imóvel.
     const mostrarBlocosImovel = ehCategoriaImovel(tipo);
@@ -2811,7 +2832,7 @@ export async function alternarEditarAtivo() {
     // Achado no teste real, 16/09/2026: empreendimento/valor de
     // referência viraram bloco PRÓPRIO, universal (qualquer tipo de
     // ativo, não só imóvel) — ver renderizarBlocoEmpreendimentoValor.
-    const blocoEmpreendimentoValor = `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoEmpreendimentoValor('fa-editar-empval-', a, _empreendimentosCache || [])}</div>`;
+    const blocoEmpreendimentoValor = `<div class="rz-campos-imovel grid grid-cols-1 sm:grid-cols-2 gap-3">${renderizarBlocoEmpreendimentoValor('fa-editar-empval-', a, _empreendimentosCache || [], { comFinalidade: !ehCategoriaImovel(a.tipo_ativo) })}</div>`;
     const blocoEndereco = ehCategoriaImovel(a.tipo_ativo)
         ? `<div class="rz-campos-endereco">${renderizarBlocoEndereco('fa-editar-endereco', a, { mostrarBotaoCopiar: false })}</div>`
         : '';
