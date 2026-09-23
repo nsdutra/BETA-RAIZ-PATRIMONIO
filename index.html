@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.255.0
-   LINHAS: 15745
-   DATA: 23/09/2026 (frente fiscal, Fase 6 — alertas fiscais)
+   VERSÃO: Beta v1.256.0
+   LINHAS: 15741
+   DATA: 23/09/2026 (frente fiscal, Fase 7 — pacote do contador)
+   NOVIDADES (Beta v1.256.0) — demanda 976fcbf6 (frente fiscal, Fase 7 —
+   pacote do contador com o bloco fiscal; decisão D3). Módulo:
+   js/fechamento.js v1.8.0 (PDF com a seção Fiscal e os rascunhos na
+   ordem do Emissor Nacional; opções Planilha (CSV) e XML das notas;
+   canal "Só baixar os arquivos"; rascunhos enviados ficam marcados).
+   Aqui: só a classe .rz-chk (linha com caixa de marcar das opções).
    NOVIDADES (Beta v1.255.0) — demanda 976fcbf6 (frente fiscal, Fase 6 —
    alertas) e 6ef4303c (D6: completar o dado direto no alerta). Os 5
    tipos novos do Motor (fiscal_documento_pendente, fiscal_com_contador,
@@ -57,20 +63,8 @@
    item de menu (código fiscal.checkup, com cadeado quando o plano/perfil
    não inclui), TAB_CODIGO_VER, carregarFiscal() e pontes; ponte nova
    fechamentoAbrirChecklistFiscalAtualizado (js/fechamento.js v1.6.1).
-   NOVIDADES (Beta v1.251.0) — demanda 976fcbf6 (frente fiscal da Reforma
-   Tributária, Fase 2 — base fiscal nos dados; decisões D2 e D6 do Nicola,
-   23/09/2026). Módulos: js/fechamento.js v1.6.0 (checklist fiscal lido de
-   fn_fiscal_pendencias_cadastro, com grupos Empresa · Documento do
-   locatário · Imóvel; CPF/CNPJ do locatário preenchido no próprio
-   checklist; contador lido de Partes), js/cofre-ativos.js v1.63.0 (campo
-   "Destinação (NFS-e)" na edição do imóvel) e js/comum-minha-empresa.js
-   v1.7.0 (Inscrição municipal). Aqui: só a ponte nova
-   fechamentoTratarPendenciaFiscal (onclick das linhas do checklist).
-   Banco (já aplicado): bruto e taxa da administradora na mensalidade,
-   destinação do imóvel, perfil fiscal, contador em Partes, tomador e
-   pendências de cadastro.
    ------------------------------------------------------------------
-   Versões anteriores (v1.250.0 … v1.250.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.251.0 … v1.251.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -94,7 +88,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.23.0","./js/fechamento.js":"./js/fechamento.js?v=1.7.0","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.23.0","./js/fechamento.js":"./js/fechamento.js?v=1.8.0","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -621,6 +615,8 @@
         .rz-row .rz-rt b.rz-in{color:var(--success)}
         .rz-row .rz-rt b.rz-out{color:var(--ink)}
         .rz-row.rz-link{cursor:pointer}
+        /* v1.256.0 (Fase 7 fiscal) — linha com caixa de marcar (opções do pacote do contador) */
+        .rz-row.rz-chk{cursor:pointer}.rz-row.rz-chk input[type=checkbox]{width:18px;height:18px;margin-right:10px;accent-color:var(--pine);flex:none}
         .rz-row .rz-chev{color:var(--muted);width:18px;height:18px;flex:none}
         .rz-group{font-size:12px;font-weight:600;color:var(--sage);margin:14px 2px 6px}
         .rz-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
@@ -3376,7 +3372,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.255.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.256.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

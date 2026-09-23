@@ -1,6 +1,21 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.7.0 · 23/09/2026
+// Versão: 1.8.0 · 23/09/2026
+//
+// v1.8.0 (frente fiscal, Fase 7 — demanda 976fcbf6; decisão D3): pacote do
+// contador com o bloco FISCAL do fechamento (fn_pacote_contador_montar agora
+// devolve dados.fiscal quando o fechamento tem o retrato fiscal — migration
+// fiscal_pacote_contador_v1; fechamento antigo continua como antes).
+//   · PDF: seção "Fiscal (NFS-e)" — resumo (imóveis locados, recebimentos,
+//     valor bruto recebido, notas emitidas, rascunhos, pendências),
+//     obrigatoriedade, notas emitidas (nº, data, valor, locatário, imóvel,
+//     chave), RASCUNHOS com os campos da DPS na ordem do Emissor Nacional
+//     (para o contador emitir), pendências e o resumo do check-up (D3).
+//   · Compartilhar com o contador ganha 2 opções: "Planilha (CSV)" (tudo do
+//     pacote numa planilha, UTF-8 com BOM e ";" — abre certo no Excel) e
+//     "XML das notas" (arquivos do Cofre); e o canal "Só baixar os arquivos".
+//   · Depois de compartilhar, os rascunhos que foram no pacote ficam
+//     marcados como enviados ao contador (fn_fiscal_documento_enviar_contador).
 //
 // v1.7.0 (frente fiscal, Fase 6 — demanda 976fcbf6; item adiado da Fase 5):
 // o botão Fiscal do Financeiro passa a mostrar as NOTAS da competência, não
@@ -262,7 +277,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.8.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -801,16 +816,23 @@ export async function fechamentoAbrirCompartilharContador() {
             <select id="fechamento-canal-sel" class="w-full p-2.5 border rounded-lg text-sm mt-1 mb-3">
                 <option value="whatsapp">WhatsApp</option>
                 <option value="email">E-mail</option>
+                <option value="baixar">Só baixar os arquivos</option>
             </select>
             <label class="text-xs font-bold text-slate-600">Competências</label>
             <div class="rz-card rz-list mt-1">${opcoesCompetencia}</div>
+            <div class="rz-group">Junto com o PDF</div>
+            <div class="rz-card rz-list">
+                <label class="rz-row rz-chk"><input type="checkbox" id="fechamento-inc-csv" checked><div class="rz-tx"><b>Planilha (CSV)</b><span>Tudo do pacote, abre no Excel</span></div></label>
+                <label class="rz-row rz-chk"><input type="checkbox" id="fechamento-inc-xml" checked><div class="rz-tx"><b>XML das notas</b><span>Arquivos das notas emitidas, do Cofre</span></div></label>
+            </div>
         `,
         aoSalvar: async (corpoEl) => {
             const contadorId = corpoEl.querySelector('#fechamento-contador-sel')?.value;
             const canal = corpoEl.querySelector('#fechamento-canal-sel')?.value || 'whatsapp';
             const comps = [...corpoEl.querySelectorAll('.fechamento-comp-check:checked')].map(el => el.value);
             if (!comps.length) { if (typeof mostrarToast === 'function') mostrarToast('Selecione ao menos uma competência.', 'danger'); return false; }
-            await fechamentoGerarEcompartilhar(contadorId, canal, comps);
+            const opcoes = { csv: !!corpoEl.querySelector('#fechamento-inc-csv')?.checked, xml: !!corpoEl.querySelector('#fechamento-inc-xml')?.checked };
+            await fechamentoGerarEcompartilhar(contadorId, canal, comps, opcoes);
         },
     });
 }
@@ -823,7 +845,7 @@ export async function fechamentoAbrirCompartilharContador() {
  * PDF precisa ser anexado à mão (nenhum dos dois esquemas de URL
  * consegue anexar arquivo — limitação do próprio navegador/protocolo,
  * não do Raiz). */
-async function fechamentoGerarEcompartilhar(contadorId, canal, competencias) {
+async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opcoes = { csv: true, xml: true }) {
     if (typeof mostrarToast === 'function') mostrarToast('Gerando pacote…', 'info');
     const pacotes = [];
     let contadorInfo = null;
@@ -852,11 +874,21 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias) {
         if (typeof mostrarToast === 'function') mostrarToast('Não consegui montar o PDF agora.', 'danger');
         return;
     }
+    // v1.8.0 — anexos: planilha e XML das notas (falha num anexo não derruba o pacote)
+    if (opcoes.csv) pacotes.forEach(p => { try { arquivos.push(fechamentoMontarCsvPacote(p)); } catch (e) { console.warn('[fechamento] CSV', e?.message); } });
+    if (opcoes.xml) arquivos.push(...await fechamentoBaixarXmlsNotas(pacotes));
+
+    if (canal === 'baixar') {
+        arquivos.forEach(fechamentoBaixarArquivo);
+        await fechamentoMarcarRascunhosEnviados(pacotes);
+        if (typeof mostrarToast === 'function') mostrarToast(`${arquivos.length} arquivo(s) baixado(s).`, 'success');
+        return;
+    }
 
     let compartilhouNativo = false;
     if (typeof navigator !== 'undefined' && navigator.canShare) {
         try {
-            const files = arquivos.map(a => new File([a.blob], a.nome, { type: 'application/pdf' }));
+            const files = arquivos.map(a => new File([a.blob], a.nome, { type: a.tipo || 'application/pdf' }));
             if (navigator.canShare({ files })) {
                 await navigator.share({ files, title: 'Pacote do contador', text: fechamentoTextoResumo(pacotes) });
                 compartilhouNativo = true;
@@ -867,7 +899,7 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias) {
     }
 
     if (!compartilhouNativo) {
-        arquivos.forEach(a => a.pdf.save(a.nome));
+        arquivos.forEach(fechamentoBaixarArquivo);
         const texto = encodeURIComponent(fechamentoTextoResumo(pacotes) + `\n\n(${arquivos.length > 1 ? 'PDFs baixados' : 'PDF baixado'} — anexe antes de enviar)`);
         if (canal === 'whatsapp') {
             const numero = (contadorInfo?.whatsapp || '').replace(/\D/g, '');
@@ -879,8 +911,77 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias) {
             window.open(`mailto:${email}?subject=${encodeURIComponent('Pacote do fechamento')}&body=${texto}`, '_blank');
         }
     }
+    await fechamentoMarcarRascunhosEnviados(pacotes);
     if (typeof mostrarToast === 'function') mostrarToast('Pacote pronto.', 'success');
 }
+
+// v1.8.0 — baixa 1 arquivo do pacote (PDF, CSV ou XML) sem depender do jsPDF.
+function fechamentoBaixarArquivo(a) {
+    const url = URL.createObjectURL(a.blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = a.nome; link.className = 'hidden';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+// v1.8.0 — XML das notas emitidas do pacote, direto do Cofre (download com a
+// sessão do usuário: a regra do Storage vale). Nota sem XML fica de fora.
+async function fechamentoBaixarXmlsNotas(pacotes) {
+    const saida = [];
+    for (const p of pacotes) {
+        for (const d of (p.dados?.fiscal?.documentos || [])) {
+            if (d.status !== 'emitida' || !d.xml?.path) continue;
+            try {
+                const { data: blob, error } = await dbAuth.storage.from(d.xml.bucket || 'cofre-documentos').download(d.xml.path);
+                if (error || !blob) throw error || new Error('vazio');
+                saida.push({ blob, nome: `nfse-${p.competencia.slice(0, 7)}-${d.numero || String(d.documento_id).slice(0, 8)}.xml`, tipo: 'application/xml' });
+            } catch (e) { console.warn('[fechamento] XML da nota', d.numero || d.documento_id, e?.message || ''); }
+        }
+    }
+    return saida;
+}
+
+// v1.8.0 — rascunhos que foram no pacote: marca a data de envio ao contador.
+async function fechamentoMarcarRascunhosEnviados(pacotes) {
+    const ids = [];
+    pacotes.forEach(p => (p.dados?.fiscal?.documentos || []).forEach(d => {
+        if (d.status === 'preparada' && (d.status_atual || 'preparada') === 'preparada') ids.push(d.documento_id);
+    }));
+    if (!ids.length) return;
+    try {
+        const { error } = await dbAuth.rpc('fn_fiscal_documento_enviar_contador', { p_documento_ids: ids, p_canal: 'app' });
+        if (error) throw error;
+    } catch (e) { console.warn('[fechamento] marcar rascunhos enviados', e?.code || ''); }
+}
+
+// v1.8.0 — planilha do pacote: UTF-8 com BOM, separador ";" e decimal com
+// vírgula (Excel em português abre com acento e número certos).
+function fechamentoMontarCsvPacote(linha) {
+    const dados = linha.dados || {};
+    const fis = dados.fiscal || null;
+    const num = (v) => (v === null || v === undefined || v === '') ? '' : Number(v).toFixed(2).replace('.', ',');
+    const data = (v) => v ? new Date(String(v).length === 10 ? v + 'T00:00:00' : v).toLocaleDateString('pt-BR') : '';
+    const cel = (v) => { const t = String(v ?? ''); return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+    const linhas = [['Seção', 'Data', 'Valor', 'Descrição', 'Detalhe', 'Origem/Status']];
+    (dados.recebimentos || []).forEach(i => linhas.push(['Recebimento', data(i.data_pgto), num(i.valor), '', '', fechamentoOrigemRotulo(i.origem)]));
+    (dados.saidas || []).forEach(i => linhas.push(['Saída', data(i.data_pagamento), num(i.valor), i.categoria || '', '', fechamentoOrigemRotulo(i.origem)]));
+    (dados.repasses || []).forEach(i => linhas.push(['Repasse', data(i.data), num(i.valor), i.razao_social || '', '', 'Extrato']));
+    if (fis) {
+        (fis.documentos || []).forEach(d => linhas.push([
+            d.status === 'preparada' ? 'Rascunho de nota' : 'Nota fiscal', data(d.emitida_em), num(d.valor),
+            [d.numero ? 'Nº ' + d.numero : '', d.tomador_nome || ''].filter(Boolean).join(' · '),
+            [(d.imoveis || []).join(', '), d.chave ? 'Chave ' + d.chave : ''].filter(Boolean).join(' · '),
+            FECHAMENTO_ROTULO_DOC[d.status] || d.status]));
+        (fis.pendencias || []).forEach(pd => linhas.push([
+            'Pendência fiscal', '', num(pd.valor), pd.tomador_nome || '', pd.imovel || '',
+            (FECHAMENTO_ROTULO_PEND[pd.status_fiscal] || pd.status_fiscal) + (pd.motivo_sem_nota ? ' — ' + pd.motivo_sem_nota : '')]));
+    }
+    const texto = '﻿' + linhas.map(l => l.map(cel).join(';')).join('\r\n');
+    return { blob: new Blob([texto], { type: 'text/csv;charset=utf-8' }), nome: `pacote-contador-${linha.competencia}.csv`, tipo: 'text/csv' };
+}
+
+const FECHAMENTO_ROTULO_DOC = { emitida: 'Emitida', preparada: 'Rascunho (emitir)', cancelada: 'Cancelada', substituida: 'Substituída' };
+const FECHAMENTO_ROTULO_PEND = { a_preparar: 'A preparar', falta_dado: 'Falta dado para a nota', sem_nota: 'Não gera nota' };
 
 function fechamentoOrigemRotulo(o) {
     if (!o || o === 'manual') return 'Manual';
@@ -942,8 +1043,61 @@ function fechamentoMontarPdfPacote(linha) {
     secao('Repasses', repasses, (i) =>
         `${i.data ? new Date(i.data).toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(i.valor)}  ·  ${i.razao_social || ''}`);
 
+    // v1.8.0 (Fase 7 fiscal) — seção Fiscal, só quando o fechamento tem o retrato fiscal
+    const fis = dados.fiscal;
+    if (fis) {
+        const r = fis.resumo || {};
+        const docs = fis.documentos || [];
+        const emitidas = docs.filter(d => d.status === 'emitida');
+        const rascunhos = docs.filter(d => d.status === 'preparada');
+        const outras = docs.filter(d => d.status !== 'emitida' && d.status !== 'preparada');
+        const pend = fis.pendencias || [];
+        const larg = pdf.internal.pageSize.getWidth() - margin * 2;
+        const escrever = (txt, recuo = 0) => {
+            pdf.splitTextToSize(String(txt), larg - recuo).forEach(l => { if (y > 280) { pdf.addPage(); y = 15; } pdf.text(l, margin + recuo, y); y += 5; });
+        };
+        if (y > 250) { pdf.addPage(); y = 15; }
+        pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(12); pdf.setTextColor(26, 54, 93);
+        pdf.text('Fiscal (NFS-e)', margin, y); y += 6;
+        pdf.setFont('Helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(45, 55, 72);
+        const desde = fis.obrigatoria_desde ? new Date(fis.obrigatoria_desde + 'T00:00:00').toLocaleDateString('pt-BR') : null;
+        escrever(fis.obrigatoria ? `Nota obrigatória nesta competência (desde ${desde}).`
+            : (desde ? `Nota obrigatória a partir de ${desde}; antes disso, registro de teste.` : 'Sem data de obrigatoriedade para o regime.'));
+        escrever(`${r.imoveis_locados ?? 0} imóvel(is) locado(s) · ${r.recebimentos ?? 0} recebimento(s), ${r.recebimentos_pagos ?? 0} pago(s) · `
+            + `${fechamentoMoeda(r.valor_bruto_pago)} recebido (bruto${r.valor_estimado ? ', parte estimada' : ''}) · `
+            + `${r.notas_emitidas ?? 0} nota(s) emitida(s) (${fechamentoMoeda(r.valor_notas)}) · ${r.rascunhos ?? 0} rascunho(s) · ${r.pendentes ?? 0} pendente(s)`);
+        if (fis.responsavel_emissao) escrever(`Quem emite: ${fis.responsavel_emissao === 'contador' ? 'o contador' : 'a própria empresa'}.`);
+        y += 3;
+        secao('Notas emitidas', emitidas, (d) =>
+            `Nº ${d.numero || '—'}  ·  ${d.emitida_em ? new Date(d.emitida_em + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(d.valor)}  ·  ${d.tomador_nome || ''}  ·  ${(d.imoveis || []).join(', ')}`);
+        if (rascunhos.length) {
+            if (y > 260) { pdf.addPage(); y = 15; }
+            pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(26, 54, 93);
+            pdf.text(`Rascunhos para emitir (${rascunhos.length}) — campos na ordem do Emissor Nacional`, margin, y); y += 6;
+            pdf.setFontSize(9); pdf.setTextColor(45, 55, 72);
+            rascunhos.forEach((d, n) => {
+                pdf.setFont('Helvetica', 'bold'); escrever(`${n + 1}. ${d.tomador_nome || 'Locatário'} · ${fechamentoMoeda(d.valor)}`);
+                pdf.setFont('Helvetica', 'normal');
+                (d.dps || []).forEach(c => escrever(`${c.rotulo}: ${c.valor ?? '— (falta)'}`, 4));
+                y += 2;
+            });
+            y += 3;
+        }
+        if (outras.length) secao('Canceladas ou substituídas', outras, (d) => `Nº ${d.numero || '—'}  ·  ${fechamentoMoeda(d.valor)}  ·  ${FECHAMENTO_ROTULO_DOC[d.status] || d.status}`);
+        secao('Pendências fiscais', pend, (p) =>
+            `${FECHAMENTO_ROTULO_PEND[p.status_fiscal] || p.status_fiscal}  ·  ${p.imovel || ''}  ·  ${p.tomador_nome || ''}  ·  ${fechamentoMoeda(p.valor)}${p.motivo_sem_nota ? '  ·  ' + p.motivo_sem_nota : ''}`);
+        const ck = fis.checkup || {};
+        if (!ck.erro && ck.natureza) {
+            pdf.setFont('Helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(45, 55, 72);
+            escrever(ck.natureza === 'pj'
+                ? `Check-up ${ck.ano}: ${ck.prontidao === 'pronto' ? 'pronto para a nota' : 'faltam dados'} (${ck.pendencias_bloqueiam ?? 0} pendência(s) que impedem a nota).`
+                : `Check-up ${ck.ano} (pessoa física): ${ck.titulares?.vermelho ?? 0} possível(is) enquadramento(s), ${ck.titulares?.amarelo ?? 0} em atenção, ${ck.titulares?.verde ?? 0} abaixo do limite.`);
+            escrever('Estimativa com os dados do Raiz; a decisão tributária é do contador.');
+        }
+    }
+
     const nomeArquivo = `pacote-contador-${linha.competencia}.pdf`;
-    return { pdf, blob: pdf.output('blob'), nome: nomeArquivo };
+    return { pdf, blob: pdf.output('blob'), nome: nomeArquivo, tipo: 'application/pdf' };
 }
 
 function fechamentoTextoResumo(pacotes) {
@@ -952,7 +1106,9 @@ function fechamentoTextoResumo(pacotes) {
         const dados = p.dados || {};
         const totalRec = (dados.recebimentos || []).reduce((s, i) => s + Number(i.valor || 0), 0);
         const totalSai = (dados.saidas || []).reduce((s, i) => s + Number(i.valor || 0), 0);
-        return `${mes}: recebido ${fechamentoMoeda(totalRec)}, pago ${fechamentoMoeda(totalSai)}`;
+        const f = dados.fiscal?.resumo; // v1.8.0
+        return `${mes}: recebido ${fechamentoMoeda(totalRec)}, pago ${fechamentoMoeda(totalSai)}`
+            + (f ? `; ${f.notas_emitidas ?? 0} nota(s) emitida(s), ${f.rascunhos ?? 0} rascunho(s) para emitir` : '');
     });
     return `Pacote do fechamento:\n${linhas.join('\n')}`;
 }

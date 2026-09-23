@@ -4,6 +4,25 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.251.0) — demanda 976fcbf6 (frente fiscal da Reforma
+Tributária, Fase 2 — base fiscal nos dados; decisões D2 e D6 do Nicola,
+23/09/2026). Módulos: js/fechamento.js v1.6.0 (checklist fiscal lido de
+fn_fiscal_pendencias_cadastro, com grupos Empresa · Documento do
+locatário · Imóvel; CPF/CNPJ do locatário preenchido no próprio
+checklist; contador lido de Partes), js/cofre-ativos.js v1.63.0 (campo
+"Destinação (NFS-e)" na edição do imóvel) e js/comum-minha-empresa.js
+v1.7.0 (Inscrição municipal). Aqui: só a ponte nova
+fechamentoTratarPendenciaFiscal (onclick das linhas do checklist).
+Banco (já aplicado): bruto e taxa da administradora na mensalidade,
+destinação do imóvel, perfil fiscal, contador em Partes, tomador e
+pendências de cadastro.
+------------------------------------------------------------------
+Versões anteriores (v1.250.0 … v1.250.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.250.0) — demanda 3cc64651 (pedido explícito do
 Nicola, 23/09/2026: "As partes ainda nao estao corretas... tudo que
 pedi sobre o tema parte nao foi feito ou nao esta funcionando").
