@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.243.0) — demanda 8d5585a3:
+formatarMoedaBR() ganhou um 2º parâmetro opcional `{ semCentavos: true }`
+(default inalterado — sempre 2 casas, como sempre foi) pra que
+js/resultados.js pudesse exibir os valores em R$ sem centavos sem violar
+a regra DESIGN_SYSTEM §2 ("valor monetário SEMPRE via formatarMoedaBR(),
+NUNCA .toFixed(2)"). Nenhuma das ~47 outras chamadas no app foi afetada
+— só resultados.js passa a pedir semCentavos. Ver changelog de
+resultados.js v1.6.0 pra também a remoção da linha pontilhada do card
+"Resultado mês a mês".
+
 NOVIDADES (Beta v1.242.0) — demanda c75076ed (Tela "Novo contrato"):
 Achado do Nicola: "a tela de criação de novo contrato está fora do
 padrão visual atual do sistema (gramática única)". O formulário

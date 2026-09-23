@@ -1,5 +1,18 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
+// v1.8.0 (22/09/2026) — PORTA DE LICENÇA NO BOOT (demanda 8b2d37d7, C4).
+// bootstrap() passa a instalar a porta compartilhada (js/comum-licenca.js
+// v1.4.0, instalarPortaGlobal) em paralelo com carregarTudo(). No cofre.html
+// standalone isso publica window.podeUsar/window.rzMostrarBloqueio pela 1ª
+// vez — todos os gates defensivos do Cofre (window.podeUsar ? … : true)
+// deixam de cair no permissivo. Embutido no App (index.html), o host já tem
+// a porta e ela não é sobrescrita; só os cadeados (data-rz-codigo) são
+// aplicados. Falha na porta não derruba o boot (a trava de banco segue
+// valendo, com a mensagem do design system — c3_porta_amigos_v1).
+//
+// Versão: 1.8.0 · 22/09/2026
+// Versão anterior: 1.7.1 · 15/09/2026
+//
 // v1.7.1 (15/09/2026) — PLANO_IMPLEMENTACAO v1.0, etapa E14.4:
 // listarContatos() saiu de carregarTudo() — estado.contatos nunca era
 // lido por nada no app (achado ao investigar a E14.4), 1 query a menos
@@ -14,8 +27,6 @@
 // raramente é a empresa aberta na tela. Agora bootstrap() lê primeiro
 // window.__raizClienteId (global que o hospedeiro define e não depende de
 // tempo); a URL continua funcionando como antes pro cofre.html standalone.
-//
-// Versão: 1.7.1 · 15/09/2026
 //
 // (16/09/2026 — achado pelo gate gerar_versoes.py ao entregar a Onda 12:
 // esta linha "Versão:" tinha ficado presa em 1.7.0 quando a v1.7.1 foi
@@ -115,11 +126,12 @@
 // imediata, e é IMEDIATAMENTE substituído pelo nome real assim que a
 // consulta volta — nunca fica sozinho como fonte de verdade.
 // ============================================================================
-export const VERSAO = '1.7.1'; // v-check (15/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.8.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';
 import { mostrarToast, modalGenerico, refrescarIcones } from './cofre-ui.js';
+import { instalarPortaGlobal } from './comum-licenca.js'; // v1.8.0 — porta de licença compartilhada
 
 export async function bootstrap() {
     const params = new URLSearchParams(window.location.search);
@@ -202,6 +214,9 @@ export async function bootstrap() {
     // Dispara as duas ao mesmo tempo em vez de esperar uma pra começar a
     // outra — economiza 1 ida ao banco no caminho crítico.
     const promessaCategorias = api.pessoaTemFuncionalidade(estado.pessoa.perfil, 'cofre.categorias').catch(() => false);
+    // v1.8.0 — porta de licença (cadeado + aviso antes do formulário).
+    const promessaPorta = instalarPortaGlobal({ dbAuth: api.dbAuth, clienteId: estado.clienteId, perfil: estado.pessoa.perfil, toast: mostrarToast })
+        .catch(err => console.warn('[cofre-navegacao] porta de licença indisponível:', err?.message || err));
     const promessaTudo = carregarTudo();
     const podeCategorias = await promessaCategorias;
     if (!podeCategorias) {
@@ -210,6 +225,7 @@ export async function bootstrap() {
     refrescarIcones();
 
     await promessaTudo;
+    await promessaPorta;
 
     // v1.5.0 (30/08/2026) — REVERTIDO pra chamar 'raiz:comunicacoes:processar'
     // direto de novo (era assim até v1.3.0). O wrapper 'raiz:termos:verificar'

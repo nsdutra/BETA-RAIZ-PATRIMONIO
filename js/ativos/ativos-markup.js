@@ -1,6 +1,11 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.45.0 · 22/09/2026
+// Versão: 1.46.0 · 22/09/2026
+// CHANGELOG v1.46.0 — demanda 8b2d37d7 (C4): botão "+ Novo ativo" do estado
+// vazio ganha data-rz-codigo="cofre.ativos.criar" — cadeado + motivo quando
+// a cota acaba (comum-licenca.js v1.4.0, aplicarCadeados). Espelha cofre.html
+// v1.29.0. A trava em si está em abrirFormAtivo() (cofre-ativos.js v1.62.0).
+//
 // CHANGELOG v1.45.0 — Entrega R.4 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
 // FISCAL v2.0.0 / ESP v1.3.0 §8.1) — #fa-painel-financeiro ganha o 4º bloco
 // que o comentário da v1.44.0 já reservava: #fa-financeiro-revisao, onde
@@ -403,7 +408,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.45.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.46.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -643,7 +648,7 @@ export const ATIVOS_MARKUP = `<style>
                 <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
                 <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
                 <p class="text-xs mb-3" style="color:var(--sage)">Veículo, imóvel, terreno ou proteção pessoal.</p>
-                <button data-action="abrir-form-ativo" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">+ Novo ativo</button>
+                <button data-action="abrir-form-ativo" data-rz-codigo="cofre.ativos.criar" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">+ Novo ativo</button>
             </div>
         </section>
 

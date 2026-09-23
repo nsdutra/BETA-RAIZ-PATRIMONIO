@@ -10,8 +10,19 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.28.0
-  Data       : 18/09/2026 (rodada 9)
+  Versão     : 1.29.0
+  Data       : 22/09/2026 (soft launch · show stoppers)
+  Linhas     : cofre.html = 3286
+  CHANGELOG v1.29.0 (demanda 8b2d37d7, C4) — os 2 botões "Novo ativo"
+               (#btn-toggle-ativo e o do estado vazio) ganharam
+               data-rz-codigo="cofre.ativos.criar": com a porta de licença
+               agora instalada no bootstrap (cofre-navegacao.js v1.8.0 →
+               js/comum-licenca.js v1.4.0), ficam opacos com cadeado e o
+               motivo no title quando a cota do plano acaba; o clique mostra
+               o aviso ANTES do formulário (a trava está em abrirFormAtivo(),
+               cofre-ativos.js v1.62.0). CSS [data-rz-codigo].rz-off novo,
+               igual ao do index.html v1.248.0. Espelha ativos-markup.js
+               v1.46.0.
   CHANGELOG v1.28.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo
                deve ser possivel editar o nome. Tanto nos anexos de
                contrato, quanto ativos, itens de controle e os demais") —
@@ -2213,6 +2224,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
+    /* v1.29.0 — botão com porta de licença (comum-licenca.aplicarCadeados), igual ao index.html */
+    [data-rz-codigo].rz-off{opacity:.5;position:relative}[data-rz-codigo].rz-off::after{content:'🔒';position:absolute;top:-6px;right:-6px;font-size:11px;line-height:1}
     /* Piscar do mascote R.AI.Z (copiado literalmente de index.html) — sem
        isso o ícone de robô do header ficava estático, divergindo do App. */
     @keyframes raiz-bot-blink {
@@ -2430,7 +2443,7 @@
                 <button data-action="abrir-busca-ativos" title="Buscar / Filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition">
                     <i data-lucide="search" style="width:20px;height:20px"></i>
                 </button>
-                <button data-action="abrir-form-ativo" id="btn-toggle-ativo" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Novo ativo">
+                <button data-action="abrir-form-ativo" data-rz-codigo="cofre.ativos.criar" id="btn-toggle-ativo" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition" title="Novo ativo">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 </button>
             </div>
@@ -2440,7 +2453,7 @@
                 <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
                 <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
                 <p class="text-xs mb-3" style="color:var(--sage)">Veículo, imóvel, terreno ou proteção pessoal.</p>
-                <button data-action="abrir-form-ativo" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">+ Novo ativo</button>
+                <button data-action="abrir-form-ativo" data-rz-codigo="cofre.ativos.criar" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">+ Novo ativo</button>
             </div>
         </section>
 

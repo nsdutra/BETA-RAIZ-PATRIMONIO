@@ -1,6 +1,30 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.3.1 · 07/09/2026
+// Versão: 1.4.0 · 22/09/2026
+//
+// v1.4.0 — PORTA DE LICENÇA COMPARTILHADA (demanda 8b2d37d7, C4 do soft
+// launch). FUNCIONALIDADES_LIBERADAS / carregarFuncionalidadesLiberadas() /
+// podeUsar() / rzMostrarBloqueio() existiam só no <script> inline do
+// index.html; o cofre.html nunca definia window.podeUsar, então todo gate
+// defensivo do Cofre (window.podeUsar ? … : true) caía no permissivo e os
+// botões "Novo ativo" abriam o formulário sem cadeado (quem barrava era a
+// trigger no INSERT, com texto cru do Postgres). A lógica mudou-se para cá,
+// SEM mudança de regra: mesma RPC (fn_funcionalidades_liberadas), mesmos
+// textos, mesmo "código ausente do catálogo = liberado" (o furo 1 da
+// 70159adb segue registrado lá; não entra nesta fatia).
+//   · carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil, {toast})
+//   · recarregarFuncionalidadesLiberadas() — mesma empresa/perfil da última
+//     carga (usado depois de criar um item que consome cota)
+//   · podeUsar(codigo) / rzMostrarBloqueio(codigo)
+//   · aplicarCadeados(raiz) — todo elemento com data-rz-codigo ganha
+//     .rz-off + aria-disabled + title com o motivo (ACE-04: bloqueado
+//     aparece com cadeado e motivo, não some)
+//   · instalarPortaGlobal({dbAuth, clienteId, perfil, toast}) — para hosts
+//     que não têm porta própria (cofre.html standalone): publica
+//     window.podeUsar/rzMostrarBloqueio e recarrega ao voltar para a aba.
+// O index.html passou a delegar para cá (v1.248.0): uma lógica só (CAN-03).
+//
+// Versão anterior: 1.3.1 · 07/09/2026
 //
 // v1.3.1 — CORREÇÃO: a v1.3.0 fazia select('...cota_tipo') direto em
 // `funcionalidades`, coluna derrubada horas depois na unificação com
@@ -72,8 +96,116 @@
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
 
-export const VERSAO = '1.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
+
+// ----------------------------------------------------------------------------
+// PORTA DE LICENÇA (v1.4.0) — plano → perfil → limite, lida de uma vez da RPC
+// fn_funcionalidades_liberadas (a mesma regra do bot). Estado do módulo: uma
+// instância por página (o import map do index.html e o import estático do
+// Cofre resolvem para o mesmo arquivo).
+// ----------------------------------------------------------------------------
+let _liberadas = new Map();
+let _ultimaCarga = null;       // { dbAuth, clienteId, perfil }
+let _toast = null;             // (texto, tipo) => void, fornecido pelo host
+
+export async function carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil, opcoes = {}) {
+    if (typeof opcoes.toast === 'function') _toast = opcoes.toast;
+    _liberadas = new Map();
+    if (!dbAuth || !clienteId || !perfil) return _liberadas;
+    _ultimaCarga = { dbAuth, clienteId, perfil };
+    try {
+        const { data, error } = await dbAuth.rpc('fn_funcionalidades_liberadas', { p_cliente_id: clienteId, p_perfil: perfil });
+        if (error) throw error;
+        (data || []).forEach(f => _liberadas.set(f.codigo, f));
+    } catch (err) {
+        console.warn('[comum-licenca] carregarFuncionalidadesLiberadas:', err.message);
+    }
+    return _liberadas;
+}
+
+export async function recarregarFuncionalidadesLiberadas() {
+    if (!_ultimaCarga) return _liberadas;
+    const { dbAuth, clienteId, perfil } = _ultimaCarga;
+    await carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil);
+    aplicarCadeados();
+    return _liberadas;
+}
+
+export function funcionalidadesLiberadasCarregadas() { return _liberadas.size > 0; }
+
+// Retorna { ok, motivo, rotulo, limite, usado, avisar, textoCurto, textoLongo }.
+// Código ausente do catálogo = liberado (não inventa bloqueio) — mas avisa no
+// console pra virar linha no catálogo depois. As frases batem com
+// fn_porta_texto() no banco (migration c3_porta_amigos_v1): mudou aqui, muda lá.
+export function podeUsar(codigo) {
+    if (!codigo) return { ok: true, motivo: null };
+    const f = _liberadas.get(codigo);
+    if (!f) {
+        if (_liberadas.size) console.warn('podeUsar: código fora do catálogo:', codigo);
+        return { ok: true, motivo: null, rotulo: codigo };
+    }
+    const rot = f.rotulo || codigo;
+    const t = {
+        sem_licenca:     ['Não incluído no plano',      f.aviso_padrao || `"${rot}" não faz parte do plano atual da empresa. Fale com a Raiz pra ampliar.`],
+        // estoque = teto do que existe; bytes = MB; mensal = eventos do mês.
+        limite_atingido: f.cota_tipo === 'estoque'
+            ? [`Limite do plano (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa chegou ao teto de ${f.limite} em "${rot}" do plano atual. Fale com a Raiz pra ampliar.`]
+            : f.cota_tipo === 'bytes'
+            ? [`Espaço esgotado (${f.usado} de ${f.limite} MB)`, f.aviso_padrao || `Sua empresa usou os ${f.limite} MB de armazenamento do plano atual. Fale com a Raiz pra ampliar.`]
+            : [`Limite do mês (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa já usou os ${f.limite} de "${rot}" deste mês. Fale com a Raiz pra ampliar.`],
+        sem_perfil:      ['Sem permissão no seu perfil', `Seu perfil não tem "${rot}". Peça ao administrador da empresa.`],
+    }[f.motivo] || [null, null];
+    return { ok: !f.motivo, motivo: f.motivo, rotulo: rot, limite: f.limite, usado: f.usado, avisar: f.avisar, textoCurto: t[0], textoLongo: t[1] };
+}
+
+// true = bloqueado (e já avisou). Mesmo contrato do inline antigo do index.
+export function rzMostrarBloqueio(codigo) {
+    const b = podeUsar(codigo);
+    if (b.ok) return false;
+    if (_toast) _toast(b.textoLongo, b.motivo === 'sem_perfil' ? 'danger' : 'info');
+    else console.warn('[comum-licenca] bloqueado:', b.textoLongo);
+    return true;
+}
+
+// ACE-04 — elemento com data-rz-codigo fica opaco, com cadeado e o motivo no
+// title. O clique continua chegando na ação, que chama rzMostrarBloqueio().
+export function aplicarCadeados(raiz) {
+    const base = raiz || (typeof document !== 'undefined' ? document : null);
+    if (!base || !base.querySelectorAll) return;
+    base.querySelectorAll('[data-rz-codigo]').forEach(el => {
+        if (el.dataset.rzTituloOriginal === undefined) el.dataset.rzTituloOriginal = el.getAttribute('title') || '';
+        const b = podeUsar(el.getAttribute('data-rz-codigo'));
+        el.classList.toggle('rz-off', !b.ok);
+        el.setAttribute('aria-disabled', b.ok ? 'false' : 'true');
+        el.setAttribute('title', b.ok ? el.dataset.rzTituloOriginal : (b.textoCurto || 'Indisponível'));
+    });
+}
+
+// Host sem porta própria (cofre.html standalone). Se o host já publicou
+// window.podeUsar (index.html), não sobrescreve — só aplica os cadeados.
+let _instalada = false;
+export async function instalarPortaGlobal({ dbAuth, clienteId, perfil, toast } = {}) {
+    if (typeof window === 'undefined') return;
+    if (typeof toast === 'function' && !_toast) _toast = toast;
+    const hostTemPorta = typeof window.podeUsar === 'function' && !window.podeUsar.__rzModulo;
+    if (!hostTemPorta) {
+        await carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil, { toast });
+        const pu = (c) => podeUsar(c); pu.__rzModulo = true;
+        window.podeUsar = pu;
+        window.rzMostrarBloqueio = (c) => rzMostrarBloqueio(c);
+        if (!_instalada) {
+            _instalada = true;
+            let ultima = Date.now();
+            document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState !== 'visible' || Date.now() - ultima < 60000) return;
+                ultima = Date.now();
+                await recarregarFuncionalidadesLiberadas();
+            });
+        }
+    }
+    aplicarCadeados();
+}
 
 // ----------------------------------------------------------------------------
 // CAMADA DE DADOS

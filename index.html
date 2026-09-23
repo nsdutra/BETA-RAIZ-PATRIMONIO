@@ -6,9 +6,29 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.247.0
-   LINHAS: 15666
-   DATA: 22/09/2026 (demanda 0e40951a, complemento — criar recebimento avulso)
+   VERSÃO: Beta v1.248.0
+   LINHAS: 15658
+   DATA: 22/09/2026 (soft launch · show stoppers — demandas 8b2d37d7 (C4),
+   70159adb (C3 fatia mínima) e 728eda15 (C10))
+   NOVIDADES (Beta v1.248.0) — porta de licença compartilhada:
+   (1) A porta (FUNCIONALIDADES_LIBERADAS, carregarFuncionalidadesLiberadas,
+   podeUsar, rzMostrarBloqueio) saiu deste bloco de script para
+   js/comum-licenca.js v1.4.0, porque o cofre.html nunca a teve: lá,
+   window.podeUsar não existia, todo gate defensivo do Cofre caía no
+   permissivo e "Novo ativo" abria o formulário sem cadeado, com o erro cru
+   do Postgres no fim. Aqui as 3 funções viram fachadas síncronas do módulo
+   (mesma RPC, regra e textos; nenhum dos pontos que chamam podeUsar() mudou).
+   Antes de o módulo carregar, o comportamento é o do Map vazio de antes.
+   (2) CSS [data-rz-codigo].rz-off (opaco + 🔒): o módulo aplica o cadeado a
+   qualquer botão com data-rz-codigo (ACE-04), com o motivo no title.
+   Banco (aplicado via MCP, nesta ordem): c3_porta_amigos_v1 (porta única
+   fn_porta_interna, cota por estoque no Essencial, ia.usar composto em
+   ações de IA, triggers com a mensagem do design system, trava de pessoas)
+   e c10_perfil_socio_consulta_v1 (perfil consulta só lê; pessoas sem
+   escalada de perfil; corrige o INSERT em pessoas que falhava com
+   "permission denied for table plataforma_operadores").
+   Base: v1.247.0 do repositório (GitHub, 22/09 23:46) — o zip anexado na
+   sessão estava em v1.242.0; nada das v1.243.0–v1.247.0 foi desfeito.
    NOVIDADES (Beta v1.247.0) — demanda 0e40951a, complemento (pedido
    explícito do Nicola, em resposta à pergunta feita na entrega anterior
    sobre o quadrante "Adicionar" não ter ação real em Recebimentos/
@@ -94,17 +114,8 @@
    'sistema.versoes.ver'. O código 'dev.acessar' que gateia a aba
    tab-developer inteira (linha ~8610, TAB_CODIGO_VER) NÃO foi tocado —
    é um controle diferente e deve continuar restrito ao gestao_master.
-   NOVIDADES (Beta v1.243.0) — demanda 8d5585a3:
-   formatarMoedaBR() ganhou um 2º parâmetro opcional `{ semCentavos: true }`
-   (default inalterado — sempre 2 casas, como sempre foi) pra que
-   js/resultados.js pudesse exibir os valores em R$ sem centavos sem violar
-   a regra DESIGN_SYSTEM §2 ("valor monetário SEMPRE via formatarMoedaBR(),
-   NUNCA .toFixed(2)"). Nenhuma das ~47 outras chamadas no app foi afetada
-   — só resultados.js passa a pedir semCentavos. Ver changelog de
-   resultados.js v1.6.0 pra também a remoção da linha pontilhada do card
-   "Resultado mês a mês".
    ------------------------------------------------------------------
-   Versões anteriores (v1.242.0 … v1.242.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (até v1.243.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -128,7 +139,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.19.0","./js/fechamento.js":"./js/fechamento.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.20.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.61.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.32.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.7.1","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.45.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.19.0","./js/fechamento.js":"./js/fechamento.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.20.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.62.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.32.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -440,6 +451,7 @@
         #bottom-nav-bar button{position:relative}
         #bottom-nav-bar button.rz-nav-off{opacity:.45}#bottom-nav-bar button.rz-nav-off::after{content:'';position:absolute;top:6px;right:calc(50% - 16px);width:10px;height:10px;border-radius:50%;background:var(--wine)} /* v1.130 — aba bloqueada */
         .rz-chip.rz-off{opacity:.5}.rz-chip.rz-off::before{content:'🔒';font-size:10px;margin-right:2px} /* v1.130 — chip bloqueado */
+        [data-rz-codigo].rz-off{opacity:.5;position:relative}[data-rz-codigo].rz-off::after{content:'🔒';position:absolute;top:-6px;right:-6px;font-size:11px;line-height:1} /* v1.248 — botão com porta (comum-licenca.aplicarCadeados) */
         /* Entrega F.4 (21/09/2026) — mesma semântica "bloqueado com motivo"
            dentro do .rz-seg (Fechamento desligado por rotina): .rz-off
            genérico, não mais preso a .rz-chip. */
@@ -3419,7 +3431,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.247.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.248.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3499,52 +3511,32 @@
         // NÃO some — aparece desabilitada com o motivo (troubleshooting
         // e upgrade). Zero tabela nova; nomes vêm de nome_comercial.
         // ==================================================================
-        let FUNCIONALIDADES_LIBERADAS = new Map();
+        // v1.248.0 (demanda 8b2d37d7) — a porta saiu daqui para
+        // js/comum-licenca.js v1.4.0 (compartilhada com o cofre.html, que
+        // não tinha porta nenhuma). Mesma RPC, mesma regra, mesmos textos;
+        // estas 3 funções viram fachadas síncronas do módulo, para os ~200
+        // pontos que já chamam podeUsar()/rzMostrarBloqueio() não mudarem.
+        // Antes do módulo carregar: liberado (igual ao Map vazio de antes).
+        let _rzPorta = null;
         async function carregarFuncionalidadesLiberadas() {
-            FUNCIONALIDADES_LIBERADAS = new Map();
             if (!CLIENTE_ID_SUPABASE || !perfilLogado) return;
             try {
-                const { data, error } = await dbAuth.rpc('fn_funcionalidades_liberadas', { p_cliente_id: CLIENTE_ID_SUPABASE, p_perfil: perfilLogado });
-                if (error) throw error;
-                (data || []).forEach(f => FUNCIONALIDADES_LIBERADAS.set(f.codigo, f));
-                // v1.148.0 (A.11) — o toast verde de "perto do limite" (v1.144.0)
-                // SAIU: o aviso agora é a comunicação upsell_limite_v1, no padrão
-                // dos modais (js/comunicacoes, renderizarUpsell), com opções de
-                // upgrade e contato com o comercial. A barra em ⚙️ › Licença
-                // continua mostrando as cotas.
+                _rzPorta = _rzPorta || await import('./js/comum-licenca.js');
+                await _rzPorta.carregarFuncionalidadesLiberadas(dbAuth, CLIENTE_ID_SUPABASE, perfilLogado, { toast: mostrarToast });
+                _rzPorta.aplicarCadeados();
+                // v1.148.0 (A.11) — o aviso de "perto do limite" é a
+                // comunicação upsell_limite_v1 (js/comunicacoes); a barra em
+                // ⚙️ › Licença continua mostrando as cotas.
             } catch (err) {
                 console.warn('carregarFuncionalidadesLiberadas:', err.message);
             }
         }
         // Retorna { ok, motivo, rotulo, limite, usado, textoCurto, textoLongo }.
-        // Código ausente do catálogo = liberado (não inventa bloqueio) — mas
-        // avisa no console pra virar linha no catálogo depois.
         function podeUsar(codigo) {
-            if (!codigo) return { ok: true, motivo: null };
-            const f = FUNCIONALIDADES_LIBERADAS.get(codigo);
-            if (!f) {
-                if (FUNCIONALIDADES_LIBERADAS.size) console.warn('podeUsar: código fora do catálogo:', codigo);
-                return { ok: true, motivo: null, rotulo: codigo };
-            }
-            const rot = f.rotulo || codigo;
-            const t = {
-                sem_licenca:     ['Não incluído no plano',      f.aviso_padrao || `"${rot}" não faz parte do plano atual da empresa. Fale com a Raiz pra ampliar.`],
-                // v1.144.0 (E.3.1) — texto por tipo de cota (funcionalidades.cota_tipo):
-                // estoque = teto do que existe; bytes = MB; mensal = eventos do mês.
-                limite_atingido: f.cota_tipo === 'estoque'
-                    ? [`Limite do plano (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa chegou ao teto de ${f.limite} em "${rot}" do plano atual. Fale com a Raiz pra ampliar.`]
-                    : f.cota_tipo === 'bytes'
-                    ? [`Espaço esgotado (${f.usado} de ${f.limite} MB)`, f.aviso_padrao || `Sua empresa usou os ${f.limite} MB de armazenamento do plano atual. Fale com a Raiz pra ampliar.`]
-                    : [`Limite do mês (${f.usado} de ${f.limite})`, f.aviso_padrao || `Sua empresa já usou os ${f.limite} de "${rot}" deste mês. Fale com a Raiz pra ampliar.`],
-                sem_perfil:      ['Sem permissão no seu perfil', `Seu perfil não tem "${rot}". Peça ao administrador da empresa.`],
-            }[f.motivo] || [null, null];
-            return { ok: !f.motivo, motivo: f.motivo, rotulo: rot, limite: f.limite, usado: f.usado, avisar: f.avisar, textoCurto: t[0], textoLongo: t[1] };
+            return _rzPorta ? _rzPorta.podeUsar(codigo) : { ok: true, motivo: null, rotulo: codigo };
         }
         function rzMostrarBloqueio(codigo) {
-            const b = podeUsar(codigo);
-            if (b.ok) return false;
-            mostrarToast(b.textoLongo, b.motivo === 'sem_perfil' ? 'danger' : 'info');
-            return true;
+            return _rzPorta ? _rzPorta.rzMostrarBloqueio(codigo) : false;
         }
         // v1.130.0 — barra inferior: botão de aba bloqueada fica opaco com
         // cadeado (mesma linguagem do ⋮). Chamado após carregar o conjunto.

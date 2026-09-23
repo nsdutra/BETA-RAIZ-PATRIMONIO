@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.61.0 · 22/09/2026
+// Versão: 1.62.0 · 22/09/2026
+//
+// v1.62.0 (demanda 8b2d37d7, C4 do soft launch) — a trava da cota de ativos
+// entra na PORTA DE ENTRADA do formulário, não nos botões: abrirFormAtivo()
+// chama rzMostrarBloqueio('cofre.ativos.criar') (js/comum-licenca.js v1.4.0)
+// antes de montar qualquer coisa. Cobre os 2 botões do cofre.html, o do
+// estado vazio (ativos-markup.js), o Sheet "+" do App e o onboarding
+// ('cofre:abrir-form-ativo') de uma vez. salvarAtivo(): erro da porta do
+// banco (DETAIL rz_porta:*) aparece como aviso, sem "❌", e a porta é
+// recarregada; depois de criar, a porta também recarrega (o contador de
+// cota mudou) e os cadeados (data-rz-codigo) são reaplicados.
+//
+// Versão anterior: 1.61.0 · 22/09/2026
 //
 // v1.61.0 (BUG REAL, achado do Nicola testando o piloto do wrapper v1.59.0:
 // "editei, salvei, refletiu na ficha — mas reabri a edição sem mexer em
@@ -796,7 +808,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.61.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.62.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -818,6 +830,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // dentro). Piloto único desta entrega: salvarEdicaoAtivo() (ver
 // changelog do topo do arquivo).
 import { emitirEscrita } from './raiz-eventos.js';
+import { rzMostrarBloqueio, recarregarFuncionalidadesLiberadas } from './comum-licenca.js'; // v1.62.0 — porta de licença
 
 // E6.2 — único critério usado em todo o arquivo pra decidir se um ativo
 // "imóvel" é avulso (sem tabela imoveis por trás) ou vinculado. Função só
@@ -1443,6 +1456,8 @@ function ativoCardHtml(a) {
 // todo popup do módulo), em vez do alternarToggle() (exclusivo de painel
 // inline, ex.: formulário de Contrato/Síndico no App).
 export async function abrirFormAtivo() {
+    // v1.62.0 (8b2d37d7) — cota/plano/perfil ANTES do formulário (ACE-04).
+    if (rzMostrarBloqueio('cofre.ativos.criar')) return;
     document.getElementById('at-status').textContent = '';
     await garantirCatalogoTiposAtivo();
     await garantirEmpreendimentos(); // E15.2 — pro seletor no bloco imóvel
@@ -1656,7 +1671,17 @@ export async function salvarAtivo() {
         document.getElementById('at-nome').value = '';
         fecharFormAtivo();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
-    } catch (err) { statusEl.textContent = '❌ ' + err.message; statusEl.style.color = 'var(--danger)'; }
+        recarregarFuncionalidadesLiberadas().catch(() => {}); // v1.62.0 — cota mudou
+    } catch (err) {
+        // v1.62.0 — porta do banco (c3_porta_amigos_v1): texto já vem no
+        // padrão do design system; mostra como aviso e atualiza a porta.
+        if (String(err?.details || '').startsWith('rz_porta:')) {
+            statusEl.textContent = err.message; statusEl.style.color = 'var(--warning)';
+            recarregarFuncionalidadesLiberadas().catch(() => {});
+            return;
+        }
+        statusEl.textContent = '❌ ' + err.message; statusEl.style.color = 'var(--danger)';
+    }
 }
 
 // ============================================================================
