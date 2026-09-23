@@ -4,6 +4,46 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.250.0) — demanda 3cc64651 (pedido explícito do
+Nicola, 23/09/2026: "As partes ainda nao estao corretas... tudo que
+pedi sobre o tema parte nao foi feito ou nao esta funcionando").
+Pontes novas pra js/contratos.js v1.21.0 (abrirEditarLocatarioContrato,
+adicionarParteContrato, abrirFormFiadorContrato): no card Partes do
+contrato, tocar na parte abre o formulário direto e todo ⋮ de parte
+tem "Adicionar parte". Item de controle: js/cofre-controles.js v1.33.0
+(⋮ com Adicionar/Remover parte direto, sem o editor de lista no meio).
+Financeiro (js/financeiro.js v1.21.0): botão Importar (extrato ou
+documento), Fechar/Reabrir sem corte, aba Fechamento → Conciliação.
+------------------------------------------------------------------
+Versões anteriores (v1.249.0 … v1.249.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
+NOVIDADES (Beta v1.249.0) — demanda 7bdcb8d4 (pedido explícito do
+Nicola com prints, 23/09/2026). Topo das 3 abas do Financeiro
+(Recebimentos/Saídas/Fechamento) na mesma ordem: (1) descrição curta +
+lupa na primeira linha, igual Imóveis/Contratos; (2) competência, sem
+⋮ e com cadeado ao lado do mês quando fechada
+(#fin-competencia-lock-*); (3) 6 botões mais baixos (ícone 28px,
+explicação em no máx. 2 linhas): Extrato, Adicionar, Fechar/Abrir
+competência, Contador, Fiscal (antes no ⋮) e Atrasados, com status
+pela cor do ícone e indisponíveis quando a ação não cabe (Adicionar
+com a competência fechada) — js/financeiro.js v1.20.0 +
+js/fechamento.js v1.5.0; (4) seletor Recebimentos/Saídas/Fechamento
+DEPOIS dos botões; (5) títulos em negrito (<h2>) retirados. O card do
+Fechamento (com ⋮ e texto de resumo) saiu — a data do fechamento
+aparece no botão "Abrir competência". CORRIGIDO junto: a aba Saídas
+tinha um </div> sobrando desde a v1.245.0, que fechava um container
+acima da section.
+------------------------------------------------------------------
+Versões anteriores (v1.248.1 … v1.248.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.248.1) — demanda 80c3068e (bug reportado pelo
 Nicola com prints: "As telas alteradas foram radicalmente impactadas
 negativamente no UI. Edicao de imoveis, partes e aba financeira").

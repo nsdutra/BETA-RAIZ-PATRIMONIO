@@ -6,9 +6,36 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.253.0
-   LINHAS: 15656
-   DATA: 23/09/2026 (bug de exclusão de parte prestadora + atalho do contador)
+   VERSÃO: Beta v1.255.0
+   LINHAS: 15745
+   DATA: 23/09/2026 (frente fiscal, Fase 6 — alertas fiscais)
+   NOVIDADES (Beta v1.255.0) — demanda 976fcbf6 (frente fiscal, Fase 6 —
+   alertas) e 6ef4303c (D6: completar o dado direto no alerta). Os 5
+   tipos novos do Motor (fiscal_documento_pendente, fiscal_com_contador,
+   fiscal_cadastro_incompleto, fiscal_enquadramento, fiscal_regra_alterada;
+   migration fiscal_alertas_v1) ganham título, subtítulo, ícone, idade
+   ("Pago há Nd") e destino: Fiscal da competência no mês do alerta,
+   Empresa › Fiscal ou o checklist fiscal. fiscal_cadastro_incompleto
+   completa o dado no próprio sheet (CPF/CNPJ do locatário, destinação ou
+   CIB), pelo mesmo rzSalvarCampoAlerta (campoAcaoAlerta substitui a
+   leitura direta de ACAO_CAMPO_ALERTA; campo do sheet em .rz-f, sem estilo
+   inline). abrirFiscalCompetencia(competência, recebimento) abre a tela
+   no mês pedido e, com recebimento, já nas ações dele (⋮ "Nota fiscal"
+   do Financeiro). Módulos: js/fiscal.js v1.2.0, js/fechamento.js v1.7.0,
+   js/financeiro.js v1.23.0.
+   NOVIDADES (Beta v1.254.0) — demanda 976fcbf6 (frente fiscal da Reforma
+   Tributária, Fase 5; decisão D7 do Nicola — preparação em lote). Tela
+   nova "Fiscal da competência" (js/fiscal.js v1.1.0): o botão Fiscal do
+   Financeiro (js/financeiro.js v1.22.0) passa a abri-la no mês em que o
+   Financeiro está. Lista cada recebimento com o status fiscal (a
+   preparar · falta dado · preparada · com o contador · emitida ·
+   aguardando pagamento · não gera nota), KPIs, "Preparar todos (N)",
+   rascunho com os campos na ordem do Emissor Nacional (copiar por campo
+   ou tudo), registrar nota emitida, anexar o XML da NFS-e (vai para o
+   Cofre e é lido pela Edge cofre-extrair-documento 1.9), descartar,
+   cancelar e "não gera nota". Aqui: section tab-fiscal-competencia,
+   TAB_PARENT_MAP (acende Financeiro), TAB_CODIGO_VER (mensal.ver),
+   abrirFiscalCompetencia() e as pontes novas.
    NOVIDADES (Beta v1.253.0) — pedido do Nicola (23/09/2026, 02:31):
    (1) BUG — parte cadastrada como prestador (contador, imobiliária,
    síndico, manutencista) não podia ser excluída ("tem vínculo" logo após
@@ -42,34 +69,8 @@
    Banco (já aplicado): bruto e taxa da administradora na mensalidade,
    destinação do imóvel, perfil fiscal, contador em Partes, tomador e
    pendências de cadastro.
-   NOVIDADES (Beta v1.250.0) — demanda 3cc64651 (pedido explícito do
-   Nicola, 23/09/2026: "As partes ainda nao estao corretas... tudo que
-   pedi sobre o tema parte nao foi feito ou nao esta funcionando").
-   Pontes novas pra js/contratos.js v1.21.0 (abrirEditarLocatarioContrato,
-   adicionarParteContrato, abrirFormFiadorContrato): no card Partes do
-   contrato, tocar na parte abre o formulário direto e todo ⋮ de parte
-   tem "Adicionar parte". Item de controle: js/cofre-controles.js v1.33.0
-   (⋮ com Adicionar/Remover parte direto, sem o editor de lista no meio).
-   Financeiro (js/financeiro.js v1.21.0): botão Importar (extrato ou
-   documento), Fechar/Reabrir sem corte, aba Fechamento → Conciliação.
-   NOVIDADES (Beta v1.249.0) — demanda 7bdcb8d4 (pedido explícito do
-   Nicola com prints, 23/09/2026). Topo das 3 abas do Financeiro
-   (Recebimentos/Saídas/Fechamento) na mesma ordem: (1) descrição curta +
-   lupa na primeira linha, igual Imóveis/Contratos; (2) competência, sem
-   ⋮ e com cadeado ao lado do mês quando fechada
-   (#fin-competencia-lock-*); (3) 6 botões mais baixos (ícone 28px,
-   explicação em no máx. 2 linhas): Extrato, Adicionar, Fechar/Abrir
-   competência, Contador, Fiscal (antes no ⋮) e Atrasados, com status
-   pela cor do ícone e indisponíveis quando a ação não cabe (Adicionar
-   com a competência fechada) — js/financeiro.js v1.20.0 +
-   js/fechamento.js v1.5.0; (4) seletor Recebimentos/Saídas/Fechamento
-   DEPOIS dos botões; (5) títulos em negrito (<h2>) retirados. O card do
-   Fechamento (com ⋮ e texto de resumo) saiu — a data do fechamento
-   aparece no botão "Abrir competência". CORRIGIDO junto: a aba Saídas
-   tinha um </div> sobrando desde a v1.245.0, que fechava um container
-   acima da section.
    ------------------------------------------------------------------
-   Versões anteriores (v1.248.1 … v1.248.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.250.0 … v1.250.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -93,7 +94,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.21.0","./js/fechamento.js":"./js/fechamento.js?v=1.6.2","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.0.1","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.23.0","./js/fechamento.js":"./js/fechamento.js?v=1.7.0","./js/contratos.js":"./js/contratos.js?v=1.21.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.63.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.2.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3254,6 +3255,12 @@
         <section id="tab-fiscal" class="tab-content hidden">
             <div id="mount-fiscal"></div>
         </section>
+        <!-- v1.254.0 (frente fiscal, Fase 5) — Fiscal da competência, aberta
+             pelo botão Fiscal do Financeiro (abrirFiscalCompetencia).
+             Populado por js/fiscal.js (fiscalCompetenciaMontar), fatia lazy. -->
+        <section id="tab-fiscal-competencia" class="tab-content hidden">
+            <div id="mount-fiscal-competencia"></div>
+        </section>
 
         <!-- v1.199.0 (bc9df144, item 11) — Gerenciador de links da vitrine,
              migrado do app-dev pra cá (App > Conta > Empresa), só admin
@@ -3369,7 +3376,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.253.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.255.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8477,6 +8484,8 @@
             // v1.97.0 (NOVO) — Saídas entra no mesmo grupo de Financeiro
             // (mesmo ícone da barra inferior acende), igual Atrasados.
             'tab-saidas': 'tab-mensal',
+            // v1.254.0 (frente fiscal, Fase 5) — Fiscal da competência é do grupo Financeiro.
+            'tab-fiscal-competencia': 'tab-mensal',
             'tab-socios': 'tab-relatorios'
         };
 
@@ -8516,7 +8525,7 @@
         // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
         // motivo, fica onde está. Abas sem código não são gateadas.
         const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver', 'tab-regras-conciliacao': 'conciliacao.configurar',
-            'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar', 'tab-fiscal': 'fiscal.checkup' };
+            'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar', 'tab-fiscal': 'fiscal.checkup', 'tab-fiscal-competencia': 'mensal.ver' };
         // v1.136 (A.4) — catálogo de relatórios: cada linha tem código próprio
         // (relatorios.resultados / .distribuicao) → cadeado por plano/perfil.
         function renderCatalogoRelatorios() {
@@ -8793,9 +8802,21 @@
             if (__rzFiscalModulo) return Promise.resolve(__rzFiscalModulo);
             return import('./js/fiscal.js').then(m => (__rzFiscalModulo = m));
         }
-        ['fiscalAbrirAcoes', 'fiscalAbrirTitular', 'fiscalTratarFaltante', 'fiscalEditarResponsavel', 'fiscalAbrirRegras', 'fiscalRegistrar'].forEach(nome => {
+        ['fiscalAbrirAcoes', 'fiscalAbrirTitular', 'fiscalTratarFaltante', 'fiscalEditarResponsavel', 'fiscalAbrirRegras', 'fiscalRegistrar',
+         // v1.254.0 (js/fiscal.js v1.1.0) — Fiscal da competência
+         'fiscalCompetenciaMontar', 'fiscalCompetenciaMudar', 'fiscalCompetenciaAba', 'fiscalCompetenciaAcoes', 'fiscalCompetenciaPrepararTodos',
+         'fiscalCompetenciaAbrirRecebimento', 'fiscalCompetenciaAbrirDocumento', 'fiscalCompetenciaCopiar', 'fiscalCompetenciaCopiarTudo'].forEach(nome => {
             window[nome] = (...args) => rzPonteModulo(carregarFiscal, nome, args);
         });
+        // v1.254.0 — botão Fiscal do Financeiro (js/financeiro.js v1.22.0).
+        // v1.255.0 (Fase 6 fiscal) — aceita o mês (alerta de notas) e o
+        // recebimento (⋮ "Nota fiscal" do Financeiro, financeiro.js v1.23.0);
+        // sem argumento, abre no mês em que o Financeiro está.
+        function abrirFiscalCompetencia(competencia, mensalidadeId) {
+            window.RZ_FISCAL_ALVO = (competencia || mensalidadeId) ? { competencia: competencia || null, mensalidadeId: mensalidadeId || null } : null;
+            switchTab('tab-fiscal-competencia');
+        }
+        window.abrirFiscalCompetencia = abrirFiscalCompetencia;
 
         function switchTab(tabId) {
             if (TAB_CODIGO_VER[tabId] && rzMostrarBloqueio(TAB_CODIGO_VER[tabId])) return;
@@ -8896,6 +8917,16 @@
             if (tabId === 'tab-fiscal') {
                 carregarFiscal()
                     .then(m => m.fiscalMontar())
+                    .catch(err => console.warn('[fiscal] Falha ao carregar módulo:', err.message));
+            }
+            // v1.254.0 (frente fiscal, Fase 5) — Fiscal da competência: abre no
+            // mês em que o Financeiro está (window.RZ_FIN_COMPETENCIA).
+            if (tabId === 'tab-fiscal-competencia') {
+                carregarFiscal()
+                    .then(m => {
+                        const alvo = window.RZ_FISCAL_ALVO || {}; window.RZ_FISCAL_ALVO = null;
+                        return m.fiscalCompetenciaMontar(alvo.competencia || window.RZ_FIN_COMPETENCIA || null, alvo.mensalidadeId || null);
+                    })
                     .catch(err => console.warn('[fiscal] Falha ao carregar módulo:', err.message));
             }
             // v1.91.0 (pedido explícito) — "Resumo" novo no topo de
@@ -11074,6 +11105,12 @@
                 case 'indicadores_mes_pronto': return 'Indicadores do mês prontos para revisão';
                 case 'relatorio_carteira_pronto': return 'Relatório da carteira pronto';
                 case 'revisao_valor_pendente': return 'Revisão anual de valor pendente';
+                // v1.255.0 (frente fiscal, Fase 6) — 5 tipos novos do Motor.
+                case 'fiscal_documento_pendente': return 'Notas fiscais a preparar ou emitir';
+                case 'fiscal_com_contador': return 'Notas com o contador sem registro';
+                case 'fiscal_cadastro_incompleto': return 'Dado que impede a nota fiscal';
+                case 'fiscal_enquadramento': return row.detalhe?.resultado === 'vermelho' ? 'Possível enquadramento na Reforma' : 'Receita perto do limite da Reforma';
+                case 'fiscal_regra_alterada': return row.titulo || 'Mudança em regra tributária';
                 // Achado do Nicola (20/09/2026): título mostrava o código cru e o
                 // subtítulo só o nome do locatário, sem dizer QUAL concentração —
                 // o número (percentual) é o fato principal, vira o título.
@@ -11133,6 +11170,21 @@
                 // específico (os outros 5 são de escopo empresa, sem ativo_id).
                 return row.detalhe?.ativo_nome ? `${row.detalhe.ativo_nome} · ${fraseData}` : fraseData;
             }
+            // v1.255.0 (frente fiscal, Fase 6) — fato + contexto (REGRAS §14).
+            if (row.tipo_alerta === 'fiscal_documento_pendente') {
+                const d = row.detalhe || {};
+                const partes = [];
+                if (d.a_preparar) partes.push(`${d.a_preparar} a preparar`);
+                if (d.preparadas) partes.push(`${d.preparadas} preparada${d.preparadas > 1 ? 's' : ''} sem registro`);
+                return `${row.titulo}${partes.length ? ' · ' + partes.join(' · ') : ''}${d.valor != null ? ' · ' + formatarMoedaBR(d.valor) : ''}`;
+            }
+            if (row.tipo_alerta === 'fiscal_com_contador') return `${row.titulo} · com o contador há ${row.detalhe?.dias ?? 0} dias`;
+            if (row.tipo_alerta === 'fiscal_cadastro_incompleto') return row.detalhe?.texto ? `${row.titulo} · ${row.detalhe.texto}` : row.titulo;
+            if (row.tipo_alerta === 'fiscal_enquadramento') return `${row.titulo} · check-up de ${row.detalhe?.ano ?? ''} — valide com seu contador`;
+            if (row.tipo_alerta === 'fiscal_regra_alterada') {
+                const d = row.detalhe || {};
+                return [d.texto, d.fonte ? `Fonte: ${d.fonte}` : ''].filter(Boolean).join(' · ');
+            }
             // Achado do Nicola (20/09/2026) — faltava o valor/percentual, só o
             // nome do locatário aparecia (sem dizer "concentração de quê").
             if (row.tipo_alerta === 'concentracao_locatario') {
@@ -11190,6 +11242,16 @@
                 // tab-ativos e tentaria abrir ficha de ativo que não existe.
                 // Vão para Empresa › Rotinas (card criado na Entrega R.2),
                 // onde a ocorrência específica se trata.
+                // v1.255.0 (frente fiscal, Fase 6) — destinos dos alertas fiscais.
+                case 'financeiro/fiscal':
+                    abrirFiscalCompetencia(row.detalhe?.competencia || null);
+                    return;
+                case 'empresa/fiscal':
+                    switchTab('tab-fiscal');
+                    return;
+                case 'fiscal/checklist':
+                    if (typeof window.fechamentoAbrirChecklistFiscalAtualizado === 'function') window.fechamentoAbrirChecklistFiscalAtualizado();
+                    return;
                 case 'empresa/rotinas':
                     switchTab('tab-minha-empresa');
                     setTimeout(() => document.getElementById('cme-rotinas-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
@@ -11300,7 +11362,8 @@
                 case 'contrato_ativo_vendido_arquivado': return `${n} contratos em ativo vendido/arquivado`;
                 // AL.2 (20/09/2026) — achado do Nicola: faltava aqui (ver nota em
                 // ACAO_GRUPO_POR_TIPO acima).
-                case 'cib_pendente': return `${n} ativos com CIB pendente`;
+                case 'cib_pendente': return `${n} imóveis com CIB pendente`;
+                case 'fiscal_cadastro_incompleto': return `${n} dados que impedem a nota fiscal`; // v1.255.0 (Fase 6 fiscal)
                 default: return `${n} alertas`;
             }
         }
@@ -11622,7 +11685,10 @@
         // sem a placa de prazo/criticidade — então o MESMO alerta aparecia
         // visualmente diferente conforme a tela. Agora é a mesma função, a
         // mesma marcação, em qualquer lugar que mostre um alerta do Motor.
-        const ICONE_TIPO_ALERTA = { anexo_apolice_pendente: 'paperclip' };
+        const ICONE_TIPO_ALERTA = { anexo_apolice_pendente: 'paperclip',
+            // v1.255.0 (Fase 6 fiscal)
+            fiscal_documento_pendente: 'file-plus-2', fiscal_com_contador: 'briefcase', fiscal_cadastro_incompleto: 'file-warning',
+            fiscal_enquadramento: 'scale', fiscal_regra_alterada: 'megaphone' };
         // AL.3 — chaves viram dominio (era entidade_tipo: 'item_controle'
         // virou 'documental', 'contrato' virou 'contratual'). Achado ao
         // trocar a fonte dos chips: sem este ajuste, todo alerta de item de
@@ -11717,6 +11783,9 @@
 
         function prazoAlertaTexto(r) {
             if (r.tipo_alerta === 'extrato_desatualizado') return r.dias != null ? `Desatualizado há ${r.dias}d` : 'Desatualizado';
+            // v1.255.0 (Fase 6 fiscal) — idade real, não prazo (a nota não tem data única no Raiz).
+            if (r.tipo_alerta === 'fiscal_documento_pendente') return r.detalhe?.dias_mais_antigo != null ? `Pago há ${r.detalhe.dias_mais_antigo}d` : 'A preparar';
+            if (r.tipo_alerta === 'fiscal_com_contador') return `Há ${r.detalhe?.dias ?? 0}d com o contador`;
             if (r.dias === null) return 'Sem prazo definido';
             if (r.dias < 0) return `Venceu há ${Math.abs(r.dias)}d`;
             if (r.dias === 0) return 'Vence hoje';
@@ -11841,6 +11910,22 @@
             cib_pendente: { campo: 'cib', rotulo: 'CIB do imóvel', tipoInput: 'text', placeholder: 'Ex.: 1234567890' },
             revisao_valor_pendente: { campo: 'valor_referencia', rotulo: 'Valor patrimonial atual (R$)', tipoInput: 'number', placeholder: 'Ex.: 850000' },
         };
+        // v1.255.0 (frente fiscal, Fase 6 — D6, demanda 6ef4303c): o alerta
+        // fiscal_cadastro_incompleto completa o dado no próprio sheet, pelo
+        // campo que a pendência aponta (detalhe.campo). Grava no banco pela
+        // função dona do dado (fn_alerta_executar_acao → documento do
+        // locatário: fn_contrato_tomador_documento_definir). Pendência sem
+        // campo editável aqui (empresa, município) cai no "Tratar" (checklist).
+        const ACAO_CAMPO_FISCAL = {
+            documento: { campo: 'documento', rotulo: 'CPF ou CNPJ do locatário', tipoInput: 'text', placeholder: 'Só os números ou com pontuação' },
+            destinacao: { campo: 'destinacao', rotulo: 'Destinação do imóvel', opcoes: [['residencial', 'Residencial'], ['nao_residencial', 'Não residencial']] },
+            cib: { campo: 'cib', rotulo: 'CIB do imóvel', tipoInput: 'text', placeholder: 'Ex.: 1234567890' },
+        };
+        function campoAcaoAlerta(r) {
+            if (!r) return null;
+            if (r.tipo_alerta === 'fiscal_cadastro_incompleto') return ACAO_CAMPO_FISCAL[r.detalhe?.campo] || null;
+            return ACAO_CAMPO_ALERTA[r.tipo_alerta] || null;
+        }
 
         // v1.220.0 — Nicola (20/09), 4 prints do app ao vivo: "não coloque
         // as opções da tela em botões mas em ações listas no estilo do
@@ -11861,7 +11946,7 @@
 
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
             const semPrazo = r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run'));
-            const campoAcao = ACAO_CAMPO_ALERTA[r.tipo_alerta];
+            const campoAcao = campoAcaoAlerta(r);
             const chaveJs = alertaChave.replace(/'/g, "\\'");
             const dataCompromisso = compromissoAlertaData(r);
 
@@ -11879,10 +11964,14 @@
                     </div>` : ''}
                 </div>
                 ${campoAcao ? `
-                <div class="rz-card" style="margin-bottom:12px">
-                    <label class="block text-xs font-bold text-gray-600">${rzEsc(campoAcao.rotulo)}</label>
-                    <input id="rz-alerta-campo-valor" type="${campoAcao.tipoInput}" placeholder="${rzEsc(campoAcao.placeholder)}" class="w-full p-2 border rounded mt-1 text-sm">
-                    <button type="button" class="rz-btn rz-btn-1 rz-wide" style="margin-top:10px" onclick="rzSalvarCampoAlerta('${chaveJs}')">Salvar</button>
+                <div class="rz-card">
+                    <div class="rz-f">
+                        <label for="rz-alerta-campo-valor">${rzEsc(campoAcao.rotulo)}</label>
+                        ${campoAcao.opcoes
+                            ? `<select id="rz-alerta-campo-valor"><option value="">Escolha…</option>${campoAcao.opcoes.map(([v, l]) => `<option value="${rzEsc(v)}">${rzEsc(l)}</option>`).join('')}</select>`
+                            : `<input id="rz-alerta-campo-valor" type="${campoAcao.tipoInput}" placeholder="${rzEsc(campoAcao.placeholder)}">`}
+                    </div>
+                    <button type="button" class="rz-btn rz-btn-1 rz-wide" onclick="rzSalvarCampoAlerta('${chaveJs}')">Salvar</button>
                 </div>` : ''}
                 <div id="rz-alerta-acoes-corpo"></div>
             `;
@@ -11948,7 +12037,7 @@
 
         async function rzSalvarCampoAlerta(alertaChave) {
             const r = alertasPorChave.get(alertaChave);
-            const campoAcao = r && ACAO_CAMPO_ALERTA[r.tipo_alerta];
+            const campoAcao = campoAcaoAlerta(r);
             if (!r || !campoAcao) return;
             const input = document.getElementById('rz-alerta-campo-valor');
             const valor = input ? input.value.trim() : '';

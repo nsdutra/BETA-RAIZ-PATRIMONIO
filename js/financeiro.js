@@ -1,7 +1,25 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.21.0 · 23/09/2026
+// Versão: 1.23.0 · 23/09/2026
+//
+// v1.23.0 (frente fiscal, Fase 6 — demanda 976fcbf6; itens adiados da
+// Fase 5): (1) o botão Fiscal mostra as notas do mês — "N nota(s) a
+// preparar" quando há recebimento pago sem nota (window.RZ_FIN_FISCAL.notas,
+// publicado por fechamento.js v1.7.0); sem nota pendente, continua com as
+// pendências de cadastro ou "Pronto para NFS-e". (2) ⋮ do recebimento pago
+// ganha "Nota fiscal", com o status fiscal dele no subtítulo
+// (window.RZ_FIN_FISCAL_REC); abre a tela Fiscal da competência já nas ações
+// daquele recebimento (window.abrirFiscalCompetencia, index.html v1.255.0).
+// A linha da lista não ganhou etiqueta nova (achado da rodada 10: "muito
+// texto na frente da data") — o status fica no ⋮.
+//
+// v1.22.0 (frente fiscal, Fase 5 — demanda 976fcbf6): o botão Fiscal abre a
+// tela "Fiscal da competência" (window.abrirFiscalCompetencia, index.html
+// v1.254.0; tela em js/fiscal.js v1.1.0), no mês em que o Financeiro está.
+// Antes abria direto o checklist de cadastro, que agora é o segmento
+// "Cadastro" da tela nova. Rotina fiscal desligada: continua levando a
+// Empresa › Rotinas. Status do botão sem mudança (pendências de cadastro).
 //
 // v1.21.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026: "o
 // botao extrato generalize para importar documento mas deixa a palavra
@@ -695,7 +713,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.21.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.23.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -889,7 +907,7 @@ function financeiroRedesenharChipsNivel() {
 //   window.RZ_FIN_FECHAMENTO — null enquanto verifica a competência; depois
 //     { status: 'aberto'|'concluido'|'sem_rotina', fechadoEm, motivo,
 //       pendencias: { tem, recebimentosEmAtraso, saidasEmAtraso } }
-//   window.RZ_FIN_FISCAL — null enquanto verifica; depois { ligada, total }
+//   window.RZ_FIN_FISCAL — null enquanto verifica; depois { ligada, total, notas } (notas: v1.23.0)
 // fechamento.js chama financeiroRedesenharQuadrantes() quando o estado muda.
 // Regras de status:
 //   · competência FECHADA → Adicionar indisponível (toque explica e aponta
@@ -948,13 +966,17 @@ function financeiroQuadrantesHtml(aba) {
 
     let fiscal;
     if (!fis) {
-        fiscal = quad({ icone: 'file-check-2', estado: 'mute', titulo: 'Fiscal', explicacao: 'Verificando…', onclick: 'fechamentoAbrirChecklistFiscal()' });
+        fiscal = quad({ icone: 'file-check-2', estado: 'mute', titulo: 'Fiscal', explicacao: 'Verificando…', onclick: 'abrirFiscalCompetencia()' });
     } else if (!fis.ligada) {
         fiscal = quad({ icone: 'file-check-2', titulo: 'Fiscal', explicacao: 'Rotina fiscal desligada', off: true, onclick: 'financeiroIrParaRotinas()' });
+    } else if (fis.notas && (fis.notas.aPreparar + fis.notas.preparadas) > 0) {
+        // v1.23.0 — notas do mês primeiro: é a tarefa do dia a dia
+        const n = fis.notas.aPreparar + fis.notas.preparadas;
+        fiscal = quad({ icone: 'file-check-2', estado: 'warn', titulo: 'Fiscal', explicacao: `${n} nota${n > 1 ? 's' : ''} a preparar`, onclick: 'abrirFiscalCompetencia()' });
     } else if (fis.total === 0) {
-        fiscal = quad({ icone: 'file-check-2', estado: 'ok', titulo: 'Fiscal', explicacao: 'Pronto para NFS-e', onclick: 'fechamentoAbrirChecklistFiscal()' });
+        fiscal = quad({ icone: 'file-check-2', estado: 'ok', titulo: 'Fiscal', explicacao: 'Pronto para NFS-e', onclick: 'abrirFiscalCompetencia()' });
     } else {
-        fiscal = quad({ icone: 'file-check-2', estado: 'warn', titulo: 'Fiscal', explicacao: `${fis.total} pendência${fis.total > 1 ? 's' : ''} para NFS-e`, onclick: 'fechamentoAbrirChecklistFiscal()' });
+        fiscal = quad({ icone: 'file-check-2', estado: 'warn', titulo: 'Fiscal', explicacao: `${fis.total} pendência${fis.total > 1 ? 's' : ''} para NFS-e`, onclick: 'abrirFiscalCompetencia()' });
     }
 
     const valorAtraso = Number(pend?.recebimentosEmAtraso || 0);
@@ -3900,6 +3922,16 @@ function financeiroRenderCabecalho(aba) {
                 const acoesPago = [
                     { icone: 'receipt', titulo: 'Recibo', sub: 'Gerar ou reenviar', codigo: 'recibo.gerar', aoTocar: () => abrirModalOpcoesRecibo(men.id, con.id) },
                 ];
+                // v1.23.0 (Fase 6 fiscal) — status fiscal do recebimento no
+                // subtítulo; o toque abre a tela Fiscal da competência já nas
+                // ações dele. Só com a rotina fiscal ligada (mesma regra do botão).
+                if (window.RZ_FIN_FISCAL?.ligada && typeof window.abrirFiscalCompetencia === 'function') {
+                    const ROTULO_FISCAL = { a_preparar: 'A preparar', falta_dado: 'Falta dado para a nota', preparada: 'Rascunho preparado',
+                        com_contador: 'Com o contador', emitida: 'Nota emitida', sem_nota: 'Não gera nota', aguardando_recebimento: 'Aguardando pagamento' };
+                    const stFiscal = window.RZ_FIN_FISCAL_REC ? window.RZ_FIN_FISCAL_REC[men.id] : null;
+                    acoesPago.push({ icone: 'file-check-2', titulo: 'Nota fiscal', sub: ROTULO_FISCAL[stFiscal] || 'Preparar, ver ou registrar a NFS-e',
+                                     aoTocar: () => window.abrirFiscalCompetencia(window.RZ_FIN_COMPETENCIA || null, men.id) });
+                }
                 // CORRIGIDO v1.15.0 (REGRAS §11.1, achado nesta mesma
                 // entrega) — competência fechada permite só "gerar recibo e
                 // ver detalhes, nunca alterar" (pedido explícito). O trigger

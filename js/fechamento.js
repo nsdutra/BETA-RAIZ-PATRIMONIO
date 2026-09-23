@@ -1,6 +1,15 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.6.2 · 23/09/2026
+// Versão: 1.7.0 · 23/09/2026
+//
+// v1.7.0 (frente fiscal, Fase 6 — demanda 976fcbf6; item adiado da Fase 5):
+// o botão Fiscal do Financeiro passa a mostrar as NOTAS da competência, não
+// só as pendências de cadastro. fechamentoAtualizarNotasFiscais() lê os KPIs
+// de fn_fiscal_competencia (mesma fonte da tela Fiscal da competência) a
+// cada troca de mês, com a rotina "NFS-e da competência" ligada, e publica
+// em window.RZ_FIN_FISCAL.notas; o status fiscal de cada recebimento vai
+// para window.RZ_FIN_FISCAL_REC (mensalidade_id → status), lido pelo ⋮
+// "Nota fiscal" do recebimento (financeiro.js v1.23.0).
 //
 // v1.6.2 (pedido do Nicola, 23/09/2026) — "Compartilhar com o contador" sem
 // contador cadastrado não para mais num aviso: leva direto a Partes com o
@@ -253,7 +262,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.6.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -268,6 +277,7 @@ let fechamentoCarregando = false;
 // selecionada: verificado 1x por sessão, igual financeiroRotinaFechamentoLigada.
 let fechamentoRotinaFiscalLigada = null; // null = não verificado ainda; true/false = ligada/desligada
 let fechamentoFiscalPendencias = []; // v1.6.0 — linhas de fn_fiscal_pendencias_cadastro
+let fechamentoFiscalNotas = null; // v1.7.0 — KPIs de notas da competência (fn_fiscal_competencia); null = não verificado
 
 // v1.4.0 (demanda 0e40951a, redesenho do Financeiro) — ids trocados de
 // fin-botao-fechamento-* (ícone solto) pra fin-quad-fechamento-* (célula do
@@ -317,6 +327,7 @@ export async function fechamentoAtualizarCard() {
     // v1.5.0 — competência nova ainda não verificada: botões voltam ao estado
     // neutro ("Verificando…") em vez de mostrar o status do mês anterior.
     if (typeof window !== 'undefined') window.RZ_FIN_FECHAMENTO = null;
+    fechamentoFiscalNotas = null; // v1.7.0 — notas do mês anterior não valem para este
     fechamentoPublicarEstado();
     try {
         const { data, error } = await dbAuth.rpc('fn_fechamento_verificar', {
@@ -373,6 +384,7 @@ function fechamentoPublicarEstado() {
     window.RZ_FIN_FISCAL = (fechamentoRotinaFiscalLigada === null) ? null : {
         ligada: !!fechamentoRotinaFiscalLigada,
         total: fechamentoFiscalPendencias.length,
+        notas: fechamentoFiscalNotas, // v1.7.0 — null enquanto não verificou
     };
     if (typeof window.financeiroRedesenharQuadrantes === 'function') window.financeiroRedesenharQuadrantes();
 }
@@ -424,7 +436,11 @@ async function fechamentoAtualizarKpis() {
  * de fn_fiscal_pendencias_cadastro (fonte única); forcar=true relê só as
  * pendências (depois de corrigir um cadastro pelo próprio checklist). */
 async function fechamentoAtualizarFiscal(forcar = false) {
-    if (fechamentoRotinaFiscalLigada !== null && !forcar) { fechamentoRenderFiscalChip(); return; }
+    if (fechamentoRotinaFiscalLigada !== null && !forcar) {
+        await fechamentoAtualizarNotasFiscais(); // v1.7.0 — as notas mudam a cada competência
+        fechamentoRenderFiscalChip();
+        return;
+    }
     if (fechamentoRotinaFiscalLigada === null) {
         try {
             const { data: rotinas, error: eRot } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
@@ -448,7 +464,33 @@ async function fechamentoAtualizarFiscal(forcar = false) {
         console.error('[fechamento] fn_fiscal_pendencias_cadastro', e);
         fechamentoFiscalPendencias = []; // não mostra número que não confirmou
     }
+    await fechamentoAtualizarNotasFiscais();
     fechamentoRenderFiscalChip();
+}
+
+/** v1.7.0 — notas da competência aberta no Financeiro (KPIs e status por
+ * recebimento), da MESMA função da tela Fiscal da competência. Só com a
+ * rotina fiscal ligada; falha de rede = null (o botão não inventa número). */
+async function fechamentoAtualizarNotasFiscais() {
+    if (!fechamentoRotinaFiscalLigada) { fechamentoFiscalNotas = null; if (typeof window !== 'undefined') window.RZ_FIN_FISCAL_REC = null; return; }
+    const comp = fechamentoCompetenciaAtual();
+    try {
+        const { data, error } = await dbAuth.rpc('fn_fiscal_competencia', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp });
+        if (error) throw error;
+        if (comp !== fechamentoCompetenciaAtual()) return; // o mês mudou no meio: a chamada nova publica
+        const k = data?.kpis || {};
+        fechamentoFiscalNotas = {
+            aPreparar: Number(k.a_preparar || 0), preparadas: Number(k.preparada || 0),
+            comContador: Number(k.com_contador || 0), emitidas: Number(k.emitida || 0), faltaDado: Number(k.falta_dado || 0),
+        };
+        const mapa = {};
+        (data?.recebimentos || []).forEach(r => { mapa[r.mensalidade_id] = r.status_fiscal; });
+        if (typeof window !== 'undefined') window.RZ_FIN_FISCAL_REC = mapa;
+    } catch (e) {
+        console.error('[fechamento] fn_fiscal_competencia', e?.code || '');
+        fechamentoFiscalNotas = null;
+        if (typeof window !== 'undefined') window.RZ_FIN_FISCAL_REC = null;
+    }
 }
 
 /** v1.6.1 — relê as pendências e abre o checklist (sem depender da rotina). */
