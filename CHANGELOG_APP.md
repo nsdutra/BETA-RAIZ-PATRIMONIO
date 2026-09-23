@@ -4,6 +4,26 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.244.0) — demanda 472927ba:
+Achado ao vivo do Nicola (master na Rumo, plano Plus): o item "Versões"
+do menu Conta mostrava "Não incluído no plano". Causa: o item usava
+codigo: 'dev.acessar' (só existe no plano gestao_master, e abre a aba
+DEV inteira) pra gatear uma tela que é só informativa (versão de
+arquivo/diagnóstico de cache-deploy, sem dado de outra empresa). O
+banco já tinha sido ajustado numa migration anterior com a
+funcionalidade nova sistema.versoes.ver, liberada em todos os planos
+ativos e nos perfis admin/master/master_plataforma — faltava só trocar
+o codigo do item de menu (linha ~9293) de 'dev.acessar' pra
+'sistema.versoes.ver'. O código 'dev.acessar' que gateia a aba
+tab-developer inteira (linha ~8610, TAB_CODIGO_VER) NÃO foi tocado —
+é um controle diferente e deve continuar restrito ao gestao_master.
+------------------------------------------------------------------
+Versões anteriores (até v1.243.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.243.0) — demanda 8d5585a3:
 formatarMoedaBR() ganhou um 2º parâmetro opcional `{ semCentavos: true }`
 (default inalterado — sempre 2 casas, como sempre foi) pra que

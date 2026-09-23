@@ -6,10 +6,34 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.248.0
-   LINHAS: 15658
-   DATA: 22/09/2026 (soft launch · show stoppers — demandas 8b2d37d7 (C4),
-   70159adb (C3 fatia mínima) e 728eda15 (C10))
+   VERSÃO: Beta v1.248.1
+   LINHAS: 15689
+   DATA: 23/09/2026 (demanda 80c3068e — bug CSS, telas desconfiguradas)
+   NOVIDADES (Beta v1.248.1) — demanda 80c3068e (bug reportado pelo
+   Nicola com prints: "As telas alteradas foram radicalmente impactadas
+   negativamente no UI. Edicao de imoveis, partes e aba financeira").
+   CAUSA RAIZ: o comentário CSS da v1.245.0 (bloco .rz-fin-quad) abria
+   com /* e fechava com o terminador de comentário HTML (seta dupla
+   "- - >"), não com o fechamento CSS. O navegador só encerrava o
+   comentário no próximo */ ("16. IA"), engolindo em silêncio TODAS as
+   regras no meio: .rz-fin-quad-grid/.rz-fin-quad* (quadrantes do
+   Financeiro viraram lista crua), .rz-f, .rz-f label/input/select/
+   textarea e .rz-f2 (todo formulário da gramática única perdeu borda/
+   label: Dar baixa, Editar ativo, Minha Empresa, Novo recebimento).
+   Correção: terminador trocado pelo */ CSS. Nenhuma regra CSS mudou —
+   só voltaram a valer. Mesmo defeito corrigido em js/ativos/
+   ativos-markup.js v1.46.1 (engolia .raiz-sem-scrollbar). Varredura em
+   todos os <style> do index.html e js/: só esses 2 casos existiam.
+   JUNTO (mesma demanda): as 7 pontes window[nome] -> módulo
+   (vitrine/minutas/contratos/imóveis/resultados/financeiro/fechamento)
+   eram carregarX().then(m => m[nome](...)) sem .catch — erro dentro do
+   módulo virava toque que "não faz nada", sem toast. Nova
+   rzPonteModulo(): loga no console + toast com o nome da função e
+   repassa o erro.
+   Base: v1.248.0 do repositório (GitHub, gerado 22/09 23:48) — nada da
+   v1.248.0 (porta de licença compartilhada) foi desfeito.
+   (v1.248.0 — 22/09/2026, soft launch · show stoppers — demandas
+   8b2d37d7 (C4), 70159adb (C3 fatia mínima) e 728eda15 (C10))
    NOVIDADES (Beta v1.248.0) — porta de licença compartilhada:
    (1) A porta (FUNCIONALIDADES_LIBERADAS, carregarFuncionalidadesLiberadas,
    podeUsar, rzMostrarBloqueio) saiu deste bloco de script para
@@ -101,21 +125,8 @@
    gravarPapelParte emitem 'parte' agora (helper emitirEscritaGlobal,
    import dinâmico — script clássico não é módulo); listener próprio
    recarrega a aba Partes se ela já tiver sido aberta nesta sessão.
-   NOVIDADES (Beta v1.244.0) — demanda 472927ba:
-   Achado ao vivo do Nicola (master na Rumo, plano Plus): o item "Versões"
-   do menu Conta mostrava "Não incluído no plano". Causa: o item usava
-   codigo: 'dev.acessar' (só existe no plano gestao_master, e abre a aba
-   DEV inteira) pra gatear uma tela que é só informativa (versão de
-   arquivo/diagnóstico de cache-deploy, sem dado de outra empresa). O
-   banco já tinha sido ajustado numa migration anterior com a
-   funcionalidade nova sistema.versoes.ver, liberada em todos os planos
-   ativos e nos perfis admin/master/master_plataforma — faltava só trocar
-   o codigo do item de menu (linha ~9293) de 'dev.acessar' pra
-   'sistema.versoes.ver'. O código 'dev.acessar' que gateia a aba
-   tab-developer inteira (linha ~8610, TAB_CODIGO_VER) NÃO foi tocado —
-   é um controle diferente e deve continuar restrito ao gestao_master.
    ------------------------------------------------------------------
-   Versões anteriores (até v1.243.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.244.0 … v1.244.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -139,7 +150,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.19.0","./js/fechamento.js":"./js/fechamento.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.20.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.62.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.32.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.19.0","./js/fechamento.js":"./js/fechamento.js?v=1.4.0","./js/contratos.js":"./js/contratos.js?v=1.20.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.44.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.62.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.32.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.6.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.0.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.6.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -734,7 +745,7 @@
            .rz-row) — correção direta do achado "mensagens estão saindo da
            tela" na aba Conciliação/Fechamento. Usado nas 3 abas do grupo
            Financeiro (Recebimentos/Saídas/Fechamento) — ver
-           financeiroQuadrantesHtml(), js/financeiro.js. -->
+           financeiroQuadrantesHtml(), js/financeiro.js. */
         .rz-fin-quad-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
         .rz-fin-quad{display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:var(--r-ctl);background:var(--card);border:1px solid var(--line);text-align:left;cursor:pointer;min-width:0}
         .rz-fin-quad .rz-ic{width:32px;height:32px;border-radius:9px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
@@ -3431,7 +3442,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.248.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.248.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8607,6 +8618,26 @@
         function rzVitSeCarregado(nome, ...args) {
             if (__rzVitModulo && typeof __rzVitModulo[nome] === 'function') return __rzVitModulo[nome](...args);
         }
+        // v1.248.1 — demanda 80c3068e. Ponte única window[nome] -> módulo.
+        // Antes: carregarX().then(m => m[nome](...args)) SEM .catch — qualquer
+        // erro dentro da função do módulo (ou falha do import()) virava
+        // rejeição silenciosa: o toque "não fazia nada", sem toast e sem
+        // pista (caso real: "Adicionar recebimento apareceu no menu mas não
+        // abre formulário"). Agora: loga no console + toast, e REPASSA o
+        // erro (quem já trata rejeição — ex. aoSalvar do abrirSheetForm —
+        // continua recebendo igual). Declaração de função = hoisted, vale
+        // pra todas as listas de ponte abaixo.
+        function rzPonteModulo(carregar, nome, args) {
+            return carregar().then(m => {
+                if (typeof m[nome] !== 'function') throw new Error('Função ' + nome + ' não existe no módulo carregado');
+                return m[nome](...args);
+            }).catch(err => {
+                console.error('[rz] ponte ' + nome + ' falhou:', err);
+                if (typeof mostrarToast === 'function') mostrarToast('Não foi possível abrir (' + nome + '): ' + (err?.message || err), 'danger');
+                throw err;
+            });
+        }
+
         [
             'abrirBuscaVitrine', 'fecharBuscaVitrine', 'copyResumo', 'renderVitrine',
             'iniciarProcessoContratacao', 'abrirModalOpcoesContratacao', 'iniciarModoContratacaoPublica', 'mostrarErroContratacaoPublica',
@@ -8614,7 +8645,7 @@
             'enviarFormularioContratacaoPublico', 'gerarLinkVitrine', 'gerarVitrineDoImovel', 'gerarLinkVitrineParaIds',
             'verificarFiltroVitrineExterna', 'abrirLightboxVitrineImovel', 'abrirLightboxVitrine', 'fecharLightboxVitrine',
             'sairDaVitrinePublica', 'navegarLightboxVitrine', 'atualizarLightboxVitrine'
-        ].forEach(nome => { window[nome] = (...args) => carregarVitrine().then(m => m[nome](...args)); });
+        ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarVitrine, nome, args); });
 
         // =====================================================================
         // R8 (fatia 3, Beta v1.142.0) — MINUTAS VIVE EM js/minutas.js
@@ -8640,7 +8671,7 @@
             'escaparXml', 'preencherMinutaDocx', 'extrairTextoDocxMinutizacao', 'extrairTextoPdfMinutizacao',
             'gerarDocxDoTextoMinutizacao', 'chamarDeteccaoPlaceholdersIA', 'gerarMinutaContrato', 'gerarMinutaNoCofre',
             'baixarMinutaPadraoImovel', 'abrirPickerMinutasAplicaveis'
-        ].forEach(nome => { window[nome] = (...args) => carregarMinutas().then(m => m[nome](...args)); });
+        ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarMinutas, nome, args); });
 
         // =====================================================================
         // R8 (fatia 2, Beta v1.141.0) — CONTRATOS VIVE EM js/contratos.js
@@ -8685,7 +8716,7 @@
             'montarDistribuicaoContrato', 'abrirAcoesDistribuicaoContrato', // NOVO v1.11.0 (rodada 10) — card "Distribuição" no Resumo
             'renovarContrato', 'calcularPctRenovacaoPopup', 'calcularValorRenovacaoPopup', 'salvarRenovacaoContratoPopup',
             'abrirInfoReajusteContrato' // v1.15.0 (demanda 44f30857, item 2) — ícone (i) do card "Pelo contrato"
-        ].forEach(nome => { window[nome] = (...args) => carregarContratos().then(m => m[nome](...args)); });
+        ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarContratos, nome, args); });
 
         // =====================================================================
         // R8 (fatia 5, A.8) — IMÓVEIS vive em js/imoveis.js. Mesmo desenho de
@@ -8717,7 +8748,7 @@
             'obterContratoPrincipalDoImovel', 'abrirBuscaImoveis', 'filtrarImoveisPorAlertaContrato', 'obterContratosContextuaisDoImovel',
             'voltarStepImovel', 'limparFiltroAlertaContratoImoveis', 'imovelIsentoDeAlertas',
             'fecharBuscaImoveis', 'fecharCadastroImovelModal', 'abrirCadastroImovelModal',
-        ].forEach(nome => { window[nome] = (...args) => carregarImoveis().then(m => m[nome](...args)); });
+        ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarImoveis, nome, args); });
 
         // =====================================================================
         // Entrega A.3 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL v2.0.0) —
@@ -8743,7 +8774,7 @@
             // card que ainda não tinha o ícone (i).
             'abrirInfoIndicadores', 'abrirInfoResultadoMensal', 'abrirInfoGraficoIndicador',
             'abrirInfoConcentracao', 'abrirInfoPerformanceGrid',
-        ].forEach(nome => { window[nome] = (...args) => carregarResultados().then(m => m[nome](...args)); });
+        ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarResultados, nome, args); });
 
         // =====================================================================
         // R8 (fatia 1, Beta v1.138.0) — FINANCEIRO VIVE EM js/financeiro.js
@@ -8801,7 +8832,7 @@
             'abrirBuscaConciliacao', 'fecharBuscaConciliacao', 'limparBuscaConciliacao', 'atualizarCamposTipoConciliacao', // v1.179.0 — lupa de filtro
             'financeiroMudarCompetencia', 'rzTocarChipFechamentoDesligado', // Entrega F.1 (21/09/2026) — card de competência + chip Fechamento
             'abrirAcoesAdicionarFinanceiro', 'abrirNovoRecebimento', 'nrecAoTrocarContrato', 'nrecAlternarSituacao', 'salvarNovoRecebimento', // v1.246.0 — demanda 0e40951a, complemento: criar recebimento avulso
-        ].forEach(nome => { window[nome] = (...args) => carregarFinanceiro().then(m => m[nome](...args)); });
+        ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarFinanceiro, nome, args); });
 
         // =====================================================================
         // Entrega F.2 (21/09/2026) — FECHAMENTO VIVE EM js/fechamento.js
@@ -8820,7 +8851,7 @@
          'fechamentoAlternarBotao', // Entrega F.3/F.4 (v1.2.0) — onclick do botão dedicado (cadeado), injetado via innerHTML nos 3 chips (fechamentoRenderBotaoDedicado)
          'fechamentoAbrirCompartilharContador', // v1.4.0 (demanda 0e40951a) — onclick do quadrante "Contador" (financeiroQuadrantesHtml, financeiro.js)
         ].forEach(nome => {
-            window[nome] = (...args) => carregarFechamento().then(m => m[nome](...args));
+            window[nome] = (...args) => rzPonteModulo(carregarFechamento, nome, args);
         });
 
         function switchTab(tabId) {

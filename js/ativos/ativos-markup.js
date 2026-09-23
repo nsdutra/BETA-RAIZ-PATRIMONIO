@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.46.0 · 22/09/2026
+// Versão: 1.46.1 · 23/09/2026
+// CHANGELOG v1.46.1 — demanda 80c3068e (bug CSS): o comentário v1.94.1 do
+// <style> injetado abria com /* e fechava com o terminador de comentário
+// HTML — o comentário só terminava no próximo */, engolindo
+// .raiz-sem-scrollbar (barra de rolagem dos chips/abas voltava a aparecer).
+// Trocado por */. Mesmo defeito do index.html v1.248.1. Base: v1.46.0 do
+// repositório (GitHub) — nada dela foi desfeito.
+//
 // CHANGELOG v1.46.0 — demanda 8b2d37d7 (C4): botão "+ Novo ativo" do estado
 // vazio ganha data-rz-codigo="cofre.ativos.criar" — cadeado + motivo quando
 // a cota acaba (comum-licenca.js v1.4.0, aplicarCadeados). Espelha cofre.html
@@ -408,7 +415,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.46.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.46.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -418,7 +425,7 @@ export const ATIVOS_MARKUP = `<style>
        style (Edge antigo), ::-webkit-scrollbar (Chrome/Safari/Edge novo).
        1x só aqui — <style> injetado via innerHTML funciona normal
        (diferente de <script>, que não executa assim), então não precisa
-       repetir em cada lugar que usa a classe. -->
+       repetir em cada lugar que usa a classe. */
     .raiz-sem-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
     .raiz-sem-scrollbar::-webkit-scrollbar { display: none; }
 
