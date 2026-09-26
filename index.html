@@ -6,9 +6,25 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.259.0
-   LINHAS: 15868
-   DATA: 23/09/2026 (achados dos testes da Albuquerque + alerta de indicadores)
+   VERSÃO: Beta v1.260.0
+   LINHAS: 15887
+   DATA: 25/09/2026 (demanda d92a6dfc — valor bruto/líquido/taxa editáveis)
+   NOVIDADES (Beta v1.260.0) — pedido do Nicola (24/09 18:50 + decisão 25/09
+   "Restante de acordo. Pode implementar."): valor bruto, líquido e taxa da
+   administradora agora ficam editáveis onde faz sentido. A geração mensal
+   (fn_gerar_mensalidades_competencia/fn_mensalidades_realinhar) já
+   calculava os 3 certo desde a Fase 2 fiscal — auditado nesta entrega, sem
+   mudança de código ali. (1) Dar baixa ganha "Aluguel bruto" e "Taxa da
+   administradora" ao lado do Líquido, com recálculo automático entre os 3.
+   (2) Recebimento pago ganha ⋮ "Ajustar valores" (bruto/taxa/líquido +
+   motivo obrigatório, auditado em mensalidade_valores_historico). (3)
+   Fiscal da competência: recebimento com bruto estimado ganha "Confirmar
+   valor bruto" (1 ou todos do contrato); KPI mostra quantos estão
+   estimados. (4) Ficha do contrato mostra "Recebimento esperado" (bruto ·
+   taxa · líquido) quando há administradora. Extrato/conciliação não
+   mudou: líquido sempre do banco, sem bater vai pra pendente — igual
+   antes. Módulos: js/financeiro.js v1.24.0, js/fiscal.js v1.5.0,
+   js/contratos.js v1.23.0, migration_valor_bruto_liquido_v1.sql.
    NOVIDADES (Beta v1.259.0) — pedido do Nicola (23/09, 13:01): em
    Resultados, filtrando só Família, saem os cards Dependência de
    locatário, Reajustes, Revisional/Renovação e Performance (são de
@@ -45,22 +61,8 @@
    ordem do Emissor Nacional; opções Planilha (CSV) e XML das notas;
    canal "Só baixar os arquivos"; rascunhos enviados ficam marcados).
    Aqui: só a classe .rz-chk (linha com caixa de marcar das opções).
-   NOVIDADES (Beta v1.255.0) — demanda 976fcbf6 (frente fiscal, Fase 6 —
-   alertas) e 6ef4303c (D6: completar o dado direto no alerta). Os 5
-   tipos novos do Motor (fiscal_documento_pendente, fiscal_com_contador,
-   fiscal_cadastro_incompleto, fiscal_enquadramento, fiscal_regra_alterada;
-   migration fiscal_alertas_v1) ganham título, subtítulo, ícone, idade
-   ("Pago há Nd") e destino: Fiscal da competência no mês do alerta,
-   Empresa › Fiscal ou o checklist fiscal. fiscal_cadastro_incompleto
-   completa o dado no próprio sheet (CPF/CNPJ do locatário, destinação ou
-   CIB), pelo mesmo rzSalvarCampoAlerta (campoAcaoAlerta substitui a
-   leitura direta de ACAO_CAMPO_ALERTA; campo do sheet em .rz-f, sem estilo
-   inline). abrirFiscalCompetencia(competência, recebimento) abre a tela
-   no mês pedido e, com recebimento, já nas ações dele (⋮ "Nota fiscal"
-   do Financeiro). Módulos: js/fiscal.js v1.2.0, js/fechamento.js v1.7.0,
-   js/financeiro.js v1.23.0.
    ------------------------------------------------------------------
-   Versões anteriores (v1.254.0 … v1.254.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.255.0 … v1.255.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -84,7 +86,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.23.0","./js/fechamento.js":"./js/fechamento.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.22.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.45.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.64.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.4.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.24.0","./js/fechamento.js":"./js/fechamento.js?v=1.10.0","./js/contratos.js":"./js/contratos.js?v=1.23.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.45.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.37.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.64.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.33.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.46.1"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3369,7 +3371,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.259.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.260.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5249,6 +5251,14 @@
                     valorEnergia: row.valor_energia || 0,
                     valorIptu: row.valor_iptu || 0,
                     valorCondominio: row.valor_condominio || 0,
+                    // v1.260.0 (demanda d92a6dfc — valor bruto/líquido/taxa
+                    // editáveis) — os 3 campos já existiam na tabela desde a
+                    // Fase 2 fiscal, mas nunca eram lidos pro objeto em
+                    // memória; sem isso, o formulário de baixa e o ⋮
+                    // "Ajustar valores" não tinham o que mostrar.
+                    valorBruto: row.valor_bruto,
+                    valorTaxaAdm: row.valor_taxa_adm,
+                    valorBrutoEstimado: row.valor_bruto_estimado !== false,
                     chaveTransacaoOrigem: row.chave_transacao_origem || '',
                     envioLog: (row.envio_log && !Array.isArray(row.envio_log)) ? row.envio_log : null,
                     // Entrega F.3/F.4 (21/09/2026) — default true no banco
@@ -5355,6 +5365,14 @@
                 valor_energia: men.valorEnergia || null,
                 valor_iptu: men.valorIptu || null,
                 valor_condominio: men.valorCondominio || null,
+                // v1.260.0 (demanda d92a6dfc) — só grava quando a tela de
+                // origem preencheu o par (rzAbrirBaixaMensalidade); se vier
+                // undefined (outros fluxos que chamam esta função sem mexer
+                // em bruto/taxa, ex. conciliação), não sobrescreve o que já
+                // está gravado — por isso o "!== undefined", não "|| null".
+                ...(men.valorBruto !== undefined ? { valor_bruto: men.valorBruto } : {}),
+                ...(men.valorTaxaAdm !== undefined ? { valor_taxa_adm: men.valorTaxaAdm } : {}),
+                ...(men.valorBrutoEstimado !== undefined ? { valor_bruto_estimado: men.valorBrutoEstimado } : {}),
                 chave_transacao_origem: men.chaveTransacaoOrigem || null,
                 // CORRIGIDO (bug real — "Log: Notificado via undefined (undefined)"
                 // aparecendo mesmo sem nunca ter enviado nada): o padrão aqui era
@@ -8763,6 +8781,7 @@
             'financeiroMudarCompetencia', 'rzTocarChipFechamentoDesligado', // Entrega F.1 (21/09/2026) — card de competência + chip Fechamento
             'abrirAcoesAdicionarFinanceiro', 'abrirNovoRecebimento', 'nrecAoTrocarContrato', 'nrecAlternarSituacao', 'salvarNovoRecebimento', // v1.246.0 — demanda 0e40951a, complemento: criar recebimento avulso
             'financeiroRedesenharQuadrantes', 'financeiroIrParaRotinas', // v1.249.0 — demanda 7bdcb8d4: 6 botões com status (chamado por fechamento.js) + Fiscal desligado
+            'recalcularValoresBaixaBruto', 'abrirAjusteValoresMensalidade', 'recalcularAjusteValores', // v1.260.0 — demanda d92a6dfc: bruto/taxa/líquido editáveis
         ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarFinanceiro, nome, args); });
 
         // =====================================================================
