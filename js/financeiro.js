@@ -1,7 +1,23 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.23.0 · 23/09/2026
+// Versão: 1.24.0 · 25/09/2026
+//
+// v1.24.0 (demanda d92a6dfc, pedido do Nicola 24/09 18:50 + decisão 25/09
+// "Restante de acordo. Pode implementar."): "Dar baixa" ganha 2 campos —
+// Aluguel bruto e Taxa da administradora — ao lado do Líquido, com
+// recálculo automático entre os 3 (recalcularValoresBaixaBruto); os
+// valores vêm pré-preenchidos do que fn_gerar_mensalidades_competencia já
+// calculou (mensalidades.valorBruto/valorTaxaAdm, mapeados agora em
+// index.html). O antigo campo solto "Taxa da administradora (R$)" dos
+// Extras (nunca ligado a nada — taxaAdmSugerida não existe mais no
+// código atual, só sobrava em observação de recibo) saiu daqui: virou
+// este campo estruturado. Recebimento pago ganha ⋮ "Ajustar valores"
+// (abrirAjusteValoresMensalidade) — mesmos 3 campos + motivo obrigatório,
+// via fn_mensalidade_valores_ajustar (migration_valor_bruto_liquido_v1);
+// some com a competência fechada, igual "Estornar". O extrato/conciliação
+// não muda: líquido sempre do banco, sem bater vai pra pendente (isso já
+// não passava por "Dar baixa" manual).
 //
 // v1.23.0 (frente fiscal, Fase 6 — demanda 976fcbf6; itens adiados da
 // Fase 5): (1) o botão Fiscal mostra as notas do mês — "N nota(s) a
@@ -713,7 +729,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.23.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.24.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -2238,6 +2254,30 @@ function financeiroRenderCabecalho(aba) {
             if (resumoTotal) resumoTotal.textContent = fmt(total);
         }
 
+        // v1.24.0 (demanda d92a6dfc) — recálculo entre os 3 campos do bloco
+        // "Valores" do Dar baixa (bruto/taxa/líquido). Mexeu em bruto ou
+        // taxa: o líquido é sempre bruto menos taxa (é assim que a geração
+        // mensal já calcula). Mexeu direto no líquido (ex.: o valor que
+        // realmente caiu na conta veio diferente do esperado): o bruto fica
+        // fixo — é o aluguel do contrato — e quem se ajusta é a taxa.
+        // Encadeia com recalcularTotalBaixaExtra pro delta de multa
+        // continuar valendo por cima do líquido recém-calculado.
+        export function recalcularValoresBaixaBruto(menId, origem) {
+            const inputBruto = document.getElementById('bruto-' + menId);
+            const inputTaxa = document.getElementById('taxa-' + menId);
+            const inputLiquido = document.getElementById('valor-' + menId);
+            if (!inputBruto || !inputTaxa || !inputLiquido) return;
+            const bruto = parseFloat(inputBruto.value) || 0;
+            const taxa = parseFloat(inputTaxa.value) || 0;
+            const liquido = parseFloat(inputLiquido.value) || 0;
+            if (origem === 'liquido') {
+                inputTaxa.value = Math.max(0, bruto - liquido).toFixed(2);
+            } else {
+                inputLiquido.value = Math.max(0, bruto - taxa).toFixed(2);
+            }
+            if (typeof recalcularTotalBaixaExtra === 'function') recalcularTotalBaixaExtra(menId);
+        }
+
         export async function liquidarMensalidade(menId) {
 
             const banco = document.getElementById(`banco-${menId}`).value;
@@ -2252,26 +2292,34 @@ function financeiroRenderCabecalho(aba) {
 
             const valorEnergiaManual = campoEnergia ? (parseFloat(campoEnergia.value) || 0) : 0;
 
-            // CORRIGIDO (bug real — valores de multa/taxa lançados no menu ⋯
+            // CORRIGIDO (bug real — valores de multa lançados no menu ⋯
             // nunca eram lidos nem salvos em lugar nenhum; ao estornar, sumiam
-            // para sempre). Não existe coluna própria para isso na tabela de
-            // mensalidades, então — igual já acontecia com energia — o valor
-            // vira um resumo dentro da observação DO RECIBO (observacaoRecibo,
-            // que sai impressa no "Vale ressaltar que..."), separada da
-            // observação interna (observacao, que nunca aparece pro locatário).
+            // para sempre). Não existe coluna própria pra multa, então —
+            // igual já acontecia com energia — o valor vira um resumo dentro
+            // da observação DO RECIBO (observacaoRecibo, que sai impressa no
+            // "Vale ressaltar que..."), separada da observação interna
+            // (observacao, que nunca aparece pro locatário).
+            // v1.24.0 — a "Taxa Adm." SAIU daqui (virou o campo estruturado
+            // bruto-/taxa-, que grava em valor_bruto/valor_taxa_adm — ver
+            // abaixo — em vez de ficar só como texto solto na observação).
             const campoMulta = document.getElementById(`multa-${menId}`);
-            const campoTaxa = document.getElementById(`taxa-admin-${menId}`);
             const valorMulta = campoMulta ? (parseFloat(campoMulta.value) || 0) : 0;
-            const valorTaxa = campoTaxa ? (parseFloat(campoTaxa.value) || 0) : 0;
             const campoIptu = document.getElementById(`iptu-${menId}`);
             const campoCondominio = document.getElementById(`condominio-${menId}`);
             const valorIptuManual = campoIptu ? (parseFloat(campoIptu.value) || 0) : 0;
             const valorCondominioManual = campoCondominio ? (parseFloat(campoCondominio.value) || 0) : 0;
 
+            // v1.24.0 (demanda d92a6dfc) — bruto/taxa do bloco "Valores";
+            // quando o form não tiver esses campos (chamador antigo/teste),
+            // não mexe no que já estava gravado.
+            const campoBrutoNovo = document.getElementById(`bruto-${menId}`);
+            const campoTaxaNova = document.getElementById(`taxa-${menId}`);
+            const valorBrutoNovo = campoBrutoNovo ? (parseFloat(campoBrutoNovo.value) || 0) : undefined;
+            const valorTaxaNova = campoTaxaNova ? (parseFloat(campoTaxaNova.value) || 0) : undefined;
+
             const resumoExtras = [];
             if (valorEnergiaManual > 0) resumoExtras.push(`Energia: R$ ${fmtBR(valorEnergiaManual)}`);
             if (valorMulta > 0) resumoExtras.push(`Multa: R$ ${fmtBR(valorMulta)}`);
-            if (valorTaxa > 0) resumoExtras.push(`Taxa Adm.: R$ ${fmtBR(valorTaxa)}`);
             if (resumoExtras.length > 0) {
                 obsManual = (obsManual ? obsManual + ' | ' : '') + resumoExtras.join(' | ');
             }
@@ -2298,6 +2346,14 @@ function financeiroRenderCabecalho(aba) {
             mensalidades[idx].valorEnergia = valorEnergiaManual;
             mensalidades[idx].valorIptu = valorIptuManual;
             mensalidades[idx].valorCondominio = valorCondominioManual;
+            // v1.24.0 (demanda d92a6dfc) — grava bruto/taxa junto com o
+            // líquido; marca como não-mais-estimado (o usuário confirmou os
+            // 3 valores na hora da baixa).
+            if (valorBrutoNovo !== undefined) {
+                mensalidades[idx].valorBruto = valorBrutoNovo;
+                mensalidades[idx].valorTaxaAdm = valorTaxaNova;
+                mensalidades[idx].valorBrutoEstimado = false;
+            }
 
             registrarLog('mensal.baixar', { mensalidadeId: menId, referencia: mensalidades[idx].referencia, valor: valorManual, banco: banco, via: 'manual' });
 
@@ -3944,6 +4000,11 @@ function financeiroRenderCabecalho(aba) {
                 const compFechada = typeof window !== 'undefined' && window.RZ_FIN_COMPETENCIA_FECHADA === true;
                 if (!compFechada) {
                     acoesPago.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra "a receber"', tipo: 'bad', codigo: 'mensal.estornar', aoTocar: () => estornarMensalidade(men.id) });
+                    // v1.24.0 (demanda d92a6dfc) — correção pós-baixa de
+                    // bruto/taxa/líquido, com motivo obrigatório e
+                    // auditoria (fn_mensalidade_valores_ajustar); mesma
+                    // trava de competência fechada das ações acima.
+                    acoesPago.push({ icone: 'sliders-horizontal', titulo: 'Ajustar valores', sub: 'Bruto, taxa e líquido — fica registrado o motivo', codigo: 'mensal.baixar', aoTocar: () => abrirAjusteValoresMensalidade(men.id) });
                 }
                 // v1.179.5 — pedido do Nicola: "Resumo da conciliação" em
                 // todo item conciliado, não só na aba Conciliação — só
@@ -3987,24 +4048,99 @@ function financeiroRenderCabecalho(aba) {
             const diaVenc = con.vencimentoDia || 15;
             const dataPadrao = `${partesRef[1]}-${partesRef[0]}-${diaVenc < 10 ? '0' + diaVenc : diaVenc}`;
             const temEnergia = imo?.energiaRumo === 'Sim';
+            // v1.24.0 — bruto/taxa vêm do que a geração mensal já calculou
+            // (fn_gerar_mensalidades_competencia grava os 3 desde a Fase 2
+            // fiscal); sem administradora os 2 são iguais ao líquido.
+            const bruto0 = men.valorBruto != null ? men.valorBruto : (men.valorConfirmado || 0);
+            const taxa0 = men.valorTaxaAdm || 0;
             // mesmos ids que liquidarMensalidade() lê — o sheet vive no <body>
             const corpo = `
                 <div class="rz-f2">
                     <div class="rz-f"><label>Forma de recebimento</label><select id="banco-${men.id}"><option value="PIX">PIX</option><option value="Boleto">Boleto</option><option value="Dinheiro">Dinheiro</option><option value="Transferência">Transferência</option><option value="Cheque">Cheque</option></select></div>
                     <div class="rz-f"><label>Data do recebimento <i>*</i></label><input type="date" id="data-${men.id}" value="${dataPadrao}"></div>
                 </div>
+                <div class="rz-group" style="margin-top:4px">Valores</div>
                 <div class="rz-f2">
-                    <div class="rz-f"><label>Líquido (R$) <i>*</i></label><input type="number" step="0.01" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
+                    <div class="rz-f"><label>Aluguel bruto (R$)</label><input type="number" step="0.01" id="bruto-${men.id}" value="${bruto0}" oninput="recalcularValoresBaixaBruto('${men.id}','bruto')"></div>
+                    <div class="rz-f"><label>Taxa da administradora (R$)</label><input type="number" step="0.01" id="taxa-${men.id}" value="${taxa0}" oninput="recalcularValoresBaixaBruto('${men.id}','taxa')"></div>
+                </div>
+                <div class="rz-f2">
+                    <div class="rz-f"><label>Líquido recebido (R$) <i>*</i></label><input type="number" step="0.01" id="valor-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularValoresBaixaBruto('${men.id}','liquido')"></div>
                     <div class="rz-f"><label>Observação interna</label><input type="text" id="obs-${men.id}" placeholder="Ex.: desconto"></div>
                 </div>
+                <span class="rz-hint">Sem administradora, taxa é 0 e o líquido é igual ao bruto.</span>
                 <div class="rz-group" style="margin-top:4px">Extras</div>
                 <div class="rz-f2">
                     ${temEnergia ? `<div class="rz-f"><label>Energia (R$)</label><input type="number" step="0.01" id="energia-${men.id}" value="0"></div>` : ''}
                     <div class="rz-f"><label>Multa / juros (R$)</label><input type="number" step="0.01" id="multa-${men.id}" value="0" data-multa-anterior="0" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
-                    <div class="rz-f"><label>Taxa da administradora (R$)</label><input type="number" step="0.01" id="taxa-admin-${men.id}" value="${men.taxaAdmSugerida || 0}" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
                 </div>`;
             abrirSheetForm({ titulo: 'Dar baixa', sub: `${con.locatario || ''} · ${men.referencia} · ${formatarMoedaBR(men.valorConfirmado)}`, corpo, rotuloSalvar: 'Confirmar recebimento',
                 aoSalvar: async () => { await liquidarMensalidade(men.id); } });
+        }
+
+        // v1.24.0 (demanda d92a6dfc) — correção de bruto/taxa/líquido de um
+        // recebimento JÁ pago (⋮ "Ajustar valores"). Diferente do Dar baixa
+        // (gravação direta): passa por fn_mensalidade_valores_ajustar, que
+        // exige motivo, grava histórico (mensalidade_valores_historico) e
+        // respeita o mesmo trigger de competência fechada da tabela.
+        export function abrirAjusteValoresMensalidade(menId) {
+            const men = mensalidades.find(m => m.id === menId); if (!men || typeof abrirSheetForm !== 'function') return;
+            const con = contratos.find(c => c.id === men.contratoId) || {};
+            const bruto0 = men.valorBruto != null ? men.valorBruto : (men.valorConfirmado || 0);
+            const taxa0 = men.valorTaxaAdm || 0;
+            const corpo = `
+                <div class="rz-f2">
+                    <div class="rz-f"><label>Aluguel bruto (R$) <i>*</i></label><input type="number" step="0.01" id="aj-bruto-${men.id}" value="${bruto0}" oninput="recalcularAjusteValores('${men.id}','bruto')"></div>
+                    <div class="rz-f"><label>Taxa da administradora (R$)</label><input type="number" step="0.01" id="aj-taxa-${men.id}" value="${taxa0}" oninput="recalcularAjusteValores('${men.id}','taxa')"></div>
+                </div>
+                <div class="rz-f"><label>Líquido recebido (R$) <i>*</i></label><input type="number" step="0.01" id="aj-liquido-${men.id}" value="${men.valorConfirmado || 0}" oninput="recalcularAjusteValores('${men.id}','liquido')"></div>
+                <div class="rz-f"><label>Motivo do ajuste <i>*</i></label><textarea id="aj-motivo-${men.id}" rows="2" maxlength="300" placeholder="Ex.: taxa da administradora veio diferente do previsto"></textarea>
+                    <span class="rz-hint">Fica registrado no histórico deste recebimento.</span></div>`;
+            abrirSheetForm({
+                titulo: 'Ajustar valores', sub: `${con.locatario || ''} · ${men.referencia} · ${formatarMoedaBR(men.valorConfirmado)}`,
+                corpo, rotuloSalvar: 'Salvar ajuste',
+                aoSalvar: async () => {
+                    const bruto = parseFloat(document.getElementById(`aj-bruto-${men.id}`)?.value);
+                    const taxa = parseFloat(document.getElementById(`aj-taxa-${men.id}`)?.value) || 0;
+                    const liquido = parseFloat(document.getElementById(`aj-liquido-${men.id}`)?.value);
+                    const motivo = (document.getElementById(`aj-motivo-${men.id}`)?.value || '').trim();
+                    if (isNaN(bruto) || isNaN(liquido)) { mostrarToast('Preencha bruto e líquido.', 'info'); return false; }
+                    if (!motivo) { mostrarToast('Informe o motivo do ajuste.', 'info'); return false; }
+                    const { data, error } = await dbAuth.rpc('fn_mensalidade_valores_ajustar', {
+                        p_mensalidade_id: men.id, p_valor_bruto: bruto, p_valor_taxa_adm: taxa, p_valor_confirmado: liquido,
+                        p_motivo: motivo, p_pessoa_id: (typeof pessoaIdLogada !== 'undefined' ? pessoaIdLogada : null), p_canal: 'app',
+                        p_acao: 'ajuste_pos_baixa',
+                    });
+                    if (error) { alert('⚠️ Não consegui ajustar: ' + error.message); return false; }
+                    const idx = mensalidades.findIndex(m => m.id === men.id);
+                    if (idx !== -1) {
+                        mensalidades[idx].valorBruto = data?.valor_bruto ?? bruto;
+                        mensalidades[idx].valorTaxaAdm = data?.valor_taxa_adm ?? taxa;
+                        mensalidades[idx].valorConfirmado = data?.valor_confirmado ?? liquido;
+                        mensalidades[idx].valorBrutoEstimado = false;
+                    }
+                    mostrarToast('Valores ajustados.', 'success');
+                    renderMensalidades();
+                    return true;
+                },
+            });
+        }
+
+        // v1.24.0 — mesmo recálculo do Dar baixa, com os ids "aj-" do sheet
+        // de "Ajustar valores".
+        export function recalcularAjusteValores(menId, origem) {
+            const inputBruto = document.getElementById('aj-bruto-' + menId);
+            const inputTaxa = document.getElementById('aj-taxa-' + menId);
+            const inputLiquido = document.getElementById('aj-liquido-' + menId);
+            if (!inputBruto || !inputTaxa || !inputLiquido) return;
+            const bruto = parseFloat(inputBruto.value) || 0;
+            const taxa = parseFloat(inputTaxa.value) || 0;
+            const liquido = parseFloat(inputLiquido.value) || 0;
+            if (origem === 'liquido') {
+                inputTaxa.value = Math.max(0, bruto - liquido).toFixed(2);
+            } else {
+                inputLiquido.value = Math.max(0, bruto - taxa).toFixed(2);
+            }
         }
 
         // v1.178.8 — rzAcoesGrupoMensal() removida junto (achado do Nicola —

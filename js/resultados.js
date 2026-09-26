@@ -1,7 +1,15 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.8.0 (23/09/2026 — pedido do Nicola, 13:01)
+// VERSÃO: Beta v1.8.1 (25/09/2026 — demanda 95d4009a)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.8.1) — demanda 95d4009a:
+//   — fn_performance_empreendimento agora recebe p_uso (mesmo filtro que
+//     fn_performance_carteira já usava) — visão por empreendimento passa
+//     a respeitar o filtro Comercial/Residencial/Tudo em vez de sempre
+//     trazer a carteira toda; rentabilidade_pct some quando uso =
+//     'nao_comercial', igual ao que a carteira já fazia (DB corrigida
+//     antes, nesta rodada só o front passa a mandar o parâmetro).
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.8.0) — pedido do Nicola (23/09, 13:01): filtrando só
 // Família, os cards Dependência de locatário, Reajustes, Revisional/Renovação
@@ -172,7 +180,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.8.0';
+export const VERSAO = '1.8.1';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -431,7 +439,7 @@ async function renderizarConteudo() {
                 : Promise.resolve({ data: null }),
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_performance_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
-                : dbAuth.rpc('fn_performance_empreendimento', { p_empreendimento_id: alvoId, p_ano: filtro.ano }),
+                : dbAuth.rpc('fn_performance_empreendimento', { p_empreendimento_id: alvoId, p_ano: filtro.ano, p_uso }),
             dbAuth.rpc('fn_resultado_mensal', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso }),
             cardsLocacao
                 ? dbAuth.rpc('fn_carteira_concentracao', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano })

@@ -4,6 +4,27 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.255.0) — demanda 976fcbf6 (frente fiscal, Fase 6 —
+alertas) e 6ef4303c (D6: completar o dado direto no alerta). Os 5
+tipos novos do Motor (fiscal_documento_pendente, fiscal_com_contador,
+fiscal_cadastro_incompleto, fiscal_enquadramento, fiscal_regra_alterada;
+migration fiscal_alertas_v1) ganham título, subtítulo, ícone, idade
+("Pago há Nd") e destino: Fiscal da competência no mês do alerta,
+Empresa › Fiscal ou o checklist fiscal. fiscal_cadastro_incompleto
+completa o dado no próprio sheet (CPF/CNPJ do locatário, destinação ou
+CIB), pelo mesmo rzSalvarCampoAlerta (campoAcaoAlerta substitui a
+leitura direta de ACAO_CAMPO_ALERTA; campo do sheet em .rz-f, sem estilo
+inline). abrirFiscalCompetencia(competência, recebimento) abre a tela
+no mês pedido e, com recebimento, já nas ações dele (⋮ "Nota fiscal"
+do Financeiro). Módulos: js/fiscal.js v1.2.0, js/fechamento.js v1.7.0,
+js/financeiro.js v1.23.0.
+------------------------------------------------------------------
+Versões anteriores (v1.254.0 … v1.254.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.254.0) — demanda 976fcbf6 (frente fiscal da Reforma
 Tributária, Fase 5; decisão D7 do Nicola — preparação em lote). Tela
 nova "Fiscal da competência" (js/fiscal.js v1.1.0): o botão Fiscal do

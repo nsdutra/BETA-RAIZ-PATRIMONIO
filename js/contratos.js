@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.22.0 · 23/09/2026
+// Versão: 1.23.0 · 25/09/2026
+//
+// v1.23.0 (demanda d92a6dfc, pedido do Nicola 24/09 18:50 + decisão 25/09
+// "Restante de acordo. Pode implementar."): card "Condições" da ficha
+// ganha, quando o contrato tem administradora, uma linha somente leitura
+// "Recebimento esperado" (bruto do aluguel, taxa da administradora e
+// líquido esperado) — mesma conta já usada no formulário de contrato
+// (index.html, atualizarValorLiquidoEsperado). Sem administradora não
+// mostra (bruto = líquido = "Aluguel", já exibido acima).
 //
 // v1.22.0 (demanda e19d6739, testes reprovados pelo Nicola em 23/09/2026):
 // (1) dar baixa numa mensalidade no Financeiro levava o usuário para a
@@ -422,7 +430,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.22.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.23.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2072,6 +2080,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 : con.status === 'Suspenso' ? rs('warn', 'Suspenso')
                 : rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
             const enderecoCurto = imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '—';
+            // v1.23.0 (demanda d92a6dfc) — só pra exibir "Recebimento
+            // esperado" no card Condições; mesma conta do formulário
+            // (atualizarValorLiquidoEsperado, index.html).
+            const fcAdmFicha = con.administradoraId ? (typeof administradoras !== 'undefined' ? administradoras.find(a => a.id === con.administradoraId) : null) : null;
             // CORRIGIDO (v1.7.0 — demanda 53ca281b, print do Nicola: 11/2026
             // e 12/2026 "Em atraso" sem terem vencido ainda): m.status ===
             // 'Inadimplente' cobre TANTO "pendente" (ainda não venceu)
@@ -2157,6 +2169,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             ${kv('Vencimento', `Dia ${con.vencimentoDia || 15}`)}
                             ${kv('Reajuste', escapeHtmlSaidas(con.reajuste || '—'))}
                             ${kv('Aluguel', `${formatarMoedaBR(con.valor)}/mês`)}
+                            ${fcAdmFicha ? kv('Recebimento esperado', `Bruto ${formatarMoedaBR(con.valor)} · taxa ${fcAdmFicha.taxaAdm || 0}% · líquido ${formatarMoedaBR(con.valor * (1 - (fcAdmFicha.taxaAdm || 0) / 100))}`) : ''}
                             ${kv('Imóvel', escapeHtmlSaidas(imo ? `${imo.empreendimento || ''} · ${enderecoCurto}` : '—'))}
                         </div>
                     </div>

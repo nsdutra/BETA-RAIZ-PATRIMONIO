@@ -1,6 +1,17 @@
 // ============================================================================
 // js/fiscal.js — Raiz Patrimônio · Fiscal (check-up da Reforma Tributária)
-// Versão: 1.4.0 · 23/09/2026
+// Versão: 1.5.0 · 25/09/2026
+//
+// v1.5.0 (demanda d92a6dfc, pedido do Nicola 24/09 18:50 + decisão 25/09
+// "Restante de acordo. Pode implementar."): recebimento com bruto estimado
+// (valor_estimado, sem administradora confirmada) ganha ação "Confirmar
+// valor bruto" (fiscalConfirmarBruto) — mostra bruto/taxa/líquido e grava
+// via fn_mensalidade_valores_ajustar (acao 'confirmar_bruto'), sem mudar
+// os números, só tirando a marca de estimado. KPI "Bruto estimado: N"
+// aparece no topo quando há algum; botão "Confirmar bruto pelo contrato"
+// (fiscalConfirmarBrutoLote) some quando não há nenhum estimado no mês.
+// Migration: migration_valor_bruto_liquido_v1.sql (fn_fiscal_competencia/
+// fn_fiscal_recebimentos_status ganham valor_confirmado/valor_taxa_adm).
 //
 // v1.4.0 (pedido do Nicola, 23/09/2026): os 4 textos do check-up (regra,
 // estimativa, o que fazer, quando validar) ganham contexto — cartão "Como
@@ -93,7 +104,7 @@
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
 
-export const VERSAO = '1.4.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const FIS_ROTULO_RESULTADO = {
     verde: { sem: 'ok', txt: 'Abaixo do limite' },
@@ -543,7 +554,7 @@ function fcRender() {
             <div class="rz-kpi"><small>Preparadas${k.com_contador ? ' · com o contador' : ''}</small><b>${Number(k.preparada || 0) + Number(k.com_contador || 0)}</b></div>
             <div class="rz-kpi rz-in"><small>Emitidas</small><b>${k.emitida || 0}</b></div>
         </div>
-        <p class="rz-desc">${k.total || 0} recebimento(s) no mês · ${k.aguardando_recebimento || 0} aguardando pagamento · ${k.sem_nota || 0} sem nota.</p>`;
+        <p class="rz-desc">${k.total || 0} recebimento(s) no mês · ${k.aguardando_recebimento || 0} aguardando pagamento · ${k.sem_nota || 0} sem nota.${Number(k.bruto_estimado || 0) > 0 ? ` <b>${k.bruto_estimado} com bruto estimado</b> — toque no recebimento pra confirmar.` : ''}</p>`;
 
     const seg = `
         <div class="rz-seg">
@@ -669,7 +680,37 @@ export function fiscalCompetenciaAbrirRecebimento(i) {
             acoes.push({ icone: 'undo-2', titulo: 'Desfazer "não gera nota"', sub: r.motivo_sem_nota ? `Motivo: ${r.motivo_sem_nota}` : '', codigo: FC_COD, aoTocar: () => fcDesfazerSemNota(r) });
             break;
     }
+    // v1.5.0 (demanda d92a6dfc) — bruto estimado (sem administradora
+    // confirmada): confirma este recebimento só, ou todos os do mesmo
+    // contrato de uma vez. Grava por fn_mensalidade_valores_ajustar/
+    // fn_mensalidade_bruto_confirmar_lote — os números não mudam, só sai
+    // a marca de "estimado".
+    if (r.valor_estimado) {
+        acoes.push({ icone: 'badge-check', titulo: 'Confirmar valor bruto', sub: `${fisMoeda(r.valor_bruto)} bruto · ${fisMoeda(r.valor_taxa_adm)} taxa · ${fisMoeda(r.valor_confirmado)} líquido`, codigo: 'mensal.baixar', aoTocar: () => fcConfirmarBruto(r) });
+        acoes.push({ icone: 'badge-check', titulo: 'Confirmar bruto pelo contrato', sub: 'Todos os recebimentos estimados deste contrato', codigo: 'mensal.baixar', aoTocar: () => fcConfirmarBrutoLote(r) });
+    }
     abrirSheetAcoes({ titulo: r.imovel || 'Recebimento', sub: `${st.txt} · ${fisMoeda(r.valor_bruto)}${r.valor_estimado ? ' (estimado)' : ''}`, acoes });
+}
+
+async function fcConfirmarBruto(r) {
+    const { error } = await dbAuth.rpc('fn_mensalidade_valores_ajustar', {
+        p_mensalidade_id: r.mensalidade_id, p_valor_bruto: r.valor_bruto, p_valor_taxa_adm: r.valor_taxa_adm || 0,
+        p_valor_confirmado: r.valor_confirmado, p_motivo: 'Confirmado a partir do valor estimado do contrato.',
+        p_pessoa_id: (typeof pessoaIdLogada !== 'undefined' ? pessoaIdLogada : null), p_canal: 'app', p_acao: 'confirmar_bruto',
+    });
+    if (error) { fcErro(error, 'Não consegui confirmar.'); return; }
+    mostrarToast('Valor bruto confirmado.', 'success');
+    fiscalCompetenciaMontar();
+}
+
+async function fcConfirmarBrutoLote(r) {
+    const { data, error } = await dbAuth.rpc('fn_mensalidade_bruto_confirmar_lote', {
+        p_contrato_id: r.contrato_id, p_pessoa_id: (typeof pessoaIdLogada !== 'undefined' ? pessoaIdLogada : null), p_canal: 'app',
+    });
+    if (error) { fcErro(error, 'Não consegui confirmar em lote.'); return; }
+    const pulados = Number(data?.pulados || 0);
+    mostrarToast(`${data?.confirmados || 0} recebimento(s) confirmado(s)${pulados ? ` · ${pulados} pulado(s) (competência fechada)` : ''}.`, 'success');
+    fiscalCompetenciaMontar();
 }
 
 function fcMarcarSemNota(r) {
