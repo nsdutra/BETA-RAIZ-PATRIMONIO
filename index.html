@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.261.0
-   LINHAS: 15932
-   DATA: 26/09/2026 (Entrega 2 — bugs de app; demandas 07d133cd e 9fe63ed8)
+   VERSÃO: Beta v1.262.0
+   LINHAS: 15940
+   DATA: 27/09/2026 (achado do Nicola testando a Entrega 2 — 07d133cd, 3ª fonte)
+   NOVIDADES (Beta v1.262.0) — achado do Nicola testando a Entrega 2 (26/09/2026,
+   23:19): o selo "Disponível" da demanda 07d133cd (v1.261.0) corrigiu
+   prazoAlertaTexto/abrirListaAlertasGrupo/abrirAlertaDetalheSheet, mas ficou de
+   fora uma 4ª/3ª fonte de markup — linhaAlertaHtml(), usada pela tela cheia de
+   Alertas (abas Todos/Crítico/Atenção/Informativo) E pelo card da Visão Geral.
+   Por isso "Relatório da carteira pronto" e "Índices do mês publicados"
+   continuavam com o selo vermelho "Há Nd" nessa tela específica. Mesma lista
+   ROTINA_PRONTA_ALERTA, mesmo texto/selo neutro. Aqui: só index.html.
    NOVIDADES (Beta v1.261.0) — Entrega 2 (26/09/2026), 2 itens que tocaram
    index.html. (1) 07d133cd: alertas informativos de disponibilidade
    ("Relatório da carteira pronto", "Índices do mês prontos") apareciam como
@@ -62,18 +70,8 @@
    visível, vem do CEP), js/fechamento.js v1.10.0 (ZIP no WhatsApp),
    js/contratos.js v1.22.0, js/cofre-ativos.js v1.64.0 (finalidade de uso
    em todo ativo), js/cofre-api.js v1.45.0, js/resultados.js v1.7.0.
-   NOVIDADES (Beta v1.257.0) — achados do Nicola testando na Albuquerque
-   (23/09/2026, com prints). (1) VOLTAR: switchTab registra cada troca de
-   tela no histórico — o botão voltar do celular volta à tela anterior (com
-   sheet aberto, só fecha o sheet) e a tela aberta a partir de outra ganha o
-   atalho "‹ <origem>" no topo (rzRenderVoltar/rzVoltar; roteador antigo =
-   rzSwitchTabInterno, corpo intacto). (2) Alerta "Dado que impede a nota"
-   ganha "Completar agora" para qualquer campo, pela função única
-   window.fiscalCompletarPendencia. Módulos: js/fiscal.js v1.3.0 (tela
-   Fiscal da competência com 6 botões e sem ⋮/avisos; check-up com cartão
-   Ações), js/fechamento.js v1.9.0 (checklist completa qualquer campo).
    ------------------------------------------------------------------
-   Versões anteriores (v1.256.0 … v1.256.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.257.0 … v1.257.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3382,7 +3380,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.261.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.262.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11870,7 +11868,17 @@
                 // já classifica este tipo como 'atencao' — uso isso direto:
                 // sempre laranja (warn), nunca azul, não importa há quantos
                 // dias.
-                if (a.tipoAlerta === 'extrato_desatualizado') {
+                // v1.262.0 (demanda 07d133cd, achado 2 — Nicola testando a
+                // Entrega 2: a tela cheia de Alertas e o card da Visão Geral
+                // usam ESTA função, uma 3ª fonte de markup separada de
+                // prazoAlertaTexto/abrirListaAlertasGrupo/abrirAlertaDetalheSheet
+                // (as 3 já corrigidas em v1.261.0) — ficou faltando aqui, por
+                // isso "Relatório da carteira pronto"/"Índices do mês
+                // publicados" continuavam com selo vermelho "Há Nd" nesta
+                // tela específica. Mesma lista ROTINA_PRONTA_ALERTA.
+                if (ROTINA_PRONTA_ALERTA.includes(a.tipoAlerta)) {
+                    sem = 'neu'; rotulo = a.dias != null ? `Disponível há ${Math.abs(a.dias)}d` : 'Disponível'; classeIc = ' rz-neu';
+                } else if (a.tipoAlerta === 'extrato_desatualizado') {
                     sem = 'warn'; rotulo = a.dias != null ? `Há ${a.dias}d` : 'Desatualizado'; classeIc = ' rz-warn';
                 } else if (a.dias !== null) {
                     // v1.186.0 (achado do Nicola em teste real) — "Venceu há
