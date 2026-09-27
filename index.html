@@ -6,9 +6,22 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.263.0
+   VERSÃO: Beta v1.264.0
    LINHAS: 15952
-   DATA: 27/09/2026 (Entrega 3 do lote de 29 demandas — demandas 3635d228/2de42d7c)
+   DATA: 27/09/2026 (sessão 20260927-1604-onboarding, demanda f84906ba)
+   NOVIDADES (Beta v1.264.0) — A.3 do ESP_ONBOARDING_VENDAS_LICENCA: fn_minhas_
+   comunicacoes_opt_out (banco) passou a agrupar por slot (plano_id+ordem) em vez
+   de 1 linha por comunicacao_id, pra não duplicar toggle na seção "Comunicações
+   da Raiz" de "Minhas notificações" quando 2 mensagens disputam o mesmo slot
+   (ex. financeiro_recibos_v1/controles_em_dia_v1). ACHADO NESTA ENTREGA: a
+   migration de banco já tinha sido publicada antes deste ajuste de index.html
+   ficar pronto — quem abriu "Minhas notificações" nesse intervalo via essa
+   seção quebrada (a UI ainda esperava item.comunicacao_id, que não existe mais
+   no retorno agrupado). Corrigido: render usa item.comunicacao_ids/codigos e o
+   toggle chama a nova fn_definir_opt_out_comunicacao_grupo(plano_id, ordem, ...)
+   em vez de fn_definir_opt_out_comunicacao(1 id) — aplica a decisão a todos os
+   comunicacao_id do grupo de uma vez. Só esta seção mudou; "Alertas e avisos
+   automáticos" (pessoa_preferencias_comunicacao) não foi tocada.
    NOVIDADES (Beta v1.263.0) — Entrega 3 (27/09/2026), 2 achados do teste do
    Nicola na Entrega 2, ambos na tela de Alertas. (1) 3635d228: o alerta
    "N índices de mercado publicados" (indicador_atualizado) não mostrava
@@ -3379,7 +3392,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.263.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.264.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9616,8 +9629,8 @@
                 }
                 lista.innerHTML = data.map(item => `
                     <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#e6e3da)">
-                        <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${item.titulo || item.codigo}</span>
-                        <button data-comunicacao-id="${item.comunicacao_id}" data-atual="${item.optou_out ? '1' : '0'}"
+                        <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${item.titulo || (item.codigos && item.codigos[0])}</span>
+                        <button data-plano-id="${item.plano_id}" data-ordem="${item.ordem}" data-atual="${item.optou_out ? '1' : '0'}"
                             onclick="alternarPreferenciaComunicacao(this)"
                             style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;background:${item.optou_out ? '#d7d2c4' : 'var(--sprout,#3f8163)'};transition:background .15s">
                             <span style="position:absolute;top:2px;left:${item.optou_out ? '2px' : '22px'};width:20px;height:20px;border-radius:999px;background:#fff;transition:left .15s"></span>
@@ -9630,11 +9643,17 @@
         }
 
         async function alternarPreferenciaComunicacao(btn) {
-            const comunicacaoId = btn.dataset.comunicacaoId;
+            const planoId = btn.dataset.planoId;
+            const ordem = Number(btn.dataset.ordem);
             const optarOutAgora = btn.dataset.atual !== '1'; // estava ativado (atual=0) -> agora desliga
             btn.disabled = true;
             try {
-                const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao', { p_comunicacao_id: comunicacaoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_optar_out: optarOutAgora });
+                // v1.264.0 — troca de fn_definir_opt_out_comunicacao (1 id) para
+                // fn_definir_opt_out_comunicacao_grupo (plano_id+ordem): o slot pode
+                // ter mais de 1 comunicacao_id (par duplicado, ex. financeiro_recibos_v1/
+                // controles_em_dia_v1) e o opt-out precisa valer pros dois de uma vez —
+                // ver fn_minhas_comunicacoes_opt_out, que agora devolve por slot.
+                const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao_grupo', { p_plano_id: planoId, p_ordem: ordem, p_cliente_id: CLIENTE_ID_SUPABASE, p_optar_out: optarOutAgora });
                 if (error) throw error;
                 btn.dataset.atual = optarOutAgora ? '1' : '0';
                 btn.style.background = optarOutAgora ? '#d7d2c4' : 'var(--sprout)';
