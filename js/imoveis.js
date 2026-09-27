@@ -1,7 +1,13 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.5.1 · 21/09/2026
+// Versão: 1.5.2 · 26/09/2026
+//
+// v1.5.2 (demanda 132ab1f8) — cabeçalho de grupo por empreendimento trocado
+// de uppercase/tracking-wide pra .rz-group (mesmo fix de cofre-ativos.js
+// v1.56.0 — b46e30fa). renderImoveis() é a única chamadora e só roda pela
+// tab-imoveis, hoje redirecionada pra tab-ativos no roteador (index.html) —
+// tela morta, prioridade baixa, mas o padrão certo não custa manter.
 //
 // v1.5.1 — CORRIGIDO (QUA-01 — mesmo bug achado em contratos.js v1.13.1,
 // reportado por Nicola): box Financeiro da Ficha do imóvel ordenava
@@ -88,7 +94,7 @@
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
 
-export const VERSAO = '1.5.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -1122,7 +1128,7 @@ export const VERSAO = '1.5.1'; // v-check: lido por ⚙️ › Conta › Versõe
 
                 container.innerHTML = nomesGrupos.map(nome => `
                     <div class="mb-1">
-                        <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 px-1 mb-2 mt-4 first:mt-0">${nome} <span class="text-slate-400">(${cardsImovelPorEmpreendimento[nome].length})</span></p>
+                        <p class="rz-group px-1 mt-4 first:mt-0">${nome} <span class="text-slate-400">(${cardsImovelPorEmpreendimento[nome].length})</span></p>
                         <div class="space-y-3">${cardsImovelPorEmpreendimento[nome].join('')}</div>
                     </div>
                 `).join('');

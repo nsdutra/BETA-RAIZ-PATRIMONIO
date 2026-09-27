@@ -1,6 +1,15 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.10.0 · 23/09/2026
+// Versão: 1.11.0 · 26/09/2026
+//
+// v1.11.0 (demandas cdd8a2a5 e d9c1753c, entrega 2/3 do lote de 29): (1)
+// chip "Fiscal OK" ficava preso no estado (ligada/desligada) da primeira
+// empresa verificada na sessão — fechamentoRotinaFiscalLigada nunca era
+// invalidado ao trocar de tenant. Agora guarda o cliente_id junto do cache
+// (fechamentoRotinaFiscalClienteId) e reavalia quando CLIENTE_ID_SUPABASE
+// mudar. (2) "Compartilhar com o contador": o PDF sempre ia no pacote, sem
+// checkbox pra desmarcar, ao contrário de CSV/XML — ganhou checkbox igual
+// aos outros 2, com guarda de "nenhum arquivo selecionado".
 //
 // v1.10.0 (achado do Nicola, 23/09/2026 — Albuquerque): com "Planilha" e
 // "XML" marcados, o WhatsApp recebeu só o texto, sem nenhum anexo. Causa:
@@ -296,7 +305,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.10.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.11.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -310,6 +319,7 @@ let fechamentoCarregando = false;
 // v1.1.0 (Entrega F3.1) — status fiscal é da CARTEIRA, não da competência
 // selecionada: verificado 1x por sessão, igual financeiroRotinaFechamentoLigada.
 let fechamentoRotinaFiscalLigada = null; // null = não verificado ainda; true/false = ligada/desligada
+let fechamentoRotinaFiscalClienteId = null; // v1.11.0 — cliente_id em que o cache acima foi verificado; ver fechamentoAtualizarFiscal
 let fechamentoFiscalPendencias = []; // v1.6.0 — linhas de fn_fiscal_pendencias_cadastro
 let fechamentoFiscalNotas = null; // v1.7.0 — KPIs de notas da competência (fn_fiscal_competencia); null = não verificado
 
@@ -470,6 +480,18 @@ async function fechamentoAtualizarKpis() {
  * de fn_fiscal_pendencias_cadastro (fonte única); forcar=true relê só as
  * pendências (depois de corrigir um cadastro pelo próprio checklist). */
 async function fechamentoAtualizarFiscal(forcar = false) {
+    // v1.11.0 (demanda cdd8a2a5) — o cache abaixo era só "1x por sessão", nunca
+    // invalidado ao trocar de empresa/tenant: se a 1ª empresa verificada numa
+    // sessão resolvesse ligada=false, qualquer outra aberta depois na mesma aba
+    // herdava esse valor errado. Agora reavalia sempre que CLIENTE_ID_SUPABASE
+    // mudar desde a última verificação (mesmo padrão de ativos-boot.js, sem o
+    // location.reload() dele — aqui é só o chip).
+    if (fechamentoRotinaFiscalClienteId !== CLIENTE_ID_SUPABASE) {
+        fechamentoRotinaFiscalLigada = null;
+        fechamentoFiscalPendencias = [];
+        fechamentoFiscalNotas = null;
+        fechamentoRotinaFiscalClienteId = CLIENTE_ID_SUPABASE;
+    }
     if (fechamentoRotinaFiscalLigada !== null && !forcar) {
         await fechamentoAtualizarNotasFiscais(); // v1.7.0 — as notas mudam a cada competência
         fechamentoRenderFiscalChip();
@@ -847,8 +869,9 @@ export async function fechamentoAbrirCompartilharContador() {
             </select>
             <label class="text-xs font-bold text-slate-600">Competências</label>
             <div class="rz-card rz-list mt-1">${opcoesCompetencia}</div>
-            <div class="rz-group">Junto com o PDF</div>
+            <div class="rz-group">Arquivos do pacote</div>
             <div class="rz-card rz-list">
+                <label class="rz-row rz-chk"><input type="checkbox" id="fechamento-inc-pdf" checked><div class="rz-tx"><b>PDF</b><span>Resumo da competência</span></div></label>
                 <label class="rz-row rz-chk"><input type="checkbox" id="fechamento-inc-csv" checked><div class="rz-tx"><b>Planilha (CSV)</b><span>Tudo do pacote, abre no Excel</span></div></label>
                 <label class="rz-row rz-chk"><input type="checkbox" id="fechamento-inc-xml" checked><div class="rz-tx"><b>XML das notas</b><span>Arquivos das notas emitidas, do Cofre</span></div></label>
             </div>
@@ -858,7 +881,13 @@ export async function fechamentoAbrirCompartilharContador() {
             const canal = corpoEl.querySelector('#fechamento-canal-sel')?.value || 'whatsapp';
             const comps = [...corpoEl.querySelectorAll('.fechamento-comp-check:checked')].map(el => el.value);
             if (!comps.length) { if (typeof mostrarToast === 'function') mostrarToast('Selecione ao menos uma competência.', 'danger'); return false; }
-            const opcoes = { csv: !!corpoEl.querySelector('#fechamento-inc-csv')?.checked, xml: !!corpoEl.querySelector('#fechamento-inc-xml')?.checked };
+            // v1.11.0 (demanda d9c1753c) — PDF agora tem checkbox igual XML/Excel; antes ia sempre incluído, sem opção de desmarcar.
+            const opcoes = {
+                pdf: !!corpoEl.querySelector('#fechamento-inc-pdf')?.checked,
+                csv: !!corpoEl.querySelector('#fechamento-inc-csv')?.checked,
+                xml: !!corpoEl.querySelector('#fechamento-inc-xml')?.checked,
+            };
+            if (!opcoes.pdf && !opcoes.csv && !opcoes.xml) { if (typeof mostrarToast === 'function') mostrarToast('Selecione ao menos um arquivo.', 'danger'); return false; }
             await fechamentoGerarEcompartilhar(contadorId, canal, comps, opcoes);
         },
     });
@@ -872,7 +901,7 @@ export async function fechamentoAbrirCompartilharContador() {
  * PDF precisa ser anexado à mão (nenhum dos dois esquemas de URL
  * consegue anexar arquivo — limitação do próprio navegador/protocolo,
  * não do Raiz). */
-async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opcoes = { csv: true, xml: true }) {
+async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opcoes = { pdf: true, csv: true, xml: true }) {
     if (typeof mostrarToast === 'function') mostrarToast('Gerando pacote…', 'info');
     const pacotes = [];
     let contadorInfo = null;
@@ -893,17 +922,22 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opc
     }
     if (!pacotes.length) return;
 
-    let arquivos;
-    try {
-        arquivos = pacotes.map(p => fechamentoMontarPdfPacote(p));
-    } catch (e) {
-        console.error('[fechamento] montar PDF do pacote', e);
-        if (typeof mostrarToast === 'function') mostrarToast('Não consegui montar o PDF agora.', 'danger');
-        return;
+    // v1.11.0 (demanda d9c1753c) — PDF só entra se marcado (antes era gerado sempre,
+    // incondicional, o único dos 3 sem checkbox pra desmarcar).
+    let arquivos = [];
+    if (opcoes.pdf) {
+        try {
+            arquivos = pacotes.map(p => fechamentoMontarPdfPacote(p));
+        } catch (e) {
+            console.error('[fechamento] montar PDF do pacote', e);
+            if (typeof mostrarToast === 'function') mostrarToast('Não consegui montar o PDF agora.', 'danger');
+            return;
+        }
     }
     // v1.8.0 — anexos: planilha e XML das notas (falha num anexo não derruba o pacote)
     if (opcoes.csv) pacotes.forEach(p => { try { arquivos.push(fechamentoMontarCsvPacote(p)); } catch (e) { console.warn('[fechamento] CSV', e?.message); } });
     if (opcoes.xml) arquivos.push(...await fechamentoBaixarXmlsNotas(pacotes));
+    if (!arquivos.length) { if (typeof mostrarToast === 'function') mostrarToast('Nenhum arquivo selecionado.', 'danger'); return; }
 
     if (canal === 'baixar') {
         arquivos.forEach(fechamentoBaixarArquivo);
@@ -940,14 +974,18 @@ async function fechamentoGerarEcompartilhar(contadorId, canal, competencias, opc
 
     if (!compartilhouNativo) {
         arquivos.forEach(fechamentoBaixarArquivo);
-        const texto = encodeURIComponent(textoResumo + `\n\n(${arquivos[0]?.nome?.endsWith('.zip') ? 'arquivo .zip baixado' : 'PDF baixado'} — anexe antes de enviar)`);
+        // v1.11.0 (demanda d9c1753c) — a mensagem dizia "PDF baixado" mesmo quando o PDF
+        // foi desmarcado e sobrou só CSV/XML; agora nomeia o arquivo real.
+        const rotuloArquivo = arquivos[0]?.nome?.endsWith('.zip') ? 'arquivo .zip'
+            : arquivos[0]?.nome?.endsWith('.csv') ? 'planilha' : arquivos[0]?.nome?.endsWith('.xml') ? 'XML' : 'PDF';
+        const texto = encodeURIComponent(textoResumo + `\n\n(${rotuloArquivo} baixado — anexe antes de enviar)`);
         if (canal === 'whatsapp') {
             const numero = (contadorInfo?.whatsapp || '').replace(/\D/g, '');
-            if (!numero) { if (typeof mostrarToast === 'function') mostrarToast('Contador sem WhatsApp cadastrado — PDF baixado, envie manualmente.', 'info'); return; }
+            if (!numero) { if (typeof mostrarToast === 'function') mostrarToast(`Contador sem WhatsApp cadastrado — ${rotuloArquivo} baixado, envie manualmente.`, 'info'); return; }
             window.open(`https://wa.me/${numero}?text=${texto}`, '_blank');
         } else {
             const email = contadorInfo?.email || '';
-            if (!email) { if (typeof mostrarToast === 'function') mostrarToast('Contador sem e-mail cadastrado — PDF baixado, envie manualmente.', 'info'); return; }
+            if (!email) { if (typeof mostrarToast === 'function') mostrarToast(`Contador sem e-mail cadastrado — ${rotuloArquivo} baixado, envie manualmente.`, 'info'); return; }
             window.open(`mailto:${email}?subject=${encodeURIComponent('Pacote do fechamento')}&body=${texto}`, '_blank');
         }
     }

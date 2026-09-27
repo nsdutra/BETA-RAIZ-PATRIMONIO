@@ -1,7 +1,20 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.24.0 · 25/09/2026
+// Versão: 1.25.0 · 26/09/2026
+//
+// v1.25.0 (demandas fb6576c1 e 835aea49, entrega 2/3 do lote de 29): (1)
+// "Modo: Manual" aparecia até pra comprovante que o bot conciliou sozinho
+// via IA (regra_codigo null) — ganhou rótulo próprio "Automático
+// (IA/WhatsApp)" (diferenciado por canal='bot', já gravado pela Edge
+// Function whatsapp-webhook), tanto no menu de ações quanto no Resumo da
+// conciliação. (2) A mesma linha pendente mostrava confiança diferente no
+// sheet "Ver sugestão" (motor de regras, 0-100) e no sheet de Ações
+// (fn_extrato_sugerir_*, 0-1): quando o candidato do topo é o mesmo destino
+// que o motor já sugeriu, reaproveita o % e o texto do motor em vez de
+// recalcular por outra conta. A parte de banco (texto "valor difere" mesmo
+// quando os valores conferem, e formato americano do valor) foi corrigida
+// em fn_conciliacao_avaliar (migration, regra R05 v2) — sem código aqui.
 //
 // v1.24.0 (demanda d92a6dfc, pedido do Nicola 24/09 18:50 + decisão 25/09
 // "Restante de acordo. Pode implementar."): "Dar baixa" ganha 2 campos —
@@ -729,7 +742,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.24.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.25.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -3541,6 +3554,9 @@ function financeiroRenderCabecalho(aba) {
             // controlado.
             if (f.status_conciliacao === 'conciliado' && f.destino_id) {
                 const nomeRegra = f.regra_codigo ? (NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo) : null;
+                // v1.25.0 (demanda fb6576c1) — canal='bot' já é gravado pela Edge
+                // Function whatsapp-webhook mesmo quando a IA decide sozinha, sem
+                // regra do motor (regra_codigo null) — antes isso caía em "Manual".
                 // v1.179.5 — achado do Nicola: item de entrada conciliado só
                 // tinha "Ver detalhe"+"Desfazer" — faltava "Recibo" direto,
                 // mesmo padrão que Recebimentos já tem (ver linha ~2957).
@@ -3557,7 +3573,7 @@ function financeiroRenderCabecalho(aba) {
                 }
                 acoesConciliado.push({ icone: 'undo-2', titulo: 'Estornar', sub: 'Volta pra pendente — só desvincula, não apaga o recebimento/despesa', tipo: 'bad', aoTocar: () => confirmarEstornarConciliacaoSaida(fingerprintId) });
                 acoesConciliado.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => abrirResumoConciliacao(fingerprintId) });
-                abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (nomeRegra ? ' · Automático · ' + nomeRegra : ' · Manual'), acoes: acoesConciliado });
+                abrirSheetAcoes({ titulo: limparRotuloConciliacao(f.razao_social), sub: sub + (nomeRegra ? ' · Automático (regra) · ' + nomeRegra : f.canal === 'bot' ? ' · Automático (IA/WhatsApp)' : ' · Manual'), acoes: acoesConciliado });
                 return;
             }
             if (f.status_conciliacao === 'nao_controlado') {
@@ -3587,20 +3603,37 @@ function financeiroRenderCabecalho(aba) {
             } catch (e) { /* segue sem sugestão, não bloqueia */ }
             esconderCarregamentoGlobal();
 
+            // v1.25.0 (demanda 835aea49) — esta lista vem de fn_extrato_sugerir_*
+            // (escala 0-1, comparação só por valor/data), diferente do motor de
+            // regras (fn_conciliacao_avaliar, escala 0-100, já cacheado em
+            // conciliacaoUniSugestoes) que alimenta verSugestaoConciliacao. Pra
+            // MESMA linha não mostrar 2 % diferentes conforme o sheet, quando o
+            // candidato do topo aqui é o MESMO destino que o motor de regras já
+            // sugeriu, reaproveita a confiança/detalhe do motor em vez de
+            // recalcular por outra conta.
+            const sugCache = conciliacaoUniSugestoes[fingerprintId];
             const acoes = [];
             if (entrada) {
-                candidatos.forEach((c, i) => acoes.push({
-                    icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.locatario}`,
-                    sub: `Ref ${c.referencia} · R$ ${fmtBR(c.valor)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
-                    aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
-                }));
+                candidatos.forEach((c, i) => {
+                    const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.mensalidade_id;
+                    const pct = mesmoDoMotor ? Math.round(sugCache.confianca || 0) : Math.round((c.confianca || 0) * 100);
+                    acoes.push({
+                        icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.locatario}`,
+                        sub: `Ref ${c.referencia} · R$ ${fmtBR(c.valor)} · ${pct}% de confiança`,
+                        aoTocar: () => confirmarVincularConciliacaoRecebimento(fingerprintId, c.mensalidade_id, f),
+                    });
+                });
                 acoes.push({ icone: 'search', titulo: 'Buscar manualmente', sub: candidatos.length ? 'Ver outros recebimentos em aberto' : 'Nenhuma sugestão — escolha entre os recebimentos em aberto', aoTocar: () => abrirBuscarMensalidadeManual(fingerprintId) });
             } else {
-                candidatos.forEach((c, i) => acoes.push({
-                    icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.descricao || c.categoria || 'despesa prevista'}`,
-                    sub: `R$ ${fmtBR(c.valor)} · vence ${formatarDataBR(c.vencimento)} · ${Math.round((c.confianca || 0) * 100)}% de confiança`,
-                    aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
-                }));
+                candidatos.forEach((c, i) => {
+                    const mesmoDoMotor = i === 0 && sugCache && sugCache.destino_id === c.lancamento_id;
+                    const pct = mesmoDoMotor ? Math.round(sugCache.confianca || 0) : Math.round((c.confianca || 0) * 100);
+                    acoes.push({
+                        icone: i === 0 ? 'check' : 'link', titulo: `${i === 0 ? 'Confirmar' : 'Vincular'}: ${c.descricao || c.categoria || 'despesa prevista'}`,
+                        sub: `R$ ${fmtBR(c.valor)} · vence ${formatarDataBR(c.vencimento)} · ${pct}% de confiança`,
+                        aoTocar: () => confirmarVincularConciliacaoSaida(fingerprintId, c.lancamento_id),
+                    });
+                });
                 // "Nova despesa" abre a tela nativa já preenchida (abrirNovaDespesa
                 // já aceita `sugestoes` — não crio ficha própria).
                 acoes.push({ icone: 'plus', titulo: 'Nova despesa', sub: categoriaSugerida ? `Sugestão: ${categoriaSugerida}` : 'Abre o formulário de despesa', aoTocar: () => { fecharSheet(); despesaOrigemFingerprintId = fingerprintId; abrirNovaDespesa(null, { descricao: f.razao_social, categoria: categoriaSugerida || undefined, valor: Math.abs(parseFloat(f.valor)), vencimento: f.data }); } });
@@ -3643,14 +3676,20 @@ function financeiroRenderCabecalho(aba) {
                 : f.banco_origem === 'WhatsApp' ? 'Comprovante avulso (enviado por WhatsApp)'
                 : `Extrato bancário — ${f.banco_origem}`;
 
-            const automatico = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
-            const modo = automatico ? `Automático · ${NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo}`
+            // v1.25.0 (demanda fb6576c1) — "Modo: Manual" aparecia até pra
+            // comprovante que o bot conciliou sozinho via IA (regra_codigo
+            // null — a Edge Function whatsapp-webhook não usa o motor de
+            // regras, mas grava canal='bot' igual). Rótulo próprio agora.
+            const automaticoRegra = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
+            const automaticoBot = f.status_conciliacao === 'conciliado' && !f.regra_codigo && f.canal === 'bot';
+            const modo = automaticoRegra ? `Automático (regra) · ${NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo}`
+                : automaticoBot ? 'Automático (IA/WhatsApp)'
                 : (f.status_conciliacao === 'conciliado' || f.status_conciliacao === 'nao_controlado') ? 'Manual'
                 : 'Não registrado';
 
-            // Canal só faz sentido quando manual — automático é o motor de
-            // regras agindo sozinho, não um canal escolhido por alguém.
-            const canal = automatico ? '—'
+            // Canal só faz sentido quando manual — automático por regra é o
+            // motor agindo sozinho, não um canal escolhido por alguém.
+            const canal = automaticoRegra ? '—'
                 : f.canal === 'app' ? 'App'
                 : f.canal === 'bot' ? 'Bot (WhatsApp)'
                 : 'Não registrado (item de antes desta função existir)';

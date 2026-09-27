@@ -1,6 +1,21 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.33.0 · 23/09/2026
+// Versão: 1.34.0 · 26/09/2026
+//
+// v1.34.0 (demandas 4a609dbb, ed2774ee e 132ab1f8, entrega 2/3 do lote de
+// 29): (1) ficha do item de controle ganha banner "Documento pendente"
+// (#fic-aviso-documento-pendente, ativos-markup.js v1.47.0) quando o
+// subtipo espera documento_esperado e nada foi vinculado ao item nem ao
+// ativo dono — antes só existia esse aviso na tela de Subtipos, e o clique
+// no alerta correspondente abria a ficha sem nenhum indicador. Depende de
+// cofre-api.js v1.46.0 (select traz documento_esperado). (2) formulário de
+// novo item de controle: trocar o subtipo agora sugere a antecedência
+// padrão dele (aoMudarSubtipoControleForm, mesmo padrão do upload de
+// documento) — antes o campo nascia sempre fixo em 7 dias. Depende de
+// ativos-markup.js v1.47.0 (listener no <select>) e cofre-app.js v1.38.0
+// (dispatcher). (3) cabeçalho de grupo em Configurações › Controles
+// (Subtipos e Modelos) trocado de uppercase/tracking-wide pra .rz-group
+// (mesmo fix já aplicado em cofre-ativos.js v1.56.0 — b46e30fa).
 //
 // v1.33.0 (demanda 3cc64651, pedido explícito do Nicola 23/09/2026 com
 // prints do item de controle Condomínio): ⋮ de Partes do item tinha só
@@ -474,7 +489,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.33.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.34.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1096,6 +1111,19 @@ function renderizarFichaItemControle() {
         kv('Frequência', escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))) +
         kv('Alerta', `${item.antecedencia_alerta_dias} dias antes · ${item.direcao_alerta === 'fim' ? 'a partir do fim' : 'a partir do início'}`) +
         (item.valor_previsto ? kv('Valor previsto', `${moedaBR(item.valor_previsto)}${(item.parcelas || 1) > 1 ? ` · ${item.parcelas}× de ${moedaBR(item.valor_previsto / item.parcelas)}` : ''}`) : ''); // v1.20.0
+
+    // v1.34.0 (demanda 4a609dbb) — clicar no alerta "documento pendente"
+    // abria a ficha sem nenhum indicador de que falta o documento; esse
+    // aviso hoje só existia na tela de Subtipos. Mesma condição do alerta
+    // (fn_diario_cofre_documento_pendente): documento_esperado=true no
+    // subtipo e nenhum documento vinculado ao item OU ao ativo dono dele.
+    const avisoDoc = document.getElementById('fic-aviso-documento-pendente');
+    if (avisoDoc) {
+        const exigeDocumento = item.ativo !== false && item.alerta_ativo !== false && !!item.cofre_controle_subtipos?.documento_esperado;
+        const temDocumento = documentosDoItemControle(item.id).length > 0 ||
+            (item.ativo_id && (estado.documentos || []).some(d => (d.cofre_documento_vinculos || []).some(v => v.entidade_tipo === 'ativo' && v.entidade_id === item.ativo_id)));
+        avisoDoc.classList.toggle('hidden', !(exigeDocumento && !temDocumento));
+    }
     renderizarDocumentosItemControle();
 
     const elOc = document.getElementById('fic-ocorrencia');
@@ -1932,6 +1960,20 @@ export function aoMudarTipoControleForm() {
     popularSelectSubtipo(document.getElementById('ic-tipo').value);
 }
 
+// v1.34.0 (demanda ed2774ee) — trocar o subtipo no formulário de novo item de
+// controle sugere a antecedência padrão do subtipo (antecedencia_padrao_dias),
+// mesmo padrão já usado no upload de documento com controle vinculado
+// (aplicarPadraoSubtipoUpload, cofre-documentos.js). Antes o campo nascia
+// sempre com o número fixo '7', mesmo trocando o subtipo.
+export function aoMudarSubtipoControleForm() {
+    const subtipoId = document.getElementById('ic-subtipo')?.value;
+    if (!subtipoId) return;
+    const lista = subtiposDoAtivoCache.lista || subtiposCache || [];
+    const s = lista.find(x => x.id === subtipoId);
+    const campo = document.getElementById('ic-antecedencia');
+    if (s && s.antecedencia_padrao_dias != null && campo) campo.value = s.antecedencia_padrao_dias;
+}
+
 export async function salvarItemControle() {
     const a = estado.ativoEmFoco;
     const tipo = document.getElementById('ic-tipo').value;
@@ -2265,7 +2307,7 @@ function renderizarSubtiposControle() {
         const itens = grupos[tipo];
         if (!itens.length) return '';
         return `<div class="mb-3">
-            <p class="text-[11px] font-bold uppercase tracking-wide mb-1" style="color:var(--sage)">${escapeHtml(rotuloTipoControle(tipo))}</p>
+            <p class="rz-group">${escapeHtml(rotuloTipoControle(tipo))}</p>
             ${itens.map((s, idx) => `<div class="flex items-center justify-between gap-2 py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
                 <span class="text-xs font-bold">${escapeHtml(s.nome)} ${s.documento_esperado ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo" title="Documento anexo esperado">📎</span>` : ''}</span>
                 <div class="flex items-center gap-2 flex-none">
@@ -2478,7 +2520,7 @@ function renderizarModelosControle() {
         const itens = grupos[tipoAtivo];
         if (!itens.length) return '';
         return `<div class="mb-3">
-            <p class="text-[11px] font-bold uppercase tracking-wide mb-1" style="color:var(--sage)">${escapeHtml(rotuloTipoAtivo(tipoAtivo))}</p>
+            <p class="rz-group">${escapeHtml(rotuloTipoAtivo(tipoAtivo))}</p>
             ${itens.map((m, idx) => `<div class="py-1.5 ${idx < itens.length - 1 ? 'border-b border-slate-50' : ''}">
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-xs font-bold">${escapeHtml(m.titulo_sugerido)}</span>

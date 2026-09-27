@@ -1,6 +1,16 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.46.1 · 23/09/2026
+// Versão: 1.47.0 · 26/09/2026
+// CHANGELOG v1.47.0 (demandas 4a609dbb e ed2774ee, entrega 2/3 do lote de
+// 29) — ficha do item de controle ganha o container
+// #fic-aviso-documento-pendente (visibilidade calculada em
+// cofre-controles.js v1.34.0); <select id="ic-subtipo"> ganha
+// data-action-change="ic-subtipo-mudou" (cofre-app.js v1.38.0 →
+// controles.aoMudarSubtipoControleForm, sugere a antecedência padrão do
+// subtipo escolhido). Nota: cofre.html tem uma versão própria e
+// dessincronizada desta ficha (markup antigo, não .rz-*) — fora do escopo
+// desta entrega, registrado para rodada futura.
+//
 // CHANGELOG v1.46.1 — demanda 80c3068e (bug CSS): o comentário v1.94.1 do
 // <style> injetado abria com /* e fechava com o terminador de comentário
 // HTML — o comentário só terminava no próximo */, engolindo
@@ -415,7 +425,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.46.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.47.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -948,7 +958,7 @@ export const ATIVOS_MARKUP = `<style>
                 <option value="taxa">Taxa</option>
                 <option value="documento">Documento</option>
             </select>
-            <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
+            <select id="ic-subtipo" data-action-change="ic-subtipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
             <div>
                 <label class="text-xs font-semibold block mb-1" style="color:var(--sage)">Data início</label>
@@ -1165,6 +1175,13 @@ export const ATIVOS_MARKUP = `<style>
          na linha → sheet, REGRAS §15) e as pills cinza de Partes. -->
     <button data-action="voltar-item-controle" class="rz-back"><i data-lucide="chevron-left"></i> Voltar ao ativo</button>
     <div id="fic-dados-cabecalho" class="rz-entity"></div>
+
+    <!-- v1.47.0 (demanda 4a609dbb) — banner de documento pendente; visibilidade
+         calculada em renderizarFichaItemControle() (cofre-controles.js v1.34.0). -->
+    <div id="fic-aviso-documento-pendente" class="hidden rz-row" style="margin-bottom:10px">
+        <div class="rz-ic rz-warn"><i data-lucide="alert-triangle"></i></div>
+        <div class="rz-tx"><b>Documento pendente</b><span>Este item espera um documento anexo e nenhum foi vinculado ainda.</span></div>
+    </div>
 
     <div class="rz-card">
         <div class="rz-card-h"><h3>Dados do item</h3><button data-action="abrir-acoes-dados-item" class="rz-more" aria-label="Mais ações"><i data-lucide="ellipsis-vertical"></i></button></div>

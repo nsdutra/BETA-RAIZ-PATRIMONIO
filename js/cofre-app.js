@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.37.0 · 22/09/2026
+// Versão: 1.38.0 · 26/09/2026
+//
+// v1.38.0 (demanda ed2774ee, entrega 2/3 do lote de 29) — dispatcher ganha
+// o case 'ic-subtipo-mudou' (controles.aoMudarSubtipoControleForm): trocar
+// o subtipo no formulário de novo item de controle passa a sugerir a
+// antecedência padrão dele. Depende de ativos-markup.js v1.47.0 (listener
+// data-action-change no <select id="ic-subtipo">).
 //
 // v1.37.0 (demanda 176b3145 — padronizar experiência de Parte em todos
 // os locais, pedido explícito do Nicola) — case 'abrir-ficha-parte' não
@@ -338,7 +344,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.37.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.38.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -740,6 +746,7 @@ document.addEventListener('change', async (ev) => {
         case 'fd-vincular-tipo-mudou': await docs.aoMudarTipoVinculoAgora(); break;
         case 'alternar-vitrine-foto': await ativos.alternarVitrineFoto(alvo.dataset.fotoId, alvo.checked); break;
         case 'ic-tipo-mudou': controles.aoMudarTipoControleForm(); break;
+        case 'ic-subtipo-mudou': controles.aoMudarSubtipoControleForm(); break; // v1.38.0 (demanda ed2774ee)
         case 'modelo-tipo-mudou': controles.aoMudarTipoModeloControleForm(); break;
         case 'modelo-categoria-mudou': controles.aoMudarCategoriaModeloControleForm(); break; // v1.26.0 rodada 3
         case 'fic-ed-tipo-mudou': controles.aoMudarTipoEditarItemForm(); break;

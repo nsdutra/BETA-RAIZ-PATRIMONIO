@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.45.0 · 23/09/2026
+// Versão: 1.46.0 · 26/09/2026
+//
+// v1.46.0 (demanda 4a609dbb, entrega 2/3 do lote de 29) —
+// buscarItemControlePorId() passa a selecionar cofre_controle_subtipos
+// (..., documento_esperado): a ficha do item de controle (cofre-controles.js
+// v1.34.0) usa isso pra avisar quando falta documento anexado, aviso que
+// hoje só existia na tela de configuração de Subtipos.
 //
 // v1.45.0 (demanda 43448a36, decisão do Nicola de 22/09: ativo sem
 // finalidade de uso entra em Família) — criarImovelEAtivo não grava mais
@@ -410,7 +416,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.45.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.46.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1669,8 +1675,10 @@ export async function excluirItemControleDeVez(id) {
 }
 
 export async function buscarItemControlePorId(id) {
+    // v1.46.0 (demanda 4a609dbb) — documento_esperado do subtipo entra no select:
+    // a ficha do item precisa dele pra saber se deve avisar "documento pendente".
     const { data, error } = await dbAuth.from('cofre_itens_controle')
-        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome), cofre_ativos(nome_exibicao, tipo_ativo, codigo_ibge_municipio, uf)')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome, documento_esperado), cofre_ativos(nome_exibicao, tipo_ativo, codigo_ibge_municipio, uf)')
         .eq('id', id).single();
     if (error) throw error;
     return data;
