@@ -6,9 +6,22 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.262.0
-   LINHAS: 15940
-   DATA: 27/09/2026 (achado do Nicola testando a Entrega 2 — 07d133cd, 3ª fonte)
+   VERSÃO: Beta v1.263.0
+   LINHAS: 15952
+   DATA: 27/09/2026 (Entrega 3 do lote de 29 demandas — demandas 3635d228/2de42d7c)
+   NOVIDADES (Beta v1.263.0) — Entrega 3 (27/09/2026), 2 achados do teste do
+   Nicola na Entrega 2, ambos na tela de Alertas. (1) 3635d228: o alerta
+   "N índices de mercado publicados" (indicador_atualizado) não mostrava
+   selo nenhum na lista (tela cheia de Alertas E card da Visão Geral) — seu
+   r.dias é sempre null (é publicação, não vencimento) e o tipo não estava
+   na lista ROTINA_PRONTA_ALERTA, então caía sem nenhuma branch. Agora
+   entra nessa lista e ganha o mesmo selo neutro "Disponível" dos outros 2
+   informativos. (2) 2de42d7c: no sheet de detalhe do grupo ("4 índices de
+   mercado publicados"), o valor de cada índice (INCC-DI, IVG-R, IGP-M,
+   IPCA) saía formatado em R$ — subtituloItemGrupo() sempre chamava
+   formatarMoedaBR, sem checar detalhe.unidade==='%' (a mesma checagem que
+   subtituloAlertaMotor já fazia, num lugar diferente). Agora mostra "%"
+   quando é o caso. Aqui: só index.html.
    NOVIDADES (Beta v1.262.0) — achado do Nicola testando a Entrega 2 (26/09/2026,
    23:19): o selo "Disponível" da demanda 07d133cd (v1.261.0) corrigiu
    prazoAlertaTexto/abrirListaAlertasGrupo/abrirAlertaDetalheSheet, mas ficou de
@@ -55,23 +68,9 @@
    locatário, Reajustes, Revisional/Renovação e Performance (são de
    carteira alugada). Aqui: só versão e import map. Módulo:
    js/resultados.js v1.8.0.
-   NOVIDADES (Beta v1.258.0) — achados do Nicola (23/09, 09:54) e demandas
-   e19d6739 / 43448a36. (1) Alerta novo "Índice de mercado publicado"
-   (indicador_atualizado; funcionalidade relatorios.indicadores.alerta, em
-   todos os planos): título "IPCA de 08/2026 publicado", subtítulo com o
-   mês, 12 meses e a data; agrupado "N índices de mercado publicados";
-   Tratar abre Relatórios. (2) Check-up fiscal: textos quebram linha
-   (.rz-tx.rz-wrap), nada mais cortado. (3) e19d6739: salvar a Parte
-   propaga o nome (e o documento) para contratos.locatario e avisa os
-   contratos (contratoIds) — lista e ficha atualizam sem recarregar.
-   (4) 43448a36: Visão Geral em Família mostra "Ativos" (quantidade do
-   recorte) no lugar da ocupação e "Custo no mês" com as saídas.
-   Módulos: js/fiscal.js v1.4.0, js/comum-endereco.js v1.1.0 (código IBGE
-   visível, vem do CEP), js/fechamento.js v1.10.0 (ZIP no WhatsApp),
-   js/contratos.js v1.22.0, js/cofre-ativos.js v1.64.0 (finalidade de uso
-   em todo ativo), js/cofre-api.js v1.45.0, js/resultados.js v1.7.0.
    ------------------------------------------------------------------
-   Versões anteriores (v1.257.0 … v1.257.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.255.0 … v1.258.0 — lacuna registrada em
+   v1.256.0/v1.257.0, ver CHANGELOG_APP.md): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3380,7 +3379,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.262.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.263.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11997,7 +11996,13 @@
                 default: return r.detalhe?.data_referencia || null;
             }
         }
-        const ROTINA_PRONTA_ALERTA = ['indicadores_mes_pronto', 'relatorio_carteira_pronto'];
+        // v1.263.0 (demanda 3635d228) — indicador_atualizado ("N índices de
+        // mercado publicados") entra aqui: mesma natureza informativa dos
+        // outros 2 (é publicação, não vencimento — r.dias sempre null pra
+        // esse tipo), então ganha o mesmo selo neutro "Disponível" em vez
+        // de ficar sem selo nenhum (linhaAlertaHtml/prazoAlertaTexto caindo
+        // sem branch nenhuma pra dias===null + tipo não tratado).
+        const ROTINA_PRONTA_ALERTA = ['indicadores_mes_pronto', 'relatorio_carteira_pronto', 'indicador_atualizado'];
         function rotuloCompromissoAlerta(r) {
             if (r.tipo_alerta === 'extrato_desatualizado') return 'Última conciliação';
             if (ROTINA_PRONTA_ALERTA.includes(r.tipo_alerta)) return 'Disponível desde';
@@ -12033,7 +12038,14 @@
                 // Complementa com o dado que sobra quando a entidade já vai
                 // no título — não repete o dominio/tipo (já está no
                 // cabeçalho do sheet, ex. "9 ativos com CIB pendente").
-                if (r.detalhe?.valor != null) return formatarMoedaBR(r.detalhe.valor);
+                // v1.263.0 (demanda 2de42d7c) — indicador_atualizado guarda
+                // valor em detalhe.unidade='%' (índice de mercado não é
+                // dinheiro); formatarMoedaBR só serve pro resto (ex.
+                // atraso_pagamento). Mesmo critério já usado em
+                // subtituloAlertaMotor() pro mesmo campo.
+                if (r.detalhe?.valor != null) return r.detalhe?.unidade === '%'
+                    ? `${Number(r.detalhe.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
+                    : formatarMoedaBR(r.detalhe.valor);
                 if (r.detalhe?.campos_faltando?.length) return `Falta: ${r.detalhe.campos_faltando.join(', ')}`;
                 return '';
             }
