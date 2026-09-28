@@ -1,7 +1,16 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.2.0 · 16/09/2026
+// Versão: 1.2.1 · 28/09/2026
+//
+// v1.2.1 (demanda 303e68dc, achado do piloto — Claudia, 28/09/2026):
+// iniciarProcessoContratacao() (bridge da opção "Contratação: link,
+// WhatsApp e minuta" do menu de 3 pontos do ativo) ganha 1 retentativa:
+// mesmo problema do criarContratoParaImovel() em contratos.js v1.23.1 —
+// `imoveis` pode não refletir ainda um ativo recém-criado. Antes,
+// `if (!imo) return;` falhava em silêncio — é o caminho mais provável do
+// relato "clica na opção, mas não funciona o link" (esta função é quem
+// monta o link/WhatsApp/minuta). Sem mudança de banco.
 //
 // v1.2.0 — pendência 46dc7300: iniciarProcessoContratacao() grava
 // ativo_id em processos_contratacao (coluna nova), não mais imovel_id
@@ -52,7 +61,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.2.0'; // v-check: manter igual ao header
+export const VERSAO = '1.2.1'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -185,8 +194,23 @@ export function montarAbaVitrine() {
 
         export async function iniciarProcessoContratacao(imovelId) {
 
-            const imo = imoveis.find(i => i.id === imovelId);
-            if (!imo) return;
+            let imo = imoveis.find(i => i.id === imovelId);
+
+            // v1.2.1 (demanda 303e68dc) — recarrega 1x do Supabase antes de
+            // desistir (mesmo padrão de contratos.js, criarContratoParaImovel).
+            if (!imo) {
+                try {
+                    imoveis = await carregarImoveisSupabase();
+                } catch (err) {
+                    console.warn('[vitrine] falha ao recarregar imóveis:', err);
+                }
+                imo = imoveis.find(i => i.id === imovelId);
+            }
+
+            if (!imo) {
+                mostrarToast('Não encontrei este imóvel — atualize a página e tente de novo.', 'danger');
+                return;
+            }
 
             // Uso do Imóvel (revisão DS, 25/08/2026) — pedido explícito:
             // imóvel de uso pessoal nunca pode ter contrato de aluguel.
