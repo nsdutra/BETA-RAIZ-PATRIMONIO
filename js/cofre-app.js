@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.39.0 · 28/09/2026
+// Versão: 1.40.0 · 28/09/2026
+//
+// v1.40.0 (demanda ec7d8a9f, item 5 do retorno do piloto — Nicola: "Pode
+// executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) — case
+// novo 'ativo-toggle-mais-campos' → ativos.alternarCamposAvancadosImovel
+// (cofre-ativos.js v1.66.0), botão "+ Mostrar mais campos" do bloco
+// imóvel no formulário de ativo.
 //
 // v1.39.0 (demanda 2bb6705e, item 6 do retorno do piloto — Nicola: "Pode
 // executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) — case
@@ -349,7 +355,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.39.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.40.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -609,6 +615,7 @@ document.addEventListener('click', async (ev) => {
         // demanda 44f30857, item 2 (22/09/2026) — ícone (i) do card Performance
         case 'fa-info-performance': ativos.abrirInfoPerformanceAtivo(); break;
         case 'fa-info-cib': ativos.abrirInfoCib(); break;
+        case 'ativo-toggle-mais-campos': ativos.alternarCamposAvancadosImovel(alvo.dataset.prefixo); break;
         case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
         case 'fa-iniciar-contratacao': ativos.iniciarContratacaoDoAtivo(); break;
         // v1.24.0 — ⋮ dos cards da ficha (sem rodapé)

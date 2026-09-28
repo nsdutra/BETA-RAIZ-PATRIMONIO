@@ -1,6 +1,23 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.65.0 · 28/09/2026
+// Versão: 1.66.0 · 28/09/2026
+//
+// v1.66.0 (demanda ec7d8a9f, item 5 do retorno do piloto — Nicola: "Pode
+// executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) —
+// formulário de ativo/imóvel achado longo pela Claudia: renderizarBlocoImovel()
+// esconde Situação de uso, Destinação (NFS-e, só edição) e CIB atrás de
+// "+ Mostrar mais campos" (alternarCamposAvancadosImovel() nova, export;
+// case 'ativo-toggle-mais-campos' no cofre-app.js v1.40.0). Observação
+// continua visível — é o campo mais usado ali no dia a dia, por relato do
+// Nicola. Nenhum dos campos escondidos é obrigatório
+// (validarCamposAtivo/cofre-validacoes.js só cobre nome_exibicao e campos
+// do catálogo por tipo) — confirmado antes de esconder qualquer coisa.
+// Funciona em criação (prefixo at-imovel-) e edição (prefixo
+// fa-editar-imovel-) porque o prefixo vem do próprio botão
+// (data-prefixo), igual o padrão já usado nos outros IDs deste bloco.
+// Escopo é só o formulário de ATIVO/IMÓVEL — o de CONTRATO (mesma
+// demanda, mesmo achado do piloto) fica para uma entrega própria, ainda
+// não investigada nesta sessão (ver ENTREGA desta sessão, §1).
 //
 // v1.65.0 (demanda 2bb6705e, item 6 do retorno do piloto — Nicola: "Pode
 // executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) — ícone
@@ -840,7 +857,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1051,27 +1068,38 @@ function renderizarBlocoImovel(prefixo, v = {}) {
     const optSel = (val, campo) => val === (v[campo] || '') ? ' selected' : '';
     const finalidadeInfo = FINALIDADES_USO_ATIVO.find(f => f.v === (v.finalidade_uso || ''));
     const aluguelVisivel = finalidadeInfo?.comercial ? '' : ' hidden';
+    // v1.66.0 — editando um ativo que já tem situação de uso, destinação
+    // ou CIB preenchidos, o bloco "mais campos" nasce ABERTO (nunca
+    // esconde dado que a pessoa já preencheu antes). Só nasce escondido
+    // quando os 3 estão vazios (criação, ou edição de imóvel que nunca
+    // preencheu nada ali).
+    const temCamposAvancados = !!(v.situacao_uso || v.cib || v.destinacao);
+    const maisCamposClasse = temCamposAvancados ? '' : ' hidden';
+    const maisCamposTexto = temCamposAvancados ? '− Ocultar campos avançados' : '+ Mostrar mais campos';
     return `
         <div class="rz-f">
             <label>Área (m²)</label>
             <input type="number" step="0.01" id="${prefixo}area-m2" value="${v.area_m2 ?? ''}">
         </div>
         ${renderizarCampoFinalidadeUso(prefixo, v)}
-        <div class="rz-f">
-            <label>Situação de uso</label>
-            <select id="${prefixo}situacao-uso">
-                <option value=""${optSel('', 'situacao_uso')}>— não informado —</option>
-                ${SITUACOES_USO_ATIVO.map(s => `<option value="${s.v}"${optSel(s.v, 'situacao_uso')}>${s.l}</option>`).join('')}
-            </select>
-        </div>
         <div id="${prefixo}aluguel-wrapper" class="rz-f${aluguelVisivel}">
             <label>Aluguel esperado (R$)</label>
             <input type="number" step="0.01" id="${prefixo}aluguel-desejado" value="${v.dados_especificos?.aluguel_desejado ?? ''}">
         </div>
-        ${v.id ? renderizarCampoDestinacao(prefixo, v) : ''}
-        <div class="rz-f">
-            <label>CIB (NFS-e) <button type="button" data-action="fa-info-cib" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
-            <input type="text" id="${prefixo}cib" value="${escapeHtml(v.cib || '')}" placeholder="Cadastro do imóvel na NFS-e nacional">
+        <button type="button" id="${prefixo}toggle-mais-campos" data-action="ativo-toggle-mais-campos" data-prefixo="${prefixo}" class="sm:col-span-2 text-xs font-semibold" style="color:var(--sprout);text-align:left;background:none;border:none;padding:4px 0;cursor:pointer">${maisCamposTexto}</button>
+        <div id="${prefixo}mais-campos" class="${maisCamposClasse.trim()} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="rz-f">
+                <label>Situação de uso</label>
+                <select id="${prefixo}situacao-uso">
+                    <option value=""${optSel('', 'situacao_uso')}>— não informado —</option>
+                    ${SITUACOES_USO_ATIVO.map(s => `<option value="${s.v}"${optSel(s.v, 'situacao_uso')}>${s.l}</option>`).join('')}
+                </select>
+            </div>
+            ${v.id ? renderizarCampoDestinacao(prefixo, v) : ''}
+            <div class="rz-f">
+                <label>CIB (NFS-e) <button type="button" data-action="fa-info-cib" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
+                <input type="text" id="${prefixo}cib" value="${escapeHtml(v.cib || '')}" placeholder="Cadastro do imóvel na NFS-e nacional">
+            </div>
         </div>
         <div class="rz-f sm:col-span-2">
             <label>Observação</label>
@@ -2221,6 +2249,18 @@ export function abrirInfoCib() {
     modalGenerico('O que é o CIB?', `<div class="rz-card"><div class="rz-kv">${
         itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
     }</div></div>`);
+}
+
+// v1.66.0 (demanda ec7d8a9f, item 5) — "+ Mostrar mais campos" do bloco
+// imóvel (renderizarBlocoImovel). prefixo chega pelo data-prefixo do
+// próprio botão — funciona em criação e edição sem distinguir os 2 casos.
+export function alternarCamposAvancadosImovel(prefixo) {
+    const bloco = document.getElementById(prefixo + 'mais-campos');
+    const btn = document.getElementById(prefixo + 'toggle-mais-campos');
+    if (!bloco || !btn) return;
+    const vaiAbrir = bloco.classList.contains('hidden');
+    bloco.classList.toggle('hidden', !vaiAbrir);
+    btn.textContent = vaiAbrir ? '− Ocultar campos avançados' : '+ Mostrar mais campos';
 }
 
 function fmtSinalPctAtivo(v) {
