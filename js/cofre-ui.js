@@ -1,6 +1,18 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.0 · 01/09/2026
+// Versão: 1.3.1 · 28/09/2026
+//
+// v1.3.1 (demanda c7c0cc6f, achado do Nicola testando o item 6/CIB) —
+// #modal-generico (modalGenerico()) ganhou z-index PRÓPRIO (460, faixa
+// "Confirmação genérica" do DESIGN_SYSTEM §5). Antes, dependia só da
+// classe .modal-overlay (compartilhada com os formulários/sheets do
+// Cofre, ativos-markup.js), cujo z-index é 96 — valor LEGADO, aposentado
+// no próprio DESIGN_SYSTEM (65/70/95/96, "antigos popups Tipo A/B/C").
+// Com os 2 no mesmo z-index, quem ficava por cima dependia só da ordem
+// no DOM — por isso o modal do CIB abria por baixo do formulário de
+// imóvel aberto e ficava inacessível. z-index inline sempre vence a
+// classe compartilhada (especificidade CSS), então não depende de
+// ordem de inserção no DOM nunca mais.
 //
 // v1.3.0 (pedido explícito, 01/09/2026: "apenas um modal deve ser
 // aberto por vez") — abrirModal() passou a fechar qualquer outro
@@ -18,7 +30,7 @@
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
-export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
 
 export function mostrarToast(msg, tipo) {
@@ -57,6 +69,9 @@ export function modalGenerico(titulo, corpoHtml) {
         overlay = document.createElement('div');
         overlay.id = 'modal-generico';
         overlay.className = 'modal-overlay hidden';
+        // v1.3.1 (demanda c7c0cc6f) — z-index próprio, mais alto que o
+        // .modal-overlay legado (96) — ver nota de topo do arquivo.
+        overlay.style.zIndex = '460';
         overlay.innerHTML = `<div class="modal-box p-5">
             <div class="flex items-start justify-between mb-3">
                 <h3 class="text-base font-bold pr-4" id="modal-generico-titulo"></h3>

@@ -1,7 +1,27 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.23.1 · 28/09/2026
+// Versão: 1.24.0 · 28/09/2026
+//
+// v1.24.0 (retorno do piloto, 3 pedidos do Nicola):
+// (1, demanda 1163097a) — abrirInfoAluguelAntecipado()/abrirInfoDescontoEnergia()
+// novas: mesmo padrão de abrirInfoReajusteContrato() (abrirSheet/
+// rzSheetCabecalho, globais do app principal) — ícone (i) nos campos
+// "Aluguel Antecipado?" e "Desconto Energia (%)" do formulário de
+// contrato (index.html v1.269.0).
+// (2, demanda c0d255e3) — abrirEscolhaNovoContrato() nova: o "+" de
+// Contratos (btn-toggle-contrato, index.html) ia direto pro formulário
+// manual, sem nenhuma pista de que também existe o caminho por
+// documento com IA (mesma lacuna do "+" de Ativos antes do Onda/fatia 7 —
+// lá já foi resolvida com abrirSheetAcoes). Reaproveita
+// abrirUploadDocumentoNoApp() (index.html, já usado pelo sheet Raiz IA do
+// cabeçalho) — "Carregar documento" primeiro, "Novo contrato" (manual)
+// depois.
+// (3, demanda 1301897c) — achado ao investigar a bolinha "..." de
+// reajuste (btn-toggle-reajuste-contrato): já fica escondida ao CRIAR um
+// contrato novo desde a v1.41.2 (cancelarEdicaoContrato() esconde o
+// botão) — nenhum código mudado aqui, comportamento confirmado correto;
+// ver observação na entrega sobre o caso reportado pelo Nicola.
 //
 // v1.23.1 (demanda 303e68dc, achado do piloto — Claudia, 28/09/2026):
 // criarContratoParaImovel() vira async e ganha 1 retentativa: se o imóvel
@@ -439,7 +459,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.23.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.24.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2478,6 +2498,48 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
                     itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
                 }</div></div></div>`);
+        }
+
+        // v1.24.0 (demanda 1163097a) — mesmo padrão acima, pro campo
+        // "Aluguel Antecipado?" do formulário de contrato.
+        export function abrirInfoAluguelAntecipado() {
+            const itens = [
+                ['O que é', 'Define se o aluguel deste contrato é pago DENTRO do mês de referência (antecipado) ou no mês seguinte.'],
+                ['Sim', 'O inquilino paga a competência do próprio mês ainda dentro dele.'],
+                ['Não', 'Paga a competência do mês anterior — modelo mais comum no mercado.'],
+            ];
+            abrirSheet(rzSheetCabecalho('Sobre o Aluguel Antecipado') +
+                `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                }</div></div></div>`);
+        }
+
+        // v1.24.0 (demanda 1163097a) — mesmo padrão, pro campo "Desconto
+        // Energia (%)".
+        export function abrirInfoDescontoEnergia() {
+            const itens = [
+                ['O que é', 'Percentual de desconto sobre o aluguel repassado ao inquilino quando o imóvel participa do programa de energia por assinatura.'],
+                ['Sugestão automática', 'Ao escolher, num contrato novo, um imóvel com esse programa ativo, o campo já vem com 10% — pode ajustar livremente.'],
+                ['Onde entra', 'Compõe o cálculo do valor líquido esperado do contrato.'],
+            ];
+            abrirSheet(rzSheetCabecalho('Sobre o Desconto de Energia') +
+                `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+                    itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
+                }</div></div></div>`);
+        }
+
+        // v1.24.0 (demanda c0d255e3) — "+" de Contratos: mesma escolha do
+        // "+" de Ativos (abrir-acoes-ativos, cofre-app.js) — Carregar
+        // documento (IA) primeiro, cadastro manual depois. Reaproveita
+        // abrirSheetAcoes/abrirUploadDocumentoNoApp (globais do app
+        // principal, index.html), sem import — mesma razão de
+        // abrirSheet/rzSheetCabecalho acima.
+        export function abrirEscolhaNovoContrato() {
+            if (typeof abrirSheetAcoes !== 'function') { abrirFormularioContrato(); return; }
+            abrirSheetAcoes({ titulo: 'Contratos', sub: 'O que você quer fazer?', acoes: [
+                { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => (typeof abrirUploadDocumentoNoApp === 'function') && abrirUploadDocumentoNoApp() },
+                { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: 'Preencher os dados na tela', aoTocar: () => abrirFormularioContrato() },
+            ] });
         }
 
         // ===================================================================

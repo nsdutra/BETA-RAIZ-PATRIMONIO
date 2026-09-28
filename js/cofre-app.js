@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.40.0 · 28/09/2026
+// Versão: 1.41.0 · 28/09/2026
+//
+// v1.41.0 (demanda 1163097a, retorno do piloto) — dispatcher ganha os
+// cases 'fa-info-situacao-uso' e 'fa-info-destinacao' → ativos.
+// abrirInfoSituacaoUso()/abrirInfoDestinacao() (cofre-ativos.js v1.67.0),
+// ícones (i) dos campos "Situação de uso" e "Destinação (NFS-e)" no
+// bloco "+ Mostrar mais campos" do formulário de imóvel/ativo.
 //
 // v1.40.0 (demanda ec7d8a9f, item 5 do retorno do piloto — Nicola: "Pode
 // executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) — case
@@ -355,7 +361,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.40.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.41.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -615,6 +621,8 @@ document.addEventListener('click', async (ev) => {
         // demanda 44f30857, item 2 (22/09/2026) — ícone (i) do card Performance
         case 'fa-info-performance': ativos.abrirInfoPerformanceAtivo(); break;
         case 'fa-info-cib': ativos.abrirInfoCib(); break;
+        case 'fa-info-situacao-uso': ativos.abrirInfoSituacaoUso(); break;
+        case 'fa-info-destinacao': ativos.abrirInfoDestinacao(); break;
         case 'ativo-toggle-mais-campos': ativos.alternarCamposAvancadosImovel(alvo.dataset.prefixo); break;
         case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
         case 'fa-iniciar-contratacao': ativos.iniciarContratacaoDoAtivo(); break;

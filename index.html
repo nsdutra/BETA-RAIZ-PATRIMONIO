@@ -6,9 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.268.0
-   LINHAS: 15945
-   DATA: 28/09/2026 (sessão 20260928-2300-form-ativo-longo, demanda ec7d8a9f)
+   VERSÃO: Beta v1.269.0
+   LINHAS: 15950
+   DATA: 28/09/2026 (sessão 20260928-2018-piloto-fixes3, demandas c7c0cc6f/
+   1163097a/c0d255e3/1301897c)
+   NOVIDADES (Beta v1.269.0) — retorno do piloto, 4 achados/pedidos:
+   (1) modal do CIB (e qualquer modalGenerico) abria por baixo do
+   formulário aberto e ficava inacessível — z-index próprio (460) no
+   #modal-generico (js/cofre-ui.js 1.3.0 → 1.3.1), não depende mais da
+   ordem no DOM. (2) ícone (i) explicativo também em "Situação de uso" e
+   "Destinação (NFS-e)" (js/cofre-ativos.js 1.66.0 → 1.67.0, js/cofre-
+   app.js 1.40.0 → 1.41.0) e em "Aluguel Antecipado?" e "Desconto Energia
+   (%)" no formulário de contrato (js/contratos.js 1.23.1 → 1.24.0). (3) os
+   3 botões de cadastro novo (Ativos, Contratos, e "Itens de controle" de
+   dentro de um ativo) agora deixam claro que também dá pra carregar um
+   documento e a IA cadastra sozinha, em vez de ir direto pro formulário
+   manual (js/ativos/ativos-markup.js 1.48.0 → 1.49.0, js/contratos.js
+   acima). (4) investigado o pedido de remover a bolinha "..." de
+   reajuste ao lançar um contrato: já fica escondida ao criar um
+   contrato novo desde a v1.41.2 — nenhuma mudança de código necessária
+   aqui, achado documentado na entrega.
    NOVIDADES (Beta v1.268.0) — js/cofre-ativos.js (1.65.0 → 1.66.0) e
    js/cofre-app.js (1.39.0 → 1.40.0): formulário de ativo/imóvel achado
    longo pelo piloto (Claudia) — bloco imóvel esconde Situação de uso,
@@ -43,21 +60,8 @@
    falhar em silêncio quando o array `imoveis` ainda não refletia um
    ativo recém-criado. Nenhuma linha do próprio index.html mudou fora do
    import map/LINHAS/changelog (gerar_versoes.py).
-   NOVIDADES (Beta v1.264.0) — A.3 do ESP_ONBOARDING_VENDAS_LICENCA: fn_minhas_
-   comunicacoes_opt_out (banco) passou a agrupar por slot (plano_id+ordem) em vez
-   de 1 linha por comunicacao_id, pra não duplicar toggle na seção "Comunicações
-   da Raiz" de "Minhas notificações" quando 2 mensagens disputam o mesmo slot
-   (ex. financeiro_recibos_v1/controles_em_dia_v1). ACHADO NESTA ENTREGA: a
-   migration de banco já tinha sido publicada antes deste ajuste de index.html
-   ficar pronto — quem abriu "Minhas notificações" nesse intervalo via essa
-   seção quebrada (a UI ainda esperava item.comunicacao_id, que não existe mais
-   no retorno agrupado). Corrigido: render usa item.comunicacao_ids/codigos e o
-   toggle chama a nova fn_definir_opt_out_comunicacao_grupo(plano_id, ordem, ...)
-   em vez de fn_definir_opt_out_comunicacao(1 id) — aplica a decisão a todos os
-   comunicacao_id do grupo de uma vez. Só esta seção mudou; "Alertas e avisos
-   automáticos" (pessoa_preferencias_comunicacao) não foi tocada.
    ------------------------------------------------------------------
-   Versões anteriores (v1.263.0 … v1.263.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.264.0 … v1.264.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -81,7 +85,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.25.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.23.1","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.40.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.66.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.34.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.48.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.25.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.24.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.34.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2126,7 +2130,7 @@
                      quando "A partir de um PDF" existir). raiz-btn-toggle
                      aposentado aqui: o botão não vira X, o sheet tem o seu. -->
                 <button onclick="abrirBuscaContratos()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button id="btn-toggle-contrato" onclick="abrirFormularioContrato()" class="rz-ico-btn rz-primary" title="Novo contrato" aria-label="Novo contrato"><svg data-lucide="plus"></svg></button>
+                <button id="btn-toggle-contrato" onclick="abrirEscolhaNovoContrato()" class="rz-ico-btn rz-primary" title="Novo contrato" aria-label="Novo contrato"><svg data-lucide="plus"></svg></button>
             </div>
 
             <!-- v1.48.0 — modalizado igual ao form-imovel-wrapper (Fase 1):
@@ -2256,7 +2260,7 @@
                         <input type="number" id="con-vencimento-dia" required min="1" max="31">
                     </div>
                     <div class="rz-f">
-                        <label>Aluguel Antecipado?</label>
+                        <label>Aluguel Antecipado? <button type="button" onclick="abrirInfoAluguelAntecipado()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
                         <select id="con-antecipado">
                             <option value="Sim">Sim (paga na própria competência)</option>
                             <option value="Não">Não (paga no mês seguinte)</option>
@@ -2284,7 +2288,7 @@
                         </div>
                     </div>
                     <div class="rz-f">
-                        <label>Desconto Energia (%)</label>
+                        <label>Desconto Energia (%) <button type="button" onclick="abrirInfoDescontoEnergia()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
                         <input type="number" id="con-desconto-energia" value="0">
                     </div>
                 </div>
@@ -3366,7 +3370,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.268.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.269.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8686,7 +8690,8 @@
             'abrirOcorrenciaContrato', 'abrirDetalheOcorrenciaContrato', // v1.194.0 — linha fechada/cancelada agora também abre (resumo só-leitura)
             'montarDistribuicaoContrato', 'abrirAcoesDistribuicaoContrato', // NOVO v1.11.0 (rodada 10) — card "Distribuição" no Resumo
             'renovarContrato', 'calcularPctRenovacaoPopup', 'calcularValorRenovacaoPopup', 'salvarRenovacaoContratoPopup',
-            'abrirInfoReajusteContrato' // v1.15.0 (demanda 44f30857, item 2) — ícone (i) do card "Pelo contrato"
+            'abrirInfoReajusteContrato', // v1.15.0 (demanda 44f30857, item 2) — ícone (i) do card "Pelo contrato"
+            'abrirInfoAluguelAntecipado', 'abrirInfoDescontoEnergia', 'abrirEscolhaNovoContrato' // v1.269.0 (demandas 1163097a/c0d255e3)
         ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarContratos, nome, args); });
 
         // =====================================================================

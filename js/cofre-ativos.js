@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.66.0 · 28/09/2026
+// Versão: 1.67.0 · 28/09/2026
+//
+// v1.67.0 (demanda 1163097a, retorno do piloto — Nicola testando o item 6/
+// CIB pediu o mesmo padrão de ícone (i) + modalGenerico() em "Situação de
+// uso" e "Destinação (NFS-e)", ambos dentro do bloco "+ Mostrar mais
+// campos" de renderizarBlocoImovel()/renderizarCampoDestinacao()) —
+// abrirInfoSituacaoUso() e abrirInfoDestinacao() novas (mesmo molde de
+// abrirInfoCib(), v1.65.0); cases 'fa-info-situacao-uso'/'fa-info-destinacao'
+// no cofre-app.js v1.41.0. (Os outros 2 campos do mesmo pedido — desconto
+// de energia e aluguel antecipado — são do formulário de CONTRATO, não
+// deste arquivo; ver contratos.js/index.html na mesma entrega.)
 //
 // v1.66.0 (demanda ec7d8a9f, item 5 do retorno do piloto — Nicola: "Pode
 // executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) —
@@ -857,7 +867,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.66.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1089,7 +1099,7 @@ function renderizarBlocoImovel(prefixo, v = {}) {
         <button type="button" id="${prefixo}toggle-mais-campos" data-action="ativo-toggle-mais-campos" data-prefixo="${prefixo}" class="sm:col-span-2 text-xs font-semibold" style="color:var(--sprout);text-align:left;background:none;border:none;padding:4px 0;cursor:pointer">${maisCamposTexto}</button>
         <div id="${prefixo}mais-campos" class="${maisCamposClasse.trim()} sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div class="rz-f">
-                <label>Situação de uso</label>
+                <label>Situação de uso <button type="button" data-action="fa-info-situacao-uso" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
                 <select id="${prefixo}situacao-uso">
                     <option value=""${optSel('', 'situacao_uso')}>— não informado —</option>
                     ${SITUACOES_USO_ATIVO.map(s => `<option value="${s.v}"${optSel(s.v, 'situacao_uso')}>${s.l}</option>`).join('')}
@@ -1121,7 +1131,7 @@ function renderizarCampoDestinacao(prefixo, v) {
     const sel = (val) => (manual ? v.destinacao === val : val === '') ? ' selected' : '';
     return `
         <div class="rz-f">
-            <label>Destinação (NFS-e)</label>
+            <label>Destinação (NFS-e) <button type="button" data-action="fa-info-destinacao" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
             <select id="${prefixo}destinacao">
                 <option value=""${sel('')}>${escapeHtml(rotuloTipo)}</option>
                 ${DESTINACOES_ATIVO.map(d => `<option value="${d.v}"${sel(d.v)}>${d.l}</option>`).join('')}
@@ -2251,6 +2261,34 @@ export function abrirInfoCib() {
     }</div></div>`);
 }
 
+// v1.67.0 (demanda 1163097a) — mesmo padrão de abrirInfoCib() acima, pro
+// campo "Situação de uso" do mesmo bloco "+ Mostrar mais campos".
+export function abrirInfoSituacaoUso() {
+    const itens = [
+        ['O que é', 'Em que estado o imóvel está agora — campo informativo, não entra em nenhum cálculo do sistema.'],
+        ['Disponível / Ocioso', 'Vago, sem contrato nem processo de locação em andamento.'],
+        ['Alugado / Em uso', 'Já ocupado — por contrato de locação vigente ou uso próprio.'],
+        ['Reservado / Assinando', 'Tem interessado ou contrato em processo de assinatura.'],
+        ['Manutenção / Em breve', 'Temporariamente indisponível ou prestes a ficar pronto para uso.'],
+    ];
+    modalGenerico('Sobre a Situação de uso', `<div class="rz-card"><div class="rz-kv">${
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+    }</div></div>`);
+}
+
+// v1.67.0 (demanda 1163097a) — mesmo padrão, pro campo "Destinação
+// (NFS-e)" (renderizarCampoDestinacao()).
+export function abrirInfoDestinacao() {
+    const itens = [
+        ['O que é', 'Se o imóvel é Residencial ou Não residencial para efeito da nota fiscal de serviço (NFS-e) de aluguel.'],
+        ['Pelo tipo do imóvel', 'Sem escolha manual, o sistema usa o padrão do tipo cadastrado (ex.: apartamento = residencial). Você pode sobrepor escolhendo manualmente.'],
+        ['Por que aparece aqui', 'A partir de 01/12/2026 a NFS-e de aluguel passa a exigir essa classificação.'],
+    ];
+    modalGenerico('Sobre a Destinação (NFS-e)', `<div class="rz-card"><div class="rz-kv">${
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+    }</div></div>`);
+}
+
 // v1.66.0 (demanda ec7d8a9f, item 5) — "+ Mostrar mais campos" do bloco
 // imóvel (renderizarBlocoImovel). prefixo chega pelo data-prefixo do
 // próprio botão — funciona em criação e edição sem distinguir os 2 casos.
@@ -2442,9 +2480,18 @@ export function abrirAcoesPropriedade() {
         { icone: 'pencil', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
     ] });
 }
+// v1.67.0 (demanda c0d255e3, retorno do piloto — "no botão de cadastro
+// novo... deixe claro que ele pode adicionar um documento-IA ou cadastrar
+// via tela") — "Carregar documento" entra como 1ª opção, igual ao "+" da
+// aba Ativos (case 'abrir-acoes-ativos', cofre-app.js) e ao chip Anexos
+// deste mesmo ativo (abrirAcoesAnexos() abaixo): documento com IA já
+// preenche os itens de controle sozinho (mesma chamada,
+// window.__rzUploadAtivo?.(true)) — antes, essa opção só existia no chip
+// Anexos, sem nenhuma pista aqui em Itens de controle.
 export function abrirAcoesControlesAtivo() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Itens de controle', sub: a.nome_exibicao, acoes: [
+        { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê e preenche os itens sozinha', aoTocar: () => window.__rzUploadAtivo?.(true) },
         { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
         { icone: 'layers', titulo: 'Modelos de item', codigo: 'cofre.controles.editar', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => window.__rzAbrirModelosControle?.() },
         { icone: 'tags', titulo: 'Tipos de controle', codigo: 'cofre.controles.editar', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => window.__rzAbrirSubtiposControle?.() },

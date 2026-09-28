@@ -1,6 +1,17 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.48.0 · 28/09/2026
+// Versão: 1.49.0 · 28/09/2026
+// CHANGELOG v1.49.0 (demanda c0d255e3, retorno do piloto — "no botão de
+// cadastro novo imóvel... deixe claro que ele pode adicionar um
+// documento-IA ou cadastrar via tela") — #ativos-estado-vazio troca
+// data-action de 'abrir-form-ativo' (ia direto pro formulário manual,
+// pulando a escolha) pra 'abrir-acoes-ativos' — mesmo sheet do "+" do
+// cabeçalho da aba (cofre-app.js, case 'abrir-acoes-ativos'): "Carregar
+// documento" (IA) aparece primeiro, "Novo ativo" (manual) e "Montar
+// vitrine" depois. Sem esse ajuste, quem cadastrava o 1º ativo pelo
+// card do estado vazio nunca via a opção de IA — só existia pra quem
+// já tinha ativo e usava o "+" do topo.
+//
 // CHANGELOG v1.48.0 (demanda eba5b88f, item 4 do retorno do piloto —
 // Nicola: "Pode executar as demandas dos itens 1, 2, 4, 5 e 6 tb",
 // 28/09/2026) — #ativos-estado-vazio (0 ativos cadastrados): achado real
@@ -440,7 +451,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.48.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.49.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -676,7 +687,7 @@ export const ATIVOS_MARKUP = `<style>
             <div id="ativos-chips-tipo" class="rz-chips"></div>
 
             <div id="ativos-lista" class="space-y-2"></div>
-            <div id="ativos-estado-vazio" class="hidden text-center py-14" data-action="abrir-form-ativo" data-rz-codigo="cofre.ativos.criar" role="button" tabindex="0" style="cursor:pointer;border:2px dashed var(--line);border-radius:var(--r-card);margin:0 2px;" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
+            <div id="ativos-estado-vazio" class="hidden text-center py-14" data-action="abrir-acoes-ativos" data-rz-codigo="cofre.ativos.criar" role="button" tabindex="0" style="cursor:pointer;border:2px dashed var(--line);border-radius:var(--r-card);margin:0 2px;" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
                 <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
                 <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
                 <p class="text-xs mb-3" style="color:var(--sage)">Toque aqui para cadastrar o primeiro — veículo, imóvel, terreno ou proteção pessoal.</p>
