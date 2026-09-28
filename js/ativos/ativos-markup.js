@@ -1,6 +1,21 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.47.0 · 26/09/2026
+// Versão: 1.48.0 · 28/09/2026
+// CHANGELOG v1.48.0 (demanda eba5b88f, item 4 do retorno do piloto —
+// Nicola: "Pode executar as demandas dos itens 1, 2, 4, 5 e 6 tb",
+// 28/09/2026) — #ativos-estado-vazio (0 ativos cadastrados): achado real
+// da Claudia testando o piloto — não achou onde tocar pra cadastrar o 1º
+// ativo, só resolveu na hora escrevendo ela mesma um texto dizendo "clique
+// aqui". O card inteiro vira a área de toque (data-action/data-rz-codigo
+// migram do <button> pro <div>, mesmo padrão de .rz-row.rz-link já usado
+// nas linhas da lista — cofre-ativos.js, ativoCardHtml), com borda
+// tracejada, cursor de ponteiro e o texto de apoio dizendo "toque aqui".
+// O selo "+ Novo ativo" continua visível, só que como <span> decorativo
+// (não é mais o único alvo de toque). Cadeado de cota (C4, rzMostrarBloqueio)
+// inalterado — continua dentro de abrirFormAtivo(), então mesmo com 2
+// elementos carregando data-rz-codigo agora, a checagem real é a mesma de
+// sempre.
+//
 // CHANGELOG v1.47.0 (demandas 4a609dbb e ed2774ee, entrega 2/3 do lote de
 // 29) — ficha do item de controle ganha o container
 // #fic-aviso-documento-pendente (visibilidade calculada em
@@ -425,7 +440,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.47.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.48.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -661,11 +676,11 @@ export const ATIVOS_MARKUP = `<style>
             <div id="ativos-chips-tipo" class="rz-chips"></div>
 
             <div id="ativos-lista" class="space-y-2"></div>
-            <div id="ativos-estado-vazio" class="hidden text-center py-14">
+            <div id="ativos-estado-vazio" class="hidden text-center py-14" data-action="abrir-form-ativo" data-rz-codigo="cofre.ativos.criar" role="button" tabindex="0" style="cursor:pointer;border:2px dashed var(--line);border-radius:var(--r-card);margin:0 2px;" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
                 <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
                 <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
-                <p class="text-xs mb-3" style="color:var(--sage)">Veículo, imóvel, terreno ou proteção pessoal.</p>
-                <button data-action="abrir-form-ativo" data-rz-codigo="cofre.ativos.criar" class="px-4 py-2 rounded-xl text-sm font-semibold text-white" style="background:var(--pine)">+ Novo ativo</button>
+                <p class="text-xs mb-3" style="color:var(--sage)">Toque aqui para cadastrar o primeiro — veículo, imóvel, terreno ou proteção pessoal.</p>
+                <span class="px-4 py-2 rounded-xl text-sm font-semibold text-white inline-block" style="background:var(--pine)">+ Novo ativo</span>
             </div>
         </section>
 
