@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.38.0 · 26/09/2026
+// Versão: 1.39.0 · 28/09/2026
+//
+// v1.39.0 (demanda 2bb6705e, item 6 do retorno do piloto — Nicola: "Pode
+// executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) — case
+// novo 'fa-info-cib' → ativos.abrirInfoCib() (cofre-ativos.js v1.65.0),
+// ícone (i) do rótulo "CIB (NFS-e)" no formulário de imóvel/ativo.
 //
 // v1.38.0 (demanda ed2774ee, entrega 2/3 do lote de 29) — dispatcher ganha
 // o case 'ic-subtipo-mudou' (controles.aoMudarSubtipoControleForm): trocar
@@ -344,7 +349,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.38.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.39.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -603,6 +608,7 @@ document.addEventListener('click', async (ev) => {
         case 'fa-revisao-manter': await ativos.manterValorRevisao(); break;
         // demanda 44f30857, item 2 (22/09/2026) — ícone (i) do card Performance
         case 'fa-info-performance': ativos.abrirInfoPerformanceAtivo(); break;
+        case 'fa-info-cib': ativos.abrirInfoCib(); break;
         case 'fa-novo-contrato-imovel': ativos.abrirNovoContratoDoAtivo(); break;
         case 'fa-iniciar-contratacao': ativos.iniciarContratacaoDoAtivo(); break;
         // v1.24.0 — ⋮ dos cards da ficha (sem rodapé)

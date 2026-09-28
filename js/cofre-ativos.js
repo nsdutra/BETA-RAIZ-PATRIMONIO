@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.64.0 · 23/09/2026
+// Versão: 1.65.0 · 28/09/2026
+//
+// v1.65.0 (demanda 2bb6705e, item 6 do retorno do piloto — Nicola: "Pode
+// executar as demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026) — ícone
+// (i) ao lado do rótulo "CIB (NFS-e)" no formulário de imóvel/ativo
+// (renderizarCampoDadosImovel, criação e edição): abrirInfoCib() nova
+// (export), mesmo padrão de abrirInfoPerformanceAtivo() (v1.60.0) —
+// modalGenerico() explicando o que é o CIB (Cadastro Imobiliário
+// Brasileiro, "CPF do imóvel" da Reforma Tributária, atribuído pelo
+// cartório via Sinter) e por que o campo existe (NFS-e nacional,
+// obrigatório a partir de 01/12/2026). Sem mudança de dado ou de banco —
+// só o texto de ajuda.
 //
 // v1.64.0 (demanda 43448a36, teste reprovado pelo Nicola em 23/09/2026:
 // "o campo finalidade de uso deve aparecer na tela de edição de todos os
@@ -829,7 +840,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.64.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.65.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1059,7 +1070,7 @@ function renderizarBlocoImovel(prefixo, v = {}) {
         </div>
         ${v.id ? renderizarCampoDestinacao(prefixo, v) : ''}
         <div class="rz-f">
-            <label>CIB (NFS-e)</label>
+            <label>CIB (NFS-e) <button type="button" data-action="fa-info-cib" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
             <input type="text" id="${prefixo}cib" value="${escapeHtml(v.cib || '')}" placeholder="Cadastro do imóvel na NFS-e nacional">
         </div>
         <div class="rz-f sm:col-span-2">
@@ -2195,6 +2206,19 @@ export function abrirInfoPerformanceAtivo() {
         ['Inadimplência', 'Total ainda em atraso nos contratos deste ativo.'],
     ];
     modalGenerico('Sobre o card Performance', `<div class="rz-card"><div class="rz-kv">${
+        itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
+    }</div></div>`);
+}
+
+// v1.65.0 (demanda 2bb6705e, item 6) — mesmo padrão de
+// abrirInfoPerformanceAtivo() acima: 1 explicação curta pro campo técnico
+// "CIB (NFS-e)" do formulário de imóvel/ativo.
+export function abrirInfoCib() {
+    const itens = [
+        ['O que é', 'Identificador único do imóvel criado pela Reforma Tributária — uma espécie de "CPF do imóvel". Atribuído automaticamente pelo cartório de registro de imóveis, sem exigir nenhuma ação do proprietário.'],
+        ['Por que aparece aqui', 'A partir de 01/12/2026 ele passa a ser exigido na nota fiscal de serviço (NFS-e) de aluguel. Se ainda não tiver o número, pode deixar o campo em branco por enquanto.'],
+    ];
+    modalGenerico('O que é o CIB?', `<div class="rz-card"><div class="rz-kv">${
         itens.map(([r, v]) => `<div class="rz-full"><small>${escapeHtml(r)}</small><b style="font-weight:500;font-size:12.5px">${escapeHtml(v)}</b></div>`).join('')
     }</div></div>`);
 }
