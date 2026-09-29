@@ -1,7 +1,22 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.24.0 · 28/09/2026
+// Versão: 1.25.0 · 29/09/2026
+//
+// v1.25.0 (demanda 11afd25f + parte de ec7d8a9f, 29/09/2026) — Reorganização do
+// formulário de contrato + atalho de Partes:
+//   1) Campos opcionais (IPTU/condomínio, forma de pagamento, índice de
+//      reajuste, rateio, administradora, documentos, observação) saem da
+//      vista por padrão, atrás de "+ Mostrar mais campos" — mesmo padrão já
+//      usado em cofre-ativos.js v1.66.0 (ec7d8a9f). Nasce ABERTO ao editar um
+//      contrato existente (editarContrato) e FECHADO ao cadastrar um novo
+//      (cancelarEdicaoContrato) — nenhum campo obrigatório entra nesse bloco.
+//   2) saveContrato() marca contratoDados._novo (não persiste — só existe em
+//      memória local, sincronizarContratoSupabase() em index.html monta a
+//      `linha` campo a campo e não inclui) para o salvamento saber se deve
+//      oferecer "cadastrar fiador agora" (salvarContratoIndividual).
+//   Sem migração de banco. Nenhum campo some da tela, nenhum dado antigo é
+//   apagado — só reagrupados/escondidos por padrão.
 //
 // v1.24.0 (retorno do piloto, 3 pedidos do Nicola):
 // (1, demanda 1163097a) — abrirInfoAluguelAntecipado()/abrirInfoDescontoEnergia()
@@ -459,7 +474,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.24.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.25.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -838,6 +853,23 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             if (aberto) secao.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
+        }
+
+        // v1.25.0 (demanda 11afd25f + ec7d8a9f) — "+ Mostrar mais campos" do
+        // formulário de contrato, mesmo padrão de alternarCamposAvancadosImovel()
+        // (cofre-ativos.js v1.66.0): só campos OPCIONAIS ficam atrás dele (IPTU/
+        // condomínio, forma de pagamento, índice de reajuste, rateio,
+        // administradora, documentos, observação) — nenhum campo com "*"
+        // (obrigatório) entra aqui. Estado inicial é decidido por
+        // editarContrato()/cancelarEdicaoContrato(), não por esta função.
+        export function alternarCamposAvancadosContrato() {
+            const bloco = document.getElementById('con-campos-avancados');
+            const btn = document.getElementById('con-toggle-mais-campos');
+            if (!bloco || !btn) return;
+            const vaiAbrir = bloco.classList.contains('hidden');
+            bloco.classList.toggle('hidden', !vaiAbrir);
+            btn.textContent = vaiAbrir ? '− Ocultar campos avançados' : '+ Mostrar mais campos';
+            if (vaiAbrir) bloco.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         export function calcularReajustePorNovoValor() {
@@ -3690,6 +3722,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                 id: id || 'con_' + Date.now(),
 
+                // v1.25.0 — só em memória local (sincronizarContratoSupabase,
+                // index.html, monta a `linha` persistida campo a campo e não
+                // inclui isto); usado por salvarContratoIndividual() para saber
+                // se oferece "cadastrar fiador agora" só em contrato NOVO.
+                _novo: !id,
+
                 imovelId: imoId,
 
                 divisaoRepasse: divisaoContratoAtual.map(function(s) { return { nome: s.nome, percentual: s.pct }; }),
@@ -4127,6 +4165,13 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             document.getElementById('btn-toggle-reajuste-contrato')?.classList.remove('hidden');
 
+            // v1.25.0 (demanda 11afd25f + ec7d8a9f) — ao editar, os campos
+            // opcionais já nascem visíveis (mesma regra do bloco "mais campos"
+            // de imóvel: nunca esconder dado que a pessoa já preencheu antes).
+            document.getElementById('con-campos-avancados')?.classList.remove('hidden');
+            const btnAvancadoEditar = document.getElementById('con-toggle-mais-campos');
+            if (btnAvancadoEditar) btnAvancadoEditar.textContent = '− Ocultar campos avançados';
+
             renderHistoricoContratoInline(con);
 
             // v1.17.0 (demanda c75076ed, item 2 — "remover o componente de
@@ -4258,6 +4303,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // fica escondido — não há "valor anterior" para reajustar ainda.
             const btnReajuste = document.getElementById('btn-toggle-reajuste-contrato');
             if (btnReajuste) { btnReajuste.classList.add('hidden'); btnReajuste.classList.remove('ativo'); }
+
+            // v1.25.0 (demanda 11afd25f + ec7d8a9f) — contrato novo nasce com os
+            // campos opcionais escondidos (formulário mais curto); editarContrato()
+            // reabre ao editar um contrato existente.
+            const blocoAvancadoReset = document.getElementById('con-campos-avancados');
+            if (blocoAvancadoReset) blocoAvancadoReset.classList.add('hidden');
+            const btnAvancadoReset = document.getElementById('con-toggle-mais-campos');
+            if (btnAvancadoReset) btnAvancadoReset.textContent = '+ Mostrar mais campos';
 
             renderHistoricoContratoInline(null);
 
