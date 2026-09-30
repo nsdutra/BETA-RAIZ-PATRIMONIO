@@ -1,7 +1,37 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.25.0 · 29/09/2026
+// Versão: 1.26.0 · 30/09/2026
+//
+// v1.26.0 (demandas 3b458eb4/8e661f53/c83fb2d3(fatia contratos.js)/8909ebf4 +
+// 1301897c(duplicata, encerrada junto), 30/09/2026) — 4 achados do retorno do
+// piloto (Nicola, 29/09):
+//   1) (3b458eb4) O popup "Dados Novo Contrato" lê o CEP/endereço do
+//      locatário pelo bloco estruturado de comum-endereco.js, mas só
+//      gravava o texto concatenado (locatarioEnderecoAtual) — os campos
+//      rua/número/bairro/cidade/UF/CEP nunca chegavam na Parte do
+//      locatário (partes.endereco_rua etc., index.html). Guarda também o
+//      objeto estruturado (enderecoLocatarioEstruturadoAtual, mesma trava
+//      de contratoId que fiadoresContratoAtual já usa) pra
+//      sincronizarContratoSupabase() gravar nas duas formas.
+//   2) (8e661f53) "Cancelar" no formulário de fiador (atalho pós-salvar)
+//      parecia desfazer o contrato recém-criado — não desfazia (o INSERT
+//      já tinha acontecido antes do confirm()), mas o formulário fechava
+//      sem garantir um re-render da lista. Corrigido em index.html
+//      (salvarContratoIndividual): aguarda o Sheet de fiador fechar
+//      (salvando OU cancelando) e força renderContratos() de novo.
+//   3) (c83fb2d3, mesmo achado da 1301897c) botão "..." de reajuste
+//      removido do formulário (index.html) — Nicola confirmou que
+//      aparecia tanto ao criar quanto ao editar; painel de reajuste
+//      (#secao-avancada-contrato) fica órfão de propósito, aguardando o
+//      Bloco B (demandas 5ca973d6/854f6343).
+//   4) (8909ebf4) Ficha do contrato: o card "Precisa de atenção" dizia
+//      "Gerado pela Vitrine" pra QUALQUER contrato com status Assinando
+//      — inclusive um cadastrado manualmente pelo app, já que Assinando
+//      também é o valor padrão do formulário. Texto virou neutro de
+//      origem (não afirma mais de onde veio).
+// Sem migração de banco — item 1 só grava em colunas que já existem em
+// `partes` (mesmas que comum-endereco.js/comum-partes.js já usam).
 //
 // v1.25.0 (demanda 11afd25f + parte de ec7d8a9f, 29/09/2026) — Reorganização do
 // formulário de contrato + atalho de Partes:
@@ -474,7 +504,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.25.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.26.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -554,6 +584,15 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // saveContrato() seja chamado por outro caminho (form-contrato
         // legado) sem passar por carregarFiadoresContrato() antes.
         let fiadoresContratoAtualPertenceAoId = null;
+
+        // v1.26.0 (demanda 3b458eb4) — mesma trava acima, agora pro
+        // endereço ESTRUTURADO (rua/número/bairro/cidade/UF/CEP) lido do
+        // bloco comum-endereco.js no popup "Dados Novo Contrato"
+        // (salvarDadosNovoContratoPopup). saveContrato() só inclui isto no
+        // payload quando pertencer a ESTE MESMO contrato — nunca sobra de
+        // outro popup aberto antes.
+        let enderecoLocatarioEstruturadoAtual = null;
+        let enderecoLocatarioEstruturadoAtualPertenceAoId = null;
 
         const FIADOR_CAMPO_VAZIO = {
             nome: '', doc_tipo: 'CPF', cpf: '', rg: '', rg_orgao_expedidor: '',
@@ -1395,6 +1434,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // novo, ou existente que nunca teve endereço) — editar sem
             // tocar no bloco preserva o que já estava salvo.
             let enderecoLocatarioFinal = conAtual?.locatarioEnderecoAtual || '';
+            // v1.26.0 (demanda 3b458eb4) — reseta a cada chamada; só marca
+            // "pertence a este contrato" quando o bloco estruturado abaixo
+            // realmente devolver algo preenchido.
+            enderecoLocatarioEstruturadoAtual = null;
+            enderecoLocatarioEstruturadoAtualPertenceAoId = contratoId || '__novo__';
             if (document.getElementById('dnc-endereco')) {
                 const texto = document.getElementById('dnc-endereco').value.trim();
                 if (texto) enderecoLocatarioFinal = texto;
@@ -1405,8 +1449,15 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     const { formatarEnderecoParte } = await import('./comum-partes.js');
                     const estruturado = lerBlocoEndereco('dnc');
                     const formatado = formatarEnderecoParte(estruturado);
-                    if (formatado) enderecoLocatarioFinal = formatado;
-                    else if (!enderecoLocatarioFinal) { alert('⚠️ Preencha o endereço do locatário (ao menos rua e cidade).'); return; }
+                    if (formatado) {
+                        enderecoLocatarioFinal = formatado;
+                        // v1.26.0 (demanda 3b458eb4) — guarda os campos
+                        // estruturados (não só o texto concatenado) pra
+                        // sincronizarContratoSupabase() (index.html) também
+                        // gravar rua/número/bairro/cidade/UF/CEP na Parte
+                        // do locatário, não só o texto livre.
+                        enderecoLocatarioEstruturadoAtual = estruturado;
+                    } else if (!enderecoLocatarioFinal) { alert('⚠️ Preencha o endereço do locatário (ao menos rua e cidade).'); return; }
                 } catch (err) {
                     console.warn('[contratos] Falha ao ler bloco de endereço estruturado:', err.message);
                     if (!enderecoLocatarioFinal) { alert('⚠️ Não consegui carregar o campo de endereço. Recarregue a página e tente de novo.'); return; }
@@ -2219,7 +2270,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     ${temAlertaFicha ? `
                     <div class="rz-card ${vencidoFicha ? 'rz-critico' : 'rz-atencao'}">
                         <div class="rz-card-h"><h3>Precisa de atenção</h3>${vencidoFicha ? rs('bad', 'Vencido') : rs('warn', con.status === 'Assinando' ? 'Assinatura' : 'Reajuste')}</div>
-                        <p class="rz-desc">${vencidoFicha ? 'A vigência terminou e o contrato continua ativo.' : (con.status === 'Assinando' ? 'Gerado pela Vitrine — aguardando revisão e assinatura.' : 'Reajuste ou revisão pendente pela regra do contrato.')}${con.status === 'Assinando' && !prontidaoFicha.pronto ? ` Minuta ainda indisponível — faltam ${prontidaoFicha.faltantes.length + prontidaoFicha.invalidos.length} dado(s).` : ''}</p>
+                        <p class="rz-desc">${vencidoFicha ? 'A vigência terminou e o contrato continua ativo.' : (con.status === 'Assinando' ? 'Aguardando revisão e assinatura.' : 'Reajuste ou revisão pendente pela regra do contrato.')}${con.status === 'Assinando' && !prontidaoFicha.pronto ? ` Minuta ainda indisponível — faltam ${prontidaoFicha.faltantes.length + prontidaoFicha.invalidos.length} dado(s).` : ''}</p>
                         <div class="rz-card-f"><button type="button" onclick="verAlertasContrato('${con.id}')" class="rz-btn rz-btn-1 rz-sm"><svg data-lucide="bell"></svg> Ver alertas</button></div>
                     </div>` : ''}
                     <div class="rz-card">
@@ -3768,6 +3819,16 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 locatarioEnderecoAtual: document.getElementById('con-locatario-endereco').value.trim(),
                 locatarioProfissao: document.getElementById('con-locatario-profissao').value.trim(),
                 locatarioEstadoCivil: document.getElementById('con-locatario-estado-civil').value,
+
+                // v1.26.0 (demanda 3b458eb4) — mesma trava do fiadores acima:
+                // só entra no payload quando o endereço estruturado foi lido
+                // PRA ESTE MESMO contrato no popup "Dados Novo Contrato".
+                // sincronizarContratoSupabase() (index.html) usa isto pra
+                // gravar rua/número/bairro/cidade/UF/CEP na Parte do
+                // locatário, além do texto livre de sempre.
+                enderecoLocatarioEstruturado: (enderecoLocatarioEstruturadoAtualPertenceAoId === (id || '__novo__'))
+                    ? enderecoLocatarioEstruturadoAtual
+                    : undefined,
 
                 inicio: document.getElementById('con-inicio').value,
 
