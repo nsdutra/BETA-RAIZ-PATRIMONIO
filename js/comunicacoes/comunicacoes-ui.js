@@ -1,5 +1,13 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — UI App
-// Beta v1.48.0
+// Beta v1.49.0
+//
+// v1.49.0 (30/09/2026, demanda 1899fe67, F10 frente 1) — renderizarUpsell()
+// aceita `ofertas` [{nome_oferta, plano_nome, periodo, preco, eh_ampliado_sugerido}]
+// (fn_ofertas_renovacao): o aviso de limite passa a listar o plano ampliado
+// sugerido e os upgrades com nome e preço, e ganha o botão "Ver planos e pagar
+// por Pix" (acao 'ver_planos'). Sem `ofertas` o comportamento é o da v1.48.0.
+//
+// Versão anterior: Beta v1.48.0
 //
 // v1.48.0 (A.11, 09/09/2026) — renderizarUpsell(): renderer do formato
 // tipo='upsell' + formato='modal' que existia no banco desde 29/08 (4
@@ -129,18 +137,22 @@ export function renderizarOnboarding({comunicacao,estadoPwa,onFechar,onConcluir,
 }
 // NOVO (v1.48.0, A.11) — modal de upsell / aviso de limite.
 // limites: [{codigo, rotulo, usado, limite, cota_tipo, oferta_upsell}] (pode ser vazio)
-export function renderizarUpsell({comunicacao,limites=[],onAcao}){
+export function renderizarUpsell({comunicacao,limites=[],ofertas=[],onAcao}){
  const o=baseOverlay();const ct=comunicacao.conteudo||{};
  const fmt=l=>`${l.usado??'?'} de ${l.limite??'?'}${l.cota_tipo==='bytes'?' MB':''}`;
- const linhas=(ct.mostrar_limites&&limites.length)?`<div style="background:#f7f4ed;border-radius:12px;padding:10px 12px;margin:0 0 14px">${limites.map(l=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid #ece8de"><span style="color:var(--ink,#17211e);font-weight:600">${l.rotulo||l.codigo}</span><span style="color:var(--brass,#c68a3b);font-weight:700">${fmt(l)}</span></div>`).join('')}${limites.some(l=>l.oferta_upsell)?`<p style="font-size:12px;color:var(--sage,#6b857a);margin:8px 0 0">Plano sugerido: <b>${[...new Set(limites.map(l=>l.oferta_upsell).filter(Boolean))].join(', ')}</b></p>`:''}</div>`:'';
- const cor={confirmar_interesse:'background:var(--pine,#1e3a32);color:#fff',abrir_bot_comercial:'background:#25d366;color:#fff',fechar:'background:#f2efe7;color:#4a5852'};
- const opcoes=(Array.isArray(ct.opcoes)&&ct.opcoes.length?ct.opcoes:[{acao:'fechar',rotulo:'Fechar'}]);
+ const linhas=(ct.mostrar_limites&&limites.length)?`<div style="background:#f7f4ed;border-radius:12px;padding:10px 12px;margin:0 0 14px">${limites.map(l=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid #ece8de"><span style="color:var(--ink,#17211e);font-weight:600">${l.rotulo||l.codigo}</span><span style="color:var(--brass,#c68a3b);font-weight:700">${fmt(l)}</span></div>`).join('')}${!ofertas.length&&limites.some(l=>l.oferta_upsell)?`<p style="font-size:12px;color:var(--sage,#6b857a);margin:8px 0 0">Plano sugerido: <b>${[...new Set(limites.map(l=>l.oferta_upsell).filter(Boolean))].join(', ')}</b></p>`:''}</div>`:'';
+ const brl=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+ const blocoOfertas=(limites.length&&ofertas.length)?`<div style="background:var(--tile);border-radius:12px;padding:10px 12px;margin:0 0 14px"><p style="font-size:12px;color:var(--sage);margin:0 0 6px">Opções para ampliar</p>${ofertas.map(f=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)"><span style="color:var(--ink);font-weight:600">${f.nome_oferta||f.plano_nome}${f.eh_ampliado_sugerido?' <em style="font-weight:400;color:var(--sage)">(sugerido)</em>':''}<br><small style="font-weight:400;color:var(--sage)">${f.periodo==='anual'?'anual':'mensal'}</small></span><span style="color:var(--pine);font-weight:700;white-space:nowrap">${brl(f.preco)}</span></div>`).join('')}</div>`:'';
+ const cor={ver_planos:'background:var(--pine);color:var(--card)',confirmar_interesse:'background:var(--pine,#1e3a32);color:#fff',abrir_bot_comercial:'background:#25d366;color:#fff',fechar:'background:#f2efe7;color:#4a5852'};
+ const base=(Array.isArray(ct.opcoes)&&ct.opcoes.length?ct.opcoes:[{acao:'fechar',rotulo:'Fechar'}]);
+ const opcoes=ofertas.length?[{acao:'ver_planos',rotulo:'Ver planos e pagar por Pix'},...base]:base;
  const botoes=opcoes.map((op,i)=>`<button type="button" data-acao="${op.acao}" data-i="${i}" style="width:100%;border:0;border-radius:12px;padding:12px;font-weight:800;font-size:13.5px;margin-top:8px;cursor:pointer;${cor[op.acao]||cor.fechar}">${op.rotulo||op.acao}</button>`).join('');
  o.innerHTML=`<div style="width:100%;max-width:400px;background:var(--paper,#faf9f5);border-radius:18px;box-shadow:0 24px 60px -25px rgba(0,0,0,.55);overflow:hidden">
   <div style="padding:24px 24px 0">
    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="color:var(--brass,#c68a3b)">${svg('sprout')}</span><h2 style="font-family:'Bricolage Grotesque',sans-serif;font-size:19px;margin:0;color:var(--ink,#17211e)">${comunicacao.titulo||'Seu plano'}</h2></div>
    <p style="font-size:13.5px;line-height:1.5;color:#4a5852;margin:0 0 14px">${comunicacao.mensagem||''}</p>
    ${linhas}
+   ${blocoOfertas}
    ${ct.resumo_condicoes&&!/^\[preencher/i.test(ct.resumo_condicoes)?`<p style="font-size:12px;line-height:1.45;color:var(--sage,#6b857a);margin:0 0 6px">${ct.resumo_condicoes}</p>`:''}
   </div>
   <div style="padding:8px 24px 24px" id="rc-upsell-botoes">${botoes}</div>

@@ -1,5 +1,13 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — Adaptador App
-// Beta v1.48.0
+// Beta v1.49.0
+//
+// v1.49.0 (30/09/2026, demanda 1899fe67, F10 frente 1) — no upsell de limite,
+// busca fn_ofertas_renovacao (plano ampliado sugerido + upgrades, com nome e
+// preço) e passa para renderizarUpsell; a ação 'ver_planos' registra 'clicou'
+// e abre a tela de renovação (window.rzAbrirRenovacao, definida no index).
+// Sem ofertas (erro/vazio) o aviso segue como na v1.48.0.
+//
+// Versão anterior: Beta v1.48.0
 //
 // v1.48.0 (A.11, 09/09/2026) — case tipo='upsell' + formato='modal' em
 // processar() (renderizarUpsell, comunicacoes-ui.js). Cotas perto do teto
@@ -70,7 +78,7 @@
 // index.html pra parar de mandar esses campos: são só ignorados agora,
 // sem custo, e removê-los de lá é limpeza opcional pra outra hora.
 import {configurarApiComunicacoes,registrarLoginComunicacoes,buscarProximaComunicacao,buscarTermosLegaisPendentes,registrarInteracao,responderNps} from './comunicacoes-api.js?v=1.48.0';
-import {renderizarOnboarding,renderizarNps,renderizarAceiteTermos,renderizarUpsell,fecharComunicacao} from './comunicacoes-ui.js?v=1.48.0';
+import {renderizarOnboarding,renderizarNps,renderizarAceiteTermos,renderizarUpsell,fecharComunicacao} from './comunicacoes-ui.js?v=1.49.0';
 import {obterEstadoPwa,solicitarInstalacaoPwa} from './pwa-instalacao.js?v=1.48.0';
 
 const loginsRegistrados=new Map();
@@ -137,11 +145,20 @@ async function processar(ev){
     const {data}=await ctx.dbAuth.rpc('fn_funcionalidades_liberadas',{p_cliente_id:ctx.clienteId,p_perfil:ctx.perfil||'operador'});
     limites=(data||[]).filter(f=>f.avisar&&!f.motivo&&f.limite).map(f=>({codigo:f.codigo,rotulo:f.rotulo,usado:f.usado,limite:f.limite,cota_tipo:f.cota_tipo,oferta_upsell:f.oferta_upsell}));
    }catch(e){console.warn('[comunicacoes] limites:',e.message);}
+   let ofertas=[];
+   try{
+    const {data:of}=await ctx.dbAuth.rpc('fn_ofertas_renovacao',{p_cliente_id:ctx.clienteId});
+    ofertas=(of||[]).filter(o=>!o.eh_renovacao).sort((a,b)=>(b.eh_ampliado_sugerido-a.eh_ampliado_sugerido)||(a.preco-b.preco)).slice(0,4);
+   }catch(e){console.warn('[comunicacoes] ofertas:',e.message);}
    const link=c.conteudo?.link_bot_comercial||'https://wa.me/5511947461828';
    const textoZap=encodeURIComponent(`Olá! Sou do ${ctx.nomeEmpresa||'Raiz Patrimônio'} e quero saber as opções de plano.${limites.length?` Estou em ${limites.map(l=>`${l.usado}/${l.limite} em ${l.rotulo}`).join(', ')}.`:''}`);
-   renderizarUpsell({comunicacao:c,limites,
+   renderizarUpsell({comunicacao:c,limites,ofertas:typeof window.rzAbrirRenovacao==='function'?ofertas:[],
     onAcao:async(op)=>{
      const detalheBase={comunicacao:c.codigo,limites,oferta_upsell:[...new Set(limites.map(l=>l.oferta_upsell).filter(Boolean))].join(',')||null};
+     if(op.acao==='ver_planos'){
+      await seguro(c,ctx,'clicou',{acao:'ver_planos',...detalheBase});
+      fecharComunicacao();window.rzAbrirRenovacao?.(ofertas[0]?.plano_codigo||null);return;
+     }
      if(op.acao==='confirmar_interesse'){
       await registrarInteracao({comunicacaoId:c.id,pessoaId:ctx.pessoaId,clienteId:ctx.clienteId,evento:'confirmou_interesse',detalhe:detalheBase});
       await seguro(c,ctx,'concluiu',{acao:'confirmar_interesse'});

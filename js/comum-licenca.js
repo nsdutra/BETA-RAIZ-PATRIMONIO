@@ -1,6 +1,14 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.4.0 · 22/09/2026
+// Versão: 1.5.0 · 30/09/2026
+//
+// v1.5.0 — RENOVAR OU AMPLIAR (demanda 1899fe67, ficha F10, frente 1). O card
+// "Plano atual" ganha uma linha "Renovar ou ampliar o plano" (só para o módulo
+// imoveis, que é o que fn_ofertas_renovacao cobre) que abre o Sheet de
+// js/comum-renovacao.js (ofertas, QR Pix, "Já paguei"). ctx.toast é opcional.
+// Nenhuma regra de porta/limite mudou.
+//
+// Versão anterior: 1.4.0 · 22/09/2026
 //
 // v1.4.0 — PORTA DE LICENÇA COMPARTILHADA (demanda 8b2d37d7, C4 do soft
 // launch). FUNCIONALIDADES_LIBERADAS / carregarFuncionalidadesLiberadas() /
@@ -96,7 +104,7 @@
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
 
-export const VERSAO = '1.4.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -371,6 +379,7 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
                     <span class="text-sm font-bold text-slate-600">${inicio} até ${fim}</span>
                 </div>
             </div>
+            ${licenca.modulo === 'imoveis' ? `<div class="rz-row rz-link" data-rz-renovar="1" style="margin-top:8px"><div class="rz-ic"><svg data-lucide="refresh-cw"></svg></div><div class="rz-tx"><b>Renovar ou ampliar o plano</b><span>Ver ofertas e pagar por Pix</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : ''}
         </div>
         <div class="rz-card">
             <div class="rz-card-h"><h3>Limites do plano</h3><span class="rz-sub">o que conta em cada cota está ao lado do nome</span></div>
@@ -425,6 +434,15 @@ export async function montarAbaLicenca(mountEl, ctx) {
         }));
 
         mountEl.innerHTML = blocos.join('');
+        mountEl.querySelectorAll('[data-rz-renovar]').forEach((el) => el.addEventListener('click', async () => {
+            try {
+                const { abrirRenovacao } = await import('./comum-renovacao.js');
+                await abrirRenovacao({ dbAuth, clienteId, toast: ctx.toast });
+            } catch (err) {
+                console.warn('[comum-licenca] Falha ao abrir renovação:', err.message);
+                if (typeof ctx.toast === 'function') ctx.toast('Não foi possível abrir a renovação agora.', 'danger');
+            }
+        }));
         if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
 
     } catch (err) {
