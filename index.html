@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.273.0
-   LINHAS: 16099
+   VERSÃO: Beta v1.274.0
+   LINHAS: 16091
    DATA: 30/09/2026 (sessão 20260930-0029-licenca-financeiro, ficha F10 frente 1)
+   NOVIDADES (Beta v1.274.0) — pedido do Nicola (30/09, teste da F10): "Licença e uso"
+   deixa de ser item do menu da conta e vira abinha (chip) dentro de Minha
+   empresa: "Dados" | "Licença e uso". Só navegação; a tela de licença e a
+   renovação por Pix (v1.273.0) não mudaram. Demanda 1899fe67.
+   Versão anterior (Beta v1.273.0):
    NOVIDADES (Beta v1.273.0) — renovar ou ampliar o plano por Pix (demanda
    1899fe67, ficha F10): (1) módulo novo js/comum-renovacao.js 1.0.0 (Sheet:
    ofertas de fn_ofertas_renovacao, QR e "Pix copia e cola" gerados pelo banco,
@@ -89,24 +94,8 @@
    rodada, CIB e Status, já tinham causa raiz e correção próprias, sem
    depender dessa migração). Fica registrada como frente própria, maior,
    se ainda fizer sentido depois do soft launch.
-   NOVIDADES (Beta v1.269.0) — retorno do piloto, 4 achados/pedidos:
-   (1) modal do CIB (e qualquer modalGenerico) abria por baixo do
-   formulário aberto e ficava inacessível — z-index próprio (460) no
-   #modal-generico (js/cofre-ui.js 1.3.0 → 1.3.1), não depende mais da
-   ordem no DOM. (2) ícone (i) explicativo também em "Situação de uso" e
-   "Destinação (NFS-e)" (js/cofre-ativos.js 1.66.0 → 1.67.0, js/cofre-
-   app.js 1.40.0 → 1.41.0) e em "Aluguel Antecipado?" e "Desconto Energia
-   (%)" no formulário de contrato (js/contratos.js 1.23.1 → 1.24.0). (3) os
-   3 botões de cadastro novo (Ativos, Contratos, e "Itens de controle" de
-   dentro de um ativo) agora deixam claro que também dá pra carregar um
-   documento e a IA cadastra sozinha, em vez de ir direto pro formulário
-   manual (js/ativos/ativos-markup.js 1.48.0 → 1.49.0, js/contratos.js
-   acima). (4) investigado o pedido de remover a bolinha "..." de
-   reajuste ao lançar um contrato: já fica escondida ao criar um
-   contrato novo desde a v1.41.2 — nenhuma mudança de código necessária
-   aqui, achado documentado na entrega.
    ------------------------------------------------------------------
-   Versões anteriores (v1.268.0 … v1.268.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.269.0 … v1.269.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3238,6 +3227,8 @@
              js/comum-minha-empresa.js. Populado por montarAbaMinhaEmpresa()
              (ver dev_carregarDadosEmpresa()). -->
         <section id="tab-minha-empresa" class="tab-content hidden">
+            <!-- v1.274.0 — abinhas da Empresa (chips): Dados | Licença e uso -->
+            <div class="rz-chips"><button type="button" class="rz-chip rz-on">Dados</button><button type="button" class="rz-chip" onclick="switchTab('tab-licenca')">Licença e uso</button></div>
             <div id="mount-minha-empresa"></div>
             <!-- v1.209.0 (pedido explícito, 18/09/2026) — box "Documentos da
                  empresa", padrão "Box simples" (mesmo do Item de Controle),
@@ -3303,6 +3294,7 @@
              agora em js/comum-licenca.js. Populado por montarAbaLicenca()
              (ver inicializarLicenca(), chamada por switchTab()). -->
         <section id="tab-licenca" class="tab-content hidden">
+            <div class="rz-chips"><button type="button" class="rz-chip" onclick="switchTab('tab-minha-empresa')">Dados</button><button type="button" class="rz-chip rz-on">Licença e uso</button></div>
             <div id="mount-licenca"></div>
         </section>
         <!-- v1.252.0 (frente fiscal, Fase 3) — ⚙️ › Empresa › Fiscal.
@@ -3431,7 +3423,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.273.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.274.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9535,7 +9527,7 @@
                         { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // v1.252.0 — frente fiscal, Fase 3
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
-                        { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
+                        // v1.274.0 — "Licença e uso" virou abinha dentro de Minha empresa.
                         // v1.199.0 (bc9df144, item 11) — migrado do app-dev, só admin.
                         { icone: 'link', titulo: 'Gerenciador de links da vitrine', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') }
                         // v1.199.0 (bc9df144, item 7) — "Trocar de empresa" saiu por
