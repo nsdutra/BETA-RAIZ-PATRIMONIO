@@ -6,10 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.270.0
-   LINHAS: 16044
-   DATA: 29/09/2026 (sessão 20260929-2021-contratos-reorg, demandas
-   11afd25f/083ddd95(parcial)/a302ded9/ec7d8a9f(parte contrato))
+   VERSÃO: Beta v1.271.0
+   LINHAS: 16048
+   DATA: 30/09/2026 (sessão 20260930-0029-licenca-financeiro, fichas F1/F3)
+   NOVIDADES (Beta v1.271.0) — despesa de tecnologia e assinaturas:
+   (1) filtro de Categoria das Saídas (2 seletores) ganha "Tecnologia e
+   assinaturas"; sem isso o lançamento dessa categoria só aparecia em
+   "Todas". (2) js/cofre-controles.js 1.34.0 → 1.35.0 e js/financeiro.js
+   1.25.0 → 1.26.0 (rótulo, ícone e opção no formulário de despesa).
+   Banco: migration etapa3_tipo_despesa_e_categoria_tecnologia (tipo
+   `despesa` nos controles, 3 subtipos, categoria e origem `licenca` em
+   lançamentos) já aplicada em 30/09.
+   Última versão anterior (sessão 20260929-2021-contratos-reorg, demandas
+   11afd25f/083ddd95(parcial)/a302ded9/ec7d8a9f(parte contrato)):
    NOVIDADES (Beta v1.270.0) — reorganização do formulário de contrato +
    atalho de Partes (demanda 11afd25f, junto com a fatia "contrato" que
    tinha ficado pendente da ec7d8a9f na v1.268.0):
@@ -83,15 +92,8 @@
    demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026). Nenhuma linha do
    próprio index.html mudou fora do import map/LINHAS/changelog
    (gerar_versoes.py).
-   NOVIDADES (Beta v1.266.0) — só o import map: js/cofre-ativos.js (1.64.0 →
-   1.65.0) e js/cofre-app.js (1.38.0 → 1.39.0) — ícone (i) explicando o
-   campo "CIB (NFS-e)" do formulário de imóvel/ativo (abrirInfoCib(), case
-   'fa-info-cib'), item 6 do retorno do piloto (Nicola: "Pode executar as
-   demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026). Nenhuma linha do
-   próprio index.html mudou fora do import map/LINHAS/changelog
-   (gerar_versoes.py).
    ------------------------------------------------------------------
-   Versões anteriores (v1.265.0 … v1.265.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.266.0 … v1.266.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -115,7 +117,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.25.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.25.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.34.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.26.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.25.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.4.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -985,6 +987,7 @@
                         <option value="tributo">Tributo</option>
                         <option value="repasse_socio">Repasse a sócio</option>
                         <option value="reembolso">Reembolso</option>
+                        <option value="tecnologia_assinaturas">Tecnologia e assinaturas</option>
                         <option value="aluguel">Aluguel (repasse a terceiro)</option>
                         <option value="outro">Outro</option>
                     </select>
@@ -1064,6 +1067,7 @@
                             <option value="tributo">Tributo</option>
                             <option value="repasse_socio">Repasse a sócio</option>
                             <option value="reembolso">Reembolso</option>
+                            <option value="tecnologia_assinaturas">Tecnologia e assinaturas</option>
                             <option value="aluguel">Aluguel (repasse a terceiro)</option>
                             <option value="outro">Outro</option>
                         </select>
@@ -3411,7 +3415,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.270.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.271.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

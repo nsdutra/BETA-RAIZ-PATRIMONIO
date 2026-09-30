@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.34.0 · 26/09/2026
+// Versão: 1.35.0 · 30/09/2026
+//
+// v1.35.0 (30/09/2026 — frente licenca-financeiro, ficha F1/F3 aprovada
+// pelo Nicola em 30/09): item de controle do tipo `despesa` (domínio,
+// licença de software/SaaS, telecom — banco já aceita desde a migration
+// etapa3_tipo_despesa_e_categoria_tecnologia) passa a abrir a despesa já
+// com a categoria `tecnologia_assinaturas`, a mesma que
+// fn_categoria_lancamento_do_item devolve no banco. Antes caía em 'outro'.
 //
 // v1.34.0 (demandas 4a609dbb, ed2774ee e 132ab1f8, entrega 2/3 do lote de
 // 29): (1) ficha do item de controle ganha banner "Documento pendente"
@@ -489,7 +496,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.34.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.35.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -977,7 +984,7 @@ export async function salvarPartesItemAtual() {
 // (2+ partes, não dá pra adivinhar qual delas).
 // v1.20.3 (E1) — `taxa` cai em despesa de tributo (condomínio, marina, TUF);
 // `documento` não gera despesa e continua caindo no fallback 'outro'.
-const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manutencao', tributo: 'tributo', taxa: 'tributo' };
+const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manutencao', tributo: 'tributo', taxa: 'tributo', despesa: 'tecnologia_assinaturas' };
 
 export async function abrirNovoLancamentoDoItem() {
     const item = itemEmFoco;

@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.25.0 · 26/09/2026
+// Versão: 1.26.0 · 30/09/2026
+//
+// v1.26.0 (30/09/2026 — frente licenca-financeiro, ficha F3 aprovada em
+// 30/09): categoria de despesa `tecnologia_assinaturas` ("Tecnologia e
+// assinaturas": domínio, licença de software, telecom) ganha rótulo, ícone
+// e entra na lista de categorias do formulário de despesa. O banco já
+// aceita a categoria (lancamentos_categoria_check) e os relatórios já a
+// somam (só `repasse_socio` fica de fora).
 //
 // v1.25.0 (demandas fb6576c1 e 835aea49, entrega 2/3 do lote de 29): (1)
 // "Modo: Manual" aparecia até pra comprovante que o bot conciliou sozinho
@@ -742,7 +749,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.25.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.26.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1615,7 +1622,7 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export function rotuloCategoriaSaida(v) {
-            const mapa = { iptu: 'IPTU', condominio: 'Condomínio', manutencao: 'Manutenção', seguro: 'Seguro', taxa_adm: 'Taxa administrativa', tributo: 'Tributo', repasse_socio: 'Repasse a sócio', reembolso: 'Reembolso', aluguel: 'Aluguel (repasse a terceiro)', outro: 'Outro' };
+            const mapa = { iptu: 'IPTU', condominio: 'Condomínio', manutencao: 'Manutenção', seguro: 'Seguro', taxa_adm: 'Taxa administrativa', tributo: 'Tributo', repasse_socio: 'Repasse a sócio', tecnologia_assinaturas: 'Tecnologia e assinaturas', reembolso: 'Reembolso', aluguel: 'Aluguel (repasse a terceiro)', outro: 'Outro' };
             return mapa[v] || v;
         }
 
@@ -1626,7 +1633,7 @@ function financeiroRenderCabecalho(aba) {
             iptu: 'landmark', condominio: 'building-2', manutencao: 'wrench',
             seguro: 'shield-check', taxa_adm: 'percent', tributo: 'receipt',
             repasse_socio: 'arrow-left-right', reembolso: 'rotate-ccw',
-            aluguel: 'key-round', outro: 'circle-dollar-sign'
+            aluguel: 'key-round', tecnologia_assinaturas: 'cloud', outro: 'circle-dollar-sign'
         };
 
         // v1.13.0 — alternarGrupoSaidas() removida (Entrega F.3): a lista
@@ -1714,7 +1721,7 @@ function financeiroRenderCabecalho(aba) {
             const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
                 `<option value="${p.id}" ${(p.id === d?.parteId || p.id === parteSugeridaUnica) ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
                 `<option value="__novo__">+ Novo fornecedor</option>`;
-            const optsCategorias = ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'outro']
+            const optsCategorias = ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'tecnologia_assinaturas', 'outro']
                 .map(v => `<option value="${v}" ${v === (d?.categoria || sugestoes?.categoria) ? 'selected' : ''}>${rotuloCategoriaSaida(v)}</option>`).join('');
             const optsFormaPagamento = ['pix', 'boleto', 'transferencia', 'dinheiro', 'outro']
                 .map(v => `<option value="${v}" ${v === d?.formaPagamento ? 'selected' : ''}>${v.charAt(0).toUpperCase() + v.slice(1)}</option>`).join('');
