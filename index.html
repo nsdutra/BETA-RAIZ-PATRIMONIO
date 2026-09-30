@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.274.0
-   LINHAS: 16091
+   VERSÃO: Beta v1.275.0
+   LINHAS: 16058
    DATA: 30/09/2026 (sessão 20260930-0029-licenca-financeiro, ficha F10 frente 1)
+   NOVIDADES (Beta v1.275.0) — pedido do Nicola (30/09, 20:37): "Licença e uso"
+   volta a ser item do menu da conta (grupo Empresa), como antes; as abinhas
+   "Dados | Licença e uso" da v1.274.0 saem (ele tinha confundido o app com o
+   Gestão). Junto, js/comum-renovacao.js 1.0.0 → 1.1.0: texto curto sobre o que
+   muda entre os planos (limites lidos do banco) e, nos anuais, preço cheio
+   riscado + economia. Demanda 1899fe67.
+   Versão anterior (Beta v1.274.0):
    NOVIDADES (Beta v1.274.0) — pedido do Nicola (30/09, teste da F10): "Licença e uso"
    deixa de ser item do menu da conta e vira abinha (chip) dentro de Minha
    empresa: "Dados" | "Licença e uso". Só navegação; a tela de licença e a
@@ -57,45 +64,8 @@
    lançamentos) já aplicada em 30/09.
    Última versão anterior (sessão 20260929-2021-contratos-reorg, demandas
    11afd25f/083ddd95(parcial)/a302ded9/ec7d8a9f(parte contrato)):
-   NOVIDADES (Beta v1.270.0) — reorganização do formulário de contrato +
-   atalho de Partes (demanda 11afd25f, junto com a fatia "contrato" que
-   tinha ficado pendente da ec7d8a9f na v1.268.0):
-   (1) FIX real (demanda a302ded9): campo Status saía da tela num contrato
-   novo — causa raiz era a regra .rz-f2 (grid de 2 colunas, usada 19x no
-   app inteiro) sem minmax(0,1fr); um botão de texto longo (o de escolher
-   o Imóvel) empurrava a coluna vizinha pra fora. Corrigido na regra, não
-   só no caso que apareceu — beneficia as outras 18 ocorrências também.
-   (2) Formulário reorganizado: headers "Dados principais" e "Locatário"
-   (sem mover nenhum campo). Os campos SEM "*" (IPTU/condomínio, forma de
-   pagamento, índice de reajuste, rateio, administradora, documentos,
-   observação) saem da vista por padrão ao cadastrar um contrato NOVO,
-   atrás de "+ Mostrar mais campos" (js/contratos.js 1.24.0 → 1.25.0,
-   mesmo padrão de cofre-ativos.js v1.66.0) — nasce aberto ao EDITAR um
-   contrato existente. Nenhum campo obrigatório entra nesse bloco.
-   (3) Locatário ganha Parte própria: ao salvar (novo ou edição),
-   sincronizarContratoSupabase() agora também cria/atualiza uma linha em
-   partes + partes_papeis (papel='locatario') — a mesma tabela genérica
-   que abrirFichaParteDoContrato() (contratos.js) já lia pra abrir a
-   ficha da parte. Antes, um contrato novo nunca tinha essa Parte, e
-   editar o locatário pela ficha caía no aviso "ainda não tem cadastro
-   próprio". Sem migração — só 2 tabelas que já existiam. Best-effort:
-   falha aqui não impede salvar o contrato.
-   (4) Fiador ganha atalho: salvar um contrato NOVO agora pergunta "Quer
-   cadastrar um fiador agora?" e abre o formulário de fiador que já
-   existe (abrirFormFiadorContrato) — antes só dava pra adicionar fiador
-   reabrindo o contrato depois de já salvo.
-   (5) demanda 083ddd95 (migrar #form-contrato-wrapper pro mecanismo de
-   sheet padrão) — decisão desta entrega: NÃO fazer a migração completa
-   agora. O wrapper tem ~300 linhas de HTML estático com upload de
-   documento, histórico, rateio e o painel de reajuste todos amarrados
-   nos mesmos ids; mover isso pra dentro de um template JS (como
-   abrirSheetForm exige) é um raio de alcance grande pra um benefício
-   preventivo (z-index não colide com nada hoje — os 2 bugs reais desta
-   rodada, CIB e Status, já tinham causa raiz e correção próprias, sem
-   depender dessa migração). Fica registrada como frente própria, maior,
-   se ainda fizer sentido depois do soft launch.
    ------------------------------------------------------------------
-   Versões anteriores (v1.269.0 … v1.269.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.270.0 … v1.270.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -119,7 +89,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.26.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.26.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.0.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.26.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.26.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.1.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3227,8 +3197,6 @@
              js/comum-minha-empresa.js. Populado por montarAbaMinhaEmpresa()
              (ver dev_carregarDadosEmpresa()). -->
         <section id="tab-minha-empresa" class="tab-content hidden">
-            <!-- v1.274.0 — abinhas da Empresa (chips): Dados | Licença e uso -->
-            <div class="rz-chips"><button type="button" class="rz-chip rz-on">Dados</button><button type="button" class="rz-chip" onclick="switchTab('tab-licenca')">Licença e uso</button></div>
             <div id="mount-minha-empresa"></div>
             <!-- v1.209.0 (pedido explícito, 18/09/2026) — box "Documentos da
                  empresa", padrão "Box simples" (mesmo do Item de Controle),
@@ -3294,7 +3262,6 @@
              agora em js/comum-licenca.js. Populado por montarAbaLicenca()
              (ver inicializarLicenca(), chamada por switchTab()). -->
         <section id="tab-licenca" class="tab-content hidden">
-            <div class="rz-chips"><button type="button" class="rz-chip" onclick="switchTab('tab-minha-empresa')">Dados</button><button type="button" class="rz-chip rz-on">Licença e uso</button></div>
             <div id="mount-licenca"></div>
         </section>
         <!-- v1.252.0 (frente fiscal, Fase 3) — ⚙️ › Empresa › Fiscal.
@@ -3423,7 +3390,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.274.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.275.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9527,7 +9494,7 @@
                         { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // v1.252.0 — frente fiscal, Fase 3
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
-                        // v1.274.0 — "Licença e uso" virou abinha dentro de Minha empresa.
+                        { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
                         // v1.199.0 (bc9df144, item 11) — migrado do app-dev, só admin.
                         { icone: 'link', titulo: 'Gerenciador de links da vitrine', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') }
                         // v1.199.0 (bc9df144, item 7) — "Trocar de empresa" saiu por

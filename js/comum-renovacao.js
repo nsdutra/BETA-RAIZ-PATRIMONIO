@@ -1,6 +1,16 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.0.0 · 30/09/2026
+// Versão: 1.1.0 · 30/09/2026
+//
+// v1.1.0 — AJUSTES DO TESTE DO NICOLA (30/09, 20:37): (1) texto curto no topo
+// explicando o que muda entre os planos; (2) ofertas agrupadas por plano, com
+// a capacidade de cada um (ativos, contratos, pessoas, itens de controle,
+// perguntas à IA por mês, espaço no Cofre) lida de plano_funcionalidade —
+// nada escrito à mão, segue o que o banco diz; (3) nos anuais, preço cheio
+// (12 × o mensal do mesmo plano) riscado, preço à vista e "Economize R$ X (Y%)".
+// Só apresentação: valor e BR Code continuam vindo do banco (fn_licenca_cobranca_criar).
+//
+// Versão anterior: 1.0.0 · 30/09/2026
 //
 // v1.0.0 — CRIAÇÃO (demanda 1899fe67, ficha F10 v1.0.0, frente 1).
 // Tela em Sheet (única superfície modal — REGRAS §2) que:
@@ -18,7 +28,7 @@
 // continua funcionando sozinho.
 // ============================================================================
 
-export const VERSAO = '1.0.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -67,12 +77,67 @@ export async function buscarOfertas(dbAuth, clienteId) {
 
 export const rotuloPeriodo = (p) => (p === 'anual' ? 'anual' : 'mensal');
 
-function linhaOferta(o, i) {
-    const tag = o.eh_renovacao ? window.renderStatus('run', 'Renovação')
+const ROTULO_CAPACIDADE = {
+    'Novo ativo': ['ativos', 1], 'Novo contrato': ['contratos', 2], 'Nova pessoa': ['pessoas', 3],
+    'Novo item de controle': ['itens de controle', 4], 'Perguntar à Raiz IA': ['perguntas à Raiz IA por mês', 5],
+    'Espaço no Cofre': ['no Cofre', 6],
+};
+
+// Capacidade de cada plano, direto do catálogo (leitura liberada a quem está logado).
+async function buscarCapacidades(dbAuth, codigos) {
+    const out = {};
+    try {
+        const [pf, fn] = await Promise.all([
+            dbAuth.from('plano_funcionalidade').select('plano_codigo,funcionalidade_codigo,limite').in('plano_codigo', codigos).gt('limite', 0),
+            dbAuth.from('funcionalidades').select('codigo,nome_comercial'),
+        ]);
+        const nome = Object.fromEntries((fn.data || []).map((f) => [f.codigo, f.nome_comercial]));
+        (pf.data || []).forEach((r) => {
+            const def = ROTULO_CAPACIDADE[nome[r.funcionalidade_codigo]];
+            if (!def) return;
+            const n = Number(r.limite);
+            const txt = def[0] === 'no Cofre' ? `${(n / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} GB no Cofre` : `${n} ${def[0]}`;
+            (out[r.plano_codigo] = out[r.plano_codigo] || []).push([def[1], txt]);
+        });
+        Object.keys(out).forEach((k) => { out[k] = out[k].sort((a, b) => a[0] - b[0]).map((x) => x[1]).join(' · '); });
+    } catch (e) { console.warn('[comum-renovacao] capacidades:', e.message); }
+    return out;
+}
+
+const rotuloOferta = (o) => {
+    const p = String(o.nome_oferta || '').split(' — ');
+    const r = (p.length > 1 ? p.slice(1).join(' — ') : rotuloPeriodo(o.periodo)).trim();
+    return r.charAt(0).toUpperCase() + r.slice(1);
+};
+
+// Cheio do anual = 12 × maior mensal do mesmo plano; só aparece quando de fato há economia.
+function economiaAnual(o, ofertas) {
+    if (o.periodo !== 'anual') return null;
+    const mensais = ofertas.filter((x) => x.plano_codigo === o.plano_codigo && x.periodo === 'mensal').map((x) => Number(x.preco));
+    if (!mensais.length) return null;
+    const cheio = Math.max(...mensais) * 12;
+    const preco = Number(o.preco);
+    if (!(cheio > preco)) return null;
+    return { cheio, eco: cheio - preco, pct: Math.round(((cheio - preco) / cheio) * 100) };
+}
+
+function linhaOferta(o, i, ofertas) {
+    const e = economiaAnual(o, ofertas);
+    const precoHtml = e
+        ? `<small style="color:var(--muted);text-decoration:line-through;font-weight:500">${brl(e.cheio)}</small><br><b>${brl(o.preco)}</b><br>${window.renderStatus('ok', `Economize ${brl(e.eco)} (${e.pct}%)`)}`
+        : `<b>${brl(o.preco)}</b>`;
+    return `<div class="rz-row rz-link" data-i="${i}"><div class="rz-tx"><b>${esc(rotuloOferta(o))}</b>` +
+        `<span>${e ? 'pagamento à vista, 12 meses' : o.periodo === 'anual' ? '12 meses' : 'cobrado todo mês'}</span></div>` +
+        `<div class="rz-rt" style="text-align:right">${precoHtml}</div></div>`;
+}
+
+function blocoPlano(grupo, caps) {
+    const o = grupo[0].o;
+    const tag = grupo.some((g) => g.o.eh_renovacao) ? window.renderStatus('run', 'Seu plano')
         : o.eh_ampliado_sugerido ? window.renderStatus('ok', 'Sugerido') : '';
-    return `<div class="rz-row rz-link" data-i="${i}"><div class="rz-tx"><b>${esc(o.nome_oferta || o.plano_nome)}</b>` +
-        `<span>${esc(o.plano_nome)} · ${rotuloPeriodo(o.periodo)}</span></div>` +
-        `<div class="rz-rt"><b>${brl(o.preco)}</b>${tag ? `<br>${tag}` : ''}</div></div>`;
+    return `<div class="rz-card rz-list"><div style="padding:10px 14px 4px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:15px">${esc(o.plano_nome)}</b>${tag}</div>` +
+        (caps[o.plano_codigo] ? `<p class="text-xs" style="color:var(--muted);margin-top:2px">Até ${esc(caps[o.plano_codigo])}</p>` : '') + '</div>' +
+        grupo.map((g) => linhaOferta(g.o, g.i, g.todas)).join('') + '</div>';
 }
 
 export async function abrirRenovacao({ dbAuth, clienteId, toast, planoPreferido = null } = {}) {
@@ -94,12 +159,22 @@ export async function abrirRenovacao({ dbAuth, clienteId, toast, planoPreferido 
     if (!ofertas.length) return telaVazia('Não há ofertas disponíveis para o seu plano no momento. Fale com a Raiz.');
 
     const atual = ofertas[0].plano_atual || '';
+    const caps = await buscarCapacidades(dbAuth, [...new Set(ofertas.map((o) => o.plano_codigo))]);
+    const grupos = [];
+    ofertas.forEach((o, i) => {
+        let g = grupos.find((x) => x[0].o.plano_codigo === o.plano_codigo);
+        if (!g) { g = []; grupos.push(g); }
+        g.push({ o, i, todas: ofertas });
+    });
     window.abrirSheetForm({
         titulo: 'Renovar ou ampliar o plano',
         sub: atual ? `Plano atual: ${atual}` : 'Pagamento por Pix',
         semRodape: true,
         corpo: (el) => {
-            el.innerHTML = `<div class="rz-card rz-list">${ofertas.map(linhaOferta).join('')}</div>` +
+            el.innerHTML = '<div class="rz-card"><p class="text-sm" style="margin:0 0 4px"><b>O que muda entre os planos</b></p>' +
+                '<p class="text-xs" style="color:var(--muted);margin:0">A diferença é a capacidade: quantos ativos, contratos, pessoas e itens de controle você cadastra, quantas perguntas faz à Raiz IA por mês e quanto guarda no Cofre. ' +
+                'O plano Ampliado é o mesmo plano com mais capacidade. No anual você paga à vista e sai mais barato que 12 meses no mensal.</p></div>' +
+                grupos.map((g) => blocoPlano(g, caps)).join('') +
                 '<p class="text-xs" style="color:var(--muted)">O valor é calculado pela Raiz. Ao trocar de plano, o que você ainda não usou do plano atual entra como crédito.</p>';
             el.querySelectorAll('.rz-row[data-i]').forEach((row) =>
                 row.addEventListener('click', () => telaCobranca({ dbAuth, clienteId, oferta: ofertas[Number(row.dataset.i)], toast: aviso })));
