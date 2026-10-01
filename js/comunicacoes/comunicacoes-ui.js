@@ -1,5 +1,18 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — UI App
-// Beta v1.49.0
+// Beta v1.50.0
+//
+// v1.50.0 (01/10/2026, demanda 9b41293b, sessão 20261001-0900-onboarding-mobile)
+// — achado no teste da Claudia (iPhone abrindo o app pelo Chrome): o passo
+// "Leve o Raiz com você" mandava "Compartilhar ⬆ → Adicionar à Tela de
+// Início" para qualquer iPhone, mas no iOS a instalação confiável é pelo
+// Safari. Agora, no iPhone fora do Safari (Chrome, Firefox, Edge, Opera,
+// navegador embutido de Google/Facebook/Instagram/WhatsApp — iosForaDoSafari),
+// o passo diz que a instalação é pelo Safari, traz o botão "Copiar link"
+// (copiarLinkApp, com fallback para navegador sem clipboard) e o caminho:
+// abrir no Safari, entrar, Compartilhar → Adicionar à Tela de Início. No
+// Safari o texto segue o mesmo da v1.49.0.
+//
+// Versão anterior: Beta v1.49.0
 //
 // v1.49.0 (30/09/2026, demanda 1899fe67, F10 frente 1) — renderizarUpsell()
 // aceita `ofertas` [{nome_oferta, plano_nome, periodo, preco, eh_ampliado_sugerido}]
@@ -72,6 +85,19 @@ export function renderizarAceiteTermos({pendentes,onConfirmar}){
   catch(e){ btn.disabled=false;btn.textContent='Aceitar e continuar';alert('Não foi possível registrar seu aceite. Tente novamente.');console.warn('[comunicacoes]',e.message); }
  });
 }
+// v1.50.0 (9b41293b) — iPhone fora do Safari. Chrome/Firefox/Edge/Opera e os
+// navegadores embutidos de apps marcam o userAgent (CriOS, FxiOS, EdgiOS...);
+// o Safari de verdade é o único que traz "Safari/" sem nenhuma dessas marcas.
+function iosForaDoSafari(){
+ const ua=navigator.userAgent||'';
+ return /CriOS|FxiOS|EdgiOS|OPiOS|GSA\/|FBAN|FBAV|Instagram|Line\/|WhatsApp/i.test(ua)||!/Safari\//i.test(ua);
+}
+function copiarLinkApp(ev){
+ const url=location.origin+'/';const b=ev.currentTarget;
+ const ok=()=>{b.textContent='Link copiado ✓';};
+ const fallback=()=>{const t=document.createElement('textarea');t.value=url;t.setAttribute('readonly','');t.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:16px';document.body.appendChild(t);t.select();try{document.execCommand('copy');ok();}catch(e){b.textContent=url;}t.remove();};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(ok,fallback);else fallback();
+}
 export function renderizarOnboarding({comunicacao,estadoPwa,onFechar,onConcluir,onInstalar}){
  const passos=comunicacao.conteudo?.passos||[];let indice=0;const o=baseOverlay();
  o.innerHTML=`<div style="width:100%;max-width:380px;background:var(--paper,#faf9f5);border-radius:18px;box-shadow:0 24px 60px -25px rgba(0,0,0,.55);overflow:hidden">
@@ -89,6 +115,8 @@ export function renderizarOnboarding({comunicacao,estadoPwa,onFechar,onConcluir,
   if(inst){
    if(estadoPwa.standalone){
     extra='<div style="margin-top:14px;background:#e8f5ed;border:1px solid #c5dfd0;border-radius:12px;padding:11px 12px;font-size:12px;color:#256f45;font-weight:700">✓ O Raiz já está instalado neste aparelho.<br><span style="font-weight:500;color:#4a5852">Você pode abrir pelo ícone na tela inicial.</span></div>';
+   } else if(estadoPwa.ios&&iosForaDoSafari()){
+    extra='<div style="text-align:left;background:#fff;border:1px solid var(--line,#e6e3da);border-radius:12px;padding:12px;margin-top:14px;font-size:12px"><b>No iPhone, a instalação é feita pelo Safari.</b><br>1. Toque em “Copiar link”<br>2. Abra o <b>Safari</b> e cole o link na barra de endereço<br>3. Entre com seu e-mail e senha<br>4. Toque em Compartilhar ⬆ e escolha “Adicionar à Tela de Início”<button id="rc-copiar-link" type="button" style="display:block;width:100%;margin-top:10px;border:1px solid var(--line,#e6e3da);border-radius:10px;background:#f7f4ed;color:var(--ink,#17211e);padding:9px;font-weight:700;cursor:pointer">Copiar link</button></div>';
    } else if(estadoPwa.ios){
     extra='<div style="text-align:left;background:#fff;border:1px solid var(--line,#e6e3da);border-radius:12px;padding:12px;margin-top:14px;font-size:12px"><b>No iPhone:</b><br>1. Toque em Compartilhar ⬆<br>2. Escolha “Adicionar à Tela de Início”<br>3. Toque em “Adicionar”</div>';
    } else if(estadoPwa.promptDisponivel){
@@ -101,6 +129,7 @@ export function renderizarOnboarding({comunicacao,estadoPwa,onFechar,onConcluir,
   <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8f632b;margin-bottom:7px">Passo ${indice+1} de ${passos.length}</div>
   <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-size:20px;margin:0 0 7px">${p.titulo||comunicacao.titulo}</h2>
   <p style="font-size:13px;line-height:1.55;color:var(--sage,#6b857a);margin:0">${p.texto||''}</p>${extra}`;
+  c.querySelector('#rc-copiar-link')?.addEventListener('click',copiarLinkApp);
 
   dots.innerHTML=passos.map((_,i)=>`<button type="button" data-slide="${i}" aria-label="Ir para passo ${i+1}" style="border:0;padding:0;height:6px;width:${i===indice?'24px':'6px'};border-radius:99px;background:${i===indice?'var(--pine,#1e3a32)':'var(--line,#e6e3da)'};cursor:pointer"></button>`).join('');
   [...dots.querySelectorAll('[data-slide]')].forEach(dot=>dot.addEventListener('click',()=>{ indice=Number(dot.dataset.slide); desenhar(); }));

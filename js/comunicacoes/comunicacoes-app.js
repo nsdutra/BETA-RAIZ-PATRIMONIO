@@ -1,5 +1,23 @@
 // Raiz Patrimônio — Central de Comunicações Omnichannel — Adaptador App
-// Beta v1.49.0
+// Beta v1.50.0
+//
+// v1.50.0 (01/10/2026, demanda 056166d4, sessão 20261001-0900-onboarding-mobile)
+// — achado no teste da Claudia: o botão final das mensagens de onboarding
+// sempre deixava a pessoa na Visão Geral. Dois defeitos: (1) acao_final
+// 'abrir_formulario_imovel' abria o formulário ANTIGO de imóvel, que mora
+// numa aba escondida (tab-imoveis), sem trocar de aba — nada aparecia; (2)
+// 'abrir_ativos' e 'abrir_financeiro' (usadas pelas mensagens de adoção
+// ativas) não tinham tratamento nenhum no index. Agora executarAcaoFinal()
+// resolve aqui, com as funções globais da navegação do app
+// (irParaAbaRodape/switchTab): formulário de imóvel/ativo → aba Ativos +
+// 'cofre:abrir-form-ativo' (o mesmo "Novo ativo" do + da aba, esperando o
+// módulo carregar como abrirUploadDocumentoNoApp já faz); abrir_ativos →
+// Ativos; abrir_contratos → Contratos; abrir_financeiro → Financeiro.
+// Ação desconhecida (ou app sem a navegação) cai no ctx.onAcaoFinal de
+// sempre. Import da UI sobe para ?v=1.50.0 (passo de instalação no iPhone
+// fora do Safari, demanda 9b41293b). Nada muda no banco.
+//
+// Versão anterior: Beta v1.49.0
 //
 // v1.49.0 (30/09/2026, demanda 1899fe67, F10 frente 1) — no upsell de limite,
 // busca fn_ofertas_renovacao (plano ampliado sugerido + upgrades, com nome e
@@ -78,8 +96,22 @@
 // index.html pra parar de mandar esses campos: são só ignorados agora,
 // sem custo, e removê-los de lá é limpeza opcional pra outra hora.
 import {configurarApiComunicacoes,registrarLoginComunicacoes,buscarProximaComunicacao,buscarTermosLegaisPendentes,registrarInteracao,responderNps} from './comunicacoes-api.js?v=1.48.0';
-import {renderizarOnboarding,renderizarNps,renderizarAceiteTermos,renderizarUpsell,fecharComunicacao} from './comunicacoes-ui.js?v=1.49.0';
+import {renderizarOnboarding,renderizarNps,renderizarAceiteTermos,renderizarUpsell,fecharComunicacao} from './comunicacoes-ui.js?v=1.50.0';
 import {obterEstadoPwa,solicitarInstalacaoPwa} from './pwa-instalacao.js?v=1.48.0';
+// v1.50.0 (056166d4) — destino do botão final de cada mensagem (acao_final).
+const ACAO_FINAL_ABA={abrir_ativos:'tab-ativos',abrir_contratos:'tab-contratos',abrir_financeiro:'tab-mensal'};
+function irParaAba(tab){const f=window.irParaAbaRodape||window.switchTab;if(typeof f!=='function')return false;f(tab);return true;}
+function executarAcaoFinal(acao){
+ if(acao==='abrir_formulario_imovel'||acao==='abrir_formulario_ativo'){
+  if(!irParaAba('tab-ativos'))return false;
+  const abrir=()=>window.dispatchEvent(new CustomEvent('cofre:abrir-form-ativo'));
+  if(Array.isArray(window.__cofreAtivos))setTimeout(abrir,0);
+  else window.addEventListener('cofre:dados-carregados',()=>setTimeout(abrir,80),{once:true});
+  return true;
+ }
+ const tab=ACAO_FINAL_ABA[acao];
+ return tab?irParaAba(tab):false;
+}
 
 const loginsRegistrados=new Map();
 
@@ -129,7 +161,7 @@ async function processar(ev){
    renderizarOnboarding({comunicacao:c,estadoPwa:pwa,
     onFechar:async()=>{await seguro(c,ctx,'fechou',{motivo:'agora_nao'});fecharComunicacao();},
     onInstalar:async()=>{await seguro(c,ctx,'clicou',{acao:'instalar_pwa'});const r=await solicitarInstalacaoPwa();if(['aceito','ja_instalado'].includes(r.resultado))await seguro(c,ctx,'instalou',{resultado:r.resultado});return r;},
-    onConcluir:async()=>{const acao=c.conteudo?.acao_final||'abrir_formulario_imovel';await seguro(c,ctx,'concluiu',{acao_final:acao});fecharComunicacao();ctx.onAcaoFinal?.(acao);}
+    onConcluir:async()=>{const acao=c.conteudo?.acao_final||'abrir_formulario_imovel';await seguro(c,ctx,'concluiu',{acao_final:acao});fecharComunicacao();if(!executarAcaoFinal(acao))ctx.onAcaoFinal?.(acao);}
    });return;
   }
   if(c.tipo==='nps'&&c.formato==='nps_modal'){
