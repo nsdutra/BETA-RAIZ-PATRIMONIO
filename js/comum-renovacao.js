@@ -1,6 +1,18 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.1.0 · 30/09/2026
+// Versão: 1.2.0 · 01/10/2026
+//
+// v1.2.0 — AJUSTES DO TESTE DO NICOLA (01/10, 13:32), só apresentação:
+// (1) cada opção ganha "Escolher ›" à direita; (2) linhas mais baixas: o anual
+// mostra "cheio riscado + preço" numa linha e a economia em texto verde curto
+// (sai a pílula), sub "12 meses, à vista" (o "pagamento à vista" cortava);
+// (3) nome do plano alinhado à esquerda com as linhas Mensal/Anual;
+// (4) aviso único no topo: quando vence (ou venceu) o plano atual, crédito do
+// que não foi usado na troca, valor final calculado ao escolher, "por enquanto
+// só Pix" — sai o rodapé; (5) na tela do Pix, "Voltar aos planos" no lugar de
+// "Fechar" (volta à lista, não à Licença); (6) subtítulo com o nome comercial.
+//
+// Versão anterior: 1.1.0 · 30/09/2026
 //
 // v1.1.0 — AJUSTES DO TESTE DO NICOLA (30/09, 20:37): (1) texto curto no topo
 // explicando o que muda entre os planos; (2) ofertas agrupadas por plano, com
@@ -28,7 +40,7 @@
 // continua funcionando sozinho.
 // ============================================================================
 
-export const VERSAO = '1.1.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -124,20 +136,47 @@ function economiaAnual(o, ofertas) {
 function linhaOferta(o, i, ofertas) {
     const e = economiaAnual(o, ofertas);
     const precoHtml = e
-        ? `<small style="color:var(--muted);text-decoration:line-through;font-weight:500">${brl(e.cheio)}</small><br><b>${brl(o.preco)}</b><br>${window.renderStatus('ok', `Economize ${brl(e.eco)} (${e.pct}%)`)}`
+        ? `<span style="white-space:nowrap"><s style="color:var(--muted);font-size:12px;font-weight:500">${brl(e.cheio)}</s> <b>${brl(o.preco)}</b></span>` +
+          `<small style="color:var(--success);font-size:11.5px;font-weight:600;white-space:nowrap">Economize ${brl(e.eco)} (${e.pct}%)</small>`
         : `<b>${brl(o.preco)}</b>`;
-    return `<div class="rz-row rz-link" data-i="${i}"><div class="rz-tx"><b>${esc(rotuloOferta(o))}</b>` +
-        `<span>${e ? 'pagamento à vista, 12 meses' : o.periodo === 'anual' ? '12 meses' : 'cobrado todo mês'}</span></div>` +
-        `<div class="rz-rt" style="text-align:right">${precoHtml}</div></div>`;
+    return `<div class="rz-row rz-link" data-i="${i}" style="padding:9px 0;gap:8px"><div class="rz-tx"><b>${esc(rotuloOferta(o))}</b>` +
+        `<span>${o.periodo === 'anual' ? '12 meses, à vista' : 'todo mês'}</span></div>` +
+        `<div class="rz-rt" style="gap:1px">${precoHtml}</div>` +
+        `<span style="display:flex;align-items:center;color:var(--pine);font-size:12px;font-weight:600;flex:none">Escolher<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></span></div>`;
 }
 
 function blocoPlano(grupo, caps) {
     const o = grupo[0].o;
     const tag = grupo.some((g) => g.o.eh_renovacao) ? window.renderStatus('run', 'Seu plano')
         : o.eh_ampliado_sugerido ? window.renderStatus('ok', 'Sugerido') : '';
-    return `<div class="rz-card rz-list"><div style="padding:10px 14px 4px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:15px">${esc(o.plano_nome)}</b>${tag}</div>` +
-        (caps[o.plano_codigo] ? `<p class="text-xs" style="color:var(--muted);margin-top:2px">Até ${esc(caps[o.plano_codigo])}</p>` : '') + '</div>' +
+    return `<div class="rz-card rz-list"><div style="padding:10px 0 2px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:15px">${esc(o.plano_nome)}</b>${tag}</div>` +
+        (caps[o.plano_codigo] ? `<p class="text-xs" style="color:var(--muted);margin:2px 0 0">Até ${esc(caps[o.plano_codigo])}</p>` : '') + '</div>' +
         grupo.map((g) => linhaOferta(g.o, g.i, g.todas)).join('') + '</div>';
+}
+
+// Vigência do plano atual (módulo imoveis), para o aviso do topo.
+async function buscarVigencia(dbAuth, clienteId) {
+    try {
+        const { data } = await dbAuth.from('licencas').select('status,data_expiracao').eq('cliente_id', clienteId).eq('modulo', 'imoveis').maybeSingle();
+        return data || null;
+    } catch (e) { console.warn('[comum-renovacao] vigência:', e.message); return null; }
+}
+
+function avisoTopo(vig, nomeAtual) {
+    let venc = '';
+    if (vig?.data_expiracao) {
+        const fim = new Date(vig.data_expiracao);
+        const dias = Math.ceil((fim - new Date()) / 86400000);
+        const data = fim.toLocaleDateString('pt-BR');
+        venc = dias >= 0
+            ? `Seu plano${nomeAtual ? ' ' + esc(nomeAtual) : ''} vence em <b>${data}</b> (${dias === 0 ? 'hoje' : dias === 1 ? 'amanhã' : `em ${dias} dias`}). Renovando antes, você não perde os dias que faltam.`
+            : `Seu plano${nomeAtual ? ' ' + esc(nomeAtual) : ''} <b style="color:var(--danger)">venceu em ${data}</b>.`;
+    }
+    return '<div class="rz-card" style="border-left:4px solid var(--info)">' +
+        (venc ? `<p class="text-sm" style="margin:0 0 6px">${venc}</p>` : '') +
+        '<p class="text-xs" style="color:var(--muted);margin:0 0 4px">Os planos mudam na capacidade: ativos, contratos, pessoas, itens de controle, perguntas à Raiz IA por mês e espaço no Cofre. O Ampliado é o mesmo plano com mais capacidade, e o anual sai mais barato que 12 meses no mensal.</p>' +
+        '<p class="text-xs" style="color:var(--muted);margin:0 0 4px">Ao trocar de plano, o que você ainda não usou do atual entra como crédito. O valor final é calculado quando você escolhe a opção.</p>' +
+        '<p class="text-xs" style="margin:0"><b>Por enquanto, aceitamos pagamento só por Pix.</b></p></div>';
 }
 
 export async function abrirRenovacao({ dbAuth, clienteId, toast, planoPreferido = null } = {}) {
@@ -159,7 +198,12 @@ export async function abrirRenovacao({ dbAuth, clienteId, toast, planoPreferido 
     if (!ofertas.length) return telaVazia('Não há ofertas disponíveis para o seu plano no momento. Fale com a Raiz.');
 
     const atual = ofertas[0].plano_atual || '';
-    const caps = await buscarCapacidades(dbAuth, [...new Set(ofertas.map((o) => o.plano_codigo))]);
+    const nomeAtual = (ofertas.find((o) => o.eh_renovacao) || {}).plano_nome || atual;
+    const [caps, vig] = await Promise.all([
+        buscarCapacidades(dbAuth, [...new Set(ofertas.map((o) => o.plano_codigo))]),
+        buscarVigencia(dbAuth, clienteId),
+    ]);
+    const voltar = () => abrirRenovacao({ dbAuth, clienteId, toast, planoPreferido });
     const grupos = [];
     ofertas.forEach((o, i) => {
         let g = grupos.find((x) => x[0].o.plano_codigo === o.plano_codigo);
@@ -168,16 +212,12 @@ export async function abrirRenovacao({ dbAuth, clienteId, toast, planoPreferido 
     });
     window.abrirSheetForm({
         titulo: 'Renovar ou ampliar o plano',
-        sub: atual ? `Plano atual: ${atual}` : 'Pagamento por Pix',
+        sub: nomeAtual ? `Plano atual: ${nomeAtual}` : 'Pagamento por Pix',
         semRodape: true,
         corpo: (el) => {
-            el.innerHTML = '<div class="rz-card"><p class="text-sm" style="margin:0 0 4px"><b>O que muda entre os planos</b></p>' +
-                '<p class="text-xs" style="color:var(--muted);margin:0">A diferença é a capacidade: quantos ativos, contratos, pessoas e itens de controle você cadastra, quantas perguntas faz à Raiz IA por mês e quanto guarda no Cofre. ' +
-                'O plano Ampliado é o mesmo plano com mais capacidade. No anual você paga à vista e sai mais barato que 12 meses no mensal.</p></div>' +
-                grupos.map((g) => blocoPlano(g, caps)).join('') +
-                '<p class="text-xs" style="color:var(--muted)">O valor é calculado pela Raiz. Ao trocar de plano, o que você ainda não usou do plano atual entra como crédito.</p>';
+            el.innerHTML = avisoTopo(vig, nomeAtual) + grupos.map((g) => blocoPlano(g, caps)).join('');
             el.querySelectorAll('.rz-row[data-i]').forEach((row) =>
-                row.addEventListener('click', () => telaCobranca({ dbAuth, clienteId, oferta: ofertas[Number(row.dataset.i)], toast: aviso })));
+                row.addEventListener('click', () => telaCobranca({ dbAuth, clienteId, oferta: ofertas[Number(row.dataset.i)], toast: aviso, voltar })));
         },
     });
 }
@@ -189,7 +229,7 @@ function telaVazia(msg) {
     });
 }
 
-async function telaCobranca({ dbAuth, clienteId, oferta, toast }) {
+async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
     let c;
     try {
         const { data, error } = await dbAuth.rpc('fn_licenca_cobranca_criar', { p_cliente_id: clienteId, p_plano: oferta.plano_codigo, p_periodo: oferta.periodo });
@@ -205,11 +245,11 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast }) {
         ? `<div class="rz-card" style="border-left:4px solid var(--danger)"><b style="color:var(--danger)">Pagamento anterior não confirmado</b><p class="text-sm" style="margin-top:4px">${esc(c.aviso_recusa)}</p></div>` : '';
     const credito = Number(c.credito) > 0 ? `<div><small>Crédito do plano atual</small><b>− ${brl(c.credito)}</b></div>` : '';
 
-    window.abrirSheetForm({
+    const sheet = window.abrirSheetForm({
         titulo: oferta.nome_oferta || oferta.plano_nome,
         sub: `${brl(c.valor)} · ${rotuloPeriodo(c.periodo || oferta.periodo)}`,
         rotuloSalvar: 'Já paguei',
-        rotuloCancelar: 'Fechar',
+        rotuloCancelar: 'Voltar aos planos',
         corpo: (el) => {
             el.innerHTML = recusa +
                 (svgQr ? `<div style="width:220px;height:220px;margin:4px auto 10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);padding:6px">${svgQr}</div>` : '') +
@@ -234,6 +274,12 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast }) {
             return false; // mantém o Sheet aberto na tela de "informado"
         },
     });
+    // v1.2.0 — o botão secundário volta à lista de planos (o X continua fechando tudo).
+    const btnVoltar = sheet?.querySelector('.rz-sh-f .rz-btn-2');
+    if (btnVoltar && typeof voltar === 'function') {
+        btnVoltar.removeAttribute('onclick');
+        btnVoltar.addEventListener('click', (ev) => { ev.preventDefault(); voltar(); });
+    }
 }
 
 function telaInformado(c) {

@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.5.0 · 30/09/2026
+// Versão: 1.5.1 · 01/10/2026
+//
+// v1.5.1 — pedido do Nicola (01/10): a lista "Limites do plano" deixa de ter
+// rolagem própria (max-h-96 overflow-y-auto saiu); a tela rola inteira.
+//
+// Versão anterior: 1.5.0 · 30/09/2026
 //
 // v1.5.0 — RENOVAR OU AMPLIAR (demanda 1899fe67, ficha F10, frente 1). O card
 // "Plano atual" ganha uma linha "Renovar ou ampliar o plano" (só para o módulo
@@ -104,7 +109,7 @@
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
 
-export const VERSAO = '1.5.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -383,7 +388,7 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
         </div>
         <div class="rz-card">
             <div class="rz-card-h"><h3>Limites do plano</h3><span class="rz-sub">o que conta em cada cota está ao lado do nome</span></div>
-            <div class="space-y-3 max-h-96 overflow-y-auto">${funcsHtml}</div>
+            <div class="space-y-3">${funcsHtml}</div>
         </div>`;
 }
 
