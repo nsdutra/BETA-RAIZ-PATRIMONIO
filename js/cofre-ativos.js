@@ -1,6 +1,16 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.67.0 · 28/09/2026
+// Versão: 1.68.0 · 01/10/2026
+//
+// v1.68.0 (demanda 11afd25f, pedido do Nicola: "falta atalho de novo contrato
+// no ativo — ao clicar em Contratos, quando não existe ainda um contrato, não
+// aparece a opção de novo contrato, como Novo ativo no grid geral") — o vazio
+// do chip Contratos ganha o botão "+ Novo contrato" (antes só dizia "inicie
+// pelo menu ⋮"). Abre abrirEscolhaNovoContratoDoAtivo(): Carregar documento
+// (IA, já ligado a este ativo), Novo contrato (formulário único, imóvel já
+// escolhido) e Coletar dados do locatário (link, WhatsApp e minuta). O ⋮ do
+// card continua com as mesmas opções. Ponte window.__rzNovoContratoAtivo (mesmo
+// molde de __rzUploadAtivo), sem case novo no cofre-app.js.
 //
 // v1.67.0 (demanda 1163097a, retorno do piloto — Nicola testando o item 6/
 // CIB pediu o mesmo padrão de ícone (i) + modalGenerico() em "Situação de
@@ -867,7 +877,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.67.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -2073,7 +2083,9 @@ async function montarContratosAtivo(a) {
             // v1.17.0 — único card vazio que RENDERIZA sem ação própria
             // (exceção documentada, REGRAS §6): a contratação nasce na aba
             // Contratos do App, não daqui.
-            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda. Inicie a contratação pelo menu ⋮.</p></div>`;
+            // v1.68.0 (demanda 11afd25f) — vazio com ação própria, mesmo
+            // padrão do vazio de Ativos ("+ Novo ativo").
+            painel.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-text"></i></div><p>Nenhum contrato pra este imóvel ainda.</p><div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="window.__rzNovoContratoAtivo && window.__rzNovoContratoAtivo()"><i data-lucide="plus"></i> Novo contrato</button></div></div>`;
             refrescarIcones();
             return;
         }
@@ -2474,6 +2486,19 @@ export function iniciarContratacaoDoAtivo() {
     // v1.41.0 — mesma correção acima: a.id, não a.entidade_origem_id.
     window.iniciarProcessoContratacao(a.id);
 }
+// v1.68.0 (demanda 11afd25f) — escolha de "Novo contrato" a partir do ativo:
+// os 3 caminhos lado a lado, um passo antes de qualquer formulário.
+export function abrirEscolhaNovoContratoDoAtivo() {
+    const a = estado.ativoEmFoco;
+    if (!ehCategoriaImovel(a?.tipo_ativo)) { mostrarToast('Contratos de locação só existem pra imóveis.', 'erro'); return; }
+    sheetOuAviso({ titulo: 'Novo contrato', sub: a.nome_exibicao, acoes: [
+        { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê o contrato e já liga a este imóvel', aoTocar: () => window.__rzUploadAtivo?.(true) },
+        { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: 'Formulário já com este imóvel', aoTocar: () => abrirNovoContratoDoAtivo() },
+        { icone: 'link', titulo: 'Coletar dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarContratacaoDoAtivo() },
+    ] });
+}
+if (typeof window !== 'undefined') window.__rzNovoContratoAtivo = abrirEscolhaNovoContratoDoAtivo;
+
 export function abrirAcoesPropriedade() {
     const a = estado.ativoEmFoco; if (!a) return;
     sheetOuAviso({ titulo: 'Propriedade', sub: a.nome_exibicao, acoes: [

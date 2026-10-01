@@ -1,7 +1,14 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.2.1 · 28/09/2026
+// Versão: 1.2.2 · 01/10/2026
+//
+// v1.2.2 (demanda 11afd25f, pedido do Nicola: "deve apagar a opção dentro do
+// link da minuta pois já tem a opção num passo antes") — o menu de Locação
+// (abrirModalOpcoesContratacao) perde "Dados novo contrato": cadastrar na tela
+// agora é escolhido antes, em "Novo contrato" (contratos.js 1.28.0,
+// abrirEscolhaNovoContrato com o imóvel), e abre o formulário único. Este menu
+// fica só com o que é dele: link de coleta, WhatsApp e minuta.
 //
 // v1.2.1 (demanda 303e68dc, achado do piloto — Claudia, 28/09/2026):
 // iniciarProcessoContratacao() (bridge da opção "Contratação: link,
@@ -61,7 +68,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.2.1'; // v-check: manter igual ao header
+export const VERSAO = '1.2.2'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -273,9 +280,8 @@ export function montarAbaVitrine() {
             const endereco = `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}`;
             const mensagemZap = `Olá! Para darmos andamento à locação do imóvel em ${endereco}, preciso de alguns dados seus para gerar o contrato:\n\n- Nome completo\n- CPF ou CNPJ\n- WhatsApp\n- E-mail\n- Endereço atual\n- Profissão\n- Estado civil\n\nVocê pode preencher direto por este link: ${link}`;
             const minuta = encontrarMinutaParaImovel(imo.id);
-            const acoes = [
-                { icone: 'file-plus', titulo: 'Dados novo contrato', codigo: 'contratos.criar', sub: 'Preencher você mesmo, direto no formulário', aoTocar: () => abrirDadosNovoContratoPopup(imo.id) },
-            ];
+            // v1.2.2 — "Dados novo contrato" saiu daqui (ver changelog).
+            const acoes = [];
             if (minuta) {
                 acoes.push(
                     { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
@@ -287,7 +293,6 @@ export function montarAbaVitrine() {
             abrirSheetAcoes({
                 titulo: 'Locação', sub: endereco, acoes,
                 grupos: minuta ? null : [
-                    { titulo: 'Dados', acoes: [acoes[0]] },
                     { titulo: 'Sem minuta padrão cadastrada', acoes: [
                         { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Necessária pra link, WhatsApp e geração de minuta', aoTocar: () => switchTab('tab-minutas') }
                     ] }

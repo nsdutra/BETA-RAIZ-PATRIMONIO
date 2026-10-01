@@ -1,7 +1,36 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.27.0 · 30/09/2026
+// Versão: 1.28.0 · 01/10/2026
+//
+// v1.28.0 (demanda 11afd25f, sinérgicas 3b458eb4 e c0d255e3, sessão
+// 20260927-2205-contratos, pedido explícito do Nicola: "ao optar por dados
+// novo contrato o formulário é diferente do cadastrar contrato manualmente.
+// Devem ser idênticos") — UM formulário de contrato só:
+//   1) O popup "Dados Novo Contrato" (dnc-*, abrirDadosNovoContratoPopup/
+//      salvarDadosNovoContratoPopup, ~300 linhas) saiu. Ele nunca gravou
+//      nada sozinho — copiava os campos pro formulário completo e chamava
+//      saveContrato(). abrirDadosNovoContratoPopup(imovelId) continua
+//      exportada, agora só abre o formulário completo
+//      (criarContratoParaImovel: imóvel escolhido, contrato Assinando com
+//      os dados do link já carregado, aluguel do imóvel e vencimento 5).
+//   2) O que o popup tinha de melhor foi pro formulário completo: endereço
+//      do locatário em campos separados (comum-endereco.js, prefixo
+//      con-loc — montarEnderecoLocatarioForm/lerEnderecoLocatarioDoForm/
+//      carregarEnderecoParteLocatario) e fiadores na mesma tela, 0..N
+//      (#con-fiadores-lista). BUG corrigido junto (3b458eb4): no popup, o
+//      bloco estruturado era montado numa variável que o HTML nunca usava —
+//      a tela mostrava sempre o textarea antigo, e rua/CEP nunca chegavam à
+//      Parte do locatário.
+//   3) Fiadores com 2 travas novas: saveContrato() só regrava fiadores
+//      quando a lista MUDOU desde que foi carregada (fiadoresParaSalvar —
+//      editar o telefone não faz delete+insert dos fiadores), e erro ao
+//      carregar não vira "lista vazia" (antes, um save em seguida apagaria
+//      os fiadores salvos).
+//   4) abrirEscolhaNovoContrato(imovelId?) aceita o imóvel: com ele, "Novo
+//      contrato" já abre com o imóvel e entra "Coletar dados do locatário"
+//      (link, WhatsApp e minuta). Vazio da lista de Contratos sem filtro
+//      ganha o botão "+ Novo contrato".
 //
 // v1.27.0 (Bloco B, demandas 5ca973d6/854f6343, sessão 20260927-2205-contratos,
 // pedido explícito do Nicola) — reajuste e revisional de contrato passam a
@@ -535,8 +564,14 @@
 
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
+// v1.28.0 (demanda 11afd25f) — endereço do locatário no formulário único de
+// contrato passa a ser o bloco estruturado (mesmo componente que cofre-ativos.js
+// já importa estaticamente). Sem dependência circular: os dois módulos não
+// importam nada.
+import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
+import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.27.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.28.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -634,12 +669,28 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             possui_imovel_proprio: false, imovel_matricula: '', imovel_cartorio_registro: '', imovel_endereco: ''
         };
 
+        // v1.28.0 (demanda 11afd25f) — 2 travas novas, porque o formulário
+        // único de contrato passa a carregar fiadores SEMPRE (antes só o
+        // popup "Dados Novo Contrato" carregava):
+        //   · snapshot: saveContrato() só manda fiadores pro banco quando a
+        //     lista MUDOU desde que foi carregada — editar o telefone do
+        //     locatário não reescreve (delete+insert) os fiadores de ninguém;
+        //   · erro ao carregar NÃO vira "lista vazia deste contrato" (antes
+        //     virava, e um save em seguida apagaria os fiadores salvos): o
+        //     dono fica null e saveContrato() simplesmente não toca neles.
+        // fiadoresListaAlvoId: onde renderFiadoresPopup() desenha — o
+        // formulário único usa #con-fiadores-lista; o sheet "Fiadores do
+        // contrato" continua usando #dnc-fiadores-lista.
+        let fiadoresContratoAtualSnapshot = '[]';
+        let fiadoresListaAlvoId = 'dnc-fiadores-lista';
+
         export async function carregarFiadoresContrato(contratoId) {
             fiadoresContratoAtualPertenceAoId = contratoId || '__novo__';
+            fiadoresContratoAtualSnapshot = '[]';
             if (!contratoId) { fiadoresContratoAtual = []; return; }
             const { data, error } = await dbAuth.from('contrato_fiadores')
                 .select('*').eq('contrato_id', contratoId).order('ordem');
-            if (error) { console.error('carregarFiadoresContrato:', error.message); fiadoresContratoAtual = []; return; }
+            if (error) { console.error('carregarFiadoresContrato:', error.message); fiadoresContratoAtual = []; fiadoresContratoAtualPertenceAoId = null; return; }
             fiadoresContratoAtual = (data || []).map(function(f) {
                 return {
                     nome: f.nome || '', doc_tipo: f.doc_tipo || 'CPF', cpf: f.cpf || '',
@@ -653,6 +704,16 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     imovel_cartorio_registro: f.imovel_cartorio_registro || '', imovel_endereco: f.imovel_endereco || ''
                 };
             });
+            fiadoresContratoAtualSnapshot = JSON.stringify(fiadoresContratoAtual);
+        }
+
+        // v1.28.0 (demanda 11afd25f) — lista de fiadores que saveContrato()
+        // manda pro banco: undefined (não toca em nada) quando a lista não é
+        // deste contrato OU não mudou desde que foi carregada.
+        function fiadoresParaSalvar(idContrato) {
+            if (fiadoresContratoAtualPertenceAoId !== (idContrato || '__novo__')) return undefined;
+            if (JSON.stringify(fiadoresContratoAtual) === fiadoresContratoAtualSnapshot) return undefined;
+            return fiadoresContratoAtual.filter(function(f) { return f.nome && f.cpf; });
         }
 
         export function adicionarFiadorPopup() {
@@ -693,6 +754,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 }
             }
             await carregarFiadoresContrato(contratoId);
+            fiadoresListaAlvoId = 'dnc-fiadores-lista'; // v1.28.0 — este sheet desenha na própria lista
 
             // v1.128.0 (fatia 9b 2/3) — invólucro Tipo B → sheet da gramática.
             // A lista (renderFiadoresPopup → #dnc-fiadores-lista) é a mesma do
@@ -740,7 +802,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // (mesma classe de input/label já usada lá — não inventei um
         // padrão visual novo).
         export function renderFiadoresPopup() {
-            const listaEl = document.getElementById('dnc-fiadores-lista');
+            // v1.28.0 (demanda 11afd25f) — alvo configurável: formulário único
+            // de contrato (#con-fiadores-lista) ou sheet de fiadores (#dnc-...).
+            const listaEl = document.getElementById(fiadoresListaAlvoId) || document.getElementById('dnc-fiadores-lista');
             if (!listaEl) return;
 
             if (fiadoresContratoAtual.length === 0) {
@@ -809,7 +873,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         ${campo('Endereço do imóvel', 'imovel_endereco')}
                     </div>
                 </div>`;
-            }).join('');
+            }).join('')
+            // v1.28.0 (demanda 11afd25f, Nicola: "não vi opção de cadastrar mais
+            // fiadores") — o card de cada fiador é longo; o botão do topo some
+            // da vista. Repete a ação no fim da lista.
+            + `<button type="button" onclick="adicionarFiadorPopup()" class="rz-btn rz-btn-3" style="margin-top:2px"><svg data-lucide="user-plus"></svg> Adicionar outro fiador</button>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         export function exibirDivisaoImovelNoContrato(imovelId, divisaoJaSalva) {
@@ -1304,302 +1373,20 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             return idEhUuidValido(con.id);
         }
 
+        // v1.28.0 (demanda 11afd25f, pedido explícito do Nicola: "ao optar por
+        // dados novo contrato o formulário é diferente do cadastrar contrato
+        // manualmente. Devem ser idênticos") — o popup "Dados Novo Contrato"
+        // (dnc-*, ~250 linhas de HTML próprio) deixou de existir. Ele nunca
+        // teve gravação própria: copiava os campos pro formulário completo
+        // escondido e chamava saveContrato(). Agora QUEM ABRE é o próprio
+        // formulário completo — o que o popup tinha de melhor foi pra lá:
+        // endereço do locatário estruturado (CEP com busca), fiadores na
+        // mesma tela (0, 1, 2 ou mais) e o contrato "Assinando" com os dados
+        // que o interessado preencheu pelo link já carregado
+        // (criarContratoParaImovel faz isso). O nome continua exportado só
+        // por compatibilidade com quem ainda chamar por ele.
         export async function abrirDadosNovoContratoPopup(imovelId) {
-            const imo = imoveis.find(i => i.id === imovelId);
-            if (!imo) return;
-
-            // CORRIGIDO (bug real, achado 30/08/2026 testando Fiadores,
-            // mas pré-existente — não introduzido agora): o filtro antigo
-            // (`c.status === 'Assinando'`) só reconhecia o contrato
-            // enquanto ele estivesse "Assinando" — assim que salvo, o
-            // status vira 'Ativo' direto (ver salvarDadosNovoContratoPopup,
-            // linha con-status) e este popup PARAVA de encontrar o
-            // contrato que ele mesmo acabou de criar. Reabrir "Dados Novo
-            // Contrato" depois de salvar mostrava tudo vazio de novo
-            // (fiador incluso) e, se salvo de novo, CRIAVA UM CONTRATO
-            // DUPLICADO em vez de atualizar o existente. Corrigido usando
-            // o mesmo helper que o resto do sistema já usa pra achar "o"
-            // contrato de um imóvel (obterContratoPrincipalDoImovel —
-            // prioriza Ativo > Assinando > Suspenso > Finalizado).
-            const con = obterContratoPrincipalDoImovel(imovelId);
-
-            // NOVO (30/08/2026) — ver comentário de aguardarIdRealDoContrato
-            // acima: se o contrato encontrado ainda tem id temporário
-            // (sincronização em andamento), espera resolver antes de
-            // buscar fiadores — sem isso, a busca falhava silenciosamente.
-            if (con && !idEhUuidValido(con.id)) {
-                mostrarCarregamentoGlobal('Só um instante, ainda sincronizando...');
-                await aguardarIdRealDoContrato(con);
-                esconderCarregamentoGlobal();
-            }
-
-            // NOVO (30/08/2026) — carrega fiadores já cadastrados pra este
-            // contrato (se existir) antes de montar o HTML do popup.
-            await carregarFiadoresContrato(con?.id || null);
-
-            document.getElementById('modal-campo-contrato')?.remove();
-
-            const admOpts = document.getElementById('con-administradora').innerHTML;
-
-            // v1.15.0 (demanda be42b19f, item 1 — "campo de Parte não usa o
-            // padrão novo, que já tem endereço") — o campo "Endereço atual
-            // do locatário" desta tela era 1 textarea de texto livre
-            // (rua+número+bairro+cidade+UF+CEP tudo concatenado à mão);
-            // passa a usar o MESMO bloco estruturado que Configurações ›
-            // Partes e o Item de Controle já usam (comum-endereco.js —
-            // CEP com busca automática, campos separados). Escopo só do
-            // campo de endereço, de propósito — o resto desta tela (layout
-            // geral, remover Histórico) é a demanda c75076ed, separada.
-            // `con-locatario-endereco`/`locatario_endereco_atual` continua
-            // sendo 1 texto só no banco (placeholder de minuta) — o bloco
-            // estruturado só melhora a DIGITAÇÃO; salvarDadosNovoContratoPopup
-            // concatena os campos estruturados num texto só, mesmo formato
-            // de sempre, sem migration nenhuma nesta tela.
-            let blocoEnderecoLocatario = `<textarea id="dnc-endereco" required rows="3" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">${(con?.locatarioEnderecoAtual || '').replace(/</g, '&lt;')}</textarea>`; // fallback se o import falhar
-            try {
-                const { renderizarBlocoEndereco } = await import('./comum-endereco.js');
-                blocoEnderecoLocatario = renderizarBlocoEndereco('dnc', {}, { mostrarBotaoCopiar: false });
-            } catch (err) { console.warn('[contratos] Falha ao carregar bloco de endereço, usando campo simples:', err.message); }
-
-            const modal = document.createElement('div');
-            modal.id = 'modal-campo-contrato';
-            modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Dados Novo Contrato</h3>
-                        <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-                    </div>
-                    <p style="font-size:11px;color:#64748b;margin-bottom:10px;">${imo.empreendimento || '-'} — ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}</p>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Nome do locatário <span style="color:var(--danger)">*</span></label><input id="dnc-locatario" required value="${(con?.locatario || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">CPF/CNPJ <span style="color:var(--danger)">*</span></label><input id="dnc-cpf" required value="${con?.cpf || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">WhatsApp <span style="color:var(--danger)">*</span></label><input id="dnc-whatsapp" required value="${con?.whatsapp || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">E-mail <span style="color:var(--danger)">*</span></label><input id="dnc-email" required type="email" value="${con?.email || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        </div>
-                        <!-- pedido explícito: mais 1 linha nesse campo -->
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Endereço atual do locatário <span style="color:var(--danger)">*</span></label><textarea id="dnc-endereco" required rows="3" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">${(con?.locatarioEnderecoAtual || '').replace(/</g, '&lt;')}</textarea></div>
-                        <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Profissão <span style="color:var(--danger)">*</span></label><input id="dnc-profissao" required value="${(con?.locatarioProfissao || '').replace(/"/g, '')}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Estado civil <span style="color:var(--danger)">*</span></label>
-                                <select id="dnc-estado-civil" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
-                                    <option value="">-- Selecione --</option>
-                                    <option ${con?.locatarioEstadoCivil==='Solteiro(a)'?'selected':''}>Solteiro(a)</option>
-                                    <option ${con?.locatarioEstadoCivil==='Casado(a)'?'selected':''}>Casado(a)</option>
-                                    <option ${con?.locatarioEstadoCivil==='Divorciado(a)'?'selected':''}>Divorciado(a)</option>
-                                    <option ${con?.locatarioEstadoCivil==='Viúvo(a)'?'selected':''}>Viúvo(a)</option>
-                                    <option ${con?.locatarioEstadoCivil==='União estável'?'selected':''}>União estável</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Início vigência <span style="color:var(--danger)">*</span></label><input type="date" id="dnc-inicio" required value="${con?.inicio || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Fim vigência <span style="color:var(--danger)">*</span></label><input type="date" id="dnc-fim" required value="${con?.fim || ''}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <!-- pedido explícito: permite editar valor do
-                                 aluguel e (a "descrição", ver campo abaixo)
-                                 diretamente aqui, no início do contrato. -->
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Valor do aluguel (R$) <span style="color:var(--danger)">*</span></label><input type="number" id="dnc-valor" required value="${con?.valor || imo.valor || 0}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Dia de vencimento <span style="color:var(--danger)">*</span></label><input type="number" id="dnc-vencimento-dia" required min="1" max="31" value="${con?.vencimentoDia || 5}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Forma de pagamento</label>
-                                <select id="dnc-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
-                                    <option ${con?.formaPagamento==='PIX'?'selected':''}>PIX</option>
-                                    <option ${con?.formaPagamento==='Boleto'?'selected':''}>Boleto</option>
-                                    <option ${con?.formaPagamento==='Depósito'?'selected':''}>Depósito</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Índice de reajuste <span style="color:var(--danger)">*</span></label><input id="dnc-reajuste" required value="${con?.reajuste || 'IPCA'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        </div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Administradora</label><select id="dnc-administradora" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${admOpts}</select></div>
-                        <div style="display:flex;gap:8px;">
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Locatário paga condomínio</label>
-                                <select id="dnc-condominio-locatario" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
-                                    <option value="Não" ${con?.condominioLocatario!=='Sim'?'selected':''}>Não</option>
-                                    <option value="Sim" ${con?.condominioLocatario==='Sim'?'selected':''}>Sim</option>
-                                </select>
-                            </div>
-                            <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Locatário paga IPTU</label>
-                                <select id="dnc-iptu-locatario" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
-                                    <option value="Não" ${con?.locatarioPagaIptu!=='Sim'?'selected':''}>Não</option>
-                                    <option value="Sim" ${con?.locatarioPagaIptu==='Sim'?'selected':''}>Sim</option>
-                                </select>
-                            </div>
-                        </div>
-                        <!-- "descrição" pedida: campo livre, vira histórico
-                             ao salvar (mesmo padrão de observação usado nos
-                             demais popups desta ficha). -->
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição / observação</label><textarea id="dnc-descricao" rows="2" placeholder="Escreva aqui uma observação..." style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></textarea></div>
-
-                        <!-- NOVO (30/08/2026) — Fiadores, pedido explícito do
-                             Nicola. 0, 1, 2 ou mais por contrato. -->
-                        <div style="border-top:1px solid #e2e8f0;padding-top:10px;margin-top:4px;">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                                <span style="font-size:12px;font-weight:bold;color:#1e293b;">Fiadores</span>
-                                <button type="button" onclick="adicionarFiadorPopup()" style="background:var(--pine);color:#fff;font-weight:bold;font-size:11px;padding:6px 10px;border:none;border-radius:6px;">+ Adicionar fiador</button>
-                            </div>
-                            <div id="dnc-fiadores-lista"></div>
-                        </div>
-                    </div>
-                    <div style="display:flex;gap:8px;margin-top:14px;">
-                        <button onclick="salvarDadosNovoContratoPopup('${imovelId}', ${con ? `'${con.id}'` : 'null'})" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Salvar</button>
-                        <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Sair</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
-            renderFiadoresPopup();
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        // v1.15.0 (demanda be42b19f, item 1) — vira async pra poder ler o
-        // bloco de endereço estruturado (import dinâmico, mesmo padrão do
-        // popup acima). 'dnc-endereco' saiu da lista simples de
-        // obrigatórios — quando o bloco estruturado carrega, esse id não
-        // existe mais como elemento único; a checagem de endereço abaixo é
-        // separada, e EDITANDO um contrato existente sem mexer no bloco
-        // (campos ficam em branco de propósito — não dá pra reconstituir
-        // rua/número/bairro a partir do texto livre antigo) o endereço
-        // salvo antes é MANTIDO, nunca apagado.
-        export async function salvarDadosNovoContratoPopup(imovelId, contratoId) {
-            // Validação simples (os "required" no HTML não bloqueiam
-            // sozinhos porque este popup não é um <form> — mesma checagem
-            // que os demais campos obrigatórios desta ficha já fazem).
-            const camposObrigatorios = ['dnc-locatario', 'dnc-cpf', 'dnc-whatsapp', 'dnc-email', 'dnc-profissao', 'dnc-estado-civil', 'dnc-inicio', 'dnc-fim', 'dnc-valor', 'dnc-vencimento-dia', 'dnc-reajuste'];
-            for (const campoId of camposObrigatorios) {
-                const el = document.getElementById(campoId);
-                if (!el || !el.value || !el.value.toString().trim()) {
-                    alert('⚠️ Preencha todos os campos obrigatórios (*).');
-                    el?.focus();
-                    return;
-                }
-            }
-            const conAtual = contratoId ? contratos.find(c => c.id === contratoId) : null;
-            // Endereço: bloco estruturado (dnc-rua/cep/...) quando o import
-            // deu certo, texto simples (dnc-endereco) no fallback. Exige
-            // preenchimento só quando NÃO há endereço salvo antes (contrato
-            // novo, ou existente que nunca teve endereço) — editar sem
-            // tocar no bloco preserva o que já estava salvo.
-            let enderecoLocatarioFinal = conAtual?.locatarioEnderecoAtual || '';
-            // v1.26.0 (demanda 3b458eb4) — reseta a cada chamada; só marca
-            // "pertence a este contrato" quando o bloco estruturado abaixo
-            // realmente devolver algo preenchido.
-            enderecoLocatarioEstruturadoAtual = null;
-            enderecoLocatarioEstruturadoAtualPertenceAoId = contratoId || '__novo__';
-            if (document.getElementById('dnc-endereco')) {
-                const texto = document.getElementById('dnc-endereco').value.trim();
-                if (texto) enderecoLocatarioFinal = texto;
-                else if (!enderecoLocatarioFinal) { alert('⚠️ Preencha o endereço do locatário.'); document.getElementById('dnc-endereco').focus(); return; }
-            } else if (document.getElementById('dnc-rua') || document.getElementById('dnc-cep')) {
-                try {
-                    const { lerBlocoEndereco } = await import('./comum-endereco.js');
-                    const { formatarEnderecoParte } = await import('./comum-partes.js');
-                    const estruturado = lerBlocoEndereco('dnc');
-                    const formatado = formatarEnderecoParte(estruturado);
-                    if (formatado) {
-                        enderecoLocatarioFinal = formatado;
-                        // v1.26.0 (demanda 3b458eb4) — guarda os campos
-                        // estruturados (não só o texto concatenado) pra
-                        // sincronizarContratoSupabase() (index.html) também
-                        // gravar rua/número/bairro/cidade/UF/CEP na Parte
-                        // do locatário, não só o texto livre.
-                        enderecoLocatarioEstruturadoAtual = estruturado;
-                    } else if (!enderecoLocatarioFinal) { alert('⚠️ Preencha o endereço do locatário (ao menos rua e cidade).'); return; }
-                } catch (err) {
-                    console.warn('[contratos] Falha ao ler bloco de endereço estruturado:', err.message);
-                    if (!enderecoLocatarioFinal) { alert('⚠️ Não consegui carregar o campo de endereço. Recarregue a página e tente de novo.'); return; }
-                }
-            }
-
-            // Escreve nos campos REAIS do formulário completo (escondido) e
-            // chama saveContrato() sem duplicar validação/persistência/
-            // diff/histórico — tudo isso já existe lá.
-            document.getElementById('con-id').value = contratoId || '';
-            document.getElementById('con-imovel').value = imovelId;
-            // CORRIGIDO (30/08/2026, pedido explícito do Nicola: "salvando
-            // contrato e ele não tá gerando um contrato no status
-            // assinando"): contrato novo por este popup pulava direto pra
-            // 'Ativo', nunca passava por 'Assinando' — inconsistente com o
-            // resto do sistema, que trata 'Assinando' como "aguardando
-            // revisão/assinatura" (mesmo status que o formulário público
-            // da Vitrine usa) e é EXIGIDO por gerarMinutaNoCofre() pra
-            // achar o contrato ("Ainda não há um contrato 'Assinando'
-            // para este imóvel..."). Cadastrar via "Dados Novo Contrato"
-            // (staff, não Vitrine) agora também nasce 'Assinando' — vira
-            // 'Ativo' depois, de propósito, via "Alterar Status" (mesmo
-            // fluxo que já dispara a geração automática de item a
-            // receber — ver salvarAlterarStatusContrato()).
-            document.getElementById('con-status').value = contratoId ? (contratos.find(c => c.id === contratoId)?.status || 'Assinando') : 'Assinando';
-            document.getElementById('con-locatario').value = document.getElementById('dnc-locatario').value.trim();
-            document.getElementById('con-cpf').value = document.getElementById('dnc-cpf').value.trim();
-            formatarMascaraDocumento();
-            document.getElementById('con-whatsapp').value = document.getElementById('dnc-whatsapp').value.trim();
-            document.getElementById('con-email').value = document.getElementById('dnc-email').value.trim();
-            document.getElementById('con-locatario-endereco').value = enderecoLocatarioFinal;
-            document.getElementById('con-locatario-profissao').value = document.getElementById('dnc-profissao').value.trim();
-            document.getElementById('con-locatario-estado-civil').value = document.getElementById('dnc-estado-civil').value;
-            document.getElementById('con-inicio').value = document.getElementById('dnc-inicio').value;
-            document.getElementById('con-fim').value = document.getElementById('dnc-fim').value;
-            document.getElementById('con-valor').value = document.getElementById('dnc-valor').value;
-            document.getElementById('con-vencimento-dia').value = document.getElementById('dnc-vencimento-dia').value;
-            document.getElementById('con-forma-pagamento').value = document.getElementById('dnc-forma-pgto').value;
-            document.getElementById('con-reajuste').value = document.getElementById('dnc-reajuste').value.trim();
-            document.getElementById('con-administradora').value = document.getElementById('dnc-administradora').value;
-            document.getElementById('con-condominio-locatario').value = document.getElementById('dnc-condominio-locatario').value;
-            document.getElementById('con-iptu-locatario').value = document.getElementById('dnc-iptu-locatario').value;
-            document.getElementById('con-antecipado').value = document.getElementById('con-antecipado').value || 'Sim';
-
-            // Sem painel de reajuste aqui (pedido explícito) — os campos
-            // dele ficam em branco, saveContrato() já trata isso como "sem
-            // reajuste nesta gravação".
-            document.getElementById('con-valor-anterior').value = '';
-            document.getElementById('con-vigente-desde').value = '';
-
-            sugerirDescontoEnergia();
-            exibirDivisaoImovelNoContrato(imovelId, contratoId ? contratos.find(c => c.id === contratoId)?.divisaoRepasse : undefined);
-
-            const descricaoTexto = document.getElementById('dnc-descricao').value.trim();
-
-            // CORRIGIDO (bug real, 30/08/2026, pedido explícito do Nicola):
-            // saveContrato() agora retorna `false` quando alguma validação
-            // barra a gravação (ver changelog completo dentro dela) — antes
-            // esse retorno nunca era checado aqui, e o popup fechava
-            // normalmente (parecendo sucesso) mesmo quando nada tinha sido
-            // salvo de verdade (ex.: CPF de teste inválido). Sem isso, o
-            // fluxo abaixo (histórico da descrição, fechar modal) rodava
-            // em cima de um contrato que nunca existiu.
-            const salvou = saveContrato({ preventDefault: () => {} });
-            if (salvou === false) return;
-
-            // v1.18.0 (Fase 1 do wrapper de escrita) — esta tela cria OU
-            // edita (mesmo popup, ver comentário v1.15.0 acima); um único
-            // emitirEscrita cobre os dois casos. Mesmo cálculo de idFinal
-            // já usado logo abaixo pra achar o registro recém-criado
-            // quando `contratoId` veio vazio (contrato novo).
-            const idFinalEmit = contratoId || contratos[contratos.length - 1]?.id;
-            if (idFinalEmit) emitirEscrita('contrato', { id: idFinalEmit, acao: 'criar-ou-editar' });
-
-            // Descrição/observação vira histórico à parte (mesmo padrão dos
-            // demais popups desta ficha) — saveContrato() não tem campo de
-            // observação livre, só o diff estruturado.
-            if (descricaoTexto) {
-                const idFinal = contratoId || contratos[contratos.length - 1]?.id;
-                const conFinal = contratos.find(c => c.id === idFinal);
-                if (conFinal) {
-                    dbAuth.from('historico_contrato').insert({ contrato_id: conFinal.id, tipo: 'alteracao', descricao: descricaoTexto }).select().single().then(({ data, error }) => {
-                        if (!error && data) {
-                            conFinal.historico = conFinal.historico || [];
-                            conFinal.historico.push({ data: data.criado_em, descricao: descricaoTexto, tipo: 'alteracao', _salvo: true });
-                        }
-                    });
-                }
-            }
-
-            fecharModalCampoContrato();
-            if (fichaImovelAtualId === imovelId) setTimeout(() => renderFichaImovelUnica(imoveis.find(i => i.id === imovelId)), 300);
+            return criarContratoParaImovel(imovelId);
         }
 
         export async function salvarAlterarStatusContrato(contratoId) {
@@ -2731,12 +2518,25 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // abrirSheetAcoes/abrirUploadDocumentoNoApp (globais do app
         // principal, index.html), sem import — mesma razão de
         // abrirSheet/rzSheetCabecalho acima.
-        export function abrirEscolhaNovoContrato() {
-            if (typeof abrirSheetAcoes !== 'function') { abrirFormularioContrato(); return; }
-            abrirSheetAcoes({ titulo: 'Contratos', sub: 'O que você quer fazer?', acoes: [
+        // v1.28.0 (demanda 11afd25f / c0d255e3, pedido do Nicola: "falta atalho
+        // de novo contrato no ativo") — aceita o imóvel opcional. Com imóvel,
+        // "Novo contrato" já abre com ele escolhido (e com o contrato
+        // Assinando, se o interessado já preencheu pelo link) e entra a
+        // terceira opção, coleta de dados por link/WhatsApp e minuta — que
+        // deixou de oferecer "Dados novo contrato" lá dentro (vitrine.js
+        // 1.2.2): a escolha é feita aqui, um passo antes.
+        export function abrirEscolhaNovoContrato(imovelId) {
+            const comImovel = typeof imovelId === 'string' && imovelId;
+            const abrirManual = () => comImovel ? criarContratoParaImovel(imovelId) : abrirFormularioContrato();
+            if (typeof abrirSheetAcoes !== 'function') { abrirManual(); return; }
+            const acoes = [
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => (typeof abrirUploadDocumentoNoApp === 'function') && abrirUploadDocumentoNoApp() },
-                { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: 'Preencher os dados na tela', aoTocar: () => abrirFormularioContrato() },
-            ] });
+                { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: comImovel ? 'Formulário já com este imóvel' : 'Preencher os dados na tela', aoTocar: abrirManual },
+            ];
+            if (comImovel && typeof iniciarProcessoContratacao === 'function') {
+                acoes.push({ icone: 'link', titulo: 'Coletar dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarProcessoContratacao(imovelId) });
+            }
+            abrirSheetAcoes({ titulo: 'Novo contrato', sub: 'Como você quer cadastrar?', acoes });
         }
 
         // ===================================================================
@@ -3847,6 +3647,15 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 return false;
             }
 
+            // v1.28.0 (demanda 11afd25f) — endereço do locatário vem do bloco
+            // estruturado do formulário único (lerEnderecoLocatarioDoForm);
+            // o texto concatenado continua indo pra locatario_endereco_atual
+            // (placeholder de minuta, mesmo formato de sempre) e os campos
+            // separados vão pra Parte do locatário (sincronizarContratoSupabase).
+            const enderecoLido = lerEnderecoLocatarioDoForm(id);
+            if (!enderecoLido.ok) { alert(enderecoLido.mensagem); return false; }
+            document.getElementById('con-locatario-endereco').value = enderecoLido.texto;
+
             // Lógica de "Novo Valor": o campo sempre abre em branco. Se o usuário
 
             // digitou algo nele, o valor ATUAL do contrato (antes desta edição) vira
@@ -3918,9 +3727,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // SÓ inclui se fiadoresContratoAtual foi carregado PRA
                 // ESTE MESMO contrato (trava contra sobra de outro popup —
                 // ver comentário em fiadoresContratoAtualPertenceAoId).
-                fiadores: (fiadoresContratoAtualPertenceAoId === (id || '__novo__'))
-                    ? fiadoresContratoAtual.filter(function(f) { return f.nome && f.cpf; })
-                    : undefined,
+                // v1.28.0 — só quando a lista é deste contrato E mudou desde
+                // que foi carregada (fiadoresParaSalvar, ver comentário lá).
+                fiadores: fiadoresParaSalvar(id),
 
                 status: document.getElementById('con-status').value,
 
@@ -4303,6 +4112,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             // v1.46.0 — CORRIGIDO: campos novos no formulário (ver changelog).
             document.getElementById('con-locatario-endereco').value = con.locatarioEnderecoAtual || '';
+            // v1.28.0 (demanda 11afd25f) — bloco estruturado; os campos
+            // separados chegam logo abaixo (Parte do locatário, assíncrono).
+            montarEnderecoLocatarioForm({}, con.locatarioEnderecoAtual || '');
             document.getElementById('con-locatario-profissao').value = con.locatarioProfissao || '';
             document.getElementById('con-locatario-estado-civil').value = con.locatarioEstadoCivil || '';
 
@@ -4405,6 +4217,29 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             document.getElementById('form-contrato-titulo').innerText = "Editar contrato";
 
+            // v1.28.0 (demanda 11afd25f) — fiadores na mesma tela e endereço
+            // separado do locatário, os dois lidos do banco. Enquanto carrega,
+            // o dono da lista de fiadores fica null: um "Salvar" apressado
+            // não toca nos fiadores (ver fiadoresParaSalvar).
+            fiadoresListaAlvoId = 'con-fiadores-lista';
+            fiadoresContratoAtual = [];
+            fiadoresContratoAtualPertenceAoId = null;
+            const listaFiadoresEl = document.getElementById('con-fiadores-lista');
+            if (listaFiadoresEl) listaFiadoresEl.innerHTML = '<p style="font-size:12px;color:var(--muted)">Carregando fiadores...</p>';
+            (async function() {
+                let cid = con.id;
+                if (!idEhUuidValido(cid)) { await aguardarIdRealDoContrato(con); cid = con.id; }
+                const campoId = document.getElementById('con-id');
+                if (!campoId || (campoId.value !== id && campoId.value !== cid)) return; // o formulário já é de outro contrato
+                if (campoId.value !== cid) campoId.value = cid;
+                const [enderecoParte] = await Promise.all([carregarEnderecoParteLocatario(cid), carregarFiadoresContrato(cid)]);
+                if (document.getElementById('con-id')?.value !== cid) return;
+                renderFiadoresPopup();
+                if (enderecoParte && (enderecoParte.endereco_rua || enderecoParte.endereco_cidade) && !enderecoLocatarioFormPreenchido()) {
+                    montarEnderecoLocatarioForm(enderecoParte, con.locatarioEnderecoAtual || '');
+                }
+            })();
+
             document.getElementById('form-contrato-wrapper').classList.remove('hidden');
 
             sincronizarBotaoToggleContrato();
@@ -4419,6 +4254,84 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             }
 
+        }
+
+        // ===================================================================
+        // v1.28.0 (demanda 11afd25f) — formulário único de contrato: endereço
+        // estruturado do locatário e fiadores na mesma tela.
+        // ===================================================================
+        // Bloco de endereço com prefixo 'con-loc' (ids con-loc-cep, -rua, -num,
+        // -comp, -bairro, -cidade, -uf, -ibge), dentro de
+        // #con-locatario-endereco-bloco. #con-locatario-endereco (hidden)
+        // guarda o texto livre já salvo no contrato — contratos antigos e os
+        // que vieram do link público só têm esse texto; ele aparece como dica
+        // e é mantido se o bloco ficar em branco (nunca apaga o que já existe).
+        function montarEnderecoLocatarioForm(valores, textoSalvo) {
+            const alvo = document.getElementById('con-locatario-endereco-bloco');
+            if (!alvo) return;
+            alvo.innerHTML = renderizarBlocoEndereco('con-loc', valores || {}, { mostrarBotaoCopiar: false });
+            const salvoEl = document.getElementById('con-locatario-endereco-salvo');
+            if (salvoEl) {
+                const temEstruturado = !!(valores && (valores.endereco_rua || valores.endereco_cidade));
+                salvoEl.textContent = (textoSalvo && !temEstruturado)
+                    ? 'Endereço salvo hoje: ' + textoSalvo + '. Preencha os campos acima para separar rua, número e cidade (em branco, ele continua como está).'
+                    : '';
+                salvoEl.classList.toggle('hidden', !salvoEl.textContent);
+            }
+        }
+
+        function enderecoLocatarioFormPreenchido() {
+            return ['cep', 'rua', 'num', 'bairro', 'cidade'].some(function(k) {
+                return ((document.getElementById('con-loc-' + k) || {}).value || '').trim() !== '';
+            });
+        }
+
+        // Campos separados do endereço, lidos da Parte do locatário (partes +
+        // partes_papeis, papel='locatario') — onde sincronizarContratoSupabase
+        // (index.html) grava rua/número/cidade/UF/CEP desde a v1.272.0.
+        async function carregarEnderecoParteLocatario(contratoId) {
+            if (!idEhUuidValido(contratoId)) return null;
+            try {
+                const { data: papel } = await dbAuth.from('partes_papeis').select('parte_id')
+                    .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId)
+                    .eq('papel', 'locatario').eq('ativo', true).limit(1).maybeSingle();
+                if (!papel || !papel.parte_id) return null;
+                const { data: parte } = await dbAuth.from('partes')
+                    .select('endereco_rua, endereco_num, endereco_comp, endereco_bairro, endereco_cidade, uf, cep, codigo_ibge_municipio')
+                    .eq('id', papel.parte_id).maybeSingle();
+                return parte || null;
+            } catch (err) {
+                console.warn('[contratos] Falha ao ler o endereço da Parte do locatário:', err.message);
+                return null;
+            }
+        }
+
+        // Usado por saveContrato(): devolve o texto que vai pro contrato
+        // (locatario_endereco_atual) e deixa os campos separados prontos pra
+        // Parte (enderecoLocatarioEstruturadoAtual, mesma trava por id).
+        function lerEnderecoLocatarioDoForm(idContrato) {
+            enderecoLocatarioEstruturadoAtual = null;
+            enderecoLocatarioEstruturadoAtualPertenceAoId = idContrato || '__novo__';
+            const textoSalvo = ((document.getElementById('con-locatario-endereco') || {}).value || '').trim();
+            if (!document.getElementById('con-loc-rua')) {
+                return textoSalvo ? { ok: true, texto: textoSalvo } : { ok: false, mensagem: '⚠️ Preencha o endereço do locatário.' };
+            }
+            const estruturado = lerBlocoEndereco('con-loc');
+            if (estruturado.endereco_rua || estruturado.endereco_cidade) {
+                enderecoLocatarioEstruturadoAtual = estruturado;
+                return { ok: true, texto: formatarEnderecoParte(estruturado) };
+            }
+            if (textoSalvo) return { ok: true, texto: textoSalvo };
+            return { ok: false, mensagem: '⚠️ Preencha o endereço do locatário (ao menos rua e cidade).' };
+        }
+
+        // Estado de fiadores do formulário único: lista vazia de contrato novo.
+        function prepararFiadoresFormNovo() {
+            fiadoresListaAlvoId = 'con-fiadores-lista';
+            fiadoresContratoAtual = [];
+            fiadoresContratoAtualPertenceAoId = '__novo__';
+            fiadoresContratoAtualSnapshot = '[]';
+            renderFiadoresPopup();
         }
 
         // Atalho a partir do card do imóvel vago: vai para a aba Contratos, abre
@@ -4487,6 +4400,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             sugerirDescontoEnergia();
             exibirDivisaoImovelNoContrato(imovelId);
 
+            // v1.28.0 (demanda 11afd25f) — mesmos padrões que o antigo popup
+            // "Dados Novo Contrato" usava: aluguel do imóvel e vencimento dia 5
+            // (os dois continuam editáveis).
+            const campoValorNovo = document.getElementById('con-valor');
+            if (campoValorNovo && !campoValorNovo.value && imo.valor) campoValorNovo.value = imo.valor;
+            const campoVencNovo = document.getElementById('con-vencimento-dia');
+            if (campoVencNovo && !campoVencNovo.value) campoVencNovo.value = 5;
+
             document.getElementById('form-contrato')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
@@ -4497,6 +4418,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('con-id').value = '';
 
             document.getElementById('form-contrato').reset();
+
+            // v1.28.0 (demanda 11afd25f) — hidden não volta com reset(); o
+            // bloco de endereço e a lista de fiadores nascem vazios.
+            document.getElementById('con-locatario-endereco').value = '';
+            montarEnderecoLocatarioForm({}, '');
+            prepararFiadoresFormNovo();
 
             const resumoBtnConReset = document.getElementById('con-imovel-resumo');
             if (resumoBtnConReset) resumoBtnConReset.textContent = '-- Escolha o Imóvel --';
@@ -4694,7 +4621,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 return empA.localeCompare(empB) || (a.locatario || '').localeCompare(b.locatario || '');
             });
             if (!ordenados.length) {
-                container.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><p>Nenhum contrato ${fStatusCon !== 'todos' || fEmpCon !== 'todos' || fLocatarioCon !== 'todos' ? 'neste filtro' : 'ainda'}. Um contrato vigente é o que transforma um imóvel em receita.</p></div></div>`;
+                // v1.28.0 (demanda 11afd25f) — sem filtro, o vazio ganha o
+                // atalho "+ Novo contrato" (mesmo padrão do vazio de Ativos).
+                const comFiltroCon = fStatusCon !== 'todos' || fEmpCon !== 'todos' || fLocatarioCon !== 'todos';
+                container.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><p>Nenhum contrato ${comFiltroCon ? 'neste filtro' : 'ainda'}. Um contrato vigente é o que transforma um imóvel em receita.</p>${comFiltroCon ? '' : '<div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="abrirEscolhaNovoContrato()"><svg data-lucide="plus"></svg> Novo contrato</button></div>'}</div></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }

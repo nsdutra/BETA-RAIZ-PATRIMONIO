@@ -6,9 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.277.0
-   LINHAS: 16154
-   DATA: 01/10/2026 (sessão 20260927-2205-contratos, Bloco B)
+   VERSÃO: Beta v1.278.0
+   LINHAS: 16165
+   DATA: 01/10/2026 (sessão 20260927-2205-contratos, formulário único de contrato)
+   NOVIDADES (Beta v1.278.0) — formulário único de contrato (demanda 11afd25f,
+   sinérgicas 3b458eb4 e c0d255e3, pedido explícito do Nicola em 30/09: "devem
+   ser idênticos... separar o que é dados do contrato do que é do locatário").
+   (1) "Dados Novo Contrato" e "Novo contrato de locação" viram UM formulário
+   (js/contratos.js 1.27.0 → 1.28.0): ordem nova — Contrato (imóvel, status,
+   vigência, aluguel, vencimento) › Reajuste e Revisão › card Locatário (vira a
+   Parte do contrato; endereço em campos separados com CEP) › card Fiadores (0,
+   1, 2 ou mais na mesma tela) › "+ Mostrar mais campos" (Antecipado e Desconto
+   de energia foram pra lá). Nenhum id mudou. Saiu a pergunta "Quer cadastrar um
+   fiador agora?" depois de salvar (o card já está na tela).
+   (2) Atalho "Novo contrato": no vazio do chip Contratos do ativo
+   (js/cofre-ativos.js 1.67.0 → 1.68.0), no vazio da aba Contratos e na ficha
+   antiga do imóvel sem contrato — escolha entre Carregar documento (IA), Novo
+   contrato e Coletar dados do locatário (link, WhatsApp e minuta).
+   (3) Menu de Locação (js/vitrine.js 1.2.1 → 1.2.2) perde "Dados novo
+   contrato": a escolha é feita um passo antes. Sem migração de banco.
+   Versão anterior (Beta v1.277.0, Bloco B):
    NOVIDADES (Beta v1.277.0) — Bloco B (demandas 5ca973d6/854f6343, pedido
    explícito do Nicola): reajuste e revisional de contrato viram itens de
    controle (cofre_itens_controle) desde a criação/edição do contrato — sem
@@ -60,18 +77,8 @@
    empresa: "Dados" | "Licença e uso". Só navegação; a tela de licença e a
    renovação por Pix (v1.273.0) não mudaram. Demanda 1899fe67.
    Versão anterior (Beta v1.273.0):
-   NOVIDADES (Beta v1.273.0) — renovar ou ampliar o plano por Pix (demanda
-   1899fe67, ficha F10): (1) módulo novo js/comum-renovacao.js 1.0.0 (Sheet:
-   ofertas de fn_ofertas_renovacao, QR e "Pix copia e cola" gerados pelo banco,
-   "Já paguei"); (2) js/comum-licenca.js 1.4.0 → 1.5.0 (linha "Renovar ou
-   ampliar o plano" em ⚙️ › Empresa › Licença e uso); (3) comunicações 1.48.0 →
-   1.49.0 (o aviso de limite lista o plano ampliado e os upgrades com nome e
-   preço e ganha "Ver planos e pagar por Pix"); (4) index: window.rzAbrirRenovacao
-   e toast na aba Licença. A confirmação do pagamento é do Gestão.
-   Versão anterior (Beta v1.272.0, sessão 20260930-0033-contratos-fixes,
-   retorno do piloto):
    ------------------------------------------------------------------
-   Versões anteriores (v1.272.0 … v1.272.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.273.0 … v1.273.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -95,7 +102,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.26.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.27.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.1.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.26.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.28.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.2","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.68.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.1.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -2180,7 +2187,16 @@
 
                 
 
-                <p class="rz-group" style="margin-top:0">Dados principais</p>
+                <!-- v1.278.0 (demanda 11afd25f, pedido do Nicola: "separar o que é
+                     dados do contrato do que é do locatário pra deixar como parte
+                     faz") — formulário ÚNICO de contrato (o popup "Dados Novo
+                     Contrato" deixou de existir; tudo abre aqui): 1) Contrato
+                     (imóvel, status, vigência, aluguel, vencimento); 2) Reajuste
+                     e Revisão; 3) card Locatário — os dados que viram a Parte do
+                     contrato, com endereço em campos separados; 4) card Fiadores
+                     (0, 1, 2 ou mais, na mesma tela); 5) "+ Mostrar mais campos".
+                     Nenhum id mudou; só a ordem e o endereço (textarea → bloco). -->
+                <p class="rz-group" style="margin-top:0">Contrato</p>
                 <div class="rz-f2">
                     <div class="rz-f">
                         <label>Imóvel <i>*</i></label>
@@ -2194,90 +2210,6 @@
                             <option value="Ativo">Ativo</option>
                             <option value="Suspenso">Suspenso</option>
                             <option value="Finalizado">Finalizado</option>
-                        </select>
-                    </div>
-                </div>
-
-                <p class="rz-group">Locatário</p>
-                <div class="rz-f2">
-                    <div class="rz-f">
-                        <label>Nome do Locatário <i>*</i></label>
-                        <input type="text" id="con-locatario" required>
-                    </div>
-                    <div class="rz-f">
-                        <label>CPF/CNPJ <i>*</i></label>
-                        <input type="text" id="con-cpf" required oninput="formatarMascaraDocumento()" placeholder="Só digitar os números">
-                        <p id="con-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-                    </div>
-                </div>
-
-                <div class="rz-f">
-                    <label>Pessoa de Contato</label>
-                    <input type="text" id="con-contato-nome" placeholder="Nome de quem responde pelo contrato">
-                </div>
-
-                <div class="rz-f2">
-                    <div class="rz-f">
-                        <label>WhatsApp <i>*</i></label>
-                        <input type="tel" id="con-whatsapp" required oninput="aplicarMascaraTelefone(this); validarWhatsappContrato();" placeholder="(11) 91234-5678">
-                        <p id="con-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-                    </div>
-                    <div class="rz-f">
-                        <label>E-mail <i>*</i></label>
-                        <input type="email" id="con-email" required oninput="validarEmailContrato()" placeholder="nome@email.com">
-                        <p id="con-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
-                    </div>
-                </div>
-
-                <!-- v1.46.0 — CORRIGIDO (achado real do inventário de
-                     obrigatórios da Especificação de Prontidão): estes 3
-                     campos já existiam no banco (locatario_endereco_atual/
-                     _profissao/_estado_civil — preenchidos pelo interessado
-                     na Vitrine ou pelo bot) e já eram usados como
-                     placeholder de minuta (montarValoresPlaceholdersMinuta),
-                     mas NUNCA tiveram campo neste formulário. Consequência
-                     séria: toda vez que um contrato vindo da Vitrine/bot era
-                     editado e salvo no App, esses 3 valores eram apagados em
-                     silêncio (contratoDados não os incluía). Corrigido nos
-                     dois pontos: UI aqui + contratoDados no saveContrato(). -->
-                <div class="rz-f">
-                    <label>Endereço atual do locatário <i>*</i></label>
-                    <!-- CORRIGIDO (v1.55.0 — pedido explícito): virou textarea
-                         maior — o endereço que o interessado digita no link
-                         público (rua+número+complemento+bairro+cidade+UF+CEP,
-                         tudo concatenado em 1 texto só) não cabia inteiro
-                         num input de 1 linha só. -->
-                    <textarea id="con-locatario-endereco" required rows="2" placeholder="Rua, número, bairro, cidade"></textarea>
-                </div>
-
-                <div class="rz-f2">
-                    <div class="rz-f">
-                        <label>Profissão <i>*</i></label>
-                        <input type="text" id="con-locatario-profissao" required>
-                    </div>
-                    <div class="rz-f">
-                        <label>Estado civil <i>*</i></label>
-                        <select id="con-locatario-estado-civil" required>
-                            <option value="">-- Selecione --</option>
-                            <option value="Solteiro(a)">Solteiro(a)</option>
-                            <option value="Casado(a)">Casado(a)</option>
-                            <option value="Divorciado(a)">Divorciado(a)</option>
-                            <option value="Viúvo(a)">Viúvo(a)</option>
-                            <option value="União estável">União estável</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="rz-f2">
-                    <div class="rz-f">
-                        <label>Dia Vencimento <i>*</i></label>
-                        <input type="number" id="con-vencimento-dia" required min="1" max="31">
-                    </div>
-                    <div class="rz-f">
-                        <label>Aluguel Antecipado? <button type="button" onclick="abrirInfoAluguelAntecipado()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
-                        <select id="con-antecipado">
-                            <option value="Sim">Sim (paga na própria competência)</option>
-                            <option value="Não">Não (paga no mês seguinte)</option>
                         </select>
                     </div>
                 </div>
@@ -2305,8 +2237,8 @@
                         <input type="number" step="0.01" id="con-valor" required oninput="atualizarValorLiquidoEsperado()">
                     </div>
                     <div class="rz-f">
-                        <label>Desconto Energia (%) <button type="button" onclick="abrirInfoDescontoEnergia()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
-                        <input type="number" id="con-desconto-energia" value="0">
+                        <label>Dia Vencimento <i>*</i></label>
+                        <input type="number" id="con-vencimento-dia" required min="1" max="31">
                     </div>
                 </div>
 
@@ -2393,6 +2325,81 @@
                     </div>
                 </div>
 
+                <!-- v1.278.0 (demanda 11afd25f) — card Locatário: o que é da pessoa,
+                     separado do que é do contrato. sincronizarContratoSupabase()
+                     grava isto também na Parte do locatário (partes + partes_papeis).
+                     Endereço: bloco estruturado de comum-endereco.js (prefixo
+                     con-loc), montado por contratos.js (montarEnderecoLocatarioForm);
+                     #con-locatario-endereco (hidden) guarda o texto já salvo. -->
+                <div class="rz-card" id="con-card-locatario">
+                    <p class="rz-group" style="margin-top:0">Locatário</p>
+                    <p style="font-size:11.5px;color:var(--muted);margin:-2px 2px 10px">Fica salvo como Parte do contrato: os mesmos dados aparecem na ficha e na minuta.</p>
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Nome do Locatário <i>*</i></label>
+                        <input type="text" id="con-locatario" required>
+                    </div>
+                    <div class="rz-f">
+                        <label>CPF/CNPJ <i>*</i></label>
+                        <input type="text" id="con-cpf" required oninput="formatarMascaraDocumento()" placeholder="Só digitar os números">
+                        <p id="con-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                    </div>
+                </div>
+
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>WhatsApp <i>*</i></label>
+                        <input type="tel" id="con-whatsapp" required oninput="aplicarMascaraTelefone(this); validarWhatsappContrato();" placeholder="(11) 91234-5678">
+                        <p id="con-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                    </div>
+                    <div class="rz-f">
+                        <label>E-mail <i>*</i></label>
+                        <input type="email" id="con-email" required oninput="validarEmailContrato()" placeholder="nome@email.com">
+                        <p id="con-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                    </div>
+                </div>
+
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Profissão <i>*</i></label>
+                        <input type="text" id="con-locatario-profissao" required>
+                    </div>
+                    <div class="rz-f">
+                        <label>Estado civil <i>*</i></label>
+                        <select id="con-locatario-estado-civil" required>
+                            <option value="">-- Selecione --</option>
+                            <option value="Solteiro(a)">Solteiro(a)</option>
+                            <option value="Casado(a)">Casado(a)</option>
+                            <option value="Divorciado(a)">Divorciado(a)</option>
+                            <option value="Viúvo(a)">Viúvo(a)</option>
+                            <option value="União estável">União estável</option>
+                        </select>
+                    </div>
+                </div>
+
+                    <p class="rz-group">Endereço atual <i style="color:var(--danger);font-style:normal">*</i></p>
+                    <input type="hidden" id="con-locatario-endereco" value="">
+                    <div id="con-locatario-endereco-bloco"></div>
+                    <p id="con-locatario-endereco-salvo" class="hidden" style="font-size:11.5px;color:var(--muted);margin:2px 2px 8px"></p>
+
+                <div class="rz-f">
+                    <label>Pessoa de Contato</label>
+                    <input type="text" id="con-contato-nome" placeholder="Nome de quem responde pelo contrato">
+                </div>
+                </div>
+
+                <!-- v1.278.0 (demanda 11afd25f, pedido do Nicola: "não vi opção de
+                     cadastrar mais fiadores") — fiadores na mesma tela do contrato,
+                     quantos forem precisos. Mesma lista do antigo popup
+                     (renderFiadoresPopup, contratos.js); só é gravada quando muda. -->
+                <div class="rz-card" id="con-card-fiadores">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                        <p class="rz-group" style="margin:0 2px">Fiadores</p>
+                        <button type="button" onclick="adicionarFiadorPopup()" class="rz-btn rz-btn-2 rz-sm"><svg data-lucide="user-plus"></svg> Adicionar fiador</button>
+                    </div>
+                    <div id="con-fiadores-lista" style="margin-top:8px"></div>
+                </div>
+
                 <!-- v1.270.0 (demanda 11afd25f + ec7d8a9f) — daqui até Observação são
                      só campos OPCIONAIS (nenhum tem "*"); ficam escondidos por padrão
                      ao cadastrar um contrato NOVO (mesmo padrão de cofre-ativos.js
@@ -2400,7 +2407,24 @@
                      controlam a classe hidden e o texto do botão. -->
                 <button type="button" id="con-toggle-mais-campos" onclick="alternarCamposAvancadosContrato()" class="text-xs font-semibold" style="color:var(--sprout);text-align:left;background:none;border:none;padding:4px 0;cursor:pointer;margin-top:4px">+ Mostrar mais campos</button>
                 <div id="con-campos-avancados" class="hidden">
-                <p class="rz-group" style="margin-top:0">Locatário paga</p>
+                <!-- v1.278.0 (demanda 11afd25f) — Antecipado e Desconto de energia
+                     vieram pra cá: não são obrigatórios e já nascem com padrão. -->
+                <p class="rz-group" style="margin-top:0">Pagamento</p>
+                <div class="rz-f2">
+                    <div class="rz-f">
+                        <label>Aluguel Antecipado? <button type="button" onclick="abrirInfoAluguelAntecipado()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
+                        <select id="con-antecipado">
+                            <option value="Sim">Sim (paga na própria competência)</option>
+                            <option value="Não">Não (paga no mês seguinte)</option>
+                        </select>
+                    </div>
+                    <div class="rz-f">
+                        <label>Desconto Energia (%) <button type="button" onclick="abrirInfoDescontoEnergia()" class="text-slate-400" title="O que é isso?" aria-label="O que é isso?" style="line-height:0;display:inline-flex;vertical-align:middle;margin-left:4px"><svg data-lucide="info" style="width:13px;height:13px"></svg></button></label>
+                        <input type="number" id="con-desconto-energia" value="0">
+                    </div>
+                </div>
+
+                <p class="rz-group">Locatário paga</p>
                 <div class="rz-f2">
                     <div class="rz-f">
                         <label>IPTU</label>
@@ -3449,7 +3473,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.277.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.278.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5379,25 +5403,10 @@
                 rzConSeCarregado('renderContratos');
                 rzImoSeCarregado('renderImoveis'); // v1.0.0 imoveis.js (A.8) — não força o import
                 rzFinSeCarregado('renderMensalidades');
-                // v1.270.0 (demanda 11afd25f) — só em contrato NOVO (con._novo,
-                // marcado em contratos.js saveContrato()): oferece cadastrar um
-                // fiador na hora, sem precisar reabrir a ficha depois.
-                if (con._novo) {
-                    const querFiador = confirm("Contrato de locação salvo!\n\nQuer cadastrar um fiador agora?");
-                    if (querFiador && typeof window.abrirFormFiadorContrato === 'function') {
-                        // v1.272.0 (demanda 8e661f53) — CORRIGIDO: o contrato
-                        // já foi salvo antes desta pergunta (sincronizarContrato
-                        // Supabase rodou acima); mas sem aguardar o Sheet de
-                        // fiador fechar nem forçar outro render depois, cancelar
-                        // o Sheet fazia a lista parecer sem o contrato novo
-                        // (achado do Nicola). Espera fechar — salvando OU
-                        // cancelando — e renderiza a lista de novo, de propósito.
-                        await window.abrirFormFiadorContrato(con.id, null);
-                        rzConSeCarregado('renderContratos');
-                    }
-                } else {
-                    alert("Contrato de locação salvo!");
-                }
+                // v1.278.0 (demanda 11afd25f) — a pergunta "Quer cadastrar um
+                // fiador agora?" (v1.270.0) saiu: o formulário único de contrato
+                // já tem o card Fiadores na mesma tela, antes de salvar.
+                alert("Contrato de locação salvo!");
 
             } catch (err) {
 
@@ -8885,7 +8894,7 @@
             'adicionarFiadorPopup', 'removerFiadorPopup', 'atualizarCampoFiador', 'abrirEdicaoFiadoresPopup',
             'salvarFiadoresStandalone', 'renderFiadoresPopup', 'lancarReajusteContrato', 'calcularPctReajustePopup',
             'calcularValorReajustePopup', 'salvarReajusteContratoPopup', 'abrirAlterarStatusContrato', 'salvarAlterarStatusContrato',
-            'aguardarIdRealDoContrato', 'abrirDadosNovoContratoPopup', 'salvarDadosNovoContratoPopup', 'salvarObservacaoContrato',
+            'aguardarIdRealDoContrato', 'abrirDadosNovoContratoPopup', 'salvarObservacaoContrato', // v1.278.0 — salvarDadosNovoContratoPopup saiu (formulário único)
             'abrirDadosLocatarioContrato', 'salvarDadosLocatarioContrato', 'abrirDetalhesContrato', 'salvarDetalhesContrato',
             'abrirOutrosContratosImovel', 'salvarDivisaoContratoPopup', 'excluirContrato', 'compartilharIptuContrato',
             'abrirSeletorContratoParaAcao', 'criarContratoParaImovel', 'abrirEdicaoContratoContextual', 'processarMultiplosDocumentos',
@@ -12771,6 +12780,8 @@
                     ${finalizados.length > 0 ? `<button onclick="abrirOutrosContratosImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="layers" style="width:11px;height:11px"></svg> Outros contratos</button>` : ''}
                     <button onclick="iniciarProcessoContratacao('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Locação</button>
                 </div>
+                <!-- v1.278.0 (demanda 11afd25f) — atalho direto, sem passar por "Mais ações". -->
+                <button onclick="abrirEscolhaNovoContrato('${imo.id}')" class="rz-btn rz-btn-1 rz-sm rz-wide" style="margin-top:10px"><svg data-lucide="plus"></svg> Novo contrato</button>
             </div>`;
         }
 
