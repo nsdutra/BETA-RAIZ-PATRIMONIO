@@ -1,7 +1,39 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.26.0 · 30/09/2026
+// Versão: 1.27.0 · 30/09/2026
+//
+// v1.27.0 (Bloco B, demandas 5ca973d6/854f6343, sessão 20260927-2205-contratos,
+// pedido explícito do Nicola) — reajuste e revisional de contrato passam a
+// ser itens de controle (cofre_itens_controle), acionáveis pelas próprias
+// ocorrências, não só pelo botão solto do chip:
+//   1) Chip Renovação ganha o card "Linha do tempo"
+//      (montarItensControleContrato, chamada nova em abrirFichaContrato):
+//      lista os itens de reajuste_contrato/revisional_contrato do contrato
+//      (fn_contrato_itens_controle_listar) com as ocorrências passadas
+//      (concluídas) e futuras (em aberto). Não depende dos campos novos do
+//      formulário (index.html) — lê tudo direto da RPC.
+//   2) lancarReajusteContrato()/salvarReajusteContratoPopup() ganham 2
+//      parâmetros opcionais (ocorrenciaId, subtipoCodigo): quando vêm de
+//      uma ocorrência da "Linha do tempo", fn_contrato_reajustar fecha
+//      AQUELA ocorrência (p_ocorrencia_id) em vez de criar um lançamento
+//      avulso, e o sheet troca o rótulo pra "revisão" quando o subtipo é
+//      revisional_contrato. Sem os 2 parâmetros (botão "Aplicar o reajuste
+//      contratual", uso solto de sempre), comportamento idêntico ao de
+//      antes.
+//   3) saveContrato() lê os 4 campos novos do card "Reajuste e Revisão"
+//      (index.html, mesma entrega): reajustePeriodicidadeMeses/
+//      reajusteTetoPct/reajustePisoPct/revisionalPeriodicidadeMeses — em
+//      branco vira null, nunca 0/12 salvo por engano. editarContrato()
+//      preenche os 4 com o que já está salvo no contrato (nunca o padrão
+//      de contrato novo), pra editar um contrato antigo sem periodicidade
+//      configurada não criar um item pra ele por baixo dos panos — sem
+//      backfill dos 72 contratos já cadastrados, pedido explícito do
+//      Nicola ("só de renovação que faltam").
+// Banco: migrations contratos_reajuste_revisional_itens_controle_v1 e v2
+// (fn_contrato_itens_controle_gerar/fn_contrato_itens_controle_listar,
+// unicidade de item por contrato/subtipo, fn_contrato_reajustar com
+// p_ocorrencia_id).
 //
 // v1.26.0 (demandas 3b458eb4/8e661f53/c83fb2d3(fatia contratos.js)/8909ebf4 +
 // 1301897c(duplicata, encerrada junto), 30/09/2026) — 4 achados do retorno do
@@ -504,7 +536,7 @@
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.26.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.27.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1054,23 +1086,33 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // rj-* do popup antigo — salvarReajusteContratoPopup segue igual, só
         // ganhou o anexo. Entrada: ⋮ da ficha ("Reajustar contrato") e o
         // botão antigo da lista.
-        export function lancarReajusteContrato(contratoId) {
+        // v1.27.0 (Bloco B) — ganhou 2 parâmetros opcionais: ocorrenciaId
+        // (quando aberto a partir da "Linha do tempo", fecha aquela
+        // ocorrência específica em vez de criar um lançamento avulso) e
+        // subtipoCodigo (só pra rotular o sheet como "revisão" quando a
+        // ocorrência é de revisional_contrato — a mecânica de salvar é a
+        // mesma, fn_contrato_reajustar cuida de fechar o tipo certo). Sem
+        // os 2 parâmetros (chamada antiga, botão "Aplicar o reajuste
+        // contratual"), comportamento 100% igual ao de antes.
+        export function lancarReajusteContrato(contratoId, ocorrenciaId, subtipoCodigo) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
             if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.reajustar')) return;
+            const ehRevisional = subtipoCodigo === 'revisional_contrato';
             const hoje = new Date().toISOString().slice(0, 10);
             const corpo = `
                 <p class="text-xs text-slate-500 mb-3">Valor atual: <b>${formatarMoedaBR(con.valor)}/mês</b>${con.reajuste ? ' · índice ' + rzEsc(con.reajuste) : ''}</p>
                 <div class="grid grid-cols-2 gap-2 mb-3">
                     <div><label class="block text-xs font-bold text-gray-600">Novo valor (R$) <span style="color:var(--danger)">*</span></label><input type="number" step="0.01" id="rj-valor" oninput="calcularPctReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
-                    <div><label class="block text-xs font-bold text-gray-600">% de reajuste</label><input type="number" step="0.01" id="rj-pct" oninput="calcularValorReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
+                    <div><label class="block text-xs font-bold text-gray-600">% de ${ehRevisional ? 'variação' : 'reajuste'}</label><input type="number" step="0.01" id="rj-pct" oninput="calcularValorReajustePopup(${con.valor})" class="w-full p-2 border rounded text-sm mt-1"></div>
                 </div>
                 <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Vale a partir de <span style="color:var(--danger)">*</span></label><input type="date" id="rj-vigencia" value="${hoje}" class="w-full p-2 border rounded text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">O valor vigente do contrato é atualizado agora; cobranças já geradas não mudam.</p></div>
-                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Observação</label><textarea id="rj-obs" rows="2" placeholder="Ex.: IGP-M acumulado 12 meses, conforme cláusula 5" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>
-                <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Documento do reajuste</label><input type="file" id="rj-arquivo" accept=".pdf,.jpg,.jpeg,.png,.docx" class="w-full text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">Aditivo, notificação ou cálculo. Vai pro Cofre, vinculado a este contrato.</p></div>`;
+                <div class="mb-3"><label class="block text-xs font-bold text-gray-600">Observação</label><textarea id="rj-obs" rows="2" placeholder="${ehRevisional ? 'Ex.: revisão judicial/negociada, conforme cláusula X' : 'Ex.: IGP-M acumulado 12 meses, conforme cláusula 5'}" class="w-full p-2 border rounded text-sm mt-1"></textarea></div>
+                <div class="mb-1"><label class="block text-xs font-bold text-gray-600">Documento ${ehRevisional ? 'da revisão' : 'do reajuste'}</label><input type="file" id="rj-arquivo" accept=".pdf,.jpg,.jpeg,.png,.docx" class="w-full text-sm mt-1"><p class="text-[10.5px] text-slate-500 mt-1">Aditivo, notificação ou cálculo. Vai pro Cofre, vinculado a este contrato.</p></div>`;
             abrirSheetForm({
-                titulo: 'Reajustar contrato', sub: con.locatario || '', corpo, rotuloSalvar: 'Registrar reajuste',
-                aoSalvar: () => { salvarReajusteContratoPopup(con.id); return false; },
+                titulo: ehRevisional ? 'Registrar revisão do contrato' : 'Reajustar contrato', sub: con.locatario || '', corpo,
+                rotuloSalvar: ehRevisional ? 'Registrar revisão' : 'Registrar reajuste',
+                aoSalvar: () => { salvarReajusteContratoPopup(con.id, ocorrenciaId || null, subtipoCodigo || null); return false; },
             });
         }
 
@@ -1086,7 +1128,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('rj-valor').value = (valorAtual * (1 + pct / 100)).toFixed(2);
         }
 
-        export async function salvarReajusteContratoPopup(contratoId) {
+        // v1.27.0 (Bloco B) — ganhou o parâmetro opcional ocorrenciaId,
+        // repassado como p_ocorrencia_id pra fn_contrato_reajustar: quando
+        // vem preenchido (clique na "Linha do tempo"), a função fecha
+        // AQUELA ocorrência (reajuste ou revisional, ela decide pelo item)
+        // em vez de inserir um lançamento avulso novo. Sem o parâmetro
+        // (chamada antiga, botão solto), comportamento idêntico a antes.
+        export async function salvarReajusteContratoPopup(contratoId, ocorrenciaId, subtipoCodigo) {
+            const ehRevisional = subtipoCodigo === 'revisional_contrato';
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
 
@@ -1101,7 +1150,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             const valorAntigo = con.valor;
 
-            mostrarCarregamentoGlobal('Registrando reajuste...');
+            mostrarCarregamentoGlobal(ehRevisional ? 'Registrando revisão...' : 'Registrando reajuste...');
             try {
                 // v1.X (A.6, migration contratos_fn_reajustar_v1) — mesma ordem
                 // de salvarRenovacaoContratoPopup: o anexo sobe ANTES da RPC,
@@ -1131,6 +1180,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 const { error } = await dbAuth.rpc('fn_contrato_reajustar', {
                     p_contrato_id: contratoId, p_novo_valor: novoValor, p_indice: con.reajuste || null,
                     p_percentual: pct, p_vigencia: vigencia, p_observacao: obs || null, p_documento_id: docId,
+                    p_ocorrencia_id: ocorrenciaId || null,
                 });
                 if (error) throw error;
                 emitirEscrita('contrato', { id: contratoId, acao: 'reajuste' }); // v1.18.0 — Fase 1 do wrapper de escrita
@@ -1150,14 +1200,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     devLog('ERRO_REAJUSTE', 'fn_mensalidades_realinhar falhou (reajuste já salvo, não bloqueia): ' + (errRealinhar.message || errRealinhar));
                 }
 
-                let descricao = `Reajuste de aluguel: ${formatarMoedaBR(valorAntigo)} → ${formatarMoedaBR(novoValor)} (${pct >= 0 ? '+' : ''}${pct}%), vigente desde ${formatarDataBR(vigencia)}.`;
+                let descricao = `${ehRevisional ? 'Revisão' : 'Reajuste'} de aluguel: ${formatarMoedaBR(valorAntigo)} → ${formatarMoedaBR(novoValor)} (${pct >= 0 ? '+' : ''}${pct}%), vigente desde ${formatarDataBR(vigencia)}.`;
                 if (obs) descricao += ' ' + obs;
                 if (docId) descricao += ' [documento anexado no Cofre]';
                 // Otimista (mesmo padrão de salvarRenovacaoContratoPopup): a
                 // ocorrência já foi gravada pela RPC acima, isto só reflete
                 // na tela sem esperar um novo round-trip de leitura.
                 con.historico = con.historico || [];
-                con.historico.push({ data: new Date().toISOString(), descricao, tipo: 'reajuste', _salvo: true });
+                con.historico.push({ data: new Date().toISOString(), descricao, tipo: ehRevisional ? 'revisional' : 'reajuste', _salvo: true });
 
                 con.valor = novoValor;
                 con.valorAnterior = valorAntigo;
@@ -1166,14 +1216,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 esconderCarregamentoGlobal();
                 fecharModalCampoContrato();
                 mostrarToast(mensalidadesRealinhadas > 0
-                    ? `Reajuste registrado! ${mensalidadesRealinhadas} recebimento(s) futuro(s) atualizado(s).`
-                    : 'Reajuste registrado!', 'success');
-                registrarLog('contratos.reajustar', { contratoId, valorAntigo, novoValor, vigencia, documentoId: docId, mensalidadesRealinhadas });
+                    ? `${ehRevisional ? 'Revisão registrada' : 'Reajuste registrado'}! ${mensalidadesRealinhadas} recebimento(s) futuro(s) atualizado(s).`
+                    : (ehRevisional ? 'Revisão registrada!' : 'Reajuste registrado!'), 'success');
+                registrarLog('contratos.reajustar', { contratoId, ocorrenciaId: ocorrenciaId || null, valorAntigo, novoValor, vigencia, documentoId: docId, mensalidadesRealinhadas });
                 if (fichaImovelAtualId === con.imovelId) renderFichaImovelUnica(imoveis.find(i => i.id === con.imovelId));
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                mostrarToast('Não consegui registrar o reajuste: ' + (err.message || String(err)), 'danger'); // v1.133
+                mostrarToast(`Não consegui registrar ${ehRevisional ? 'a revisão' : 'o reajuste'}: ` + (err.message || String(err)), 'danger'); // v1.133
             }
         }
 
@@ -2363,6 +2413,22 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         </div>
                         <p class="rz-desc" id="fc-reaj-memoria" style="margin-top:6px">Calculando pelo índice cadastrado...</p>
                     </div>
+                    <!-- v1.27.0 (Bloco B, demandas 5ca973d6/854f6343) — linha do
+                         tempo de reajuste e revisão: lê fn_contrato_itens_controle_listar
+                         (itens cofre_itens_controle com contrato_id, subtipo
+                         reajuste_contrato/revisional_contrato, + ocorrências
+                         passadas e futuras). Cada ocorrência em aberto é
+                         clicável e abre o mesmo sheet de "Aplicar o reajuste
+                         contratual" (lancarReajusteContrato), agora levando a
+                         ocorrência (fecha ela via fn_contrato_reajustar
+                         p_ocorrencia_id, em vez de criar um lançamento avulso).
+                         Contratos sem periodicidade configurada (a maioria
+                         hoje — sem backfill, pedido explícito do Nicola)
+                         simplesmente não têm item aqui; card mostra vazio. -->
+                    <div class="rz-card" id="fc-card-itens-controle">
+                        <div class="rz-card-h"><h3>Linha do tempo</h3><span class="rz-sub">Reajuste e revisão</span></div>
+                        <div id="fc-itens-controle"><p class="rz-desc">Carregando...</p></div>
+                    </div>
                     <div class="rz-card">
                         <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo mercado</h3><span style="opacity:.6" title="Estimativa por IA">✨</span></div>
                         <div class="rz-empty" style="padding:14px 8px">
@@ -2440,6 +2506,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             montarOcorrenciasContrato(con.id); // v1.1.0 — A.10
             montarDistribuicaoContrato(con.id); // NOVO (19/09/2026, rodada 10)
             montarSimulacaoReajusteContrato(con.id); // v1.14.0 (B1.2)
+            montarItensControleContrato(con.id); // v1.27.0 (Bloco B)
         }
 
         // NOVO (19/09/2026, rodada 10, pedido explícito: "visão de
@@ -2559,6 +2626,53 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             } catch (err) {
                 if (elMemoria) elMemoria.textContent = 'Não consegui simular o reajuste agora.';
                 console.warn('Falha ao simular reajuste do contrato (não bloqueando):', err.message);
+            }
+        }
+
+        // v1.27.0 (Bloco B, demandas 5ca973d6/854f6343, 30/09/2026, pedido
+        // explícito do Nicola: "arrume uma forma de listar as ocorrências de
+        // reajustes e de revisionais... permitindo que dali se execute as
+        // funcoes de reajuste. O mesmo pra revisionais") — card "Linha do
+        // tempo" do chip Renovação: lista os itens de controle de reajuste
+        // e revisional do contrato (fn_contrato_itens_controle_listar) com
+        // suas ocorrências passadas (concluídas) e futuras (em aberto);
+        // clicar numa ocorrência em aberto abre o mesmo sheet de reajuste
+        // (lancarReajusteContrato), agora levando o id da ocorrência —
+        // fecha ELA (fn_contrato_reajustar p_ocorrencia_id) em vez de criar
+        // um lançamento avulso novo. Não depende de con.* (mapeamento em
+        // index.html) — lê tudo direto da RPC, por isso não precisa esperar
+        // os campos novos do formulário (index.html, entrega separada).
+        export async function montarItensControleContrato(contratoId) {
+            const el = document.getElementById('fc-itens-controle');
+            if (!el || fichaContratoAtualId !== contratoId) return;
+            try {
+                const { data, error } = await dbAuth.rpc('fn_contrato_itens_controle_listar', { p_contrato_id: contratoId });
+                if (error) throw error;
+                const linhas = data || [];
+                if (!linhas.length) {
+                    el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-clock"></svg></div><p>Sem reajuste ou revisão parametrizados neste contrato ainda.</p></div>`;
+                    return;
+                }
+                const rotuloTipo = codigo => codigo === 'revisional_contrato' ? 'Revisão' : 'Reajuste';
+                const iconeTipo = codigo => codigo === 'revisional_contrato' ? 'scale' : 'trending-up';
+                el.innerHTML = linhas.map(l => {
+                    const statusBadge = l.status_execucao === 'concluido' ? rs('ok', 'Concluído')
+                        : l.status_execucao === 'cancelado' ? rs('neu', 'Cancelado')
+                        : l.status_execucao === 'aberto' ? rs('run', 'Em aberto')
+                        : '';
+                    const dataTxt = l.data_prevista ? formatarDataBR(l.data_prevista) : '—';
+                    const pctTxt = l.percentual_reajuste != null ? ' · ' + fmtSinalPctContrato(l.percentual_reajuste) : '';
+                    const clicavel = l.status_execucao === 'aberto' && !!l.ocorrencia_id;
+                    return `<div class="rz-row${clicavel ? ' rz-link' : ''}"${clicavel ? ` onclick="lancarReajusteContrato('${contratoId}', '${l.ocorrencia_id}', '${l.subtipo_codigo}')"` : ''}>
+                        <div class="rz-ic"><svg data-lucide="${iconeTipo(l.subtipo_codigo)}"></svg></div>
+                        <div class="rz-tx"><b>${rotuloTipo(l.subtipo_codigo)}</b><span>${dataTxt}${pctTxt}</span></div>
+                        <div class="rz-rt">${statusBadge}${clicavel ? '<svg data-lucide="chevron-right" class="rz-chev"></svg>' : ''}</div>
+                    </div>`;
+                }).join('');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (err) {
+                el.innerHTML = `<p class="text-xs text-red-500">Não consegui carregar reajuste/revisão.</p>`;
+                console.warn('Falha ao carregar itens de controle do contrato (não bloqueando):', err.message);
             }
         }
 
@@ -3722,6 +3836,17 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             }
 
+            // v1.27.0 (Bloco B) — mesma regra da CHECK contratos_reajuste_piso_teto_check
+            // no banco; valida aqui pra dar um aviso em português em vez de
+            // deixar a gravação inteira do contrato falhar com o erro cru
+            // do Postgres.
+            const reajusteTetoVal = document.getElementById('con-reajuste-teto').value.trim();
+            const reajustePisoVal = document.getElementById('con-reajuste-piso').value.trim();
+            if (reajusteTetoVal !== '' && reajustePisoVal !== '' && parseFloat(reajustePisoVal) > parseFloat(reajusteTetoVal)) {
+                alert("⚠️ O piso do reajuste não pode ser maior que o teto.");
+                return false;
+            }
+
             // Lógica de "Novo Valor": o campo sempre abre em branco. Se o usuário
 
             // digitou algo nele, o valor ATUAL do contrato (antes desta edição) vira
@@ -3841,6 +3966,29 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 reajusteAplicado: parseFloat(document.getElementById('con-reajuste-aplicado').value) || 0,
 
                 reajuste: document.getElementById('con-reajuste').value,
+
+                // v1.27.0 (Bloco B, demandas 5ca973d6/854f6343) — em branco
+                // vira null (não 0), pra sincronizarContratoSupabase()
+                // gravar null nas colunas e o banco entender "não
+                // configurado" (as CHECK de contratos_reajuste_* e o
+                // trigger tratam null como "sem reajuste/revisional
+                // automático aqui", nunca como zero).
+                reajustePeriodicidadeMeses: (function() {
+                    const v = document.getElementById('con-reajuste-periodicidade').value.trim();
+                    return v === '' ? null : parseInt(v, 10);
+                })(),
+                reajusteTetoPct: (function() {
+                    const v = document.getElementById('con-reajuste-teto').value.trim();
+                    return v === '' ? null : parseFloat(v);
+                })(),
+                reajustePisoPct: (function() {
+                    const v = document.getElementById('con-reajuste-piso').value.trim();
+                    return v === '' ? null : parseFloat(v);
+                })(),
+                revisionalPeriodicidadeMeses: (function() {
+                    const v = document.getElementById('con-revisional-periodicidade').value.trim();
+                    return v === '' ? null : parseInt(v, 10);
+                })(),
 
                 condominioLocatario: document.getElementById('con-condominio-locatario').value,
                 locatarioPagaIptu: document.getElementById('con-iptu-locatario').value,
@@ -4187,6 +4335,19 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             document.getElementById('con-reajuste-aplicado').value = '';
 
             document.getElementById('con-reajuste').value = con.reajuste;
+
+            // v1.27.0 (Bloco B) — reflete o que JÁ está salvo no contrato,
+            // nunca o padrão de contrato novo (12/branco): um contrato dos
+            // 72 já cadastrados, sem periodicidade configurada, tem que
+            // continuar sem periodicidade depois de editado e salvo de
+            // novo — sem isso, QUALQUER edição de um contrato antigo (até
+            // trocar o telefone do locatário) geraria um item de reajuste
+            // pra ele, o backfill que o Nicola pediu explicitamente pra não
+            // fazer ("só de renovação que faltam").
+            document.getElementById('con-reajuste-periodicidade').value = con.reajustePeriodicidadeMeses ?? '';
+            document.getElementById('con-reajuste-teto').value = con.reajusteTetoPct ?? '';
+            document.getElementById('con-reajuste-piso').value = con.reajustePisoPct ?? '';
+            document.getElementById('con-revisional-periodicidade').value = con.revisionalPeriodicidadeMeses ?? '';
 
             document.getElementById('con-contato-nome').value = con.contatoNome || '';
 
