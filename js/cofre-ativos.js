@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.68.0 · 01/10/2026
+// Versão: 1.69.0 · 01/10/2026
+//
+// v1.69.0 (demanda c0d255e3, teste abf1 reprovado pelo Nicola em 01/10/2026,
+// sessão 20261001-2335-contratos-rotulos) — o sheet "Itens de controle" do ativo
+// (abrirAcoesControlesAtivo) fica só com "Carregar documento" e "Novo item de
+// controle": "Modelos de item" e "Tipos de controle" saem, porque esse cadastro
+// é feito no Gestão, para todas as empresas.
 //
 // v1.68.0 (demanda 11afd25f, pedido do Nicola: "falta atalho de novo contrato
 // no ativo — ao clicar em Contratos, quando não existe ainda um contrato, não
@@ -877,7 +883,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.68.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -2518,8 +2524,6 @@ export function abrirAcoesControlesAtivo() {
     sheetOuAviso({ titulo: 'Itens de controle', sub: a.nome_exibicao, acoes: [
         { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.analisar_ia', sub: 'A IA lê e preenche os itens sozinha', aoTocar: () => window.__rzUploadAtivo?.(true) },
         { icone: 'plus', titulo: 'Novo item de controle', codigo: 'cofre.controles.criar', sub: 'Seguro, tributo, vistoria, manutenção', aoTocar: () => window.__rzAbrirFormControle?.() },
-        { icone: 'layers', titulo: 'Modelos de item', codigo: 'cofre.controles.editar', sub: 'Modelos prontos pra criar mais rápido', aoTocar: () => window.__rzAbrirModelosControle?.() },
-        { icone: 'tags', titulo: 'Tipos de controle', codigo: 'cofre.controles.editar', sub: 'Subtipos de seguro, tributo e manutenção', aoTocar: () => window.__rzAbrirSubtiposControle?.() },
     ] });
 }
 export function abrirAcoesFinanceiroAtivo() {

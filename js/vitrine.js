@@ -1,7 +1,15 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.2.2 · 01/10/2026
+// Versão: 1.3.0 · 01/10/2026
+//
+// v1.3.0 (demanda 11afd25f, teste f26a reprovado pelo Nicola em 01/10/2026,
+// sessão 20261001-2335-contratos-rotulos) — "não está deixando gerar o link pro
+// locatário preencher porque não tem minuta. Deve ser permitido." O menu de
+// Locação (abrirModalOpcoesContratacao) passa a oferecer SEMPRE "Gerar link
+// para coleta de dados" e "Abrir WhatsApp com os dados pedidos"; "Conferir
+// minuta padrão" e "Gerar minuta" continuam só com minuta, e o grupo "Sem
+// minuta padrão cadastrada" segue oferecendo o cadastro.
 //
 // v1.2.2 (demanda 11afd25f, pedido do Nicola: "deve apagar a opção dentro do
 // link da minuta pois já tem a opção num passo antes") — o menu de Locação
@@ -68,7 +76,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.2.2'; // v-check: manter igual ao header
+export const VERSAO = '1.3.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -281,11 +289,18 @@ export function montarAbaVitrine() {
             const mensagemZap = `Olá! Para darmos andamento à locação do imóvel em ${endereco}, preciso de alguns dados seus para gerar o contrato:\n\n- Nome completo\n- CPF ou CNPJ\n- WhatsApp\n- E-mail\n- Endereço atual\n- Profissão\n- Estado civil\n\nVocê pode preencher direto por este link: ${link}`;
             const minuta = encontrarMinutaParaImovel(imo.id);
             // v1.2.2 — "Dados novo contrato" saiu daqui (ver changelog).
+            // v1.3.0 (demanda 11afd25f, teste f26a) — link e WhatsApp de coleta não
+            // dependem de minuta (fn_processo_publico_obter/preencher não leem minuta):
+            // aparecem sempre. Só as ações de minuta exigem minuta padrão.
             const acoes = [];
-            if (minuta) {
+            {
                 acoes.push(
                     { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
                     { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', codigo: 'contratos.criar', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
+                );
+            }
+            if (minuta) {
+                acoes.push(
                     { icone: 'download', titulo: 'Conferir minuta padrão', codigo: 'minutas.gerar', aoTocar: () => baixarMinutaPadraoImovel(imo.id) },
                     { icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'A partir de um contrato Assinando já com os dados', aoTocar: () => gerarMinutaNoCofre(imo.id) }
                 );
@@ -294,7 +309,7 @@ export function montarAbaVitrine() {
                 titulo: 'Locação', sub: endereco, acoes,
                 grupos: minuta ? null : [
                     { titulo: 'Sem minuta padrão cadastrada', acoes: [
-                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Necessária pra link, WhatsApp e geração de minuta', aoTocar: () => switchTab('tab-minutas') }
+                        { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Necessária só pra conferir e gerar a minuta', aoTocar: () => switchTab('tab-minutas') }
                     ] }
                 ]
             });

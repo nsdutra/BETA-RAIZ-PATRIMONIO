@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.29.0 · 01/10/2026
+// Versão: 1.30.0 · 01/10/2026
+//
+// v1.30.0 (demanda 5ca973d6, pedido do Nicola em 01/10/2026 23:26, sessão
+// 20261001-2335-contratos-rotulos) — rótulos: o chip "Renovação" da ficha do
+// contrato passa a se chamar "Reajuste" (id interno 'renovacao' mantido) e a
+// ocorrência/linha de revisão passa a se chamar "Revisional" (Linha do tempo e
+// OC_CONTRATO_ROTULO). Só texto.
 //
 // v1.29.0 (demanda 5ca973d6, teste ba98 reprovado pelo Nicola em 01/10/2026,
 // sessão 20261001-2315-contratos-partes) — card "Linha do tempo" do chip
@@ -580,7 +586,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.29.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.30.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2107,7 +2113,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 <div class="rz-chips" id="fc-chips">
                     <button type="button" class="rz-chip rz-on" data-fc-chip="resumo" onclick="fcTrocarChip('resumo')">Resumo</button>
                     <button type="button" class="rz-chip ${atrasadas.length ? 'rz-warn' : ''}" data-fc-chip="cobrancas" onclick="fcTrocarChip('cobrancas')">Financeiro <span class="rz-n">${atrasadas.length}</span></button>
-                    <button type="button" class="rz-chip" data-fc-chip="renovacao" onclick="fcTrocarChip('renovacao')">Renovação</button>
+                    <button type="button" class="rz-chip" data-fc-chip="renovacao" onclick="fcTrocarChip('renovacao')">Reajuste</button>
                     <button type="button" class="rz-chip" data-fc-chip="partes" onclick="fcTrocarChip('partes')">Partes <span class="rz-n">${1 + fiadoresDaFicha.length}</span></button>
                     <button type="button" class="rz-chip" data-fc-chip="arquivos" onclick="fcTrocarChip('arquivos')">Anexos <span class="rz-n" id="fc-chip-n-arquivos">0</span></button>
                 </div>
@@ -2449,7 +2455,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="calendar-clock"></svg></div><p>Sem reajuste ou revisão parametrizados neste contrato ainda.</p></div>`;
                     return;
                 }
-                const rotuloTipo = codigo => codigo === 'revisional_contrato' ? 'Revisão' : 'Reajuste';
+                const rotuloTipo = codigo => codigo === 'revisional_contrato' ? 'Revisional' : 'Reajuste';
                 const iconeTipo = codigo => codigo === 'revisional_contrato' ? 'scale' : 'trending-up';
                 // v1.29.0 — rs() local (antes só existia dentro de abrirFichaContrato → ReferenceError aqui)
                 const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
@@ -2555,7 +2561,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // ===================================================================
         let ocorrenciasContratoAtual = []; // cache da ficha aberta (pra sheet de ações)
 
-        const OC_CONTRATO_ROTULO = { prevista: 'Prevista', revisional: 'Revisão', renovacao: 'Renovação', reajuste: 'Reajuste', sinistro: 'Sinistro', alteracao: 'Alteração', assinatura: 'Assinatura', anexo: 'Anexo', nota: 'Anotação', documento: 'Documento', pagamento: 'Pagamento', servico: 'Serviço', uso: 'Uso' };
+        const OC_CONTRATO_ROTULO = { prevista: 'Prevista', revisional: 'Revisional', renovacao: 'Renovação', reajuste: 'Reajuste', sinistro: 'Sinistro', alteracao: 'Alteração', assinatura: 'Assinatura', anexo: 'Anexo', nota: 'Anotação', documento: 'Documento', pagamento: 'Pagamento', servico: 'Serviço', uso: 'Uso' };
         const OC_CONTRATO_ICONE = { prevista: 'calendar-clock', revisional: 'calendar-clock', renovacao: 'refresh-cw', reajuste: 'trending-up', sinistro: 'triangle-alert', alteracao: 'pencil', assinatura: 'file-signature', anexo: 'paperclip', nota: 'sticky-note', documento: 'file-text', pagamento: 'banknote', servico: 'wrench', uso: 'gauge' };
         const LIMITE_OCORRENCIAS_CARD = 8;
 
