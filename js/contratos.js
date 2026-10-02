@@ -1,7 +1,12 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.33.0 · 02/10/2026
+// Versão: 1.34.0 · 02/10/2026
+//
+// v1.34.0 (pedido do Nicola, 02/10/2026 01:55, sessão 20260927-2205-contratos) —
+// menu ⋮ da ficha do contrato: sai "Abrir o imóvel"; entra "Dados do contrato"
+// no topo (qualquer status), abrindo abrirDadosContratoLeitura — sheet só de
+// leitura com Contrato, Revisionais, Encargos e Locatário.
 //
 // v1.33.0 (demanda 854f6343, sessão 20260927-2205-contratos, pedido do Nicola:
 // "imóvel sem item — o formulário oferece criar") — oferecerItensEncargoContrato:
@@ -622,7 +627,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.33.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.34.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3133,7 +3138,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
             // v1.32.0 — em Assinando não há reajuste nem renovação (contrato ainda não vigente)
             const emAssinatura = con.status === 'Assinando';
-            const acoes = emAssinatura ? [] : [
+            // v1.34.0 (pedido do Nicola, 02/10/2026 01:55) — "Dados do contrato"
+            // (só leitura) entra no topo, em qualquer status; "Abrir o imóvel" saiu.
+            const acaoDados = { icone: 'file-text', titulo: 'Dados do contrato', codigo: 'contratos.ver', sub: 'Ver tudo o que está cadastrado, sem editar', aoTocar: () => abrirDadosContratoLeitura(con.id) };
+            const acoes = emAssinatura ? [acaoDados] : [acaoDados,
                 { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor, vigência e documento', aoTocar: () => lancarReajusteContrato(con.id) },
                 { icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim de vigência, valor e documento', aoTocar: () => renovarContrato(con.id) }, // v1.1.0 — A.10
                 // v1.6.0 (pedido explícito, 16/09) — "Histórico" saiu daqui:
@@ -3143,7 +3151,6 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // mesmo lugar.
             ];
             if (con.status === 'Assinando' && pront.pronto) acoes.push({ icone: 'file-signature', titulo: 'Gerar minuta', codigo: 'minutas.gerar', sub: 'PDF a partir dos dados do contrato', aoTocar: () => gerarMinutaContrato(con.id) });
-            if (typeof window.rzAbrirAtivoDoImovel === 'function') acoes.push({ icone: 'house', titulo: 'Abrir o imóvel', codigo: 'cofre.ver', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', aoTocar: () => window.rzAbrirAtivoDoImovel(con.imovelId) });
             // v1.116.0 — ações de status por estado do contrato (pedido
             // explícito). "As regras" continuam 100% em
             // abrirAlterarStatusContrato/salvarAlterarStatusContrato (data
@@ -3163,6 +3170,63 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             }
             acoes.push({ icone: 'trash-2', titulo: 'Excluir contrato', codigo: 'contratos.excluir', tipo: 'bad', aoTocar: () => excluirContrato(con.id) });
             abrirSheetAcoes({ titulo: con.locatario || 'Contrato', sub: imo ? `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '', acoes });
+        }
+
+        // v1.34.0 (pedido do Nicola, 02/10/2026) — "Dados do contrato": tudo o que
+        // está cadastrado no contrato, em leitura (sheet .rz-kv, mesmo padrão dos
+        // "Sobre o ..."). Para alterar continua valendo "Editar contrato".
+        export function abrirDadosContratoLeitura(contratoId) {
+            const con = contratos.find(c => c.id === contratoId);
+            if (!con || typeof abrirSheet !== 'function') return;
+            const imo = imoveis.find(i => i.id === con.imovelId);
+            const adm = (typeof administradoras !== 'undefined' ? administradoras : []).find(a => a.id === con.administradoraId);
+            const vazio = '<span style="color:var(--muted)">—</span>';
+            const v = (x) => (x === null || x === undefined || x === '') ? vazio : rzEsc(String(x));
+            const moeda = (x) => (Number(x) > 0 ? rzEsc(formatarMoedaBR(Number(x))) : vazio);
+            const data = (x) => (x ? rzEsc(formatarDataBR(x)) : vazio);
+            const pct = (x) => (x === null || x === undefined || x === '' ? vazio : rzEsc(String(x).replace('.', ',')) + '%');
+            const meses = (x) => (x ? rzEsc(String(x)) + (Number(x) === 1 ? ' mês' : ' meses') : vazio);
+            const linha = (r, val, cheio) => `<div${cheio ? ' class="rz-full"' : ''}><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:13px">${val}</b></div>`;
+            const card = (titulo, linhas) => `<div class="rz-card"><p class="rz-group" style="margin-top:0">${rzEsc(titulo)}</p><div class="rz-kv">${linhas.join('')}</div></div>`;
+            const corpo =
+                card('Contrato', [
+                    linha('Imóvel', imo ? v(`${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}`) : vazio, true),
+                    linha('Status', v(con.status)),
+                    linha('Aluguel', moeda(con.valor)),
+                    linha('Início', data(con.inicio)),
+                    linha('Fim', data(con.fim)),
+                    linha('Vencimento', con.vencimentoDia ? 'Dia ' + v(con.vencimentoDia) : vazio),
+                    linha('Aluguel antecipado', v(con.alugelAntecipado)),
+                    linha('Forma de pagamento', v(con.formaPagamento)),
+                    linha('Desconto energia', Number(con.descontoEnergia) > 0 ? pct(con.descontoEnergia) : vazio),
+                    linha('Administradora', adm ? v(adm.nome) : 'Gestão direta', true),
+                ]) +
+                card('Revisionais', [
+                    linha('Índice de reajuste', v(con.reajuste)),
+                    linha('Reajuste a cada', meses(con.reajustePeriodicidadeMeses)),
+                    linha('Teto do reajuste', pct(con.reajusteTetoPct)),
+                    linha('Piso do reajuste', pct(con.reajustePisoPct)),
+                    linha('Revisão a cada', con.revisionalPeriodicidadeMeses ? meses(con.revisionalPeriodicidadeMeses) : 'Sem cláusula de revisional', true),
+                ]) +
+                card('Encargos', [
+                    linha('Locatário paga IPTU', v(con.locatarioPagaIptu)),
+                    linha('Valor IPTU', moeda(con.iptuValor)),
+                    linha('Locatário paga condomínio', v(con.condominioLocatario)),
+                    linha('Valor condomínio', moeda(con.condominioValor)),
+                ]) +
+                card('Locatário', [
+                    linha('Nome', v(con.locatario), true),
+                    linha(con.docTipo === 'CNPJ' ? 'CNPJ' : 'CPF/CNPJ', v(con.cpf)),
+                    linha('Estado civil', v(con.locatarioEstadoCivil)),
+                    linha('Profissão', v(con.locatarioProfissao)),
+                    linha('WhatsApp', v(con.whatsapp)),
+                    linha('E-mail', v(con.email), true),
+                    linha('Endereço atual', v(con.locatarioEnderecoAtual), true),
+                    linha('Pessoa de contato', v(con.contatoNome), true),
+                ]) +
+                `<p class="rz-desc" style="margin:4px 2px 0">Fiadores, documentos e histórico ficam nos chips da ficha. Para alterar, use Editar contrato.</p>`;
+            abrirSheet(rzSheetCabecalho('Dados do contrato', con.locatario || '') + `<div class="rz-sh-b">${corpo}</div>`);
+            registrarLog('contratos.ver', { contratoId: con.id, acao: 'dados_leitura' });
         }
 
         // v1.116.0 — abre o formulário já existente (abrirAlterarStatusContrato)

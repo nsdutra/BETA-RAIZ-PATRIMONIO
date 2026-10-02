@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.286.0) — F12 ajustes (demanda 3a1a5ef5, pedidos do Nicola
+em 01/10): js/financeiro.js 1.27.0 → 1.27.1 — o Pix copia e cola sai numa
+2ª mensagem, sozinho (botão "2. Enviar o código Pix"), e "Cobrar pelo
+WhatsApp" entra no ⋮ de cada mensalidade em atraso. Index: só import map.
+Versão anterior (Beta v1.285.0):
+------------------------------------------------------------------
+Versões anteriores (v1.285.0 … v1.285.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.285.0) — pedidos do Nicola (02/10, 00:19), demanda 5ca973d6.
 (1) js/contratos.js 1.31.0 → 1.32.0: contrato em Assinando sem Reajustar/Renovar;
 "Ativar contrato" abre o formulário preenchido com status Ativo para conferir e
