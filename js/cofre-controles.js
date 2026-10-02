@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.35.0 · 30/09/2026
+// Versão: 1.36.0 · 02/10/2026
+//
+// v1.36.0 (demanda 854f6343, sessão 20260927-2205-contratos) — item de IPTU/
+// condomínio pago pelo locatário mostra "· Paga: locatário" na lista de itens do
+// ativo, e a ficha do item ganha a linha "Quem paga" (responsavel_pagamento,
+// preenchido pelo contrato vigente via trigger trg_contrato_sincroniza_encargos).
 //
 // v1.35.0 (30/09/2026 — frente licenca-financeiro, ficha F1/F3 aprovada
 // pelo Nicola em 30/09): item de controle do tipo `despesa` (domínio,
@@ -496,7 +501,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.35.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.36.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -737,7 +742,11 @@ function itemResumoHtml(item) {
     // ícone 42 colorido pela semântica · título + subtipo · status
     // "ponto + rótulo" (o número é o rótulo: "9 dias", "Vencido há 3d").
     // chipVencimento() (bg-amber/green Tailwind) deixou de ser usado aqui.
-    const subtitulo = item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo);
+    // v1.36.0 (demanda 854f6343) — quem paga vem do contrato vigente do imóvel
+    // (trigger trg_contrato_sincroniza_encargos); só o locatário aparece na
+    // lista — proprietário é o padrão e não precisa de texto.
+    const subtitulo = (item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))
+        + (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '');
     const iconeTipo = { seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check';
     if (item.ativo === false) { // v1.20.0 — encerrado: histórico visível, sem urgência
         return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
@@ -1117,6 +1126,8 @@ function renderizarFichaItemControle() {
         kv('Fim', item.data_fim ? formatarDataBR(item.data_fim) : 'Sem fim de vigência') +
         kv('Frequência', escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))) +
         kv('Alerta', `${item.antecedencia_alerta_dias} dias antes · ${item.direcao_alerta === 'fim' ? 'a partir do fim' : 'a partir do início'}`) +
+        // v1.36.0 (demanda 854f6343) — definido pelo contrato vigente do imóvel
+        (item.responsavel_pagamento ? kv('Quem paga', escapeHtml({ locatario: 'Locatário (pelo contrato) · sem saída no Financeiro', proprietario: 'Proprietário', condominio: 'Condomínio' }[item.responsavel_pagamento] || item.responsavel_pagamento)) : '') +
         (item.valor_previsto ? kv('Valor previsto', `${moedaBR(item.valor_previsto)}${(item.parcelas || 1) > 1 ? ` · ${item.parcelas}× de ${moedaBR(item.valor_previsto / item.parcelas)}` : ''}`) : ''); // v1.20.0
 
     // v1.34.0 (demanda 4a609dbb) — clicar no alerta "documento pendente"

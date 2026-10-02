@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.285.0) — pedidos do Nicola (02/10, 00:19), demanda 5ca973d6.
+(1) js/contratos.js 1.31.0 → 1.32.0: contrato em Assinando sem Reajustar/Renovar;
+"Ativar contrato" abre o formulário preenchido com status Ativo para conferir e
+salvar. (2) Aba Ativos aberta a partir de outra tela (ex.: contrato) mostra um
+voltar só — o atalho global "‹ Contrato" esconde o "‹ Ativos" da ficha (CSS).
+Versão anterior (Beta v1.284.0):
+------------------------------------------------------------------
+Versões anteriores (v1.284.0 … v1.284.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.283.0) — pedidos do Nicola em 01/10 (23:26), só módulos;
 index muda só import map e versão. (1) js/contratos.js 1.29.0 → 1.30.0 (demanda
 5ca973d6): chip "Renovação" da ficha do contrato vira "Reajuste"; ocorrência de

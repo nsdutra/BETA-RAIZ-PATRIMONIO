@@ -1,7 +1,16 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.32.0 · 02/10/2026
+// Versão: 1.33.0 · 02/10/2026
+//
+// v1.33.0 (demanda 854f6343, sessão 20260927-2205-contratos, pedido do Nicola:
+// "imóvel sem item — o formulário oferece criar") — oferecerItensEncargoContrato:
+// depois de salvar um contrato Ativo/Assinando que trata de IPTU/condomínio
+// (locatário paga ou valor informado), se o imóvel não tem o item de controle,
+// abre o sheet "Itens do imóvel" (1º vencimento + valor). Cria pelo banco
+// (fn_contrato_criar_item_encargo, migration contratos_encargos_responsavel_v1).
+// Quem paga cada item passa a ser definido pelo banco (trigger
+// trg_contrato_sincroniza_encargos) — nada disso é regra no JS.
 //
 // v1.32.0 (demanda 5ca973d6, pedido do Nicola em 02/10/2026 00:19, sessão
 // 20261002-0020-contratos-assinando) — contrato em Assinando:
@@ -613,7 +622,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.32.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.33.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -4136,6 +4145,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     abrirFichaContrato(contratoDados.id);
                 }
                 window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+                // v1.33.0 (demanda 854f6343) — imóvel sem item de IPTU/condomínio:
+                // oferece criar (não bloqueia o salvar; erro aqui só vira aviso).
+                setTimeout(() => { oferecerItensEncargoContrato(contratoDados).catch(err => console.warn('[contratos] encargos:', err.message)); }, 400);
             }
 
             } catch (err) {
@@ -4148,6 +4160,81 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             }
 
+        }
+
+        // ===================================================================
+        // v1.33.0 (demanda 854f6343, pedido do Nicola: "imóvel sem item — o
+        // formulário oferece criar") — depois de salvar um contrato vigente,
+        // se ele trata de IPTU/condomínio (locatário paga, ou valor informado)
+        // e o imóvel ainda não tem o item de controle correspondente, abre um
+        // sheet para criar: 1º vencimento + valor (vem do contrato). Quem cria
+        // é o banco (fn_contrato_criar_item_encargo): item no IMÓVEL, com quem
+        // paga já definido pelo contrato e a 1ª ocorrência; pago pelo
+        // locatário não gera saída no Financeiro.
+        // ===================================================================
+        const ENCARGOS_CONTRATO = [
+            { codigo: 'iptu_global', nome: 'IPTU', paga: c => c.locatarioPagaIptu === 'Sim', valor: c => Number(c.iptuValor) || 0, dica: 'Cota única ou 1ª parcela do carnê' },
+            { codigo: 'condominio', nome: 'Condomínio', paga: c => c.condominioLocatario === 'Sim', valor: c => Number(c.condominioValor) || 0, dica: 'Próximo boleto do condomínio' },
+        ];
+
+        export async function oferecerItensEncargoContrato(con) {
+            if (!con || !idEhUuidValido(con.id) || !con.imovelId) return;
+            if (!['Ativo', 'Assinando'].includes(con.status)) return;
+            const candidatos = ENCARGOS_CONTRATO.filter(e => e.paga(con) || e.valor(con) > 0);
+            if (!candidatos.length) return;
+            const { data: subtipos, error: e1 } = await dbAuth.from('cofre_controle_subtipos').select('id, codigo').in('codigo', candidatos.map(e => e.codigo));
+            if (e1) throw e1;
+            const { data: itens, error: e2 } = await dbAuth.from('cofre_itens_controle').select('subtipo_id')
+                .eq('ativo_id', con.imovelId).eq('ativo', true).in('subtipo_id', (subtipos || []).map(x => x.id));
+            if (e2) throw e2;
+            const existentes = new Set((itens || []).map(i => (subtipos || []).find(x => x.id === i.subtipo_id)?.codigo));
+            const faltando = candidatos.filter(e => !existentes.has(e.codigo));
+            if (!faltando.length || typeof abrirSheetForm !== 'function') return;
+
+            const corpo = `<p class="rz-desc" style="margin:0 2px 10px">Este imóvel ainda não tem ${faltando.map(e => e.nome).join(' nem ')} nos itens de controle. Criar agora deixa o vencimento com alerta${faltando.some(e => e.paga(con)) ? ' e marca que quem paga é o locatário (sem saída no seu Financeiro)' : ''}.</p>` +
+                faltando.map(e => `
+                <div class="rz-card" data-encargo="${e.codigo}">
+                    <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--ink)">
+                        <input type="checkbox" data-campo="criar" checked> Criar item de ${e.nome}
+                        <span class="rz-st rz-${e.paga(con) ? 'run' : 'neu'}" style="margin-left:auto">${e.paga(con) ? 'Paga: locatário' : 'Paga: proprietário'}</span>
+                    </label>
+                    <div class="rz-f2" style="margin-top:8px">
+                        <div class="rz-f"><label>1º vencimento <i>*</i></label><input type="date" data-campo="data"><span class="rz-hint">${e.dica}</span></div>
+                        <div class="rz-f"><label>Valor (R$)</label><input type="number" step="0.01" min="0" data-campo="valor" value="${e.valor(con) || ''}"></div>
+                    </div>
+                </div>`).join('');
+
+            abrirSheetForm({
+                titulo: 'Itens do imóvel', sub: con.locatario || '', corpo, rotuloSalvar: 'Criar', rotuloCancelar: 'Agora não',
+                aoSalvar: async (corpoEl) => {
+                    const escolhidos = [...corpoEl.querySelectorAll('[data-encargo]')].filter(el => el.querySelector('[data-campo="criar"]').checked);
+                    for (const el of escolhidos) {
+                        if (!el.querySelector('[data-campo="data"]').value) {
+                            mostrarToast('Informe o 1º vencimento de cada item que vai criar.', 'danger');
+                            el.querySelector('[data-campo="data"]').focus();
+                            return false;
+                        }
+                    }
+                    let criados = 0;
+                    for (const el of escolhidos) {
+                        const valor = parseFloat(el.querySelector('[data-campo="valor"]').value);
+                        const { error } = await dbAuth.rpc('fn_contrato_criar_item_encargo', {
+                            p_contrato_id: con.id, p_codigo: el.dataset.encargo,
+                            p_data_base: el.querySelector('[data-campo="data"]').value,
+                            p_valor: isNaN(valor) ? null : valor,
+                        });
+                        if (error) { mostrarToast('Não consegui criar o item: ' + error.message, 'danger'); return false; }
+                        criados++;
+                    }
+                    if (criados) {
+                        mostrarToast(criados === 1 ? 'Item criado no imóvel.' : `${criados} itens criados no imóvel.`, 'success');
+                        registrarLog('contratos.editar', { contratoId: con.id, acao: 'encargo_item_criado', quantidade: criados });
+                        window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+                        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+                    }
+                    return true;
+                },
+            });
         }
 
         export function editarContrato(id) {
