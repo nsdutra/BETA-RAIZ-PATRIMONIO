@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.27.2 · 02/10/2026
+// Versão: 1.27.3 · 02/10/2026
+//
+// v1.27.3 (02/10/2026, pedido do Nicola) — despesa da licença Raiz
+// (origem_tipo='licenca') ganha "Ver comprovante" no ⋮ quando a empresa
+// guardou o comprovante: procura no Cofre o documento vinculado ao pagamento
+// (vínculo 'pagamento' = origem_id da despesa) e abre por link temporário.
+// Versão anterior: 1.27.2.
 //
 // v1.27.2 (02/10/2026, achado do Nicola no teste da F11) — a lista de Saídas
 // recarrega do banco toda vez que a aba abre, como os totais (que já vinham de
@@ -773,7 +779,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.27.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.27.3'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1482,8 +1488,23 @@ function financeiroRenderCabecalho(aba) {
         // Recebimentos já tinha) — Ver detalhe/Dar baixa continuam abrindo
         // o formulário de sempre (despesa não tem baixa "leve" separada
         // como mensalidade tem).
-        export function rzAcoesDespesa(id) {
+        // v1.27.3 — comprovante guardado no Cofre da empresa para a despesa da licença.
+        async function comprovanteDaDespesa(d) {
+            if (d.origemTipo !== 'licenca' || !d.origemId) return null;
+            try {
+                const { data } = await dbAuth.from('cofre_documento_vinculos')
+                    .select('documento_id, cofre_documentos(storage_path, bucket, nome_exibicao, status)')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('entidade_tipo', 'pagamento').eq('entidade_id', d.origemId);
+                const doc = (data || []).map(v => v.cofre_documentos).find(x => x && x.status !== 'excluido');
+                if (!doc) return null;
+                const { data: s } = await dbAuth.storage.from(doc.bucket || 'cofre-documentos').createSignedUrl(doc.storage_path, 600);
+                return s?.signedUrl || null;
+            } catch (e) { console.warn('[financeiro] comprovante da despesa:', e.message); return null; }
+        }
+
+        export async function rzAcoesDespesa(id) {
             const d = lancamentos.find(x => x.id === id); if (!d || typeof abrirSheetAcoes !== 'function') return;
+            const urlComprovante = await comprovanteDaDespesa(d);
             // v1.10.0 (18/09/2026, rodada 10 — achado do Nicola: "continua
             // muito texto na frente da data" na linha de Saídas) — a linha
             // da lista virou só descrição + data nua (ver renderSaidas()
@@ -1496,6 +1517,7 @@ function financeiroRenderCabecalho(aba) {
                 const acoesRealizado = [
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
                 ];
+                if (urlComprovante) acoesRealizado.push({ icone: 'file-check-2', titulo: 'Ver comprovante', sub: 'Comprovante do Pix guardado no Cofre', aoTocar: () => window.open(urlComprovante, '_blank', 'noopener') });
                 // CORRIGIDO v1.15.0 — mesma regra de rzAcoesMensalidade
                 // acima (REGRAS §11.1: competência fechada só permite ver
                 // detalhes, nunca alterar).

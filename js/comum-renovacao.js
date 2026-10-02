@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.3.1 · 02/10/2026
+// Versão: 1.3.2 · 02/10/2026
+//
+// v1.3.2 — pedido do Nicola (02/10 01:31): a cópia do comprovante no Cofre da
+// empresa fica vinculada ao PAGAMENTO da licença (vínculo 'pagamento', id do
+// item — a origem da despesa), não à empresa; é por esse vínculo que a despesa
+// mostra "Ver comprovante". Versão anterior: 1.3.1.
 //
 // v1.3.1 — pedido do Nicola no teste da F11 (02/10 01:07): a tela depois do
 // "Já paguei" deixa de falar em conferência do Pix e em plano que volta (o
@@ -63,7 +68,7 @@
 // continua funcionando sozinho.
 // ============================================================================
 
-export const VERSAO = '1.3.1'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.2'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -398,7 +403,7 @@ async function enviarComprovante({ dbAuth, clienteId, toast, item, arquivo, guar
                 mime_type: mime, tamanho_bytes: arquivo.size || null, origem: 'app', data_documento: new Date().toISOString().slice(0, 10),
                 descricao: 'Comprovante do pagamento do plano Raiz Patrimônio.',
             });
-            await api.inserirVinculo(clienteId, docId, 'empresa', null, true, null);
+            await api.inserirVinculo(clienteId, docId, 'pagamento', item.item_id, true, null);
             toast('Cópia guardada no Cofre da empresa', 'success');
         } catch (e) {
             console.warn('[comum-renovacao] cópia no Cofre:', e?.message);

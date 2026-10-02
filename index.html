@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.288.0
-   LINHAS: 16157
+   VERSÃO: Beta v1.289.0
+   LINHAS: 16152
    DATA: 02/10/2026 (sessão 20261002-0030-seletor-imovel, seletor de imóvel no padrão)
+   NOVIDADES (Beta v1.289.0) — despesa da licença (pedido do Nicola, 02/10 01:31):
+   descrição com plano e vigência anterior → nova (banco); comprovante vinculado
+   ao pagamento e "Ver comprovante" no ⋮ da despesa. js/financeiro.js 1.27.3,
+   js/comum-renovacao.js 1.3.2; index: lancamentos ganham origemId e import map.
+   Versão anterior (Beta v1.288.0):
    NOVIDADES (Beta v1.288.0) — ajustes do teste da F11 (Nicola, 02/10 01:07):
    js/comum-renovacao.js 1.3.0 → 1.3.1 (resumo "vigência anterior × nova" no
    lugar do aviso de conferência; cópia do comprovante já vinculada à empresa)
@@ -32,19 +37,8 @@
    salvar. (2) Aba Ativos aberta a partir de outra tela (ex.: contrato) mostra um
    voltar só — o atalho global "‹ Contrato" esconde o "‹ Ativos" da ficha (CSS).
    Versão anterior (Beta v1.284.0):
-   NOVIDADES (Beta v1.284.0) — testes do Nicola no celular (01/10, 23:57), demandas
-   5ca973d6 e 11afd25f. (1) salvarContratoIndividual devolve true/false e avisa
-   'contrato' no barramento de escrita; js/contratos.js 1.30.0 → 1.31.0 espera a
-   gravação antes de reabrir a ficha (contrato, Parte e Linha do tempo aparecem
-   sem sair e voltar), exclui contrato com reajuste/revisional, tira "O que você
-   pode fazer", põe "Pelo mercado" antes da Linha do tempo e abre o reajuste já
-   preenchido pelo valor estimado. (2) #modal-seletor-imovel sobe para z 99 — o
-   campo Imóvel do Novo contrato abria o seletor por trás do formulário. (3)
-   js/vitrine.js 1.3.0 → 1.3.1: sem minuta, link e WhatsApp aparecem no grupo
-   "Coleta de dados".
-   Versão anterior (Beta v1.283.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.283.0 … v1.283.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.284.0 … v1.284.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -68,7 +62,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.2","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.26.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.1","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.26.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3446,7 +3440,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.288.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.289.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5509,6 +5503,7 @@
                     // extrato" — mesmo papel que chaveTransacaoOrigem já
                     // cumpre pra mensalidades.
                     origemTipo: row.origem_tipo || null,
+                    origemId: row.origem_id || null, // v1.289.0 — despesa da licença acha o comprovante pelo pagamento
                     // Entrega F.3/F.4 — ver nota igual em carregarMensalidadesSupabase.
                     incluirContabilidade: row.incluir_contabilidade !== false
                 };
