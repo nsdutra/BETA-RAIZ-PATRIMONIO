@@ -1,7 +1,17 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.27.0 · 01/10/2026
+// Versão: 1.27.1 · 01/10/2026
+//
+// v1.27.1 (01/10/2026, pedido do Nicola no teste da F12) — o Pix copia e cola
+// sai em uma 2ª mensagem, sozinho: no WhatsApp ele vinha quebrado em linhas
+// com trechos virando link, e o locatário não conseguia copiar só o código.
+// A 1ª mensagem leva a chave e avisa que o código vem em seguida; o Sheet fica
+// aberto com o botão "Enviar o código Pix" (2º toque, mesma conversa).
+// Junto (pedido do Nicola, 01/10 23:19): "Cobrar pelo WhatsApp" também no ⋮
+// de cada mensalidade em atraso — antes só existia no cabeçalho do grupo,
+// com a lista agrupada por Locatário (difícil de achar).
+// Versão anterior: 1.27.0.
 //
 // v1.27.0 (01/10/2026, F12 — demanda 3a1a5ef5): "Cobrar pelo WhatsApp" abre
 // antes um Sheet com a opção "Incluir o Pix da empresa" (marcada quando há
@@ -756,7 +766,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.27.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.27.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4087,8 +4097,12 @@ function financeiroRenderCabecalho(aba) {
                 abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: acoesPago });
                 return;
             }
-            abrirSheetAcoes({ titulo: mensalidadeEmAtraso(men) ? 'Em atraso' : 'A receber', sub, acoes: [
+            const emAtraso = mensalidadeEmAtraso(men);
+            const valorMen = Number(men.valorConfirmado ?? men.valor ?? 0);
+            abrirSheetAcoes({ titulo: emAtraso ? 'Em atraso' : 'A receber', sub, acoes: [
                 { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', codigo: 'mensal.baixar', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
+                ...(emAtraso ? [{ icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Mensagem ao locatário, com o Pix da empresa', codigo: 'cobrar.lembrete',
+                    aoTocar: () => dispararCobrancaWhatsAppDirect(con.whatsapp, `Locatário: ${con.locatario || ''}`, `- Competência ${men.referencia}: R$ ${valorMen.toLocaleString('pt-BR')}`, valorMen) }] : []),
                 { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', codigo: 'mensal.excluir', aoTocar: () => excluirLancamentoMensal(men.id) },
             ] });
         }
@@ -4675,6 +4689,17 @@ function financeiroRenderCabecalho(aba) {
                 aoSalvar: (el) => {
                     const incluir = !!(pix && el.querySelector('#fin-cob-pix')?.checked);
                     enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, incluir ? pix : null);
+                    if (!incluir || !pix.brcode) return true;
+                    // 2º passo: o código sozinho, para o locatário copiar com um toque longo
+                    el.innerHTML = `<p class="text-sm" style="margin:0 0 8px"><b>1. Cobrança enviada.</b> Volte aqui e mande o código em uma mensagem separada: assim o locatário copia só o Pix.</p>` +
+                        `<button type="button" class="rz-btn rz-btn-1 rz-wide" id="fin-cob-code"><svg data-lucide="copy"></svg>2. Enviar o código Pix</button>`;
+                    if (typeof rzIcones === 'function') rzIcones();
+                    el.closest('.rz-sheet')?.querySelector('.rz-sh-f')?.classList.add('hidden');
+                    el.querySelector('#fin-cob-code').addEventListener('click', () => {
+                        window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(pix.brcode)}`, '_blank');
+                        if (typeof fecharSheet === 'function') fecharSheet();
+                    });
+                    return false;
                 },
             });
         }
@@ -4692,7 +4717,7 @@ function financeiroRenderCabecalho(aba) {
             const formatText = itensText.replace(/\\n/g, '\n');
 
             const txt = `⚠️ *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - NOTIFICAÇÃO DE CAIXA*\nRef: *${grupoTitle}*\n\nConstam em aberto os seguintes lançamentos pendentes:\n${formatText}\n\n*Total Consolidado: R$ ${valorTotal.toLocaleString('pt-BR')}*\n\nQualquer dúvida sobre a conciliação, estamos à disposição.`
-                + (pix ? `\n\n💠 *Pague por Pix*\nChave: ${pix.chave}\nRecebedor: ${pix.nome}` + (pix.brcode ? `\n\nPix copia e cola (valor total):\n${pix.brcode}` : '') : '');
+                + (pix ? `\n\n💠 *Pague por Pix*\nChave: ${pix.chave}\nRecebedor: ${pix.nome}` + (pix.brcode ? `\n\nNa próxima mensagem envio o *Pix copia e cola* com o valor total — é só tocar e segurar para copiar.` : '') : '');
 
             window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(txt)}`, '_blank');
 
