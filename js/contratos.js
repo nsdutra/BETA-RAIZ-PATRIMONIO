@@ -1,7 +1,16 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.28.0 · 01/10/2026
+// Versão: 1.29.0 · 01/10/2026
+//
+// v1.29.0 (demanda 5ca973d6, teste ba98 reprovado pelo Nicola em 01/10/2026,
+// sessão 20261001-2315-contratos-partes) — card "Linha do tempo" do chip
+// Renovação mostrava "Não consegui carregar reajuste/revisão." em todo
+// contrato COM itens de reajuste/revisional. Causa: montarItensControleContrato
+// usava o helper rs() de selo de status, que só é declarado dentro de
+// abrirFichaContrato — fora dele dava ReferenceError, engolido pelo catch.
+// A RPC fn_contrato_itens_controle_listar sempre respondeu certo. Correção:
+// declarar rs() no escopo da própria função, igual às outras duas cópias.
 //
 // v1.28.0 (demanda 11afd25f, sinérgicas 3b458eb4 e c0d255e3, sessão
 // 20260927-2205-contratos, pedido explícito do Nicola: "ao optar por dados
@@ -571,7 +580,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.28.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.29.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2442,6 +2451,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 }
                 const rotuloTipo = codigo => codigo === 'revisional_contrato' ? 'Revisão' : 'Reajuste';
                 const iconeTipo = codigo => codigo === 'revisional_contrato' ? 'scale' : 'trending-up';
+                // v1.29.0 — rs() local (antes só existia dentro de abrirFichaContrato → ReferenceError aqui)
+                const rs = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
                 el.innerHTML = linhas.map(l => {
                     const statusBadge = l.status_execucao === 'concluido' ? rs('ok', 'Concluído')
                         : l.status_execucao === 'cancelado' ? rs('neu', 'Cancelado')
