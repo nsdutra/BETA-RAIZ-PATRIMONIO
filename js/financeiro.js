@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.27.1 · 01/10/2026
+// Versão: 1.27.2 · 02/10/2026
+//
+// v1.27.2 (02/10/2026, achado do Nicola no teste da F11) — a lista de Saídas
+// recarrega do banco toda vez que a aba abre, como os totais (que já vinham de
+// fn_financeiro_totalizadores a cada abertura). Antes a lista só era carregada
+// no login: uma despesa lançada depois (ex.: a licença confirmada no Gestão)
+// entrava no total mas não aparecia na lista até recarregar o app.
+// Versão anterior: 1.27.1.
 //
 // v1.27.1 (01/10/2026, pedido do Nicola no teste da F12) — o Pix copia e cola
 // sai em uma 2ª mensagem, sozinho: no WhatsApp ele vinha quebrado em linhas
@@ -766,7 +773,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.27.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.27.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1283,6 +1290,19 @@ export function rzTocarChipFechamentoDesligado() {
 // nunca somados no cliente (REGRAS §11). aba: 'mensal' (Recebimentos) ou
 // 'saidas' (Saídas); Fechamento mantém o próprio hero (Pendentes/
 // Conciliados), que não muda nesta entrega.
+// v1.27.2 — lista de Saídas sempre fresca (mesma fonte dos totais).
+let financeiroSaidasCarregando = false;
+async function financeiroRecarregarSaidas() {
+    if (financeiroSaidasCarregando || typeof carregarLancamentosSupabase !== 'function') return;
+    financeiroSaidasCarregando = true;
+    try {
+        lancamentos = await carregarLancamentosSupabase();
+        renderSaidas();
+    } catch (e) {
+        console.warn('[financeiro] recarregar saídas:', e.message);
+    } finally { financeiroSaidasCarregando = false; }
+}
+
 async function financeiroAtualizarKpis(aba) {
     const tipo = aba === 'mensal' ? 'recebimento' : 'saida';
     const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
@@ -1323,6 +1343,7 @@ function financeiroRenderCabecalho(aba) {
     financeiroRenderCadeadoCompetencia(); // v1.20.0 (demanda 7bdcb8d4)
     if (financeiroRotinaFechamentoLigada === null) financeiroVerificarRotinaFechamento();
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
+    if (aba === 'saidas') financeiroRecarregarSaidas(); // v1.27.2
     // Entrega F.2 — card de Fechar/Reabrir dentro do chip Fechamento
     // (REGRAS §11.1). Ponte global pra js/fechamento.js, módulo isolado
     // (mesmo padrão de mostrarToast/abrirSheetAcoes usados aqui).

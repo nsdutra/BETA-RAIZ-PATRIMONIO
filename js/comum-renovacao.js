@@ -1,6 +1,15 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.3.0 · 01/10/2026
+// Versão: 1.3.1 · 02/10/2026
+//
+// v1.3.1 — pedido do Nicola no teste da F11 (02/10 01:07): a tela depois do
+// "Já paguei" deixa de falar em conferência do Pix e em plano que volta (o
+// público não é de calote; se não pagar, a Raiz entra em contato). No lugar,
+// um resumo da licença: vigência atual × nova vigência (expira_anterior vem
+// do banco). A cópia do comprovante no Cofre da empresa já nasce vinculada à
+// empresa (não vira "documento sem vínculo").
+//
+// Versão anterior: 1.3.0 · 01/10/2026
 //
 // v1.3.0 — FICHA F11 (demanda 45bb4875, aprovada pelo Nicola em 01/10 17:46):
 // depois do "Já paguei" a tela diz se o plano JÁ ESTÁ LIBERADO (o banco libera
@@ -54,7 +63,7 @@
 // continua funcionando sozinho.
 // ============================================================================
 
-export const VERSAO = '1.3.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -270,7 +279,7 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
                 `<div class="rz-kv"><div><small>Valor a pagar</small><b>${brl(c.valor)}</b></div><div><small>Código da cobrança</small><b>${esc(c.txid)}</b></div>${credito}` +
                 `<div class="rz-full"><small>Pix copia e cola</small><b id="rnv-code" style="font-size:12px;font-weight:500;user-select:all">${esc(c.brcode || '')}</b></div></div>` +
                 '<div style="margin-top:10px"><button type="button" class="rz-btn rz-btn-2 rz-wide" id="rnv-copiar"><svg data-lucide="copy"></svg>Copiar código Pix</button></div>' +
-                '<p class="text-xs" style="color:var(--muted);margin-top:10px">Pague no app do seu banco e toque em <b>Já paguei</b>. O plano é liberado na hora e a Raiz confere o recebimento depois.</p>';
+                '<p class="text-xs" style="color:var(--muted);margin-top:10px">Pague no app do seu banco e toque em <b>Já paguei</b>. O plano é liberado na hora.</p>';
             el.querySelector('#rnv-copiar')?.addEventListener('click', async () => {
                 const code = c.brcode || '';
                 try { await navigator.clipboard.writeText(code); toast('Código Pix copiado', 'success'); }
@@ -315,9 +324,11 @@ async function telaInformado({ dbAuth, clienteId, toast, c, plano, pronto = fals
     if (s.status === 'confirmado') {
         topo = `<p>${window.renderStatus('ok', 'Pagamento confirmado')}</p><p class="text-sm">Pix localizado. Seu plano${plano ? ' ' + esc(plano) : ''} está valendo${ate ? ' até <b>' + ate + '</b>' : ''}.</p>`;
     } else if (s.liberado) {
-        topo = `<p>${window.renderStatus('ok', 'Plano liberado')}</p><p class="text-sm">Seu plano${plano ? ' ' + esc(plano) : ''} já está valendo${ate ? ' até <b>' + ate + '</b>' : ''}. A Raiz ainda confere o Pix; se o pagamento não for localizado, o plano volta ao que era.</p>`;
+        const antes = s.expira_anterior ? new Date(s.expira_anterior).toLocaleDateString('pt-BR') : '';
+        topo = `<p>${window.renderStatus('ok', 'Plano liberado')}</p><p class="text-sm">Seu plano${plano ? ' ' + esc(plano) : ''} já está valendo.</p>` +
+            (ate ? `<div class="rz-kv" style="text-align:left;margin-top:8px">${antes ? `<div><small>Vigência anterior</small><b>até ${antes}</b></div>` : ''}<div><small>Nova vigência</small><b style="color:var(--success)">até ${ate}</b></div></div>` : '');
     } else {
-        topo = `<p>${window.renderStatus('run', 'Aguardando a Raiz')}</p><p class="text-sm">Recebemos o seu aviso. Desta vez a liberação depende da conferência do Pix pela Raiz (até 1 dia útil). Você será avisado no app.</p>`;
+        topo = `<p>${window.renderStatus('run', 'Aguardando a Raiz')}</p><p class="text-sm">Recebemos o seu aviso. A Raiz libera o plano em até 1 dia útil e você será avisado no app.</p>`;
     }
     const linhaComprovante = s.comprovante
         ? `<div class="rz-row"><div class="rz-ic"><svg data-lucide="file-check-2"></svg></div><div class="rz-tx"><b>Comprovante recebido</b><span>Obrigado! Ele ajuda a Raiz a conferir mais rápido</span></div></div>`
@@ -387,6 +398,7 @@ async function enviarComprovante({ dbAuth, clienteId, toast, item, arquivo, guar
                 mime_type: mime, tamanho_bytes: arquivo.size || null, origem: 'app', data_documento: new Date().toISOString().slice(0, 10),
                 descricao: 'Comprovante do pagamento do plano Raiz Patrimônio.',
             });
+            await api.inserirVinculo(clienteId, docId, 'empresa', null, true, null);
             toast('Cópia guardada no Cofre da empresa', 'success');
         } catch (e) {
             console.warn('[comum-renovacao] cópia no Cofre:', e?.message);
