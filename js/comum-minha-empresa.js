@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.7.0 · 23/09/2026
+// Versão: 1.8.0 · 01/10/2026
+//
+// v1.8.0 (F12, demanda 3a1a5ef5, aprovada em 01/10/2026) — card novo "Pix para
+// cobrança de aluguel": Chave Pix (clientes.pix_chave) e Nome do recebedor
+// (clientes.pix_recebedor_nome; vazio = nome da empresa). Colunas já existiam
+// (F10). A cidade do Pix vem do endereço da sede. Hoje a chave é usada na
+// cobrança de aluguel pelo WhatsApp, de forma opcional na hora de cobrar.
+// Mesmo salvar de sempre (salvarDadosEmpresa). Versão anterior: 1.7.0.
 //
 // v1.7.0 (frente fiscal, Fase 2 — demanda 976fcbf6) — card "Perfil fiscal e
 // societário" ganha "Inscrição municipal" (clientes.inscricao_municipal,
@@ -88,7 +95,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.7.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.8.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -308,6 +315,16 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             <div class="rz-f" style="margin-bottom:0"><label>Site</label><input type="url" id="cme-site" inputmode="url" placeholder="https://" value="${val(dados.site)}"></div>
         </div>
 
+        <div class="rz-card" id="cme-pix-card"><div class="rz-card-h"><h3>Pix para cobrança de aluguel</h3></div>
+            <div class="rz-f"><label>Chave Pix</label>
+                <input type="text" id="cme-pix-chave" maxlength="77" placeholder="CPF/CNPJ, e-mail, celular ou chave aleatória" value="${val(dados.pix_chave)}">
+            </div>
+            <div class="rz-f" style="margin-bottom:0"><label>Nome do recebedor</label>
+                <input type="text" id="cme-pix-nome" maxlength="25" placeholder="${val(dados.nome_empresa)}" value="${val(dados.pix_recebedor_nome)}">
+                <span class="rz-hint">Hoje a chave é usada na cobrança de aluguel pelo WhatsApp: na hora de cobrar você escolhe se inclui a chave e o Pix copia e cola com o valor. Vazio = nome da empresa.</span>
+            </div>
+        </div>
+
         <div class="rz-card"><div class="rz-card-h"><h3>Endereço da sede</h3></div>
             <div class="rz-f" style="max-width:180px"><label>CEP</label><input type="text" id="cme-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${val(dados.cep)}"></div>
             <div class="rz-f2" style="grid-template-columns:2fr 1fr">
@@ -429,6 +446,8 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             papel_na_locacao: g('cme-papel') || null,
             regime_tributario: g('cme-regime') || null,
             inscricao_municipal: g('cme-im') || null,
+            pix_chave: g('cme-pix-chave') || null,
+            pix_recebedor_nome: g('cme-pix-nome') || null,
             modelo_distribuicao_lucros: g('cme-modelo') || null,
         };
         try {

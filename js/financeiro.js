@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.26.0 · 30/09/2026
+// Versão: 1.27.0 · 01/10/2026
+//
+// v1.27.0 (01/10/2026, F12 — demanda 3a1a5ef5): "Cobrar pelo WhatsApp" abre
+// antes um Sheet com a opção "Incluir o Pix da empresa" (marcada quando há
+// chave cadastrada): a mensagem ganha a chave, o recebedor e o Pix copia e cola
+// com o valor total (fn_pix_brcode_empresa — mesmo cálculo do QR da Raiz).
+// Sem chave cadastrada, o Sheet avisa onde cadastrar (Minha empresa) e a
+// mensagem sai como antes. Versão anterior: 1.26.0.
 //
 // v1.26.0 (30/09/2026 — frente licenca-financeiro, ficha F3 aprovada em
 // 30/09): categoria de despesa `tecnologia_assinaturas` ("Tecnologia e
@@ -749,7 +756,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.26.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.27.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4651,7 +4658,28 @@ function financeiroRenderCabecalho(aba) {
             ] });
         }
 
-        export function dispararCobrancaWhatsAppDirect(celular, grupoTitle, itensText, valorTotal) {
+        export async function dispararCobrancaWhatsAppDirect(celular, grupoTitle, itensText, valorTotal) {
+            if (!celular || celular.length < 5) { alert("⚠️ Celular do locatário não cadastrado."); return; }
+            let pix = null;
+            try {
+                const { data } = await dbAuth.rpc('fn_pix_brcode_empresa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_valor: Number(valorTotal) || 0 });
+                pix = data || null;
+            } catch (e) { console.warn('[financeiro] Pix da empresa:', e.message); }
+            if (typeof abrirSheetForm !== 'function') return enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, null);
+            abrirSheetForm({
+                titulo: 'Cobrar pelo WhatsApp', sub: `${grupoTitle} · ${formatarMoedaBR(valorTotal)}`,
+                rotuloSalvar: 'Abrir WhatsApp', rotuloCancelar: 'Cancelar',
+                corpo: pix
+                    ? `<label class="text-sm" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="fin-cob-pix" checked style="margin-top:3px"><span><b>Incluir o Pix da empresa</b><br><span class="text-xs" style="color:var(--muted)">Chave ${(window.rzEsc||String)(pix.chave)} (${(window.rzEsc||String)(pix.nome)})${pix.brcode ? ' e Pix copia e cola com o valor total' : ''}.</span></span></label>`
+                    : `<p class="text-sm" style="margin:0">A empresa ainda não tem chave Pix cadastrada; a cobrança sai sem Pix.</p><p class="text-xs" style="color:var(--muted);margin:6px 0 0">Cadastre em Conta › Empresa › Minha empresa › Pix para cobrança de aluguel.</p>`,
+                aoSalvar: (el) => {
+                    const incluir = !!(pix && el.querySelector('#fin-cob-pix')?.checked);
+                    enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, incluir ? pix : null);
+                },
+            });
+        }
+
+        function enviarCobrancaWhatsApp(celular, grupoTitle, itensText, valorTotal, pix) {
 
             if(!celular || celular.length < 5) {
 
@@ -4663,7 +4691,8 @@ function financeiroRenderCabecalho(aba) {
 
             const formatText = itensText.replace(/\\n/g, '\n');
 
-            const txt = `⚠️ *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - NOTIFICAÇÃO DE CAIXA*\nRef: *${grupoTitle}*\n\nConstam em aberto os seguintes lançamentos pendentes:\n${formatText}\n\n*Total Consolidado: R$ ${valorTotal.toLocaleString('pt-BR')}*\n\nQualquer dúvida sobre a conciliação, estamos à disposição.`;
+            const txt = `⚠️ *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - NOTIFICAÇÃO DE CAIXA*\nRef: *${grupoTitle}*\n\nConstam em aberto os seguintes lançamentos pendentes:\n${formatText}\n\n*Total Consolidado: R$ ${valorTotal.toLocaleString('pt-BR')}*\n\nQualquer dúvida sobre a conciliação, estamos à disposição.`
+                + (pix ? `\n\n💠 *Pague por Pix*\nChave: ${pix.chave}\nRecebedor: ${pix.nome}` + (pix.brcode ? `\n\nPix copia e cola (valor total):\n${pix.brcode}` : '') : '');
 
             window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(txt)}`, '_blank');
 
