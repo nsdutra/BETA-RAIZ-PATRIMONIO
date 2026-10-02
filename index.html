@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.284.0
-   LINHAS: 16161
-   DATA: 02/10/2026 (sessão 20261002-0005-contratos-ficha, ficha do contrato e exclusão)
+   VERSÃO: Beta v1.285.0
+   LINHAS: 16162
+   DATA: 02/10/2026 (sessão 20261002-0020-contratos-assinando, contrato em assinatura e voltar duplicado)
+   NOVIDADES (Beta v1.285.0) — pedidos do Nicola (02/10, 00:19), demanda 5ca973d6.
+   (1) js/contratos.js 1.31.0 → 1.32.0: contrato em Assinando sem Reajustar/Renovar;
+   "Ativar contrato" abre o formulário preenchido com status Ativo para conferir e
+   salvar. (2) Aba Ativos aberta a partir de outra tela (ex.: contrato) mostra um
+   voltar só — o atalho global "‹ Contrato" esconde o "‹ Ativos" da ficha (CSS).
+   Versão anterior (Beta v1.284.0):
    NOVIDADES (Beta v1.284.0) — testes do Nicola no celular (01/10, 23:57), demandas
    5ca973d6 e 11afd25f. (1) salvarContratoIndividual devolve true/false e avisa
    'contrato' no barramento de escrita; js/contratos.js 1.30.0 → 1.31.0 espera a
@@ -44,15 +50,8 @@
    Revisionais › "+ Mostrar mais campos"; o card "Reajuste e Revisão" passa a se
    chamar "Revisionais". Só posição e título; nenhum campo ou id mudou.
    Versão anterior (Beta v1.281.0):
-   NOVIDADES (Beta v1.281.0) — ficha F12 (demanda 3a1a5ef5): Pix da empresa.
-   (1) js/comum-minha-empresa.js 1.7.0 → 1.8.0: card "Pix para cobrança de aluguel".
-   (2) js/financeiro.js 1.26.0 → 1.27.0: "Cobrar pelo WhatsApp" pergunta se inclui
-   o Pix (chave + copia e cola com o valor). (3) index: alerta novo
-   pix_empresa_pendente preenche a chave no próprio sheet (ACAO_CAMPO_ALERTA) e
-   a rota empresa/pix leva ao card. Só admin e operador veem o alerta (banco).
-   Versão anterior (Beta v1.280.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.280.0 … v1.280.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.281.0 … v1.281.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -76,7 +75,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.31.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.32.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -501,6 +500,8 @@
         .rz-ico-btn svg{width:20px;height:20px}
         .rz-back{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--pine);margin-bottom:12px}
         .rz-back svg{width:16px;height:16px}
+        /* v1.285.0 — com o atalho global "‹ <tela de origem>" visível na aba Ativos (ex.: veio de um contrato), some o "‹ Ativos" próprio da ficha: um voltar só, sem encavalar */
+        #tab-ativos:has(> .rz-voltar-global:not(.hidden)) [data-action="voltar-ficha-ativo"]{display:none}
         /* 11. cabeçalho de entidade (ficha) */
         .rz-entity{display:flex;gap:12px;align-items:center;margin-bottom:12px}
         .rz-entity .rz-ic{width:52px;height:52px;border-radius:14px;background:var(--tile);color:var(--pine);display:flex;align-items:center;justify-content:center;flex:none}
@@ -3451,7 +3452,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.284.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.285.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

@@ -1,7 +1,16 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.31.0 · 02/10/2026
+// Versão: 1.32.0 · 02/10/2026
+//
+// v1.32.0 (demanda 5ca973d6, pedido do Nicola em 02/10/2026 00:19, sessão
+// 20261002-0020-contratos-assinando) — contrato em Assinando:
+//   1) Menu ⋮ da ficha sem "Reajustar contrato" e "Renovar contrato";
+//      lancarReajusteContrato e renovarContrato recusam com aviso se chamados
+//      de outro ponto, e a Linha do tempo não fica clicável.
+//   2) "Ativar contrato" abre o FORMULÁRIO do contrato preenchido, já com
+//      status Ativo, para completar, conferir e salvar (ativarContratoPeloFormulario).
+//      Ao salvar volta à ficha do contrato. Antes abria só o sheet de status.
 //
 // v1.31.0 (demandas 5ca973d6 e 11afd25f, pedidos do Nicola testando no celular
 // em 01/10/2026 23:57, sessão 20261002-0005-contratos-ficha):
@@ -604,7 +613,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.31.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.32.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1205,6 +1214,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export function lancarReajusteContrato(contratoId, ocorrenciaId, subtipoCodigo) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
+            if (con.status === 'Assinando') { mostrarToast('Contrato ainda em assinatura — ative o contrato antes de reajustar.', 'danger'); return; } // v1.32.0
             if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.reajustar')) return;
             const ehRevisional = subtipoCodigo === 'revisional_contrato';
             const hoje = new Date().toISOString().slice(0, 10);
@@ -2491,7 +2501,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         : '';
                     const dataTxt = l.data_prevista ? formatarDataBR(l.data_prevista) : '—';
                     const pctTxt = l.percentual_reajuste != null ? ' · ' + fmtSinalPctContrato(l.percentual_reajuste) : '';
-                    const clicavel = l.status_execucao === 'aberto' && !!l.ocorrencia_id;
+                    const emAssinaturaLt = (contratos.find(c => c.id === contratoId) || {}).status === 'Assinando'; // v1.32.0
+                    const clicavel = l.status_execucao === 'aberto' && !!l.ocorrencia_id && !emAssinaturaLt;
                     return `<div class="rz-row${clicavel ? ' rz-link' : ''}"${clicavel ? ` onclick="lancarReajusteContrato('${contratoId}', '${l.ocorrencia_id}', '${l.subtipo_codigo}')"` : ''}>
                         <div class="rz-ic"><svg data-lucide="${iconeTipo(l.subtipo_codigo)}"></svg></div>
                         <div class="rz-tx"><b>${rotuloTipo(l.subtipo_codigo)}</b><span>${dataTxt}${pctTxt}</span></div>
@@ -2736,6 +2747,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export function renovarContrato(contratoId, ocorrenciaOrigemId = null) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
+            if (con.status === 'Assinando') { mostrarToast('Contrato ainda em assinatura — ative o contrato antes de renovar.', 'danger'); return; } // v1.32.0
             if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.estender')) return;
             const fimAtual = con.fim || '';
             const proximoDia = fimAtual ? new Date(fimAtual + 'T00:00:00') : new Date();
@@ -3110,7 +3122,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (typeof abrirSheetAcoes !== 'function') { alternarMaisAcoesFichaContrato(); return; }
             const imo = imoveis.find(i => i.id === con.imovelId);
             const pront = avaliarProntidaoContratoParaMinuta(con, imo);
-            const acoes = [
+            // v1.32.0 — em Assinando não há reajuste nem renovação (contrato ainda não vigente)
+            const emAssinatura = con.status === 'Assinando';
+            const acoes = emAssinatura ? [] : [
                 { icone: 'trending-up', titulo: 'Reajustar contrato', codigo: 'contratos.reajustar', sub: 'Novo valor, vigência e documento', aoTocar: () => lancarReajusteContrato(con.id) },
                 { icone: 'refresh-cw', titulo: 'Renovar contrato', codigo: 'contratos.estender', sub: 'Novo fim de vigência, valor e documento', aoTocar: () => renovarContrato(con.id) }, // v1.1.0 — A.10
                 // v1.6.0 (pedido explícito, 16/09) — "Histórico" saiu daqui:
@@ -3128,7 +3142,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // aberto) — cada item aqui só pré-seleciona a ação nesse mesmo
             // formulário (abrirAcaoStatusContrato), não duplica a lógica.
             if (con.status === 'Assinando') {
-                acoes.push({ icone: 'check-circle-2', titulo: 'Ativar contrato', codigo: 'contratos.editar', sub: 'Assinatura concluída — vira Ativo', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Ativo') });
+                acoes.push({ icone: 'check-circle-2', titulo: 'Ativar contrato', codigo: 'contratos.editar', sub: 'Conferir os dados e salvar — vira Ativo', aoTocar: () => ativarContratoPeloFormulario(con.id) }); // v1.32.0
             }
             if (con.status === 'Ativo') {
                 acoes.push({ icone: 'pause-circle', titulo: 'Suspender contrato', codigo: 'contratos.editar', aoTocar: () => abrirAcaoStatusContrato(con.id, 'Suspenso') });
@@ -3146,6 +3160,17 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // com a ação desejada pré-selecionada no <select>. Reaproveita 100%
         // das regras dele (opções válidas por transição, pendentes de
         // mensalidade, sincronização do status do imóvel).
+        // v1.32.0 (pedido do Nicola 02/10) — ativar um contrato em Assinando
+        // abre o formulário completo, preenchido, com status Ativo: a pessoa
+        // completa e confere os dados e salva (saveContrato), voltando à ficha.
+        export function ativarContratoPeloFormulario(contratoId) {
+            if (typeof podeUsar === 'function' && rzMostrarBloqueio('contratos.editar')) return;
+            abrirEdicaoContratoContextual(contratoId, 'fichaContrato', contratoId);
+            const sel = document.getElementById('con-status');
+            if (sel) sel.value = 'Ativo';
+            mostrarToast('Confira e complete os dados. Ao salvar, o contrato fica Ativo.', 'info');
+        }
+
         export function abrirAcaoStatusContrato(contratoId, valorAcao) {
             abrirAlterarStatusContrato(contratoId);
             const sel = document.getElementById('asc-acao');
