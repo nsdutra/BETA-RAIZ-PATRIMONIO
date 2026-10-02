@@ -1,6 +1,20 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.2.0 · 01/10/2026
+// Versão: 1.3.0 · 01/10/2026
+//
+// v1.3.0 — FICHA F11 (demanda 45bb4875, aprovada pelo Nicola em 01/10 17:46):
+// depois do "Já paguei" a tela diz se o plano JÁ ESTÁ LIBERADO (o banco libera
+// na hora o período inteiro, com trava: recusa nos últimos 30 dias ou outra
+// liberação ainda não conferida) ou se aguarda a Raiz. Dali: "Enviar
+// comprovante" (foto ou PDF; o arquivo vai SÓ para o Cofre da Raiz Patrimônio,
+// pasta comprovantes-pix — fn_licenca_comprovante_anexar), com a opção marcada
+// pelo usuário de guardar também uma cópia no Cofre da própria empresa
+// (cofre-api, mesmo caminho de "Enviar documento"); e "Enviar pelo R.AI.Z"
+// (ícone bot, abre o WhatsApp do R.AI.Z com o código da cobrança) — este só
+// aparece quando o R.AI.Z publicado já sabe receber comprovante (canal_raiz,
+// devolvido pelo banco). Ao fechar, a aba de Licença e as cotas recarregam.
+//
+// Versão anterior: 1.2.0 · 01/10/2026
 //
 // v1.2.0 — AJUSTES DO TESTE DO NICOLA (01/10, 13:32), só apresentação:
 // (1) cada opção ganha "Escolher ›" à direita; (2) linhas mais baixas: o anual
@@ -40,7 +54,7 @@
 // continua funcionando sozinho.
 // ============================================================================
 
-export const VERSAO = '1.2.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.0'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -238,7 +252,7 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
     } catch (e) {
         return toast(e?.message || 'Não foi possível gerar a cobrança.');
     }
-    if (c?.status === 'informado') return telaInformado(c);
+    if (c?.status === 'informado') return telaInformado({ dbAuth, clienteId, toast, c, plano: oferta.plano_nome });
 
     const svgQr = c.brcode ? await qrSvg(c.brcode) : '';
     const recusa = c.aviso_recusa
@@ -256,7 +270,7 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
                 `<div class="rz-kv"><div><small>Valor a pagar</small><b>${brl(c.valor)}</b></div><div><small>Código da cobrança</small><b>${esc(c.txid)}</b></div>${credito}` +
                 `<div class="rz-full"><small>Pix copia e cola</small><b id="rnv-code" style="font-size:12px;font-weight:500;user-select:all">${esc(c.brcode || '')}</b></div></div>` +
                 '<div style="margin-top:10px"><button type="button" class="rz-btn rz-btn-2 rz-wide" id="rnv-copiar"><svg data-lucide="copy"></svg>Copiar código Pix</button></div>' +
-                '<p class="text-xs" style="color:var(--muted);margin-top:10px">Pague no app do seu banco e toque em <b>Já paguei</b>. A Raiz confere o recebimento e libera o plano; você será avisado.</p>';
+                '<p class="text-xs" style="color:var(--muted);margin-top:10px">Pague no app do seu banco e toque em <b>Já paguei</b>. O plano é liberado na hora e a Raiz confere o recebimento depois.</p>';
             el.querySelector('#rnv-copiar')?.addEventListener('click', async () => {
                 const code = c.brcode || '';
                 try { await navigator.clipboard.writeText(code); toast('Código Pix copiado', 'success'); }
@@ -270,7 +284,7 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
         aoSalvar: async () => {
             const { data, error } = await dbAuth.rpc('fn_licenca_pagamento_informar', { p_item_id: c.item_id });
             if (error) throw error;
-            telaInformado({ ...c, ...data });
+            telaInformado({ dbAuth, clienteId, toast, c: { ...c, ...data }, plano: oferta.plano_nome, pronto: true });
             return false; // mantém o Sheet aberto na tela de "informado"
         },
     });
@@ -282,10 +296,101 @@ async function telaCobranca({ dbAuth, clienteId, oferta, toast, voltar }) {
     }
 }
 
-function telaInformado(c) {
+const NUMERO_RAIZ_BOT = '5511978950609'; // mesmo número de abrirBotWhatsapp() no index
+
+function recarregarDepois() {
+    try { if (typeof window.rzRecarregarLicenca === 'function') window.rzRecarregarLicenca(); } catch (_) {}
+}
+
+async function telaInformado({ dbAuth, clienteId, toast, c, plano, pronto = false }) {
+    let s = c;
+    if (!pronto) {
+        try {
+            const { data, error } = await dbAuth.rpc('fn_licenca_pagamento_informar', { p_item_id: c.item_id });
+            if (!error && data) s = { ...c, ...data };
+        } catch (_) { /* segue com o que tem */ }
+    }
+    const ate = s.expira_em ? new Date(s.expira_em).toLocaleDateString('pt-BR') : '';
+    let topo;
+    if (s.status === 'confirmado') {
+        topo = `<p>${window.renderStatus('ok', 'Pagamento confirmado')}</p><p class="text-sm">Pix localizado. Seu plano${plano ? ' ' + esc(plano) : ''} está valendo${ate ? ' até <b>' + ate + '</b>' : ''}.</p>`;
+    } else if (s.liberado) {
+        topo = `<p>${window.renderStatus('ok', 'Plano liberado')}</p><p class="text-sm">Seu plano${plano ? ' ' + esc(plano) : ''} já está valendo${ate ? ' até <b>' + ate + '</b>' : ''}. A Raiz ainda confere o Pix; se o pagamento não for localizado, o plano volta ao que era.</p>`;
+    } else {
+        topo = `<p>${window.renderStatus('run', 'Aguardando a Raiz')}</p><p class="text-sm">Recebemos o seu aviso. Desta vez a liberação depende da conferência do Pix pela Raiz (até 1 dia útil). Você será avisado no app.</p>`;
+    }
+    const linhaComprovante = s.comprovante
+        ? `<div class="rz-row"><div class="rz-ic"><svg data-lucide="file-check-2"></svg></div><div class="rz-tx"><b>Comprovante recebido</b><span>Obrigado! Ele ajuda a Raiz a conferir mais rápido</span></div></div>`
+        : `<div class="rz-row rz-link" id="rnv-up"><div class="rz-ic"><svg data-lucide="upload"></svg></div><div class="rz-tx"><b>Enviar comprovante</b><span>Foto ou PDF do Pix</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>`;
+    const linhaRaiz = (!s.comprovante && s.canal_raiz)
+        ? `<div class="rz-row rz-link" id="rnv-raiz"><div class="rz-ic"><svg data-lucide="bot"></svg></div><div class="rz-tx"><b>Enviar pelo R.AI.Z</b><span>Mande o comprovante no WhatsApp do R.AI.Z</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : '';
+    const copia = s.comprovante ? '' :
+        `<label class="text-xs" style="display:flex;gap:8px;align-items:flex-start;color:var(--muted);margin:2px 0 0"><input type="checkbox" id="rnv-copia" style="margin-top:2px"> Guardar também uma cópia no Cofre da minha empresa</label>`;
+
     window.abrirSheetForm({
-        titulo: 'Pagamento informado', sub: c.valor != null ? brl(c.valor) : '', semRodape: true,
-        corpo: `<div class="rz-empty"><svg data-lucide="clock"></svg><p>${window.renderStatus('run', 'Aguardando confirmação')}</p>` +
-            '<p class="text-sm">Recebemos o seu aviso. A Raiz confere o Pix e libera o plano em até 1 dia útil. Você será avisado no app.</p></div>',
+        titulo: s.status === 'confirmado' ? 'Pagamento confirmado' : 'Pagamento informado',
+        sub: [s.valor != null ? brl(s.valor) : '', s.txid || ''].filter(Boolean).join(' · '),
+        semRodape: true,
+        aoFechar: recarregarDepois,
+        corpo: (el) => {
+            el.innerHTML = `<div class="rz-empty" style="padding-bottom:8px"><svg data-lucide="${s.liberado || s.status === 'confirmado' ? 'badge-check' : 'clock'}"></svg>${topo}</div>` +
+                `<div class="rz-card rz-list">${linhaComprovante}${linhaRaiz}</div>${copia}` +
+                '<input type="file" id="rnv-arq" class="hidden" accept="image/*,application/pdf">';
+            const inp = el.querySelector('#rnv-arq');
+            el.querySelector('#rnv-up')?.addEventListener('click', () => inp?.click());
+            inp?.addEventListener('change', async () => {
+                const f = inp.files && inp.files[0];
+                if (!f) return;
+                const guardarCopia = !!el.querySelector('#rnv-copia')?.checked;
+                await enviarComprovante({ dbAuth, clienteId, toast, item: s, arquivo: f, guardarCopia });
+                telaInformado({ dbAuth, clienteId, toast, c: s, plano });
+            });
+            el.querySelector('#rnv-raiz')?.addEventListener('click', () => {
+                const txt = encodeURIComponent(`Olá R.AI.Z! Vou enviar o comprovante do Pix do meu plano Raiz (cobrança ${s.txid || ''}).`);
+                window.open(`https://wa.me/${NUMERO_RAIZ_BOT}?text=${txt}`, '_blank', 'noopener');
+            });
+        },
     });
+}
+
+const limparNome = (n) => String(n || 'comprovante').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(-80);
+
+async function enviarComprovante({ dbAuth, clienteId, toast, item, arquivo, guardarCopia }) {
+    if (arquivo.size > 10 * 1024 * 1024) { toast('Arquivo grande demais (máximo 10 MB).'); return; }
+    const api = await import('./cofre-api.js');
+    const mime = api.mimeDoArquivo(arquivo);
+    try {
+        const { data: rec, error: e1 } = await dbAuth.rpc('fn_recebedor_plataforma_id');
+        if (e1 || !rec) throw e1 || new Error('Recebimento da Raiz não configurado.');
+        const caminho = `${rec}/comprovantes-pix/${clienteId}/${Date.now()}-${limparNome(arquivo.name)}`;
+        await api.uploadArquivoDocumento(caminho, arquivo);
+        const { error: e2 } = await dbAuth.rpc('fn_licenca_comprovante_anexar', {
+            p_item_id: item.item_id, p_storage_path: caminho, p_nome: arquivo.name || 'comprovante',
+            p_mime: mime, p_tamanho: arquivo.size || null, p_canal: 'app',
+        });
+        if (e2) throw e2;
+        toast('Comprovante enviado', 'success');
+    } catch (e) {
+        console.warn('[comum-renovacao] comprovante:', e?.message);
+        toast(e?.message || 'Não foi possível enviar o comprovante.');
+        return;
+    }
+    // cópia na empresa só quando o usuário marcou (F11 O2)
+    if (guardarCopia) {
+        try {
+            const docId = crypto.randomUUID();
+            const caminho = api.montarStoragePath(clienteId, docId, arquivo.name || 'comprovante');
+            await api.uploadArquivoDocumento(caminho, arquivo);
+            await api.inserirDocumento({
+                id: docId, cliente_id: clienteId, nome_original: arquivo.name || 'comprovante',
+                nome_exibicao: `Comprovante Pix — plano Raiz ${item.txid || ''}`.trim(), storage_path: caminho,
+                mime_type: mime, tamanho_bytes: arquivo.size || null, origem: 'app', data_documento: new Date().toISOString().slice(0, 10),
+                descricao: 'Comprovante do pagamento do plano Raiz Patrimônio.',
+            });
+            toast('Cópia guardada no Cofre da empresa', 'success');
+        } catch (e) {
+            console.warn('[comum-renovacao] cópia no Cofre:', e?.message);
+            toast('O comprovante foi enviado à Raiz, mas não deu para guardar a cópia no seu Cofre.');
+        }
+    }
 }

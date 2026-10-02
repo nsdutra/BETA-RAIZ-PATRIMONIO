@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.279.0
-   LINHAS: 16167
+   VERSÃO: Beta v1.280.0
+   LINHAS: 16177
    DATA: 01/10/2026 (sessão 20260927-2205-contratos, formulário único de contrato)
+   NOVIDADES (Beta v1.280.0) — ficha F11 (demanda 45bb4875): "Já paguei" libera o
+   plano na hora (o banco aplica, com trava) e a tela oferece "Enviar comprovante"
+   (vai só para o Cofre da Raiz; cópia no Cofre da empresa só se o usuário marcar)
+   e "Enviar pelo R.AI.Z" (quando o R.AI.Z publicado suporta). js/comum-renovacao.js
+   1.2.0 → 1.3.0. Index: window.rzRecarregarLicenca (licença, cotas e cabeçalho
+   depois do pagamento) e import map.
+   Versão anterior (Beta v1.279.0):
    NOVIDADES (Beta v1.279.0) — ajustes da renovação por Pix pedidos pelo
    Nicola em 01/10 (demanda 1899fe67), sem banco: js/comum-renovacao.js
    1.1.0 → 1.2.0 ("Escolher ›" em cada opção, linhas mais baixas, aviso único
@@ -72,15 +79,8 @@
    instalação no iPhone fora do Safari (9b41293b) e botão final das mensagens
    levando à tela certa (056166d4) — ver comunicacoes-app.js/-ui.js.
    Versão anterior (Beta v1.275.0):
-   NOVIDADES (Beta v1.275.0) — pedido do Nicola (30/09, 20:37): "Licença e uso"
-   volta a ser item do menu da conta (grupo Empresa), como antes; as abinhas
-   "Dados | Licença e uso" da v1.274.0 saem (ele tinha confundido o app com o
-   Gestão). Junto, js/comum-renovacao.js 1.0.0 → 1.1.0: texto curto sobre o que
-   muda entre os planos (limites lidos do banco) e, nos anuais, preço cheio
-   riscado + economia. Demanda 1899fe67.
-   Versão anterior (Beta v1.274.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.274.0 … v1.274.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.275.0 … v1.275.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -104,7 +104,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.26.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.26.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.2.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.26.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.26.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.2.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.67.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.7.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3475,7 +3475,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.279.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.280.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8566,6 +8566,16 @@
 
         // v1.273.0 (1899fe67, F10) — ponto único para abrir a renovação por Pix
         // (aviso de limite em js/comunicacoes e aba Licença). Módulo lazy.
+        // v1.280.0 (F11) — depois do "Já paguei" o plano pode ter mudado na hora:
+        // recarrega licença em memória, cotas (porta), cabeçalho e a aba Licença.
+        window.rzRecarregarLicenca = async function () {
+            try {
+                await carregarLicencaAtual();
+                await carregarFuncionalidadesLiberadas();
+                if (typeof atualizarContextoHeader === 'function') atualizarContextoHeader();
+                if (document.querySelector('#tab-licenca.active')) inicializarLicenca();
+            } catch (err) { console.warn('rzRecarregarLicenca:', err.message); }
+        };
         window.rzAbrirRenovacao = async function (planoPreferido = null) {
             try {
                 const { abrirRenovacao } = await import('./js/comum-renovacao.js');
