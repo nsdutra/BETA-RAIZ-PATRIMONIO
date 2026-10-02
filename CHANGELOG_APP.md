@@ -4,6 +4,426 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.283.0) — pedidos do Nicola em 01/10 (23:26), só módulos;
+index muda só import map e versão. (1) js/contratos.js 1.29.0 → 1.30.0 (demanda
+5ca973d6): chip "Renovação" da ficha do contrato vira "Reajuste"; ocorrência de
+revisão vira "Revisional". (2) js/vitrine.js 1.2.2 → 1.3.0 (demanda 11afd25f,
+teste f26a): link e WhatsApp de coleta de dados do locatário liberados sem minuta.
+(3) js/cofre-ativos.js 1.68.0 → 1.69.0 (demanda c0d255e3, teste abf1): sheet
+"Itens de controle" do ativo sem "Modelos de item" e "Tipos de controle".
+Banco, na mesma sessão: migration contrato_itens_primeiro_ciclo_v1 — 1º reajuste
+e 1ª revisional passam a cair em início + periodicidade, não na data de início.
+
+---
+
+NOVIDADES (Beta v1.282.0) — achado do Nicola no teste da 8e661f53 (01/10),
+demanda c4fcac3e: formulário de Parte (Editar parte / Nova parte / Cadastrar
+contador, abrirFormParteSheet) passa inteiro para a gramática .rz-f — antes só o
+bloco de endereço (comum-endereco.js) usava .rz-f e o resto (Nome, Documento,
+WhatsApp, E-mail, Nome fantasia, prestador, Profissão, Estado civil) tinha borda
+escura e cantos retos. Pares lado a lado viram .rz-f2. Nenhum id, campo ou
+regra de gravação mudou. Junto: js/contratos.js 1.28.0 → 1.29.0 (demanda
+5ca973d6, teste ba98) — card "Linha do tempo" do contrato voltou a carregar.
+
+---
+
+NOVIDADES (Beta v1.281.1) — pedido do Nicola (01/10, 21:15), demanda 11afd25f:
+ordem do formulário de contrato passa a ser Contrato › Locatário › Fiadores ›
+Revisionais › "+ Mostrar mais campos"; o card "Reajuste e Revisão" passa a se
+chamar "Revisionais". Só posição e título; nenhum campo ou id mudou.
+
+---
+
+NOVIDADES (Beta v1.281.0) — ficha F12 (demanda 3a1a5ef5): Pix da empresa.
+(1) js/comum-minha-empresa.js 1.7.0 → 1.8.0: card "Pix para cobrança de aluguel".
+(2) js/financeiro.js 1.26.0 → 1.27.0: "Cobrar pelo WhatsApp" pergunta se inclui
+o Pix (chave + copia e cola com o valor). (3) index: alerta novo
+pix_empresa_pendente preenche a chave no próprio sheet (ACAO_CAMPO_ALERTA) e
+a rota empresa/pix leva ao card. Só admin e operador veem o alerta (banco).
+
+---
+
+NOVIDADES (Beta v1.280.0) — ficha F11 (demanda 45bb4875): "Já paguei" libera o
+plano na hora (o banco aplica, com trava) e a tela oferece "Enviar comprovante"
+(vai só para o Cofre da Raiz; cópia no Cofre da empresa só se o usuário marcar)
+e "Enviar pelo R.AI.Z" (quando o R.AI.Z publicado suporta). js/comum-renovacao.js
+1.2.0 → 1.3.0. Index: window.rzRecarregarLicenca (licença, cotas e cabeçalho
+depois do pagamento) e import map.
+
+---
+
+NOVIDADES (Beta v1.279.0) — ajustes da renovação por Pix pedidos pelo
+Nicola em 01/10 (demanda 1899fe67), sem banco: js/comum-renovacao.js
+1.1.0 → 1.2.0 ("Escolher ›" em cada opção, linhas mais baixas, aviso único
+no topo com vencimento do plano, crédito, cálculo ao escolher e "só Pix
+por enquanto", "Voltar aos planos" na tela do Pix) e js/comum-licenca.js
+1.5.0 → 1.5.1 (lista de limites sem rolagem própria). Index: só import map.
+
+---
+
+NOVIDADES (Beta v1.278.0) — formulário único de contrato (demanda 11afd25f,
+sinérgicas 3b458eb4 e c0d255e3, pedido explícito do Nicola em 30/09: "devem
+ser idênticos... separar o que é dados do contrato do que é do locatário").
+(1) "Dados Novo Contrato" e "Novo contrato de locação" viram UM formulário
+(js/contratos.js 1.27.0 → 1.28.0): ordem nova — Contrato (imóvel, status,
+vigência, aluguel, vencimento) › Reajuste e Revisão › card Locatário (vira a
+Parte do contrato; endereço em campos separados com CEP) › card Fiadores (0,
+1, 2 ou mais na mesma tela) › "+ Mostrar mais campos" (Antecipado e Desconto
+de energia foram pra lá). Nenhum id mudou. Saiu a pergunta "Quer cadastrar um
+fiador agora?" depois de salvar (o card já está na tela).
+(2) Atalho "Novo contrato": no vazio do chip Contratos do ativo
+(js/cofre-ativos.js 1.67.0 → 1.68.0), no vazio da aba Contratos e na ficha
+antiga do imóvel sem contrato — escolha entre Carregar documento (IA), Novo
+contrato e Coletar dados do locatário (link, WhatsApp e minuta).
+(3) Menu de Locação (js/vitrine.js 1.2.1 → 1.2.2) perde "Dados novo
+contrato": a escolha é feita um passo antes. Sem migração de banco.
+
+---
+
+NOVIDADES (Beta v1.277.0) — Bloco B (demandas 5ca973d6/854f6343, pedido
+explícito do Nicola): reajuste e revisional de contrato viram itens de
+controle (cofre_itens_controle) desde a criação/edição do contrato — sem
+backfill dos contratos já cadastrados ("só de renovação que faltam").
+(1) Formulário de contrato ganha o card "Reajuste e Revisão" (sempre
+visível, logo após o Aluguel, não atrás de "+ Mostrar mais campos"):
+Índice de Reajuste (mudou de lugar, mesmo id con-reajuste — nenhuma outra
+referência muda), Reajuste a cada (meses, nasce com 12), Teto/Piso do
+reajuste (%, opcionais) e Revisão a cada (meses, em branco = sem cláusula
+de revisional). sincronizarContratoSupabase() grava as 4 colunas novas
+(reajuste_periodicidade_meses/reajuste_teto_pct/reajuste_piso_pct/
+revisional_periodicidade_meses) e chama fn_contrato_itens_controle_gerar
+(a trigger do banco já faz isso sozinha a cada save; a chamada aqui só
+evita esperar um reload pra ver o item na tela).
+(2) Ficha do contrato › chip Renovação ganha o card "Linha do tempo"
+(js/contratos.js 1.26.0 → 1.27.0): lista as ocorrências de reajuste e
+revisional (fn_contrato_itens_controle_listar), passadas e futuras;
+clicar numa ocorrência em aberto abre o mesmo sheet de "Aplicar o
+reajuste contratual" (lancarReajusteContrato), agora fechando aquela
+ocorrência específica (fn_contrato_reajustar p_ocorrencia_id) em vez de
+criar um lançamento avulso novo. O botão "Aplicar o reajuste contratual"
+solto continua igual (pedido explícito: "por enquanto pode deixar o
+chip de reajuste").
+Banco: migrations contratos_reajuste_revisional_itens_controle_v1 e v2
+(unicidade de no máx. 1 item de reajuste + 1 de revisional por contrato,
+correção de bug em fn_contrato_reajustar — violava uma CHECK e forçava
+tipo errado ao fechar ocorrência de item —, remoção da coluna
+reajuste_indice — redundante com contratos.reajuste, já existente — e a
+nova RPC fn_contrato_itens_controle_listar).
+
+---
+
+NOVIDADES (Beta v1.276.0) — achados do teste da Claudia no iPhone (30/09),
+plano aprovado pelo Nicola: (1) zoom travado no viewport (maximum-scale=1;
+demanda bf635974) — campos com letra < 16px faziam o iPhone ampliar a tela
+ao tocar e ela ficava ampliada, deslizando de lado. Decisão do Nicola para
+esta fase pré-app, a reavaliar (alternativa registrada na demanda: campos
+em 16px em tela de toque). (2) comunicações 1.49.0 → 1.50.0: passo de
+instalação no iPhone fora do Safari (9b41293b) e botão final das mensagens
+levando à tela certa (056166d4) — ver comunicacoes-app.js/-ui.js.
+
+---
+
+NOVIDADES (Beta v1.275.0) — pedido do Nicola (30/09, 20:37): "Licença e uso"
+volta a ser item do menu da conta (grupo Empresa), como antes; as abinhas
+"Dados | Licença e uso" da v1.274.0 saem (ele tinha confundido o app com o
+Gestão). Junto, js/comum-renovacao.js 1.0.0 → 1.1.0: texto curto sobre o que
+muda entre os planos (limites lidos do banco) e, nos anuais, preço cheio
+riscado + economia. Demanda 1899fe67.
+
+---
+
+NOVIDADES (Beta v1.274.0) — pedido do Nicola (30/09, teste da F10): "Licença e uso"
+deixa de ser item do menu da conta e vira abinha (chip) dentro de Minha
+empresa: "Dados" | "Licença e uso". Só navegação; a tela de licença e a
+renovação por Pix (v1.273.0) não mudaram. Demanda 1899fe67.
+
+---
+
+NOVIDADES (Beta v1.273.0) — renovar ou ampliar o plano por Pix (demanda
+1899fe67, ficha F10): (1) módulo novo js/comum-renovacao.js 1.0.0 (Sheet:
+ofertas de fn_ofertas_renovacao, QR e "Pix copia e cola" gerados pelo banco,
+"Já paguei"); (2) js/comum-licenca.js 1.4.0 → 1.5.0 (linha "Renovar ou
+ampliar o plano" em ⚙️ › Empresa › Licença e uso); (3) comunicações 1.48.0 →
+1.49.0 (o aviso de limite lista o plano ampliado e os upgrades com nome e
+preço e ganha "Ver planos e pagar por Pix"); (4) index: window.rzAbrirRenovacao
+e toast na aba Licença. A confirmação do pagamento é do Gestão.
+
+---
+
+NOVIDADES (Beta v1.272.0) — 4 achados do retorno do piloto (Nicola, 29/09):
+(1, demanda 3b458eb4) sincronizarContratoSupabase() agora também grava
+rua/número/complemento/bairro/cidade/UF/CEP/IBGE na Parte do locatário
+quando o popup "Dados Novo Contrato" leu esses campos pelo bloco
+estruturado (comum-endereco.js) — antes só o texto concatenado ia pra
+`partes.endereco`, os campos estruturados ficavam vazios. Aditivo: só
+escreve quando vem preenchido, nunca apaga o que já estava salvo.
+(2, demanda 8e661f53) salvarContratoIndividual() passa a aguardar o
+Sheet de fiador (atalho pós-salvar) fechar — salvando OU cancelando —
+e força renderContratos() de novo depois; achado do Nicola era o
+contrato (já salvo antes da pergunta) parecendo não criado ao cancelar.
+(3, demandas c83fb2d3 + 1301897c, mesmo achado) removido o botão
+redondo "..." de reajuste (btn-toggle-reajuste-contrato) do formulário
+de contrato — aparecia tanto ao criar quanto ao editar. O painel que
+ele abria (#secao-avancada-contrato) fica órfão de propósito, sem uso
+até o Bloco B (demandas 5ca973d6/854f6343) decidir o que vira dele.
+(4, demanda 8909ebf4, js/contratos.js 1.25.0 → 1.26.0) card "Precisa
+de atenção" da ficha não afirma mais "Gerado pela Vitrine" pra todo
+contrato com status Assinando — Assinando também é o valor padrão do
+formulário manual, então um contrato cadastrado pelo app aparecia com
+alerta de origem errada. Texto virou neutro de origem.
+Sem migração de banco — item 1 só grava em colunas que já existem em
+`partes` (mesmas que comum-endereco.js/comum-partes.js já usam).
+
+---
+
+NOVIDADES (Beta v1.271.0) — despesa de tecnologia e assinaturas:
+(1) filtro de Categoria das Saídas (2 seletores) ganha "Tecnologia e
+assinaturas"; sem isso o lançamento dessa categoria só aparecia em
+"Todas". (2) js/cofre-controles.js 1.34.0 → 1.35.0 e js/financeiro.js
+1.25.0 → 1.26.0 (rótulo, ícone e opção no formulário de despesa).
+Banco: migration etapa3_tipo_despesa_e_categoria_tecnologia (tipo
+`despesa` nos controles, 3 subtipos, categoria e origem `licenca` em
+lançamentos) já aplicada em 30/09.
+Última versão anterior (sessão 20260929-2021-contratos-reorg, demandas
+11afd25f/083ddd95(parcial)/a302ded9/ec7d8a9f(parte contrato)):
+
+---
+
+NOVIDADES (Beta v1.270.0) — reorganização do formulário de contrato +
+atalho de Partes (demanda 11afd25f, junto com a fatia "contrato" que
+tinha ficado pendente da ec7d8a9f na v1.268.0):
+(1) FIX real (demanda a302ded9): campo Status saía da tela num contrato
+novo — causa raiz era a regra .rz-f2 (grid de 2 colunas, usada 19x no
+app inteiro) sem minmax(0,1fr); um botão de texto longo (o de escolher
+o Imóvel) empurrava a coluna vizinha pra fora. Corrigido na regra, não
+só no caso que apareceu — beneficia as outras 18 ocorrências também.
+(2) Formulário reorganizado: headers "Dados principais" e "Locatário"
+(sem mover nenhum campo). Os campos SEM "*" (IPTU/condomínio, forma de
+pagamento, índice de reajuste, rateio, administradora, documentos,
+observação) saem da vista por padrão ao cadastrar um contrato NOVO,
+atrás de "+ Mostrar mais campos" (js/contratos.js 1.24.0 → 1.25.0,
+mesmo padrão de cofre-ativos.js v1.66.0) — nasce aberto ao EDITAR um
+contrato existente. Nenhum campo obrigatório entra nesse bloco.
+(3) Locatário ganha Parte própria: ao salvar (novo ou edição),
+sincronizarContratoSupabase() agora também cria/atualiza uma linha em
+partes + partes_papeis (papel='locatario') — a mesma tabela genérica
+que abrirFichaParteDoContrato() (contratos.js) já lia pra abrir a
+ficha da parte. Antes, um contrato novo nunca tinha essa Parte, e
+editar o locatário pela ficha caía no aviso "ainda não tem cadastro
+próprio". Sem migração — só 2 tabelas que já existiam. Best-effort:
+falha aqui não impede salvar o contrato.
+(4) Fiador ganha atalho: salvar um contrato NOVO agora pergunta "Quer
+cadastrar um fiador agora?" e abre o formulário de fiador que já
+existe (abrirFormFiadorContrato) — antes só dava pra adicionar fiador
+reabrindo o contrato depois de já salvo.
+(5) demanda 083ddd95 (migrar #form-contrato-wrapper pro mecanismo de
+sheet padrão) — decisão desta entrega: NÃO fazer a migração completa
+agora. O wrapper tem ~300 linhas de HTML estático com upload de
+documento, histórico, rateio e o painel de reajuste todos amarrados
+nos mesmos ids; mover isso pra dentro de um template JS (como
+abrirSheetForm exige) é um raio de alcance grande pra um benefício
+preventivo (z-index não colide com nada hoje — os 2 bugs reais desta
+rodada, CIB e Status, já tinham causa raiz e correção próprias, sem
+depender dessa migração). Fica registrada como frente própria, maior,
+se ainda fizer sentido depois do soft launch.
+
+---
+
+NOVIDADES (Beta v1.269.0) — retorno do piloto, 4 achados/pedidos:
+(1) modal do CIB (e qualquer modalGenerico) abria por baixo do
+formulário aberto e ficava inacessível — z-index próprio (460) no
+#modal-generico (js/cofre-ui.js 1.3.0 → 1.3.1), não depende mais da
+ordem no DOM. (2) ícone (i) explicativo também em "Situação de uso" e
+"Destinação (NFS-e)" (js/cofre-ativos.js 1.66.0 → 1.67.0, js/cofre-
+app.js 1.40.0 → 1.41.0) e em "Aluguel Antecipado?" e "Desconto Energia
+(%)" no formulário de contrato (js/contratos.js 1.23.1 → 1.24.0). (3) os
+3 botões de cadastro novo (Ativos, Contratos, e "Itens de controle" de
+dentro de um ativo) agora deixam claro que também dá pra carregar um
+documento e a IA cadastra sozinha, em vez de ir direto pro formulário
+manual (js/ativos/ativos-markup.js 1.48.0 → 1.49.0, js/contratos.js
+acima). (4) investigado o pedido de remover a bolinha "..." de
+reajuste ao lançar um contrato: já fica escondida ao criar um
+contrato novo desde a v1.41.2 — nenhuma mudança de código necessária
+aqui, achado documentado na entrega.
+
+---
+
+NOVIDADES (Beta v1.268.0) — js/cofre-ativos.js (1.65.0 → 1.66.0) e
+js/cofre-app.js (1.39.0 → 1.40.0): formulário de ativo/imóvel achado
+longo pelo piloto (Claudia) — bloco imóvel esconde Situação de uso,
+Destinação e CIB atrás de "+ Mostrar mais campos" (Observação continua
+visível); nasce aberto quando o ativo editado já tem algum desses
+campos preenchido. Nenhum campo escondido é obrigatório. Escopo é só o
+formulário de ativo — o de contrato (mesmo achado, mesma demanda
+ec7d8a9f) fica pendente pra entrega própria.
+
+---
+
+NOVIDADES (Beta v1.267.0) — js/ativos/ativos-markup.js (1.47.0 → 1.48.0):
+card de estado vazio da lista de Ativos ("Nenhum ativo controlado
+ainda") virou área de toque única — antes só o botão pequeno "+ Novo
+ativo" abria o formulário; achado real do piloto (Claudia não achou
+onde tocar pra cadastrar o 1º ativo). Resto do import map: js/cofre-
+ativos.js (1.64.0 →
+1.65.0) e js/cofre-app.js (1.38.0 → 1.39.0) — ícone (i) explicando o
+campo "CIB (NFS-e)" do formulário de imóvel/ativo (abrirInfoCib(), case
+'fa-info-cib'), item 6 do retorno do piloto (Nicola: "Pode executar as
+demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026). Nenhuma linha do
+próprio index.html mudou fora do import map/LINHAS/changelog
+(gerar_versoes.py).
+
+---
+
+NOVIDADES (Beta v1.266.0) — só o import map: js/cofre-ativos.js (1.64.0 →
+1.65.0) e js/cofre-app.js (1.38.0 → 1.39.0) — ícone (i) explicando o
+campo "CIB (NFS-e)" do formulário de imóvel/ativo (abrirInfoCib(), case
+'fa-info-cib'), item 6 do retorno do piloto (Nicola: "Pode executar as
+demandas dos itens 1, 2, 4, 5 e 6 tb", 28/09/2026). Nenhuma linha do
+próprio index.html mudou fora do import map/LINHAS/changelog
+(gerar_versoes.py).
+
+---
+
+NOVIDADES (Beta v1.265.0) — só o import map: js/contratos.js (1.23.0 →
+1.23.1) e js/vitrine.js (1.2.0 → 1.2.1) corrigem o mesmo achado do
+piloto (Claudia) — as duas pontes do menu "⋮" do ativo pra criar
+contrato (criarContratoParaImovel e iniciarProcessoContratacao) podiam
+falhar em silêncio quando o array `imoveis` ainda não refletia um
+ativo recém-criado. Nenhuma linha do próprio index.html mudou fora do
+import map/LINHAS/changelog (gerar_versoes.py).
+
+---
+
+NOVIDADES (Beta v1.264.0) — A.3 do ESP_ONBOARDING_VENDAS_LICENCA: fn_minhas_
+comunicacoes_opt_out (banco) passou a agrupar por slot (plano_id+ordem) em vez
+de 1 linha por comunicacao_id, pra não duplicar toggle na seção "Comunicações
+da Raiz" de "Minhas notificações" quando 2 mensagens disputam o mesmo slot
+(ex. financeiro_recibos_v1/controles_em_dia_v1). ACHADO NESTA ENTREGA: a
+migration de banco já tinha sido publicada antes deste ajuste de index.html
+ficar pronto — quem abriu "Minhas notificações" nesse intervalo via essa
+seção quebrada (a UI ainda esperava item.comunicacao_id, que não existe mais
+no retorno agrupado). Corrigido: render usa item.comunicacao_ids/codigos e o
+toggle chama a nova fn_definir_opt_out_comunicacao_grupo(plano_id, ordem, ...)
+em vez de fn_definir_opt_out_comunicacao(1 id) — aplica a decisão a todos os
+comunicacao_id do grupo de uma vez. Só esta seção mudou; "Alertas e avisos
+automáticos" (pessoa_preferencias_comunicacao) não foi tocada.
+
+---
+
+NOVIDADES (Beta v1.263.0) — Entrega 3 (27/09/2026), 2 achados do teste do
+Nicola na Entrega 2, ambos na tela de Alertas. (1) 3635d228: o alerta
+"N índices de mercado publicados" (indicador_atualizado) não mostrava
+selo nenhum na lista (tela cheia de Alertas E card da Visão Geral) — seu
+r.dias é sempre null (é publicação, não vencimento) e o tipo não estava
+na lista ROTINA_PRONTA_ALERTA, então caía sem nenhuma branch. Agora
+entra nessa lista e ganha o mesmo selo neutro "Disponível" dos outros 2
+informativos. (2) 2de42d7c: no sheet de detalhe do grupo ("4 índices de
+mercado publicados"), o valor de cada índice (INCC-DI, IVG-R, IGP-M,
+IPCA) saía formatado em R$ — subtituloItemGrupo() sempre chamava
+formatarMoedaBR, sem checar detalhe.unidade==='%' (a mesma checagem que
+subtituloAlertaMotor já fazia, num lugar diferente). Agora mostra "%"
+quando é o caso. Aqui: só index.html.
+
+---
+
+NOVIDADES (Beta v1.262.0) — achado do Nicola testando a Entrega 2 (26/09/2026,
+23:19): o selo "Disponível" da demanda 07d133cd (v1.261.0) corrigiu
+prazoAlertaTexto/abrirListaAlertasGrupo/abrirAlertaDetalheSheet, mas ficou de
+fora uma 4ª/3ª fonte de markup — linhaAlertaHtml(), usada pela tela cheia de
+Alertas (abas Todos/Crítico/Atenção/Informativo) E pelo card da Visão Geral.
+Por isso "Relatório da carteira pronto" e "Índices do mês publicados"
+continuavam com o selo vermelho "Há Nd" nessa tela específica. Mesma lista
+ROTINA_PRONTA_ALERTA, mesmo texto/selo neutro. Aqui: só index.html.
+
+---
+
+NOVIDADES (Beta v1.261.0) — Entrega 2 (26/09/2026), 2 itens que tocaram
+index.html. (1) 07d133cd: alertas informativos de disponibilidade
+("Relatório da carteira pronto", "Índices do mês prontos") apareciam como
+se estivessem atrasados — "Venceu há Nd" com selo vermelho, já que
+r.dias é negativo pra esses tipos (dias desde a data em que ficaram
+disponíveis, não um prazo). Agora mostram "Disponível" (ou "Disponível
+há Nd") com selo neutro, no card do grupo, no detalhe do alerta e na
+lista — mesma lista ROTINA_PRONTA_ALERTA já usada em
+rotuloCompromissoAlerta(). (2) 9fe63ed8: o histórico do contrato, ao
+recarregar a página, sempre mostrava uma única linha genérica
+("Alteração: - → <texto corrido>") em vez dos campos alterados de fato.
+carregarContratosSupabase() agora refaz o parse do texto salvo em
+sincronizarContratoSupabase ("Campo: De → Para; ...") e recupera a
+lista de alterações campo a campo; cai no formato genérico só se o
+texto não bater com esse padrão (histórico bem antigo). Sem mudança de
+schema nem de escrita — só a leitura de volta. Aqui: nenhum módulo
+externo, só index.html.
+
+---
+
+NOVIDADES (Beta v1.260.0) — pedido do Nicola (24/09 18:50 + decisão 25/09
+"Restante de acordo. Pode implementar."): valor bruto, líquido e taxa da
+administradora agora ficam editáveis onde faz sentido. A geração mensal
+(fn_gerar_mensalidades_competencia/fn_mensalidades_realinhar) já
+calculava os 3 certo desde a Fase 2 fiscal — auditado nesta entrega, sem
+mudança de código ali. (1) Dar baixa ganha "Aluguel bruto" e "Taxa da
+administradora" ao lado do Líquido, com recálculo automático entre os 3.
+(2) Recebimento pago ganha ⋮ "Ajustar valores" (bruto/taxa/líquido +
+motivo obrigatório, auditado em mensalidade_valores_historico). (3)
+Fiscal da competência: recebimento com bruto estimado ganha "Confirmar
+valor bruto" (1 ou todos do contrato); KPI mostra quantos estão
+estimados. (4) Ficha do contrato mostra "Recebimento esperado" (bruto ·
+taxa · líquido) quando há administradora. Extrato/conciliação não
+mudou: líquido sempre do banco, sem bater vai pra pendente — igual
+antes. Módulos: js/financeiro.js v1.24.0, js/fiscal.js v1.5.0,
+js/contratos.js v1.23.0, migration_valor_bruto_liquido_v1.sql.
+
+---
+
+NOVIDADES (Beta v1.259.0) — pedido do Nicola (23/09, 13:01): em
+Resultados, filtrando só Família, saem os cards Dependência de
+locatário, Reajustes, Revisional/Renovação e Performance (são de
+carteira alugada). Aqui: só versão e import map. Módulo:
+js/resultados.js v1.8.0.
+
+---
+
+NOVIDADES (Beta v1.258.0) — achados do Nicola (23/09, 09:54) e demandas
+e19d6739 / 43448a36. (1) Alerta novo "Índice de mercado publicado"
+(indicador_atualizado; funcionalidade relatorios.indicadores.alerta, em
+todos os planos): título "IPCA de 08/2026 publicado", subtítulo com o
+mês, 12 meses e a data; agrupado "N índices de mercado publicados";
+Tratar abre Relatórios. (2) Check-up fiscal: textos quebram linha
+(.rz-tx.rz-wrap), nada mais cortado. (3) e19d6739: salvar a Parte
+propaga o nome (e o documento) para contratos.locatario e avisa os
+contratos (contratoIds) — lista e ficha atualizam sem recarregar.
+(4) 43448a36: Visão Geral em Família mostra "Ativos" (quantidade do
+recorte) no lugar da ocupação e "Custo no mês" com as saídas.
+Módulos: js/fiscal.js v1.4.0, js/comum-endereco.js v1.1.0 (código IBGE
+visível, vem do CEP), js/fechamento.js v1.10.0 (ZIP no WhatsApp),
+js/contratos.js v1.22.0, js/cofre-ativos.js v1.64.0 (finalidade de uso
+em todo ativo), js/cofre-api.js v1.45.0, js/resultados.js v1.7.0.
+
+---
+
+NOVIDADES (Beta v1.257.0) — achados do Nicola testando na Albuquerque
+(23/09/2026, com prints). (1) VOLTAR: switchTab registra cada troca de
+tela no histórico — o botão voltar do celular volta à tela anterior (com
+sheet aberto, só fecha o sheet) e a tela aberta a partir de outra ganha o
+atalho "‹ <origem>" no topo (rzRenderVoltar/rzVoltar; roteador antigo =
+rzSwitchTabInterno, corpo intacto). (2) Alerta "Dado que impede a nota"
+ganha "Completar agora" para qualquer campo, pela função única
+window.fiscalCompletarPendencia. Módulos: js/fiscal.js v1.3.0 (tela
+Fiscal da competência com 6 botões e sem ⋮/avisos; check-up com cartão
+Ações), js/fechamento.js v1.9.0 (checklist completa qualquer campo).
+
+---
+
+NOVIDADES (Beta v1.256.0) — demanda 976fcbf6 (frente fiscal, Fase 7 —
+pacote do contador com o bloco fiscal; decisão D3). Módulo:
+js/fechamento.js v1.8.0 (PDF com a seção Fiscal e os rascunhos na
+ordem do Emissor Nacional; opções Planilha (CSV) e XML das notas;
+canal "Só baixar os arquivos"; rascunhos enviados ficam marcados).
+Aqui: só a classe .rz-chk (linha com caixa de marcar das opções).
+
+---
+
 NOVIDADES (Beta v1.255.0) — demanda 976fcbf6 (frente fiscal, Fase 6 —
 alertas) e 6ef4303c (D6: completar o dado direto no alerta). Os 5
 tipos novos do Motor (fiscal_documento_pendente, fiscal_com_contador,
