@@ -1,7 +1,15 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.5.2 · 26/09/2026
+// Versão: 1.6.0 · 02/10/2026
+//
+// v1.6.0 (demanda 5ca973d6, achado do Nicola em 02/10/2026 00:27 ao ativar um
+// contrato, sessão 20261002-0030-seletor-imovel) — o seletor de imóvel
+// ("Escolher imóvel", usado no formulário de contrato, minutas e filtros)
+// tinha o visual antigo: cards com borda, selo de status do cadastro legado
+// ("Assinando") e "R$ 0". Agora as linhas seguem a gramática .rz-row (ícone,
+// nome do ativo em negrito, empreendimento · endereço embaixo), sem status nem
+// valor. A busca também procura pelo nome do ativo.
 //
 // v1.5.2 (demanda 132ab1f8) — cabeçalho de grupo por empreendimento trocado
 // de uppercase/tracking-wide pra .rz-group (mesmo fix de cofre-ativos.js
@@ -94,7 +102,7 @@
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
 
-export const VERSAO = '1.5.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -139,30 +147,32 @@ export const VERSAO = '1.5.2'; // v-check: lido por ⚙️ › Conta › Versõe
         export function renderListaSeletorImovel(lista) {
             const container = document.getElementById('seletor-imovel-lista');
             if (!container) return;
+            const esc = (t) => (typeof rzEsc === 'function') ? rzEsc(t) : String(t || '');
 
             let html = '';
 
             if (_seletorImovelPermiteTodos) {
-                html += `<button type="button" onclick="selecionarImovelDoSeletor('', 'Todos os Imóveis')" class="w-full text-left p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 active:scale-[0.98] transition">
-                    <span class="font-bold text-slate-700 text-sm"><svg data-lucide="list" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Todos os Imóveis</span>
-                </button>`;
+                html += `<div class="rz-row rz-link" onclick="selecionarImovelDoSeletor('', 'Todos os Imóveis')">
+                    <div class="rz-ic"><svg data-lucide="list"></svg></div>
+                    <div class="rz-tx"><b>Todos os imóveis</b></div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                </div>`;
             }
 
             if (lista.length === 0) {
-                html += '<p class="text-gray-400 text-sm p-4 text-center">Nenhum imóvel encontrado.</p>';
+                html += '<div class="rz-empty"><p>Nenhum imóvel encontrado.</p></div>';
             } else {
                 html += lista.map(function(imo) {
                     const endereco = (imo.enderecoRua || '') + ', ' + (imo.enderecoNum || '') + (imo.enderecoComp ? ' - ' + imo.enderecoComp : '');
+                    // resumo devolvido ao chamador: mesmo formato de sempre (campo do formulário)
                     const resumo = '[' + (imo.empreendimento || '-') + '] ' + endereco;
-                    const statusCor = imo.status === 'Alugado' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-700';
-                    return `<button type="button" onclick="selecionarImovelDoSeletor('${imo.id}', '${resumo.replace(/'/g, "\\'")}')" class="w-full text-left p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 active:scale-[0.98] transition">
-                        <div class="flex items-center gap-2 mb-1 flex-wrap">
-                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full ${statusCor}">${imo.status || '-'}</span>
-                            <span class="font-bold text-slate-800 text-sm">${imo.empreendimento || '-'}</span>
-                        </div>
-                        <p class="text-[12px] text-slate-500"><svg data-lucide="map-pin" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> ${endereco}</p>
-                        <p class="text-[12px] text-slate-500"><svg data-lucide="banknote" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg> R$ ${(imo.valor || 0).toLocaleString('pt-BR')}</p>
-                    </button>`;
+                    const titulo = imo.nomeExibicao || endereco;
+                    const sub = [imo.empreendimento, imo.nomeExibicao ? endereco : ''].filter(Boolean).join(' · ');
+                    return `<div class="rz-row rz-link" onclick="selecionarImovelDoSeletor('${imo.id}', '${resumo.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
+                        <div class="rz-ic"><svg data-lucide="house"></svg></div>
+                        <div class="rz-tx"><b>${esc(titulo)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>
+                        <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                    </div>`;
                 }).join('');
             }
 
@@ -175,7 +185,8 @@ export const VERSAO = '1.5.2'; // v-check: lido por ⚙️ › Conta › Versõe
         export function filtrarListaSeletorImovel() {
             const termo = (document.getElementById('seletor-imovel-busca').value || '').toLowerCase();
             const filtrado = imoveis.filter(function(imo) {
-                return (imo.empreendimento || '').toLowerCase().includes(termo)
+                return (imo.nomeExibicao || '').toLowerCase().includes(termo) // v1.6.0
+                    || (imo.empreendimento || '').toLowerCase().includes(termo)
                     || (imo.enderecoRua || '').toLowerCase().includes(termo)
                     || (imo.enderecoComp || '').toLowerCase().includes(termo)
                     || (imo.enderecoBairro || '').toLowerCase().includes(termo);
