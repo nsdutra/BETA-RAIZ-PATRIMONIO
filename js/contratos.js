@@ -1,7 +1,25 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.30.0 · 01/10/2026
+// Versão: 1.31.0 · 02/10/2026
+//
+// v1.31.0 (demandas 5ca973d6 e 11afd25f, pedidos do Nicola testando no celular
+// em 01/10/2026 23:57, sessão 20261002-0005-contratos-ficha):
+//   1) Salvar contrato agora ESPERA a gravação no banco antes de voltar à
+//      ficha (saveContrato async + await salvarContratoIndividual). Antes a
+//      ficha reabria com o id provisório 'con_...' e não mostrava o contrato,
+//      a Parte nem a Linha do tempo até sair e voltar. Contrato NOVO sem
+//      contexto de retorno abre direto a ficha dele.
+//   2) Excluir contrato apaga antes os itens de controle do contrato
+//      (reajuste/revisional; as ocorrências caem em cascata). Antes a FK
+//      cofre_itens_controle_contrato_id_fkey barrava a exclusão.
+//   3) Chip Reajuste: sai o card "O que você pode fazer" (Renovar continua
+//      no menu ⋮ da ficha); "Pelo mercado" passa para antes da Linha do tempo.
+//   4) "Reajustar contrato"/"Registrar revisão" (lancarReajusteContrato) abre
+//      com Novo valor e % já preenchidos pela simulação do índice cadastrado
+//      (fn_simular_reajuste_contrato — o mesmo "Valor reajustado (estimado)"
+//      do card Pelo contrato), venha de onde vier a chamada (Linha do tempo,
+//      Resumo, menu). Campo que o usuário já digitou não é sobrescrito.
 //
 // v1.30.0 (demanda 5ca973d6, pedido do Nicola em 01/10/2026 23:26, sessão
 // 20261001-2335-contratos-rotulos) — rótulos: o chip "Renovação" da ficha do
@@ -586,7 +604,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.30.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.31.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1100,6 +1118,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
                 await dbAuth.from('processos_contratacao').update({ contrato_id: null }).eq('contrato_id', id);
 
+                // v1.31.0 — itens de controle do contrato (reajuste/revisional)
+                // saem antes: a FK cofre_itens_controle_contrato_id_fkey não é
+                // cascade e barrava a exclusão. Ocorrências caem em cascata.
+                const { error: errItens } = await dbAuth.from('cofre_itens_controle').delete().eq('contrato_id', id);
+                if (errItens) throw errItens;
+
                 const { error } = await dbAuth.from('contratos').delete().eq('id', id);
                 if (error) throw error;
 
@@ -1198,6 +1222,27 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 rotuloSalvar: ehRevisional ? 'Registrar revisão' : 'Registrar reajuste',
                 aoSalvar: () => { salvarReajusteContratoPopup(con.id, ocorrenciaId || null, subtipoCodigo || null); return false; },
             });
+            preencherReajusteEstimado(con);
+        }
+
+        // v1.31.0 (pedido do Nicola 01/10/2026) — Novo valor e % chegam
+        // preenchidos com a simulação pelo índice cadastrado (o mesmo
+        // "Valor reajustado (estimado)" do card Pelo contrato), venha a
+        // chamada da Linha do tempo, do Resumo ou do menu. Só preenche
+        // campo vazio; falha da simulação deixa o formulário em branco.
+        async function preencherReajusteEstimado(con) {
+            try {
+                const { data, error } = await dbAuth.rpc('fn_simular_reajuste_contrato', { p_contrato_id: con.id });
+                if (error) throw error;
+                const sim = Array.isArray(data) ? data[0] : data;
+                if (!sim || sim.valor_reajustado == null) return;
+                const elValor = document.getElementById('rj-valor');
+                const elPct = document.getElementById('rj-pct');
+                if (elValor && !elValor.value) elValor.value = String(Math.round(Number(sim.valor_reajustado) * 100) / 100);
+                if (elPct && !elPct.value && sim.acumulado_12m_pct != null) elPct.value = String(Math.round(Number(sim.acumulado_12m_pct) * 100) / 100);
+            } catch (err) {
+                console.warn('[contratos] simulação para pré-preencher o reajuste falhou (não bloqueando):', err.message);
+            }
         }
 
         export function calcularPctReajustePopup(valorAtual) {
@@ -2215,6 +2260,14 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         </div>
                         <p class="rz-desc" id="fc-reaj-memoria" style="margin-top:6px">Calculando pelo índice cadastrado...</p>
                     </div>
+                    <div class="rz-card">
+                        <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo mercado</h3><span style="opacity:.6" title="Estimativa por IA">✨</span></div>
+                        <div class="rz-empty" style="padding:14px 8px">
+                            <div class="rz-ic"><svg data-lucide="line-chart"></svg></div>
+                            <p>Faixa estimada, confiança e situação de mercado ainda não foram construídas — item separado do roadmap (não depende só dos índices já capturados do Banco Central, precisa de uma fonte de imóveis comparáveis).</p>
+                        </div>
+                    </div>
+                    <!-- v1.31.0 — "Pelo mercado" antes da Linha do tempo; card "O que você pode fazer" removido (pedido do Nicola 01/10). -->
                     <!-- v1.27.0 (Bloco B, demandas 5ca973d6/854f6343) — linha do
                          tempo de reajuste e revisão: lê fn_contrato_itens_controle_listar
                          (itens cofre_itens_controle com contrato_id, subtipo
@@ -2230,34 +2283,6 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     <div class="rz-card" id="fc-card-itens-controle">
                         <div class="rz-card-h"><h3>Linha do tempo</h3><span class="rz-sub">Reajuste e revisão</span></div>
                         <div id="fc-itens-controle"><p class="rz-desc">Carregando...</p></div>
-                    </div>
-                    <div class="rz-card">
-                        <div class="rz-card-h" style="justify-content:space-between"><h3>Pelo mercado</h3><span style="opacity:.6" title="Estimativa por IA">✨</span></div>
-                        <div class="rz-empty" style="padding:14px 8px">
-                            <div class="rz-ic"><svg data-lucide="line-chart"></svg></div>
-                            <p>Faixa estimada, confiança e situação de mercado ainda não foram construídas — item separado do roadmap (não depende só dos índices já capturados do Banco Central, precisa de uma fonte de imóveis comparáveis).</p>
-                        </div>
-                    </div>
-                    <div class="rz-card">
-                        <div class="rz-card-h"><h3>O que você pode fazer</h3></div>
-                        <div class="rz-row rz-link" onclick="lancarReajusteContrato('${con.id}')">
-                            <div class="rz-ic"><svg data-lucide="trending-up"></svg></div>
-                            <div class="rz-tx"><b>Aplicar o reajuste contratual</b><span>Dentro da regra do contrato</span></div>
-                            <svg data-lucide="chevron-right" class="rz-chev"></svg>
-                        </div>
-                        <div class="rz-row rz-link" onclick="renovarContrato('${con.id}')">
-                            <div class="rz-ic"><svg data-lucide="refresh-cw"></svg></div>
-                            <div class="rz-tx"><b>Renovar o contrato</b><span>Nova vigência e novo valor</span></div>
-                            <svg data-lucide="chevron-right" class="rz-chev"></svg>
-                        </div>
-                        <div class="rz-row" style="opacity:.55">
-                            <div class="rz-ic"><svg data-lucide="sparkles"></svg></div>
-                            <div class="rz-tx"><b>✨ Negociar acima do índice</b><span>Depende da faixa estimada de mercado ("Pelo mercado" acima) — item separado do roadmap, ainda não construído</span></div>
-                        </div>
-                        <div class="rz-row rz-link" onclick="fcTrocarChip('resumo')">
-                            <div class="rz-ic"><svg data-lucide="clock"></svg></div>
-                            <div class="rz-tx"><b>Manter e revisar depois</b><span>Não decide agora — o alerta de reajuste continua acompanhando</span></div>
-                        </div>
                     </div>
                 </div>
 
@@ -3585,7 +3610,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
         }
 
-        export function saveContrato(e) {
+        export async function saveContrato(e) {
 
             e.preventDefault();
 
@@ -4057,20 +4082,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             cancelarEdicaoContrato();
 
-            // v1.45.0 (Correção de Direção UX) — "salvar retorna à ficha",
-            // nunca à lista, quando a edição foi aberta a partir de um
-            // contexto (ficha do imóvel ou ficha do próprio contrato).
-            if (contextoRetornoEdicaoContrato) {
-                const ctxRetorno = contextoRetornoEdicaoContrato;
-                contextoRetornoEdicaoContrato = null;
-                if (ctxRetorno.tipo === 'fichaImovel') {
-                    abrirFichaImovel(ctxRetorno.id);
-                } else if (ctxRetorno.tipo === 'fichaContrato') {
-                    abrirFichaContrato(contratoDados.id);
-                }
-            }
-
-            registrarLog(id ? 'contratos.editar' : 'contratos.criar', { contratoId: contratoDados.id, locatario: contratoDados.locatario });
+            // v1.31.0 — o contexto de retorno é lido ANTES de gravar e usado
+            // DEPOIS (ver abaixo), com o id real devolvido pelo banco.
+            const ctxRetorno = contextoRetornoEdicaoContrato;
+            contextoRetornoEdicaoContrato = null;
 
             // CORRIGIDO (causa real da demora de ~10s ao salvar 1 contrato):
             // mesmo já restringindo a ROTA para "contratos" em saveAll(), a
@@ -4079,7 +4094,24 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // anexos e divisão de CADA UM, não só do editado. Agora sincroniza
             // só o contrato específico que mudou; o resto (renderizações,
             // localStorage) continua igual, é tudo local e rápido.
-            salvarContratoIndividual(contratoDados, imovelParaSincronizar);
+            // v1.31.0 — ESPERA gravar (o banco devolve o id real e o trigger
+            // cria reajuste/revisional) antes de reabrir qualquer ficha.
+            const gravou = await salvarContratoIndividual(contratoDados, imovelParaSincronizar);
+
+            registrarLog(id ? 'contratos.editar' : 'contratos.criar', { contratoId: contratoDados.id, locatario: contratoDados.locatario });
+
+            // v1.45.0 (Correção de Direção UX) — "salvar retorna à ficha",
+            // nunca à lista, quando a edição foi aberta a partir de um
+            // contexto (ficha do imóvel ou ficha do próprio contrato).
+            // v1.31.0 — contrato NOVO sem contexto abre a própria ficha.
+            if (gravou !== false) {
+                if (ctxRetorno && ctxRetorno.tipo === 'fichaImovel') {
+                    abrirFichaImovel(ctxRetorno.id);
+                } else if ((ctxRetorno && ctxRetorno.tipo === 'fichaContrato') || !id) {
+                    abrirFichaContrato(contratoDados.id);
+                }
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+            }
 
             } catch (err) {
 

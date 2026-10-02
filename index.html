@@ -6,9 +6,20 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.283.0
-   LINHAS: 16153
-   DATA: 01/10/2026 (sessão 20261001-2335-contratos-rotulos, rótulos do contrato, link sem minuta, sheet de controles)
+   VERSÃO: Beta v1.284.0
+   LINHAS: 16161
+   DATA: 02/10/2026 (sessão 20261002-0005-contratos-ficha, ficha do contrato e exclusão)
+   NOVIDADES (Beta v1.284.0) — testes do Nicola no celular (01/10, 23:57), demandas
+   5ca973d6 e 11afd25f. (1) salvarContratoIndividual devolve true/false e avisa
+   'contrato' no barramento de escrita; js/contratos.js 1.30.0 → 1.31.0 espera a
+   gravação antes de reabrir a ficha (contrato, Parte e Linha do tempo aparecem
+   sem sair e voltar), exclui contrato com reajuste/revisional, tira "O que você
+   pode fazer", põe "Pelo mercado" antes da Linha do tempo e abre o reajuste já
+   preenchido pelo valor estimado. (2) #modal-seletor-imovel sobe para z 99 — o
+   campo Imóvel do Novo contrato abria o seletor por trás do formulário. (3)
+   js/vitrine.js 1.3.0 → 1.3.1: sem minuta, link e WhatsApp aparecem no grupo
+   "Coleta de dados".
+   Versão anterior (Beta v1.283.0):
    NOVIDADES (Beta v1.283.0) — pedidos do Nicola em 01/10 (23:26), só módulos;
    index muda só import map e versão. (1) js/contratos.js 1.29.0 → 1.30.0 (demanda
    5ca973d6): chip "Renovação" da ficha do contrato vira "Reajuste"; ocorrência de
@@ -40,15 +51,8 @@
    pix_empresa_pendente preenche a chave no próprio sheet (ACAO_CAMPO_ALERTA) e
    a rota empresa/pix leva ao card. Só admin e operador veem o alerta (banco).
    Versão anterior (Beta v1.280.0):
-   NOVIDADES (Beta v1.280.0) — ficha F11 (demanda 45bb4875): "Já paguei" libera o
-   plano na hora (o banco aplica, com trava) e a tela oferece "Enviar comprovante"
-   (vai só para o Cofre da Raiz; cópia no Cofre da empresa só se o usuário marcar)
-   e "Enviar pelo R.AI.Z" (quando o R.AI.Z publicado suporta). js/comum-renovacao.js
-   1.2.0 → 1.3.0. Index: window.rzRecarregarLicenca (licença, cotas e cabeçalho
-   depois do pagamento) e import map.
-   Versão anterior (Beta v1.279.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.279.0 … v1.279.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.280.0 … v1.280.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -72,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.30.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.0","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.31.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.5.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.35.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.0","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -733,7 +737,8 @@
     <!-- Seletor de imóvel customizado (com busca e cards completos) — substitui
          o <select> nativo em con-imovel e filtro-imovel, porque no celular o
          select cortava o texto sem nenhuma solução real dentro dele. -->
-    <div id="modal-seletor-imovel" class="hidden fixed inset-0 z-[85] bg-black/50 flex items-end sm:items-center justify-center">
+    <!-- v1.284.0 — z-index 99: abre POR CIMA do formulário de contrato (#form-contrato-wrapper, z 97); com 85 ficava atrás e o campo Imóvel parecia bloqueado -->
+    <div id="modal-seletor-imovel" class="hidden fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center" style="z-index:99">
         <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
             <div class="p-3 border-b flex items-center justify-between flex-none">
                 <span class="font-bold text-slate-800">Escolher Imóvel</span>
@@ -3446,7 +3451,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.283.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.284.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5379,13 +5384,16 @@
                 // v1.278.0 (demanda 11afd25f) — a pergunta "Quer cadastrar um
                 // fiador agora?" (v1.270.0) saiu: o formulário único de contrato
                 // já tem o card Fiadores na mesma tela, antes de salvar.
+                emitirEscritaGlobal('contrato', { id: con.id, acao: con._novo ? 'criar' : 'editar' }); // v1.284.0
                 alert("Contrato de locação salvo!");
+                return true; // v1.284.0 — saveContrato (contratos.js 1.31.0) espera isto antes de reabrir a ficha
 
             } catch (err) {
 
                 esconderCarregamentoGlobal();
                 alert(`⚠️ Falha ao salvar na nuvem: Contratos.\n\n${con.locatario || con.id}: ${err.message}\n\nVeja os Logs do Sistema (aba DEV) para o detalhe do erro.`);
                 logScreen('Erro ao salvar contrato individual: ' + err.message, true);
+                return false;
 
             }
 

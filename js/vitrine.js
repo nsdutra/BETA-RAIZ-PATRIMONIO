@@ -1,7 +1,12 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.3.0 · 01/10/2026
+// Versão: 1.3.1 · 02/10/2026
+//
+// v1.3.1 (demanda 11afd25f, f26a ainda falhando no teste do Nicola 01/10 23:54)
+// — abrirSheetAcoes ignora `acoes` quando recebe `grupos`; sem minuta, o menu
+// só mostrava o grupo "Sem minuta padrão cadastrada". Agora, sem minuta, link
+// e WhatsApp entram como grupo "Coleta de dados" junto do grupo da minuta.
 //
 // v1.3.0 (demanda 11afd25f, teste f26a reprovado pelo Nicola em 01/10/2026,
 // sessão 20261001-2335-contratos-rotulos) — "não está deixando gerar o link pro
@@ -76,7 +81,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.3.0'; // v-check: manter igual ao header
+export const VERSAO = '1.3.1'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -308,6 +313,7 @@ export function montarAbaVitrine() {
             abrirSheetAcoes({
                 titulo: 'Locação', sub: endereco, acoes,
                 grupos: minuta ? null : [
+                    { titulo: 'Coleta de dados', acoes: acoes.slice() },
                     { titulo: 'Sem minuta padrão cadastrada', acoes: [
                         { icone: 'file-signature', titulo: 'Cadastrar minuta padrão', codigo: 'minutas.gerar', sub: 'Necessária só pra conferir e gerar a minuta', aoTocar: () => switchTab('tab-minutas') }
                     ] }
