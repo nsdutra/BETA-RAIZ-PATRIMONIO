@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.36.0 · 03/10/2026
+// Versão: 1.36.1 · 03/10/2026
+//
+// v1.36.1 (demanda 854f6343, pedido do Nicola 03/10/2026 11:20, sessão
+// 20260927-2205-contratos) — o sheet "Itens do imóvel" (IPTU/condomínio do
+// contrato) só aparece com o contrato ATIVO; em Assinando não, porque a data e
+// o contrato ainda não estão confirmados. Aparece ao ativar o contrato. O banco
+// recusa o mesmo (migration contratos_encargos_v3_2).
 //
 // v1.36.0 (demanda 854f6343, encargos v3, plano aprovado pelo Nicola em
 // 02/10/2026 23:47, sessão 20260927-2205-contratos) — sheet "Itens do imóvel"
@@ -647,7 +653,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.36.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.36.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -4305,7 +4311,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
         export async function oferecerItensEncargoContrato(con) {
             if (!con || !idEhUuidValido(con.id) || !con.imovelId) return;
-            if (!['Ativo', 'Assinando'].includes(con.status)) return;
+            // v1.36.1 (pedido do Nicola 03/10 11:20): só com o contrato ATIVO — em
+            // Assinando a data e o contrato ainda não estão confirmados. Ao ativar
+            // (formulário salvo com status Ativo) o sheet aparece.
+            if (con.status !== 'Ativo') return;
             const candidatos = ENCARGOS_CONTRATO.filter(e => e.paga(con) || e.valor(con) > 0);
             if (!candidatos.length) return;
             const hojeIso = isoDia(new Date());

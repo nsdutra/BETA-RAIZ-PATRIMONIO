@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.289.0) — despesa da licença (pedido do Nicola, 02/10 01:31):
+descrição com plano e vigência anterior → nova (banco); comprovante vinculado
+ao pagamento e "Ver comprovante" no ⋮ da despesa. js/financeiro.js 1.27.3,
+js/comum-renovacao.js 1.3.2; index: lancamentos ganham origemId e import map.
+Versão anterior (Beta v1.288.0):
+------------------------------------------------------------------
+Versões anteriores (v1.288.0 … v1.288.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.288.0) — ajustes do teste da F11 (Nicola, 02/10 01:07):
 js/comum-renovacao.js 1.3.0 → 1.3.1 (resumo "vigência anterior × nova" no
 lugar do aviso de conferência; cópia do comprovante já vinculada à empresa)
