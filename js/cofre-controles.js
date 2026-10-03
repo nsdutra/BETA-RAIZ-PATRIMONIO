@@ -1,6 +1,19 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.36.0 · 02/10/2026
+// Versão: 1.37.0 · 02/10/2026
+//
+// v1.37.0 (demanda 854f6343, encargos v2, plano aprovado pelo Nicola em
+// 02/10/2026 13:28, sessão 20260927-2205-contratos):
+//   1) CORRIGIDO: editar item apagava o subtipo. abrirEditarItem montava o
+//      seletor com o catálogo ainda não carregado (subtiposCache null) e o
+//      salvar gravava subtipo_id null. Agora carrega o catálogo antes e, como
+//      garantia, o subtipo do próprio item sempre entra no seletor.
+//   2) Ficha do item: "Quem paga" aparece também em tributo/taxa sem marcação
+//      ("Proprietário (padrão)"); locatário passa a ler "na vigência do
+//      contrato" — quem paga cada ocorrência é decidido pela data dela
+//      (migration contratos_encargos_responsavel_v2), escrito na descrição.
+//   3) Linha da ocorrência em aberto mostra a descrição dela quando houver
+//      (ex.: "Pagamento: locatário — contrato Fulano, vigente até 31/12/2026").
 //
 // v1.36.0 (demanda 854f6343, sessão 20260927-2205-contratos) — item de IPTU/
 // condomínio pago pelo locatário mostra "· Paga: locatário" na lista de itens do
@@ -501,7 +514,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.36.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.37.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1127,7 +1140,7 @@ function renderizarFichaItemControle() {
         kv('Frequência', escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))) +
         kv('Alerta', `${item.antecedencia_alerta_dias} dias antes · ${item.direcao_alerta === 'fim' ? 'a partir do fim' : 'a partir do início'}`) +
         // v1.36.0 (demanda 854f6343) — definido pelo contrato vigente do imóvel
-        (item.responsavel_pagamento ? kv('Quem paga', escapeHtml({ locatario: 'Locatário (pelo contrato) · sem saída no Financeiro', proprietario: 'Proprietário', condominio: 'Condomínio' }[item.responsavel_pagamento] || item.responsavel_pagamento)) : '') +
+        ((item.responsavel_pagamento || ['tributo', 'taxa'].includes(item.tipo)) ? kv('Quem paga', escapeHtml({ locatario: 'Locatário na vigência do contrato · sem saída no Financeiro nesse período', proprietario: 'Proprietário', condominio: 'Condomínio' }[item.responsavel_pagamento] || (item.responsavel_pagamento || 'Proprietário (padrão)'))) : '') +
         (item.valor_previsto ? kv('Valor previsto', `${moedaBR(item.valor_previsto)}${(item.parcelas || 1) > 1 ? ` · ${item.parcelas}× de ${moedaBR(item.valor_previsto / item.parcelas)}` : ''}`) : ''); // v1.20.0
 
     // v1.34.0 (demanda 4a609dbb) — clicar no alerta "documento pendente"
@@ -1164,7 +1177,7 @@ function renderizarFichaItemControle() {
             else if (dias <= 30) { sem = 'run'; rot = `Em ${dias}d`; ic = 'clock'; cls = ''; }
             return `<div class="rz-row rz-link" data-action="abrir-acoes-ocorrencia" data-id="${oc.id}">
                 <div class="rz-ic${cls}"><i data-lucide="${ic}"></i></div>
-                <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}${(oc.valor_real ?? oc.valor_previsto) ? ` · ${moedaBR(oc.valor_real ?? oc.valor_previsto)}` : ''}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? 'Toque pra tratar ou reagendar' : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
+                <div class="rz-tx"><b>${aberta ? 'Vence ' : (oc.status_execucao === 'concluido' ? 'Tratada · ' : '')}${formatarDataBR(oc.data_prevista_atual)}${(oc.valor_real ?? oc.valor_previsto) ? ` · ${moedaBR(oc.valor_real ?? oc.valor_previsto)}` : ''}</b><span>${oc.tratamento_descricao ? escapeHtml(oc.tratamento_descricao) : (aberta ? (oc.descricao ? escapeHtml(oc.descricao.replace(/\n+/g, ' · ')) : 'Toque pra tratar ou reagendar') : rotuloStatusOcorrencia(oc.status_execucao))}</span></div>
                 <div class="rz-rt">${statusHtml(sem, rot)}</div>
                 <i data-lucide="ellipsis-vertical" class="rz-chev"></i>
             </div>`;
@@ -1491,10 +1504,25 @@ export async function confirmarEstornarOcorrencia(ocorrenciaId) {
 // (antes só dava pra editar título/subtipo/antecedência) — necessário
 // pra poder detectar mudança que "impacta os alertas possíveis" (pedido
 // explícito) e oferecer regenerar as ocorrências futuras.
-export function abrirEditarItem() {
+export async function abrirEditarItem() {
     const item = itemEmFoco;
+    // v1.37.0 — o catálogo de subtipos precisa estar carregado antes de montar
+    // o seletor; sem ele o subtipo aparecia vazio e o salvar gravava null.
+    if (!subtiposCache) {
+        try { subtiposCache = await api.listarSubtiposControle(estado.clienteId); }
+        catch (err) { console.warn('[controles] catálogo de subtipos:', err.message); }
+    }
     document.getElementById('fic-ed-tipo').value = item.tipo;
     popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
+    // garantia: o subtipo do próprio item nunca some do seletor
+    const selSub = document.getElementById('fic-ed-subtipo');
+    if (selSub && item.subtipo_id && selSub.value !== item.subtipo_id) {
+        const op = document.createElement('option');
+        op.value = item.subtipo_id;
+        op.textContent = item.cofre_controle_subtipos?.nome || 'Subtipo atual';
+        selSub.appendChild(op);
+        selSub.value = item.subtipo_id;
+    }
     document.getElementById('fic-ed-titulo').value = item.titulo;
     document.getElementById('fic-ed-data-inicio').value = item.data_base || '';
     document.getElementById('fic-ed-data-fim').value = item.data_fim || '';

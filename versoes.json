@@ -1,20 +1,20 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-02T01:57:36",
+  "gerado_em": "2026-10-02T21:04:39",
   "arquivos": {
-    "index.html": "1.289.2",
+    "index.html": "1.289.3",
     "sw.js": "2.1",
     "js/cadastros.js": "1.0.1",
     "js/financeiro.js": "1.27.3",
     "js/fechamento.js": "1.11.0",
-    "js/contratos.js": "1.34.0",
+    "js/contratos.js": "1.35.0",
     "js/minutas.js": "1.1.0",
     "js/vitrine.js": "1.3.1",
     "js/imoveis.js": "1.6.0",
     "js/cofre-api.js": "1.46.0",
     "js/cofre-app.js": "1.41.0",
     "js/cofre-ativos.js": "1.69.0",
-    "js/cofre-controles.js": "1.36.0",
+    "js/cofre-controles.js": "1.37.0",
     "js/cofre-documentos.js": "2.21.0",
     "js/cofre-imagem.js": "1.1.0",
     "js/cofre-estado.js": "1.5.0",
@@ -36,7 +36,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 16160,
+      "linhas": 16164,
       "funcoes": 65
     },
     "sw.js": {
@@ -56,8 +56,8 @@
       "funcoes": 30
     },
     "js/contratos.js": {
-      "linhas": 5065,
-      "funcoes": 116
+      "linhas": 5155,
+      "funcoes": 117
     },
     "js/minutas.js": {
       "linhas": 1362,
@@ -84,7 +84,7 @@
       "funcoes": 95
     },
     "js/cofre-controles.js": {
-      "linhas": 2555,
+      "linhas": 2583,
       "funcoes": 91
     },
     "js/cofre-documentos.js": {

@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.287.0) — achado do Nicola (02/10, 00:27), demanda 5ca973d6:
+o seletor "Escolher imóvel" (#modal-seletor-imovel) ganha o visual dos sheets
+(.rz-sheet, cabeçalho com X redondo, busca .rz-f, linhas .rz-row) e deixa de
+mostrar o status do cadastro legado e "R$ 0". js/imoveis.js 1.5.2 → 1.6.0;
+imóveis carregados ganham nomeExibicao (nome do ativo). Tocar fora fecha.
+Versão anterior (Beta v1.286.0):
+------------------------------------------------------------------
+Versões anteriores (v1.286.0 … v1.286.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.286.0) — F12 ajustes (demanda 3a1a5ef5, pedidos do Nicola
 em 01/10): js/financeiro.js 1.27.0 → 1.27.1 — o Pix copia e cola sai numa
 2ª mensagem, sozinho (botão "2. Enviar o código Pix"), e "Cobrar pelo

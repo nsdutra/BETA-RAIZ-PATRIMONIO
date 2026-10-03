@@ -1,7 +1,17 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.34.0 · 02/10/2026
+// Versão: 1.35.0 · 02/10/2026
+//
+// v1.35.0 (demanda 854f6343, encargos v2, plano aprovado pelo Nicola em
+// 02/10/2026 13:28, sessão 20260927-2205-contratos) — sheet "Itens do imóvel":
+// IPTU vira item POR EXERCÍCIO. Pede "Parcelas no ano" (1 = à vista), 1º
+// vencimento e valor da parcela; o banco gera só as parcelas que faltam até
+// dezembro. Se a cidade do imóvel tem calendário de IPTU, as datas vêm dele e
+// o campo de parcelas fica travado; a parte credora vem da parte padrão da
+// cidade (fn_parte_padrao_resolver). IPTU de outro exercício não conta como
+// "já existe". RPC fn_contrato_criar_item_encargo ganha p_parcelas
+// (migration contratos_encargos_responsavel_v2).
 //
 // v1.34.0 (pedido do Nicola, 02/10/2026 01:55, sessão 20260927-2205-contratos) —
 // menu ⋮ da ficha do contrato: sai "Abrir o imóvel"; entra "Dados do contrato"
@@ -627,7 +637,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.34.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.35.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -4236,45 +4246,121 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // paga já definido pelo contrato e a 1ª ocorrência; pago pelo
         // locatário não gera saída no Financeiro.
         // ===================================================================
+        // v1.35.0 (encargos v2, plano aprovado 02/10 13:28): IPTU é item POR
+        // EXERCÍCIO — pede parcelas no ano (1 = à vista) e gera só as que faltam
+        // até dezembro. Se a cidade do imóvel tem calendário de IPTU, as datas
+        // vêm dele (o banco aplica a mesma regra) e a parte credora vem da parte
+        // padrão da cidade. Quem paga é decidido por ocorrência, pela vigência.
         const ENCARGOS_CONTRATO = [
-            { codigo: 'iptu_global', nome: 'IPTU', paga: c => c.locatarioPagaIptu === 'Sim', valor: c => Number(c.iptuValor) || 0, dica: 'Cota única ou 1ª parcela do carnê' },
+            { codigo: 'iptu_global', nome: 'IPTU', paga: c => c.locatarioPagaIptu === 'Sim', valor: c => Number(c.iptuValor) || 0, dica: 'Próxima parcela do carnê, ou a cota única' },
             { codigo: 'condominio', nome: 'Condomínio', paga: c => c.condominioLocatario === 'Sim', valor: c => Number(c.condominioValor) || 0, dica: 'Próximo boleto do condomínio' },
         ];
+
+        // parcelas que faltam até dezembro: mensais a partir do 1º vencimento, no máximo n
+        function parcelasIptuAteDezembro(dataIso, n) {
+            if (!dataIso) return 0;
+            const mes = Number(dataIso.slice(5, 7));
+            return Math.max(0, Math.min(Math.max(1, Number(n) || 1), 12 - mes + 1));
+        }
 
         export async function oferecerItensEncargoContrato(con) {
             if (!con || !idEhUuidValido(con.id) || !con.imovelId) return;
             if (!['Ativo', 'Assinando'].includes(con.status)) return;
             const candidatos = ENCARGOS_CONTRATO.filter(e => e.paga(con) || e.valor(con) > 0);
             if (!candidatos.length) return;
+            const anoAtual = new Date().getFullYear();
+            const hojeIso = new Date().toISOString().slice(0, 10);
             const { data: subtipos, error: e1 } = await dbAuth.from('cofre_controle_subtipos').select('id, codigo').in('codigo', candidatos.map(e => e.codigo));
             if (e1) throw e1;
-            const { data: itens, error: e2 } = await dbAuth.from('cofre_itens_controle').select('subtipo_id')
+            const { data: itens, error: e2 } = await dbAuth.from('cofre_itens_controle').select('subtipo_id, recorrente, data_base')
                 .eq('ativo_id', con.imovelId).eq('ativo', true).in('subtipo_id', (subtipos || []).map(x => x.id));
             if (e2) throw e2;
-            const existentes = new Set((itens || []).map(i => (subtipos || []).find(x => x.id === i.subtipo_id)?.codigo));
+            const codigoDe = id => (subtipos || []).find(x => x.id === id)?.codigo;
+            // IPTU só conta como existente se for recorrente ou do exercício atual
+            const existentes = new Set((itens || []).filter(i => codigoDe(i.subtipo_id) !== 'iptu_global'
+                || i.recorrente || Number(String(i.data_base || '').slice(0, 4)) === anoAtual).map(i => codigoDe(i.subtipo_id)));
             const faltando = candidatos.filter(e => !existentes.has(e.codigo));
             if (!faltando.length || typeof abrirSheetForm !== 'function') return;
 
-            const corpo = `<p class="rz-desc" style="margin:0 2px 10px">Este imóvel ainda não tem ${faltando.map(e => e.nome).join(' nem ')} nos itens de controle. Criar agora deixa o vencimento com alerta${faltando.some(e => e.paga(con)) ? ' e marca que quem paga é o locatário (sem saída no seu Financeiro)' : ''}.</p>` +
+            // padrões de IPTU da cidade do imóvel (calendário + parte padrão)
+            let cal = null, credor = '';
+            const subIptu = (subtipos || []).find(x => x.codigo === 'iptu_global');
+            if (subIptu && faltando.some(e => e.codigo === 'iptu_global')) {
+                try {
+                    const { data: atv } = await dbAuth.from('cofre_ativos').select('uf, codigo_ibge_municipio').eq('id', con.imovelId).maybeSingle();
+                    if (atv?.codigo_ibge_municipio || atv?.uf) {
+                        const { data: cals } = await dbAuth.from('cofre_calendario_tributo').select('municipio_ibge, uf, parcelas')
+                            .eq('subtipo_id', subIptu.id).eq('exercicio', anoAtual).eq('ativo', true);
+                        cal = (cals || []).find(c => atv.codigo_ibge_municipio && c.municipio_ibge === atv.codigo_ibge_municipio)
+                            || (cals || []).find(c => !c.municipio_ibge && atv.uf && c.uf === atv.uf) || null;
+                        const { data: pp } = await dbAuth.rpc('fn_parte_padrao_resolver', { p_subtipo_id: subIptu.id, p_uf: atv.uf || null, p_municipio_ibge: atv.codigo_ibge_municipio || null, p_exercicio: anoAtual });
+                        credor = (Array.isArray(pp) ? pp[0]?.nome : pp?.nome) || '';
+                    }
+                } catch (err) { console.warn('[contratos] padrões de IPTU:', err.message); }
+            }
+            const datasCal = cal ? (cal.parcelas || []).map(p => `${anoAtual}-${String(p.mes).padStart(2, '0')}-${String(p.dia).padStart(2, '0')}`).sort() : [];
+            const restantesCal = datasCal.filter(d => d >= hojeIso);
+
+            const blocoIptu = (e) => cal ? `
+                    <div class="rz-f2" style="margin-top:8px">
+                        <div class="rz-f"><label>Parcelas no ano</label><input type="number" min="1" max="12" data-campo="parcelas" value="${datasCal.length || 1}" disabled></div>
+                        <div class="rz-f"><label>1º vencimento <i>*</i></label><input type="date" data-campo="data" value="${restantesCal[0] || ''}"></div>
+                    </div>
+                    <div class="rz-f2">
+                        <div class="rz-f"><label>Valor da parcela (R$)</label><input type="number" step="0.01" min="0" data-campo="valor" value="${e.valor(con) || ''}"></div>
+                        <div class="rz-f"></div>
+                    </div>
+                    <div class="rz-f"><span class="rz-hint" data-campo="resumo">Datas do calendário de IPTU da cidade: ${restantesCal.length} parcela(s) até dezembro.${credor ? ' Credor: ' + escapeHtmlSaidas(credor) + '.' : ''}</span></div>` : `
+                    <div class="rz-f2" style="margin-top:8px">
+                        <div class="rz-f"><label>Parcelas no ano <i>*</i></label><input type="number" min="1" max="12" step="1" data-campo="parcelas" value="1"><span class="rz-hint">1 = à vista</span></div>
+                        <div class="rz-f"><label>1º vencimento <i>*</i></label><input type="date" data-campo="data"><span class="rz-hint">${e.dica}</span></div>
+                    </div>
+                    <div class="rz-f2">
+                        <div class="rz-f"><label>Valor da parcela (R$)</label><input type="number" step="0.01" min="0" data-campo="valor" value="${e.valor(con) || ''}"></div>
+                        <div class="rz-f"></div>
+                    </div>
+                    <div class="rz-f"><span class="rz-hint" data-campo="resumo">Gera só as parcelas que faltam até dezembro de ${anoAtual}.${credor ? ' Credor: ' + escapeHtmlSaidas(credor) + '.' : ''}</span></div>`;
+
+            const corpo = `<p class="rz-desc" style="margin:0 2px 10px">Este imóvel ainda não tem ${faltando.map(e => e.nome).join(' nem ')} nos itens de controle. Criar agora deixa o vencimento com alerta${faltando.some(e => e.paga(con)) ? '. Na vigência do contrato quem paga é o locatário (sem saída no seu Financeiro); fora dela, o proprietário' : ''}.</p>` +
                 faltando.map(e => `
                 <div class="rz-card" data-encargo="${e.codigo}">
                     <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--ink)">
-                        <input type="checkbox" data-campo="criar" checked> Criar item de ${e.nome}
+                        <input type="checkbox" data-campo="criar" checked> Criar item de ${e.nome}${e.codigo === 'iptu_global' ? ' ' + anoAtual : ''}
                         <span class="rz-st rz-${e.paga(con) ? 'run' : 'neu'}" style="margin-left:auto">${e.paga(con) ? 'Paga: locatário' : 'Paga: proprietário'}</span>
                     </label>
+                    ${e.codigo === 'iptu_global' ? blocoIptu(e) : `
                     <div class="rz-f2" style="margin-top:8px">
                         <div class="rz-f"><label>1º vencimento <i>*</i></label><input type="date" data-campo="data"><span class="rz-hint">${e.dica}</span></div>
                         <div class="rz-f"><label>Valor (R$)</label><input type="number" step="0.01" min="0" data-campo="valor" value="${e.valor(con) || ''}"></div>
-                    </div>
+                    </div>`}
                 </div>`).join('');
 
-            abrirSheetForm({
+            // resumo do IPTU sem calendário: quantas parcelas serão geradas
+            const atualizarResumoIptu = (corpoEl) => {
+                const el = corpoEl.querySelector('[data-encargo="iptu_global"]');
+                if (!el || cal) return;
+                const d = el.querySelector('[data-campo="data"]').value;
+                const n = el.querySelector('[data-campo="parcelas"]').value;
+                const q = parcelasIptuAteDezembro(d, n);
+                const res = el.querySelector('[data-campo="resumo"]');
+                if (res) res.textContent = d
+                    ? (Number(n) <= 1 ? `À vista em ${d.split('-').reverse().join('/')}.` : `Gera ${q} parcela(s) mensais até dezembro de ${anoAtual}.`) + (credor ? ` Credor: ${credor}.` : '')
+                    : `Gera só as parcelas que faltam até dezembro de ${anoAtual}.` + (credor ? ` Credor: ${credor}.` : '');
+            };
+
+            const sheetEnc = abrirSheetForm({
                 titulo: 'Itens do imóvel', sub: con.locatario || '', corpo, rotuloSalvar: 'Criar', rotuloCancelar: 'Agora não',
                 aoSalvar: async (corpoEl) => {
                     const escolhidos = [...corpoEl.querySelectorAll('[data-encargo]')].filter(el => el.querySelector('[data-campo="criar"]').checked);
                     for (const el of escolhidos) {
-                        if (!el.querySelector('[data-campo="data"]').value) {
+                        const d = el.querySelector('[data-campo="data"]').value;
+                        if (!d) {
                             mostrarToast('Informe o 1º vencimento de cada item que vai criar.', 'danger');
+                            el.querySelector('[data-campo="data"]').focus();
+                            return false;
+                        }
+                        if (el.dataset.encargo === 'iptu_global' && Number(d.slice(0, 4)) !== anoAtual) {
+                            mostrarToast(`O IPTU é por exercício: use um vencimento em ${anoAtual}.`, 'danger');
                             el.querySelector('[data-campo="data"]').focus();
                             return false;
                         }
@@ -4282,10 +4368,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     let criados = 0;
                     for (const el of escolhidos) {
                         const valor = parseFloat(el.querySelector('[data-campo="valor"]').value);
+                        const parc = el.querySelector('[data-campo="parcelas"]');
                         const { error } = await dbAuth.rpc('fn_contrato_criar_item_encargo', {
                             p_contrato_id: con.id, p_codigo: el.dataset.encargo,
                             p_data_base: el.querySelector('[data-campo="data"]').value,
                             p_valor: isNaN(valor) ? null : valor,
+                            p_parcelas: parc ? Math.max(1, parseInt(parc.value, 10) || 1) : null,
                         });
                         if (error) { mostrarToast('Não consegui criar o item: ' + error.message, 'danger'); return false; }
                         criados++;
@@ -4299,6 +4387,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     return true;
                 },
             });
+            const corpoEnc = sheetEnc?.querySelector('#rz-sheet-corpo');
+            if (corpoEnc) corpoEnc.querySelectorAll('[data-encargo="iptu_global"] input').forEach(i => i.addEventListener('input', () => atualizarResumoIptu(corpoEnc)));
         }
 
         export function editarContrato(id) {
