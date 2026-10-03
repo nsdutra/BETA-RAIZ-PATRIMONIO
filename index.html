@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.289.3
-   LINHAS: 16158
-   DATA: 02/10/2026 (sessão 20260927-2205-contratos, encargos v2)
+   VERSÃO: Beta v1.290.0
+   LINHAS: 16160
+   DATA: 03/10/2026 (sessão 20260927-2205-contratos, encargos v3)
+   NOVIDADES (Beta v1.290.0) — encargos v3 (demanda 854f6343, plano aprovado pelo
+   Nicola em 02/10 23:47): IPTU e condomínio passam a ter um item por responsável e
+   por ano. Cada contrato cria o seu (IPTU proporcional aos dias do contrato no ano,
+   com memória de cálculo; condomínio por competência, mês parcial em dias) e o
+   período sem contrato vira o item "vago" do proprietário, mantido pelo banco
+   (js/contratos.js 1.35.0 → 1.36.0). Ficha do item mostra período e memória de
+   cálculo (js/cofre-controles.js 1.37.0 → 1.38.0). Banco: contratos_encargos_v3.
+   Versão anterior (Beta v1.289.3):
    NOVIDADES (Beta v1.289.3) — encargos v2 (demanda 854f6343, plano aprovado pelo
    Nicola em 02/10 13:28): quem paga IPTU/condomínio passa a ser decidido em cada
    ocorrência, pela vigência do contrato, e fica escrito na descrição dela; fora
@@ -36,14 +44,8 @@
    ao pagamento e "Ver comprovante" no ⋮ da despesa. js/financeiro.js 1.27.3,
    js/comum-renovacao.js 1.3.2; index: lancamentos ganham origemId e import map.
    Versão anterior (Beta v1.288.0):
-   NOVIDADES (Beta v1.288.0) — ajustes do teste da F11 (Nicola, 02/10 01:07):
-   js/comum-renovacao.js 1.3.0 → 1.3.1 (resumo "vigência anterior × nova" no
-   lugar do aviso de conferência; cópia do comprovante já vinculada à empresa)
-   e js/financeiro.js 1.27.1 → 1.27.2 (lista de Saídas recarrega ao abrir a aba).
-   Index: só import map.
-   Versão anterior (Beta v1.287.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.287.0 … v1.287.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.288.0 … v1.288.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -67,7 +69,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.35.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.37.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.36.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.38.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3446,7 +3448,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.289.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.290.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

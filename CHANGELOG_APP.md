@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.288.0) — ajustes do teste da F11 (Nicola, 02/10 01:07):
+js/comum-renovacao.js 1.3.0 → 1.3.1 (resumo "vigência anterior × nova" no
+lugar do aviso de conferência; cópia do comprovante já vinculada à empresa)
+e js/financeiro.js 1.27.1 → 1.27.2 (lista de Saídas recarrega ao abrir a aba).
+Index: só import map.
+Versão anterior (Beta v1.287.0):
+------------------------------------------------------------------
+Versões anteriores (v1.287.0 … v1.287.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.287.0) — achado do Nicola (02/10, 00:27), demanda 5ca973d6:
 o seletor "Escolher imóvel" (#modal-seletor-imovel) ganha o visual dos sheets
 (.rz-sheet, cabeçalho com X redondo, busca .rz-f, linhas .rz-row) e deixa de

@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.37.0 · 02/10/2026
+// Versão: 1.38.0 · 03/10/2026
+//
+// v1.38.0 (demanda 854f6343, encargos v3, plano aprovado pelo Nicola em
+// 02/10/2026 23:47, sessão 20260927-2205-contratos) — ficha do item de IPTU/
+// condomínio por responsável: "Período do contrato" (ou "Período sem
+// contrato", no item vago) e "Memória de cálculo" a partir de item.rateio
+// (IPTU: anual × dias ÷ dias do ano = devido; condomínio: competências, mês
+// parcial em dias). Se o valor do item foi editado, mostra o ajuste. "Quem
+// paga" desses itens é fixo: locatário (contrato), proprietário (contrato)
+// ou proprietário · imóvel sem contrato.
 //
 // v1.37.0 (demanda 854f6343, encargos v2, plano aprovado pelo Nicola em
 // 02/10/2026 13:28, sessão 20260927-2205-contratos):
@@ -514,7 +523,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.37.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.38.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -1140,8 +1149,11 @@ function renderizarFichaItemControle() {
         kv('Frequência', escapeHtml(rotuloFrequencia(item.frequencia_intervalo, item.frequencia_unidade))) +
         kv('Alerta', `${item.antecedencia_alerta_dias} dias antes · ${item.direcao_alerta === 'fim' ? 'a partir do fim' : 'a partir do início'}`) +
         // v1.36.0 (demanda 854f6343) — definido pelo contrato vigente do imóvel
-        ((item.responsavel_pagamento || ['tributo', 'taxa'].includes(item.tipo)) ? kv('Quem paga', escapeHtml({ locatario: 'Locatário na vigência do contrato · sem saída no Financeiro nesse período', proprietario: 'Proprietário', condominio: 'Condomínio' }[item.responsavel_pagamento] || (item.responsavel_pagamento || 'Proprietário (padrão)'))) : '') +
-        (item.valor_previsto ? kv('Valor previsto', `${moedaBR(item.valor_previsto)}${(item.parcelas || 1) > 1 ? ` · ${item.parcelas}× de ${moedaBR(item.valor_previsto / item.parcelas)}` : ''}`) : ''); // v1.20.0
+        ((item.responsavel_pagamento || ['tributo', 'taxa'].includes(item.tipo)) ? kv('Quem paga', escapeHtml(item.rateio
+            ? (item.rateio.vago ? 'Proprietário · imóvel sem contrato' : item.responsavel_pagamento === 'locatario' ? 'Locatário (contrato) · sem saída no Financeiro' : 'Proprietário (contrato)')
+            : ({ locatario: 'Locatário na vigência do contrato · sem saída no Financeiro nesse período', proprietario: 'Proprietário', condominio: 'Condomínio' }[item.responsavel_pagamento] || (item.responsavel_pagamento || 'Proprietário (padrão)')))) : '') +
+        (item.valor_previsto ? kv('Valor previsto', `${moedaBR(item.valor_previsto)}${(item.parcelas || 1) > 1 ? ` · ${item.parcelas}× de ${moedaBR(item.valor_previsto / item.parcelas)}` : ''}`) : '') + // v1.20.0
+        memoriaRateioHtml(item, kv);
 
     // v1.34.0 (demanda 4a609dbb) — clicar no alerta "documento pendente"
     // abria a ficha sem nenhum indicador de que falta o documento; esse
@@ -1504,6 +1516,28 @@ export async function confirmarEstornarOcorrencia(ocorrenciaId) {
 // (antes só dava pra editar título/subtipo/antecedência) — necessário
 // pra poder detectar mudança que "impacta os alertas possíveis" (pedido
 // explícito) e oferecer regenerar as ocorrências futuras.
+// v1.38.0 (encargos v3, demanda 854f6343) — memória de cálculo do item de IPTU/
+// condomínio por responsável (cofre_itens_controle.rateio, calculado pelo banco).
+// Só exibe: o valor do item continua editável; se foi ajustado, mostra os dois.
+function memoriaRateioHtml(item, kv) {
+    const r = item.rateio;
+    if (!r || !r.ano) return '';
+    const br = iso => String(iso).slice(0, 10).split('-').reverse().join('/');
+    const pct = v => `${Number(v || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`;
+    const periodos = (r.periodos || []).map(p => `${br(p.inicio)} a ${br(p.fim)}`).join('; ') || '—';
+    let conta;
+    if (r.codigo === 'iptu_global') {
+        conta = `IPTU ${r.ano}: ${moedaBR(r.base)} × ${r.dias}/${r.dias_ano} dias (${pct(r.pct)}) = <b>${moedaBR(r.devido)}</b>`;
+    } else {
+        const comps = (r.competencias || []).map(c => `${String(c.mes).padStart(2, '0')}/${r.ano}: ${c.dias < c.dias_mes ? `${c.dias}/${c.dias_mes} dias → ` : ''}${moedaBR(c.valor)}`);
+        conta = `Mensal ${moedaBR(r.base)} · ${comps.length} competência(s) = <b>${moedaBR(r.devido)}</b>${comps.length ? '<br>' + escapeHtml(comps.join(' · ')) : ''}`;
+    }
+    const ajustado = item.valor_previsto != null && Math.abs(Number(item.valor_previsto) - Number(r.devido || 0)) >= 0.01
+        ? `<br>Valor do item ajustado para ${moedaBR(item.valor_previsto)}` : '';
+    return kv(r.vago ? 'Período sem contrato' : 'Período do contrato', escapeHtml(periodos)) +
+        kv('Memória de cálculo', conta + ajustado);
+}
+
 export async function abrirEditarItem() {
     const item = itemEmFoco;
     // v1.37.0 — o catálogo de subtipos precisa estar carregado antes de montar
