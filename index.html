@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.290.1
-   LINHAS: 16159
-   DATA: 03/10/2026 (sessão 20260927-2205-contratos, encargos na ativação)
+   VERSÃO: Beta v1.291.0
+   LINHAS: 16188
+   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.1 legibilidade e toque)
+   NOVIDADES (Beta v1.291.0) — F0.1 do PLANO_UX_PWA_ATUAL (demanda 3b1da217, "pode
+   executar" do Nicola em 03/10 17:07), regras UXR-29/31/32 das DIRETRIZES_UX_RAIZ_2026:
+   corpo 15 px e secundário 13 px (tokens --text-sm/--text-xs do Tailwind e seletores
+   rz-*), piso de 12 px (text-[9/10/11px] e font-size ≤11,5 px viram 12; piso por CSS
+   para as classes ainda emitidas pelos módulos), campos com 16 px em tela de toque
+   (sem auto-zoom do WebKit), touch-action: manipulation, viewport-fit=cover + safe
+   area no cabeçalho, sheet com altura por visualViewport/dvh, botões 48 px (pequeno
+   40, chip/segmento 36), toast centralizado acima da bottom nav com aria-live.
+   maximum-scale=1 FICA até o teste no iPhone (UXR-32, passo b).
+   Versão anterior (Beta v1.290.1):
    NOVIDADES (Beta v1.290.1) — pedido do Nicola (03/10 11:20): os itens de IPTU e
    condomínio do contrato só são oferecidos/gerados com o contrato Ativo (ao ativar),
    não mais em Assinando (js/contratos.js 1.36.0 → 1.36.1; banco contratos_encargos_v3_2).
@@ -34,17 +44,8 @@
    contrato sem "Abrir o imóvel" e com "Dados do contrato" (só leitura: Contrato,
    Revisionais, Encargos, Locatário) — js/contratos.js 1.33.0 → 1.34.0.
    Versão anterior (Beta v1.289.1):
-   NOVIDADES (Beta v1.289.1) — encargos do contrato (demanda 854f6343, decisões
-   do Nicola em 02/10): o formulário ganha o card "Encargos" (sempre visível, depois
-   de Revisionais) com "Locatário paga IPTU/condomínio" e os valores, que estavam em
-   "+ Mostrar mais campos". Ao salvar, o banco marca quem paga nos itens de IPTU e
-   condomínio do imóvel; pago pelo locatário não gera saída no Financeiro. Imóvel
-   sem o item: o app oferece criar (js/contratos.js 1.32.0 → 1.33.0). Lista e ficha
-   do item mostram quem paga (js/cofre-controles.js 1.35.0 → 1.36.0). Banco:
-   migration contratos_encargos_responsavel_v1 (já aplicada, com retroativo).
-   Versão anterior (Beta v1.289.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.289.0 … v1.289.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.289.1 … v1.289.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -60,7 +61,8 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"> <!-- v1.276.0: zoom travado (demanda bf635974) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover"> <!-- v1.276.0: zoom travado (demanda bf635974); v1.291.0: viewport-fit=cover (UXR-31). maximum-scale=1 só sai depois do teste no iPhone (UXR-32) -->
+    <meta name="color-scheme" content="light dark"> <!-- v1.291.0 (UXR-31) -->
 
     <!-- v1.139.0 — IMPORT MAP (gerado pelo gerar_versoes.py, NÃO editar à mão):
          todo módulo ./js/X.js vira ./js/X.js?v=<versão>. URL nova a cada
@@ -193,6 +195,11 @@
           --color-yellow-950: #493414;
 
           --font-sans: "Inter", system-ui, sans-serif;
+
+          /* v1.291.0 — F0.1 (UXR-31): corpo 15 px, secundário 13 px. text-sm e text-xs são as
+             classes de corpo e de texto secundário em todo o app; mudar o token muda tudo. */
+          --text-sm: 0.9375rem;   --text-sm--line-height: 1.4;
+          --text-xs: 0.8125rem;   --text-xs--line-height: 1.35;
         }
     </style>
 
@@ -379,12 +386,12 @@
            topo do botão, além da cor. */
         #bottom-nav-bar button{position:relative}
         #bottom-nav-bar button.rz-nav-off{opacity:.45}#bottom-nav-bar button.rz-nav-off::after{content:'';position:absolute;top:6px;right:calc(50% - 16px);width:10px;height:10px;border-radius:50%;background:var(--wine)} /* v1.130 — aba bloqueada */
-        .rz-chip.rz-off{opacity:.5}.rz-chip.rz-off::before{content:'🔒';font-size:10px;margin-right:2px} /* v1.130 — chip bloqueado */
-        [data-rz-codigo].rz-off{opacity:.5;position:relative}[data-rz-codigo].rz-off::after{content:'🔒';position:absolute;top:-6px;right:-6px;font-size:11px;line-height:1} /* v1.248 — botão com porta (comum-licenca.aplicarCadeados) */
+        .rz-chip.rz-off{opacity:.5}.rz-chip.rz-off::before{content:'🔒';font-size:12px;margin-right:2px} /* v1.130 — chip bloqueado */
+        [data-rz-codigo].rz-off{opacity:.5;position:relative}[data-rz-codigo].rz-off::after{content:'🔒';position:absolute;top:-6px;right:-6px;font-size:12px;line-height:1} /* v1.248 — botão com porta (comum-licenca.aplicarCadeados) */
         /* Entrega F.4 (21/09/2026) — mesma semântica "bloqueado com motivo"
            dentro do .rz-seg (Fechamento desligado por rotina): .rz-off
            genérico, não mais preso a .rz-chip. */
-        .rz-seg button.rz-off{opacity:.5}.rz-seg button.rz-off::before{content:'🔒';font-size:10px;margin-right:2px}
+        .rz-seg button.rz-off{opacity:.5}.rz-seg button.rz-off::before{content:'🔒';font-size:12px;margin-right:2px}
         #bottom-nav-bar button.bottomnav-active::before{
             content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
             width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--sprout);
@@ -438,10 +445,10 @@
            Fatia 1 da migração (§19): aditiva, nenhuma tela usa ainda.
            ==================================================================== */
         /* 4. cabeçalho global e de aba */
-        .rz-hdr{background:var(--pine);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px}
+        .rz-hdr{background:var(--pine);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
         .rz-hdr .rz-brand{flex:1;min-width:0}
         .rz-hdr .rz-brand h1{font-family:var(--font-title);font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
-        .rz-hdr .rz-brand small{display:block;font-size:11px;opacity:.85;margin-top:1px}
+        .rz-hdr .rz-brand small{display:block;font-size:12px;opacity:.85;margin-top:1px}
         .rz-hdr .rz-ia{width:40px;height:40px;border-radius:50%;background:var(--brass);color:#fff;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 3px rgba(198,138,59,.28);flex:none}
         .rz-hdr .rz-ia .rz-dot{position:absolute;top:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--brass)}
         /* v1.115.0 (fatia 7) — .rz-hdr é o cabeçalho de verdade; os
@@ -451,7 +458,7 @@
         .rz-hdr button:active{transform:scale(.92)}
         .rz-hdr .rz-ia svg{width:20px;height:20px}
         .rz-hdr .rz-brand h1 img{max-height:1.5em;display:inline-block;vertical-align:middle}
-        .rz-hdr .rz-off{display:inline-block;font-size:10px;font-weight:700;background:var(--danger);color:#fff;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;animation:rz-pulse 1.4s infinite}
+        .rz-hdr .rz-off{display:inline-block;font-size:12px;font-weight:700;background:var(--danger);color:#fff;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;animation:rz-pulse 1.4s infinite}
         /* v1.116.0 — "cabeçalho desformatado em campo" (print do Nicola):
            causa raiz encontrada e corrigida na v1.177.0 (Parte I do plano
            de conciliação) — o comentário CSS do catálogo, acima, fechava
@@ -472,7 +479,7 @@
            .rz-avatar ao lado. */
         .rz-hdr .rz-ico-btn{width:40px;height:40px;flex:none}
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-        .rz-tabhead p{flex:1;font-size:12px;color:var(--muted);line-height:1.35;margin:0}
+        .rz-tabhead p{flex:1;font-size:13px;color:var(--muted);line-height:1.35;margin:0}
         .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
         /* Entrega F.1 (21/09/2026, REGRAS §11) — card de competência
            (‹ Mês/Ano ›) no topo de Recebimentos/Saídas. */
@@ -501,20 +508,20 @@
         .rz-entity .rz-ic svg{width:24px;height:24px}
         .rz-entity .rz-tx{flex:1;min-width:0}
         .rz-entity .rz-tx b{display:block;font-family:var(--font-title);font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
-        .rz-entity .rz-tx span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+        .rz-entity .rz-tx span{display:block;font-size:13px;color:var(--muted);margin-top:2px}
         /* 8. chips (1 linha, rolagem horizontal) e segmento */
         .rz-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 12px;padding:2px 16px}
         .rz-chips::-webkit-scrollbar{display:none}
         /* Entrega F.4 (21/09/2026) — #conc-uni-chips (chips Todos/Pendentes/
            Conciliados/Não controlado) saiu do HTML; a regra de rolagem que
            só existia pra ele saiu junto (dead code, QUA-01). */
-        .rz-chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--pine);white-space:nowrap}
-        .rz-chip .rz-n{font-size:11px;font-weight:600;color:var(--muted);background:var(--paper);padding:1px 6px;border-radius:var(--r-pill)}
+        .rz-chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--pine);white-space:nowrap}
+        .rz-chip .rz-n{font-size:12px;font-weight:600;color:var(--muted);background:var(--paper);padding:1px 6px;border-radius:var(--r-pill)}
         .rz-chip.rz-on{background:var(--pine);border-color:var(--pine);color:#fff}
         .rz-chip.rz-on .rz-n{background:rgba(255,255,255,.18);color:#fff}
         .rz-chip.rz-warn .rz-n{background:var(--warning-bg);color:var(--warning)}
         .rz-seg{display:flex;background:#e2e6df;border-radius:12px;padding:3px;margin-bottom:12px}
-        .rz-seg button{flex:1;height:34px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:0}
+        .rz-seg button{flex:1;height:36px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);background:none;border:0}
         .rz-seg button.rz-on{background:#fff;color:var(--pine);box-shadow:0 1px 3px rgba(0,0,0,.08)}
         /* Entrega F.4 (21/09/2026, pedido explícito) — seletor de competência
            (‹ Mês › de Recebimentos/Saídas/Fechamento) "mais baixo, seguindo
@@ -533,7 +540,7 @@
         .rz-card.rz-atencao{border-color:var(--wine-light)}
         .rz-card-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
         .rz-card-h h3{font-family:var(--font-title);font-size:15px;flex:1;letter-spacing:-.02em;margin:0}
-        .rz-card-h .rz-sub{font-size:12px;color:var(--muted)}
+        .rz-card-h .rz-sub{font-size:13px;color:var(--muted)}
         /* v1.187.0 — título de seção SEM moldura (Precisa de atenção deixou
            de ser .rz-card: o padding:14px 16px do card tirava largura útil
            da linha do alerta, agravando o truncamento). Mesma tipografia de
@@ -550,18 +557,18 @@
         .rz-desc{font-size:13px;color:var(--muted);line-height:1.4;margin:0}
         .rz-kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:6px}
         .rz-kv > div{min-width:0}
-        .rz-kv small{display:block;font-size:11.5px;color:var(--muted);margin-bottom:2px}
-        .rz-kv b{font-size:14px;font-weight:600;word-break:break-word}
+        .rz-kv small{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+        .rz-kv b{font-size:15px;font-weight:600;word-break:break-word}
         .rz-kv .rz-full{grid-column:1/-1}
         /* 7. botões — 3 níveis + IA */
-        .rz-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:40px;padding:0 16px;border-radius:var(--r-ctl);font-size:14px;font-weight:600;border:0;background:none;transition:transform .08s;cursor:pointer}
+        .rz-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:48px;padding:0 16px;border-radius:var(--r-ctl);font-size:14px;font-weight:600;border:0;background:none;transition:transform .08s;cursor:pointer}
         .rz-btn:active{transform:scale(.97)}
         .rz-btn svg{width:17px;height:17px}
         .rz-btn-1{background:var(--pine);color:#fff}
         .rz-btn-2{background:#fff;color:var(--pine);border:1.5px solid var(--pine)}
         .rz-btn-3{color:var(--pine);padding:0 6px;text-decoration:underline;text-decoration-color:var(--sprout-light);text-underline-offset:3px}
         .rz-btn-ia{background:var(--brass);color:#fff}
-        .rz-btn.rz-sm{height:34px;font-size:13px;padding:0 12px}
+        .rz-btn.rz-sm{height:40px;font-size:13px;padding:0 12px}
         .rz-btn.rz-wide{width:100%}
         .rz-btn:disabled{opacity:.55;pointer-events:none}
         /* 10. status — ponto + rótulo, 5 semânticas */
@@ -572,7 +579,7 @@
         .rz-st.rz-bad{color:var(--danger);background:var(--danger-bg)}
         .rz-st.rz-run{color:var(--info);background:var(--info-bg)}
         .rz-st.rz-neu{color:var(--sage);background:#eef1ec}
-        .rz-ia-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--brass-deep);background:var(--brass-bg);padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap}
+        .rz-ia-tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--brass-deep);background:var(--brass-bg);padding:2px 8px;border-radius:var(--r-pill);white-space:nowrap}
         .rz-ia-tag svg{width:12px;height:12px}
         /* 9. lista — item padrão, agrupador, vazio */
         .rz-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
@@ -586,14 +593,14 @@
         .rz-empty .rz-ic svg{width:24px;height:24px}
         .rz-more svg,.rz-back svg,.rz-btn svg{flex:none}
         .rz-row .rz-tx{flex:1;min-width:0}
-        .rz-row .rz-tx b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .rz-row .rz-tx span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+        .rz-row .rz-tx b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-row .rz-tx span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
         .rz-row .rz-rt{text-align:right;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
         /* v1.194.0 (pedido explícito, 16/09) — Ocorrências do contrato: a data
            não pode cortar com "...". Override só desta linha (não mexe no
            .rz-row nowrap padrão usado no resto do app). */
         .rz-row-oc .rz-tx b{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
-        .rz-row .rz-rt b{font-size:14px;font-weight:600}
+        .rz-row .rz-rt b{font-size:15px;font-weight:600}
         .rz-row .rz-rt b.rz-in{color:var(--success)}
         .rz-row .rz-rt b.rz-out{color:var(--ink)}
         .rz-row.rz-link{cursor:pointer}
@@ -604,7 +611,7 @@
         .rz-group{font-size:12px;font-weight:600;color:var(--sage);margin:14px 2px 6px}
         .rz-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
         .rz-kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
-        .rz-kpi small{display:block;font-size:11.5px;color:var(--muted)}
+        .rz-kpi small{display:block;font-size:12px;color:var(--muted)}
         .rz-kpi b{display:block;font-family:var(--font-title);font-size:20px;margin-top:2px;letter-spacing:-.02em}
         .rz-kpi.rz-in b{color:var(--success)} .rz-kpi.rz-bad b{color:var(--danger)}
         .rz-kpi.rz-hero{grid-column:1/-1;background:var(--pine);border-color:var(--pine);color:#fff}
@@ -623,26 +630,26 @@
         .rz-empty .rz-ic{width:52px;height:52px;border-radius:16px;background:var(--paper);color:var(--sage);display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px}
         .rz-empty p{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.4}
         .rz-empty .rz-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-        .rz-alert-sev{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:11.5px;color:var(--muted)}
+        .rz-alert-sev{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:12px;color:var(--muted)}
         .rz-card.rz-sev-bad{border-left:4px solid var(--danger)} .rz-card.rz-sev-warn{border-left:4px solid var(--warning)}
         .rz-card.rz-sev-ia{border-left:4px solid var(--brass)} .rz-card.rz-sev-run{border-left:4px solid var(--info)}
         /* 5. bottom nav (usada a partir da fatia 7) */
         .rz-nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding:6px 4px calc(10px + env(safe-area-inset-bottom));z-index:40}
-        .rz-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--muted);position:relative;padding-top:8px;background:none;border:0}
+        .rz-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);position:relative;padding-top:8px;background:none;border:0}
         .rz-nav button.rz-on{color:var(--sprout)}
         .rz-nav button.rz-on::before{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:2px;background:var(--sprout)}
-        .rz-nav button .rz-b{position:absolute;top:4px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:10px;line-height:16px}
+        .rz-nav button .rz-b{position:absolute;top:4px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:12px;line-height:16px}
         .rz-nav button .rz-b.rz-warn{background:var(--warning)}
         /* 3. sheet — única superfície modal (formulário, ações, menu, IA) */
         .rz-veil{position:fixed;inset:0;background:rgba(23,33,30,.5);display:flex;align-items:flex-end;justify-content:center;z-index:97;opacity:0;pointer-events:none;transition:opacity .15s}
         .rz-veil.rz-on{opacity:1;pointer-events:auto}
-        .rz-sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;max-height:86vh;display:flex;flex-direction:column;transform:translateY(24px);transition:transform .18s}
+        .rz-sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;max-height:86vh;max-height:calc(var(--rz-vvh,100dvh) * .86);display:flex;flex-direction:column;transform:translateY(24px);transition:transform .18s}
         .rz-veil.rz-on .rz-sheet{transform:none}
         .rz-sheet.rz-menu{background:var(--paper)}
         .rz-grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:10px auto 0;flex:none}
         .rz-sh-h{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex:none}
         .rz-sh-h h3{font-family:var(--font-title);font-size:17px;flex:1;letter-spacing:-.02em;margin:0}
-        .rz-sh-h .rz-sub{font-size:12px;color:var(--muted);display:block;margin-top:1px}
+        .rz-sh-h .rz-sub{font-size:13px;color:var(--muted);display:block;margin-top:1px}
         .rz-x{width:30px;height:30px;border-radius:50%;background:var(--paper);display:flex;align-items:center;justify-content:center;color:var(--muted);border:0;flex:none}
         .rz-x svg{width:16px;height:16px}
         .rz-sh-b{padding:4px 16px 16px;overflow-y:auto}
@@ -655,7 +662,7 @@
         .rz-act .rz-ic svg{width:18px;height:18px}
         .rz-act .rz-ic.rz-ia{background:var(--brass-bg);color:var(--brass-deep)}
         .rz-act .rz-ic.rz-bad{background:var(--danger-bg);color:var(--danger)}
-        .rz-act small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
+        .rz-act small{display:block;font-size:13px;font-weight:400;color:var(--muted);margin-top:1px}
         .rz-act.rz-bad{color:var(--danger)}
         /* v1.245.0 (demanda 0e40951a, pedido explícito do Nicola: "colocar
            2 botoes a direita e dois a esquerda como se fosse 4 quadrantes,
@@ -689,19 +696,19 @@
         .rz-fin-quad.rz-off .rz-ic{background:var(--paper);color:var(--muted)}
         .rz-fin-quad .rz-tx{min-width:0;flex:1}
         .rz-fin-quad .rz-tx b{display:block;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .rz-fin-quad .rz-tx small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:11px;font-weight:400;color:var(--muted);margin-top:1px;line-height:1.25;white-space:normal;overflow-wrap:break-word}
+        .rz-fin-quad .rz-tx small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px;line-height:1.25;white-space:normal;overflow-wrap:break-word}
         /* v1.249.0 — cadeado ao lado do mês quando a competência está fechada */
         .rz-mes-centro{display:inline-flex;align-items:center;gap:6px}
         .rz-mes-lock{display:inline-flex;color:var(--pine)}
         .rz-mes-lock svg{width:14px;height:14px}
         .rz-f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
-        .rz-f label{font-size:12px;font-weight:600;color:var(--muted)}
+        .rz-f label{font-size:13px;font-weight:600;color:var(--muted)}
         .rz-f label i{color:var(--danger);font-style:normal}
         .rz-f input,.rz-f select,.rz-f textarea{width:100%;height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:14px;background:#fff;color:var(--ink)}
         .rz-f textarea{height:auto;padding:10px 12px}
         .rz-f input:focus,.rz-f select:focus,.rz-f textarea:focus{border-color:var(--sprout);outline:0}
-        .rz-f .rz-hint{font-size:11.5px;color:var(--muted)}
-        .rz-f .rz-ok{font-size:11.5px;color:var(--success);font-weight:600}
+        .rz-f .rz-hint{font-size:12px;color:var(--muted)}
+        .rz-f .rz-ok{font-size:12px;color:var(--success);font-weight:600}
         .rz-f2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
         /* 16. IA — assistente e sugestões */
         .rz-ia-hero{background:linear-gradient(135deg,var(--pine) 0%,var(--pine-light) 100%);color:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
@@ -722,11 +729,33 @@
         [class*="rz-"].hidden{display:none}
         @media (prefers-reduced-motion:reduce){.rz-veil,.rz-sheet,.rz-btn,.rz-ico-btn{transition:none}}
 
+
+        /* ====================================================================
+           v1.291.0 — F0.1 LEGIBILIDADE E TOQUE (DIRETRIZES_UX_RAIZ_2026 UXR-31/32,
+           PLANO_UX_PWA_ATUAL F0.1). Base da migração para o app nativo.
+           ==================================================================== */
+        body{touch-action:manipulation}                      /* sem zoom por duplo toque; pinça mantida */
+        /* piso de 12 px: classes Tailwind de 9–11 px ainda emitidas pelos módulos js/ (UXR-02:
+           cada módulo troca a classe quando for tocado; até lá o piso vale pela CSS) */
+        .text-\[9px\],.text-\[10px\],.text-\[11px\]{font-size:12px;line-height:1.35}
+        /* campos com 16 px em tela de toque: evita o auto-zoom do WebKit ao focar (UXR-31) */
+        @media (pointer:coarse){
+          input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px}
+        }
+        /* alvo mínimo de 48 px em botões de ação e itens de sheet */
+        .rz-act{min-height:48px}
+        .rz-nav button{min-height:48px}
+        /* toast acima da bottom nav (UXR-29) */
+        #toast-container{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:500;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+        #toast-container>div{pointer-events:auto}
     </style>
 
 </head>
 
 <body class="bg-gray-100 font-sans text-gray-800 pb-16">
+    <script>/* v1.291.0 (UXR-31): altura visível real — teclado aberto não empurra sheet/barra */
+    (function(){var vv=window.visualViewport;function f(){document.documentElement.style.setProperty('--rz-vvh',(vv?vv.height:window.innerHeight)+'px')}if(vv){vv.addEventListener('resize',f);vv.addEventListener('scroll',f)}window.addEventListener('resize',f);f()})();
+    </script>
 
     <!-- Seletor de imóvel customizado (com busca e cards completos) — substitui
          o <select> nativo em con-imovel e filtro-imovel, porque no celular o
@@ -758,11 +787,11 @@
             </div>
             <div class="p-3 space-y-3 overflow-y-auto">
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Buscar</label>
                     <input type="text" id="imoveis-busca-texto" placeholder="Locatário, endereço, bairro..." oninput="renderImoveis()" class="w-full p-2.5 border rounded-lg text-sm mt-1">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Status</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Status</label>
                     <select id="imoveis-filtro-status" onchange="renderImoveis()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                         <option value="Vago">Vago</option>
@@ -771,7 +800,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Empreendimento</label>
                     <select id="imoveis-filtro-emp" onchange="renderImoveis()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
@@ -781,7 +810,7 @@
                      contratoPrecisaRevisao/contratoVencido já existentes —
                      nenhuma lógica de alerta duplicada. -->
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Alerta em contrato</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Alerta em contrato</label>
                     <select id="imoveis-filtro-alerta" onchange="renderImoveis()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                         <option value="qualquer">Todos com alerta</option>
@@ -806,7 +835,7 @@
             </div>
             <div class="p-3 space-y-3 overflow-y-auto">
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Status</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Status</label>
                     <select id="vitrine-filtro-status" onchange="renderVitrine()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                         <option value="Vago">Vago</option>
@@ -814,7 +843,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Empreendimento</label>
                     <select id="vitrine-filtro-emp" onchange="renderVitrine()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
@@ -841,23 +870,23 @@
                      Locatário (select)/Imóvel (seletor) abaixo continuam
                      existindo, sem remover capacidade nenhuma. -->
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Buscar</label>
                     <input type="text" id="men-busca-texto" placeholder="Locatário, endereço, bairro..." oninput="renderMensalidades()" class="w-full p-2 border rounded-lg text-sm mt-1">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Locatário</label>
                     <select id="men-filtro-locatario" onchange="renderMensalidades()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Empreendimento</label>
                     <select id="men-filtro-empreendimento" onchange="renderMensalidades()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Imóvel</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Imóvel</label>
                     <input type="hidden" id="men-filtro-imovel" value="todos">
                     <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('men-filtro-imovel').value = id || 'todos'; document.getElementById('men-filtro-imovel-resumo').textContent = resumo; renderMensalidades(); }, true)" id="men-filtro-imovel-resumo" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1 text-left truncate">Todos</button>
                 </div>
@@ -881,11 +910,11 @@
                 <!-- v1.55.0 — NOVO (pedido explícito): busca por texto livre,
                      mesmo padrão de Imóveis/Financeiro. -->
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Buscar</label>
                     <input type="text" id="inad-busca-texto" placeholder="Locatário, endereço, bairro..." oninput="renderInadimplencia()" class="w-full p-2 border rounded-lg text-sm mt-1">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Agrupado por</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Agrupado por</label>
                     <select id="inad-tipo-agrupamento" onchange="renderInadimplencia()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="competencia">Mês / Competência</option>
                         <option value="locatario">Locatário</option>
@@ -893,11 +922,11 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Competência</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Competência</label>
                     <select id="inad-filtro-mes" onchange="renderInadimplencia()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1"></select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Locatário</label>
                     <select id="inad-filtro-alvo" onchange="renderInadimplencia()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1"></select>
                 </div>
                 <button type="button" onclick="document.getElementById('inad-busca-texto').value=''; document.getElementById('inad-tipo-agrupamento').value='competencia'; document.getElementById('inad-filtro-mes').value='todos'; document.getElementById('inad-filtro-alvo').value='todos'; renderInadimplencia();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
@@ -918,11 +947,11 @@
             </div>
             <div class="p-3 space-y-3 overflow-y-auto">
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Buscar</label>
                     <input type="text" id="saidas-busca-texto" placeholder="Descrição, fornecedor..." oninput="renderSaidas()" class="w-full p-2 border rounded-lg text-sm mt-1">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Status</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Status</label>
                     <select id="saidas-filtro-status" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                         <option value="pago">Pago</option>
@@ -931,7 +960,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Categoria</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Categoria</label>
                     <select id="saidas-filtro-categoria" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todas</option>
                         <option value="iptu">IPTU</option>
@@ -948,14 +977,14 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Ativo vinculado</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Ativo vinculado</label>
                     <input type="hidden" id="saidas-filtro-ativo" value="todos">
                     <select id="saidas-filtro-ativo-select" onchange="document.getElementById('saidas-filtro-ativo').value = this.value; renderSaidas();" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Fornecedor</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Fornecedor</label>
                     <select id="saidas-filtro-fornecedor" onchange="renderSaidas()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
@@ -979,11 +1008,11 @@
             </div>
             <div class="p-3 space-y-3 overflow-y-auto">
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Buscar</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Buscar</label>
                     <input type="text" id="conc-busca-texto" placeholder="Pagador, favorecido..." oninput="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm mt-1">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Tipo</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Tipo</label>
                     <select id="conc-busca-tipo" onchange="filtrarConciliacaoSegmento(this.value); atualizarCamposTipoConciliacao();" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="tudo">Tudo</option>
                         <option value="entrada">Entrada</option>
@@ -997,13 +1026,13 @@
                      dentro. -->
                 <div id="conc-campos-entrada" class="hidden space-y-3">
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
+                        <label class="block text-[12px] font-bold text-gray-500">Locatário</label>
                         <select id="conc-filtro-locatario" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                             <option value="todos">Todos</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
+                        <label class="block text-[12px] font-bold text-gray-500">Empreendimento</label>
                         <select id="conc-filtro-empreendimento" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                             <option value="todos">Todos</option>
                         </select>
@@ -1011,7 +1040,7 @@
                 </div>
                 <div id="conc-campos-saida" class="hidden space-y-3">
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500">Categoria</label>
+                        <label class="block text-[12px] font-bold text-gray-500">Categoria</label>
                         <select id="conc-filtro-categoria" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                             <option value="todos">Todas</option>
                             <option value="iptu">IPTU</option>
@@ -1028,13 +1057,13 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500">Ativo vinculado</label>
+                        <label class="block text-[12px] font-bold text-gray-500">Ativo vinculado</label>
                         <select id="conc-filtro-ativo" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                             <option value="todos">Todos</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[11px] font-bold text-gray-500">Fornecedor</label>
+                        <label class="block text-[12px] font-bold text-gray-500">Fornecedor</label>
                         <select id="conc-filtro-fornecedor" onchange="renderConciliacaoUnificada()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                             <option value="todos">Todos</option>
                         </select>
@@ -1058,13 +1087,13 @@
             </div>
             <div class="p-3 space-y-3 overflow-y-auto">
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Empreendimento</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Empreendimento</label>
                     <select id="contratos-filtro-emp" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Status</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Status</label>
                     <select id="contratos-filtro-status" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                         <option value="Assinando">Assinando</option>
@@ -1074,19 +1103,19 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Imóvel</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Imóvel</label>
                     <input type="hidden" id="contratos-filtro-imovel-id" value="todos">
                     <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('contratos-filtro-imovel-id').value = id || 'todos'; document.getElementById('contratos-filtro-imovel-resumo').textContent = resumo || 'Todos'; renderContratos(); }, true)" id="contratos-filtro-imovel-resumo" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 text-left truncate mt-1">Todos</button>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Locatário</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Locatário</label>
                     <select id="contratos-filtro-locatario" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                     </select>
                 </div>
                 <div class="flex items-center gap-2 pt-1">
                     <input type="checkbox" id="contratos-filtro-somente-alerta" onchange="renderContratos()" class="w-4 h-4">
-                    <label for="contratos-filtro-somente-alerta" class="text-[11px] font-bold text-gray-600">Mostrar só contratos com alerta</label>
+                    <label for="contratos-filtro-somente-alerta" class="text-[12px] font-bold text-gray-600">Mostrar só contratos com alerta</label>
                 </div>
                 <button type="button" onclick="document.getElementById('contratos-filtro-emp').value='todos'; document.getElementById('contratos-filtro-status').value='todos'; document.getElementById('contratos-filtro-imovel-id').value='todos'; document.getElementById('contratos-filtro-imovel-resumo').textContent='Todos'; document.getElementById('contratos-filtro-locatario').value='todos'; document.getElementById('contratos-filtro-somente-alerta').checked=false; renderContratos();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
             </div>
@@ -1107,11 +1136,11 @@
             </div>
             <div class="p-3 space-y-3 overflow-y-auto">
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Sócio</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Sócio</label>
                     <select id="socio-filtro-nome" onchange="renderSociosDistribricao()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1"></select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Tipo</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Tipo</label>
                     <select id="socio-filtro-tipo" onchange="renderSociosDistribricao()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Créditos e Débitos</option>
                         <option value="credito">Só Créditos</option>
@@ -1119,11 +1148,11 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Mês</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Mês</label>
                     <select id="socio-filtro-mes" onchange="renderSociosDistribricao()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1"></select>
                 </div>
                 <div>
-                    <label class="block text-[11px] font-bold text-gray-500">Ano Civil</label>
+                    <label class="block text-[12px] font-bold text-gray-500">Ano Civil</label>
                     <select id="socio-filtro-ano" onchange="renderSociosDistribricao()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
                         <option value="todos">Todos</option>
                         <option value="2026" selected>2026</option>
@@ -1176,41 +1205,41 @@
 
                     <!-- Bloco 1 — Identificação -->
                     <div>
-                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5">1. Identificação</p>
+                        <p class="text-[12px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5">1. Identificação</p>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">Nome completo <span style="color:var(--danger)">*</span></label>
                                 <input type="text" id="cp-nome" required class="w-full p-2 border rounded mt-1 text-sm">
-                                <p id="cp-nome-erro" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                                <p id="cp-nome-erro" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">CPF ou CNPJ <span style="color:var(--danger)">*</span></label>
                                 <input type="text" id="cp-documento" required oninput="formatarMascaraDocumentoGenerico(this, 'cp-doc-indicador')" placeholder="Só digitar os números" class="w-full p-2 border rounded mt-1 text-sm">
-                                <p id="cp-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                                <p id="cp-doc-indicador" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Bloco 2 — Contato -->
                     <div class="pt-1 border-t border-gray-100">
-                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">2. Contato</p>
+                        <p class="text-[12px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">2. Contato</p>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">WhatsApp <span style="color:var(--danger)">*</span></label>
                                 <input type="tel" id="cp-whatsapp" required oninput="aplicarMascaraTelefone(this); validarTelefoneComIndicador(this, 'cp-whatsapp-indicador');" placeholder="(11) 91234-5678" class="w-full p-2 border rounded mt-1 text-sm">
-                                <p id="cp-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                                <p id="cp-whatsapp-indicador" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">E-mail <span style="color:var(--danger)">*</span></label>
                                 <input type="email" id="cp-email" required oninput="validarEmailComIndicador(this, 'cp-email-indicador')" class="w-full p-2 border rounded mt-1 text-sm">
-                                <p id="cp-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                                <p id="cp-email-indicador" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Bloco 3 — Endereço -->
                     <div class="pt-1 border-t border-gray-100">
-                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">3. Endereço</p>
+                        <p class="text-[12px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">3. Endereço</p>
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600">Endereço atual (rua/avenida) <span style="color:var(--danger)">*</span></label>
@@ -1250,7 +1279,7 @@
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600">CEP <span style="color:var(--danger)">*</span></label>
                                     <input type="text" id="cp-endereco-cep" required inputmode="numeric" placeholder="00000-000" oninput="aplicarMascaraCEP(this); validarCEPComIndicador(this, 'cp-cep-indicador');" class="w-full p-2 border rounded mt-1 text-sm">
-                                    <p id="cp-cep-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                                    <p id="cp-cep-indicador" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                                 </div>
                             </div>
                         </div>
@@ -1258,7 +1287,7 @@
 
                     <!-- Bloco 4 — Informações complementares -->
                     <div class="pt-1 border-t border-gray-100">
-                        <p class="text-[10px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">4. Informações complementares</p>
+                        <p class="text-[12px] font-bold uppercase tracking-wide raiz-text-pine mb-1.5 mt-3">4. Informações complementares</p>
                         <div class="space-y-3">
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
@@ -1385,7 +1414,7 @@
 
             <div id="splash-status" class="text-[13px] text-amber-400 font-semibold px-4 break-words"></div>
 
-                <div id="splash-error-detail" class="text-[11px] text-red-400 font-mono hidden max-h-24 overflow-y-auto bg-emerald-950 p-2 rounded border border-red-900/50 text-left mx-4"></div>
+                <div id="splash-error-detail" class="text-[12px] text-red-400 font-mono hidden max-h-24 overflow-y-auto bg-emerald-950 p-2 rounded border border-red-900/50 text-left mx-4"></div>
 
             <div class="text-[13px] text-slate-500 font-mono">
 
@@ -1486,7 +1515,7 @@
 
         <button onclick="irParaAbaRodape('tab-geral')" id="btn-tab-geral" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="layout-dashboard" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Visão Geral</span>
+            <span class="text-[12px] font-bold">Visão Geral</span>
         </button>
 
         <!-- v1.80.0 — reaproveita o Cofre inteiro (js/cofre-*.js) dentro do
@@ -1499,7 +1528,7 @@
              tab-imoveis) — mesmo ícone, mesma tela, só ganhou o vizinho. -->
         <button onclick="irParaAbaRodape('tab-ativos')" id="btn-tab-ativos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="boxes" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Ativos</span>
+            <span class="text-[12px] font-bold">Ativos</span>
         </button>
 
         <!-- v1.91.0 (pedido explícito, 31/08/2026) — Contratos mudou de
@@ -1509,12 +1538,12 @@
              HTML, a tela em si (tab-contratos) não foi tocada. -->
         <button onclick="irParaAbaRodape('tab-contratos')" id="btn-tab-contratos" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="file-text" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Contratos</span>
+            <span class="text-[12px] font-bold">Contratos</span>
         </button>
 
         <button onclick="irParaAbaRodape('tab-mensal')" id="btn-tab-mensal" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="wallet" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Financeiro</span>
+            <span class="text-[12px] font-bold">Financeiro</span>
         </button>
 
         <!-- v1.88.0 — pedido explícito, seguindo a proposta do protótipo:
@@ -1529,7 +1558,7 @@
 
         <button onclick="irParaAbaRodape('tab-relatorios')" id="btn-tab-relatorios" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="bar-chart-3" style="width:21px;height:21px"></svg>
-            <span class="text-[10px] font-bold">Resultados</span>
+            <span class="text-[12px] font-bold">Resultados</span>
         </button>
 
     </nav>
@@ -1590,7 +1619,7 @@
 
             <p class="text-xs font-black text-red-800"><svg data-lucide="alert-triangle" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> MODO CONSULTA ATIVO (SISTEMA OFFLINE)</p>
 
-            <p class="text-[11px] text-red-600 mt-0.5">As abas de alteração de caixa e cadastros estão suspensas.</p>
+            <p class="text-[12px] text-red-600 mt-0.5">As abas de alteração de caixa e cadastros estão suspensas.</p>
 
         </div>
 
@@ -1940,7 +1969,7 @@
 
                         <p id="imo-sindico-display" class="text-xs text-slate-700"></p>
 
-                        <p class="text-[11px] text-gray-400 mt-1">Para trocar ou atualizar o síndico, acesse a aba Serviços.</p>
+                        <p class="text-[12px] text-gray-400 mt-1">Para trocar ou atualizar o síndico, acesse a aba Serviços.</p>
 
                     </div>
 
@@ -1950,7 +1979,7 @@
 
                         <p id="imo-manutencao-display" class="text-xs text-slate-700"></p>
 
-                        <p class="text-[11px] text-gray-400 mt-1">Para trocar ou atualizar o manutencista, acesse a aba Serviços.</p>
+                        <p class="text-[12px] text-gray-400 mt-1">Para trocar ou atualizar o manutencista, acesse a aba Serviços.</p>
 
                     </div>
 
@@ -1966,7 +1995,7 @@
 
                         <div id="proprietarios-divisao" class="space-y-2 text-xs"></div>
 
-                        <p class="text-[11px] text-gray-400">A soma das porcentagens precisa fechar em 100%.</p>
+                        <p class="text-[12px] text-gray-400">A soma das porcentagens precisa fechar em 100%.</p>
 
                     </div>
 
@@ -1984,7 +2013,7 @@
 
                         <label class="text-xs font-normal text-gray-600">Fotos do imóvel</label>
 
-                        <p class="text-[11px] text-gray-400 mt-1">Adicione fotos depois de salvar, na ficha do imóvel (seção "Fotos") ou pelo Ativo.</p>
+                        <p class="text-[12px] text-gray-400 mt-1">Adicione fotos depois de salvar, na ficha do imóvel (seção "Fotos") ou pelo Ativo.</p>
 
                     </div>
 
@@ -2112,7 +2141,7 @@
                  Recebimentos/Atrasados/Saídas) — mesmos ids de campo,
                  renderContratos() não precisou mudar nada de lógica. -->
             <div class="flex items-center gap-2 mb-4">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Contratos de locação do seu patrimônio.</p>
+                <p class="text-[12px] text-gray-500 flex-1 text-left">Contratos de locação do seu patrimônio.</p>
                 <!-- v1.115.0 (fatia 7, REGRAS §4) — os 2 ícones no catálogo
                      (.rz-ico-btn; "+" preenchido em pine); o "+" abre o
                      formulário direto (uma ação só — sheet de ações entra
@@ -2247,7 +2276,7 @@
                      #con-locatario-endereco (hidden) guarda o texto já salvo. -->
                 <div class="rz-card" id="con-card-locatario">
                     <p class="rz-group" style="margin-top:0">Locatário</p>
-                    <p style="font-size:11.5px;color:var(--muted);margin:-2px 2px 10px">Fica salvo como Parte do contrato: os mesmos dados aparecem na ficha e na minuta.</p>
+                    <p style="font-size:12px;color:var(--muted);margin:-2px 2px 10px">Fica salvo como Parte do contrato: os mesmos dados aparecem na ficha e na minuta.</p>
                 <div class="rz-f2">
                     <div class="rz-f">
                         <label>Nome do Locatário <i>*</i></label>
@@ -2256,7 +2285,7 @@
                     <div class="rz-f">
                         <label>CPF/CNPJ <i>*</i></label>
                         <input type="text" id="con-cpf" required oninput="formatarMascaraDocumento()" placeholder="Só digitar os números">
-                        <p id="con-doc-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                        <p id="con-doc-indicador" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                     </div>
                 </div>
 
@@ -2264,12 +2293,12 @@
                     <div class="rz-f">
                         <label>WhatsApp <i>*</i></label>
                         <input type="tel" id="con-whatsapp" required oninput="aplicarMascaraTelefone(this); validarWhatsappContrato();" placeholder="(11) 91234-5678">
-                        <p id="con-whatsapp-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                        <p id="con-whatsapp-indicador" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                     </div>
                     <div class="rz-f">
                         <label>E-mail <i>*</i></label>
                         <input type="email" id="con-email" required oninput="validarEmailContrato()" placeholder="nome@email.com">
-                        <p id="con-email-indicador" class="raiz-indicador-inline text-[11px] mt-0.5 h-3"></p>
+                        <p id="con-email-indicador" class="raiz-indicador-inline text-[12px] mt-0.5 h-3"></p>
                     </div>
                 </div>
 
@@ -2294,7 +2323,7 @@
                     <p class="rz-group">Endereço atual <i style="color:var(--danger);font-style:normal">*</i></p>
                     <input type="hidden" id="con-locatario-endereco" value="">
                     <div id="con-locatario-endereco-bloco"></div>
-                    <p id="con-locatario-endereco-salvo" class="hidden" style="font-size:11.5px;color:var(--muted);margin:2px 2px 8px"></p>
+                    <p id="con-locatario-endereco-salvo" class="hidden" style="font-size:12px;color:var(--muted);margin:2px 2px 8px"></p>
 
                 <div class="rz-f">
                     <label>Pessoa de Contato</label>
@@ -2369,7 +2398,7 @@
                     <div class="rz-f" style="margin-bottom:0">
                         <label>Revisão a cada (meses)</label>
                         <input type="number" min="1" step="1" id="con-revisional-periodicidade" placeholder="Em branco = sem cláusula de revisional">
-                        <p style="font-size:11px;color:var(--muted);margin-top:2px">Comum em contratos comerciais longos. Deixe vazio se este contrato não prevê revisão.</p>
+                        <p style="font-size:12px;color:var(--muted);margin-top:2px">Comum em contratos comerciais longos. Deixe vazio se este contrato não prevê revisão.</p>
                     </div>
                 </div>
 
@@ -2382,7 +2411,7 @@
                      criar (fn_contrato_criar_item_encargo). Ids iguais aos de antes. -->
                 <div class="rz-card" id="con-card-encargos">
                     <p class="rz-group" style="margin-top:0">Encargos</p>
-                    <p style="font-size:11.5px;color:var(--muted);margin:-2px 2px 10px">Quem paga IPTU e condomínio do imóvel enquanto este contrato estiver vigente.</p>
+                    <p style="font-size:12px;color:var(--muted);margin:-2px 2px 10px">Quem paga IPTU e condomínio do imóvel enquanto este contrato estiver vigente.</p>
                     <p class="rz-group" style="margin-top:0">Locatário paga</p>
                     <div class="rz-f2">
                         <div class="rz-f">
@@ -2451,12 +2480,12 @@
                     </select>
                 </div>
 
-                <div id="con-divisao-imovel-info" class="hidden rz-card" style="font-size:11px">
+                <div id="con-divisao-imovel-info" class="hidden rz-card" style="font-size:12px">
                     <div style="display:flex;align-items:center;justify-content:space-between">
                         <p class="rz-group" style="margin-top:0">Rateio deste contrato</p>
                         <button type="button" onclick="adicionarSocioContrato()" title="Adicionar sócio" style="width:24px;height:24px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:12px;height:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
                     </div>
-                    <p style="font-size:10px;color:var(--muted)">Vem preenchido com a divisão cadastrada no imóvel — pode ajustar só para este contrato, se for o caso.</p>
+                    <p style="font-size:12px;color:var(--muted)">Vem preenchido com a divisão cadastrada no imóvel — pode ajustar só para este contrato, se for o caso.</p>
                     <div id="con-divisao-imovel-lista" style="display:flex;flex-direction:column;gap:4px"></div>
                 </div>
 
@@ -2465,34 +2494,34 @@
                     <select id="con-administradora" onchange="atualizarValorLiquidoEsperado()">
                         <option value="">-- Nenhuma (gestão direta) --</option>
                     </select>
-                    <p id="con-valor-liquido-info" style="font-size:11px;color:var(--muted);margin-top:2px"></p>
+                    <p id="con-valor-liquido-info" style="font-size:12px;color:var(--muted);margin-top:2px"></p>
                 </div>
 
                 <div class="rz-card space-y-3">
                     <span class="rz-group" style="margin-top:0">Documentos do Contrato (até 5 por tipo)</span>
                     <div>
                         <div style="display:flex;align-items:center;justify-content:space-between">
-                            <label style="font-size:11px;font-weight:700;color:var(--muted)"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Contrato</label>
+                            <label style="font-size:12px;font-weight:700;color:var(--muted)"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Contrato</label>
                             <input type="file" id="con-doc-input-Contrato" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="processarMultiplosDocumentos(this, 'Contrato')" class="hidden">
                             <button type="button" onclick="document.getElementById('con-doc-input-Contrato').click()" title="Anexar" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                         </div>
-                        <div id="con-doc-preview-Contrato" class="mt-1 space-y-1" style="font-size:11px"></div>
+                        <div id="con-doc-preview-Contrato" class="mt-1 space-y-1" style="font-size:12px"></div>
                     </div>
                     <div>
                         <div style="display:flex;align-items:center;justify-content:space-between">
-                            <label style="font-size:11px;font-weight:700;color:var(--muted)"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Aditivo</label>
+                            <label style="font-size:12px;font-weight:700;color:var(--muted)"><svg data-lucide="file-text" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Aditivo</label>
                             <input type="file" id="con-doc-input-Aditivo" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="processarMultiplosDocumentos(this, 'Aditivo')" class="hidden">
                             <button type="button" onclick="document.getElementById('con-doc-input-Aditivo').click()" title="Anexar" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                         </div>
-                        <div id="con-doc-preview-Aditivo" class="mt-1 space-y-1" style="font-size:11px"></div>
+                        <div id="con-doc-preview-Aditivo" class="mt-1 space-y-1" style="font-size:12px"></div>
                     </div>
                     <div>
                         <div style="display:flex;align-items:center;justify-content:space-between">
-                            <label style="font-size:11px;font-weight:700;color:var(--muted)"><svg data-lucide="paperclip" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Outros</label>
+                            <label style="font-size:12px;font-weight:700;color:var(--muted)"><svg data-lucide="paperclip" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Outros</label>
                             <input type="file" id="con-doc-input-Outros" multiple accept=".pdf,.jpg,.jpeg,.png" onchange="processarMultiplosDocumentos(this, 'Outros')" class="hidden">
                             <button type="button" onclick="document.getElementById('con-doc-input-Outros').click()" title="Anexar" style="width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:999px;box-shadow:var(--sh-card)"><svg xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                         </div>
-                        <div id="con-doc-preview-Outros" class="mt-1 space-y-1" style="font-size:11px"></div>
+                        <div id="con-doc-preview-Outros" class="mt-1 space-y-1" style="font-size:12px"></div>
                     </div>
                 </div>
 
@@ -2507,10 +2536,10 @@
                 <div id="con-historico-bloco" class="hidden rz-card" style="padding:0;overflow:hidden">
                     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)">
                         <span style="font-size:12px;font-weight:700;color:var(--muted)"><svg data-lucide="history" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Histórico <span id="con-historico-contador" style="font-weight:400;color:var(--muted)">(0)</span></span>
-                        <button type="button" onclick="alternarTodosHistoricosContrato()" id="btn-alternar-historicos-contrato" style="font-size:10px;color:var(--muted);text-decoration:underline;background:none;border:none">Abrir todos</button>
+                        <button type="button" onclick="alternarTodosHistoricosContrato()" id="btn-alternar-historicos-contrato" style="font-size:12px;color:var(--muted);text-decoration:underline;background:none;border:none">Abrir todos</button>
                     </div>
                     <div id="con-historico-lista" class="space-y-1" style="padding:8px 12px;max-height:256px;overflow-y:auto">
-                        <p style="font-size:11px;color:var(--muted);font-style:italic">O primeiro histórico ("assinatura") será criado automaticamente ao salvar este contrato.</p>
+                        <p style="font-size:12px;color:var(--muted);font-style:italic">O primeiro histórico ("assinatura") será criado automaticamente ao salvar este contrato.</p>
                     </div>
                 </div>
 
@@ -2591,7 +2620,7 @@
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
             <button id="btn-voltar-financeiro" onclick="voltarDoFinanceiroFiltrado()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
             <div class="flex items-center gap-2 mb-3">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa.</p>
+                <p class="text-[12px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa.</p>
                 <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
             </div>
             <div class="rz-mes-bar">
@@ -2662,7 +2691,7 @@
                  (#fin-quadrantes-*, financeiroQuadrantesHtml) → seletor
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
             <div class="flex items-center gap-2 mb-3">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Importe o extrato e concilie pagamentos e despesas.</p>
+                <p class="text-[12px] text-gray-500 flex-1 text-left">Importe o extrato e concilie pagamentos e despesas.</p>
                 <button id="btn-conc-busca" onclick="abrirBuscaConciliacao()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
             </div>
             <div class="rz-mes-bar">
@@ -2735,7 +2764,7 @@
             <button id="btn-voltar-inadimplencia" onclick="switchTab('tab-mensal')" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3 mt-2"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
 
             <div class="flex items-center gap-2 mb-4 mt-2">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Acompanhe recebimentos em atraso, agrupados por mês, locatário ou imóvel.</p>
+                <p class="text-[12px] text-gray-500 flex-1 text-left">Acompanhe recebimentos em atraso, agrupados por mês, locatário ou imóvel.</p>
                 <button id="btn-inad-busca" onclick="abrirBuscaInadimplencia()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
             </div>
 
@@ -2745,7 +2774,7 @@
                     <b id="inad-total-geral">R$ 0</b>
                     <div class="grid grid-cols-1 gap-2 mt-3">
                         <div style="background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px">
-                            <div style="font-size:11px;opacity:.8">Taxa de atraso</div>
+                            <div style="font-size:12px;opacity:.8">Taxa de atraso</div>
                             <b id="inad-taxa" style="display:block;font-size:15px;margin-top:2px">0%</b>
                         </div>
                     </div>
@@ -2793,7 +2822,7 @@
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
             <button id="btn-voltar-saidas" onclick="voltarDasSaidasFiltradas()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
             <div class="flex items-center gap-2 mb-3">
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Despesas e saídas do patrimônio — pagas e a pagar.</p>
+                <p class="text-[12px] text-gray-500 flex-1 text-left">Despesas e saídas do patrimônio — pagas e a pagar.</p>
                 <button id="btn-saidas-busca" onclick="abrirBuscaSaidas()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
             </div>
             <div class="rz-mes-bar">
@@ -2918,7 +2947,7 @@
                 </div>
 
                 <p style="font-size:13px;font-weight:700;color:var(--pine);margin:0 0 8px">Mês a Mês</p>
-                <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[11px] mb-4"></div>
+                <div id="tabela-mensal-resultados" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto text-[12px] mb-4"></div>
 
                 <!-- v1.136 (A.4) — botão de exportar saiu daqui: toda exportação mora no segmento Relatórios -->
 
@@ -2955,7 +2984,7 @@
                  pra montarAlertasPatrimonio() escrever a contagem sem
                  reconstruir o cabeçalho inteiro. -->
             <h2 class="text-lg font-bold raiz-text-pine mb-1">Alertas<span id="alertas-contagem-header" class="text-sm font-normal text-slate-400"></span></h2>
-            <p class="text-[11px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
+            <p class="text-[12px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
 
             <!-- v1.102.0 (NOVO, pedido explícito: "deve ser possível, via
                  chip, filtrar os tipos de alertas") — mesma técnica dos
@@ -3007,7 +3036,7 @@
                  locatário" — só fecha ao salvar ou no X). -->
             <div class="flex items-center gap-2 mb-4">
 
-                <p class="text-[11px] text-gray-500 flex-1 text-left">Registre retiradas e acompanhe o extrato de entradas e saídas por sócio.</p>
+                <p class="text-[12px] text-gray-500 flex-1 text-left">Registre retiradas e acompanhe o extrato de entradas e saídas por sócio.</p>
 
                 <button id="btn-socios-busca" onclick="abrirBuscaSocios()" title="Buscar/filtrar" class="w-11 h-11 flex-none flex items-center justify-center bg-white text-slate-700 border border-slate-300 rounded-full shadow active:scale-90 transition"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
 
@@ -3031,7 +3060,7 @@
 
             </div>
 
-            <h3 class="text-[11px] font-bold uppercase text-slate-500 mb-2 tracking-wide"><svg data-lucide="clipboard-list" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Extrato de Entradas e Saídas</h3>
+            <h3 class="text-[12px] font-bold uppercase text-slate-500 mb-2 tracking-wide"><svg data-lucide="clipboard-list" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> Extrato de Entradas e Saídas</h3>
 
             <div id="lista-socios-prestacao" class="space-y-3"></div>
 
@@ -3156,7 +3185,7 @@
                 <button type="button" onclick="abrirFormMinutaSheet()" title="Cadastrar minuta" aria-label="Cadastrar minuta" class="rz-ico-btn rz-primary"><svg data-lucide="plus"></svg></button>
             </div>
 
-            <p class="text-[11px] text-gray-500 mb-4">Modelos de contrato usados para gerar automaticamente a minuta quando um interessado inicia a contratação de um imóvel pela Vitrine. A minuta mais específica sempre tem prioridade: Imóvel → Tipo de Imóvel → Empreendimento → Geral (empresa toda).</p>
+            <p class="text-[12px] text-gray-500 mb-4">Modelos de contrato usados para gerar automaticamente a minuta quando um interessado inicia a contratação de um imóvel pela Vitrine. A minuta mais específica sempre tem prioridade: Imóvel → Tipo de Imóvel → Empreendimento → Geral (empresa toda).</p>
 
 
             <!-- v1.69.0 — Wizard "Gerar de um contrato real" (Parte 3 da
@@ -3173,7 +3202,7 @@
 
                 <div id="minz-passo-1" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
 
-                    <p class="text-[11px] text-gray-500">Suba um contrato real já assinado (Word ou PDF) — o sistema lê o texto, identifica os dados que variam (nome, CPF, valores, datas) e propõe os {{placeholders}} pra virar um modelo reaproveitável. Você confere e ajusta cada sugestão antes de salvar. O arquivo enviado aqui não fica guardado — só o modelo final, sem nenhum dado pessoal do contrato original.</p>
+                    <p class="text-[12px] text-gray-500">Suba um contrato real já assinado (Word ou PDF) — o sistema lê o texto, identifica os dados que variam (nome, CPF, valores, datas) e propõe os {{placeholders}} pra virar um modelo reaproveitável. Você confere e ajusta cada sugestão antes de salvar. O arquivo enviado aqui não fica guardado — só o modelo final, sem nenhum dado pessoal do contrato original.</p>
 
                     <div>
                         <label class="block text-xs font-bold text-gray-600">Nome da Minuta <span style="color:var(--danger)">*</span></label>
@@ -3221,7 +3250,7 @@
 
                 <div id="minz-passo-2" class="hidden bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
 
-                    <p class="text-[11px] text-gray-500">Confere cada trecho que a IA encontrou. Troca o placeholder se ela sugeriu errado, ou escolhe "(não substituir)" pra deixar esse trecho como está no texto final.</p>
+                    <p class="text-[12px] text-gray-500">Confere cada trecho que a IA encontrou. Troca o placeholder se ela sugeriu errado, ou escolhe "(não substituir)" pra deixar esse trecho como está no texto final.</p>
 
                     <div id="minz-lista-revisao" class="space-y-2"></div>
 
@@ -3281,11 +3310,11 @@
             <div class="rz-tabhead">
                 <p>O que o sistema decide sozinho na Conciliação. "Automático" concilia sem perguntar; "Sugerir" avisa e espera você confirmar; "Desligada" não faz nada com esse tipo de linha.</p>
             </div>
-            <h3 class="text-[11px] font-black text-slate-500 uppercase mt-1 mb-1">Catálogo de regras</h3>
+            <h3 class="text-[12px] font-black text-slate-500 uppercase mt-1 mb-1">Catálogo de regras</h3>
             <div class="rz-card rz-list" id="lista-regras-conciliacao"></div>
 
-            <h3 class="text-[11px] font-black text-slate-500 uppercase mt-4 mb-1">Suas regras automáticas</h3>
-            <p class="text-[11px] text-gray-400 mb-1">Criadas quando você marcou "Sempre fazer assim" numa despesa vinda da Conciliação.</p>
+            <h3 class="text-[12px] font-black text-slate-500 uppercase mt-4 mb-1">Suas regras automáticas</h3>
+            <p class="text-[12px] text-gray-400 mb-1">Criadas quando você marcou "Sempre fazer assim" numa despesa vinda da Conciliação.</p>
             <div class="rz-card rz-list" id="lista-regras-cliente"></div>
         </section>
 
@@ -3397,17 +3426,17 @@
 
                         </div>
 
-                        <div style="color: #4a5568; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Recibo de Aluguel</div>
+                        <div style="color: #4a5568; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Recibo de Aluguel</div>
 
                     </div>
 
-                    <div style="margin-top: 10px; font-size: 11px; text-align: justify; line-height: 1.6; color: #2d3748;">
+                    <div style="margin-top: 10px; font-size: 12px; text-align: justify; line-height: 1.6; color: #2d3748;">
 
                         Confirmamos que o locatário <strong id="pdf-locatario" style="color:#1a365d;">-</strong>, portador do documento nº <strong id="pdf-cpf">-</strong>, efetuou o pagamento de <strong style="color:#2f855a;">R$ <span id="pdf-valor">0,00</span> (<span id="pdf-extenso">-</span>)</strong> referente à locação do imóvel localizado no endereço <strong id="pdf-endereco">-</strong>, para a competência de <strong id="pdf-mes">-</strong>, pago em <strong id="pdf-data">-</strong>. <span id="pdf-obs-texto"></span>
 
                     </div>
 
-                    <div style="margin-top: 12px; font-size: 10px; color: #4a5568; text-align: center;">
+                    <div style="margin-top: 12px; font-size: 12px; color: #4a5568; text-align: center;">
 
                         <span id="pdf-cidade-emissao">Belo Horizonte</span>, <span id="pdf-data-emissao">-</span>.
 
@@ -3421,7 +3450,7 @@
 
                         <div style="width: 220px; margin: 0 auto; border-top: 1px solid #1a365d; padding-top: 2px;">
 
-                            <div id="pdf-nome-responsavel" style="font-size: 10px; font-weight: bold; color: #1a365d;">[Nome do Responsável]</div>
+                            <div id="pdf-nome-responsavel" style="font-size: 12px; font-weight: bold; color: #1a365d;">[Nome do Responsável]</div>
 
                             <div style="font-size: 7.5px; color: #718096;">Sócio &ndash; <span id="pdf-nome-empresa-assinatura">[Nome da Empresa]</span> (CNPJ <span id="pdf-cnpj-assinatura">00.000.000/0001-00</span>)</div>
 
@@ -3447,7 +3476,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.290.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.291.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6229,10 +6258,10 @@
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Sócio</label><select id="rep-socio-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${socioOpts}</select></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Mês</label><select id="rep-mes-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${mesOpts}</select></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Valor (R$)</label><input type="number" id="rep-valor-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
-                        <div><label style="font-size:11px;font-weight:bold;color:#64748b;">Data da retirada</label><input type="date" id="rep-data-transferencia-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                        <div><label style="font-size:12px;font-weight:bold;color:#64748b;">Sócio</label><select id="rep-socio-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${socioOpts}</select></div>
+                        <div><label style="font-size:12px;font-weight:bold;color:#64748b;">Mês</label><select id="rep-mes-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${mesOpts}</select></div>
+                        <div><label style="font-size:12px;font-weight:bold;color:#64748b;">Valor (R$)</label><input type="number" id="rep-valor-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
+                        <div><label style="font-size:12px;font-weight:bold;color:#64748b;">Data da retirada</label><input type="date" id="rep-data-transferencia-popup" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
                     </div>
                     <div style="display:flex;gap:8px;margin-top:14px;">
                         <button onclick="fecharModalCampoContrato()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Fechar</button>
@@ -6776,15 +6805,15 @@
                 // mensagem de erro (ex.: telefone) — fica em branco, sem "⚠️".
                 if (resultado.ok === false && mostrarErro !== false) {
                     indicador.innerText = '⚠️ ' + resultado.motivo;
-                    indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 text-red-600 font-bold';
+                    indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3 text-red-600 font-bold';
                     return;
                 }
                 indicador.innerText = '';
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3';
+                indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3';
                 return;
             }
             indicador.innerText = '✅ ' + rotuloOk;
-            indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 text-green-600 font-bold';
+            indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3 text-green-600 font-bold';
         }
 
         // Máscara de telefone brasileiro — formata enquanto digita:
@@ -6856,7 +6885,7 @@
 
                 indicador.innerText = ok ? '✅ CPF válido' : '⚠️ CPF inválido';
 
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
+                indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
 
             } else if (digitos.length === 14) {
 
@@ -6864,13 +6893,13 @@
 
                 indicador.innerText = ok ? '✅ CNPJ válido' : '⚠️ CNPJ inválido';
 
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
+                indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
 
             } else {
 
                 indicador.innerText = '';
 
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3';
+                indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3';
 
             }
 
@@ -7067,7 +7096,7 @@
 
             const previewContainer = document.getElementById('form-images-preview-container');
 
-            previewContainer.innerHTML += '<p class="text-[11px] text-slate-400 col-span-5" id="msg-processando-fotos">🔄 Processando imagens...</p>';
+            previewContainer.innerHTML += '<p class="text-[12px] text-slate-400 col-span-5" id="msg-processando-fotos">🔄 Processando imagens...</p>';
 
             // Usamos allSettled em vez de all: se UMA foto falhar ao comprimir
 
@@ -7416,11 +7445,11 @@
                 const nomeEmpresa = item.p.clientes ? item.p.clientes.nome_empresa : '(empresa sem nome)';
                 let selo = '';
                 if (item.lic && item.lic.data_expiracao) { // v1.124
-                    selo = ` <span style="background:var(--brass-light,#f0c88a); color:var(--brass-deep,#a86f27); font-size:9.5px; font-weight:800; padding:2px 8px; border-radius:999px; vertical-align:1px;">TRIAL</span>`;
+                    selo = ` <span style="background:var(--brass-light,#f0c88a); color:var(--brass-deep,#a86f27); font-size:12px; font-weight:800; padding:2px 8px; border-radius:999px; vertical-align:1px;">TRIAL</span>`;
                 }
                 return `<button onclick="escolherEmpresa(${item.indice})" class="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-left transition active:scale-95 flex justify-between items-center">
                     <span>${nomeEmpresa}${selo}</span>
-                    <span class="text-emerald-300 text-[10px] font-normal bg-emerald-950 px-2 py-0.5 rounded-full">${item.p.perfil}</span>
+                    <span class="text-emerald-300 text-[12px] font-normal bg-emerald-950 px-2 py-0.5 rounded-full">${item.p.perfil}</span>
                 </button>`;
             }).join('');
 
@@ -8327,7 +8356,7 @@
             if (!container) {
                 container = document.createElement('div');
                 container.id = 'toast-container';
-                container.style.cssText = 'position:fixed; bottom:18px; right:18px; z-index:500; display:flex; flex-direction:column; gap:8px; align-items:flex-end;';
+                container.setAttribute('role', 'status'); container.setAttribute('aria-live', 'polite'); // v1.291.0 (UXR-29): posição e layout no CSS #toast-container, acima da bottom nav
                 document.body.appendChild(container);
             }
 
@@ -8339,7 +8368,7 @@
             const cor = cores[tipo] || cores.success;
 
             const toast = document.createElement('div');
-            toast.style.cssText = `background:${cor.bg}; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 8px 20px -8px rgba(0,0,0,.35); font-size:14px; font-weight:600; display:flex; align-items:center; gap:9px; max-width:320px; opacity:0; transform:translateY(8px); transition:opacity .2s ease, transform .2s ease;`;
+            toast.style.cssText = `background:${cor.bg}; color:#fff; padding:12px 18px; border-radius:10px; box-shadow:0 8px 20px -8px rgba(0,0,0,.35); font-size:15px; font-weight:600; display:flex; align-items:center; gap:9px; max-width:320px; opacity:0; transform:translateY(8px); transition:opacity .2s ease, transform .2s ease;`;
             toast.innerHTML = `<svg data-lucide="${cor.icon}" style="width:17px;height:17px;flex-shrink:0"></svg><span>${mensagem}</span>`;
 
             container.appendChild(toast);
@@ -9513,7 +9542,7 @@
                 const [bg, tx] = MODO_REGRA_COR[modo] || MODO_REGRA_COR.sugerir;
                 return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${idParaSalvar}','${escapeHtmlSaidas(r.nome)}','${escapeHtmlSaidas(r.descricao_publica || '')}')">
                     <div class="rz-tx"><b>${escapeHtmlSaidas(r.nome)}</b><span>${escapeHtmlSaidas(r.descricao_publica || '')}</span></div>
-                    <div class="rz-rt"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[modo] || modo}</span></div>
+                    <div class="rz-rt"><span class="text-[12px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[modo] || modo}</span></div>
                 </div>`;
             }).join('');
 
@@ -9525,7 +9554,7 @@
                     const categoria = r.acao_params && r.acao_params.categoria ? rotuloCategoriaSaida(r.acao_params.categoria) : '';
                     return `<div class="rz-row rz-link" onclick="abrirEscolherModoRegra('${r.id}','${escapeHtmlSaidas(r.nome)}','${escapeHtmlSaidas(r.descricao_publica || '')}')">
                         <div class="rz-tx"><b>${escapeHtmlSaidas(r.nome)}</b><span>${categoria ? 'Categoria: ' + escapeHtmlSaidas(categoria) : (r.descricao_publica || '')}</span></div>
-                        <div class="rz-rt"><span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[r.modo] || r.modo}</span></div>
+                        <div class="rz-rt"><span class="text-[12px] font-semibold px-1.5 py-0.5 rounded-full inline-block" style="background:${bg};color:${tx}">${MODO_REGRA_ROTULO[r.modo] || r.modo}</span></div>
                     </div>`;
                 }).join('');
 
@@ -9749,7 +9778,7 @@
                 <p style="font-size:12px;color:var(--sage,#6b857a);margin:0 0 16px">O que você recebe automaticamente da Raiz — alertas do seu patrimônio e comunicações da equipe.</p>
 
                 <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 2px">Alertas e avisos automáticos</p>
-                <p style="font-size:11px;color:var(--sage,#6b857a);margin:0 0 8px">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
+                <p style="font-size:12px;color:var(--sage,#6b857a);margin:0 0 8px">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
                 <div id="lista-preferencias-alertas" style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px">Carregando...</div>
 
                 <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 8px;padding-top:8px;border-top:1px solid var(--line,#e6e3da)">Comunicações da Raiz</p>
@@ -9781,7 +9810,7 @@
                         const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
                         return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#e6e3da)">
                             <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${rzEsc(f.descricao)}</span>
-                            <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" style="font-size:11px;border:1px solid var(--line,#e6e3da);border-radius:6px;padding:2px 4px;flex:none" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
+                            <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" style="font-size:12px;border:1px solid var(--line,#e6e3da);border-radius:6px;padding:2px 4px;flex:none" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
                             <button type="button" class="pref-alerta-toggle" data-codigo="${f.codigo}" data-habilitado="${habilitado ? '1' : '0'}"
                                 onclick="alternarPreferenciaAlerta(this)"
                                 style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;flex:none;background:${habilitado ? 'var(--sprout,#3f8163)' : '#d7d2c4'};transition:background .15s">
@@ -10044,7 +10073,7 @@
             // em branco, como deveria ser desde o início).
 
             if (sociosAdicionais.length === 0) {
-                container.innerHTML = '<p class="text-[11px] text-gray-400 italic">Nenhum sócio adicionado ainda. Toque no <svg data-lucide="plus" style="width:13px;height:13px;display:inline;vertical-align:-2px"></svg> acima para escolher entre as pessoas cadastradas.</p>';
+                container.innerHTML = '<p class="text-[12px] text-gray-400 italic">Nenhum sócio adicionado ainda. Toque no <svg data-lucide="plus" style="width:13px;height:13px;display:inline;vertical-align:-2px"></svg> acima para escolher entre as pessoas cadastradas.</p>';
                 return;
             }
 
@@ -10056,7 +10085,7 @@
                     return `
                     <div class="flex items-center justify-between gap-2 text-xs">
 
-                        <span class="font-medium text-slate-700">${socio.nome}${ehExterno ? ' <span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full align-middle">EXTERNO</span>' : ''}</span>
+                        <span class="font-medium text-slate-700">${socio.nome}${ehExterno ? ' <span class="text-[12px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full align-middle">EXTERNO</span>' : ''}</span>
 
                         <div class="flex items-center space-x-1">
 
@@ -10423,14 +10452,14 @@
             if (digitos.length === 11) {
                 const ok = validarCPF(digitos);
                 indicador.innerText = ok ? '✅ CPF válido' : '⚠️ CPF inválido';
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
+                indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
             } else if (digitos.length === 14) {
                 const ok = validarCNPJ(digitos);
                 indicador.innerText = ok ? '✅ CNPJ válido' : '⚠️ CNPJ inválido';
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
+                indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3 ' + (ok ? 'text-green-600 font-bold' : 'text-red-600 font-bold');
             } else {
                 indicador.innerText = '';
-                indicador.className = 'raiz-indicador-inline text-[11px] mt-0.5 h-3';
+                indicador.className = 'raiz-indicador-inline text-[12px] mt-0.5 h-3';
             }
 
         }
@@ -10648,9 +10677,9 @@
 
                         <p class="text-xs font-bold text-slate-900">${adm.nome}</p>
 
-                        <p class="text-[11px] text-gray-500">${adm.docTipo}: ${adm.documento || '-'} | Taxa: ${adm.taxaAdm}% | ${qtdContratos} contrato(s) vinculado(s)</p>
+                        <p class="text-[12px] text-gray-500">${adm.docTipo}: ${adm.documento || '-'} | Taxa: ${adm.taxaAdm}% | ${qtdContratos} contrato(s) vinculado(s)</p>
 
-                        ${adm.escopo ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${adm.escopo}</p>` : ''}
+                        ${adm.escopo ? `<p class="text-[12px] text-gray-400 italic mt-0.5">${adm.escopo}</p>` : ''}
 
                         <div class="flex gap-1.5 mt-2">
 
@@ -11236,12 +11265,12 @@
                     <div class="text-xs opacity-80 font-semibold">Resultado (últimos 12 meses)</div>
                     <div class="text-2xl font-extrabold mt-1">${formatarMoedaBR(resumo.resultado_liquido_12m != null ? resumo.resultado_liquido_12m : resumo.recebido_12m)}</div>
                     <div class="grid grid-cols-2 gap-2 mt-3">
-                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Recebido (12m)</div><div class="text-lg font-extrabold mt-1">${formatarMoedaBR(resumo.recebido_12m)}</div></div>
-                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Saídas (12m)</div><div class="text-lg font-extrabold mt-1">${formatarMoedaBR(resumo.saidas_12m || 0)}</div></div>
-                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Ocupação</div><div class="text-lg font-extrabold mt-1">${resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—'}</div></div>
-                        <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[11px] text-red-100">Inadimplência (acumulada)</div><div class="text-lg font-extrabold text-red-100 mt-1">${formatarMoedaBR(resumo.inadimplencia_valor)}</div></div>
-                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Yield bruto (a.a.)</div><div class="text-lg font-extrabold mt-1">${resumo.yield_bruto_anual_pct != null ? resumo.yield_bruto_anual_pct + '%' : '—'}</div></div>
-                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[11px] opacity-80">Cobertura valor mercado</div><div class="text-lg font-extrabold mt-1">${resumo.cobertura_valor_mercado_pct != null ? resumo.cobertura_valor_mercado_pct + '%' : '—'}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[12px] opacity-80">Recebido (12m)</div><div class="text-lg font-extrabold mt-1">${formatarMoedaBR(resumo.recebido_12m)}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[12px] opacity-80">Saídas (12m)</div><div class="text-lg font-extrabold mt-1">${formatarMoedaBR(resumo.saidas_12m || 0)}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[12px] opacity-80">Ocupação</div><div class="text-lg font-extrabold mt-1">${resumo.ocupacao_pct != null ? resumo.ocupacao_pct + '%' : '—'}</div></div>
+                        <div class="bg-red-400/15 rounded-xl p-3"><div class="text-[12px] text-red-100">Inadimplência (acumulada)</div><div class="text-lg font-extrabold text-red-100 mt-1">${formatarMoedaBR(resumo.inadimplencia_valor)}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[12px] opacity-80">Yield bruto (a.a.)</div><div class="text-lg font-extrabold mt-1">${resumo.yield_bruto_anual_pct != null ? resumo.yield_bruto_anual_pct + '%' : '—'}</div></div>
+                        <div class="bg-white/10 rounded-xl p-3"><div class="text-[12px] opacity-80">Cobertura valor mercado</div><div class="text-lg font-extrabold mt-1">${resumo.cobertura_valor_mercado_pct != null ? resumo.cobertura_valor_mercado_pct + '%' : '—'}</div></div>
                     </div>
                     <div class="text-[10.5px] opacity-70 mt-3">${resumo.imoveis_com_valor_mercado}/${resumo.total_imoveis} imóveis com valor de mercado cadastrado · saídas consideram só o realizado.</div>
                 </div>`;
@@ -11261,7 +11290,7 @@
             // --- Card 2: Cenário econômico (bloqueado, honesto) ---
             html += `<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-1">
                 <h3 class="font-bold text-sm raiz-text-pine">Cenário econômico</h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">IPCA, IGP-M e Selic — pendente. A captura automática desses índices ainda não foi construída; entra na Fase de Indicadores do roadmap.</p>
+                <p class="text-[12px] text-slate-500 mt-0.5">IPCA, IGP-M e Selic — pendente. A captura automática desses índices ainda não foi construída; entra na Fase de Indicadores do roadmap.</p>
             </div>`;
 
             mount.innerHTML = html;
@@ -12641,7 +12670,7 @@
         function gerarBotaoManutencaoFicha(imo, endExibivel) {
             const manVinculado = manutencistas.find(m => m.id === imo.manutencistaId);
             if (!manVinculado || !manVinculado.whatsapp) return '';
-            return `<button onclick="acionarManutencaoWhatsApp('${manVinculado.whatsapp}', '${(manVinculado.nome || '').replace(/'/g, "")}', '${(imo.empreendimento || '').replace(/'/g, "")}', '${endExibivel.replace(/'/g, "")}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-200 flex items-center gap-1"><svg data-lucide="wrench" style="width:11px;height:11px"></svg> Manutenção</button>`;
+            return `<button onclick="acionarManutencaoWhatsApp('${manVinculado.whatsapp}', '${(manVinculado.nome || '').replace(/'/g, "")}', '${(imo.empreendimento || '').replace(/'/g, "")}', '${endExibivel.replace(/'/g, "")}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-200 flex items-center gap-1"><svg data-lucide="wrench" style="width:11px;height:11px"></svg> Manutenção</button>`;
         }
 
         // ===================================================================
@@ -12701,14 +12730,14 @@
                     <div class="flex justify-between items-start gap-2">
                         <h3 class="font-bold text-sm raiz-text-pine">${con.status === 'Assinando' ? 'Contrato em assinatura' : 'Contrato atual'}</h3>
                         <div class="flex items-center gap-1.5 flex-none">
-                            <span class="text-[11px] font-bold px-1.5 py-0.5 rounded ${corBadgeStatusContrato(con.status)}">${con.status}</span>
+                            <span class="text-[12px] font-bold px-1.5 py-0.5 rounded ${corBadgeStatusContrato(con.status)}">${con.status}</span>
                             ${temAlerta ? `<button onclick="verAlertasContrato('${con.id}')" title="Ver alerta" class="w-6 h-6 rounded-full bg-red-100 text-red-700 flex items-center justify-center flex-none"><svg data-lucide="triangle-alert" style="width:13px;height:13px"></svg></button>` : ''}
                         </div>
                     </div>
                     <p class="text-xs font-bold mt-1.5">${con.locatario || '-'} · ${formatarMoedaBR(con.valor)}/mês</p>
-                    ${vigenciaTxt ? `<p class="text-[11px] text-slate-500 mt-1">Vigência: ${vigenciaTxt}</p>` : ''}
-                    ${adm ? `<p class="text-[11px] text-slate-500">Administradora: ${adm.nome}</p>` : ''}
-                    ${con.status === 'Assinando' ? `<p class="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2">Gerado pelo formulário público da Vitrine, aguardando revisão e assinatura.</p>` : ''}
+                    ${vigenciaTxt ? `<p class="text-[12px] text-slate-500 mt-1">Vigência: ${vigenciaTxt}</p>` : ''}
+                    ${adm ? `<p class="text-[12px] text-slate-500">Administradora: ${adm.nome}</p>` : ''}
+                    ${con.status === 'Assinando' ? `<p class="text-[12px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2">Gerado pelo formulário público da Vitrine, aguardando revisão e assinatura.</p>` : ''}
                 </div>
 
                 <div class="px-4 pb-3">
@@ -12724,14 +12753,14 @@
                              contrato que nem foi assinado. As capacidades em
                              si continuam existindo, só não aparecem aqui
                              nesse status. -->
-                        <button onclick="compartilharIptuContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="message-circle" style="width:11px;height:11px"></svg> Compartilhar IPTU</button>
-                        ${con.status !== 'Assinando' ? `<button onclick="lancarReajusteContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trending-up" style="width:11px;height:11px"></svg> Reajuste</button>` : ''}
-                        ${con.status !== 'Assinando' ? `<button onclick="abrirDadosLocatarioContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="user" style="width:11px;height:11px"></svg> Dados locatário</button>` : ''}
-                        ${con.status !== 'Assinando' ? `<button onclick="abrirDetalhesContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-text" style="width:11px;height:11px"></svg> Detalhes</button>` : ''}
-                        <button onclick="verHistoricoContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="history" style="width:11px;height:11px"></svg> Histórico (${(con.historico || []).length})</button>
-                        ${con.status === 'Assinando' ? `<button onclick="iniciarProcessoContratacao('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Locação</button>` : ''}
-                        ${con.status !== 'Assinando' ? `<button onclick="abrirOutrosContratosImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="layers" style="width:11px;height:11px"></svg> Outros contratos</button>` : ''}
-                        <button onclick="abrirAlterarStatusContrato('${con.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="repeat" style="width:11px;height:11px"></svg> Alterar Status</button>
+                        <button onclick="compartilharIptuContrato('${con.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="message-circle" style="width:11px;height:11px"></svg> Compartilhar IPTU</button>
+                        ${con.status !== 'Assinando' ? `<button onclick="lancarReajusteContrato('${con.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="trending-up" style="width:11px;height:11px"></svg> Reajuste</button>` : ''}
+                        ${con.status !== 'Assinando' ? `<button onclick="abrirDadosLocatarioContrato('${con.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="user" style="width:11px;height:11px"></svg> Dados locatário</button>` : ''}
+                        ${con.status !== 'Assinando' ? `<button onclick="abrirDetalhesContrato('${con.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-text" style="width:11px;height:11px"></svg> Detalhes</button>` : ''}
+                        <button onclick="verHistoricoContrato('${con.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="history" style="width:11px;height:11px"></svg> Histórico (${(con.historico || []).length})</button>
+                        ${con.status === 'Assinando' ? `<button onclick="iniciarProcessoContratacao('${imo.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Locação</button>` : ''}
+                        ${con.status !== 'Assinando' ? `<button onclick="abrirOutrosContratosImovel('${imo.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="layers" style="width:11px;height:11px"></svg> Outros contratos</button>` : ''}
+                        <button onclick="abrirAlterarStatusContrato('${con.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="repeat" style="width:11px;height:11px"></svg> Alterar Status</button>
                     </div>
                 </div>
 
@@ -12771,8 +12800,8 @@
                          quando HÁ um contrato ativo + históricos); só faltava
                          oferecer aqui também, pro caso de não haver nenhum
                          ativo no momento. -->
-                    ${finalizados.length > 0 ? `<button onclick="abrirOutrosContratosImovel('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="layers" style="width:11px;height:11px"></svg> Outros contratos</button>` : ''}
-                    <button onclick="iniciarProcessoContratacao('${imo.id}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Locação</button>
+                    ${finalizados.length > 0 ? `<button onclick="abrirOutrosContratosImovel('${imo.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="layers" style="width:11px;height:11px"></svg> Outros contratos</button>` : ''}
+                    <button onclick="iniciarProcessoContratacao('${imo.id}')" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="file-signature" style="width:11px;height:11px"></svg> Locação</button>
                 </div>
                 <!-- v1.278.0 (demanda 11afd25f) — atalho direto, sem passar por "Mais ações". -->
                 <button onclick="abrirEscolhaNovoContrato('${imo.id}')" class="rz-btn rz-btn-1 rz-sm rz-wide" style="margin-top:10px"><svg data-lucide="plus"></svg> Novo contrato</button>
@@ -12892,7 +12921,7 @@
             const listaEl = document.getElementById('ficha-imovel-doc-lista');
             if (!filtrosEl || !listaEl) return;
 
-            filtrosEl.innerHTML = '<p class="text-[11px] text-slate-400">Verificando documentos...</p>';
+            filtrosEl.innerHTML = '<p class="text-[12px] text-slate-400">Verificando documentos...</p>';
             listaEl.innerHTML = '';
 
             const principal = todosContratos.find(c => c.status !== 'Finalizado');
@@ -12949,7 +12978,7 @@
                 return;
             }
 
-            filtrosEl.innerHTML = chips.map((c, i) => `<button onclick="selecionarFiltroDocumentoFicha('${c.chave}')" id="doc-filtro-${c.chave}" class="text-[11px] font-bold px-2.5 py-1 rounded-full border ${i === 0 ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-300'}">${c.label}</button>`).join('');
+            filtrosEl.innerHTML = chips.map((c, i) => `<button onclick="selecionarFiltroDocumentoFicha('${c.chave}')" id="doc-filtro-${c.chave}" class="text-[12px] font-bold px-2.5 py-1 rounded-full border ${i === 0 ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-300'}">${c.label}</button>`).join('');
 
             selecionarFiltroDocumentoFicha(chips[0].chave);
         }
@@ -12958,13 +12987,13 @@
             const chips = window.__docFiltrosFicha || [];
             chips.forEach(c => {
                 const btn = document.getElementById('doc-filtro-' + c.chave);
-                if (btn) btn.className = `text-[11px] font-bold px-2.5 py-1 rounded-full border ${c.chave === chave ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-300'}`;
+                if (btn) btn.className = `text-[12px] font-bold px-2.5 py-1 rounded-full border ${c.chave === chave ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-300'}`;
             });
 
             const escolhido = chips.find(c => c.chave === chave);
             const listaEl = document.getElementById('ficha-imovel-doc-lista');
             if (!escolhido || !listaEl) return;
-            listaEl.innerHTML = '<p class="text-[11px] text-slate-500">Carregando...</p>';
+            listaEl.innerHTML = '<p class="text-[12px] text-slate-500">Carregando...</p>';
 
             // "Fotos" não passa pelo Cofre — lê imo.fotos direto (mesma
             // fonte usada no resto do app), pedido explícito desta correção.
@@ -12973,7 +13002,7 @@
                 const fotos = (imo && Array.isArray(imo.fotos)) ? imo.fotos.filter(f => typeof f === 'string' && f.length > 5) : [];
                 listaEl.innerHTML = fotos.length > 0
                     ? `<div class="flex flex-wrap gap-1">${fotos.map((f, i) => `<img src="${f}" onclick="abrirLightboxImovelSalvo('${imo.id}', ${i})" class="w-10 h-10 object-cover rounded border cursor-pointer">`).join('')}</div>`
-                    : `<p class="text-[11px] text-slate-500">Nenhuma foto cadastrada para este imóvel.</p>`;
+                    : `<p class="text-[12px] text-slate-500">Nenhuma foto cadastrada para este imóvel.</p>`;
                 return;
             }
 
@@ -13011,17 +13040,17 @@
                             <svg data-lucide="${(v.cofre_documentos.mime_type || '').startsWith('image/') ? 'image' : 'file-text'}" style="width:14px;height:14px;color:#64748b;flex:none"></svg>
                             <div class="flex-1 min-w-0">
                                 <div class="text-xs font-bold truncate">${v.cofre_documentos.nome_exibicao || 'Documento'}</div>
-                                <div class="text-[10px] text-slate-400">${v.criado_em ? new Date(v.criado_em).toLocaleString('pt-BR') : ''}${v.cofre_documentos.validade_em ? ' · até ' + formatarDataBR(v.cofre_documentos.validade_em) : ''}</div>
+                                <div class="text-[12px] text-slate-400">${v.criado_em ? new Date(v.criado_em).toLocaleString('pt-BR') : ''}${v.cofre_documentos.validade_em ? ' · até ' + formatarDataBR(v.cofre_documentos.validade_em) : ''}</div>
                             </div>
                         </div>
                         <button onclick="removerDocumentoFichaAtual(${i})" title="Excluir documento" class="flex-none p-1"><svg data-lucide="trash-2" style="width:14px;height:14px;color:#94a3b8"></svg></button>
-                    </div>`).join('') : `<p class="text-[11px] text-slate-500">Nenhum documento nesta categoria.</p>`;
+                    </div>`).join('') : `<p class="text-[12px] text-slate-500">Nenhum documento nesta categoria.</p>`;
 
                 window.__docsFichaAtual = docs;
 
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             } catch (err) {
-                listaEl.innerHTML = `<p class="text-[11px] text-red-500">Não consegui carregar os documentos.</p>`;
+                listaEl.innerHTML = `<p class="text-[12px] text-red-500">Não consegui carregar os documentos.</p>`;
                 console.warn('Falha ao carregar documentos da ficha (não bloqueando):', err.message);
             }
         }
@@ -13149,7 +13178,7 @@
         function montarBoxDivisaoSocietaria(imo, contratoPrincipal) {
             const linhasImovel = imo.divisao && typeof imo.divisao === 'object' && Object.keys(imo.divisao).length > 0
                 ? Object.entries(imo.divisao).map(([nome, pct]) => `<div class="flex justify-between text-xs"><span>${nome}</span><b>${pct}%</b></div>`).join('')
-                : `<p class="text-[11px] text-slate-400">Sem divisão cadastrada para o imóvel.</p>`;
+                : `<p class="text-[12px] text-slate-400">Sem divisão cadastrada para o imóvel.</p>`;
 
             // CORRIGIDO (v1.52.0) — BUG REAL: lia "contratoPrincipal.divisao",
             // campo que nunca existiu no contrato (a divisão do contrato vive
@@ -13162,20 +13191,20 @@
                 : [];
             const linhasContrato = divisaoContratoObj.length > 0
                 ? divisaoContratoObj.map(d => `<div class="flex justify-between text-xs"><span>${d.nome}</span><b>${d.percentual}%</b></div>`).join('')
-                : `<p class="text-[11px] text-slate-400">${contratoPrincipal ? 'Sem divisão própria — segue a do imóvel.' : 'Sem contrato vigente.'}</p>`;
+                : `<p class="text-[12px] text-slate-400">${contratoPrincipal ? 'Sem divisão própria — segue a do imóvel.' : 'Sem contrato vigente.'}</p>`;
 
             return `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                     <h3 class="font-bold text-sm raiz-text-pine">Divisão Societária</h3>
-                    <p class="text-[11px] font-bold text-slate-500 mt-2">Imóvel</p>
+                    <p class="text-[12px] font-bold text-slate-500 mt-2">Imóvel</p>
                     <div class="mt-1 space-y-1">${linhasImovel}</div>
-                    <p class="text-[11px] font-bold text-slate-500 mt-3">Contrato</p>
+                    <p class="text-[12px] font-bold text-slate-500 mt-3">Contrato</p>
                     <div class="mt-1 space-y-1">${linhasContrato}</div>
                     <div class="flex justify-end mt-3 pt-3 border-t border-slate-100">
                         <button onclick="alternarMaisAcoesDivisaoFicha()" class="text-xs font-bold text-slate-500 flex items-center gap-1">Mais ações <svg data-lucide="chevron-down" id="fi-divisao-seta" style="width:13px;height:13px"></svg></button>
                     </div>
                     <div id="fi-divisao-acoes" class="hidden mt-2 pt-2 border-t border-slate-100 flex justify-end">
-                        <button onclick="abrirAlteracoesDivisaoSocietaria('${imo.id}', ${contratoPrincipal ? `'${contratoPrincipal.id}'` : 'null'})" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="pencil" style="width:11px;height:11px"></svg> Alterações</button>
+                        <button onclick="abrirAlteracoesDivisaoSocietaria('${imo.id}', ${contratoPrincipal ? `'${contratoPrincipal.id}'` : 'null'})" class="text-[12px] font-bold px-2.5 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1"><svg data-lucide="pencil" style="width:11px;height:11px"></svg> Alterações</button>
                     </div>
                 </div>`;
         }
@@ -13224,17 +13253,17 @@
                         <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
                     </div>
 
-                    <p style="font-size:11px;font-weight:bold;color:#64748b;margin-bottom:4px;">Divisão do Imóvel</p>
+                    <p style="font-size:12px;font-weight:bold;color:#64748b;margin-bottom:4px;">Divisão do Imóvel</p>
                     <div id="dvs-lista-imovel"></div>
-                    <button onclick="dvsAdicionarLinha('imovel')" style="font-size:11px;font-weight:bold;color:var(--sprout);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
+                    <button onclick="dvsAdicionarLinha('imovel')" style="font-size:12px;font-weight:bold;color:var(--sprout);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
                     <button onclick="salvarDivisaoImovelPopup('${imovelId}')" style="width:100%;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:8px;border:none;border-radius:8px;margin-top:4px;">Salvar divisão do imóvel</button>
 
                     ${con ? `
-                    <p style="font-size:11px;font-weight:bold;color:#64748b;margin:16px 0 4px;">Divisão do Contrato</p>
+                    <p style="font-size:12px;font-weight:bold;color:#64748b;margin:16px 0 4px;">Divisão do Contrato</p>
                     <div id="dvs-lista-contrato"></div>
-                    <button onclick="dvsAdicionarLinha('contrato')" style="font-size:11px;font-weight:bold;color:var(--pine);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
+                    <button onclick="dvsAdicionarLinha('contrato')" style="font-size:12px;font-weight:bold;color:var(--pine);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
                     <button onclick="salvarDivisaoContratoPopup('${con.id}')" style="width:100%;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:8px;border:none;border-radius:8px;margin-top:4px;">Salvar divisão do contrato</button>
-                    ` : `<p style="font-size:11px;color:#94a3b8;margin-top:16px;">Sem contrato vigente para editar divisão própria.</p>`}
+                    ` : `<p style="font-size:12px;color:#94a3b8;margin-top:16px;">Sem contrato vigente para editar divisão própria.</p>`}
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
@@ -13253,7 +13282,7 @@
                     <input type="text" value="${(s.nome || '').replace(/"/g, '')}" oninput="dvsAtualizarNome('${tipo}', ${i}, this.value)" placeholder="Nome" style="flex:1;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
                     <input type="number" value="${s.pct}" oninput="dvsAtualizarPct('${tipo}', ${i}, this.value)" placeholder="%" style="width:70px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;">
                     <button onclick="dvsRemoverLinha('${tipo}', ${i})" style="background:var(--danger-bg);color:var(--danger);border:none;border-radius:6px;width:28px;height:28px;flex:none;">✕</button>
-                </div>`).join('') + `<p style="font-size:11px;font-weight:bold;color:${Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'};">Total: ${total.toFixed(1)}%</p>`;
+                </div>`).join('') + `<p style="font-size:12px;font-weight:bold;color:${Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'};">Total: ${total.toFixed(1)}%</p>`;
         }
 
         function dvsAdicionarLinha(tipo) {
@@ -14501,7 +14530,7 @@
 
                         refAtualExtrato = linha.referencia;
 
-                        tabelaExtratoHtml += `<div class="bg-slate-100 text-slate-600 font-bold text-[11px] px-2 py-1 rounded mt-3 mb-1 uppercase tracking-wide">${refAtualExtrato}</div>`;
+                        tabelaExtratoHtml += `<div class="bg-slate-100 text-slate-600 font-bold text-[12px] px-2 py-1 rounded mt-3 mb-1 uppercase tracking-wide">${refAtualExtrato}</div>`;
 
                     }
 
@@ -14509,7 +14538,7 @@
 
                         tabelaExtratoHtml += `
 
-                            <div class="flex justify-between items-center gap-2 py-2 border-b border-gray-100 text-[11px]">
+                            <div class="flex justify-between items-center gap-2 py-2 border-b border-gray-100 text-[12px]">
 
                                 <div class="min-w-0">
 
@@ -14531,7 +14560,7 @@
 
                         tabelaExtratoHtml += `
 
-                            <div class="flex justify-between items-center py-2 border-b border-gray-100 text-[11px] bg-red-50/30 px-1 rounded">
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100 text-[12px] bg-red-50/30 px-1 rounded">
 
                                 <div>
 
@@ -14595,7 +14624,7 @@
 
                             <div class="text-right">
 
-                                <p class="text-[11px] text-gray-400 font-bold">Saldo</p>
+                                <p class="text-[12px] text-gray-400 font-bold">Saldo</p>
 
                                 <span class="text-sm font-black ${saldoPendente < 0 ? 'text-red-600' : 'text-emerald-600'}">R$ ${fmtBR(saldoPendente)}</span>
 
@@ -14603,7 +14632,7 @@
 
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2 mb-3 text-[11px] bg-slate-50 p-2 rounded-lg font-mono">
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-[12px] bg-slate-50 p-2 rounded-lg font-mono">
 
                             <div>
                                 <p class="text-green-700 font-bold">Total Aluguéis</p>
@@ -14617,7 +14646,7 @@
 
                         </div>
 
-                        <div class="space-y-1 max-h-64 overflow-y-auto pr-1">${tabelaExtratoHtml || '<p class="text-[11px] text-center text-gray-400 py-4">Sem movimentações.</p>'}</div>
+                        <div class="space-y-1 max-h-64 overflow-y-auto pr-1">${tabelaExtratoHtml || '<p class="text-[12px] text-center text-gray-400 py-4">Sem movimentações.</p>'}</div>
 
                         </div>
 
@@ -14941,11 +14970,11 @@
 
                     tabelaContainer.innerHTML = `
 
-                        <table class="w-full text-[10px]" style="table-layout:fixed;">
+                        <table class="w-full text-[12px]" style="table-layout:fixed;">
 
                             <thead>
 
-                                <tr class="bg-slate-100 text-slate-500 uppercase text-[9px]">
+                                <tr class="bg-slate-100 text-slate-500 uppercase text-[12px]">
 
                                     <th class="p-1 text-left">Compet.</th>
 
@@ -14969,7 +14998,7 @@
 
                         </table>
 
-                        <p class="text-[10px] text-gray-400 italic p-2 border-t border-gray-100">Potencial = aluguel-alvo dos imóveis. Previsto = valor vigente dos contratos ativos (ambos constantes no período). Recebido/Atraso variam por competência. % Pot. = Previsto ÷ Potencial. % Atraso = Atraso ÷ Previsto.</p>`;
+                        <p class="text-[12px] text-gray-400 italic p-2 border-t border-gray-100">Potencial = aluguel-alvo dos imóveis. Previsto = valor vigente dos contratos ativos (ambos constantes no período). Recebido/Atraso variam por competência. % Pot. = Previsto ÷ Potencial. % Atraso = Atraso ÷ Previsto.</p>`;
 
                 }
 
@@ -15205,7 +15234,7 @@
             const unicos = empreendimentosCadastrados.map(function(e) { return e.nome; });
 
             if (unicos.length === 0) {
-                container.innerHTML = '<p class="text-[11px] text-gray-400">Nenhum empreendimento cadastrado em Parametrizações ainda.</p>';
+                container.innerHTML = '<p class="text-[12px] text-gray-400">Nenhum empreendimento cadastrado em Parametrizações ainda.</p>';
                 return;
             }
 
@@ -15242,7 +15271,7 @@
             const unicos = empreendimentosCadastrados.map(function(e) { return e.nome; });
 
             if (unicos.length === 0) {
-                container.innerHTML = '<p class="text-[11px] text-gray-400">Nenhum empreendimento cadastrado em Parametrizações ainda.</p>';
+                container.innerHTML = '<p class="text-[12px] text-gray-400">Nenhum empreendimento cadastrado em Parametrizações ainda.</p>';
                 return;
             }
 
@@ -15261,7 +15290,7 @@
                             <input type="checkbox" class="check-empreendimento-sindico" value="${emp}" ${marcado ? 'checked' : ''}>
                             <span>${emp}</span>
                         </label>
-                        <input type="date" class="check-empreendimento-sindico-vigencia text-[10px] p-1 border rounded" data-emp="${emp}" value="${dataInicio}" title="Vigência a partir de">
+                        <input type="date" class="check-empreendimento-sindico-vigencia text-[12px] p-1 border rounded" data-emp="${emp}" value="${dataInicio}" title="Vigência a partir de">
                     </div>
                 `;
             }).join('');
@@ -15404,9 +15433,9 @@
                 return `
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
                         <p class="text-xs font-bold text-slate-900">${sind.nome}</p>
-                        <p class="text-[11px] text-gray-500">${sind.docTipo}: ${sind.documento || '-'} | ${qtdImoveis} imóvel(is) vinculado(s)</p>
-                        ${sind.nomeContato ? `<p class="text-[11px] text-gray-500">Contato: ${sind.nomeContato}${sind.whatsapp ? ' · ' + sind.whatsapp : ''}</p>` : ''}
-                        ${emps ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${emps}</p>` : ''}
+                        <p class="text-[12px] text-gray-500">${sind.docTipo}: ${sind.documento || '-'} | ${qtdImoveis} imóvel(is) vinculado(s)</p>
+                        ${sind.nomeContato ? `<p class="text-[12px] text-gray-500">Contato: ${sind.nomeContato}${sind.whatsapp ? ' · ' + sind.whatsapp : ''}</p>` : ''}
+                        ${emps ? `<p class="text-[12px] text-gray-400 italic mt-0.5">${emps}</p>` : ''}
                         <div class="flex gap-1.5 mt-2">
                             <button onclick="editarSindico('${sind.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                             <button onclick="excluirSindico('${sind.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>
@@ -16091,8 +16120,8 @@
                 return `
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
                         <p class="text-xs font-bold text-slate-900">${man.nome}</p>
-                        <p class="text-[11px] text-gray-500">${man.whatsapp || '-'} | ${qtdImoveis} imóvel(is) vinculado(s)</p>
-                        ${emps ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${emps}</p>` : ''}
+                        <p class="text-[12px] text-gray-500">${man.whatsapp || '-'} | ${qtdImoveis} imóvel(is) vinculado(s)</p>
+                        ${emps ? `<p class="text-[12px] text-gray-400 italic mt-0.5">${emps}</p>` : ''}
                         <div class="flex gap-1.5 mt-2">
                             <button onclick="editarManutencista('${man.id}')" title="Editar" class="w-7 h-7 flex items-center justify-center raiz-bg-sprout-light raiz-text-pine rounded-full border raiz-border-sprout text-xs"><svg data-lucide="pencil" style="width:14px;height:14px"></svg></button>
                             <button onclick="excluirManutencista('${man.id}')" title="Excluir" class="w-7 h-7 flex items-center justify-center bg-red-50 text-red-600 rounded-full border border-red-200 text-xs"><svg data-lucide="trash-2" style="width:14px;height:14px"></svg></button>

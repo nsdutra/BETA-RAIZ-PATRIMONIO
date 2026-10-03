@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.289.1) — encargos do contrato (demanda 854f6343, decisões
+do Nicola em 02/10): o formulário ganha o card "Encargos" (sempre visível, depois
+de Revisionais) com "Locatário paga IPTU/condomínio" e os valores, que estavam em
+"+ Mostrar mais campos". Ao salvar, o banco marca quem paga nos itens de IPTU e
+condomínio do imóvel; pago pelo locatário não gera saída no Financeiro. Imóvel
+sem o item: o app oferece criar (js/contratos.js 1.32.0 → 1.33.0). Lista e ficha
+do item mostram quem paga (js/cofre-controles.js 1.35.0 → 1.36.0). Banco:
+migration contratos_encargos_responsavel_v1 (já aplicada, com retroativo).
+Versão anterior (Beta v1.289.0):
+------------------------------------------------------------------
+Versões anteriores (v1.289.0 … v1.289.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.289.0) — despesa da licença (pedido do Nicola, 02/10 01:31):
 descrição com plano e vigência anterior → nova (banco); comprovante vinculado
 ao pagamento e "Ver comprovante" no ⋮ da despesa. js/financeiro.js 1.27.3,
