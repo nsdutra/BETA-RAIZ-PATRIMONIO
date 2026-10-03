@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.291.0
-   LINHAS: 16188
-   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.1 legibilidade e toque)
+   VERSÃO: Beta v1.292.0
+   LINHAS: 16213
+   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.5 campos e rótulos únicos)
+   NOVIDADES (Beta v1.292.0) — F0.5 do PLANO_UX_PWA_ATUAL v1.10.1 (demanda 4c7f2264,
+   "estou de acordo" do Nicola em 03/10 19:35), regra UXR-31a: casca única de campo
+   em todo formulário — 48 px, borda --line, raio 10, texto 16 px, foco --sprout,
+   rótulo 13 px --muted acima; .rz-f sobe de 44/14 para 48/16; ícone de cabeçalho
+   e "+" a 48 px (UXR-10); cards de formulário do contrato (Revisionais, Avançado)
+   perdem a borda verde; tela de entrar fica fora da casca (.rz-raw).
+   Zoom livre: maximum-scale=1 removido (UXR-32 passo b — teste 4 da F0.1 aprovado
+   no Chrome do iPhone em 03/10). Botão "Buscar" do CEP vira .rz-btn (48 px)
+   (js/comum-endereco.js 1.1.0 → 1.2.0).
+   Versão anterior (Beta v1.291.0):
    NOVIDADES (Beta v1.291.0) — F0.1 do PLANO_UX_PWA_ATUAL (demanda 3b1da217, "pode
    executar" do Nicola em 03/10 17:07), regras UXR-29/31/32 das DIRETRIZES_UX_RAIZ_2026:
    corpo 15 px e secundário 13 px (tokens --text-sm/--text-xs do Tailwind e seletores
@@ -40,12 +50,8 @@
    não apaga mais o subtipo; ficha mostra "Proprietário (padrão)"
    (js/cofre-controles.js 1.36.0 → 1.37.0). Banco: contratos_encargos_responsavel_v2.
    Versão anterior (Beta v1.289.2):
-   NOVIDADES (Beta v1.289.2) — pedido do Nicola (02/10, 01:55): menu ⋮ da ficha do
-   contrato sem "Abrir o imóvel" e com "Dados do contrato" (só leitura: Contrato,
-   Revisionais, Encargos, Locatário) — js/contratos.js 1.33.0 → 1.34.0.
-   Versão anterior (Beta v1.289.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.289.1 … v1.289.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.289.2 … v1.289.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -61,7 +67,7 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover"> <!-- v1.276.0: zoom travado (demanda bf635974); v1.291.0: viewport-fit=cover (UXR-31). maximum-scale=1 só sai depois do teste no iPhone (UXR-32) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"> <!-- v1.276.0: zoom travado (demanda bf635974); v1.291.0: viewport-fit=cover (UXR-31); v1.292.0: maximum-scale=1 removido — zoom livre, teste 4 da F0.1 aprovado no iPhone (UXR-32 passo b) -->
     <meta name="color-scheme" content="light dark"> <!-- v1.291.0 (UXR-31) -->
 
     <!-- v1.139.0 — IMPORT MAP (gerado pelo gerar_versoes.py, NÃO editar à mão):
@@ -70,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.36.1","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.38.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.1.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.36.1","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.38.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -477,7 +483,7 @@
            .rz-ico-btn/.rz-dot de sempre (semântica danger/warning já
            pronta), só 40px em vez de 44px aqui pra bater com .rz-ia/
            .rz-avatar ao lado. */
-        .rz-hdr .rz-ico-btn{width:40px;height:40px;flex:none}
+        .rz-hdr .rz-ico-btn{width:48px;height:48px;flex:none}
         .rz-tabhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
         .rz-tabhead p{flex:1;font-size:13px;color:var(--muted);line-height:1.35;margin:0}
         .rz-tabhead h2{flex:1;font-family:var(--font-title);font-size:20px;letter-spacing:-.02em}
@@ -485,7 +491,7 @@
            (‹ Mês/Ano ›) no topo de Recebimentos/Saídas. */
         .rz-mes-label{font-family:var(--font-title);font-size:16px;letter-spacing:-.02em}
         button.rz-kpi{text-align:left;width:100%;font:inherit;cursor:pointer}
-        .rz-ico-btn{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none;position:relative}
+        .rz-ico-btn{width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--pine);box-shadow:var(--sh-card);transition:transform .08s;flex:none;position:relative}
         /* v1.6.3 — achado do Nicola: .rz-ico-btn.rz-ia (já usado em
            btn-minutizar-ia) não tinha regra própria — o selo "IA" (fundo/
            ícone brass) só existia pra .rz-hdr/.rz-row/.rz-act. Mesma cor de
@@ -704,10 +710,10 @@
         .rz-f{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
         .rz-f label{font-size:13px;font-weight:600;color:var(--muted)}
         .rz-f label i{color:var(--danger);font-style:normal}
-        .rz-f input,.rz-f select,.rz-f textarea{width:100%;height:44px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:14px;background:#fff;color:var(--ink)}
+        .rz-f input,.rz-f select,.rz-f textarea{width:100%;height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:#fff;color:var(--ink)}
         .rz-f textarea{height:auto;padding:10px 12px}
         .rz-f input:focus,.rz-f select:focus,.rz-f textarea:focus{border-color:var(--sprout);outline:0}
-        .rz-f .rz-hint{font-size:12px;color:var(--muted)}
+        .rz-f .rz-hint{font-size:13px;color:var(--muted)}
         .rz-f .rz-ok{font-size:12px;color:var(--success);font-weight:600}
         .rz-f2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
         /* 16. IA — assistente e sugestões */
@@ -745,6 +751,25 @@
         /* alvo mínimo de 48 px em botões de ação e itens de sheet */
         .rz-act{min-height:48px}
         .rz-nav button{min-height:48px}
+
+        /* ====================================================================
+           v1.292.0 — F0.5 CAMPOS E RÓTULOS ÚNICOS (DIRETRIZES_UX_RAIZ_2026 UXR-31a).
+           Uma casca só para todo campo de formulário, em qualquer tela ou módulo,
+           sem reescrever cada formulário. Módulo tocado migra para .rz-f (UXR-02).
+           Opt-out explícito: classe .rz-raw (tela de entrar, fundo escuro).
+           ==================================================================== */
+        input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),
+        select:not(.rz-raw){height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);background:#fff;color:var(--ink);font:inherit;font-size:16px;line-height:1.2}
+        textarea:not(.rz-raw){min-height:96px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);background:#fff;color:var(--ink);font:inherit;font-size:16px}
+        input:not(.rz-raw):focus,select:not(.rz-raw):focus,textarea:not(.rz-raw):focus{border-color:var(--sprout);outline:0;box-shadow:none}
+        input[readonly]:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),
+        input[disabled]:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]):not([type=submit]):not([type=button]):not(.rz-raw),select[disabled]:not(.rz-raw){background:var(--paper);color:var(--muted)}
+        input::placeholder,textarea::placeholder{color:var(--sage);opacity:1}
+        /* rótulo: 13 px, --muted, sempre acima (rótulo que embrulha um controle — checkbox, rádio — fica como está) */
+        label:not(.rz-row):not(.rz-chk):not(:has(input,select,textarea)){display:block;font-size:13px;font-weight:600;color:var(--muted);line-height:1.3}
+        label:not(.rz-row):not(.rz-chk) + input:not(.rz-raw),label:not(.rz-row):not(.rz-chk) + select:not(.rz-raw),label:not(.rz-row):not(.rz-chk) + textarea:not(.rz-raw){margin-top:4px}
+        /* seletor de mês e filtros compactos herdam a casca, mas não a altura */
+        .rz-mes-bar select,.rz-mes-bar input{height:36px}
         /* toast acima da bottom nav (UXR-29) */
         #toast-container{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:500;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
         #toast-container>div{pointer-events:auto}
@@ -1368,9 +1393,9 @@
 
             <div id="area-login-supabase" class="space-y-4 text-left">
 
-                <input type="email" id="login-email" placeholder="E-mail" autocomplete="username" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base">
+                <input type="email" id="login-email" placeholder="E-mail" autocomplete="username" class="rz-raw w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base">
 
-                <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base" onkeydown="if(event.key==='Enter') fazerLoginSupabase();">
+                <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password" class="rz-raw w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base" onkeydown="if(event.key==='Enter') fazerLoginSupabase();">
 
                 <button id="btn-login-supabase" onclick="fazerLoginSupabase()" class="w-full raiz-btn-pine text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex justify-center items-center gap-2 text-base">
                     <span>Entrar</span>
@@ -1384,9 +1409,9 @@
 
                 <p class="text-emerald-100 text-sm text-center px-2">Defina sua senha para acessar o sistema.</p>
 
-                <input type="password" id="nova-senha" placeholder="Nova senha (mín. 6 caracteres)" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base">
+                <input type="password" id="nova-senha" placeholder="Nova senha (mín. 6 caracteres)" class="rz-raw w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base">
 
-                <input type="password" id="confirma-nova-senha" placeholder="Confirme a nova senha" class="w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base" onkeydown="if(event.key==='Enter') definirNovaSenha();">
+                <input type="password" id="confirma-nova-senha" placeholder="Confirme a nova senha" class="rz-raw w-full p-4 rounded-xl bg-emerald-950 border border-emerald-700 text-white placeholder-emerald-400/60 text-base" onkeydown="if(event.key==='Enter') definirNovaSenha();">
 
                 <button onclick="definirNovaSenha()" class="w-full raiz-btn-pine text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95">
                     Salvar Senha e Entrar
@@ -2250,7 +2275,7 @@
                      Mensal: sem botões Salvar/Fechar próprios, os campos
                      alimentam direto o valor do contrato; quem persiste é o
                      "Salvar Contrato" no fim do formulário. -->
-                <div id="secao-avancada-contrato" class="hidden rz-card" style="border-color:var(--sprout)">
+                <div id="secao-avancada-contrato" class="hidden rz-card">
                     <p class="rz-group" style="margin-top:0">Registrar reajuste ou alteração</p>
                     <div class="rz-f2">
                         <div class="rz-f">
@@ -2370,7 +2395,7 @@
                      editado a partir de agora — os já cadastrados continuam
                      sem item até serem abertos e salvos de novo (decisão
                      explícita do Nicola). -->
-                <div class="rz-card" style="border-color:var(--sprout)">
+                <div class="rz-card">
                     <p class="rz-group" style="margin-top:0">Revisionais</p>
                     <div class="rz-f2">
                         <div class="rz-f">
@@ -3476,7 +3501,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.291.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.292.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

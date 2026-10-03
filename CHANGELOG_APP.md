@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.289.2) — pedido do Nicola (02/10, 01:55): menu ⋮ da ficha do
+contrato sem "Abrir o imóvel" e com "Dados do contrato" (só leitura: Contrato,
+Revisionais, Encargos, Locatário) — js/contratos.js 1.33.0 → 1.34.0.
+Versão anterior (Beta v1.289.1):
+------------------------------------------------------------------
+Versões anteriores (v1.289.1 … v1.289.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.289.1) — encargos do contrato (demanda 854f6343, decisões
 do Nicola em 02/10): o formulário ganha o card "Encargos" (sempre visível, depois
 de Revisionais) com "Locatário paga IPTU/condomínio" e os valores, que estavam em

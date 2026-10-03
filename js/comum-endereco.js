@@ -1,6 +1,10 @@
 // ============================================================================
 // comum-endereco.js — Raiz Patrimônio · Componente de endereço
-// Versão: 1.1.0 · 23/09/2026
+// Versão: 1.2.0 · 03/10/2026
+//
+// v1.2.0 (F0.5, UXR-31a, sessão 20261003-1707-ux-base): o botão "Buscar" do CEP
+// vira .rz-btn (48 px, a altura do campo ao lado) — antes era um
+// botão Tailwind de 2 classes soltas, mais baixo que o campo ao lado.
 //
 // v1.1.0 (pedido do Nicola, 23/09/2026 — frente fiscal): o código IBGE do
 // município deixa de ser campo oculto e aparece no bloco, com a nota "Vem do
@@ -29,7 +33,7 @@
 // IDs dos campos: `${prefixo}-cep`, `${prefixo}-rua`, etc.
 // ============================================================================
 
-export const VERSAO = '1.1.0'; // v-check: lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.0'; // v-check: lido por Dev › Versões — manter igual ao header
 
 const UF_OPCOES = ['', 'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
     'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
@@ -61,7 +65,7 @@ export function renderizarBlocoEndereco(prefixo, valores = {}, opcoes = {}) {
                 <input type="text" id="${prefixo}-cep" inputmode="numeric" maxlength="9" placeholder="00000-000" value="${val(v.cep)}" style="flex:1"
                     oninput="window.rzCepDigitado && window.rzCepDigitado('${prefixo}')">
                 <button type="button" id="${prefixo}-btn-cep" onclick="window.rzConsultarCepBloco && window.rzConsultarCepBloco('${prefixo}')"
-                    class="text-xs font-bold px-3 rounded-lg" style="background:var(--tile);color:var(--pine)">Buscar</button>
+                    class="rz-btn" style="background:var(--tile);color:var(--pine);border:0;padding:0 14px">Buscar</button>
             </div>
             <span class="rz-hint" id="${prefixo}-cep-status"></span>
         </div>
