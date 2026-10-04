@@ -1,7 +1,12 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.6.0 · 02/10/2026
+// Versão: 1.6.1 · 03/10/2026
+//
+// v1.6.1 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — imóvel sem cidade deixa de ganhar "Belo Horizonte" por padrão — era
+// esse valor inventado que aparecia no recibo quando a cidade vem do imóvel.
+//
+// Versão anterior: 1.6.0 · 02/10/2026
 //
 // v1.6.0 (demanda 5ca973d6, achado do Nicola em 02/10/2026 00:27 ao ativar um
 // contrato, sessão 20261002-0030-seletor-imovel) — o seletor de imóvel
@@ -102,7 +107,7 @@
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
 
-export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -284,7 +289,7 @@ export const VERSAO = '1.6.0'; // v-check: lido por ⚙️ › Conta › Versõe
 
                     enderecoBairro: raw.enderecoBairro || raw.bairro || raw.Bairro || '',
 
-                    enderecoCidade: raw.enderecoCidade || raw.cidade || raw.Cidade || 'Belo Horizonte',
+                    enderecoCidade: raw.enderecoCidade || raw.cidade || raw.Cidade || '',
 
                     tipo: raw.tipo || raw.Tipo || 'Apartamento',
 

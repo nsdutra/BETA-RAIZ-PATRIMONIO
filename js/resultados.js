@@ -1,8 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.8.1 (25/09/2026 — demanda 95d4009a)
+// VERSÃO: Beta v1.8.2 (03/10/2026 — demanda 29bed5eb)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.8.2) — F0.3 do PLANO_UX (sessão 20261003-1707-ux-base,
+//   "de acordo" do Nicola 03/10 23:57): a falha ao carregar deixa de mandar
+//   "puxar a lupa e tocar em Aplicar" e o erro técnico some da tela; o card
+//   ganha o botão "Tentar de novo", que recarrega o conteúdo.
+// Versão anterior: Beta v1.8.1 (25/09/2026 — demanda 95d4009a)
 // NOVIDADES (Beta v1.8.1) — demanda 95d4009a:
 //   — fn_performance_empreendimento agora recebe p_uso (mesmo filtro que
 //     fn_performance_carteira já usava) — visão por empreendimento passa
@@ -180,7 +185,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.8.1';
+export const VERSAO = '1.8.2';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -489,7 +494,8 @@ async function renderizarConteudo() {
         ligarBarrasCalendario('.rz-res-barra-revisional', revisionais, abrirResultadosMesRevisional);
     } catch (err) {
         console.warn('[resultados] Falha ao carregar conteúdo:', err.message);
-        alvo.innerHTML = `<div class="rz-card"><p class="rz-desc">Não deu pra carregar os resultados agora (${rzEsc(err.message || 'erro')}). Puxe a lupa e toque em Aplicar de novo pra tentar.</p></div>`;
+        alvo.innerHTML = `<div class="rz-card"><p class="rz-desc">Não deu para carregar os resultados agora.</p><button type="button" class="rz-btn rz-btn-2" id="rz-res-tentar" style="margin-top:10px">Tentar de novo</button></div>`;
+        alvo.querySelector('#rz-res-tentar')?.addEventListener('click', () => renderizarConteudo());
     }
 }
 

@@ -1,6 +1,10 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.50.0 · 03/10/2026
+// Versão: 1.51.0 · 03/10/2026
+//
+// v1.51.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: botão do bot com título "Falar com a Raiz IA no WhatsApp".
+//
+// Versão anterior: 1.50.0 · 03/10/2026
 // CHANGELOG v1.50.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — combos de
 // Tipo do item de controle (#ic-tipo, novo item; #fic-ed-tipo, edição) ganham "Despesa".
 // O app usa ESTE markup (não o do cofre.html), por isso o novo item seguia sem a opção.
@@ -454,7 +458,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.50.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.51.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -544,7 +548,7 @@ export const ATIVOS_MARKUP = `<style>
             </div>
             <div class="flex items-center gap-2 flex-none">
                 <span class="text-[10px] hidden sm:inline" style="color:var(--pine-light)" id="badge-versao-cofre">v1.2.0</span>
-                <button data-action="abrir-bot" title="Falar com R.AI.Z" class="w-9 h-9 flex-none flex items-center justify-center bg-white/10 rounded-full active:scale-90 transition text-white">
+                <button data-action="abrir-bot" title="Falar com a Raiz IA no WhatsApp" aria-label="Falar com a Raiz IA no WhatsApp" class="w-9 h-9 flex-none flex items-center justify-center bg-white/10 rounded-full active:scale-90 transition text-white">
                     <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 2v3"/>
                         <circle cx="12" cy="2" r="1" fill="currentColor" stroke="none"/>

@@ -1,6 +1,16 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.201.0 · 18/09/2026
+// Versão: 1.202.0 · 04/10/2026
+//
+// v1.202.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo opção 1" do
+// Nicola 03/10 23:57) — "Vincular login existente" deixa de pedir o UUID do Supabase
+// (texto interno vazando para o cliente, ESTUDO §4.3) e pede o e-mail do login. O vínculo
+// passa pela função nova fn_pessoa_vincular_login_por_email (migration
+// ux-base-f03_vincular_login_email_v1): confere admin/master da empresa, perfil protegido
+// só pelo master, login já ligado a outra pessoa, e grava o log no banco. O update direto
+// em pessoas.user_id pelo navegador sai.
+//
+// Versão anterior: 1.201.0 · 18/09/2026
 //
 // v2.1.0 (COMUM_PESSOAS_VERSAO) / v1.201.0 (VERSAO, header) — 2 ajustes
 // pedidos pelo Nicola em cima da reescrita v2.0.0:
@@ -215,7 +225,7 @@
 // outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.201.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.202.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_PESSOAS_VERSAO = '2.1.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
@@ -562,7 +572,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
                 }
             } else {
                 acoes.push({ icone: 'user-check', titulo: 'Criar acesso', sub: 'Envia e-mail para definir senha', codigo: 'pessoas.editar', aoTocar: () => criarAcessoPessoa(p.id) });
-                acoes.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Usuário já criado no Supabase', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
+                acoes.push({ icone: 'link', titulo: 'Vincular login existente', sub: 'Pelo e-mail de quem já entra no Raiz', codigo: 'pessoas.editar', aoTocar: () => vincularLoginPessoa(p.id) });
             }
         }
         if (protegidoExclusao) {
@@ -800,21 +810,23 @@ export async function montarAbaPessoas(mountEl, ctx) {
     }
 
     async function vincularLoginPessoa(id) {
+        const pessoaVinc = pessoas.find(p => p.id === id);
         const perfil = await escolherPerfilSheet('Perfil de acesso', 'Login vinculado manualmente');
         if (!perfil) return;
         if (typeof window.abrirSheetForm !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
         window.abrirSheetForm({
-            titulo: 'Vincular login existente', sub: 'Cole o UUID do usuário já criado', rotuloSalvar: 'Vincular',
-            corpo: `<div><label class="block text-xs font-bold text-gray-600">UUID do usuário *</label>
-                <input type="text" id="vi-uuid" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Supabase → Authentication → Users">
-                <p class="text-[11px] text-gray-400 mt-1">Copie o ID do usuário já criado no Supabase.</p></div>`,
+            titulo: 'Vincular login existente', sub: 'Pessoa que já entra no Raiz com um e-mail', rotuloSalvar: 'Vincular',
+            // v1.202.0 (F0.3) — e-mail em vez do UUID do Supabase; a função do banco
+            // confere quem pede (admin/master da empresa), acha o login e grava o log.
+            corpo: `<div class="rz-f"><label for="vi-email">E-mail do login</label>
+                <input type="email" id="vi-email" inputmode="email" autocomplete="off" value="${esc(pessoaVinc?.email || '')}" placeholder="nome@exemplo.com">
+                <p class="rz-hint">O mesmo e-mail que a pessoa usa para entrar no Raiz.</p></div>`,
             aoSalvar: async (el) => {
-                const uuid = (el.querySelector('#vi-uuid')?.value || '').trim();
-                if (!uuid) { onToast?.('Informe o UUID.', 'danger'); return false; }
-                const { error } = await dbAuth.from('pessoas').update({ user_id: uuid, perfil: perfil.trim() }).eq('id', id);
-                if (error) throw error;
+                const email = (el.querySelector('#vi-email')?.value || '').trim();
+                if (!email) { onToast?.('Informe o e-mail do login.', 'danger'); return false; }
+                const { error } = await dbAuth.rpc('fn_pessoa_vincular_login_por_email', { p_pessoa_id: id, p_email: email, p_perfil: perfil.trim() });
+                if (error) { onToast?.(error.message || 'Não consegui vincular o login.', 'danger'); return false; }
                 onToast?.('Login vinculado.', 'success');
-                registrarLog?.('pessoas.acesso.aprovar', { pessoaId: id, perfil: perfil.trim(), via: 'vinculacao_manual' });
                 pessoas = await listarPessoas(dbAuth, clienteId);
                 renderLista();
             },

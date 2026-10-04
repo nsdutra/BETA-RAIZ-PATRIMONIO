@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.70.0 · 03/10/2026
+// Versão: 1.71.0 · 03/10/2026
+//
+// v1.71.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: documento que chegou pelo bot mostra "pela Raiz IA"
+// (antes "pelo Robô").
+//
+// Versão anterior: 1.70.0 · 03/10/2026
 //
 // v1.70.0 (F0.4, demanda 717fc21d, sessão 20261003-1707-ux-base — teste 8
 // reprovado pelo Nicola: salvar ativo sem nome mostrava o aviso mas não
@@ -889,7 +894,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.71.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -3222,7 +3227,7 @@ function montarDocumentosAtivo(a) {
     document.getElementById('fa-tab-documentos').innerHTML = docs.map(d => `
         <div class="rz-row rz-link" data-action="abrir-documento" data-id="${d.id}">
             <div class="rz-ic${d.origem === 'bot_whatsapp' ? ' rz-ia' : ''}"><i data-lucide="${d.origem === 'bot_whatsapp' ? 'bot' : 'file-text'}"></i></div>
-            <div class="rz-tx"><b>${escapeHtml(d.nome_exibicao)}</b><span>${escapeHtml((estado.categorias || []).find(c => c.id === d.categoria_id)?.nome || 'Documento')}${d.origem === 'bot_whatsapp' ? ' · pelo Robô' : ''}${d.criado_em ? ' · ' + formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
+            <div class="rz-tx"><b>${escapeHtml(d.nome_exibicao)}</b><span>${escapeHtml((estado.categorias || []).find(c => c.id === d.categoria_id)?.nome || 'Documento')}${d.origem === 'bot_whatsapp' ? ' · pela Raiz IA' : ''}${d.criado_em ? ' · ' + formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
             <i data-lucide="chevron-right" class="rz-chev"></i>
         </div>`).join('');
     docsAtivoCache = docs;

@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.37.0 · 03/10/2026
+// Versão: 1.38.0 · 03/10/2026
+//
+// v1.38.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — forma de pagamento única: o contrato passa a usar a mesma lista da baixa (PIX, Boleto, Dinheiro,
+// Transferência, Cheque). "Depósito" sai (nenhum contrato usava) e, se vier de dado antigo, abre
+// como Transferência.
+//
+// Versão anterior: 1.37.0 · 03/10/2026
 //
 // v1.37.0 (F0.5 complemento, UXR-31a, sessão 20261003-1707-ux-base, demanda
 // 4c7f2264 — Nicola 03/10 21:28: "novo contrato ainda com elementos fora"):
@@ -660,7 +666,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.37.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.38.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1874,9 +1880,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         <div style="display:flex;gap:8px;">
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Forma de pagamento</label>
                                 <select id="mdt-forma-pgto" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
-                                    <option ${con.formaPagamento==='PIX'?'selected':''}>PIX</option>
-                                    <option ${con.formaPagamento==='Boleto'?'selected':''}>Boleto</option>
-                                    <option ${con.formaPagamento==='Depósito'?'selected':''}>Depósito</option>
+                                    ${['PIX','Boleto','Dinheiro','Transferência','Cheque'].map(f => `<option ${((con.formaPagamento==='Depósito'?'Transferência':con.formaPagamento)||'PIX')===f?'selected':''}>${f}</option>`).join('')}
                                 </select>
                             </div>
                             <div style="flex:1;"><label style="font-size:11px;font-weight:bold;color:#64748b;">Índice de reajuste</label><input id="mdt-reajuste" value="${con.reajuste||'IPCA'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;"></div>
@@ -4552,7 +4556,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             document.getElementById('con-contato-nome').value = con.contatoNome || '';
 
-            document.getElementById('con-forma-pagamento').value = con.formaPagamento || 'PIX';
+            document.getElementById('con-forma-pagamento').value = (con.formaPagamento === 'Depósito' ? 'Transferência' : con.formaPagamento) || 'PIX'; // v1.38.0 (F0.3)
 
             document.getElementById('con-desconto-energia').value = con.descontoEnergia || 0;
 

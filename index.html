@@ -6,9 +6,20 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.295.0
-   LINHAS: 15963
-   DATA: 03/10/2026 (sessão 20261003-2345-financeiro, demanda 4a369778)
+   VERSÃO: Beta v1.296.0
+   LINHAS: 15974
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 29bed5eb)
+   NOVIDADES (Beta v1.296.0) — F0.3 do PLANO_UX (texto e consistência; "de acordo" do Nicola
+   03/10 23:57). Textos internos saem da tela: Alertas sem "Tom de notícia, nunca recomendação",
+   Menu › Versões com "Versão do app em uso". Recibo sem dado inventado: sem CNPJ falso nem
+   "Belo Horizonte" no modelo; sem CNPJ, a linha some. Nome único da IA: "Raiz IA" no app e
+   "Raiz IA no WhatsApp" para o número (splash, menu, sheet da IA, saudação ao bot). Forma de
+   pagamento do contrato = lista da baixa (PIX, Boleto, Dinheiro, Transferência, Cheque).
+   Import map: contratos 1.38.0, cofre-documentos 2.22.0, resultados 1.8.2, vitrine 1.3.2,
+   imoveis 1.6.1, cofre-app 1.43.0, ativos-markup 1.51.0, comum-renovacao 1.3.3,
+   cofre-ativos 1.71.0, cofre-controles 1.41.0, comum-pessoas 1.202.0 (vincular login por
+   e-mail — função nova fn_pessoa_vincular_login_por_email).
+   Versão anterior (Beta v1.295.0):
    NOVIDADES (Beta v1.295.0) — P1b do Financeiro (ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0):
    Distribuição (tab-socios) remodelada no padrão UXR-10/25 — barra de busca + "+", competência,
    corpo desenhado por js/financeiro.js (renderDistribuicao, número de fn_apurar_distribuicao);
@@ -39,13 +50,8 @@
    1.41.0 → 1.42.0 ("Voltar ao ativo" volta à lista de Controles), js/cofre-validacoes.js 2.2.0 →
    2.3.0 (ficha mostra "Despesa"), js/cofre-controles.js 1.39.0 → 1.40.0 (data fim no início do subtítulo).
    Versão anterior (Beta v1.293.2):
-   NOVIDADES (Beta v1.293.2) — demanda d3260b23 (Ficha F1), "de acordo" do Nicola 03/10 21:37.
-   Só import map: js/cofre-controles.js 1.38.0 → 1.39.0 (Tipo "Despesa" na edição e no novo
-   item, bloqueio de Tipo vazio, "· até dd/mm/aaaa" na lista, cabeçalho do card Controles
-   com "· N encerrado(s) · M sem alerta"). cofre.html 1.29.0 → 1.30.0 (combos de Tipo).
-   Versão anterior (Beta v1.293.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.293.1 … v1.293.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.293.2 … v1.293.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -70,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.29.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.37.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.42.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.70.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.40.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.5.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.50.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.29.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.38.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.2","./js/imoveis.js":"./js/imoveis.js?v=1.6.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.71.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.41.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.22.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.5.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.202.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.51.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -1412,10 +1418,10 @@
              no botão. Sem JS/localStorage, fica oculto pra sempre — nunca
              atrapalha o botão em si. -->
         <div id="splash-ia-tooltip" class="hidden" style="position:absolute; top:20px; right:118px; z-index:10; background:#fff; color:#17211e; font-size:12px; font-weight:600; border-radius:999px; padding:8px 14px; box-shadow:0 1px 2px rgba(23,33,30,.06), 0 4px 14px rgba(23,33,30,.05); white-space:nowrap;">
-            Fale com a Raiz IA
+            Fale com a Raiz IA no WhatsApp
             <div style="position:absolute; right:-5px; top:50%; transform:translateY(-50%) rotate(45deg); width:10px; height:10px; background:#fff;"></div>
         </div>
-        <button id="btn-falar-bot-splash" onclick="abrirBotWhatsapp()" title="Falar com o R.AI.Z no WhatsApp" aria-label="Falar com o R.AI.Z no WhatsApp">
+        <button id="btn-falar-bot-splash" onclick="abrirBotWhatsapp()" title="Falar com a Raiz IA no WhatsApp" aria-label="Falar com a Raiz IA no WhatsApp">
             <svg data-lucide="sparkles" style="width:20px;height:20px" aria-hidden="true"></svg>
         </button>
 
@@ -2541,7 +2547,9 @@
                     <select id="con-forma-pagamento">
                         <option value="PIX">PIX</option>
                         <option value="Boleto">Boleto</option>
-                        <option value="Depósito">Depósito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Transferência">Transferência</option>
+                        <option value="Cheque">Cheque</option>
                     </select>
                 </div>
 
@@ -3043,7 +3051,7 @@
                  pra montarAlertasPatrimonio() escrever a contagem sem
                  reconstruir o cabeçalho inteiro. -->
             <h2 class="text-lg font-bold raiz-text-pine mb-1">Alertas<span id="alertas-contagem-header" class="text-sm font-normal text-slate-400"></span></h2>
-            <p class="text-[12px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira. Tom de notícia, nunca recomendação.</p>
+            <p class="text-[12px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira.</p>
 
             <!-- v1.102.0 (NOVO, pedido explícito: "deve ser possível, via
                  chip, filtrar os tipos de alertas") — mesma técnica dos
@@ -3467,7 +3475,7 @@
 
                             <div id="pdf-logo-empresa" style="color: #1a365d; font-size: 15px; font-weight: 900; letter-spacing: 0.5px;">RAIZ PATRIMÔNIO</div>
 
-                            <div id="pdf-cnpj-empresa" style="color: #718096; font-size: 8px; letter-spacing: 0.3px;">CNPJ: 00.000.000/0001-00</div>
+                            <div id="pdf-cnpj-empresa" style="color: #718096; font-size: 8px; letter-spacing: 0.3px;"></div>
 
                         </div>
 
@@ -3483,7 +3491,7 @@
 
                     <div style="margin-top: 12px; font-size: 12px; color: #4a5568; text-align: center;">
 
-                        <span id="pdf-cidade-emissao">Belo Horizonte</span>, <span id="pdf-data-emissao">-</span>.
+                        <span id="pdf-cidade-emissao"></span>, <span id="pdf-data-emissao">-</span>.
 
                     </div>
 
@@ -3497,7 +3505,7 @@
 
                             <div id="pdf-nome-responsavel" style="font-size: 12px; font-weight: bold; color: #1a365d;">[Nome do Responsável]</div>
 
-                            <div style="font-size: 7.5px; color: #718096;">Sócio &ndash; <span id="pdf-nome-empresa-assinatura">[Nome da Empresa]</span> (CNPJ <span id="pdf-cnpj-assinatura">00.000.000/0001-00</span>)</div>
+                            <div style="font-size: 7.5px; color: #718096;">Sócio &ndash; <span id="pdf-nome-empresa-assinatura">[Nome da Empresa]</span> <span id="pdf-cnpj-assinatura-bloco">(CNPJ <span id="pdf-cnpj-assinatura"></span>)</span></div>
 
                         </div>
 
@@ -3521,7 +3529,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.295.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.296.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3948,16 +3956,19 @@
 
             const map = {
                 'pdf-logo-empresa': nome.toUpperCase(),
-                'pdf-cnpj-empresa': 'CNPJ: ' + (CONFIG_CLIENTE.cnpj || '-'),
+                'pdf-cnpj-empresa': CONFIG_CLIENTE.cnpj ? 'CNPJ: ' + CONFIG_CLIENTE.cnpj : '', // v1.296.0 (F0.3) — sem CNPJ, linha em branco (antes "CNPJ: -" e modelo com CNPJ falso)
                 'pdf-cidade-emissao': CONFIG_CLIENTE.cidade || '',
                 'pdf-nome-responsavel': CONFIG_CLIENTE.nomeResponsavel || '',
                 'pdf-nome-empresa-assinatura': nome,
-                'pdf-cnpj-assinatura': CONFIG_CLIENTE.cnpj || '-',
+                'pdf-cnpj-assinatura': CONFIG_CLIENTE.cnpj || '',
             };
             Object.keys(map).forEach(function (id) {
                 const el = document.getElementById(id);
                 if (el) el.textContent = map[id];
             });
+            // v1.296.0 (F0.3) — sem CNPJ, a assinatura não mostra "(CNPJ -)"
+            const blocoCnpjAss = document.getElementById('pdf-cnpj-assinatura-bloco');
+            if (blocoCnpjAss) blocoCnpjAss.style.display = CONFIG_CLIENTE.cnpj ? '' : 'none';
 
             // Versão do app: já aplicada em window.onload a partir de APP_VERSAO
             // (fonte única, ver topo do script) — nada a fazer aqui.
@@ -6053,7 +6064,7 @@
             // número de suporte/comercial humano (5511947461828, usado nos
             // outros links "Falar no WhatsApp" espalhados pelo app/landing).
             const numeroBot = '5511978950609';
-            const texto = encodeURIComponent('Olá, como o R.AI.Z - Assistente Patrimonial pode me ajudar?');
+            const texto = encodeURIComponent('Olá, Raiz IA! Como você pode me ajudar?');
             rzDev('whatsapp', numeroBot, decodeURIComponent(texto)); // v1.293.0 — pelo adaptador (UXR-40)
         }
 
@@ -9632,7 +9643,7 @@
                         { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
                         { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // v1.252.0 — frente fiscal, Fase 3
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
-                        { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Falar com o R.AI.Z', aoTocar: abrirBotWhatsapp },
+                        { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp },
                         { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
                         // v1.199.0 (bc9df144, item 11) — migrado do app-dev, só admin.
                         { icone: 'link', titulo: 'Gerenciador de links da vitrine', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') }
@@ -9642,7 +9653,7 @@
                     ]},
                     { titulo: 'Conta', acoes: [
                         { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
-                        { icone: 'package-check', titulo: 'Versões', sub: 'O que está no ar × o que está rodando', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
+                        { icone: 'package-check', titulo: 'Versões', sub: 'Versão do app em uso', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
                         { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => rzDev('whatsapp', '5511947461828') },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
@@ -9682,7 +9693,7 @@
             const sheet = abrirSheetAcoes({ titulo: 'Raiz IA', sub: 'O que a IA faz por você hoje', acoes: [
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Importar extrato bancário', codigo: 'conciliacao.importar', sub: 'Concilia os recebimentos automaticamente', aoTocar: () => { switchTab('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); } },
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Ler um documento', codigo: 'cofre.analisar_ia', sub: 'Classifica e sugere o ativo', aoTocar: () => abrirUploadDocumentoNoApp() },
-                { icone: 'bot', titulo: 'Robô WhatsApp', sub: 'Consultas e avisos pelo R.AI.Z', aoTocar: abrirBotWhatsapp }
+                { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp }
             ]});
             const corpo = sheet.querySelector('.rz-sh-b');
             if (corpo) { corpo.insertAdjacentHTML('afterbegin', hero); rzIcones(); }

@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.3.2 · 02/10/2026
+// Versão: 1.3.3 · 03/10/2026
+//
+// v1.3.3 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: "Enviar pela Raiz IA" / "no WhatsApp da Raiz IA" e
+// saudação nova da mensagem do comprovante (o bot não depende do nome no texto).
+//
+// Versão anterior: 1.3.2 · 02/10/2026
 //
 // v1.3.2 — pedido do Nicola (02/10 01:31): a cópia do comprovante no Cofre da
 // empresa fica vinculada ao PAGAMENTO da licença (vínculo 'pagamento', id do
@@ -68,7 +73,7 @@
 // continua funcionando sozinho.
 // ============================================================================
 
-export const VERSAO = '1.3.2'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.3'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;
@@ -339,7 +344,7 @@ async function telaInformado({ dbAuth, clienteId, toast, c, plano, pronto = fals
         ? `<div class="rz-row"><div class="rz-ic"><svg data-lucide="file-check-2"></svg></div><div class="rz-tx"><b>Comprovante recebido</b><span>Obrigado! Ele ajuda a Raiz a conferir mais rápido</span></div></div>`
         : `<div class="rz-row rz-link" id="rnv-up"><div class="rz-ic"><svg data-lucide="upload"></svg></div><div class="rz-tx"><b>Enviar comprovante</b><span>Foto ou PDF do Pix</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>`;
     const linhaRaiz = (!s.comprovante && s.canal_raiz)
-        ? `<div class="rz-row rz-link" id="rnv-raiz"><div class="rz-ic"><svg data-lucide="bot"></svg></div><div class="rz-tx"><b>Enviar pelo R.AI.Z</b><span>Mande o comprovante no WhatsApp do R.AI.Z</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : '';
+        ? `<div class="rz-row rz-link" id="rnv-raiz"><div class="rz-ic"><svg data-lucide="bot"></svg></div><div class="rz-tx"><b>Enviar pela Raiz IA</b><span>Mande o comprovante no WhatsApp da Raiz IA</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : '';
     const copia = s.comprovante ? '' :
         `<label class="text-xs" style="display:flex;gap:8px;align-items:flex-start;color:var(--muted);margin:2px 0 0"><input type="checkbox" id="rnv-copia" style="margin-top:2px"> Guardar também uma cópia no Cofre da minha empresa</label>`;
 
@@ -362,7 +367,7 @@ async function telaInformado({ dbAuth, clienteId, toast, c, plano, pronto = fals
                 telaInformado({ dbAuth, clienteId, toast, c: s, plano });
             });
             el.querySelector('#rnv-raiz')?.addEventListener('click', () => {
-                const txt = encodeURIComponent(`Olá R.AI.Z! Vou enviar o comprovante do Pix do meu plano Raiz (cobrança ${s.txid || ''}).`);
+                const txt = encodeURIComponent(`Olá, Raiz IA! Vou enviar o comprovante do Pix do meu plano Raiz (cobrança ${s.txid || ''}).`);
                 window.open(`https://wa.me/${NUMERO_RAIZ_BOT}?text=${txt}`, '_blank', 'noopener');
             });
         },

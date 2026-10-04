@@ -1,7 +1,12 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.3.1 · 02/10/2026
+// Versão: 1.3.2 · 03/10/2026
+//
+// v1.3.2 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — o erro ao iniciar a contratação deixa de citar tabela e migration do
+// banco; fala com o cliente. (O alert() vira aviso do app na F0.2.)
+//
+// Versão anterior: 1.3.1 · 02/10/2026
 //
 // v1.3.1 (demanda 11afd25f, f26a ainda falhando no teste do Nicola 01/10 23:54)
 // — abrirSheetAcoes ignora `acoes` quando recebe `grupos`; sem minuta, o menu
@@ -81,7 +86,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.3.1'; // v-check: manter igual ao header
+export const VERSAO = '1.3.2'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -275,7 +280,7 @@ export function montarAbaVitrine() {
 
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui iniciar o processo de contratação: ' + (err.message || String(err)) + '\n\nSe o erro mencionar "processos_contratacao" ou "relation does not exist", a migration do módulo de Minutas ainda não foi rodada no banco.');
+                alert('Não consegui iniciar a contratação agora. Tente de novo em instantes; se continuar, fale com o suporte da Raiz.'); console.warn('[vitrine] iniciar contratação', err);
             }
 
         }

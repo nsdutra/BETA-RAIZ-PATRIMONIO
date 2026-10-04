@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.42.0 · 03/10/2026
+// Versão: 1.43.0 · 03/10/2026
+//
+// v1.43.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: o atalho do bot abre "Raiz IA no WhatsApp" pelo
+// adaptador (rzDev, UXR-40), com a saudação nova.
+//
+// Versão anterior: 1.42.0 · 03/10/2026
 //
 // v1.42.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — "Voltar ao ativo"
 // a partir de um item de controle caía no chip Resumo: voltarFichaItemControle já
@@ -367,7 +372,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.42.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.43.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -503,7 +508,7 @@ document.addEventListener('click', async (ev) => {
         case 'abrir-configuracoes-catalogo': fecharModal('modal-menu-conta'); docs.abrirConfiguracoes(); break;
         case 'abrir-sobre-cofre': fecharModal('modal-menu-conta'); abrirModal('modal-sobre-cofre'); break;
         case 'fechar-sobre-cofre': fecharModal('modal-sobre-cofre'); break;
-        case 'abrir-bot': window.open('https://wa.me/5511978950609?text=' + encodeURIComponent('Olá, como o R.AI.Z pode me ajudar?'), '_blank', 'noopener'); break;
+        case 'abrir-bot': (window.rzDev ? window.rzDev('whatsapp', '5511978950609', 'Olá, Raiz IA! Como você pode me ajudar?') : window.open('https://wa.me/5511978950609?text=' + encodeURIComponent('Olá, Raiz IA! Como você pode me ajudar?'), '_blank', 'noopener')); break;
         case 'fechar-categorias': docs.fecharCategorias(); break;
         case 'salvar-categoria': await docs.salvarCategoria(); break;
         case 'abrir-documentos-arquivados': fecharModal('modal-menu-conta'); await docs.abrirDocumentosArquivados(); break; // v1.31.0

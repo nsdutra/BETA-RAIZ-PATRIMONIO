@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.21.0 · 22/09/2026
+// Versão: 2.22.0 · 03/10/2026
+//
+// v2.22.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — texto interno sai da tela: o aviso de documento vencido deixa de citar
+// a decisão de projeto "(D10)".
+//
+// Versão anterior: 2.21.0 · 22/09/2026
 //
 // v2.21.0 (22/09/2026 — Fase 1 do wrapper de escrita, rollout Cofre de
 // Documentos/Controles — pedido do Nicola 22/09/2026). Este é o módulo de
@@ -466,7 +471,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.21.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.22.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1188,7 +1193,7 @@ function atualizarDisponibilidadeControleUpload() {
     chk.disabled = !permite;
     if (!permite && chk.checked) { chk.checked = false; g('uc-controle-bloco').classList.add('hidden'); }
     g('uc-controlar-hint').textContent = !podeControlar() ? 'Controle de vencimento indisponível no seu plano.'
-        : vencido ? 'Documento vencido não gera controle (D10). Suba o documento novo pra controlar.'
+        : vencido ? 'Documento vencido não gera controle. Envie o documento novo para controlar o vencimento.'
         : !vinculoPermiteControle() ? 'Vincule a um ativo ou contrato pra controlar o vencimento.'
         : 'Cria um item de controle com alerta no WhatsApp.';
     return permite;

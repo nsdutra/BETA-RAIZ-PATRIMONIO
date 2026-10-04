@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.293.2) — demanda d3260b23 (Ficha F1), "de acordo" do Nicola 03/10 21:37.
+Só import map: js/cofre-controles.js 1.38.0 → 1.39.0 (Tipo "Despesa" na edição e no novo
+item, bloqueio de Tipo vazio, "· até dd/mm/aaaa" na lista, cabeçalho do card Controles
+com "· N encerrado(s) · M sem alerta"). cofre.html 1.29.0 → 1.30.0 (combos de Tipo).
+Versão anterior (Beta v1.293.1):
+------------------------------------------------------------------
+Versões anteriores (v1.293.1 … v1.293.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.293.1) — teste 3 da F0.4 reprovado (Nicola 03/10 22:33: "no Android não
 vibrou ao salvar um ativo"). Causa: Ativos usava o toast próprio do Cofre. Só import map:
 js/cofre-ui.js 1.3.1 → 1.4.0 (o toast do Cofre delega ao toast único do app).
