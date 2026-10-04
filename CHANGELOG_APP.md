@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.290.0) — encargos v3 (demanda 854f6343, plano aprovado pelo
+Nicola em 02/10 23:47): IPTU e condomínio passam a ter um item por responsável e
+por ano. Cada contrato cria o seu (IPTU proporcional aos dias do contrato no ano,
+com memória de cálculo; condomínio por competência, mês parcial em dias) e o
+período sem contrato vira o item "vago" do proprietário, mantido pelo banco
+(js/contratos.js 1.35.0 → 1.36.0). Ficha do item mostra período e memória de
+cálculo (js/cofre-controles.js 1.37.0 → 1.38.0). Banco: contratos_encargos_v3.
+Versão anterior (Beta v1.289.3):
+------------------------------------------------------------------
+Versões anteriores (v1.289.3 … v1.289.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.289.3) — encargos v2 (demanda 854f6343, plano aprovado pelo
 Nicola em 02/10 13:28): quem paga IPTU/condomínio passa a ser decidido em cada
 ocorrência, pela vigência do contrato, e fica escrito na descrição dela; fora

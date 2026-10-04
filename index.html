@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.292.1
-   LINHAS: 16193
-   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.5 complemento)
+   VERSÃO: Beta v1.292.2
+   LINHAS: 16204
+   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.5c uma coluna no celular)
+   NOVIDADES (Beta v1.292.2) — F0.5c (demanda 4c7f2264, "de acordo" do Nicola 03/10 21:55),
+   regra UXR-31b: em tela < 600 px todo formulário vira uma coluna (.rz-f2 e grids de 2
+   colunas com campo); lado a lado só nos pares curtos marcados .rz-f2-curto — no contrato:
+   Início/Fim, Aluguel/Dia, Novo valor/%, Teto/Piso, IPTU/Condomínio (quem paga e valor);
+   no endereço do cadastro: UF/CEP. Vale também para os formulários dos módulos (fiador,
+   parte, financeiro) sem tocar nos arquivos deles.
+   Versão anterior (Beta v1.292.1):
    NOVIDADES (Beta v1.292.1) — complemento da F0.5 (demanda 4c7f2264, Nicola 03/10 21:28):
    o bloco Histórico sai do formulário de contrato (vive na ficha); bloco de fiadores e
    divisão de sócios na casca única (js/contratos.js 1.36.1 → 1.37.0).
@@ -37,16 +44,8 @@
    condomínio do contrato só são oferecidos/gerados com o contrato Ativo (ao ativar),
    não mais em Assinando (js/contratos.js 1.36.0 → 1.36.1; banco contratos_encargos_v3_2).
    Versão anterior (Beta v1.290.0):
-   NOVIDADES (Beta v1.290.0) — encargos v3 (demanda 854f6343, plano aprovado pelo
-   Nicola em 02/10 23:47): IPTU e condomínio passam a ter um item por responsável e
-   por ano. Cada contrato cria o seu (IPTU proporcional aos dias do contrato no ano,
-   com memória de cálculo; condomínio por competência, mês parcial em dias) e o
-   período sem contrato vira o item "vago" do proprietário, mantido pelo banco
-   (js/contratos.js 1.35.0 → 1.36.0). Ficha do item mostra período e memória de
-   cálculo (js/cofre-controles.js 1.37.0 → 1.38.0). Banco: contratos_encargos_v3.
-   Versão anterior (Beta v1.289.3):
    ------------------------------------------------------------------
-   Versões anteriores (v1.289.3 … v1.289.3): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.290.0 … v1.290.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -765,6 +764,18 @@
         label:not(.rz-row):not(.rz-chk) + input:not(.rz-raw),label:not(.rz-row):not(.rz-chk) + select:not(.rz-raw),label:not(.rz-row):not(.rz-chk) + textarea:not(.rz-raw){margin-top:4px}
         /* seletor de mês e filtros compactos herdam a casca, mas não a altura */
         .rz-mes-bar select,.rz-mes-bar input{height:36px}
+
+        /* ====================================================================
+           v1.292.2 — F0.5c UMA COLUNA NO CELULAR (DIRETRIZES UXR-31b).
+           Em tela < 600 px, um campo por linha: nada de rótulo, valor ou
+           placeholder cortado. Lado a lado só para pares curtos marcados com
+           .rz-f2-curto (UF, número, %, dia, valor, sim/não, datas). No
+           computador tudo continua em duas colunas.
+           ==================================================================== */
+        @media (max-width:599px){
+          .rz-f2:not(.rz-f2-curto){grid-template-columns:minmax(0,1fr)}
+          .grid.grid-cols-2:not(.rz-f2-curto):has(input:not([type=checkbox]):not([type=radio]),select,textarea){grid-template-columns:minmax(0,1fr)}
+        }
         /* toast acima da bottom nav (UXR-29) */
         #toast-container{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:500;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
         #toast-container>div{pointer-events:auto}
@@ -1288,7 +1299,7 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-2">
+                            <div class="rz-f2-curto grid grid-cols-2 gap-2">
                                 <div>
                                     <label class="block text-xs font-bold text-gray-600">Estado (UF) <span style="color:var(--danger)">*</span></label>
                                     <select id="cp-endereco-uf" required class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
@@ -2233,7 +2244,7 @@
                     </div>
                 </div>
 
-                <div class="rz-f2">
+                <div class="rz-f2 rz-f2-curto">
                     <div class="rz-f">
                         <label>Início Vigência <i>*</i></label>
                         <input type="date" id="con-inicio" required>
@@ -2244,7 +2255,7 @@
                     </div>
                 </div>
 
-                <div class="rz-f2">
+                <div class="rz-f2 rz-f2-curto">
                     <div class="rz-f">
                         <label>Aluguel (R$) <i>*</i></label>
                         <!-- v1.272.0 (demandas c83fb2d3 + 1301897c, mesmo
@@ -2272,7 +2283,7 @@
                      "Salvar Contrato" no fim do formulário. -->
                 <div id="secao-avancada-contrato" class="hidden rz-card">
                     <p class="rz-group" style="margin-top:0">Registrar reajuste ou alteração</p>
-                    <div class="rz-f2">
+                    <div class="rz-f2 rz-f2-curto">
                         <div class="rz-f">
                             <label>Novo Valor</label>
                             <input type="number" step="0.01" id="con-valor-anterior" value="" oninput="calcularReajustePorNovoValor()" placeholder="Só se for reajustar">
@@ -2405,7 +2416,7 @@
                             <input type="number" min="1" step="1" id="con-reajuste-periodicidade" value="12">
                         </div>
                     </div>
-                    <div class="rz-f2">
+                    <div class="rz-f2 rz-f2-curto">
                         <div class="rz-f">
                             <label>Teto do reajuste (%)</label>
                             <input type="number" step="0.01" min="0" id="con-reajuste-teto" placeholder="Sem teto">
@@ -2433,7 +2444,7 @@
                     <p class="rz-group" style="margin-top:0">Encargos</p>
                     <p style="font-size:12px;color:var(--muted);margin:-2px 2px 10px">Quem paga IPTU e condomínio do imóvel enquanto este contrato estiver vigente.</p>
                     <p class="rz-group" style="margin-top:0">Locatário paga</p>
-                    <div class="rz-f2">
+                    <div class="rz-f2 rz-f2-curto">
                         <div class="rz-f">
                             <label>IPTU</label>
                             <select id="con-iptu-locatario">
@@ -2449,7 +2460,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="rz-f2">
+                    <div class="rz-f2 rz-f2-curto">
                         <div class="rz-f">
                             <label>Valor IPTU (R$)</label>
                             <input type="number" id="con-iptu-valor" value="0">
@@ -3481,7 +3492,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.292.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.292.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
