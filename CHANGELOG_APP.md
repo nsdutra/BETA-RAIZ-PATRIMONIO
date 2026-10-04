@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.297.5) — alertas de cadastro da P2 com texto de gente (Nicola 04/10 08:06).
+"Ativo sem proprietário", "Contrato sem divisão do aluguel" e "Chave Pix da empresa
+pendente" mostravam o código cru no título e no Sheet; o grupo dizia só "6 alertas" — agora
+"6 ativos sem proprietário". Tipo novo sem texto próprio nunca mais mostra código: vira frase
+legível. Na lista (Visão Geral e Alertas), os alertas sem data ficam juntos por assunto, com
+Cadastro primeiro (inclui CIB, dado que impede a nota e o sinal "Cadastro"). Sem mudança de banco.
+Versão anterior (Beta v1.297.4):
+------------------------------------------------------------------
+Versões anteriores (v1.297.4 … v1.297.4): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.297.4) — correção dos testes da P2 do Financeiro (Nicola 04/10 01:00).
 Só import map: js/financeiro.js 1.30.0 → 1.30.1 (card "Outras receitas" com o título numa
 linha só, sem a legenda partida à direita; rotina "Fechamento do mês" reverificada a cada

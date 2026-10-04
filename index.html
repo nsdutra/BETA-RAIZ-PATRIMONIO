@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.298.3
-   LINHAS: 16143
-   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda c5d844a4)
+   VERSÃO: Beta v1.298.4
+   LINHAS: 16154
+   DATA: 04/10/2026 (sessão 20261004-1130-financeiro, demanda cad6ec67)
+   NOVIDADES (Beta v1.298.4) — alerta "1 ocorrência · Cadastro" (imóvel sem finalidade de uso) no
+   padrão título + ativo (Nicola 04/10 11:27): título "Imóvel sem finalidade de uso" (ou "N imóveis
+   sem finalidade de uso") e 2ª linha com o imóvel. Só texto, sem banco.
+   Versão anterior (Beta v1.298.3):
    NOVIDADES (Beta v1.298.3) — F1.1, teste 3 reprovado (Nicola 04/10 08:41). Só import map:
    js/cofre-controles.js 1.43.0 → 1.44.0 (editar item: a escolha regerar/manter vem ANTES de
    salvar; fechar não salva nada), js/cofre-ui.js 1.6.0 → 1.7.0 (escolher()).
@@ -32,15 +36,8 @@
    abrirSheetForm aceita empilhar; rzPedirTexto empilha. Import map: js/raiz-ui.js 1.0.0 →
    1.1.0 (confirmação, escolha e resumo empilham).
    Versão anterior (Beta v1.297.5):
-   NOVIDADES (Beta v1.297.5) — alertas de cadastro da P2 com texto de gente (Nicola 04/10 08:06).
-   "Ativo sem proprietário", "Contrato sem divisão do aluguel" e "Chave Pix da empresa
-   pendente" mostravam o código cru no título e no Sheet; o grupo dizia só "6 alertas" — agora
-   "6 ativos sem proprietário". Tipo novo sem texto próprio nunca mais mostra código: vira frase
-   legível. Na lista (Visão Geral e Alertas), os alertas sem data ficam juntos por assunto, com
-   Cadastro primeiro (inclui CIB, dado que impede a nota e o sinal "Cadastro"). Sem mudança de banco.
-   Versão anterior (Beta v1.297.4):
    ------------------------------------------------------------------
-   Versões anteriores (v1.297.4 … v1.297.4): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.297.5 … v1.297.5): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3528,7 +3525,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.298.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.298.4"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5003,6 +5000,7 @@
                     enderecoBairro: row.endereco_bairro || '',
                     enderecoCidade: row.endereco_cidade || '',
                     finalidadeUso: row.finalidade_uso || 'long_stay',
+                    finalidadeUsoCadastrada: row.finalidade_uso || null, // v1.298.4 — sem o padrão; alerta "Imóvel sem finalidade de uso" lê daqui
                     tipo: row.ativo_tipos ? row.ativo_tipos.nome : '',
                     tipoId: row.tipo_detalhe_id || null,
                     tamanho: row.area_m2 || 0,
@@ -11558,6 +11556,8 @@
                 case 'sinal_fiscal': {
                     const cat = row.detalhe?.categoria;
                     const qtd = row.detalhe?.contagem || 0;
+                    // v1.298.4 (Nicola 04/10 11:27) — padrão título + ativo, não "1 ocorrência · Cadastro".
+                    if (row.detalhe?.sinal === 'imovel_sem_uso_cadastrado') return qtd > 1 ? `${qtd} imóveis sem finalidade de uso` : 'Imóvel sem finalidade de uso';
                     return `${qtd} ocorrência${qtd > 1 ? 's' : ''} · ${CATEGORIA_SINAL_LABEL_V2[cat] || cat || 'Fiscal'}`;
                 }
                 case 'documento_sem_vinculo': return 'Documento sem vínculo';
@@ -11631,6 +11631,15 @@
             return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
         }
 
+        // v1.298.4 — nomes dos imóveis sem finalidade de uso (mesmo filtro do
+        // sinal: status ativo, predial/territorial — é o que carregarImoveisSupabase traz).
+        function rzImoveisSemFinalidadeTexto(qtd) {
+            const lista = (typeof imoveis !== 'undefined' && Array.isArray(imoveis)) ? imoveis.filter(i => !i.finalidadeUsoCadastrada) : [];
+            const nomes = lista.map(i => i.nomeExibicao || [i.enderecoRua, i.enderecoNum].filter(Boolean).join(', ') || i.empreendimento).filter(Boolean);
+            if (!nomes.length) return `${qtd} ${qtd > 1 ? 'imóveis' : 'imóvel'}`;
+            return nomes.length === 1 ? nomes[0] : `${nomes[0]} e mais ${nomes.length - 1}`;
+        }
+
         // v1.258.0 — nome curto do índice ("IPCA — variação mensal" → "IPCA") e mês "08/2026".
         function rzNomeIndicador(row) { return String(row.titulo || row.detalhe?.codigo || 'Índice').split(' — ')[0]; }
         function rzMesAnoIndicador(comp) { const m = /^(\d{4})-(\d{2})/.exec(comp || ''); return m ? `${m[2]}/${m[1]}` : ''; }
@@ -11639,6 +11648,8 @@
             // sinal_fiscal: a coluna `titulo` já vem com a frase completa
             // do sinal (fn_leitura_tributaria_sinais.detalhe) — os demais
             // usam o nome da pessoa/ativo específico daquele alerta.
+            // v1.298.4 — imóvel sem finalidade: 2ª linha = o(s) imóvel(is), como os demais de cadastro.
+            if (row.tipo_alerta === 'sinal_fiscal' && row.detalhe?.sinal === 'imovel_sem_uso_cadastrado') return rzImoveisSemFinalidadeTexto(row.detalhe?.contagem || 0);
             if (row.tipo_alerta === 'sinal_fiscal') return row.titulo;
             // CORRIGIDO (13/09/2026, achado pelo Nicola: "pouca informação
             // do ativo, do item") — anexo_apolice_pendente mostrava só o
