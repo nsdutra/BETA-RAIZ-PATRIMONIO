@@ -1,6 +1,9 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.49.0 · 28/09/2026
+// Versão: 1.50.0 · 03/10/2026
+// CHANGELOG v1.50.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — combos de
+// Tipo do item de controle (#ic-tipo, novo item; #fic-ed-tipo, edição) ganham "Despesa".
+// O app usa ESTE markup (não o do cofre.html), por isso o novo item seguia sem a opção.
 // CHANGELOG v1.49.0 (demanda c0d255e3, retorno do piloto — "no botão de
 // cadastro novo imóvel... deixe claro que ele pode adicionar um
 // documento-IA ou cadastrar via tela") — #ativos-estado-vazio troca
@@ -451,7 +454,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.49.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.50.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -983,6 +986,7 @@ export const ATIVOS_MARKUP = `<style>
                 <option value="tributo">Tributo</option>
                 <option value="taxa">Taxa</option>
                 <option value="documento">Documento</option>
+                <option value="despesa">Despesa</option>
             </select>
             <select id="ic-subtipo" data-action-change="ic-subtipo-mudou" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
@@ -1088,6 +1092,7 @@ export const ATIVOS_MARKUP = `<style>
                     <option value="seguro">Seguro</option>
                     <option value="manutencao">Manutenção</option>
                     <option value="tributo">Tributo</option>
+                    <option value="despesa">Despesa</option>
                 </select>
             </div>
             <div>

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.41.0 · 28/09/2026
+// Versão: 1.42.0 · 03/10/2026
+//
+// v1.42.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — "Voltar ao ativo"
+// a partir de um item de controle caía no chip Resumo: voltarFichaItemControle já
+// trocava para o chip Controles, mas o listener de cofre:recarregar-eventos reabria a
+// ficha com o chip padrão. Agora a ficha é reaberta no chip que estava aberto.
+//
 //
 // v1.41.0 (demanda 1163097a, retorno do piloto) — dispatcher ganha os
 // cases 'fa-info-situacao-uso' e 'fa-info-destinacao' → ativos.
@@ -361,7 +367,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.41.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.42.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -976,7 +982,7 @@ window.addEventListener('cofre:recarregar-eventos', async () => {
     docs.montarHome();
     const telaAtual = document.querySelector('[data-screen]:not(.hidden)')?.dataset.screen;
     if (telaAtual === 'alertas') renderAlertas();
-    if (telaAtual === 'ficha-ativo' && estado.ativoEmFoco) ativos.abrirFichaAtivo(estado.ativoEmFoco.id);
+    if (telaAtual === 'ficha-ativo' && estado.ativoEmFoco) ativos.abrirFichaAtivo(estado.ativoEmFoco.id, document.querySelector('.fa-subtab.rz-on')?.dataset.faAba || 'resumo'); // v1.42.0 — mantém o chip aberto
     if (telaAtual === 'ficha-item-controle') controles.recarregarFichaItemControle();
 });
 

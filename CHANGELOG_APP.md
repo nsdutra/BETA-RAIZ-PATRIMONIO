@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.292.1) — complemento da F0.5 (demanda 4c7f2264, Nicola 03/10 21:28):
+o bloco Histórico sai do formulário de contrato (vive na ficha); bloco de fiadores e
+divisão de sócios na casca única (js/contratos.js 1.36.1 → 1.37.0).
+Versão anterior (Beta v1.292.0):
+------------------------------------------------------------------
+Versões anteriores (v1.292.0 … v1.292.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.292.0) — F0.5 do PLANO_UX_PWA_ATUAL v1.10.1 (demanda 4c7f2264,
 "estou de acordo" do Nicola em 03/10 19:35), regra UXR-31a: casca única de campo
 em todo formulário — 48 px, borda --line, raio 10, texto 16 px, foco --sprout,

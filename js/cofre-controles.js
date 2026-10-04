@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.39.0 · 03/10/2026
+// Versão: 1.40.0 · 03/10/2026
+//
+// v1.40.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) —
+//   teste 4: a data fim ia no FIM do subtítulo e o celular cortava ("Licença de
+//   software / ..."). Agora vem primeiro: "Até 15/08/2027 · Licença de software".
 //
 // v1.39.0 (demanda d3260b23, Ficha F1 — plano aprovado pelo Nicola em
 // 03/10/2026 21:37, sessão 20261003-2140-controles-despesa):
@@ -538,7 +542,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.39.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.40.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -793,9 +797,9 @@ function itemResumoHtml(item) {
     // v1.36.0 (demanda 854f6343) — quem paga vem do contrato vigente do imóvel
     // (trigger trg_contrato_sincroniza_encargos); só o locatário aparece na
     // lista — proprietário é o padrão e não precisa de texto.
-    const subtitulo = (item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))
-        + (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '')
-        + (item.data_fim ? ' · até ' + formatarDataBR(item.data_fim) : ''); // v1.39.0
+    const subtitulo = (item.data_fim ? 'Até ' + formatarDataBR(item.data_fim) + ' · ' : '') // v1.40.0 — data primeiro (não corta no celular)
+        + (item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))
+        + (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '');
     const iconeTipo = { seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check';
     if (item.ativo === false) { // v1.20.0 — encerrado: histórico visível, sem urgência
         return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
