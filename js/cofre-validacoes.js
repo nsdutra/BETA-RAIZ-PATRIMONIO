@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.3.0 · 03/10/2026
+// Versão: 2.4.0 · 04/10/2026
+//
+// v2.4.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) — rotuloTipoControle
+// lê primeiro o catálogo controle_tipos (definirCatalogoTiposControle, carregado pelo
+// cofre-controles.js); o mapa fixo fica só como reserva se o catálogo não carregar.
 //
 // v2.3.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — rotuloTipoControle
 // passa a conhecer taxa, documento e despesa (a ficha mostrava "despesa" cru, em minúsculas).
@@ -108,7 +112,7 @@
 // daqui, nunca o contrário.
 // ============================================================================
 
-export const VERSAO = '2.3.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.4.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -412,7 +416,12 @@ export function normalizarContexto(contextoBruto) {
 // ============================================================================
 // CONTROLES / OCORRÊNCIAS — rótulos puros (módulo de Alarmes, Fase 1 núcleo)
 // ============================================================================
+let rotulosTipoCatalogo = null; // v2.4.0 — preenchido pelo catálogo controle_tipos
+export function definirCatalogoTiposControle(lista) {
+    rotulosTipoCatalogo = Object.fromEntries((lista || []).map(x => [x.codigo, x.nome]));
+}
 export function rotuloTipoControle(t) {
+    if (rotulosTipoCatalogo && rotulosTipoCatalogo[t]) return rotulosTipoCatalogo[t];
     return { seguro: 'Seguro', manutencao: 'Manutenção', tributo: 'Tributo', taxa: 'Taxa', documento: 'Documento', despesa: 'Despesa' }[t] || t; // v2.3.0
 }
 

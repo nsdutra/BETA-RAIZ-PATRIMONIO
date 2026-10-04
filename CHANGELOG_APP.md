@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.297.3) — F0.2b do PLANO_UX (zero diálogo nativo nos módulos; UXR-30).
+Só import map: minutas 1.1.0 → 1.2.0, imoveis 1.6.1 → 1.7.0, vitrine 1.3.2 → 1.3.3,
+cadastros 1.0.1 → 1.0.2, cofre-controles 1.41.0 → 1.42.0, cofre-documentos 2.22.0 → 2.23.0,
+cofre-ativos 1.72.0 → 1.73.0, cofre-ui 1.5.0 → 1.6.0, cofre-api 1.46.0 → 1.47.0,
+comum-pessoas 1.202.0 → 1.203.0, comum-minha-empresa 1.8.0 → 1.9.0. "Desfazer" em
+desvincular documento, remover foto e tirar acesso de pessoa.
+Versão anterior (Beta v1.297.2):
+------------------------------------------------------------------
+Versões anteriores (v1.297.2 … v1.297.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.297.2) — testes da F0.2a (Nicola 04/10 00:52): excluir parte com vínculo
 passa a dizer QUAIS vínculos e oferece "Ver vínculos" (ficha da parte) em vez de só o
 número que o banco devolve. Import map: js/contratos.js 1.39.0 → 1.39.1 (Desfazer ao remover

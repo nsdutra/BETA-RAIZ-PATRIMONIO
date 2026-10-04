@@ -1,7 +1,12 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.30.1 · 04/10/2026
+// Versão: 1.31.0 · 04/10/2026
+//
+// v1.31.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) —
+// categorias de despesa vêm do catálogo lancamento_categorias (nome, ícone, ordem e
+// direção): lista do formulário de despesa (só saida/ambas), rótulo e ícone da lista de
+// Saídas. Os mapas fixos ficam como reserva se o catálogo não carregar.
 //
 // v1.30.1 (04/10/2026, demanda cad6ec67 — correção dos testes da P2):
 // (1) o card "Outras receitas" mostrava o título partido em duas colunas
@@ -840,7 +845,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.30.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.31.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1729,6 +1734,7 @@ function financeiroRenderCabecalho(aba) {
         export function renderSaidas() {
             const container = document.getElementById('lista-saidas');
             if (!container) return;
+            if (!catalogoCategoriasLanc) carregarCatalogoCategorias().then(c => { if (c) renderSaidas(); }); // v1.31.0 — 1ª carga redesenha com nome/ícone do catálogo
 
             popularFiltrosSaidas();
 
@@ -1812,7 +1818,7 @@ function financeiroRenderCabecalho(aba) {
                 const atrasada = estaAtrasadaDespesa(d);
                 const pago = d.status === 'realizado';
                 const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
-                const ic = ICONE_POR_CATEGORIA_SAIDA[d.categoria] || 'circle-dollar-sign';
+                const ic = categoriaDoCatalogo(d.categoria)?.icone || ICONE_POR_CATEGORIA_SAIDA[d.categoria] || 'circle-dollar-sign'; // v1.31.0
                 const descricaoLimpa = limparRotuloConciliacao(d.descricao);
                 return `
                     <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
@@ -1827,7 +1833,30 @@ function financeiroRenderCabecalho(aba) {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
+        // v1.31.0 — catálogo de categorias (tabela lancamento_categorias, demanda 2923ff4d)
+        let catalogoCategoriasLanc = null;
+        let catalogoCategoriasCarregando = null;
+        export function carregarCatalogoCategorias() {
+            if (catalogoCategoriasLanc) return Promise.resolve(catalogoCategoriasLanc);
+            if (!catalogoCategoriasCarregando) {
+                catalogoCategoriasCarregando = (async () => {
+                    try {
+                        const { data, error } = await dbAuth.from('lancamento_categorias')
+                            .select('codigo,nome,direcao,categoria_pai,icone,ordem').eq('ativo', true).order('ordem');
+                        if (error) throw error;
+                        catalogoCategoriasLanc = data || [];
+                    } catch (err) { console.warn('[financeiro] catálogo de categorias:', err.message); }
+                    catalogoCategoriasCarregando = null;
+                    return catalogoCategoriasLanc;
+                })();
+            }
+            return catalogoCategoriasCarregando;
+        }
+        function categoriaDoCatalogo(v) { return (catalogoCategoriasLanc || []).find(c => c.codigo === v) || null; }
+
         export function rotuloCategoriaSaida(v) {
+            const doCatalogo = categoriaDoCatalogo(v); // v1.31.0
+            if (doCatalogo) return doCatalogo.nome;
             const mapa = { iptu: 'IPTU', condominio: 'Condomínio', manutencao: 'Manutenção', seguro: 'Seguro', taxa_adm: 'Taxa administrativa', tributo: 'Tributo', repasse_socio: 'Repasse a sócio', tecnologia_assinaturas: 'Tecnologia e assinaturas', reembolso: 'Reembolso', aluguel: 'Aluguel (repasse a terceiro)', outro: 'Outro' };
             return mapa[v] || v;
         }
@@ -1908,7 +1937,7 @@ function financeiroRenderCabecalho(aba) {
 
         export async function montarPopupDespesa(d, ativoPreSelecionadoId, sugestoes) {
             mostrarCarregamentoGlobal('Carregando...');
-            const [ativosOpts, partesOpts] = await Promise.all([carregarAtivosParaSelectSupabase(), carregarPartesParaSelectSupabase()]);
+            const [ativosOpts, partesOpts] = await Promise.all([carregarAtivosParaSelectSupabase(), carregarPartesParaSelectSupabase(), carregarCatalogoCategorias()]);
             esconderCarregamentoGlobal();
 
             document.getElementById('modal-campo-contrato')?.remove();
@@ -1927,7 +1956,13 @@ function financeiroRenderCabecalho(aba) {
             const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
                 `<option value="${p.id}" ${(p.id === d?.parteId || p.id === parteSugeridaUnica) ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
                 `<option value="__novo__">+ Novo fornecedor</option>`;
-            const optsCategorias = ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'tecnologia_assinaturas', 'outro']
+            // v1.31.0 — lista do catálogo (saida/ambas, na ordem do catálogo); a fixa é reserva
+            const categoriaAtualDesp = d?.categoria || sugestoes?.categoria || null;
+            const listaCategoriasDesp = catalogoCategoriasLanc?.length
+                ? catalogoCategoriasLanc.filter(c => c.direcao !== 'entrada' || c.codigo === categoriaAtualDesp).map(c => c.codigo)
+                : ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'tecnologia_assinaturas', 'outro'];
+            if (categoriaAtualDesp && !listaCategoriasDesp.includes(categoriaAtualDesp)) listaCategoriasDesp.push(categoriaAtualDesp);
+            const optsCategorias = listaCategoriasDesp
                 .map(v => `<option value="${v}" ${v === (d?.categoria || sugestoes?.categoria) ? 'selected' : ''}>${rotuloCategoriaSaida(v)}</option>`).join('');
             const optsFormaPagamento = ['pix', 'boleto', 'transferencia', 'dinheiro', 'outro']
                 .map(v => `<option value="${v}" ${v === d?.formaPagamento ? 'selected' : ''}>${v.charAt(0).toUpperCase() + v.slice(1)}</option>`).join('');

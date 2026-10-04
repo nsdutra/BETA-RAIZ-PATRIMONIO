@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.42.0 · 04/10/2026
+// Versão: 1.43.0 · 04/10/2026
+//
+// v1.43.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) —
+//   1) combos de Tipo (#ic-tipo novo item, #fic-ed-tipo edição) montados a partir do
+//      catálogo controle_tipos (só selecionavel_app; o tipo do próprio item sempre entra).
+//      O markup fixo do HTML fica só como reserva se o catálogo não carregar.
+//   2) "Lançar despesa" a partir do item pede a categoria ao banco
+//      (fn_categoria_lancamento_do_item: subtipo › tipo › outro) — a mesma que a
+//      ocorrência usa. Taxa/condomínio deixa de abrir como "tributo".
 //
 // v1.42.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 7 confirm() viram perguntar() do cofre-ui
 // (Sheet; destrutivo com item vermelho). Desvincular documento do item não pergunta mais e
@@ -553,7 +561,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.42.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.43.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -564,6 +572,7 @@ import {
     rotuloTipoControle, rotuloStatusOcorrencia, rotuloFrequencia, rotuloTipoAtivo, iconeAtivo,
     numeroWhatsAppComDDI,
     inicializarCatalogoTiposAtivo, listarTiposPorCategoria,
+    definirCatalogoTiposControle,
 } from './cofre-validacoes.js';
 // v1.31.0 (demanda be42b19f, "componente único de Parte") — Ficha e
 // formulário de uma Parte passam a montar seus campos com o MESMO
@@ -1057,7 +1066,28 @@ export async function salvarPartesItemAtual() {
 // (2+ partes, não dá pra adivinhar qual delas).
 // v1.20.3 (E1) — `taxa` cai em despesa de tributo (condomínio, marina, TUF);
 // `documento` não gera despesa e continua caindo no fallback 'outro'.
-const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manutencao', tributo: 'tributo', taxa: 'tributo', despesa: 'tecnologia_assinaturas' };
+// v1.43.0 — reserva, só se a chamada ao banco falhar; alinhada à fn_categoria_lancamento_do_item.
+const CATEGORIA_DESPESA_POR_TIPO_ITEM = { seguro: 'seguro', manutencao: 'manutencao', tributo: 'tributo', despesa: 'tecnologia_assinaturas' };
+
+// v1.43.0 — catálogo de tipos de item (tabela controle_tipos, demanda 2923ff4d).
+let catalogoTiposControle = null;
+async function carregarCatalogoTiposControle() {
+    if (catalogoTiposControle) return catalogoTiposControle;
+    try {
+        const { data, error } = await api.dbAuth.from('controle_tipos')
+            .select('codigo,nome,ordem,selecionavel_app,categoria_lancamento_padrao').eq('ativo', true).order('ordem');
+        if (error) throw error;
+        catalogoTiposControle = data || [];
+        definirCatalogoTiposControle(catalogoTiposControle);
+    } catch (err) { console.warn('[controles] catálogo de tipos:', err.message); catalogoTiposControle = null; }
+    return catalogoTiposControle;
+}
+function popularComboTipoControle(selectId, tipoAtual) {
+    const sel = document.getElementById(selectId);
+    if (!sel || !catalogoTiposControle?.length) return; // sem catálogo, fica o markup de reserva
+    const lista = catalogoTiposControle.filter(t => t.selecionavel_app || t.codigo === tipoAtual);
+    sel.innerHTML = lista.map(t => `<option value="${escapeHtml(t.codigo)}">${escapeHtml(t.nome)}</option>`).join('');
+}
 
 export async function abrirNovoLancamentoDoItem() {
     const item = itemEmFoco;
@@ -1067,10 +1097,14 @@ export async function abrirNovoLancamentoDoItem() {
         return;
     }
     const partes = await api.buscarPartesDoItemControle(item.id);
+    let categoriaDoItem = null; // v1.43.0 — mesma regra da ocorrência (banco)
+    try { const { data } = await api.dbAuth.rpc('fn_categoria_lancamento_do_item', { p_item: item.id }); categoriaDoItem = data || null; }
+    catch (err) { console.warn('[controles] categoria do item:', err.message); }
+    categoriaDoItem = categoriaDoItem || CATEGORIA_DESPESA_POR_TIPO_ITEM[item.tipo] || 'outro';
     window.switchTab('tab-saidas');
     window.abrirNovaDespesa(item.ativo_id || null, {
         descricao: item.titulo,
-        categoria: CATEGORIA_DESPESA_POR_TIPO_ITEM[item.tipo] || 'outro',
+        categoria: categoriaDoItem,
         partes: partes.map(p => ({ parte_id: p.parte_id, nome: p.nome }))
     });
 }
@@ -1597,6 +1631,8 @@ export async function abrirEditarItem() {
         try { subtiposCache = await api.listarSubtiposControle(estado.clienteId); }
         catch (err) { console.warn('[controles] catálogo de subtipos:', err.message); }
     }
+    await carregarCatalogoTiposControle(); // v1.43.0
+    popularComboTipoControle('fic-ed-tipo', item.tipo);
     const selTipoEd = document.getElementById('fic-ed-tipo');
     // v1.39.0 — o tipo do próprio item nunca some do combo (despesa abria em branco).
     if (selTipoEd && item.tipo && !Array.from(selTipoEd.options).some(o => o.value === item.tipo)) {
@@ -1982,6 +2018,8 @@ if (!window.__rzListenerEscritaControleLigado) {
 // CRIAR ITEM DE CONTROLE (formulário na ficha do ativo)
 // ============================================================================
 export async function abrirFormControle() {
+    await carregarCatalogoTiposControle(); // v1.43.0
+    popularComboTipoControle('ic-tipo', null);
     if (!subtiposCache) {
         try { subtiposCache = await api.listarSubtiposControle(estado.clienteId); }
         catch (err) { mostrarToast('Erro ao carregar catálogo: ' + err.message, 'erro'); return; }
