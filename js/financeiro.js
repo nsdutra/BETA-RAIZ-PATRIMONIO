@@ -1,7 +1,28 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.28.0 · 03/10/2026
+// Versão: 1.29.0 · 03/10/2026
+//
+// v1.29.0 (03/10/2026, sessão 20261003-2345-financeiro, demanda 4a369778 —
+// P1b da ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0; "Siga em frente", Nicola 23:38):
+//   · DISTRIBUIÇÃO (tab-socios) remodelada e com número do banco
+//     (fn_apurar_distribuicao): chips Mês/Ano, 4 KPIs (cotas recebidas,
+//     despesas, retirado, saldo a retirar), lista por sócio com saldo, ficha
+//     do sócio (líquido apurado na ordem do demonstrativo, retiradas,
+//     compartilhar resumo), "Lançar retirada" em .rz-f gravando em repasses
+//     por pessoa_id, excluir com rzConfirmar. Paridade das cotas com o cálculo
+//     antigo conferida (Rumo jul/2026, 4 sócios, centavo a centavo); o saldo
+//     passa a descontar a cota das despesas do imóvel (antes não descontava).
+//   · RECEITA AVULSA: "Adicionar recebimento" pergunta De um contrato | Sem
+//     contrato; sem contrato grava lançamento de entrada; card "Outras
+//     receitas" em Recebimentos (inclui licenças), fora dos 4 KPIs.
+//   · ORIGEM DA SAÍDA: ⋮ da despesa mostra "Origem: <item>" e abre a ficha do
+//     item de controle; sem ativo, a linha diz "da empresa".
+//   · RF-05: multa/juros da baixa também em mensalidades.multa_encargos.
+//   · RF-09: nome e categoria das regras de conciliação vêm de
+//     conciliacao_regras (listas fixas NOME_REGRA_CONC/CATEGORIA_POR_REGRA_CONC saíram).
+//   · "Ver comprovante" abre pelo adaptador (rzDev('abrirExterno')).
+// Versão anterior: 1.28.0.
 //
 // v1.28.0 (03/10/2026, sessão 20261003-2250-financeiro, demanda 94245176 —
 // ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0 §5 P1a, decisões D24–D26 do
@@ -802,7 +823,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.28.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.29.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -810,7 +831,7 @@ export const VERSAO = '1.28.0'; // v-check: lido por ⚙️ › Conta › Versõ
 // interno registrado em montarAbaFinanceiro(), logo abaixo.
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 // v1.28.0 (UXR-30, D25) — substitutos dos diálogos nativos (js/raiz-ui.js 1.0.0).
-import { rzToast, rzConfirmar, rzAviso } from './raiz-ui.js';
+import { rzToast, rzConfirmar, rzAviso, rzEscolher } from './raiz-ui.js';
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -828,14 +849,16 @@ export function montarAbaFinanceiro(tabId) {
     if (!window.__rzListenerEscritaFinanceiroLigado) {
         window.__rzListenerEscritaFinanceiroLigado = true;
         aoEscrever('*', (detalhe) => {
-            if (!['despesa', 'mensalidade', 'conciliacao', 'recibo'].includes(detalhe.entidade)) return;
-            if (document.getElementById('tab-mensal')?.classList.contains('active')) { financeiroRenderCabecalho('mensal'); renderMensalidades(); }
+            if (!['despesa', 'mensalidade', 'conciliacao', 'recibo', 'receita', 'repasse'].includes(detalhe.entidade)) return;
+            if (document.getElementById('tab-socios')?.classList.contains('active')) { if (detalhe.entidade !== 'repasse') renderDistribuicao(); return; } // v1.29.0 — a própria tela já recarrega depois de lançar/excluir retirada
+            if (document.getElementById('tab-mensal')?.classList.contains('active')) { financeiroRenderCabecalho('mensal'); renderMensalidades(); renderOutrasReceitas(); }
             else if (document.getElementById('tab-inadimplencia')?.classList.contains('active')) { renderInadimplencia(); }
             else if (document.getElementById('tab-saidas')?.classList.contains('active')) { financeiroRenderCabecalho('saidas'); renderSaidas(); }
             else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) { financeiroRenderCabecalho('conciliacao'); carregarConciliacaoUnificada(); }
         });
     }
-    if (tabId === 'tab-mensal') { financeiroRenderCabecalho('mensal'); renderMensalidades(); }
+    if (tabId === 'tab-mensal') { financeiroRenderCabecalho('mensal'); renderMensalidades(); renderOutrasReceitas(); }
+    else if (tabId === 'tab-socios') { renderDistribuicao(); } // v1.29.0 — Distribuição (P1b)
     else if (tabId === 'tab-inadimplencia') { renderInadimplencia(); }
     else if (tabId === 'tab-saidas') { financeiroRenderCabecalho('saidas'); renderSaidas(); }
     // v1.178.2 — Etapa 7/8 + retirada do painel de Pendências legado:
@@ -921,11 +944,13 @@ function financeiroCompetenciaLabel(iso) {
 export function financeiroMudarCompetencia(delta) {
     if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
     const [ano, mes] = financeiroCompetenciaAtual.split('-').map(Number);
-    const d = new Date(ano, (mes - 1) + delta, 1);
+    const passo = (document.getElementById('tab-socios')?.classList.contains('active') && distribModo === 'ano') ? delta * 12 : delta; // v1.29.0 — Distribuição no modo Ano anda de ano em ano
+    const d = new Date(ano, (mes - 1) + passo, 1);
     financeiroDefinirCompetencia(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
     if (document.getElementById('tab-mensal')?.classList.contains('active')) montarAbaFinanceiro('tab-mensal');
     else if (document.getElementById('tab-saidas')?.classList.contains('active')) montarAbaFinanceiro('tab-saidas');
     else if (document.getElementById('tab-conciliacao')?.classList.contains('active')) montarAbaFinanceiro('tab-conciliacao');
+    else if (document.getElementById('tab-socios')?.classList.contains('active')) montarAbaFinanceiro('tab-socios');
 }
 
 /** Seletor de nível Recebimentos · Saídas · Fechamento — 1 cópia por aba
@@ -1141,7 +1166,7 @@ export function abrirLancarFinanceiro(aba) {
     const acoes = [
         { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto — a Raiz IA concilia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
         { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto ou nota — a Raiz IA classifica e vincula', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
-        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Competência fechada — reabra para lançar' : 'Recebimento avulso de um contrato', aoTocar: () => fechada ? avisoFechada() : abrirNovoRecebimento() },
+        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Competência fechada — reabra para lançar' : 'De um contrato ou sem contrato', aoTocar: () => fechada ? avisoFechada() : abrirAdicionarRecebimento() },
         { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Competência fechada — reabra para lançar' : 'Despesa, tributo, manutenção', aoTocar: () => fechada ? avisoFechada() : abrirNovaDespesa() },
     ];
     if (aba === 'conciliacao') {
@@ -1553,6 +1578,24 @@ function financeiroRenderCabecalho(aba) {
         // Recebimentos já tinha) — Ver detalhe/Dar baixa continuam abrindo
         // o formulário de sempre (despesa não tem baixa "leve" separada
         // como mensalidade tem).
+        // v1.29.0 (RF-18.22/18.25, parte Financeiro — demanda 4a369778) — de
+        // onde a despesa veio: quando nasceu de uma ocorrência de item de
+        // controle (origem_tipo='ocorrencia_controle'), devolve o item, a data
+        // da ocorrência e o vínculo (ativo ou "da empresa") para o ⋮ mostrar
+        // e abrir a ficha do item (ponte abrirAlertaItemControle do index).
+        async function origemDaDespesa(d) {
+            if (d.origemTipo !== 'ocorrencia_controle' || !d.origemId) return null;
+            try {
+                const { data, error } = await dbAuth.from('cofre_ocorrencias_controle')
+                    .select('id, competencia, data_prevista_atual, item_controle_id, cofre_itens_controle(id, titulo, ativo_id, contrato_id, empresa_id)')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', d.origemId).maybeSingle();
+                if (error || !data) return null;
+                const item = data.cofre_itens_controle || {};
+                return { itemId: item.id || data.item_controle_id, ativoId: item.ativo_id || null, titulo: item.titulo || 'Item de controle',
+                         data: data.data_prevista_atual || data.competencia, daEmpresa: !item.ativo_id && !item.contrato_id };
+            } catch (e) { console.warn('[financeiro] origem da despesa:', e.message); return null; }
+        }
+
         // v1.27.3 — comprovante guardado no Cofre da empresa para a despesa da licença.
         async function comprovanteDaDespesa(d) {
             if (d.origemTipo !== 'licenca' || !d.origemId) return null;
@@ -1569,7 +1612,11 @@ function financeiroRenderCabecalho(aba) {
 
         export async function rzAcoesDespesa(id) {
             const d = lancamentos.find(x => x.id === id); if (!d || typeof abrirSheetAcoes !== 'function') return;
-            const urlComprovante = await comprovanteDaDespesa(d);
+            const [urlComprovante, origem] = await Promise.all([comprovanteDaDespesa(d), origemDaDespesa(d)]);
+            // v1.29.0 (RF-18.22) — 1ª ação mostra de onde a despesa veio e abre o item.
+            const acaoOrigem = origem ? [{ icone: 'link-2', titulo: `Origem: ${origem.titulo}`,
+                sub: `Ocorrência de ${formatarDataBR(origem.data)}${origem.daEmpresa ? ' · da empresa' : ''}`,
+                aoTocar: () => { if (typeof abrirAlertaItemControle === 'function') abrirAlertaItemControle(origem.itemId, origem.ativoId); } }] : [];
             // v1.10.0 (18/09/2026, rodada 10 — achado do Nicola: "continua
             // muito texto na frente da data" na linha de Saídas) — a linha
             // da lista virou só descrição + data nua (ver renderSaidas()
@@ -1577,12 +1624,14 @@ function financeiroRenderCabecalho(aba) {
             // linha, entram aqui no sub do sheet de ações (ao tocar no
             // item), que é onde o Nicola pediu pra aparecerem agora
             // ("ao clicar no item, aí sim deve aparecer maiores informações").
-            const sub = `${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ''}${d.reembolsavel ? ' · reembolsável' : ''}`;
+            // v1.29.0 (RF-18.25) — vínculo à vista: sem ativo, diz "da empresa".
+            const sub = `${rotuloCategoriaSaida(d.categoria)}${d.parteNome ? ' · ' + escapeHtmlSaidas(d.parteNome) : ''}${d.ativoNome ? ' · ' + escapeHtmlSaidas(d.ativoNome) : ' · da empresa'}${d.reembolsavel ? ' · reembolsável' : ''}`;
             if (d.status === 'realizado') {
                 const acoesRealizado = [
+                    ...acaoOrigem,
                     { icone: 'eye', titulo: 'Ver detalhe', aoTocar: () => abrirEditarDespesa(id) },
                 ];
-                if (urlComprovante) acoesRealizado.push({ icone: 'file-check-2', titulo: 'Ver comprovante', sub: 'Comprovante do Pix guardado no Cofre', aoTocar: () => window.open(urlComprovante, '_blank', 'noopener') });
+                if (urlComprovante) acoesRealizado.push({ icone: 'file-check-2', titulo: 'Ver comprovante', sub: 'Comprovante do Pix guardado no Cofre', aoTocar: () => rzDev('abrirExterno', urlComprovante) });
                 // CORRIGIDO v1.15.0 — mesma regra de rzAcoesMensalidade
                 // acima (REGRAS §11.1: competência fechada só permite ver
                 // detalhes, nunca alterar).
@@ -1611,6 +1660,7 @@ function financeiroRenderCabecalho(aba) {
                 return;
             }
             abrirSheetAcoes({ titulo: estaAtrasadaDespesa(d) ? 'Em atraso' : 'A pagar', sub, acoes: [
+                ...acaoOrigem,
                 { icone: 'check', titulo: 'Dar baixa / editar', sub: 'Abre o formulário completo', aoTocar: () => abrirEditarDespesa(id) },
                 { icone: 'trash-2', titulo: 'Excluir despesa', tipo: 'bad', aoTocar: () => excluirDespesa(id) },
             ] });
@@ -2491,6 +2541,9 @@ function financeiroRenderCabecalho(aba) {
             mensalidades[idx].valorEnergia = valorEnergiaManual;
             mensalidades[idx].valorIptu = valorIptuManual;
             mensalidades[idx].valorCondominio = valorCondominioManual;
+            // v1.29.0 (RF-05, d11a092e) — multa/juros também na coluna própria
+            // (mensalidades.multa_encargos); o texto do recibo continua igual.
+            mensalidades[idx].multaEncargos = valorMulta > 0 ? valorMulta : null;
             // v1.24.0 (demanda d92a6dfc) — grava bruto/taxa junto com o
             // líquido; marca como não-mais-estimado (o usuário confirmou os
             // 3 valores na hora da baixa).
@@ -2546,6 +2599,7 @@ function financeiroRenderCabecalho(aba) {
                 mensalidades[idx].banco = '-';
 
                 mensalidades[idx].chaveTransacaoOrigem = '';
+                mensalidades[idx].multaEncargos = null; // v1.29.0 (RF-05) — estorno zera a multa da baixa
 
                 const con = contratos.find(c => c.id === mensalidades[idx].contratoId);
 
@@ -3330,6 +3384,7 @@ function financeiroRenderCabecalho(aba) {
             const lista = document.getElementById('conc-uni-lista');
             if (!lista) return;
             lista.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
+            await carregarRegrasConciliacao(); // v1.29.0 (RF-09)
             try {
                 const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
                 const [ano, mes] = comp.split('-').map(Number);
@@ -3449,8 +3504,35 @@ function financeiroRenderCabecalho(aba) {
         // regra_codigo preenchido), não um valor de status_conciliacao
         // direto — cobre tanto o motor novo quanto R03/R06 (motor atual +
         // espelho, Etapa 3), que também gravam regra_codigo.
-        const CATEGORIA_POR_REGRA_CONC = { R08: 'condominio', R09: 'tributo', R10: 'outro', R13: 'seguro', R14: 'manutencao', R15: 'taxa_adm' };
-        const NOME_REGRA_CONC = { R01: 'rendimento', R02: 'tarifa', R03: 'aluguel', R04: 'repasse de imobiliária', R05: 'valor divergente', R06: 'retirada de sócio', R07: 'saída prevista', R08: 'condomínio', R09: 'tributo', R10: 'honorários do contador', R12: 'memória do cliente', R13: 'seguro', R14: 'manutenção', R15: 'taxa de administração', CT01: 'certeza total', CT02: 'certeza total' };
+        // v1.29.0 (RF-09, demanda 4a369778, d9937a2b) — nome e categoria das
+        // regras deixam de ser listas fixas aqui: vêm de conciliacao_regras
+        // (CAN-03). Nome = coluna `nome` (a da empresa vence a da plataforma);
+        // categoria sugerida = acao_params.categoria (preenchido nas regras
+        // R08/R09/R10/R13/R14/R15 da plataforma, migration
+        // conciliacao_regras_categoria_param). Antes de carregar, mostra o código.
+        let regrasConcCache = null;
+        async function carregarRegrasConciliacao() {
+            if (regrasConcCache) return regrasConcCache;
+            const mapa = {};
+            try {
+                const { data, error } = await dbAuth.from('conciliacao_regras')
+                    .select('codigo, nome, acao_params, cliente_id, versao').eq('ativa', true)
+                    .or(`cliente_id.is.null,cliente_id.eq.${CLIENTE_ID_SUPABASE}`);
+                if (error) throw error;
+                (data || []).sort((a, b) => (a.cliente_id ? 1 : 0) - (b.cliente_id ? 1 : 0) || (a.versao || 0) - (b.versao || 0)).forEach(r => {
+                    const atual = mapa[r.codigo] || {};
+                    mapa[r.codigo] = { nome: r.nome || atual.nome, categoria: r.acao_params?.categoria || atual.categoria || null };
+                });
+                regrasConcCache = mapa;
+            } catch (e) { console.warn('[financeiro] regras de conciliação:', e.message); }
+            return mapa;
+        }
+        const CERTEZA_TOTAL = { CT01: 'Certeza total', CT02: 'Certeza total' };
+        function nomeRegraConc(codigo) {
+            if (!codigo) return '';
+            return regrasConcCache?.[codigo]?.nome || CERTEZA_TOTAL[codigo] || codigo;
+        }
+        function categoriaRegraConc(codigo) { return regrasConcCache?.[codigo]?.categoria || 'outro'; }
 
         // v1.6.3 — Etapa 8, achado do Nicola: razão social de saída/entrada
         // vem do banco já com o tipo de transação embutido na frente
@@ -3506,7 +3588,7 @@ function financeiroRenderCabecalho(aba) {
             const valorSpan = `<b class="${entrada ? 'rz-in' : 'rz-out'}">${entrada ? '+' : '−'} ${valorFmt}</b>`;
 
             if (automatica) {
-                const nomeRegra = NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo;
+                const nomeRegra = nomeRegraConc(f.regra_codigo);
                 return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
                     <div class="rz-ic rz-ia"><svg data-lucide="sparkles"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Automático · ${escapeHtmlSaidas(nomeRegra)}</span></div>
@@ -3520,7 +3602,7 @@ function financeiroRenderCabecalho(aba) {
                 const semConfianca = confPct < 70 ? 'warn' : 'ia';
                 return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
                     <div class="rz-ic rz-${semConfianca}"><svg data-lucide="sparkles"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Parece: ${escapeHtmlSaidas(sug.detalhe || NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo)}</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Parece: ${escapeHtmlSaidas(sug.detalhe || nomeRegraConc(sug.regra_codigo))}</span></div>
                     <div class="rz-rt">${valorSpan}<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confPct}%</span></div>
                     <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
@@ -3607,7 +3689,7 @@ function financeiroRenderCabecalho(aba) {
                 titulo: limparRotuloConciliacao(f.razao_social),
                 sub: `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`,
                 acoes: [
-                    { icone: 'sparkles', tipo: 'ia', titulo: sug.detalhe || (NOME_REGRA_CONC[sug.regra_codigo] || sug.regra_codigo), sub: `Confiança: ${Math.round(sug.confianca || 0)}%`, aoTocar: () => confirmarSugestaoConciliacao(fingerprintId) },
+                    { icone: 'sparkles', tipo: 'ia', titulo: sug.detalhe || nomeRegraConc(sug.regra_codigo), sub: `Confiança: ${Math.round(sug.confianca || 0)}%`, aoTocar: () => confirmarSugestaoConciliacao(fingerprintId) },
                     { icone: 'search', titulo: entrada ? 'Buscar outro recebimento' : 'Buscar outra saída', aoTocar: () => abrirAcoesConciliacaoLinha(fingerprintId) },
                 ],
             });
@@ -3633,7 +3715,7 @@ function financeiroRenderCabecalho(aba) {
                 return confirmarVincularConciliacaoSaida(fingerprintId, sug.destino_id);
             }
             if (sug.acao === 'sugerir_categoria') {
-                const categoria = CATEGORIA_POR_REGRA_CONC[sug.regra_codigo] || 'outro';
+                const categoria = categoriaRegraConc(sug.regra_codigo);
                 // v1.178.9 — achado do Nicola: DARF/tributo sugerido como
                 // categoria genérica "tributo" — mas o texto do banco não
                 // carrega QUAL tributo (IRPJ/CSLL/PIS/COFINS/DAS/GPS...), a
@@ -3670,7 +3752,7 @@ function financeiroRenderCabecalho(aba) {
             // avulso na linha, agora é opção do menu, igual pendente/não
             // controlado.
             if (f.status_conciliacao === 'conciliado' && f.destino_id) {
-                const nomeRegra = f.regra_codigo ? (NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo) : null;
+                const nomeRegra = f.regra_codigo ? nomeRegraConc(f.regra_codigo) : null;
                 // v1.25.0 (demanda fb6576c1) — canal='bot' já é gravado pela Edge
                 // Function whatsapp-webhook mesmo quando a IA decide sozinha, sem
                 // regra do motor (regra_codigo null) — antes isso caía em "Manual".
@@ -3769,6 +3851,7 @@ function financeiroRenderCabecalho(aba) {
         // Saídas) — por isso busca o fingerprint fresco se não achar no
         // cache da Conciliação (as outras abas não carregam esse cache).
         async function abrirResumoConciliacao(fingerprintId) {
+            await carregarRegrasConciliacao(); // v1.29.0 (RF-09)
             let f = conciliacaoUniCache.find(x => x.id === fingerprintId);
             if (!f) {
                 mostrarCarregamentoGlobal('Carregando…');
@@ -3799,7 +3882,7 @@ function financeiroRenderCabecalho(aba) {
             // regras, mas grava canal='bot' igual). Rótulo próprio agora.
             const automaticoRegra = f.status_conciliacao === 'conciliado' && !!f.regra_codigo;
             const automaticoBot = f.status_conciliacao === 'conciliado' && !f.regra_codigo && f.canal === 'bot';
-            const modo = automaticoRegra ? `Automático (regra) · ${NOME_REGRA_CONC[f.regra_codigo] || f.regra_codigo}`
+            const modo = automaticoRegra ? `Automático (regra) · ${nomeRegraConc(f.regra_codigo)}`
                 : automaticoBot ? 'Automático (IA/WhatsApp)'
                 : (f.status_conciliacao === 'conciliado' || f.status_conciliacao === 'nao_controlado') ? 'Manual'
                 : 'Não registrado';
@@ -4815,3 +4898,391 @@ function financeiroRenderCabecalho(aba) {
             rzDev('whatsapp', '55' + celular, txt); // v1.28.0 (UXR-41) — pelo adaptador
 
         }
+
+// ============================================================================
+// v1.29.0 (03/10/2026, demanda 4a369778 — P1b da ESP_FINANCEIRO v2.3.0)
+// RECEITA AVULSA (RF-18.17, f2fffd26) e OUTRAS RECEITAS em Recebimentos.
+// "Adicionar recebimento" pergunta antes: De um contrato (o fluxo de sempre,
+// abrirNovoRecebimento) ou Sem contrato — que grava um lançamento de ENTRADA
+// em `lancamentos` (categoria 'outro' até a migration de vocabulário da F5,
+// D17; origem_tipo 'manual'). O card "Outras receitas" lista as entradas
+// sem contrato da competência (inclui as licenças registradas pelo Gestão).
+// Elas NÃO entram nos 4 KPIs de Recebimentos, que vêm de
+// fn_financeiro_totalizadores (só mensalidades) — o card diz isso; somar no
+// cliente é proibido (REGRAS §11) e mudar a função é ficha (P2).
+// ============================================================================
+export async function abrirAdicionarRecebimento() {
+    const v = await rzEscolher({ titulo: 'Adicionar recebimento', opcoes: [
+        { valor: 'contrato', icone: 'file-text', titulo: 'De um contrato', sub: 'Aluguel ou outro valor de um contrato ativo' },
+        { valor: 'avulso', icone: 'arrow-down-left', titulo: 'Sem contrato', sub: 'Juros, venda, reembolso, outra receita' },
+    ] });
+    if (v === 'contrato') abrirNovoRecebimento();
+    else if (v === 'avulso') abrirReceitaAvulsa();
+}
+
+export async function abrirReceitaAvulsa() {
+    if (typeof abrirSheetForm !== 'function') return;
+    let ativos = [];
+    try { ativos = (typeof carregarAtivosParaSelectSupabase === 'function') ? await carregarAtivosParaSelectSupabase() : []; } catch (e) { ativos = []; }
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const hoje = new Date().toISOString().slice(0, 10);
+    const optsAtivo = `<option value="">Nenhum — receita da empresa</option>` + ativos.map(a => `<option value="${a.id}">${esc(a.nome_exibicao)}</option>`).join('');
+    const corpo = `
+        <div class="rz-f"><label>Descrição <i>*</i></label><input type="text" id="rav-descricao" placeholder="Ex.: Juros da aplicação"></div>
+        <div class="rz-f2 rz-f2-curto">
+            <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" inputmode="decimal" id="rav-valor"></div>
+            <div class="rz-f"><label>Data <i>*</i></label><input type="date" id="rav-data" value="${hoje}"></div>
+        </div>
+        <div class="rz-f"><label>Situação</label>
+            <input type="hidden" id="rav-situacao" value="recebido">
+            <div class="rz-seg" id="rav-seg">
+                <button type="button" class="rz-on" data-v="recebido">Já recebido</button>
+                <button type="button" data-v="receber">A receber</button>
+            </div>
+        </div>
+        <div class="rz-f"><label>Ativo (opcional)</label><select id="rav-ativo">${optsAtivo}</select></div>`;
+    const sheet = abrirSheetForm({
+        titulo: 'Receita sem contrato', sub: 'Entra em Recebimentos › Outras receitas',
+        corpo, rotuloSalvar: 'Registrar receita',
+        aoSalvar: () => salvarReceitaAvulsa(),
+    });
+    sheet?.querySelectorAll('#rav-seg button').forEach(b => b.addEventListener('click', () => {
+        sheet.querySelectorAll('#rav-seg button').forEach(x => x.classList.toggle('rz-on', x === b));
+        sheet.querySelector('#rav-situacao').value = b.dataset.v;
+    }));
+}
+
+async function salvarReceitaAvulsa() {
+    const descricao = (document.getElementById('rav-descricao')?.value || '').trim();
+    const valor = parseFloat(document.getElementById('rav-valor')?.value);
+    const data = document.getElementById('rav-data')?.value;
+    const recebido = document.getElementById('rav-situacao')?.value !== 'receber';
+    const ativoId = document.getElementById('rav-ativo')?.value || null;
+    if (!descricao) { rzToast('Informe a descrição.', { tipo: 'danger' }); return false; }
+    if (!(valor > 0)) { rzToast('Informe um valor maior que zero.', { tipo: 'danger' }); return false; }
+    if (!data) { rzToast('Informe a data.', { tipo: 'danger' }); return false; }
+    const linha = {
+        cliente_id: CLIENTE_ID_SUPABASE, direcao: 'entrada', categoria: 'outro', descricao, valor,
+        competencia: data.slice(0, 8) + '01', vencimento: data, data_pagamento: recebido ? data : null,
+        status: recebido ? 'realizado' : 'previsto', ativo_id: ativoId, origem_tipo: 'manual', reembolsavel: false,
+    };
+    const { data: ins, error } = await dbAuth.from('lancamentos').insert(linha).select('id').single();
+    if (error) { rzToast('Não consegui registrar: ' + error.message, { tipo: 'danger' }); return false; }
+    if (typeof registrarLog === 'function') registrarLog('mensal.receita_avulsa', { lancamentoId: ins?.id, valor, recebido });
+    emitirEscrita('receita', { id: ins?.id, acao: 'criar' });
+    rzToast('Receita registrada');
+    if (document.getElementById('tab-mensal')?.classList.contains('active')) renderOutrasReceitas();
+    return true;
+}
+
+export async function renderOutrasReceitas() {
+    const alvo = document.getElementById('fin-outras-receitas');
+    if (!alvo) return;
+    const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    let linhas = [];
+    try {
+        const { data, error } = await dbAuth.from('lancamentos')
+            .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo')
+            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('direcao', 'entrada').eq('competencia', comp)
+            .order('vencimento', { ascending: true });
+        if (error) throw error;
+        linhas = data || [];
+    } catch (e) { console.warn('[financeiro] outras receitas:', e.message); alvo.innerHTML = ''; return; }
+    if (!linhas.length) { alvo.innerHTML = ''; return; }
+    window.__rzOutrasReceitas = linhas;
+    const st = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : esc(rot);
+    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Outras receitas</h3><span class="rz-sub">sem contrato · fora dos totais acima</span></div>` +
+        linhas.map(l => {
+            const recebido = l.status === 'realizado';
+            const origem = l.origem_tipo === 'licenca' ? 'Licença' : (l.origem_tipo === 'extrato' ? 'Extrato' : 'Manual');
+            const tocavel = l.origem_tipo === 'manual';
+            return `<div class="rz-row${tocavel ? ' rz-link' : ''}"${tocavel ? ` role="button" tabindex="0" onclick="rzAcoesReceitaAvulsa('${l.id}')"` : ''}>
+                <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
+                <div class="rz-tx"><b>${esc(l.descricao || 'Receita')}</b><span>${formatarDataBR(l.data_pagamento || l.vencimento)} · ${origem}</span></div>
+                <div class="rz-rt"><b class="rz-in">+${formatarMoedaBR(Number(l.valor || 0))}</b>${st(recebido ? 'ok' : 'run', recebido ? 'Recebido' : 'A receber')}</div>
+                ${tocavel ? '<svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>' : ''}
+            </div>`;
+        }).join('') + '</div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+export function rzAcoesReceitaAvulsa(id) {
+    const l = (window.__rzOutrasReceitas || []).find(x => x.id === id);
+    if (!l || typeof abrirSheetAcoes !== 'function') return;
+    const acoes = [];
+    if (l.status !== 'realizado') acoes.push({ icone: 'check', titulo: 'Marcar como recebida', sub: 'Usa a data de hoje', aoTocar: () => alterarReceitaAvulsa(id, 'receber') });
+    else acoes.push({ icone: 'undo-2', titulo: 'Voltar para a receber', aoTocar: () => alterarReceitaAvulsa(id, 'estornar') });
+    acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir receita', aoTocar: () => alterarReceitaAvulsa(id, 'excluir') });
+    abrirSheetAcoes({ titulo: l.descricao || 'Receita', sub: `${formatarMoedaBR(Number(l.valor || 0))} · sem contrato`, acoes });
+}
+
+async function alterarReceitaAvulsa(id, acao) {
+    let q;
+    if (acao === 'excluir') {
+        if (!await rzConfirmar({ titulo: 'Excluir receita', impacto: 'A receita sai de Outras receitas. Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Excluir receita' })) return;
+        q = dbAuth.from('lancamentos').delete();
+    } else if (acao === 'receber') {
+        q = dbAuth.from('lancamentos').update({ status: 'realizado', data_pagamento: new Date().toISOString().slice(0, 10) });
+    } else {
+        q = dbAuth.from('lancamentos').update({ status: 'previsto', data_pagamento: null });
+    }
+    const { error } = await q.eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', id).eq('origem_tipo', 'manual').eq('direcao', 'entrada');
+    if (error) { rzToast('Não consegui salvar: ' + error.message, { tipo: 'danger' }); return; }
+    if (typeof registrarLog === 'function') registrarLog('mensal.receita_avulsa', { lancamentoId: id, acao });
+    emitirEscrita('receita', { id, acao });
+    rzToast(acao === 'excluir' ? 'Receita excluída' : (acao === 'receber' ? 'Receita recebida' : 'Receita a receber'));
+    renderOutrasReceitas();
+}
+
+// ============================================================================
+// v1.29.0 (03/10/2026, demanda 4a369778 — P1b, RF-19.10 + RF-14/RF-19.8 sem
+// Premium) — DISTRIBUIÇÃO (tab-socios), 4ª opção do segmento do Financeiro.
+// O número vem do BANCO: fn_apurar_distribuicao(cliente, competência) — cota
+// de cada sócio nos recebimentos pagos pela divisão do contrato
+// (divisao_repasse_contrato; sem ela, a propriedade do ativo), menos a cota
+// das despesas do imóvel, menos as retiradas da competência. Antes a tela
+// somava no JS a partir da divisão do imóvel legado (calcularExtratoSocio),
+// sem descontar despesas — por isso o "saldo" pode mudar: agora é líquido.
+// Modo Ano soma as competências do ano (1 chamada por mês, em paralelo).
+// Retirada grava em `repasses` por pessoa_id (beneficiário externo, sem
+// pessoa cadastrada, não pode receber retirada — aparece com o motivo).
+// Vocabulário de tela: "retirada", "saldo a retirar"; "repasse" não aparece.
+// ============================================================================
+let distribModo = 'mes';      // 'mes' | 'ano'
+let distribBusca = '';
+let distribDados = null;      // { linhas: [...], retiradas: [...], periodo }
+
+function distribMeses() {
+    const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+    if (distribModo === 'mes') return [comp];
+    const ano = comp.slice(0, 4);
+    const hoje = financeiroCompetenciaHojeISO();
+    const out = [];
+    for (let m = 1; m <= 12; m++) {
+        const iso = `${ano}-${String(m).padStart(2, '0')}-01`;
+        if (iso > hoje) break;
+        out.push(iso);
+    }
+    return out.length ? out : [comp];
+}
+
+// REL-14/REL-16: negativo como "−R$ 1.234,56" e competência como "jul/2026".
+function moedaSinal(v) { const n = Number(v || 0); return n < -0.004 ? '−' + formatarMoedaBR(-n) : formatarMoedaBR(Math.abs(n) < 0.005 ? 0 : n); }
+function compCurta(iso) {
+    const m = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][parseInt(String(iso).slice(5, 7), 10) - 1];
+    return m ? `${m}/${String(iso).slice(0, 4)}` : String(iso || '');
+}
+
+function distribPeriodoRotulo() {
+    const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+    if (distribModo === 'ano') return comp.slice(0, 4);
+    const m = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][parseInt(comp.slice(5, 7), 10) - 1];
+    return `${m}/${comp.slice(0, 4)}`; // REL-16
+}
+
+async function distribCarregar() {
+    const meses = distribMeses();
+    const respostas = await Promise.all(meses.map(m => dbAuth.rpc('fn_apurar_distribuicao', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: m })));
+    const erro = respostas.find(r => r.error);
+    if (erro) throw erro.error;
+    const mapa = new Map();
+    respostas.forEach(r => (r.data || []).forEach(x => {
+        const chave = x.beneficiario_pessoa_id || ('ext:' + (x.beneficiario_nome_externo || x.nome_exibicao));
+        const a = mapa.get(chave) || { chave, pessoaId: x.beneficiario_pessoa_id || null, nome: x.nome_exibicao, entradas: 0, saidas: 0, liquido: 0, retirado: 0, saldo: 0 };
+        a.entradas += Number(x.entradas || 0); a.saidas += Number(x.saidas || 0); a.liquido += Number(x.liquido_apurado || 0);
+        a.retirado += Number(x.ja_repassado || 0); a.saldo += Number(x.saldo_pendente || 0);
+        mapa.set(chave, a);
+    }));
+    const { data: ret, error: errRet } = await dbAuth.from('repasses')
+        .select('id, pessoa_id, competencia, valor, data_real, pessoas(nome)')
+        .eq('cliente_id', CLIENTE_ID_SUPABASE).gte('competencia', meses[0]).lte('competencia', meses[meses.length - 1])
+        .order('data_real', { ascending: false });
+    if (errRet) throw errRet;
+    // retirada de quem não teve cota no período: a função não devolve a pessoa — entra com cota zero
+    (ret || []).forEach(r => {
+        if (mapa.has(r.pessoa_id)) return;
+        const a = { chave: r.pessoa_id, pessoaId: r.pessoa_id, nome: r.pessoas?.nome || 'Sócio', entradas: 0, saidas: 0, liquido: 0, retirado: 0, saldo: 0, soRetirada: true };
+        mapa.set(r.pessoa_id, a);
+    });
+    mapa.forEach(a => { if (a.soRetirada) { const v = (ret || []).filter(r => r.pessoa_id === a.pessoaId).reduce((t, r) => t + Number(r.valor || 0), 0); a.retirado = v; a.saldo = -v; } });
+    const linhas = [...mapa.values()].sort((a, b) => b.saldo - a.saldo || a.nome.localeCompare(b.nome));
+    distribDados = { linhas, retiradas: ret || [], periodo: distribPeriodoRotulo(), meses };
+}
+
+export async function renderDistribuicao() {
+    const corpo = document.getElementById('distrib-corpo');
+    if (!corpo) return;
+    if (!financeiroCompetenciaAtual) financeiroDefinirCompetencia(financeiroCompetenciaHojeISO());
+    const elLabel = document.getElementById('fin-competencia-label-socios');
+    if (elLabel) elLabel.textContent = distribModo === 'ano' ? financeiroCompetenciaAtual.slice(0, 4) : financeiroCompetenciaLabel(financeiroCompetenciaAtual);
+    corpo.innerHTML = `<p class="text-xs text-center py-3" style="color:var(--sage)">Carregando…</p>`;
+    try { await distribCarregar(); }
+    catch (e) {
+        console.error('[financeiro] distribuição', e);
+        corpo.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="alert-circle"></svg></div><p>Não consegui calcular a distribuição agora.</p></div></div>`;
+        return;
+    }
+    distribDesenhar();
+}
+
+function distribDesenhar() {
+    const corpo = document.getElementById('distrib-corpo');
+    if (!corpo || !distribDados) return;
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const st = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : esc(rot);
+    const { linhas, retiradas, periodo } = distribDados;
+    const soma = (k) => linhas.reduce((t, l) => t + l[k], 0); // soma de linhas já calculadas pelo banco — só agrega o que a função devolveu
+    const anoTxt = (financeiroCompetenciaAtual || '').slice(0, 4);
+    const chips = `<div class="rz-chips">
+        <button type="button" class="rz-chip${distribModo === 'mes' ? ' rz-on' : ''}" onclick="distribMudarModo('mes')">Mês</button>
+        <button type="button" class="rz-chip${distribModo === 'ano' ? ' rz-on' : ''}" onclick="distribMudarModo('ano')">Ano ${esc(anoTxt)}</button>
+    </div>`;
+    const kpis = `<div class="rz-kpis">
+        <div class="rz-kpi rz-in"><small>Cotas recebidas</small><b>${formatarMoedaBR(soma('entradas'))}</b></div>
+        <div class="rz-kpi"><small>(−) Despesas</small><b>${formatarMoedaBR(soma('saidas'))}</b></div>
+        <div class="rz-kpi"><small>Retirado</small><b>${formatarMoedaBR(soma('retirado'))}</b></div>
+        <div class="rz-kpi"><small>Saldo a retirar</small><b>${moedaSinal(soma('saldo'))}</b></div>
+    </div>`;
+    const filtro = distribBusca.trim().toLowerCase();
+    const visiveis = linhas.filter(l => !filtro || l.nome.toLowerCase().includes(filtro));
+    const statusSaldo = (l) => l.saldo > 0.004 ? st('run', `${formatarMoedaBR(l.saldo)} a retirar`)
+        : l.saldo < -0.004 ? st('warn', `${formatarMoedaBR(-l.saldo)} a mais`) : st('ok', 'Em dia');
+    const lista = visiveis.length
+        ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Por sócio</h3><span class="rz-sub">${esc(periodo)}</span></div>` +
+          visiveis.map(l => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="abrirFichaSocioDistribuicao('${esc(l.chave)}')">
+                <div class="rz-ic${l.pessoaId ? '' : ' rz-neu'}"><svg data-lucide="user"></svg></div>
+                <div class="rz-tx"><b>${esc(l.nome)}</b><span>Líquido ${moedaSinal(l.liquido)} · retirado ${formatarMoedaBR(l.retirado)}${l.pessoaId ? '' : ' · externo'}</span></div>
+                <div class="rz-rt">${statusSaldo(l)}</div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg>
+            </div>`).join('') + '</div>'
+        : `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="users"></svg></div><p>${filtro ? 'Nenhum sócio com esse nome.' : `Nenhuma cota apurada em ${esc(periodo)}. A cota nasce dos recebimentos pagos de contratos com divisão definida.`}</p></div></div>`;
+    const nomePorId = Object.fromEntries(linhas.filter(l => l.pessoaId).map(l => [l.pessoaId, l.nome]));
+    const ultimas = retiradas.length
+        ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Retiradas</h3><span class="rz-sub">${esc(periodo)}</span></div>` +
+          retiradas.slice(0, 20).map(r => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="rzAcoesRetirada('${r.id}')">
+                <div class="rz-ic"><svg data-lucide="arrow-up-right"></svg></div>
+                <div class="rz-tx"><b>${esc(r.pessoas?.nome || nomePorId[r.pessoa_id] || 'Sócio')}</b><span>${formatarDataBR(r.data_real || r.competencia)} · ref. ${esc(compCurta(r.competencia))}</span></div>
+                <div class="rz-rt"><b class="rz-out">−${formatarMoedaBR(Number(r.valor || 0))}</b></div>
+                <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
+            </div>`).join('') + '</div>'
+        : '';
+    corpo.innerHTML = chips + kpis + lista + ultimas;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+export function distribMudarModo(modo) { distribModo = modo === 'ano' ? 'ano' : 'mes'; renderDistribuicao(); }
+export function distribFiltrar(texto) { distribBusca = String(texto || ''); distribDesenhar(); }
+
+export function abrirLancarDistribuicao() {
+    if (typeof abrirSheetAcoes !== 'function') return;
+    abrirSheetAcoes({ titulo: 'Distribuição', sub: distribPeriodoRotulo(), acoes: [
+        { icone: 'arrow-up-right', titulo: 'Lançar retirada', codigo: 'repasses.registrar', sub: 'Valor que um sócio retirou da empresa', aoTocar: () => abrirLancarRetirada() },
+    ] });
+}
+
+export function abrirFichaSocioDistribuicao(chave) {
+    const l = distribDados?.linhas.find(x => x.chave === chave);
+    if (!l || typeof abrirSheet !== 'function') return;
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const ret = (distribDados.retiradas || []).filter(r => r.pessoa_id && r.pessoa_id === l.pessoaId);
+    const kv = (rot, val, forte) => `<div class="rz-full" style="display:flex;justify-content:space-between;gap:12px"><small>${esc(rot)}</small><b style="${forte ? 'font-weight:700' : 'font-weight:500'}">${moedaSinal(val)}</b></div>`;
+    const linhasRet = ret.length ? `<div class="rz-group">Retiradas</div><div class="rz-card rz-list">` + ret.map(r => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="arrow-up-right"></svg></div><div class="rz-tx"><b>${formatarDataBR(r.data_real || r.competencia)}</b><span>ref. ${esc(compCurta(r.competencia))}</span></div><div class="rz-rt"><b class="rz-out">−${formatarMoedaBR(Number(r.valor || 0))}</b></div></div>`).join('') + '</div>' : '';
+    const pode = (typeof podeUsar === 'function') ? podeUsar('repasses.registrar') : { ok: true };
+    const motivo = !l.pessoaId ? 'Beneficiário externo — cadastre a pessoa em Pessoas para lançar retirada' : (!pode.ok ? (pode.textoCurto || 'Sem permissão') : '');
+    const sheet = abrirSheet(rzSheetCabecalho(l.nome, `${distribDados.periodo} · visão competência`) + `<div class="rz-sh-b">
+        <div class="rz-card"><div class="rz-kv" style="grid-template-columns:1fr">
+            ${kv('Cotas recebidas', l.entradas)}${kv('(−) Despesas do imóvel', l.saidas)}${kv('(=) Líquido apurado', l.liquido, true)}${kv('(−) Retirado', l.retirado)}${kv('(=) Saldo a retirar', l.saldo, true)}
+        </div></div>${linhasRet}
+        ${motivo ? `<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">${esc(motivo)}</p>` : ''}
+        <button type="button" class="rz-act" data-rz-compartilhar><div class="rz-ic"><svg data-lucide="share"></svg></div><div>Compartilhar resumo<small>WhatsApp do sócio ou outro app</small></div></button>
+    </div><div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" data-rz-retirada ${motivo ? 'disabled' : ''}>Lançar retirada</button></div>`);
+    sheet.querySelector('[data-rz-retirada]')?.addEventListener('click', () => { fecharSheet(); abrirLancarRetirada(l.pessoaId, l.saldo); });
+    sheet.querySelector('[data-rz-compartilhar]')?.addEventListener('click', () => compartilharResumoSocio(l));
+}
+
+function compartilharResumoSocio(l) {
+    const p = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas.find(x => x.id === l.pessoaId) : null;
+    const txt = `Distribuição · ${l.nome} · ${distribDados.periodo}\n` +
+        `Cotas recebidas: ${formatarMoedaBR(l.entradas)}\n(−) Despesas do imóvel: ${formatarMoedaBR(l.saidas)}\n` +
+        `(=) Líquido apurado: ${moedaSinal(l.liquido)}\n(−) Retirado: ${formatarMoedaBR(l.retirado)}\n(=) Saldo a retirar: ${moedaSinal(l.saldo)}`;
+    const num = String(p?.whatsapp || '').replace(/\D/g, '');
+    if (num.length >= 10) rzDev('whatsapp', num.length <= 11 ? '55' + num : num, txt);
+    else rzDev('share', { titulo: `Distribuição · ${l.nome}`, texto: txt });
+}
+
+export function abrirLancarRetirada(pessoaIdPre, valorSugerido) {
+    if (typeof podeUsar === 'function' && !podeUsar('repasses.registrar').ok) { if (typeof rzMostrarBloqueio === 'function') rzMostrarBloqueio('repasses.registrar'); return; }
+    if (typeof abrirSheetForm !== 'function') return;
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const candidatos = new Map();
+    (distribDados?.linhas || []).filter(l => l.pessoaId).forEach(l => candidatos.set(l.pessoaId, l.nome));
+    if (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) pessoas.filter(p => Number(p.percentualCotasEmpresa) > 0).forEach(p => { if (!candidatos.has(p.id)) candidatos.set(p.id, p.nome); });
+    if (!candidatos.size) { rzToast('Nenhum sócio cadastrado. Cadastre em Pessoas, com o percentual de cotas.', { tipo: 'info' }); return; }
+    const optsSocio = [...candidatos.entries()].sort((a, b) => a[1].localeCompare(b[1]))
+        .map(([id, nome]) => `<option value="${id}" ${id === pessoaIdPre ? 'selected' : ''}>${esc(nome)}</option>`).join('');
+    const base = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
+    const comps = [];
+    for (let i = -12; i <= 1; i++) { const d = new Date(Number(base.slice(0, 4)), Number(base.slice(5, 7)) - 1 + i, 1); comps.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`); }
+    const optsComp = comps.reverse().map(c => `<option value="${c}" ${c === base ? 'selected' : ''}>${financeiroCompetenciaLabel(c)}</option>`).join('');
+    const hoje = new Date().toISOString().slice(0, 10);
+    const sug = Number(valorSugerido) > 0 ? String(Math.round(Number(valorSugerido) * 100) / 100) : '';
+    abrirSheetForm({
+        titulo: 'Lançar retirada', sub: 'Valor que o sócio retirou da empresa',
+        corpo: `
+            <div class="rz-f"><label>Sócio <i>*</i></label><select id="ret-pessoa">${optsSocio}</select></div>
+            <div class="rz-f"><label>Mês de referência <i>*</i></label><select id="ret-competencia">${optsComp}</select></div>
+            <div class="rz-f2 rz-f2-curto">
+                <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" inputmode="decimal" id="ret-valor" value="${sug}"></div>
+                <div class="rz-f"><label>Data da retirada <i>*</i></label><input type="date" id="ret-data" value="${hoje}"></div>
+            </div>`,
+        rotuloSalvar: 'Lançar retirada',
+        aoSalvar: () => salvarRetirada(),
+    });
+}
+
+async function salvarRetirada() {
+    const pessoaId = document.getElementById('ret-pessoa')?.value;
+    const competencia = document.getElementById('ret-competencia')?.value;
+    const valor = parseFloat(document.getElementById('ret-valor')?.value);
+    const dataReal = document.getElementById('ret-data')?.value;
+    if (!pessoaId || !competencia) { rzToast('Escolha o sócio e o mês.', { tipo: 'danger' }); return false; }
+    if (!(valor > 0)) { rzToast('Informe um valor maior que zero.', { tipo: 'danger' }); return false; }
+    if (!dataReal) { rzToast('Informe a data da retirada.', { tipo: 'danger' }); return false; }
+    const { data: ins, error } = await dbAuth.from('repasses')
+        .insert({ cliente_id: CLIENTE_ID_SUPABASE, pessoa_id: pessoaId, competencia, valor, data_real: dataReal }).select('id').single();
+    if (error) { rzToast('Não consegui lançar a retirada: ' + error.message, { tipo: 'danger' }); return false; }
+    // mantém a lista em memória do app (Resultados, PDF por sócio) igual ao banco
+    try {
+        const nome = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? (pessoas.find(p => p.id === pessoaId)?.nome || '') : '';
+        if (typeof repasses !== 'undefined' && Array.isArray(repasses)) {
+            repasses.push({ id: ins.id, socio: nome, mes: dataParaCompetencia(competencia), valor, dataReal: dataReal.split('-').reverse().join('/'), timestamp: Date.now() });
+        }
+    } catch (e) { /* lista em memória é conveniência */ }
+    if (typeof registrarLog === 'function') registrarLog('repasses.registrar', { repasseId: ins.id, pessoaId, competencia, valor });
+    emitirEscrita('repasse', { id: ins.id, acao: 'registrar' });
+    rzToast('Retirada lançada');
+    renderDistribuicao();
+    return true;
+}
+
+export function rzAcoesRetirada(id) {
+    const r = (distribDados?.retiradas || []).find(x => x.id === id);
+    if (!r || typeof abrirSheetAcoes !== 'function') return;
+    abrirSheetAcoes({ titulo: `Retirada · ${r.pessoas?.nome || 'Sócio'}`, sub: `${formatarMoedaBR(Number(r.valor || 0))} · ${formatarDataBR(r.data_real || r.competencia)}`, acoes: [
+        { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir retirada', codigo: 'repasses.excluir', aoTocar: () => excluirRetirada(id) },
+    ] });
+}
+
+async function excluirRetirada(id) {
+    const r = (distribDados?.retiradas || []).find(x => x.id === id);
+    if (!r) return;
+    if (!await rzConfirmar({ titulo: 'Excluir retirada', impacto: `${formatarMoedaBR(Number(r.valor || 0))} de ${r.pessoas?.nome || 'Sócio'} volta para o saldo a retirar.`, destrutivo: true, rotuloConfirmar: 'Excluir retirada' })) return;
+    const { error } = await dbAuth.from('repasses').delete().eq('cliente_id', CLIENTE_ID_SUPABASE).eq('id', id);
+    if (error) { rzToast('Não consegui excluir: ' + error.message, { tipo: 'danger' }); return; }
+    try { if (typeof repasses !== 'undefined' && Array.isArray(repasses)) { const i = repasses.findIndex(x => x.id === id); if (i !== -1) repasses.splice(i, 1); } } catch (e) { /* idem */ }
+    if (typeof registrarLog === 'function') registrarLog('repasses.excluir', { repasseId: id, valor: r.valor });
+    emitirEscrita('repasse', { id, acao: 'excluir' });
+    rzToast('Retirada excluída');
+    renderDistribuicao();
+}

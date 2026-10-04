@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.293.1) — teste 3 da F0.4 reprovado (Nicola 03/10 22:33: "no Android não
+vibrou ao salvar um ativo"). Causa: Ativos usava o toast próprio do Cofre. Só import map:
+js/cofre-ui.js 1.3.1 → 1.4.0 (o toast do Cofre delega ao toast único do app).
+Versão anterior (Beta v1.293.0):
+------------------------------------------------------------------
+Versões anteriores (v1.293.0 … v1.293.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.293.0) — F0.4 do PLANO_UX_PWA_ATUAL (demanda 717fc21d, "pode seguir"
 do Nicola 03/10 22:01), UXR-35/40/41/44: módulo NOVO js/raiz-device.js 1.0.0 (adaptador
 único — plataforma, haptic, abrirExterno, whatsapp, email, share, escolherArquivo, scan,
