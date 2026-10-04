@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.43.0 · 04/10/2026
+// Versão: 1.44.0 · 04/10/2026
+//
+// v1.44.0 (F1.1, teste 3 reprovado pelo Nicola 04/10 08:41, demanda c5d844a4, sessão 20261003-1707-ux-base) — editar item de controle: quando a
+// mudança afeta os alertas (início, fim, frequência ou direção), a pergunta vem ANTES de
+// salvar — "Salvar e regerar" / "Salvar e manter as atuais". Fechar sem escolher NÃO salva
+// nada e o formulário continua aberto (antes o item já estava gravado quando a pergunta
+// aparecia, e fechar não desfazia a alteração).
 //
 // v1.43.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) —
 //   1) combos de Tipo (#ic-tipo novo item, #fic-ed-tipo edição) montados a partir do
@@ -561,10 +567,10 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.43.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.44.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
+import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import { abrirUploadContextual } from './cofre-documentos.js';
 import {
@@ -1703,6 +1709,22 @@ export async function salvarEdicaoItem() {
     const mudouGeracaoAlertas = (freqIntervalo !== item.frequencia_intervalo) || (freqUnidade !== item.frequencia_unidade)
         || (dataFim !== (item.data_fim || null)) || (direcaoAlerta !== (item.direcao_alerta || 'inicio')) || (dataInicio !== item.data_base);
 
+    // v1.44.0 — a decisão sobre as ocorrências vem ANTES de gravar: fechar sem escolher
+    // não salva nada (o formulário continua aberto para ajustar ou desistir).
+    let regenerar = false;
+    if (mudouGeracaoAlertas) {
+        const escolha = await escolher({
+            titulo: 'Esta mudança afeta os alertas',
+            sub: 'Início, fim, frequência ou direção mudaram',
+            opcoes: [
+                { valor: 'regerar', titulo: 'Salvar e regerar', sub: 'Refaz as ocorrências futuras em aberto com a regra nova; as vencidas ficam', icone: 'refresh-cw' },
+                { valor: 'manter', titulo: 'Salvar e manter as atuais', sub: 'As ocorrências que já existem continuam como estão', icone: 'check' },
+            ],
+        });
+        if (escolha === null) { mostrarToast('Nada foi salvo. Ajuste ou feche o formulário.', 'aviso'); return; }
+        regenerar = escolha === 'regerar';
+    }
+
     try {
         const antes = { tipo: item.tipo, titulo: item.titulo, subtipo_id: item.subtipo_id, frequencia_intervalo: item.frequencia_intervalo, frequencia_unidade: item.frequencia_unidade, antecedencia_alerta_dias: item.antecedencia_alerta_dias, data_base: item.data_base, data_fim: item.data_fim, direcao_alerta: item.direcao_alerta };
         const depois = { tipo, titulo, subtipo_id: subtipoId, recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade, antecedencia_alerta_dias: antecedencia, data_base: dataInicio, data_fim: dataFim, direcao_alerta: direcaoAlerta,
@@ -1718,11 +1740,7 @@ export async function salvarEdicaoItem() {
             // as que já existem. confirm() nativo — mesmo padrão já
             // usado em excluirItemControleAtual/excluirAtivoAtual pra
             // decisões simples de sim/não.
-            const regenerar = await perguntar({
-                titulo: 'Regerar as ocorrências futuras?',
-                impacto: 'Você mudou algo que afeta os alertas deste item (data início, data fim, frequência ou direção). Regerar as ocorrências futuras em aberto com as regras novas? As já vencidas continuam como estão.',
-                rotuloConfirmar: 'Regerar', rotuloCancelar: 'Manter as atuais',
-            });
+            // v1.44.0 — a escolha (regerar ou manter) já foi feita antes de gravar
             if (regenerar) {
                 const hojeISO = new Date().toISOString().slice(0, 10);
                 await api.excluirOcorrenciasAbertasFuturasDoItem(item.id, hojeISO);

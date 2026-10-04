@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.297.4) — correção dos testes da P2 do Financeiro (Nicola 04/10 01:00).
+Só import map: js/financeiro.js 1.30.0 → 1.30.1 (card "Outras receitas" com o título numa
+linha só, sem a legenda partida à direita; rotina "Fechamento do mês" reverificada a cada
+entrada no Financeiro, sem precisar recarregar a página), js/fechamento.js 1.12.0 → 1.12.1
+(rotina "NFS-e da competência" reverificada no mesmo momento). No banco: fn_alertas_listar,
+fn_alertas_do_ativo e fn_alertas_resumo passam a VOLATILE — a autocura do cofre gravava
+dentro de uma leitura e o sino da Karin e da Albuquerque devolvia erro 405.
+Versão anterior (Beta v1.297.3):
+------------------------------------------------------------------
+Versões anteriores (v1.297.3 … v1.297.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.297.3) — F0.2b do PLANO_UX (zero diálogo nativo nos módulos; UXR-30).
 Só import map: minutas 1.1.0 → 1.2.0, imoveis 1.6.1 → 1.7.0, vitrine 1.3.2 → 1.3.3,
 cadastros 1.0.1 → 1.0.2, cofre-controles 1.41.0 → 1.42.0, cofre-documentos 2.22.0 → 2.23.0,

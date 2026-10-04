@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.6.0 · 04/10/2026
+// Versão: 1.7.0 · 04/10/2026
+//
+// v1.7.0 (F1.1, teste 3 reprovado pelo Nicola 04/10 08:41, demanda c5d844a4, sessão 20261003-1707-ux-base) — escolher(): escolha em lista (rzEscolher do
+// js/raiz-ui.js) para o Cofre; fechar sem escolher devolve null. No cofre.html avulso (sem
+// Sheet), com 2 opções, cai no confirm() do navegador (OK = 1ª, Cancelar = 2ª) — mesma
+// exceção única da UXR-30 já aceita para perguntar().
+//
+// Versão anterior: 1.6.0 · 04/10/2026
 //
 // v1.6.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo" do Nicola 04/10 00:22 e 01:03; UXR-29/30) — perguntar() e avisarComDesfazer(): confirmação e aviso sem
 // diálogo nativo para o Cofre e os módulos comum-* (que também rodam no cofre.html avulso).
@@ -52,7 +59,7 @@
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
-export const VERSAO = '1.6.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
 import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
 
 // v1.5.0 — aviso de erro dentro do formulário (UXR-29/35): texto + leitor de
@@ -75,6 +82,18 @@ export function perguntar(opcoes = {}) {
     if (w && typeof w.rzConfirmar === 'function' && typeof w.abrirSheet === 'function') return w.rzConfirmar(opcoes);
     const texto = [opcoes.titulo, opcoes.impacto].filter(Boolean).join('\n\n');
     return Promise.resolve(!!(w && w.confirm(texto))); // exceção UXR-30: cofre.html avulso
+}
+
+// v1.7.0 (F1.1) — escolha de 1 opção. { titulo, sub, opcoes: [{ valor, titulo, sub, icone }] }
+// → Promise<valor|null>; null = fechou sem escolher.
+export function escolher(opcoes = {}) {
+    const w = typeof window !== 'undefined' ? window : null;
+    if (w && typeof w.rzEscolher === 'function' && typeof w.abrirSheet === 'function') return w.rzEscolher(opcoes);
+    const lista = opcoes.opcoes || [];
+    if (!w || lista.length < 1) return Promise.resolve(null);
+    if (lista.length === 1) return Promise.resolve(lista[0].valor);
+    const texto = [opcoes.titulo, opcoes.sub, `OK = ${lista[0].titulo}\nCancelar = ${lista[1].titulo}`].filter(Boolean).join('\n\n');
+    return Promise.resolve(w.confirm(texto) ? lista[0].valor : lista[1].valor); // exceção UXR-30: cofre.html avulso
 }
 
 // v1.6.0 (F0.2b) — aviso de sucesso com "Desfazer" por 5 s (ação reversível:
