@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.293.0) — F0.4 do PLANO_UX_PWA_ATUAL (demanda 717fc21d, "pode seguir"
+do Nicola 03/10 22:01), UXR-35/40/41/44: módulo NOVO js/raiz-device.js 1.0.0 (adaptador
+único — plataforma, haptic, abrirExterno, whatsapp, email, share, escolherArquivo, scan,
+clipboard, localizacao, voz, notify, biometria; implementação web, pontos CAPACITOR
+marcados), carregado no boot como window.RaizDevice + ponte rzDev() segura; tokens de
+movimento --m-* (zerados com reduzir movimento) e de modo escuro (só com
+data-theme="dark" — ainda desligado); toast vibra no Android (sucesso/erro); WhatsApp do
+bot, do banner de contratação e do Suporte passam pelo adaptador. Links do Financeiro
+(recibo e resumo por e-mail) ficam para a etapa 6.
+Versão anterior (Beta v1.292.2):
+------------------------------------------------------------------
+Versões anteriores (v1.292.2 … v1.292.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.292.2) — F0.5c (demanda 4c7f2264, "de acordo" do Nicola 03/10 21:55),
 regra UXR-31b: em tela < 600 px todo formulário vira uma coluna (.rz-f2 e grids de 2
 colunas com campo); lado a lado só nos pares curtos marcados .rz-f2-curto — no contrato:

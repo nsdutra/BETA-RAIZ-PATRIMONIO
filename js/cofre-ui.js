@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.4.0 · 03/10/2026
+// Versão: 1.5.0 · 03/10/2026
+//
+// v1.5.0 (F0.4, demanda 717fc21d, sessão 20261003-1707-ux-base — teste 8
+// reprovado pelo Nicola: "salvar sem nome não mostrou toast nem vibrou").
+// Erro de validação de formulário é aviso NO PRÓPRIO FORMULÁRIO, não toast
+// (UXR-29); faltava o háptico de erro (UXR-35) e o anúncio ao leitor de tela.
+// Nova erroInline(el, msg): escreve o aviso, role="alert", vibra "error" pelo
+// adaptador (rzDev) e rola o aviso para a vista. Módulos migram para ela
+// quando forem tocados (UXR-02); primeiro uso: cofre-ativos.js 1.70.0.
 //
 // v1.4.0 (F0.4, demanda 717fc21d, sessão 20261003-1707-ux-base — teste 3
 // reprovado pelo Nicola: "no Android não vibrou ao editar e salvar um ativo").
@@ -37,8 +45,19 @@
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
-export const VERSAO = '1.4.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
 import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
+
+// v1.5.0 — aviso de erro dentro do formulário (UXR-29/35): texto + leitor de
+// tela + vibração de erro + rolagem até o aviso. Nunca lança.
+export function erroInline(el, msg) {
+    if (!el) return;
+    el.textContent = msg;
+    el.style.color = 'var(--danger)';
+    el.setAttribute('role', 'alert');
+    try { if (typeof window !== 'undefined' && typeof window.rzDev === 'function') window.rzDev('haptic', 'error'); } catch (_) {}
+    try { el.scrollIntoView({ block: 'nearest' }); } catch (_) {}
+}
 
 export function mostrarToast(msg, tipo) {
     // v1.4.0 — dentro do app principal, delega ao toast ÚNICO do index.html

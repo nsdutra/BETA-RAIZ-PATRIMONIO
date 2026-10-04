@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.69.0 · 01/10/2026
+// Versão: 1.70.0 · 03/10/2026
+//
+// v1.70.0 (F0.4, demanda 717fc21d, sessão 20261003-1707-ux-base — teste 8
+// reprovado pelo Nicola: salvar ativo sem nome mostrava o aviso mas não
+// vibrava). Os 5 avisos de erro de salvarAtivo() e da ficha passam por
+// erroInline() do cofre-ui.js 1.5.0: mesmo texto, mesmo lugar, agora com
+// vibração de erro, anúncio ao leitor de tela e rolagem até o aviso.
 //
 // v1.69.0 (demanda c0d255e3, teste abf1 reprovado pelo Nicola em 01/10/2026,
 // sessão 20261001-2335-contratos-rotulos) — o sheet "Itens de controle" do ativo
@@ -883,10 +889,10 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.69.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.70.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
+import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
@@ -1720,20 +1726,19 @@ export async function salvarAtivo() {
     const dadosEspecificos = lerCamposEstruturados(tipo, 'at-campo-', tipoDetalheId);
 
     const erros = validarCamposAtivo(tipo, nome, dadosEspecificos, tipoDetalheId);
-    if (erros.length) { statusEl.textContent = '⚠️ ' + erros[0]; statusEl.style.color = 'var(--danger)'; return; }
+    if (erros.length) { erroInline(statusEl, '⚠️ ' + erros[0]); return; }
 
     // v1.11.0 (NOVO, 02/09/2026) — mesma validação de soma=100% que o
     // chip Propriedade usa, agora também na criação (DB também valida
     // via trigger — dupla checagem, nunca confia só no cliente).
     const somaPropriedade = propriedadeSomaAtual();
     if (Math.round(somaPropriedade * 100) / 100 !== 100) {
-        statusEl.textContent = `⚠️ A soma da divisão societária precisa ser 100% (está em ${somaPropriedade}%).`;
-        statusEl.style.color = 'var(--danger)';
+        erroInline(statusEl, `⚠️ A soma da divisão societária precisa ser 100% (está em ${somaPropriedade}%).`);
         return;
     }
     for (const l of propriedadeLinhasEmEdicao) {
         const temNome = l.tipo_proprietario === 'socio_interno' ? !!l.pessoa_id : !!(l.nome_externo && l.nome_externo.trim());
-        if (!temNome) { statusEl.textContent = '⚠️ Preencha o sócio/nome de todas as linhas da divisão societária.'; statusEl.style.color = 'var(--danger)'; return; }
+        if (!temNome) { erroInline(statusEl, '⚠️ Preencha o sócio/nome de todas as linhas da divisão societária.'); return; }
     }
 
     // v1.41.0 (16/09/2026, pedido explícito) — sem "Qual imóvel?" mais:
@@ -1803,7 +1808,7 @@ export async function salvarAtivo() {
             recarregarFuncionalidadesLiberadas().catch(() => {});
             return;
         }
-        statusEl.textContent = '❌ ' + err.message; statusEl.style.color = 'var(--danger)';
+        erroInline(statusEl, '❌ ' + err.message);
     }
 }
 
@@ -3410,7 +3415,7 @@ async function enviarFotosAtivo(ativoId) {
             await api.uploadArquivoDocumento(path, arquivo); // mesmo bucket/serviço de upload que documentos
             await api.inserirFotoAtivo({ id: fotoId, cliente_id: estado.clienteId, ativo_id: ativoId, bucket: 'cofre-documentos', storage_path: path, nome_arquivo: arquivo.name, ordem: ordem++, criado_por: estado.pessoa.id });
         } catch (err) {
-            statusEl.textContent = '❌ ' + err.message; statusEl.style.color = 'var(--danger)';
+            erroInline(statusEl, '❌ ' + err.message);
         }
     }
     statusEl.textContent = '';
