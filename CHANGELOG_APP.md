@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.297.2) — testes da F0.2a (Nicola 04/10 00:52): excluir parte com vínculo
+passa a dizer QUAIS vínculos e oferece "Ver vínculos" (ficha da parte) em vez de só o
+número que o banco devolve. Import map: js/contratos.js 1.39.0 → 1.39.1 (Desfazer ao remover
+fiador; soma da divisão ≠ 100% vira aviso, sem "Salvar mesmo assim").
+Versão anterior (Beta v1.297.1):
+------------------------------------------------------------------
+Versões anteriores (v1.297.1 … v1.297.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.297.1) — P2 do Financeiro (PLANO_P2_FINANCEIRO_INTEGRIDADE v1.0.0, 5 fichas aprovadas):
 só import map — js/financeiro.js 1.29.0 → 1.30.0 (receitas sem contrato nos totais),
 js/fechamento.js 1.11.0 → 1.12.0 (pacote do contador com "Outras receitas"),

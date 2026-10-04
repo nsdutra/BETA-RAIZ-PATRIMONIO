@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.298.0
-   LINHAS: 16104
-   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda c5d844a4)
+   VERSÃO: Beta v1.298.1
+   LINHAS: 16149
+   DATA: 04/10/2026 (sessão 20261004-0840-financeiro, demanda cad6ec67)
+   NOVIDADES (Beta v1.298.1) — alertas de cadastro numa linha só (decisão do Nicola 04/10 08:35).
+   Todos os alertas de cadastro (ativo sem proprietário, contrato sem divisão, Pix da empresa,
+   cadastro incompleto, CIB pendente, dado que impede a nota e o sinal "Cadastro") viram 1 linha,
+   "N pendências de cadastro", na Visão Geral e em Alertas; o toque abre a lista com o nome de
+   cada alerta e o item na 2ª linha. O chip Cadastro conta e mostra os mesmos itens. Sem banco.
+   Versão anterior (Beta v1.298.0):
    NOVIDADES (Beta v1.298.0) — F1.1 do PLANO_UX (sheet empilhável e arrastável; DIRETRIZES
    UXR-28, REGRAS §2; "Aprovado. Siga" do Nicola 04/10 08:09). abrirSheet ganha a opção
    empilhar: com um sheet aberto, o novo abre POR CIMA (nível 2, "‹" no lugar do X) e o de
@@ -39,13 +45,8 @@
    comum-pessoas 1.202.0 → 1.203.0, comum-minha-empresa 1.8.0 → 1.9.0. "Desfazer" em
    desvincular documento, remover foto e tirar acesso de pessoa.
    Versão anterior (Beta v1.297.2):
-   NOVIDADES (Beta v1.297.2) — testes da F0.2a (Nicola 04/10 00:52): excluir parte com vínculo
-   passa a dizer QUAIS vínculos e oferece "Ver vínculos" (ficha da parte) em vez de só o
-   número que o banco devolve. Import map: js/contratos.js 1.39.0 → 1.39.1 (Desfazer ao remover
-   fiador; soma da divisão ≠ 100% vira aviso, sem "Salvar mesmo assim").
-   Versão anterior (Beta v1.297.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.297.1 … v1.297.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.297.2 … v1.297.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3533,7 +3534,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.298.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.298.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11458,6 +11459,10 @@
         // chave = "tipoAlerta:ativoId" (igual à chave usada em agruparEMapearAlertas).
         let alertasPorGrupoTipo = new Map();
         let alertasPorGrupoEntidade = new Map();
+        // v1.298.1 (pedido do Nicola 04/10 08:35) — todos os alertas de cadastro
+        // (grupoExibicaoAlerta === 'cadastro') viram 1 linha só,
+        // "N pendências de cadastro"; o toque abre a lista com o nome de cada um.
+        let alertasPorGrupoCadastro = new Map();
         let alertasFiltroAtual = 'todos';
         let alertasVisiveisTodos = []; // v1.187.0 — bruto, sem filtro; recalcularAlertasTela() deriva daqui
         let alertasSeveridadeFiltro = 'todas'; // v1.187.0 — 'todas' | 'critico' | 'atencao' | 'informativo'
@@ -11861,7 +11866,7 @@
 
         function itemAvulso(r) {
             return {
-                categoria: r.dominio || 'outro',
+                categoria: grupoExibicaoAlerta(r), // v1.298.1 — era r.dominio; chip Cadastro e linha juntos
                 grupo: grupoExibicaoAlerta(r), // v1.297.5
                 tipoAlerta: r.tipo_alerta,
                 dias: r.dias,
@@ -11874,6 +11879,16 @@
                 // — um card "12 atrasos" não tem 1 conteúdo só pra mostrar.
                 onClick: `abrirAlertaDetalheSheet('${r.alerta_chave}')`,
             };
+        }
+
+        // v1.298.1 — 1 linha para todos os alertas de cadastro.
+        function tituloResumoCadastro(n) { return `${n} pendência${n > 1 ? 's' : ''} de cadastro`; }
+        // 2ª linha: os itens afetados (ativo, imóvel, empresa), nunca a frase longa do sinal fiscal.
+        function subtituloResumoCadastro(grupo) {
+            const nomes = [...new Set(grupo.filter(r => r.tipo_alerta !== 'sinal_fiscal')
+                .map(r => r.detalhe?.ativo_nome || (r.entidade_tipo === 'empresa' ? 'Empresa' : r.titulo)).filter(Boolean))];
+            if (!nomes.length) return subtituloAlertaMotor(grupo[0]) || '';
+            return nomes.length === 1 ? nomes[0] : `${nomes[0]} e mais ${nomes.length - 1}`;
         }
 
         function tituloResumoPorTipo(tipoAlerta, n) {
@@ -11965,6 +11980,26 @@
             alertasPorGrupoNatureza = new Map();
             alertasPorGrupoTipo = new Map();
             alertasPorGrupoEntidade = new Map();
+            alertasPorGrupoCadastro = new Map();
+
+            // v1.298.1 — cadastro primeiro: com 2 ou mais, viram 1 linha só e
+            // saem do agrupamento por tipo/entidade/natureza.
+            const deCadastro = rows.filter(r => grupoExibicaoAlerta(r) === 'cadastro');
+            const itensCadastro = [];
+            if (deCadastro.length >= 2) {
+                alertasPorGrupoCadastro.set('cadastro', deCadastro);
+                const maisUrgente = deCadastro.reduce((a, b) => (b.dias !== null && (a.dias === null || b.dias < a.dias)) ? b : a);
+                itensCadastro.push({
+                    categoria: 'cadastro',
+                    grupo: 'cadastro',
+                    tipoAlerta: 'cadastro',
+                    dias: maisUrgente.dias,
+                    titulo: tituloResumoCadastro(deCadastro.length),
+                    subtitulo: subtituloResumoCadastro(deCadastro),
+                    onClick: `abrirListaAlertasGrupo('cadastro', 'cadastro')`,
+                });
+                rows = rows.filter(r => grupoExibicaoAlerta(r) !== 'cadastro');
+            }
 
             rows.forEach(r => {
                 if (r.agrupamento === 'por_tipo') {
@@ -11991,7 +12026,7 @@
                 }
             });
 
-            const itens = avulsos.map(itemAvulso);
+            const itens = itensCadastro.concat(avulsos.map(itemAvulso));
 
             porTipo.forEach((grupo, tipoAlerta) => {
                 // v1.182.0 (E3) — limiar por tipo (alerta_tipos.agrupar_a_partir_de,
@@ -12010,7 +12045,7 @@
                 // ler depois (mesmo mecanismo da AL.5 pra por_natureza).
                 alertasPorGrupoTipo.set(tipoAlerta, grupo);
                 itens.push({
-                    categoria: r0.dominio || 'outro',
+                    categoria: grupoExibicaoAlerta(r0), // v1.298.1
                     grupo: grupoExibicaoAlerta(r0), // v1.297.5
                     tipoAlerta,
                     dias: maisUrgente.dias,
@@ -12036,7 +12071,7 @@
                 // urgente representando o grupo inteiro.
                 alertasPorGrupoEntidade.set(chave, grupo);
                 itens.push({
-                    categoria: grupo[0].dominio || 'outro',
+                    categoria: grupoExibicaoAlerta(grupo[0]), // v1.298.1
                     grupo: grupoExibicaoAlerta(grupo[0]), // v1.297.5
                     tipoAlerta: grupo[0].tipo_alerta,
                     dias: maisUrgente.dias,
@@ -12058,7 +12093,7 @@
                 const nat = grupo[0].detalhe?.item_tipo || 'outro';
                 alertasPorGrupoNatureza.set(chave, grupo);
                 itens.push({
-                    categoria: grupo[0].dominio || 'outro',
+                    categoria: grupoExibicaoAlerta(grupo[0]), // v1.298.1
                     grupo: grupoExibicaoAlerta(grupo[0]), // v1.297.5
                     tipoAlerta: grupo[0].tipo_alerta,
                     dias: maisUrgente.dias,
@@ -12114,7 +12149,7 @@
 
             alertasContagemPorCategoria = new Map();
             porSeveridade.forEach(r => {
-                const cat = r.dominio || 'outro';
+                const cat = grupoExibicaoAlerta(r); // v1.298.1 — chip conta pelo mesmo grupo da linha (CIB e nota em Cadastro)
                 alertasContagemPorCategoria.set(cat, (alertasContagemPorCategoria.get(cat) || 0) + pesoAlerta(r));
             });
 
@@ -12402,6 +12437,7 @@
         // alerta, não numa ação), 1 .rz-row por item, ordenado pelo mesmo
         // critério da lista principal (vencido há mais tempo primeiro).
         function tituloItemGrupo(modo, r) {
+            if (modo === 'cadastro') return r.tipo_alerta === 'cadastro_incompleto' ? 'Cadastro incompleto' : tituloAlertaMotor(r); // v1.298.1 — o nome do alerta; o item vai na 2ª linha
             // por_natureza: o objeto (subtipo_nome, ex. "Condomínio") é o
             // fato que varia entre os itens — mesmo critério da AL.5 (§14:
             // "1ª linha nomeia o objeto").
@@ -12414,6 +12450,11 @@
             return r.detalhe?.subtipo_nome || r.titulo;
         }
         function subtituloItemGrupo(modo, r) {
+            if (modo === 'cadastro') { // v1.298.1
+                if (r.tipo_alerta === 'cadastro_incompleto') return [r.detalhe?.ativo_nome, subtituloAlertaMotor(r)].filter(Boolean).join(' · ');
+                const sub = subtituloAlertaMotor(r);
+                return (sub && sub !== tituloAlertaMotor(r)) ? sub : '';
+            }
             if (modo === 'natureza') return r.detalhe?.ativo_nome || '';
             if (modo === 'tipo') {
                 // Complementa com o dado que sobra quando a entidade já vai
@@ -12433,6 +12474,7 @@
             return '';
         }
         function tituloResumoGrupo(modo, grupo) {
+            if (modo === 'cadastro') return tituloResumoCadastro(grupo.length); // v1.298.1
             if (modo === 'tipo') return tituloResumoPorTipo(grupo[0].tipo_alerta, grupo.length);
             if (modo === 'entidade') return tituloResumoPorEntidade(grupo[0].tipo_alerta, grupo.length);
             return tituloResumoPorNatureza(grupo[0].detalhe?.item_tipo || 'outro', grupo.length);
@@ -12445,17 +12487,20 @@
             return null;
         }
         function abrirListaAlertasGrupo(modo, chaveGrupo) {
-            const mapa = modo === 'tipo' ? alertasPorGrupoTipo : modo === 'entidade' ? alertasPorGrupoEntidade : alertasPorGrupoNatureza;
+            const mapa = modo === 'cadastro' ? alertasPorGrupoCadastro : modo === 'tipo' ? alertasPorGrupoTipo : modo === 'entidade' ? alertasPorGrupoEntidade : alertasPorGrupoNatureza;
             const grupo = mapa.get(chaveGrupo);
             if (!grupo || !grupo.length) { mostrarToast('Não encontrei esses alertas — a lista pode ter mudado.', 'danger'); return; }
             const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
-            const ordenados = [...grupo].sort((a, b) => (a.dias ?? 9999) - (b.dias ?? 9999));
+            // v1.298.1 — no grupo de cadastro, junta pelo tipo (os 6 ativos sem dono em sequência).
+            const ordenados = modo === 'cadastro'
+                ? [...grupo].sort((a, b) => tituloAlertaMotor(a).localeCompare(tituloAlertaMotor(b), 'pt-BR') || String(subtituloAlertaMotor(a)).localeCompare(String(subtituloAlertaMotor(b)), 'pt-BR'))
+                : [...grupo].sort((a, b) => (a.dias ?? 9999) - (b.dias ?? 9999));
             const corpo = `<div class="rz-card rz-list">` + ordenados.map(r => {
                 const sem = ROTINA_PRONTA_ALERTA.includes(r.tipo_alerta) ? 'neu' : (r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run')));
                 return `<div class="rz-row rz-link" onclick="fecharSheet(); abrirAlertaDetalheSheet('${r.alerta_chave}')">
                     <div class="rz-ic"><svg data-lucide="${ICONE_TIPO_ALERTA[r.tipo_alerta] || ICONE_CATEGORIA[r.dominio] || 'info'}"></svg></div>
                     <div class="rz-tx"><b>${rzEsc(tituloItemGrupo(modo, r))}</b><span>${rzEsc(subtituloItemGrupo(modo, r))}</span></div>
-                    <div class="rz-rt">${st(sem, prazoAlertaTexto(r))}</div>
+                    ${modo === 'cadastro' && r.dias === null ? '' : `<div class="rz-rt">${st(sem, prazoAlertaTexto(r))}</div>`}
                     <svg data-lucide="chevron-right" class="rz-chev"></svg>
                 </div>`;
             }).join('') + `</div>`;
