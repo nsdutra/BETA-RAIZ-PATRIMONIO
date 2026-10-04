@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.299.0) — F1.3 do PLANO_UX (REGRAS §4; "Pode implementar!" do Nicola 04/10
+11:28). Cada aba guarda a rolagem: voltar a ela (rodapé ou voltar) devolve a posição; ficha
+de contrato aberta "para a frente" começa no topo. Tocar na aba já aberta sobe ao topo, suave,
+com háptico leve (em Ativos com ficha aberta, o 1º toque volta à lista). Links diretos
+#/ativo/<id>, #/contrato/<id> e #/alerta/<chave>, também depois do login e no hashchange
+(?ir=tab-X continua). Puxar para atualizar em Visão Geral, Ativos (lista), Contratos,
+Resultados, Alertas e Partes: só a aba aberta recarrega; Financeiro fora. Import map:
+js/cofre-navegacao.js 1.8.0 → 1.9.0 (rolagem por tela do Cofre). Sem banco.
+Versão anterior (Beta v1.298.4):
+------------------------------------------------------------------
+Versões anteriores (v1.298.4 … v1.298.4): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.298.4) — alerta "1 ocorrência · Cadastro" (imóvel sem finalidade de uso) no
 padrão título + ativo (Nicola 04/10 11:27): título "Imóvel sem finalidade de uso" (ou "N imóveis
 sem finalidade de uso") e 2ª linha com o imóvel. Só texto, sem banco.

@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.301.0
-   LINHAS: 16835
-   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda c71f617c)
+   VERSÃO: Beta v1.302.0
+   LINHAS: 16952
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 38407410)
+   NOVIDADES (Beta v1.302.0) — F1.4b do PLANO_UX (abrir sem rede, só consulta; plano aprovado pelo
+   Nicola 04/10 15:46). Toda leitura ao banco (GET de tabela e funções de leitura conferidas) passa
+   por rzFetchComCache: com rede guarda a resposta no IndexedDB do aparelho; sem rede devolve a
+   última (até 7 dias). Escrita nunca usa cache. Chave por login; trocar de login ou Sair apaga tudo.
+   Aberto sem rede com o login vencido, entra só para consulta. A faixa de sem conexão diz de quando
+   é o dado. sw.js 2.1 → 3.0 (o app abre sem rede). Sem banco.
+   Versão anterior (Beta v1.301.0):
    NOVIDADES (Beta v1.301.0) — F1.4a do PLANO_UX ("Sim pode fazer. Estou de acordo" do Nicola 04/10
    15:46). (1) Esqueleto no lugar de "Carregando…": rzSkeleton (linhas, lista, cards, texto) no
    index e nos módulos (Ativos, ficha do contrato, Resultados, Cofre, cadastros). (2) Otimista: marcar,
@@ -41,17 +48,8 @@
    como visto de uma vez). Pressão longa: ações rápidas (grupo: Escolher). Toda marcação de alerta tem
    "Desfazer" por 5 s, também pelo sheet. O toque na linha continua igual. Sem banco.
    Versão anterior (Beta v1.299.0):
-   NOVIDADES (Beta v1.299.0) — F1.3 do PLANO_UX (REGRAS §4; "Pode implementar!" do Nicola 04/10
-   11:28). Cada aba guarda a rolagem: voltar a ela (rodapé ou voltar) devolve a posição; ficha
-   de contrato aberta "para a frente" começa no topo. Tocar na aba já aberta sobe ao topo, suave,
-   com háptico leve (em Ativos com ficha aberta, o 1º toque volta à lista). Links diretos
-   #/ativo/<id>, #/contrato/<id> e #/alerta/<chave>, também depois do login e no hashchange
-   (?ir=tab-X continua). Puxar para atualizar em Visão Geral, Ativos (lista), Contratos,
-   Resultados, Alertas e Partes: só a aba aberta recarrega; Financeiro fora. Import map:
-   js/cofre-navegacao.js 1.8.0 → 1.9.0 (rolagem por tela do Cofre). Sem banco.
-   Versão anterior (Beta v1.298.4):
    ------------------------------------------------------------------
-   Versões anteriores (v1.298.4 … v1.298.4): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.299.0 … v1.299.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3578,7 +3576,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.301.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.302.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4182,8 +4180,101 @@
         // ============================================================================
         let LICENCA_ATUAL = null;
 
+        // =====================================================================
+        // v1.302.0 (UX F1.4b, demanda 38407410; plano aprovado pelo Nicola 04/10 15:46) — ABRIR SEM
+        // REDE, SÓ CONSULTA. Toda LEITURA ao Supabase (GET de tabela e as funções de leitura da
+        // lista abaixo) passa por rzFetchComCache: com rede, vai ao banco e guarda a resposta no
+        // IndexedDB do aparelho; sem rede, devolve a última resposta guardada (até 7 dias).
+        // Escrita (POST/PATCH/DELETE e qualquer função fora da lista) NUNCA usa cache: sem rede ela
+        // falha e o app avisa. A chave é o login (raiz_dono) + endereço + corpo; trocar de login
+        // apaga tudo, o Sair apaga tudo (LGPD). O cache é conveniência, nunca fonte de verdade.
+        // Lista de funções: STABLE no banco, ou VOLATILE conferidas sem escrita (04/10).
+        // =====================================================================
+        var RZ_RPC_LEITURA = new Set(['fn_alertas_listar', 'fn_alertas_do_ativo', 'fn_funcionalidades_liberadas',
+            'fn_contrato_itens_controle_listar', 'fn_vinculos_da_parte', 'fn_resumo_resultados', 'fn_resultado_mensal',
+            'fn_rotinas_empresa_listar', 'fn_contas_listar', 'fn_contadores_empresa', 'fn_propriedade_do_ativo',
+            'fn_partes_do_item_controle', 'fn_performance_empreendimento', 'fn_performance_carteira', 'fn_performance_ativo',
+            'fn_indicadores_resumo', 'fn_fluxo_financeiro_ativo', 'fn_carteira_revisionais_mes', 'fn_carteira_revisionais_calendario',
+            'fn_carteira_reajustes_mes', 'fn_carteira_reajustes_calendario', 'fn_carteira_concentracao', 'fn_verificar_limite',
+            'fn_fiscal_pendencias_cadastro', 'fn_fiscal_checkup_historico', 'fn_fiscal_competencia', 'fn_fechamento_listar_fechadas',
+            'fn_financeiro_totalizadores_por_conta', 'fn_financeiro_totalizador_fechamento', 'fn_apurar_distribuicao',
+            'fn_ofertas_renovacao', 'fn_alerta_compartilhar_texto']);
+        var RZ_IDB_NOME = 'raiz-cache', RZ_IDB_LOJA = 'respostas', RZ_IDB_VALIDADE = 7 * 86400000;
+        var rzIdbPromessa = null, rzPersistPedido = false, rzCacheMaisAntigo = null;
+        function rzIdb() {
+            if (typeof indexedDB === 'undefined') return Promise.reject(new Error('sem IndexedDB'));
+            if (!rzIdbPromessa) rzIdbPromessa = new Promise((res, rej) => {
+                const r = indexedDB.open(RZ_IDB_NOME, 1);
+                r.onupgradeneeded = () => r.result.createObjectStore(RZ_IDB_LOJA);
+                r.onsuccess = () => res(r.result);
+                r.onerror = () => rej(r.error);
+            });
+            return rzIdbPromessa;
+        }
+        function rzIdbGet(k) {
+            return rzIdb().then(db => new Promise(res => {
+                const q = db.transaction(RZ_IDB_LOJA, 'readonly').objectStore(RZ_IDB_LOJA).get(k);
+                q.onsuccess = () => res(q.result || null); q.onerror = () => res(null);
+            })).catch(() => null);
+        }
+        function rzIdbPut(k, v) {
+            return rzIdb().then(db => new Promise(res => {
+                const tx = db.transaction(RZ_IDB_LOJA, 'readwrite');
+                tx.objectStore(RZ_IDB_LOJA).put(v, k);
+                tx.oncomplete = () => res(true); tx.onerror = () => res(false);
+            })).then(ok => {
+                if (ok && !rzPersistPedido) { rzPersistPedido = true; try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (_) { /* opcional */ } }
+                return ok;
+            }).catch(() => false);
+        }
+        function rzIdbLimparVencidos() {
+            rzIdb().then(db => {
+                const cur = db.transaction(RZ_IDB_LOJA, 'readwrite').objectStore(RZ_IDB_LOJA).openCursor();
+                cur.onsuccess = () => { const c = cur.result; if (!c) return; if (!c.value || Date.now() - c.value.t > RZ_IDB_VALIDADE) c.delete(); c.continue(); };
+            }).catch(() => {});
+        }
+        function rzIdbApagarTudo() {
+            const apagar = () => { try { indexedDB.deleteDatabase(RZ_IDB_NOME); } catch (_) { /* sem IndexedDB */ } };
+            const pr = rzIdbPromessa; rzIdbPromessa = null;
+            if (pr) pr.then(db => { db.close(); apagar(); }).catch(apagar); else apagar();
+        }
+        function rzDonoCache() { try { return localStorage.getItem('raiz_dono') || null; } catch (_) { return null; } }
+        function rzDefinirDono(uid) {
+            if (!uid) return;
+            const anterior = rzDonoCache();
+            if (anterior && anterior !== uid) rzIdbApagarTudo(); // outro login no aparelho: nada do anterior fica
+            try { localStorage.setItem('raiz_dono', uid); } catch (_) { /* sem armazenamento */ }
+        }
+        async function rzFetchComCache(input, init) {
+            init = init || {};
+            const url = typeof input === 'string' ? input : (input && input.url) || '';
+            const metodo = String(init.method || (input && input.method) || 'GET').toUpperCase();
+            const m = url.match(/\/rest\/v1\/(?:rpc\/([A-Za-z0-9_]+))?/);
+            const leitura = !!m && (m[1] ? (metodo === 'POST' && RZ_RPC_LEITURA.has(m[1])) : metodo === 'GET');
+            const dono = leitura ? rzDonoCache() : null;
+            if (!dono) return fetch(input, init);
+            const chave = dono + '|' + metodo + '|' + url + '|' + (typeof init.body === 'string' ? init.body : '');
+            try {
+                const resp = await fetch(input, init);
+                if (resp.ok) {
+                    resp.clone().text().then(corpo => rzIdbPut(chave, {
+                        t: Date.now(), status: resp.status, ct: resp.headers.get('content-type') || 'application/json',
+                        cr: resp.headers.get('content-range') || '', corpo,
+                    })).catch(() => {});
+                }
+                return resp;
+            } catch (err) {
+                const c = await rzIdbGet(chave);
+                if (!c || Date.now() - c.t > RZ_IDB_VALIDADE) throw err;
+                if (!rzCacheMaisAntigo || c.t < rzCacheMaisAntigo) { rzCacheMaisAntigo = c.t; if (typeof rzAtualizarFaixaSemRede === 'function') rzAtualizarFaixaSemRede(); }
+                const h = { 'content-type': c.ct }; if (c.cr) h['content-range'] = c.cr;
+                return new Response(c.corpo, { status: c.status, headers: h });
+            }
+        }
+        setTimeout(rzIdbLimparVencidos, 15000);
+
         const { createClient } = supabase;
-        const dbAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const dbAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { fetch: rzFetchComCache } }); // v1.302.0
         // v1.115.0 (fatia 7) — GoTrueClient duplicado: js/cofre-api.js
         // criava um segundo createClient() com a mesma chave (aviso
         // "Multiple GoTrueClient instances" e duas sessões concorrendo pelo
@@ -4237,7 +4328,9 @@
                     if (k.startsWith(RZ_CACHE_PREFIXO) || /^raiz_[a-z0-9]*_(imoveis|contratos|mensalidades|repasses)$/.test(k)) apagar.push(k);
                 }
                 apagar.forEach(k => localStorage.removeItem(k));
+                localStorage.removeItem('raiz_dono'); // v1.302.0
             } catch (_) { /* sem acesso ao armazenamento */ }
+            if (typeof rzIdbApagarTudo === 'function') rzIdbApagarTudo(); // v1.302.0 — respostas guardadas para abrir sem rede
         }
         function rzCacheLimparFormatoAntigo() {
             try {
@@ -7523,7 +7616,11 @@
             statusEl.textContent = 'Verificando acesso...';
 
             const { data: userData } = await dbAuth.auth.getUser();
-            const meuUserId = userData && userData.user ? userData.user.id : null;
+            let meuUserId = userData && userData.user ? userData.user.id : null;
+            // v1.302.0 — sem rede o banco não confirma o login: usa o último login deste aparelho
+            // (só para ler o que já estava guardado; nada é gravado sem rede)
+            if (!meuUserId && rzSemRede()) meuUserId = rzDonoCache();
+            else if (meuUserId) rzDefinirDono(meuUserId);
 
             if (!meuUserId) {
                 statusEl.textContent = '❌ Sessão inválida. Tente entrar novamente.';
@@ -8254,8 +8351,23 @@
                 if (header && header.parentNode) header.parentNode.insertBefore(faixa, header.nextSibling); else document.body.prepend(faixa);
             }
             if (typeof aplicarRestricoesOffline === 'function') aplicarRestricoesOffline();
+            if (typeof rzAtualizarFaixaSemRede === 'function') rzAtualizarFaixaSemRede(); // v1.302.0
         }
-        window.addEventListener('online', () => { rzAtualizarConexao(); mostrarToast('Conexão de volta.', 'success'); });
+        // v1.302.0 — a faixa diz de quando é o dado mostrado (a resposta guardada mais antiga em uso)
+        function rzAtualizarFaixaSemRede() {
+            const span = document.querySelector('#rz-sem-rede span'); if (!span) return;
+            if (!rzCacheMaisAntigo) { span.textContent = 'Sem conexão — mostrando o que já estava carregado. Salvar volta quando a rede voltar.'; return; }
+            const d = new Date(rzCacheMaisAntigo);
+            const hoje = new Date().toDateString() === d.toDateString();
+            const quando = (hoje ? 'hoje' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })) + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            span.textContent = `Sem conexão — só consulta, com dados de ${quando}. Salvar volta quando a rede voltar.`;
+        }
+        window.addEventListener('online', () => {
+            const vinhaDoCache = !!rzCacheMaisAntigo;
+            rzCacheMaisAntigo = null; rzAtualizarConexao(); rzAtualizarFaixaSemRede();
+            mostrarToast(vinhaDoCache ? 'Conexão de volta. Puxe a tela para baixo para atualizar.' : 'Conexão de volta.', 'success');
+        });
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) setTimeout(() => rzAtualizarConexao(), 0); // v1.302.0 — aberto já sem rede
         window.addEventListener('offline', () => { rzAtualizarConexao(); });
         function rzSemRede() { return typeof navigator !== 'undefined' && navigator.onLine === false; }
         function rzMensagemDeErro(msg) {
@@ -15450,6 +15562,11 @@
             const { data: { session } } = await dbAuth.auth.getSession();
 
             if (session && !ehFluxoRecuperacaoSenha) {
+                await verificarAcessoEEntrar();
+            } else if (!session && !ehFluxoRecuperacaoSenha && rzSemRede() && rzDonoCache()) {
+                // v1.302.0 — aberto sem rede com o login vencido: entra só para consulta, com o que
+                // estava guardado neste aparelho (o Sair apaga tudo e desliga isto)
+                rzAtualizarConexao();
                 await verificarAcessoEEntrar();
             }
             // Sem sessão, ou sessão de recuperação: o formulário de login (ou a
