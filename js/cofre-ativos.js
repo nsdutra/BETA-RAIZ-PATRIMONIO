@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.72.0 · 04/10/2026
+// Versão: 1.73.0 · 04/10/2026
+//
+// v1.73.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) —
+// zero diálogo nativo: excluir ativo e marcar como vendido viram perguntar() do cofre-ui
+// (Sheet); remover foto (só arquiva) não pergunta mais e ganha "Desfazer".
+//
+// Versão anterior: 1.72.0 · 04/10/2026
 //
 // v1.72.0 (04/10/2026, sessão 20261004-0020-financeiro, demanda cad6ec67 — P2
 // Ficha 3): eixo contábil do ativo. Chip Propriedade ganha a linha
@@ -902,10 +908,10 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.72.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
+import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
@@ -2967,7 +2973,7 @@ function documentosDoAtivo(ativoId) {
 export async function excluirAtivoAtual() {
     const a = estado.ativoEmFoco;
     if (!a) return;
-    if (!confirm(`Excluir "${a.nome_exibicao}"? Esta ação fica registrada e não pode ser desfeita pela interface.`)) return;
+    if (!await perguntar({ titulo: `Excluir ${a.nome_exibicao}?`, impacto: 'A exclusão fica registrada e não dá para desfazer pelo app.', destrutivo: true, rotuloConfirmar: 'Excluir ativo' })) return;
     try {
         await api.arquivarAtivo(a.id);
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.excluir', { ativoId: a.id, nome: a.nome_exibicao });
@@ -2989,7 +2995,7 @@ export async function excluirAtivoAtual() {
 export async function marcarAtivoVendidoAtual() {
     const a = estado.ativoEmFoco;
     if (!a) return;
-    if (!confirm(`Marcar "${a.nome_exibicao}" como vendido? Os itens de controle vinculados (seguro, manutenção, tributo) param de gerar alerta. O ativo some da listagem principal — histórico e documentos continuam preservados.`)) return;
+    if (!await perguntar({ titulo: `Marcar ${a.nome_exibicao} como vendido?`, impacto: 'Os itens de controle vinculados (seguro, manutenção, tributo) param de gerar alerta e o ativo sai da lista principal. Histórico e documentos ficam guardados.', rotuloConfirmar: 'Marcar como vendido' })) return;
     try {
         await api.marcarAtivoVendido(a.id);
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.editar', { ativoId: a.id, nome: a.nome_exibicao, acao: 'marcar_vendido' });
@@ -3480,11 +3486,15 @@ export function abrirSeletorFotosAtivo() {
 }
 
 export async function removerFotoAtivo(fotoId) {
-    if (!confirm('Remover esta foto?')) return;
+    // F0.2b — a remoção só arquiva a foto: sem pergunta, com "Desfazer".
     try {
         await api.excluirFotoAtivo(fotoId);
-        mostrarToast('Foto removida.');
-        await montarFotosAtivo(estado.ativoEmFoco);
+        const ativoDaFoto = estado.ativoEmFoco;
+        await montarFotosAtivo(ativoDaFoto);
+        avisarComDesfazer('Foto removida.', async () => {
+            try { await api.restaurarFotoAtivo(fotoId); await montarFotosAtivo(ativoDaFoto); mostrarToast('Foto de volta.'); }
+            catch (e) { mostrarToast('Não consegui desfazer: ' + e.message, 'erro'); }
+        });
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

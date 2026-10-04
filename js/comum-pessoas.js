@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.202.0 · 04/10/2026
+// Versão: 1.203.0 · 04/10/2026
+//
+// v1.203.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: excluir pessoa vira perguntar() (Sheet,
+// item vermelho); tirar acesso não pergunta mais e ganha "Desfazer" (devolve login e perfil);
+// o prompt() de perfil fora do app virou aviso.
+//
+// Versão anterior: 1.202.0 · 04/10/2026
 //
 // v1.202.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo opção 1" do
 // Nicola 03/10 23:57) — "Vincular login existente" deixa de pedir o UUID do Supabase
@@ -225,7 +231,8 @@
 // outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.202.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.203.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 export const COMUM_PESSOAS_VERSAO = '2.1.0';
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
@@ -424,7 +431,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         }
         const lista = perfisCache.filter(p => !p.protegido || perfilLogado === 'master');
         if (!lista.length || typeof window.abrirSheetAcoes !== 'function') {
-            return prompt(titulo + ' — opções: ' + lista.map(p => p.codigo).join(', '), padrao);
+            onToast?.(AVISO_SO_APP, 'info'); return null; // v1.203.0 (F0.2b) — sem diálogo nativo; fora do app não há Sheet
         }
         return new Promise(resolve => {
             let escolhido = null;
@@ -843,12 +850,22 @@ export async function montarAbaPessoas(mountEl, ctx) {
             onToast?.('Usuários admin/master não podem ter o acesso removido por aqui — proteção proposital.', 'danger');
             return;
         }
-        if (!confirm('Remover o acesso ao sistema desta pessoa? Ela continua cadastrada, só perde o login.')) return;
+        // v1.203.0 (F0.2b) — tirar o acesso é reversível (a pessoa continua cadastrada):
+        // sem pergunta, com "Desfazer" no aviso, que devolve login e perfil.
+        const acessoAntes = pessoa ? { user_id: pessoa.userId ?? pessoa.user_id ?? null, perfil: pessoa.perfil ?? null } : null;
         try {
             const { error } = await dbAuth.from('pessoas').update({ user_id: null, perfil: null }).eq('id', id);
             if (error) throw error;
             registrarLog?.('pessoas.acesso.revogar', { pessoaId: id });
-            onToast?.('Acesso removido.', 'success');
+            const desfazer = acessoAntes && acessoAntes.user_id ? async () => {
+                const { error: errVolta } = await dbAuth.from('pessoas').update(acessoAntes).eq('id', id);
+                if (errVolta) { onToast?.('Não consegui desfazer: ' + errVolta.message, 'danger'); return; }
+                registrarLog?.('pessoas.acesso.aprovar', { pessoaId: id, perfil: acessoAntes.perfil, via: 'desfazer' });
+                onToast?.('Acesso devolvido.', 'success');
+                pessoas = await listarPessoas(dbAuth, clienteId);
+                renderLista();
+            } : null;
+            if (desfazer) avisarComDesfazer('Acesso removido. A pessoa continua cadastrada.', desfazer); else onToast?.('Acesso removido.', 'success');
             pessoas = await listarPessoas(dbAuth, clienteId);
             renderLista();
         } catch (err) {
@@ -867,7 +884,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             onToast?.('Usuários admin/master não podem ser excluídos por aqui — proteção proposital.', 'danger');
             return;
         }
-        if (!confirm(`Excluir "${pessoa.nome}"? Esta ação não pode ser desfeita. Se ela tiver login, o acesso dela ao sistema também será removido.`)) return;
+        if (!await perguntar({ titulo: `Excluir ${pessoa.nome}?`, impacto: 'Não dá para desfazer. Se ela tiver login, o acesso ao sistema também sai.', destrutivo: true, rotuloConfirmar: 'Excluir pessoa' })) return;
         try {
             const { error } = await dbAuth.from('pessoas').delete().eq('id', id);
             if (error) throw error;

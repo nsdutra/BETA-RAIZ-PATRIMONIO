@@ -1,6 +1,11 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.8.0 · 01/10/2026
+// Versão: 1.9.0 · 04/10/2026
+//
+// v1.9.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: remover logo e remover assinatura viram
+// perguntar() do cofre-ui (Sheet com item vermelho).
+//
+// Versão anterior: 1.8.0 · 01/10/2026
 //
 // v1.8.0 (F12, demanda 3a1a5ef5, aprovada em 01/10/2026) — card novo "Pix para
 // cobrança de aluguel": Chave Pix (clientes.pix_chave) e Nome do recebedor
@@ -95,7 +100,8 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.8.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.9.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -478,7 +484,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         } catch (err) { onToast?.('Falha ao salvar o logo: ' + err.message, 'danger'); }
     });
     document.getElementById('cme-btn-apagar-logo').addEventListener('click', async () => {
-        if (!confirm('Remover o logo? O nome da empresa volta a aparecer no lugar.')) return;
+        if (!await perguntar({ titulo: 'Remover o logo?', impacto: 'O nome da empresa volta a aparecer no lugar.', destrutivo: true, rotuloConfirmar: 'Remover logo', icone: 'image-off' })) return;
         try {
             await salvarDadosEmpresa(dbAuth, clienteId, { logo_url: null });
             document.getElementById('cme-logo-preview-wrap').classList.add('hidden');
@@ -511,7 +517,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
 
     const btnApagarAssinatura = document.getElementById('cme-btn-apagar-assinatura');
     if (btnApagarAssinatura) btnApagarAssinatura.addEventListener('click', async () => {
-        if (!confirm('Remover a assinatura atual? O recibo passará a sair com o espaço em branco até uma nova ser enviada.')) return;
+        if (!await perguntar({ titulo: 'Remover a assinatura?', impacto: 'O recibo sai com o espaço em branco até uma nova ser enviada.', destrutivo: true, rotuloConfirmar: 'Remover assinatura' })) return;
         try {
             await salvarAssinatura(dbAuth, clienteId, null);
             document.getElementById('cme-assinatura-preview-container').classList.add('hidden');

@@ -1,7 +1,11 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.3.2 · 03/10/2026
+// Versão: 1.3.3 · 04/10/2026
+//
+// v1.3.3 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: os alert() viram rzAvisar/rzResumo.
+//
+// Versão anterior: 1.3.2 · 03/10/2026
 //
 // v1.3.2 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — o erro ao iniciar a contratação deixa de citar tabela e migration do
 // banco; fala com o cliente. (O alert() vira aviso do app na F0.2.)
@@ -86,7 +90,7 @@
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.3.2'; // v-check: manter igual ao header
+export const VERSAO = '1.3.3'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -114,7 +118,7 @@ export function montarAbaVitrine() {
 
             navigator.clipboard.writeText(txt);
 
-            alert("Resumo de locação copiado!");
+            rzAvisar('Resumo de locação copiado.', 'success');
 
         }
 
@@ -243,7 +247,7 @@ export function montarAbaVitrine() {
             // entrada: pill "Locação" da Ficha (montarBoxSemContratoFicha),
             // reabertura de processo "Assinando", e a Vitrine pública.
             if (imo.finalidadeUso === 'uso_proprio') {
-                alert('⚠️ Este imóvel está marcado como "Uso Pessoal" — não é possível criar um contrato de aluguel para ele.\n\nSe isso mudou, altere o "Uso do imóvel" no cadastro (Detalhes do Imóvel) antes de continuar.');
+                rzResumo({ titulo: 'Imóvel de uso pessoal', linhas: ['Este imóvel está marcado como "Uso Pessoal" e não pode ter contrato de aluguel.', 'Se isso mudou, altere o "Uso do imóvel" no cadastro antes de continuar.'] });
                 return;
             }
 
@@ -280,7 +284,7 @@ export function montarAbaVitrine() {
 
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('Não consegui iniciar a contratação agora. Tente de novo em instantes; se continuar, fale com o suporte da Raiz.'); console.warn('[vitrine] iniciar contratação', err);
+                rzAvisar('Não consegui iniciar a contratação agora. Tente de novo em instantes; se continuar, fale com o suporte da Raiz.', 'danger'); console.warn('[vitrine] iniciar contratação', err);
             }
 
         }
@@ -524,7 +528,7 @@ export function montarAbaVitrine() {
 
             } catch (err) {
                 console.error('Erro ao enviar dados de contratação:', err);
-                alert('❌ Não consegui enviar seus dados agora. Verifique sua internet e tente de novo.\n\n' + (err.message || String(err)));
+                rzAvisar('Não consegui enviar seus dados agora. Verifique a internet e tente de novo.', 'danger');
                 btn.disabled = false;
                 btn.innerText = textoOriginalBtn;
             }

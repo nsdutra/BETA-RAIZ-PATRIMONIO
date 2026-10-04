@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.41.0 · 03/10/2026
+// Versão: 1.42.0 · 04/10/2026
+//
+// v1.42.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 7 confirm() viram perguntar() do cofre-ui
+// (Sheet; destrutivo com item vermelho). Desvincular documento do item não pergunta mais e
+// ganha "Desfazer" no aviso (regra aprovada: Desfazer onde voltar é trivial).
+//
+// Versão anterior: 1.41.0 · 03/10/2026
 //
 // v1.41.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: documento que chegou pelo bot mostra "Pela Raiz IA"
 // (antes "Pelo Robô").
@@ -547,10 +553,10 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.41.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.42.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
-import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
+import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
 import { mudarTela } from './cofre-navegacao.js';
 import { abrirUploadContextual } from './cofre-documentos.js';
 import {
@@ -1423,13 +1429,22 @@ export function carregarNovoDocumentoItem() {
 // documento sem vínculo nenhum — nenhum código novo precisou disso).
 export async function excluirDocumentoDoItem(vinculoId) {
     if (!vinculoId) { mostrarToast('Vínculo não encontrado.', 'erro'); return; }
-    if (!confirm('Remover este documento do item?\n\nO documento continua guardado no Cofre — só desvincula dele (some da lista "Em triagem" só quando for vinculado a outra coisa).')) return;
+    // v1.42.0 (F0.2b) — desvincular é reversível: sem pergunta, com "Desfazer" no aviso.
     const item = itemEmFoco;
     try {
+        const linhaAntes = await api.lerVinculo(vinculoId);
         await api.removerVinculo(vinculoId);
         estado.documentos = await api.listarDocumentos(estado.clienteId);
         renderizarDocumentosItemControle();
-        mostrarToast('Documento desvinculado.');
+        avisarComDesfazer('Documento desvinculado do item. Ele continua no Cofre.', async () => {
+            try {
+                await api.restaurarVinculo(linhaAntes);
+                estado.documentos = await api.listarDocumentos(estado.clienteId);
+                renderizarDocumentosItemControle();
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+                mostrarToast('Documento de volta ao item.');
+            } catch (e) { mostrarToast('Não consegui desfazer: ' + e.message, 'erro'); }
+        });
         window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
         emitirEscrita('controle', { id: item?.id, acao: 'excluir-documento' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
@@ -1667,12 +1682,11 @@ export async function salvarEdicaoItem() {
             // as que já existem. confirm() nativo — mesmo padrão já
             // usado em excluirItemControleAtual/excluirAtivoAtual pra
             // decisões simples de sim/não.
-            const regenerar = confirm(
-                'Você mudou algo que afeta os alertas deste item (data início, data fim, frequência ou direção de geração).\n\n' +
-                'Regenerar as ocorrências futuras em aberto com as novas regras?\n\n' +
-                'OK = Regenerar (as já vencidas continuam como estão)\n' +
-                'Cancelar = Manter as ocorrências que já existem'
-            );
+            const regenerar = await perguntar({
+                titulo: 'Regerar as ocorrências futuras?',
+                impacto: 'Você mudou algo que afeta os alertas deste item (data início, data fim, frequência ou direção). Regerar as ocorrências futuras em aberto com as regras novas? As já vencidas continuam como estão.',
+                rotuloConfirmar: 'Regerar', rotuloCancelar: 'Manter as atuais',
+            });
             if (regenerar) {
                 const hojeISO = new Date().toISOString().slice(0, 10);
                 await api.excluirOcorrenciasAbertasFuturasDoItem(item.id, hojeISO);
@@ -1707,7 +1721,7 @@ export async function salvarEdicaoItem() {
 export async function encerrarItemControleAtual() {
     const item = itemEmFoco; if (!item) return;
     const abertas = (item.cofre_ocorrencias_controle || []).filter(o => o.status_execucao === 'aberto').length;
-    if (!confirm(`Encerrar "${item.titulo}"?\n\nEle para de gerar ocorrências e alertas${abertas ? ` (${abertas} em aberto somem, com as despesas previstas delas)` : ''}. O que já foi tratado fica no histórico, visível em "Encerrados". Dá pra reabrir depois.`)) return;
+    if (!await perguntar({ titulo: `Encerrar ${item.titulo}?`, impacto: `Ele para de gerar ocorrências e alertas${abertas ? ` (${abertas} em aberto somem, com as despesas previstas delas)` : ''}. O que já foi tratado fica no histórico, em "Encerrados". Dá para reabrir depois.`, rotuloConfirmar: 'Encerrar item' })) return;
     try {
         await api.encerrarItemControle(item.id);
         await api.registrarHistoricoItemControle({ item_id: item.id, acao: 'encerrar', antes: item, depois: { ...item, ativo: false }, pessoa_id: estado.pessoa.id, origem: 'app' });
@@ -1736,7 +1750,7 @@ export async function excluirItemControleAtual() {
     if ((item.cofre_ocorrencias_controle || []).some(o => o.status_execucao === 'concluido')) {
         mostrarToast('Este item tem ocorrências já tratadas. Estorne-as antes de excluir — ou use "Encerrar item" pra manter o histórico.', 'erro'); return;
     }
-    if (!confirm(`Excluir DE VEZ o item de controle "${item.titulo}"?\n\nEle some do banco com as ocorrências em aberto e as despesas previstas delas. Não dá pra desfazer. Se quiser só parar os alertas mantendo o histórico, use "Encerrar item".`)) return;
+    if (!await perguntar({ titulo: `Excluir ${item.titulo} de vez?`, impacto: 'Ele some com as ocorrências em aberto e as despesas previstas delas. Não dá para desfazer. Para só parar os alertas e manter o histórico, use "Encerrar item".', destrutivo: true, rotuloConfirmar: 'Excluir item de vez' })) return;
 
     // Documentos vinculados a este item (pedido explícito, 25/08/2026) —
     // pergunta SEPARADA, só se houver algum: apagar de vez, ou manter
@@ -1747,12 +1761,11 @@ export async function excluirItemControleAtual() {
     const docsDoItem = documentosDoItemControle(item.id);
     let apagarDocumentos = false;
     if (docsDoItem.length > 0) {
-        apagarDocumentos = confirm(
-            `Este item tem ${docsDoItem.length} documento(s) vinculado(s) ("${docsDoItem.map(d => d.nome_exibicao).join('", "')}")\n\n` +
-            `Quer apagar o(s) documento(s) também?\n\n` +
-            `OK = Apagar de vez (não pode ser desfeito pela interface)\n` +
-            `Cancelar = Manter guardado — fica pendente de vincular ("Em triagem" na Visão Geral)`
-        );
+        apagarDocumentos = await perguntar({
+            titulo: 'E os documentos do item?',
+            impacto: `Este item tem ${docsDoItem.length} documento(s): "${docsDoItem.map(d => d.nome_exibicao).join('", "')}". Apagar também, ou manter guardados no Cofre (ficam em "Em triagem" para vincular)?`,
+            destrutivo: true, rotuloConfirmar: 'Apagar os documentos também', rotuloCancelar: 'Manter guardados no Cofre',
+        });
     }
 
     try {
@@ -2409,7 +2422,7 @@ export function cancelarEdicaoSubtipo() {
 export async function excluirSubtipoControle(id) {
     const s = (subtiposCache || []).find(x => x.id === id);
     if (!s) return;
-    if (!confirm(`Excluir o subtipo "${s.nome}"?`)) return;
+    if (!await perguntar({ titulo: `Excluir o subtipo ${s.nome}?`, impacto: 'Ele deixa de aparecer para novos itens.', destrutivo: true, rotuloConfirmar: 'Excluir subtipo' })) return;
     try {
         await api.arquivarSubtipoControle(id);
         mostrarToast('Subtipo excluído.');
@@ -2619,7 +2632,7 @@ export function cancelarEdicaoModelo() {
 export async function excluirModeloControle(id) {
     const m = (modelosCache || []).find(x => x.id === id);
     if (!m) return;
-    if (!confirm(`Excluir o modelo "${m.titulo_sugerido}"?`)) return;
+    if (!await perguntar({ titulo: `Excluir o modelo ${m.titulo_sugerido}?`, impacto: 'Ele deixa de aparecer como atalho ao criar itens.', destrutivo: true, rotuloConfirmar: 'Excluir modelo' })) return;
     try {
         await api.arquivarModeloItemControle(id);
         mostrarToast('Modelo excluído.');

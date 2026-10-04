@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 03/10/2026
+// Versão: 1.6.0 · 04/10/2026
+//
+// v1.6.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo" do Nicola 04/10 00:22 e 01:03; UXR-29/30) — perguntar() e avisarComDesfazer(): confirmação e aviso sem
+// diálogo nativo para o Cofre e os módulos comum-* (que também rodam no cofre.html avulso).
+// Dentro do app usam o Sheet/toast do js/raiz-ui.js; no cofre.html avulso (sem Sheet), a
+// pergunta cai no confirm() do navegador — ÚNICO ponto permitido (exceção aprovada no plano).
+//
+// Versão anterior: 1.5.0 · 03/10/2026
 //
 // v1.5.0 (F0.4, demanda 717fc21d, sessão 20261003-1707-ux-base — teste 8
 // reprovado pelo Nicola: "salvar sem nome não mostrou toast nem vibrou").
@@ -45,7 +52,7 @@
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
-export const VERSAO = '1.5.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
 import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
 
 // v1.5.0 — aviso de erro dentro do formulário (UXR-29/35): texto + leitor de
@@ -57,6 +64,25 @@ export function erroInline(el, msg) {
     el.setAttribute('role', 'alert');
     try { if (typeof window !== 'undefined' && typeof window.rzDev === 'function') window.rzDev('haptic', 'error'); } catch (_) {}
     try { el.scrollIntoView({ block: 'nearest' }); } catch (_) {}
+}
+
+// v1.6.0 (F0.2b) — confirmação sem diálogo nativo. Resolve true/false.
+// { titulo, impacto, destrutivo, rotuloConfirmar, rotuloCancelar, icone } — mesma
+// assinatura do rzConfirmar (js/raiz-ui.js). Fora do app (cofre.html avulso, sem
+// Sheet) usa o confirm() do navegador: única exceção permitida pela UXR-30.
+export function perguntar(opcoes = {}) {
+    const w = typeof window !== 'undefined' ? window : null;
+    if (w && typeof w.rzConfirmar === 'function' && typeof w.abrirSheet === 'function') return w.rzConfirmar(opcoes);
+    const texto = [opcoes.titulo, opcoes.impacto].filter(Boolean).join('\n\n');
+    return Promise.resolve(!!(w && w.confirm(texto))); // exceção UXR-30: cofre.html avulso
+}
+
+// v1.6.0 (F0.2b) — aviso de sucesso com "Desfazer" por 5 s (ação reversível:
+// desvincular, arquivar foto, tirar acesso). Fora do app, só o aviso.
+export function avisarComDesfazer(msg, desfazer) {
+    const w = typeof window !== 'undefined' ? window : null;
+    if (w && typeof w.rzToast === 'function' && typeof desfazer === 'function') { w.rzToast(msg, { tipo: 'success', desfazer }); return; }
+    mostrarToast(msg);
 }
 
 export function mostrarToast(msg, tipo) {

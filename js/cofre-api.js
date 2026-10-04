@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.46.0 · 26/09/2026
+// Versão: 1.47.0 · 04/10/2026
+//
+// v1.47.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo" do Nicola 04/10 00:22 e 01:03; UXR-29/30) — lerVinculo/restaurarVinculo e restaurarFotoAtivo, para o
+// "Desfazer" de desvincular documento e de remover foto (a foto já era só arquivada).
+//
+// Versão anterior: 1.46.0 · 26/09/2026
 //
 // v1.46.0 (demanda 4a609dbb, entrega 2/3 do lote de 29) —
 // buscarItemControlePorId() passa a selecionar cofre_controle_subtipos
@@ -416,7 +421,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.46.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.47.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -619,6 +624,23 @@ export async function inserirVinculo(clienteId, documentoId, entidadeTipo, entid
         cliente_id: clienteId, documento_id: documentoId, entidade_tipo: entidadeTipo,
         entidade_id: entidadeId, principal: !!principal, criado_por: pessoaId,
     });
+    if (error) throw error;
+}
+
+// v1.47.0 (F0.2b) — Desfazer de "desvincular": lê a linha antes de apagar e a regrava igual.
+export async function lerVinculo(vinculoId) {
+    const { data, error } = await dbAuth.from('cofre_documento_vinculos').select('*').eq('id', vinculoId).maybeSingle();
+    if (error) throw error;
+    return data;
+}
+export async function restaurarVinculo(linha) {
+    if (!linha) return;
+    const { error } = await dbAuth.from('cofre_documento_vinculos').insert(linha);
+    if (error) throw error;
+}
+// v1.47.0 (F0.2b) — Desfazer de "remover foto" (a remoção só arquiva).
+export async function restaurarFotoAtivo(fotoId) {
+    const { error } = await dbAuth.from('cofre_ativo_fotos').update({ status: 'ativo' }).eq('id', fotoId);
     if (error) throw error;
 }
 

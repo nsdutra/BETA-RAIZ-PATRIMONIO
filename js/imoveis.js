@@ -1,7 +1,14 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.6.1 · 03/10/2026
+// Versão: 1.7.0 · 04/10/2026
+//
+// v1.7.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 11 alert() e 3 confirm() viram
+// rzAvisar/rzPerguntar/rzResumo. Excluir imóvel em Sheet com item vermelho; remover foto
+// (só arquiva) ganha "Desfazer"; divisão ≠ 100% vira aviso, sem "salvar assim" (o banco
+// exige 100%); o (i) de Energia abre resumo.
+//
+// Versão anterior: 1.6.1 · 03/10/2026
 //
 // v1.6.1 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — imóvel sem cidade deixa de ganhar "Belo Horizonte" por padrão — era
 // esse valor inventado que aparecia no recibo quando a cidade vem do imóvel.
@@ -107,7 +114,7 @@
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
 
-export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {
@@ -529,7 +536,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
 
             if (sociosAdicionais.length === 0) {
 
-                alert("⚠️ Adicione ao menos um sócio na divisão de propriedade (toque no ➕).");
+                rzAvisar('Adicione ao menos um proprietário na divisão (toque em +).', 'danger');
 
                 return;
 
@@ -537,7 +544,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
 
             if(somaPct !== 100) {
 
-                alert("⚠️ A soma societária precisa ser exatamente 100%. Total atual: " + somaPct + "%");
+                rzAvisar('A divisão precisa somar 100%. Hoje está em ' + somaPct + '%.', 'danger');
 
                 return;
 
@@ -920,13 +927,13 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
 
             if (temContrato) {
 
-                alert("⚠️ Não é possível excluir este imóvel: existe pelo menos 1 contrato vinculado a ele. Exclua ou desvincule o(s) contrato(s) primeiro.");
+                rzAvisar('Não dá para excluir: há contrato ligado a este imóvel. Exclua ou desvincule o contrato antes.', 'danger');
 
                 return;
 
             }
 
-            if (!confirm(`Confirma a exclusão do imóvel "${imo.empreendimento} - ${imo.enderecoRua}, ${imo.enderecoNum}"? Esta ação não pode ser desfeita.`)) return;
+            if (!await rzPerguntar({ titulo: 'Excluir imóvel?', impacto: `${imo.empreendimento} · ${imo.enderecoRua}, ${imo.enderecoNum} é apagado. Não dá para desfazer.`, destrutivo: true, rotuloConfirmar: 'Excluir imóvel' })) return;
 
             // CORRIGIDO — antes removia da tela e registrava o log ANTES de saber
             // se a exclusão no Supabase realmente funcionou (o "then" era disparado
@@ -936,7 +943,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
             const { error } = await dbAuth.from('imoveis').delete().eq('id', id);
 
             if (error) {
-                alert("❌ Falha ao excluir o imóvel: " + error.message + "\n\nNada foi removido. Se o imóvel foi criado agora mesmo, aguarde a confirmação de salvamento e tente de novo.");
+                rzResumo({ titulo: 'Não consegui excluir o imóvel', linhas: [error.message, 'Nada foi removido. Se o imóvel foi criado agora mesmo, espere a confirmação de salvamento e tente de novo.'] });
                 logScreen('Erro ao excluir imóvel no Supabase: ' + error.message, true);
                 return;
             }
@@ -1254,7 +1261,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
             }
 
             const imo = imoveis.find(i => i.id === id);
-            if (!imo) { alert('Imóvel não encontrado.'); return; }
+            if (!imo) { rzAvisar('Imóvel não encontrado.', 'danger'); return; }
 
             document.getElementById('ficha-imovel-head').innerHTML = `
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
@@ -1348,7 +1355,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
                                      "Energia solidária" → "Energia" + ícone
                                      "i" explicando do que se trata. -->
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;display:flex;align-items:center;gap:4px;">Energia
-                                    <button type="button" onclick="alert('Identifica se o imóvel pode se beneficiar do saldo de energia gerada por usina solar do proprietário na rede da concessionária.')" title="O que é isso?" style="width:15px;height:15px;border-radius:9999px;background:#e2e8f0;color:#475569;font-size:10px;font-weight:bold;border:none;line-height:15px;padding:0;">i</button>
+                                    <button type="button" onclick="rzResumo({ titulo: 'Energia', linhas: ['Identifica se o imóvel pode se beneficiar do saldo de energia gerada por usina solar do proprietário na rede da concessionária.'] })" title="O que é isso?" style="width:15px;height:15px;border-radius:9999px;background:#e2e8f0;color:#475569;font-size:10px;font-weight:bold;border:none;line-height:15px;padding:0;">i</button>
                                 </label>
                                 <select id="mdi-energia-rumo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">
                                     <option value="Não" ${imo.energiaRumo !== 'Sim' ? 'selected' : ''}>Não</option>
@@ -1409,7 +1416,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
                 if (document.querySelector('.tab-content.active')?.id === 'tab-imoveis') renderImoveis();
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui salvar: ' + (err.message || String(err)));
+                rzAvisar('Não consegui salvar: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -1513,20 +1520,26 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
                 await montarFotosImovelDoCofre(imovelId);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui enviar as fotos: ' + (err.message || String(err)));
+                rzAvisar('Não consegui enviar as fotos: ' + (err.message || String(err)), 'danger');
             }
         }
 
 
         export async function removerFotoImovelDoCofre(fotoId, imovelId) {
-            if (!confirm('Remover esta foto?')) return;
+            // v1.7.0 (F0.2b) — remover só arquiva a foto: sem pergunta, com "Desfazer".
             try {
                 const { error } = await dbAuth.from('cofre_ativo_fotos').update({ status: 'arquivado' }).eq('id', fotoId);
                 if (error) throw error;
-                mostrarToast('Foto removida.', 'success');
                 await montarFotosImovelDoCofre(imovelId);
+                const desfazer = async () => {
+                    const { error: errVolta } = await dbAuth.from('cofre_ativo_fotos').update({ status: 'ativo' }).eq('id', fotoId);
+                    if (errVolta) { rzAvisar('Não consegui desfazer: ' + errVolta.message, 'danger'); return; }
+                    await montarFotosImovelDoCofre(imovelId);
+                    rzAvisar('Foto de volta.', 'success');
+                };
+                if (window.rzToast) window.rzToast('Foto removida.', { tipo: 'success', desfazer }); else rzAvisar('Foto removida.', 'success');
             } catch (err) {
-                alert('❌ Erro ao remover: ' + (err.message || String(err)));
+                rzAvisar('Não consegui remover a foto: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -1702,7 +1715,9 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
             const validas = __divisaoPopupImovel.filter(s => s.nome && s.nome.trim());
             const total = validas.reduce((s, x) => s + (parseFloat(x.pct) || 0), 0);
             if (validas.length > 0 && Math.abs(total - 100) > 0.5) {
-                if (!confirm(`A soma dos percentuais é ${total.toFixed(1)}%, não 100%. Salvar mesmo assim?`)) return;
+                // v1.7.0 — o banco exige 100% (mesma regra do contrato, teste 4 da F0.2a): sem "salvar assim"
+                rzAvisar(`A divisão do imóvel precisa somar 100%. Hoje está em ${total.toFixed(1)}%.`, 'danger');
+                return;
             }
 
             mostrarCarregamentoGlobal('Salvando divisão...');
@@ -1733,7 +1748,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
                 if (fichaImovelAtualId === imovelId) renderFichaImovelUnica(imo);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui salvar: ' + (err.message || String(err)));
+                rzAvisar('Não consegui salvar: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -1753,7 +1768,7 @@ export const VERSAO = '1.6.1'; // v-check: lido por ⚙️ › Conta › Versõe
             const elegiveis = contratos.filter(c => c.imovelId === imovelId && c.status === 'Ativo' && c.whatsapp);
 
             if (elegiveis.length === 0) {
-                alert("⚠️ Não há um contrato ativo com WhatsApp cadastrado para este imóvel.");
+                rzAvisar('Não há contrato ativo com WhatsApp do locatário neste imóvel.', 'danger');
                 return;
             }
 

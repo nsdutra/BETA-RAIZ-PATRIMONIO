@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.295.0) — P1b do Financeiro (ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0):
+Distribuição (tab-socios) remodelada no padrão UXR-10/25 — barra de busca + "+", competência,
+corpo desenhado por js/financeiro.js (renderDistribuicao, número de fn_apurar_distribuicao);
+o popup "Registrar Retirada" (modal-campo-contrato) saiu e abre o Sheet novo; card
+#fin-outras-receitas em Recebimentos; multa/juros da baixa mapeada para
+mensalidades.multa_encargos (carregar e sincronizar). Import map: js/financeiro.js 1.28.0 → 1.29.0.
+Versão anterior (Beta v1.294.1):
+------------------------------------------------------------------
+Versões anteriores (v1.294.1 … v1.294.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.294.1) — correções achadas pelo Nicola em 03/10 23:13:
 (1) REGRESSÃO da F0.5c (1.292.2): no celular, formulários com grade de 2 colunas viravam 1
 coluna, mas filhos col-span-2 criavam uma 2ª coluna implícita que espremia a 1ª (Editar item

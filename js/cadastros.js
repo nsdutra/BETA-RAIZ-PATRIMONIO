@@ -1,6 +1,10 @@
 // ============================================================================
 // cadastros.js — Raiz Patrimônio · Telas de cadastro do menu ⚙️
-// Versão: 1.0.1 · 05/09/2026
+// Versão: 1.0.2 · 04/10/2026
+//
+// v1.0.2 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: excluir cadastro vira confirmação em Sheet.
+//
+// Versão anterior: 1.0.1 · 05/09/2026
 //
 // v1.0.1 — ⋮ com `codigo` (imoveis.editar / imoveis.excluir) — porta única do app.
 //
@@ -27,7 +31,7 @@
 //    index → acessíveis via window.
 // ============================================================================
 
-export const VERSAO = '1.0.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.0.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const db = () => window.__raizDbAuth;
 const ponte = () => window.__raizCadastrosPonte || {};
 
@@ -153,7 +157,7 @@ function abrirFormNome(chave, item) {
 async function excluir(chave, item) {
     const cfg = TELAS[chave];
     if (cfg.emUso(item.id)) { window.mostrarToast?.(cfg.msgEmUso, 'danger'); return; }
-    if (!confirm(`Excluir "${item.nome}"?`)) return;
+    if (!await window.rzPerguntar?.({ titulo: `Excluir ${item.nome}?`, impacto: 'Sai da lista de cadastros.', destrutivo: true, rotuloConfirmar: 'Excluir' })) return; // v1.0.2 (F0.2b)
     try {
         const { error } = await db().from(cfg.tabela).delete().eq('id', item.id);
         if (error) throw error;

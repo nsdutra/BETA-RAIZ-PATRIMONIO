@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.22.0 · 03/10/2026
+// Versão: 2.23.0 · 04/10/2026
+//
+// v2.23.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 4 confirm() viram perguntar() do cofre-ui.
+// Tirar documento da empresa (desvincular) não pergunta mais e ganha "Desfazer".
+//
+// Versão anterior: 2.22.0 · 03/10/2026
 //
 // v2.22.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — texto interno sai da tela: o aviso de documento vencido deixa de citar
 // a decisão de projeto "(D10)".
@@ -471,7 +476,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.22.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.23.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -491,7 +496,7 @@ const destravarPdf = async (f, senha) => (await imagemMod())?.destravarPdf(f, se
 const tratarImagem = async (f, o) => (await imagemMod())?.tratarImagem(f, o) ?? null;
 const resumoQualidade = (a, t) => _imagemMod ? _imagemMod.resumoQualidade(a, t) : null;
 import * as api from './cofre-api.js';
-import { mostrarToast, abrirModal, fecharModal, refrescarIcones } from './cofre-ui.js';
+import { mostrarToast, abrirModal, fecharModal, refrescarIcones, perguntar, avisarComDesfazer } from './cofre-ui.js';
 import {
     escapeHtml, formatarDataBR, formatarBytes, diasAte, chipVencimento,
     classificarStatusVinculo, rotuloStatusVinculo, rotuloTipoAtivo, iconeAtivo, rotuloTipoControle,
@@ -873,7 +878,7 @@ async function processarArquivoUpload() {
     up.hash = await api.calcularHashSha256(f);
     if (up.hash && estado.documentos.some(d => d.hash_sha256 === up.hash)) {
         const existente = estado.documentos.find(d => d.hash_sha256 === up.hash);
-        if (!confirm(`Este arquivo parece idêntico a "${existente.nome_exibicao}", já cadastrado. Enviar mesmo assim?`)) { statusEl.textContent = ''; return; }
+        if (!await perguntar({ titulo: 'Arquivo repetido?', impacto: `Este arquivo parece idêntico a "${existente.nome_exibicao}", que já está no Cofre. Enviar mesmo assim?`, rotuloConfirmar: 'Enviar mesmo assim', rotuloCancelar: 'Não enviar' })) { statusEl.textContent = ''; return; }
     }
     up.documentoId = crypto.randomUUID();
     up.storagePath = api.montarStoragePath(estado.clienteId, up.documentoId, f.name);
@@ -1943,7 +1948,7 @@ export async function categorizarDocumentoAtual() {
 }
 
 export async function excluirDocumentoAtual() {
-    if (!confirm('Excluir este documento? Esta ação fica registrada e não pode ser desfeita pela interface.')) return;
+    if (!await perguntar({ titulo: 'Excluir documento?', impacto: 'A exclusão fica registrada e não dá para desfazer pelo app.', destrutivo: true, rotuloConfirmar: 'Excluir documento' })) return;
     const d = estado.documentos.find(x => x.id === docAtualId);
     try {
         await api.atualizarDocumento(docAtualId, { status: 'excluido', excluido_em: new Date().toISOString(), excluido_por: estado.pessoa.id });
@@ -2027,7 +2032,7 @@ export async function vincularDocumentoArquivado(id) {
 
 export async function excluirDocumentoArquivadoDeVez(id) {
     const d = arquivadosCache.find(x => x.id === id);
-    if (!confirm(`Excluir "${d?.nome_exibicao || 'este documento'}" de vez?\n\nO arquivo (se ainda estiver guardado) e o registro somem. Não pode ser desfeito.`)) return;
+    if (!await perguntar({ titulo: 'Excluir de vez?', impacto: `"${d?.nome_exibicao || 'Este documento'}" e o arquivo guardado somem. Não dá para desfazer.`, destrutivo: true, rotuloConfirmar: 'Excluir de vez' })) return;
     try {
         await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.excluir_de_vez', { documento_id: id, nome: d?.nome_exibicao });
         await api.excluirDocumentoDeVez(id);
@@ -2175,10 +2180,18 @@ async function abrirDocumentoEmpresa(documentoId) {
 
 async function excluirDocumentoDaEmpresa(vinculoId) {
     if (!vinculoId) { mostrarToast('Vínculo não encontrado.', 'erro'); return; }
-    if (!confirm('Remover este documento da empresa?\n\nO documento continua guardado no Cofre — só desvincula dele.')) return;
+    // v2.23.0 (F0.2b) — desvincular é reversível: sem pergunta, com "Desfazer" no aviso.
     try {
+        const linhaAntes = await api.lerVinculo(vinculoId);
         await api.removerVinculo(vinculoId);
-        mostrarToast('Documento removido.');
+        avisarComDesfazer('Documento tirado da empresa. Ele continua no Cofre.', async () => {
+            try {
+                await api.restaurarVinculo(linhaAntes);
+                await renderizarDocumentosEmpresa();
+                window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+                mostrarToast('Documento de volta à empresa.');
+            } catch (e) { mostrarToast('Não consegui desfazer: ' + e.message, 'erro'); }
+        });
         await renderizarDocumentosEmpresa();
         window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }

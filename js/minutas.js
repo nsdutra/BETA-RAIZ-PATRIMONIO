@@ -1,7 +1,13 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.1.0 · 22/09/2026
+// Versão: 1.2.0 · 04/10/2026
+//
+// v1.2.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 20 alert() e 2 confirm() viram
+// rzAvisar/rzPerguntar/rzResumo; excluir minuta em Sheet com item vermelho; a lista do que
+// falta para gerar a minuta vira resumo de várias linhas.
+//
+// Versão anterior: 1.1.0 · 22/09/2026
 //
 // v1.1.0 (Fase 1 do wrapper de escrita, rollout Contratos+Minutas — pedido
 // do Nicola 22/09/2026) — adoção do utilitário js/raiz-eventos.js (piloto
@@ -72,7 +78,7 @@
 
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.1.0'; // v-check: manter igual ao header
+export const VERSAO = '1.2.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -132,18 +138,18 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         export async function processarArquivoMinutizacao() {
             const nome = document.getElementById('minz-nome').value.trim();
             const escopo = document.getElementById('minz-escopo').value;
-            if (!nome) { alert('⚠️ Dê um nome pra essa minuta.'); return; }
-            if (escopo === 'empreendimento' && !document.getElementById('minz-empreendimento-id').value) { alert('⚠️ Selecione o empreendimento.'); return; }
-            if (escopo === 'tipo_imovel' && !document.getElementById('minz-tipo-imovel-id').value) { alert('⚠️ Selecione o tipo de imóvel.'); return; }
-            if (escopo === 'imovel' && !document.getElementById('minz-imovel-id').value) { alert('⚠️ Selecione o imóvel.'); return; }
+            if (!nome) { rzAvisar('Dê um nome para a minuta.', 'danger'); return; }
+            if (escopo === 'empreendimento' && !document.getElementById('minz-empreendimento-id').value) { rzAvisar('Escolha o empreendimento.', 'danger'); return; }
+            if (escopo === 'tipo_imovel' && !document.getElementById('minz-tipo-imovel-id').value) { rzAvisar('Escolha o tipo de imóvel.', 'danger'); return; }
+            if (escopo === 'imovel' && !document.getElementById('minz-imovel-id').value) { rzAvisar('Escolha o imóvel.', 'danger'); return; }
 
             const arquivoInput = document.getElementById('minz-arquivo-input');
             const arquivo = arquivoInput.files && arquivoInput.files[0];
-            if (!arquivo) { alert('⚠️ Envie o contrato real (.docx ou .pdf).'); return; }
+            if (!arquivo) { rzAvisar('Envie o contrato real (.docx ou .pdf).', 'danger'); return; }
             const nomeMinusculo = arquivo.name.toLowerCase();
             const ehDocx = nomeMinusculo.endsWith('.docx');
             const ehPdf = nomeMinusculo.endsWith('.pdf');
-            if (!ehDocx && !ehPdf) { alert('⚠️ Só .docx ou .pdf são aceitos aqui.'); return; }
+            if (!ehDocx && !ehPdf) { rzAvisar('Só .docx ou .pdf.', 'danger'); return; }
 
             mostrarCarregamentoGlobal('Lendo o contrato...');
             try {
@@ -185,7 +191,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 document.getElementById('minz-passo-2').classList.remove('hidden');
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui processar esse arquivo: ' + (err.message || String(err)));
+                rzAvisar('Não consegui ler esse arquivo: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -247,7 +253,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
 
             const confirmadas = __minzEstado.sugestoes.filter(s => s.placeholderEscolhido);
             if (confirmadas.length === 0) {
-                if (!confirm('Nenhum placeholder foi confirmado — a minuta vai ficar com o texto do contrato real, SEM nenhum campo variável (não serve pra reaproveitar). Continuar mesmo assim?')) return;
+                if (!await rzPerguntar({ titulo: 'Nenhum campo confirmado', impacto: 'A minuta fica com o texto do contrato real, sem nenhum campo variável, e não serve para reaproveitar. Continuar mesmo assim?', rotuloConfirmar: 'Continuar assim', rotuloCancelar: 'Voltar e confirmar campos' })) return;
             }
 
             mostrarCarregamentoGlobal('Gerando o modelo da minuta...');
@@ -289,7 +295,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 saveAll(true, 'Minuta gerada a partir do contrato real!', ['minutasContrato']);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui gerar o modelo: ' + (err.message || String(err)));
+                rzAvisar('Não consegui gerar o modelo: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -399,15 +405,15 @@ if (!window.__rzListenerEscritaMinutaLigado) {
             const escopo = document.getElementById('minuta-escopo').value;
 
             if (escopo === 'empreendimento' && !document.getElementById('minuta-empreendimento-id').value) {
-                alert('⚠️ Selecione o empreendimento desta minuta.');
+                rzAvisar('Escolha o empreendimento desta minuta.', 'danger');
                 return;
             }
             if (escopo === 'tipo_imovel' && !document.getElementById('minuta-tipo-imovel-id').value) {
-                alert('⚠️ Selecione o tipo de imóvel desta minuta.');
+                rzAvisar('Escolha o tipo de imóvel desta minuta.', 'danger');
                 return;
             }
             if (escopo === 'imovel' && !document.getElementById('minuta-imovel-id').value) {
-                alert('⚠️ Selecione o imóvel desta minuta.');
+                rzAvisar('Escolha o imóvel desta minuta.', 'danger');
                 return;
             }
 
@@ -416,7 +422,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
             const arquivoNovo = arquivoInput.files && arquivoInput.files[0];
 
             if (!id && !arquivoNovo) {
-                alert('⚠️ Envie o arquivo .docx do modelo.');
+                rzAvisar('Envie o arquivo .docx do modelo.', 'danger');
                 return;
             }
             if (arquivoNovo && !arquivoNovo.name.toLowerCase().endsWith('.docx')) {
@@ -434,9 +440,9 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 // só especificada. Isto NÃO é o mesmo cadastro de sempre
                 // com um limite técnico bobo — é uma função futura
                 // diferente que ainda não existe.
-                alert(ehPdf
-                    ? '⚠️ PDF ainda não é convertido automaticamente aqui — essa função (gerar minuta a partir de um contrato real em PDF) está em desenvolvimento, ainda não pronta. Por enquanto, envie o modelo em .docx, já com os {{placeholders}} nos pontos que variam (ou abra o PDF no Word/Google Docs e "Salvar como" .docx primeiro).'
-                    : '⚠️ Só arquivos .docx (Word) ou .pdf são aceitos aqui. Se for outro formato, abra e "Salvar como" .docx primeiro.');
+                rzResumo({ titulo: ehPdf ? 'PDF ainda não é convertido aqui' : 'Formato não aceito', linhas: [ehPdf
+                    ? 'Gerar minuta a partir de um contrato real em PDF ainda está em desenvolvimento. Por enquanto, envie o modelo em .docx, já com os {{placeholders}}.'
+                    : 'Só arquivos .docx (Word) ou .pdf são aceitos aqui. Se for outro formato, abra e use "Salvar como" .docx antes.'] });
                 return;
             }
 
@@ -480,7 +486,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                     dados.arquivoNome = nomeDescritivo;
                 } catch (err) {
                     esconderCarregamentoGlobal();
-                    alert('❌ Falha ao enviar o arquivo: ' + (err.message || String(err)));
+                    rzAvisar('Não consegui enviar o arquivo: ' + (err.message || String(err)), 'danger');
                     return;
                 }
                 esconderCarregamentoGlobal();
@@ -520,8 +526,8 @@ if (!window.__rzListenerEscritaMinutaLigado) {
             try { return decodeURIComponent(semQuery); } catch (e) { return semQuery; }
         }
 
-        export function excluirMinuta(id) {
-            if (!confirm("Confirma a exclusão desta minuta?")) return;
+        export async function excluirMinuta(id) {
+            if (!await rzPerguntar({ titulo: 'Excluir minuta?', impacto: 'O modelo e o arquivo dele são apagados. Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Excluir minuta' })) return;
 
             const minuta = minutasContrato.find(m => m.id === id);
             const storagePath = minuta ? extrairStoragePathDeUrlAssinada(minuta.arquivoUrl, 'contratos-documentos') : null;
@@ -1159,7 +1165,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
 
             const con = contratos.find(c => c.imovelId === imovelId && c.status === 'Assinando');
             if (!con) {
-                alert('⚠️ Ainda não há um contrato "Assinando" para este imóvel — gere o link ou cadastre os dados do novo contrato primeiro.');
+                rzAvisar('Este imóvel ainda não tem contrato "Assinando". Gere o link ou cadastre os dados do contrato antes.', 'danger');
                 return;
             }
 
@@ -1167,7 +1173,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 ? minutasContrato.find(m => m.id === minutaIdEscolhida && m.ativa !== false)
                 : encontrarMinutaParaImovel(imovelId);
             if (!minuta || !minuta.arquivoUrl) {
-                alert('⚠️ Nenhuma minuta cadastrada se aplica a este imóvel.');
+                rzAvisar('Nenhuma minuta cadastrada serve para este imóvel.', 'danger');
                 return;
             }
 
@@ -1201,7 +1207,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 resultadoPreenchimento.placeholdersResiduais.forEach(p => problemasCombinados.push('Modelo usa um placeholder que o sistema não sabe preencher: ' + p));
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui verificar o modelo de minuta: ' + (err.message || String(err)));
+                rzAvisar('Não consegui verificar o modelo de minuta: ' + (err.message || String(err)), 'danger');
                 return;
             }
 
@@ -1210,8 +1216,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 // NOVO — se algum problema menciona "fiador_", oferece o
                 // atalho pra já abrir o cadastro em vez de só avisar.
                 const faltaFiador = problemasCombinados.some(p => p.toLowerCase().includes('fiador_'));
-                const sufixoFiador = faltaFiador ? '\n\nA minuta escolhida exige dados de fiador — toque em "Dados Contrato" pra cadastrar.' : '';
-                alert('⚠️ Minuta ainda indisponível — faltam ' + problemasCombinados.length + ' informação(ões):\n\n' + problemasCombinados.map(l => '• ' + l).join('\n') + sufixoFiador + '\n\nCompletar os dados antes de gerar.');
+                rzResumo({ titulo: 'Minuta ainda indisponível', linhas: [`Faltam ${problemasCombinados.length} informação(ões):`, ...problemasCombinados.map(l => '• ' + l), ...(faltaFiador ? ['A minuta escolhida exige dados de fiador — toque em "Dados Contrato" para cadastrar.'] : []), 'Complete os dados antes de gerar.'] });
                 return;
             }
 
@@ -1299,7 +1304,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
 
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui gerar a minuta: ' + (err.message || String(err)));
+                rzAvisar('Não consegui gerar a minuta: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -1315,7 +1320,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         // comportamento idêntico a antes (abre direto, sem picker).
         export function baixarMinutaPadraoImovel(imovelId) {
             const aplicaveis = listarMinutasAplicaveis(imovelId);
-            if (aplicaveis.length === 0) { alert('⚠️ Nenhuma minuta padrão disponível para este imóvel.'); return; }
+            if (aplicaveis.length === 0) { rzAvisar('Nenhuma minuta padrão disponível para este imóvel.', 'danger'); return; }
 
             if (aplicaveis.length === 1) {
                 window.open(aplicaveis[0].arquivoUrl, '_blank');
