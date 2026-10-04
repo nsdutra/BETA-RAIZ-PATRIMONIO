@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.297.0) — F0.2a do PLANO_UX (zero diálogo nativo, UXR-29/30; "de acordo"
+do Nicola 04/10 00:22). Atalhos rzAvisar/rzPerguntar/rzEscolherUm/rzResumo/rzPedirTexto
+para os substitutos do js/raiz-ui.js. Saem do index todos os alert/confirm/prompt fora do
+Financeiro (etapa 6): exclusões de administradora, síndico, manutencista, parte, documento
+e links de vitrine viram confirmação em Sheet (item vermelho); adicionar proprietário vira
+escolha em lista; "Solicitar acesso" vira 1 Sheet com 3 campos; avisos viram toast ou resumo.
+Tocar na logo deixa de recarregar a página (volta ao topo). identificarComoAdmin() removida
+(sem chamador, usuário fixo no código). Ficam de propósito: recarga nas 2 telas de erro e
+ao sair da conta. Import map: js/contratos.js 1.38.0 → 1.39.0.
+Versão anterior (Beta v1.296.0):
+------------------------------------------------------------------
+Versões anteriores (v1.296.0 … v1.296.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.296.0) — F0.3 do PLANO_UX (texto e consistência; "de acordo" do Nicola
 03/10 23:57). Textos internos saem da tela: Alertas sem "Tom de notícia, nunca recomendação",
 Menu › Versões com "Versão do app em uso". Recibo sem dado inventado: sem CNPJ falso nem

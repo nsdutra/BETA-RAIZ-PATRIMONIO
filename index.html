@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.297.4
-   LINHAS: 15977
-   DATA: 04/10/2026 (sessão 20261004-0106-financeiro, demanda cad6ec67)
+   VERSÃO: Beta v1.297.5
+   LINHAS: 16007
+   DATA: 04/10/2026 (sessão 20261004-0810-financeiro, demanda cad6ec67)
+   NOVIDADES (Beta v1.297.5) — alertas de cadastro da P2 com texto de gente (Nicola 04/10 08:06).
+   "Ativo sem proprietário", "Contrato sem divisão do aluguel" e "Chave Pix da empresa
+   pendente" mostravam o código cru no título e no Sheet; o grupo dizia só "6 alertas" — agora
+   "6 ativos sem proprietário". Tipo novo sem texto próprio nunca mais mostra código: vira frase
+   legível. Na lista (Visão Geral e Alertas), os alertas sem data ficam juntos por assunto, com
+   Cadastro primeiro (inclui CIB, dado que impede a nota e o sinal "Cadastro"). Sem mudança de banco.
+   Versão anterior (Beta v1.297.4):
    NOVIDADES (Beta v1.297.4) — correção dos testes da P2 do Financeiro (Nicola 04/10 01:00).
    Só import map: js/financeiro.js 1.30.0 → 1.30.1 (card "Outras receitas" com o título numa
    linha só, sem a legenda partida à direita; rotina "Fechamento do mês" reverificada a cada
@@ -36,18 +43,8 @@
    Banco: trava de 100% na divisão do contrato, alertas ativo_sem_proprietario/contrato_sem_divisao,
    cofre_ativos.registro_contabil, fn_fechamento_calcular_contabil e fn_financeiro_totalizadores.
    Versão anterior (Beta v1.297.0):
-   NOVIDADES (Beta v1.297.0) — F0.2a do PLANO_UX (zero diálogo nativo, UXR-29/30; "de acordo"
-   do Nicola 04/10 00:22). Atalhos rzAvisar/rzPerguntar/rzEscolherUm/rzResumo/rzPedirTexto
-   para os substitutos do js/raiz-ui.js. Saem do index todos os alert/confirm/prompt fora do
-   Financeiro (etapa 6): exclusões de administradora, síndico, manutencista, parte, documento
-   e links de vitrine viram confirmação em Sheet (item vermelho); adicionar proprietário vira
-   escolha em lista; "Solicitar acesso" vira 1 Sheet com 3 campos; avisos viram toast ou resumo.
-   Tocar na logo deixa de recarregar a página (volta ao topo). identificarComoAdmin() removida
-   (sem chamador, usuário fixo no código). Ficam de propósito: recarga nas 2 telas de erro e
-   ao sair da conta. Import map: js/contratos.js 1.38.0 → 1.39.0.
-   Versão anterior (Beta v1.296.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.296.0 … v1.296.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.297.0 … v1.297.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3525,7 +3522,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.297.4"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.297.5"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11191,12 +11188,7 @@
             const wrapper = document.getElementById('geral-atencao-fundidos');
             const visiveis = geralVisiveisTodos;
             const filtrados = filtrarPorSeveridade(visiveis, geralSeveridadeFiltro);
-            const ordenados = agruparEMapearAlertas(filtrados).sort((a, b) => {
-                if (a.dias === null && b.dias === null) return 0;
-                if (a.dias === null) return 1;
-                if (b.dias === null) return -1;
-                return a.dias - b.dias;
-            });
+            const ordenados = agruparEMapearAlertas(filtrados).sort(rzOrdemAlertas); // v1.297.5 — junta por grupo entre os sem data
             ordenados.forEach(a => { if (!a.onClick) a.onClick = "abrirTabAlertas()"; });
             const cardsHtml = ordenados.map(linhaAlertaHtml);
 
@@ -11502,8 +11494,45 @@
                     const pct = row.detalhe?.percentual;
                     return pct != null ? `${pct}% da receita concentrada em 1 locatário` : 'Concentração de receita em 1 locatário';
                 }
-                default: return row.tipo_alerta;
+                // v1.297.5 (achado do Nicola 04/10 08:06, P2) — os 3 tipos de
+                // cadastro mais novos caíam no default e mostravam o código cru
+                // ("ativo_sem_proprietario", "pix_empresa_pendente"). Nomes
+                // batem com alerta_tipos.nome (catálogo).
+                case 'ativo_sem_proprietario': return 'Ativo sem proprietário';
+                case 'contrato_sem_divisao': return 'Contrato sem divisão do aluguel';
+                case 'pix_empresa_pendente': return 'Chave Pix da empresa pendente';
+                // Rede de segurança: tipo novo sem texto aqui nunca mostra o
+                // código cru — vira frase legível ("ativo sem proprietário").
+                default: return rzTipoAlertaLegivel(row.tipo_alerta);
             }
+        }
+
+        // v1.297.5 — "ativo_sem_proprietario" → "Ativo sem proprietario"
+        // (último recurso, só para tipo que ainda não ganhou texto próprio).
+        function rzTipoAlertaLegivel(codigo) {
+            const t = String(codigo || 'Alerta').replace(/_/g, ' ');
+            return t.charAt(0).toUpperCase() + t.slice(1);
+        }
+
+        // v1.297.5 — grupo de exibição: alertas que falam de cadastro ficam
+        // juntos na lista (pedido do Nicola), mesmo os que o catálogo põe
+        // no domínio fiscal (CIB, dado que impede a nota, sinal "Cadastro").
+        const RZ_ORDEM_GRUPO_ALERTA = ['cadastro', 'fiscal', 'financeiro', 'contratual', 'documental'];
+        function grupoExibicaoAlerta(row) {
+            if (!row) return 'outro';
+            if (row.dominio === 'cadastro') return 'cadastro';
+            if (['cib_pendente', 'fiscal_cadastro_incompleto', 'cadastro_incompleto'].includes(row.tipo_alerta)) return 'cadastro';
+            if (row.tipo_alerta === 'sinal_fiscal' && row.detalhe?.categoria === 'cadastro') return 'cadastro';
+            return row.dominio || 'outro';
+        }
+        // Ordem da lista: com data primeiro (mais atrasado no topo); sem data
+        // por último, e entre os sem data (ou na mesma data) juntos por grupo.
+        function rzOrdemAlertas(a, b) {
+            if (a.dias !== null && b.dias !== null && a.dias !== b.dias) return a.dias - b.dias;
+            if (a.dias === null && b.dias !== null) return 1;
+            if (b.dias === null && a.dias !== null) return -1;
+            const ia = RZ_ORDEM_GRUPO_ALERTA.indexOf(a.grupo), ib = RZ_ORDEM_GRUPO_ALERTA.indexOf(b.grupo);
+            return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
         }
 
         // v1.258.0 — nome curto do índice ("IPCA — variação mensal" → "IPCA") e mês "08/2026".
@@ -11736,6 +11765,7 @@
         function itemAvulso(r) {
             return {
                 categoria: r.dominio || 'outro',
+                grupo: grupoExibicaoAlerta(r), // v1.297.5
                 tipoAlerta: r.tipo_alerta,
                 dias: r.dias,
                 titulo: tituloAlertaMotor(r),
@@ -11766,7 +11796,9 @@
                 case 'cib_pendente': return `${n} imóveis com CIB pendente`;
                 case 'fiscal_cadastro_incompleto': return `${n} dados que impedem a nota fiscal`; // v1.255.0 (Fase 6 fiscal)
                 case 'indicador_atualizado': return `${n} índices de mercado publicados`; // v1.258.0
-                default: return `${n} alertas`;
+                case 'ativo_sem_proprietario': return `${n} ativos sem proprietário`; // v1.297.5
+                case 'contrato_sem_divisao': return `${n} contratos sem divisão do aluguel`; // v1.297.5
+                default: return `${n} ${rzTipoAlertaLegivel(tipoAlerta).toLowerCase()}`; // v1.297.5 — nunca "N alertas" sem dizer de quê
             }
         }
 
@@ -11882,6 +11914,7 @@
                 alertasPorGrupoTipo.set(tipoAlerta, grupo);
                 itens.push({
                     categoria: r0.dominio || 'outro',
+                    grupo: grupoExibicaoAlerta(r0), // v1.297.5
                     tipoAlerta,
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorTipo(tipoAlerta, grupo.length),
@@ -11907,6 +11940,7 @@
                 alertasPorGrupoEntidade.set(chave, grupo);
                 itens.push({
                     categoria: grupo[0].dominio || 'outro',
+                    grupo: grupoExibicaoAlerta(grupo[0]), // v1.297.5
                     tipoAlerta: grupo[0].tipo_alerta,
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorEntidade(grupo[0].tipo_alerta, grupo.length),
@@ -11928,6 +11962,7 @@
                 alertasPorGrupoNatureza.set(chave, grupo);
                 itens.push({
                     categoria: grupo[0].dominio || 'outro',
+                    grupo: grupoExibicaoAlerta(grupo[0]), // v1.297.5
                     tipoAlerta: grupo[0].tipo_alerta,
                     dias: maisUrgente.dias,
                     titulo: tituloResumoPorNatureza(nat, grupo.length),
@@ -12060,12 +12095,7 @@
             // mais tempo primeiro (dias mais negativo primeiro), depois
             // por dias restantes crescente. Sem data (null) sempre por
             // último, nunca misturado no meio dos itens com data real.
-            const ordenados = [...filtrados].sort((a, b) => {
-                if (a.dias === null && b.dias === null) return 0;
-                if (a.dias === null) return 1;
-                if (b.dias === null) return -1;
-                return a.dias - b.dias;
-            });
+            const ordenados = [...filtrados].sort(rzOrdemAlertas); // v1.297.5 — junta por grupo entre os sem data
 
             // v1.108.0 (pedido do Nicola: status igual ao da ficha/contrato) —
             // cada alerta é um .rz-row dentro de um .rz-card.rz-list; o tempo
