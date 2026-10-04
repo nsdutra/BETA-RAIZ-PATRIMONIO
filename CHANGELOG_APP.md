@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.298.2) — demanda 2923ff4d ("de acordo" do Nicola 03/10 23:42). Só import map:
+js/financeiro.js 1.30.1 → 1.31.0 (categorias de despesa, rótulo e ícone vindos de
+lancamento_categorias), js/cofre-controles.js 1.42.0 → 1.43.0 (combo Tipo de controle_tipos;
+"Lançar despesa" do item usa a categoria do banco) e js/cofre-validacoes.js 2.3.0 → 2.4.0.
+Versão anterior (Beta v1.298.1):
+------------------------------------------------------------------
+Versões anteriores (v1.298.1 … v1.298.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.298.1) — alertas de cadastro numa linha só (decisão do Nicola 04/10 08:35).
 Todos os alertas de cadastro (ativo sem proprietário, contrato sem divisão, Pix da empresa,
 cadastro incompleto, CIB pendente, dado que impede a nota e o sinal "Cadastro") viram 1 linha,

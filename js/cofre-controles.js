@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.44.0 · 04/10/2026
+// Versão: 1.45.0 · 04/10/2026
+//
+// v1.45.0 (demanda 2923ff4d, catálogo 2b-2 — plano aprovado pelo Nicola em 04/10/2026 12:40; sessão 20261004-1245-catalogo-2b2) —
+// Novo item nasce do ativo: o combo Tipo só oferece tipos que têm subtipo válido para a
+// categoria do ativo em foco (Raiz Licença, por ex., só mostra Tecnologia e serviços e
+// Documento), e abre no primeiro deles em vez de "Seguro" fixo. Linha de chips no topo do
+// formulário com o caminho: ativo · tipo de ativo · tipo · subtipo.
 //
 // v1.44.0 (F1.1, teste 3 reprovado pelo Nicola 04/10 08:41, demanda c5d844a4, sessão 20261003-1707-ux-base) — editar item de controle: quando a
 // mudança afeta os alertas (início, fim, frequência ou direção), a pergunta vem ANTES de
@@ -567,7 +573,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.44.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.45.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -662,7 +668,7 @@ function comComplementoControles(baseHtml) {
     if (enc) partes.push(`${enc} encerrado${enc === 1 ? '' : 's'}`);
     if (semAlerta) partes.push(`${semAlerta} sem alerta`);
     if (!partes.length) return baseHtml;
-    return `${baseHtml || ''} <span class="rz-sub" style="font-size:12px;color:var(--ink-3,#6b7280)">· ${partes.join(' · ')}</span>`;
+    return `${baseHtml || ''} <span class="rz-sub">· ${partes.join(' · ')}</span>`; // v1.45.0 — sem style inline (REGRAS §17)
 }
 function atualizarEstadoChipControles() {
     const ativos = itensDoAtivoAtual.filter(i => i.ativo !== false); // v1.20.0 — encerrados não contam
@@ -1088,10 +1094,12 @@ async function carregarCatalogoTiposControle() {
     } catch (err) { console.warn('[controles] catálogo de tipos:', err.message); catalogoTiposControle = null; }
     return catalogoTiposControle;
 }
-function popularComboTipoControle(selectId, tipoAtual) {
+function popularComboTipoControle(selectId, tipoAtual, tiposPermitidos) {
     const sel = document.getElementById(selectId);
     if (!sel || !catalogoTiposControle?.length) return; // sem catálogo, fica o markup de reserva
-    const lista = catalogoTiposControle.filter(t => t.selecionavel_app || t.codigo === tipoAtual);
+    let lista = catalogoTiposControle.filter(t => t.selecionavel_app || t.codigo === tipoAtual);
+    // v1.45.0 — nasce do ativo: só tipos com subtipo válido para ele (se a lista vier vazia, não filtra)
+    if (tiposPermitidos && tiposPermitidos.size) { const f = lista.filter(t => tiposPermitidos.has(t.codigo) || t.codigo === tipoAtual); if (f.length) lista = f; }
     sel.innerHTML = lista.map(t => `<option value="${escapeHtml(t.codigo)}">${escapeHtml(t.nome)}</option>`).join('');
 }
 
@@ -2055,8 +2063,11 @@ export async function abrirFormControle() {
         try { modelosCache = await api.listarModelosItemControle(estado.clienteId); }
         catch (err) { modelosCache = []; /* não bloqueia a criação manual se os modelos falharem ao carregar */ }
     }
-    document.getElementById('ic-tipo').value = 'seguro';
-    popularSelectSubtipo('seguro');
+    // v1.45.0 — tipos limitados aos que têm subtipo válido para o ativo; abre no primeiro
+    if (subtiposDoAtivoCache.lista) popularComboTipoControle('ic-tipo', null, new Set(subtiposDoAtivoCache.lista.map(s => s.tipo)));
+    const tipoInicialIc = document.getElementById('ic-tipo').options[0]?.value || 'seguro';
+    document.getElementById('ic-tipo').value = tipoInicialIc;
+    popularSelectSubtipo(tipoInicialIc);
     document.getElementById('ic-titulo').value = '';
     document.getElementById('ic-data-base').value = '';
     document.getElementById('ic-data-fim').value = '';
@@ -2066,7 +2077,36 @@ export async function abrirFormControle() {
     document.getElementById('ic-antecedencia').value = '7';
     aoMudarFrequenciaItemControle(); // E14.2 — form abre com parcelas visível (recorrente vazio)
     renderizarModelosSugeridosForm();
+    ligarCaminhoNovoItem(); // v1.45.0
     abrirModal('modal-criar-item-controle');
+}
+
+// v1.45.0 — linha de chips com o caminho do novo item: ativo · tipo de ativo · tipo · subtipo.
+function ligarCaminhoNovoItem() {
+    const selTipo = document.getElementById('ic-tipo');
+    const selSub = document.getElementById('ic-subtipo');
+    if (!selTipo || !selSub) return;
+    let caminho = document.getElementById('ic-caminho');
+    if (!caminho) {
+        caminho = document.createElement('div');
+        caminho.id = 'ic-caminho';
+        caminho.className = 'rz-chips';
+        selTipo.parentElement?.insertAdjacentElement('beforebegin', caminho);
+        selTipo.addEventListener('change', () => setTimeout(atualizarCaminhoNovoItem, 0));
+        selSub.addEventListener('change', atualizarCaminhoNovoItem);
+    }
+    atualizarCaminhoNovoItem();
+}
+function atualizarCaminhoNovoItem() {
+    const caminho = document.getElementById('ic-caminho');
+    if (!caminho) return;
+    const a = estado.ativoEmFoco;
+    const selTipo = document.getElementById('ic-tipo');
+    const selSub = document.getElementById('ic-subtipo');
+    const partes = [a?.nome_exibicao, a?.tipo_ativo ? rotuloTipoAtivo(a.tipo_ativo) : '',
+        selTipo?.value ? selTipo.options[selTipo.selectedIndex]?.text : '',
+        selSub?.value ? selSub.options[selSub.selectedIndex]?.text : ''].filter(Boolean);
+    caminho.innerHTML = partes.map(p => `<span class="rz-chip">${escapeHtml(p)}</span>`).join('');
 }
 
 // E14.2 ("A16", 15/09/2026) — parcelamento (Parcelas/Dias entre parcelas)

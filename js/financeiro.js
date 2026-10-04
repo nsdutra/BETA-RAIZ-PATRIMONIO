@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.31.0 · 04/10/2026
+// Versão: 1.32.0 · 04/10/2026
+//
+// v1.32.0 (demanda 2923ff4d, catálogo 2b-2 — plano aprovado pelo Nicola em 04/10/2026 12:40; sessão 20261004-1245-catalogo-2b2) —
+// teste 2 reprovado ("lista com muita coisa misturada"): Nova/Editar despesa em dois níveis —
+// Categoria (nível 1 de saída da árvore lancamento_categorias) → Subcategoria (folhas dela).
+// Ao editar, os dois vêm posicionados a partir da folha gravada. Linha de chips mostra o
+// caminho: Saída · ativo · categoria · subcategoria · valor. Sem nós de nível 1 no catálogo,
+// volta à lista única da v1.31.0.
 //
 // v1.31.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) —
 // categorias de despesa vêm do catálogo lancamento_categorias (nome, ícone, ordem e
@@ -845,7 +852,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.31.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.32.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1956,14 +1963,23 @@ function financeiroRenderCabecalho(aba) {
             const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
                 `<option value="${p.id}" ${(p.id === d?.parteId || p.id === parteSugeridaUnica) ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
                 `<option value="__novo__">+ Novo fornecedor</option>`;
-            // v1.31.0 — lista do catálogo (saida/ambas, na ordem do catálogo); a fixa é reserva
+            // v1.32.0 — árvore: Categoria (nível 1 de saída) → Subcategoria (folhas). Sem nível 1
+            // no catálogo, cai na lista única da v1.31.0 (e esta na fixa, se o catálogo falhar).
             const categoriaAtualDesp = d?.categoria || sugestoes?.categoria || null;
-            const listaCategoriasDesp = catalogoCategoriasLanc?.length
-                ? catalogoCategoriasLanc.filter(c => c.direcao !== 'entrada' || c.codigo === categoriaAtualDesp).map(c => c.codigo)
+            const catDesp = catalogoCategoriasLanc || [];
+            const gruposDesp = catDesp.filter(c => !c.categoria_pai && c.direcao === 'saida' && catDesp.some(f => f.categoria_pai === c.codigo));
+            const usarArvoreDesp = gruposDesp.length > 0;
+            const grupoAtualDesp = usarArvoreDesp ? (catDesp.find(c => c.codigo === categoriaAtualDesp)?.categoria_pai || '') : '';
+            let listaCategoriasDesp;
+            if (usarArvoreDesp) listaCategoriasDesp = grupoAtualDesp ? catDesp.filter(c => c.categoria_pai === grupoAtualDesp).map(c => c.codigo) : [];
+            else listaCategoriasDesp = catDesp.length
+                ? catDesp.filter(c => c.direcao !== 'entrada' || c.codigo === categoriaAtualDesp).map(c => c.codigo)
                 : ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'tecnologia_assinaturas', 'outro'];
             if (categoriaAtualDesp && !listaCategoriasDesp.includes(categoriaAtualDesp)) listaCategoriasDesp.push(categoriaAtualDesp);
-            const optsCategorias = listaCategoriasDesp
-                .map(v => `<option value="${v}" ${v === (d?.categoria || sugestoes?.categoria) ? 'selected' : ''}>${rotuloCategoriaSaida(v)}</option>`).join('');
+            const optsGruposDesp = `<option value="">— escolha a categoria —</option>` + gruposDesp
+                .map(g => `<option value="${g.codigo}" ${g.codigo === grupoAtualDesp ? 'selected' : ''}>${escapeHtmlSaidas(g.nome)}</option>`).join('');
+            const optsCategorias = (usarArvoreDesp ? `<option value="">${grupoAtualDesp ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` : '') + listaCategoriasDesp
+                .map(v => `<option value="${v}" ${v === categoriaAtualDesp ? 'selected' : ''}>${rotuloCategoriaSaida(v)}</option>`).join('');
             const optsFormaPagamento = ['pix', 'boleto', 'transferencia', 'dinheiro', 'outro']
                 .map(v => `<option value="${v}" ${v === d?.formaPagamento ? 'selected' : ''}>${v.charAt(0).toUpperCase() + v.slice(1)}</option>`).join('');
 
@@ -1989,10 +2005,18 @@ function financeiroRenderCabecalho(aba) {
                             <label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label>
                             <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || sugestoes?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
                         </div>
+                        ${usarArvoreDesp ? `<div class="rz-f">
+                            <label for="desp-categoria-grupo">Categoria <i>*</i></label>
+                            <select id="desp-categoria-grupo">${optsGruposDesp}</select>
+                        </div>
+                        <div class="rz-f">
+                            <label for="desp-categoria">Subcategoria <i>*</i></label>
+                            <select id="desp-categoria">${optsCategorias}</select>
+                        </div>` : ''}
                         <div class="grid grid-cols-2 gap-2">
-                            <div>
+                            <div${usarArvoreDesp ? ' class="hidden"' : ''}>
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;">Categoria <span style="color:var(--danger)">*</span></label>
-                                <select id="desp-categoria" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsCategorias}</select>
+                                <select id="${usarArvoreDesp ? 'desp-categoria-legado' : 'desp-categoria'}" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsCategorias}</select>
                             </div>
                             <div>
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;">Valor (R$) <span style="color:var(--danger)">*</span></label>
@@ -2074,7 +2098,43 @@ function financeiroRenderCabecalho(aba) {
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            ligarCascataCategoriaDesp(); // v1.32.0
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // v1.32.0 — Categoria → Subcategoria e linha de chips com o caminho escolhido.
+        function ligarCascataCategoriaDesp() {
+            const selGrupo = document.getElementById('desp-categoria-grupo');
+            const selSub = document.getElementById('desp-categoria');
+            if (!selSub) return;
+            let caminho = document.getElementById('desp-caminho');
+            if (!caminho) {
+                caminho = document.createElement('div');
+                caminho.id = 'desp-caminho';
+                caminho.className = 'rz-chips';
+                (selGrupo ? selGrupo.parentElement : selSub.closest('.grid'))?.insertAdjacentElement('beforebegin', caminho);
+            }
+            const atualizar = () => {
+                const ativoSel = document.getElementById('desp-ativo');
+                const nomeAtivo = ativoSel && ativoSel.value ? ativoSel.options[ativoSel.selectedIndex]?.text : '';
+                const grupo = selGrupo && selGrupo.value ? selGrupo.options[selGrupo.selectedIndex]?.text : '';
+                const sub = selSub.value ? selSub.options[selSub.selectedIndex]?.text : '';
+                const valor = parseFloat(document.getElementById('desp-valor')?.value);
+                const partes = ['Saída', nomeAtivo, grupo, sub, isNaN(valor) ? '' : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })].filter(Boolean);
+                caminho.innerHTML = partes.map(p => `<span class="rz-chip">${escapeHtmlSaidas(p)}</span>`).join('');
+            };
+            if (selGrupo) selGrupo.addEventListener('change', () => {
+                const g = selGrupo.value;
+                const folhas = (catalogoCategoriasLanc || []).filter(c => c.categoria_pai === g);
+                selSub.innerHTML = `<option value="">${g ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` +
+                    folhas.map(f => `<option value="${f.codigo}">${escapeHtmlSaidas(f.nome)}</option>`).join('');
+                if (folhas.length === 1) selSub.value = folhas[0].codigo;
+                atualizar();
+            });
+            selSub.addEventListener('change', atualizar);
+            document.getElementById('desp-valor')?.addEventListener('input', atualizar);
+            document.getElementById('desp-ativo')?.addEventListener('change', atualizar);
+            atualizar();
         }
 
         // "MM/AAAA" das próximas N competências a partir de hoje — só pro
