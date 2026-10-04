@@ -1,6 +1,13 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.10.0 · 04/10/2026
+// Versão: 1.10.1 · 04/10/2026
+//
+// v1.10.1 (04/10/2026, sessão 20261004-1540-financeiro, demanda f3e6cd27 — teste
+// da P4a, de acordo do Nicola): "Excluir conta" sempre aparece nas ações da
+// conta (fn_conta_excluir). Sem movimento, apaga; com movimento, o banco
+// responde explicando e sugerindo "Encerrar conta". "Encerrar" também passa a
+// aparecer na padrão de uma pessoa (o banco aceita quando é a única conta
+// dela). A padrão da empresa continua protegida. Versão anterior: 1.10.0.
 //
 // v1.10.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
 // fichas A1–A6 aprovadas pelo Nicola 12:43) — card novo "Contas" no fim da
@@ -110,7 +117,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.10.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.10.1'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -728,13 +735,23 @@ export function abrirAcoesConta({ dbAuth, clienteId, conta, onToast, aoMudar, fi
             aoTocar: () => abrirFichaConta({ dbAuth, clienteId, conta, fixarPessoaId, onToast, aoSalvar: aoMudar }) });
         if (!conta.padrao) acoes.push({ titulo: 'Definir como padrão', sub: 'Lançamentos sem conta escolhida vão para ela', icone: 'star', codigo: 'financeiro.contas.editar',
             aoTocar: () => rpc('fn_conta_definir_padrao', { p_conta_id: conta.id }) });
-        if (!conta.padrao) acoes.push({ titulo: 'Encerrar conta', sub: 'O histórico continua no Financeiro', icone: 'archive', tipo: 'bad', codigo: 'financeiro.contas.editar',
+        if (!(conta.padrao && conta.titular_tipo === 'empresa')) acoes.push({ titulo: 'Encerrar conta', sub: 'O histórico continua no Financeiro', icone: 'archive', tipo: 'bad', codigo: 'financeiro.contas.editar',
             aoTocar: async () => {
                 const ok = await perguntar({ titulo: 'Encerrar a conta?', impacto: `"${conta.nome}" deixa de aparecer para novos lançamentos. O que já foi lançado nela continua.`, destrutivo: true, rotuloConfirmar: 'Encerrar conta' });
                 if (ok) rpc('fn_conta_encerrar', { p_conta_id: conta.id, p_motivo: null });
             } });
     }
-    if (!acoes.length) { onToast?.('Conta encerrada. O histórico dela continua no Financeiro.', 'info'); return; }
+    // v1.10.1 — sempre visível; o banco decide e explica (sem movimento apaga; com movimento sugere Encerrar).
+    acoes.push({ titulo: 'Excluir conta', sub: 'Só conta sem nenhum movimento', icone: 'trash-2', tipo: 'bad', codigo: 'financeiro.contas.editar',
+        aoTocar: async () => {
+            const ok = await perguntar({ titulo: 'Excluir a conta?', impacto: `"${conta.nome}" será apagada. Se ela já tiver movimento, o sistema avisa e nada muda.`, destrutivo: true, rotuloConfirmar: 'Excluir conta' });
+            if (!ok) return;
+            const { data, error } = await dbAuth.rpc('fn_conta_excluir', { p_conta_id: conta.id });
+            if (error) { onToast?.(error.message, 'danger'); return; }
+            if (data?.ok) { onToast?.(data.mensagem, 'success'); aoMudar?.(); return; }
+            if (data?.acao === 'tem_movimento' && typeof window.rzAviso === 'function') { window.rzAviso({ titulo: 'Esta conta não pode ser apagada', linhas: [data.mensagem] }); return; }
+            onToast?.(data?.mensagem || 'Não foi possível excluir.', 'danger');
+        } });
     window.abrirSheetAcoes({ titulo: conta.nome, sub: contaLinhaSub(conta), acoes });
 }
 

@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.300.0) — F1.2 do PLANO_UX (UXR-22/28/29; plano de 04/10 12:20 com a observação do
+Nicola 12:25: nada executa só por deslizar; grupos com ver e escolher). Alertas e Pontos de atenção:
+deslizar a linha REVELA até 2 ações por lado e só o toque executa — 1 alerta: Tratar/Vincular/
+Resolver/Visto à direita, Adiar (7 ou 30 dias)/Dispensar à esquerda; grupo: "Ver aqui" (abre os
+itens ali mesmo, cada um com o seu deslizar) e "Escolher" (marca vários e adia, dispensa ou marca
+como visto de uma vez). Pressão longa: ações rápidas (grupo: Escolher). Toda marcação de alerta tem
+"Desfazer" por 5 s, também pelo sheet. O toque na linha continua igual. Sem banco.
+Versão anterior (Beta v1.299.0):
+------------------------------------------------------------------
+Versões anteriores (v1.299.0 … v1.299.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.299.0) — F1.3 do PLANO_UX (REGRAS §4; "Pode implementar!" do Nicola 04/10
 11:28). Cada aba guarda a rolagem: voltar a ela (rodapé ou voltar) devolve a posição; ficha
 de contrato aberta "para a frente" começa no topo. Tocar na aba já aberta sobe ao topo, suave,
