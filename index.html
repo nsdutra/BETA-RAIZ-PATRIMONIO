@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.292.2
-   LINHAS: 16204
-   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.5c uma coluna no celular)
+   VERSÃO: Beta v1.293.0
+   LINHAS: 16227
+   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.4 adaptador de dispositivo)
+   NOVIDADES (Beta v1.293.0) — F0.4 do PLANO_UX_PWA_ATUAL (demanda 717fc21d, "pode seguir"
+   do Nicola 03/10 22:01), UXR-35/40/41/44: módulo NOVO js/raiz-device.js 1.0.0 (adaptador
+   único — plataforma, haptic, abrirExterno, whatsapp, email, share, escolherArquivo, scan,
+   clipboard, localizacao, voz, notify, biometria; implementação web, pontos CAPACITOR
+   marcados), carregado no boot como window.RaizDevice + ponte rzDev() segura; tokens de
+   movimento --m-* (zerados com reduzir movimento) e de modo escuro (só com
+   data-theme="dark" — ainda desligado); toast vibra no Android (sucesso/erro); WhatsApp do
+   bot, do banner de contratação e do Suporte passam pelo adaptador. Links do Financeiro
+   (recibo e resumo por e-mail) ficam para a etapa 6.
+   Versão anterior (Beta v1.292.2):
    NOVIDADES (Beta v1.292.2) — F0.5c (demanda 4c7f2264, "de acordo" do Nicola 03/10 21:55),
    regra UXR-31b: em tela < 600 px todo formulário vira uma coluna (.rz-f2 e grids de 2
    colunas com campo); lado a lado só nos pares curtos marcados .rz-f2-curto — no contrato:
@@ -40,12 +50,8 @@
    40, chip/segmento 36), toast centralizado acima da bottom nav com aria-live.
    maximum-scale=1 FICA até o teste no iPhone (UXR-32, passo b).
    Versão anterior (Beta v1.290.1):
-   NOVIDADES (Beta v1.290.1) — pedido do Nicola (03/10 11:20): os itens de IPTU e
-   condomínio do contrato só são oferecidos/gerados com o contrato Ativo (ao ativar),
-   não mais em Assinando (js/contratos.js 1.36.0 → 1.36.1; banco contratos_encargos_v3_2).
-   Versão anterior (Beta v1.290.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.290.0 … v1.290.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.290.1 … v1.290.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -70,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.37.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.38.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.37.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.38.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -728,6 +734,12 @@
            componente rz-*, sem !important. */
         [class*="rz-"].hidden{display:none}
         @media (prefers-reduced-motion:reduce){.rz-veil,.rz-sheet,.rz-btn,.rz-ico-btn{transition:none}}
+        /* v1.293.0 — F0.4: tokens de movimento (UXR-34/35) e de modo escuro (UXR-44, ainda NÃO ligado:
+           só vale com data-theme="dark" no <html>; a escolha em ⚙️ › Aparência chega na F4.4) */
+        :root{--m-rapido:120ms;--m-base:200ms;--m-lento:320ms;--m-ease:cubic-bezier(.2,.8,.2,1);--m-saida:cubic-bezier(.4,0,1,1)}
+        @media (prefers-reduced-motion:reduce){:root{--m-rapido:0ms;--m-base:0ms;--m-lento:0ms}}
+        :root[data-theme="dark"]{--paper:#121715;--card:#1a211e;--tile:#232b27;--line:#2b3430;--ink:#e8ebe6;--muted:#9aa49f;--sage:#8fa69c;
+          --success-bg:#1d3328;--warning-bg:#33262a;--danger-bg:#3a2522;--info-bg:#1f2d38;--brass-bg:#33281a;--pine-deep:#152a24}
 
 
         /* ====================================================================
@@ -784,6 +796,16 @@
 </head>
 
 <body class="bg-gray-100 font-sans text-gray-800 pb-16">
+    <script type="module">/* v1.293.0 (F0.4, UXR-40): adaptador único de dispositivo — window.RaizDevice */
+    import('./js/raiz-device.js').catch(function(e){ console.warn('[raiz-device] não carregou', e); });
+    </script>
+    <script>/* v1.293.0 — ponte: chamada antes do módulo carregar cai no comportamento web de sempre */
+    window.rzDev = function(nome){ var a=[].slice.call(arguments,1); var d=window.RaizDevice;
+      if (d && typeof d[nome]==='function') return d[nome].apply(d,a);
+      if (nome==='whatsapp'){ window.open('https://wa.me/'+String(a[0]||'').replace(/\D/g,'')+(a[1]?'?text='+encodeURIComponent(a[1]):''),'_blank','noopener'); return {ok:true}; }
+      if (nome==='abrirExterno'){ window.open(a[0],'_blank','noopener'); return {ok:true}; }
+      return {ok:false,motivo:'sem_adaptador'}; };
+    </script>
     <script>/* v1.291.0 (UXR-31): altura visível real — teclado aberto não empurra sheet/barra */
     (function(){var vv=window.visualViewport;function f(){document.documentElement.style.setProperty('--rz-vvh',(vv?vv.height:window.innerHeight)+'px')}if(vv){vv.addEventListener('resize',f);vv.addEventListener('scroll',f)}window.addEventListener('resize',f);f()})();
     </script>
@@ -3492,7 +3514,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.292.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.293.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6023,7 +6045,7 @@
             // outros links "Falar no WhatsApp" espalhados pelo app/landing).
             const numeroBot = '5511978950609';
             const texto = encodeURIComponent('Olá, como o R.AI.Z - Assistente Patrimonial pode me ajudar?');
-            window.open('https://wa.me/' + numeroBot + '?text=' + texto, '_blank', 'noopener');
+            rzDev('whatsapp', numeroBot, decodeURIComponent(texto)); // v1.293.0 — pelo adaptador (UXR-40)
         }
 
         async function esqueciSenha() {
@@ -8388,6 +8410,7 @@
             toast.innerHTML = `<svg data-lucide="${cor.icon}" style="width:17px;height:17px;flex-shrink:0"></svg><span>${mensagem}</span>`;
 
             container.appendChild(toast);
+            rzDev('haptic', tipo === 'danger' ? 'error' : (tipo === 'success' ? 'success' : 'light')); // v1.293.0 (UXR-35) — Android vibra; iOS/web sem efeito
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
             requestAnimationFrame(() => {
@@ -8474,7 +8497,7 @@
                     <p style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:18px; color:var(--ink,#17211e); margin-bottom:8px;">Seu teste permite até ${limite} ${rotulo}</p>
                     <p style="font-size:13.5px; color:#4a5852; margin-bottom:20px;">Pra continuar cadastrando, é só contratar o Raiz Patrimônio — a gente libera na hora.</p>
                     <a href="https://wa.me/5511947461828?text=${mensagemZap}" target="_blank"
-                       onclick="registrarInteresseContratacao('${origemLog || 'banner_limite'}')"
+                       onclick="registrarInteresseContratacao('${origemLog || 'banner_limite'}'); rzDev('abrirExterno', this.href); return false;"
                        style="display:block; background:var(--sprout,#3f8163); color:#fff; font-weight:700; padding:12px; border-radius:999px; text-decoration:none; margin-bottom:10px;">
                        Contrate agora
                     </a>
@@ -9644,7 +9667,7 @@
                         { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
                         { icone: 'package-check', titulo: 'Versões', sub: 'O que está no ar × o que está rodando', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
                         { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
-                        { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => window.open('https://wa.me/5511947461828', '_blank') },
+                        { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => rzDev('whatsapp', '5511947461828') },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
                         { icone: 'info', titulo: 'Sobre', aoTocar: ir('tab-sobre') },
                         { icone: 'log-out', titulo: 'Sair', aoTocar: fazerLogoutSupabase }

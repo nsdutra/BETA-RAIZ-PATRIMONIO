@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.290.1) — pedido do Nicola (03/10 11:20): os itens de IPTU e
+condomínio do contrato só são oferecidos/gerados com o contrato Ativo (ao ativar),
+não mais em Assinando (js/contratos.js 1.36.0 → 1.36.1; banco contratos_encargos_v3_2).
+Versão anterior (Beta v1.290.0):
+------------------------------------------------------------------
+Versões anteriores (v1.290.0 … v1.290.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.290.0) — encargos v3 (demanda 854f6343, plano aprovado pelo
 Nicola em 02/10 23:47): IPTU e condomínio passam a ter um item por responsável e
 por ano. Cada contrato cria o seu (IPTU proporcional aos dias do contrato no ano,
