@@ -1,7 +1,14 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.36.1 · 03/10/2026
+// Versão: 1.37.0 · 03/10/2026
+//
+// v1.37.0 (F0.5 complemento, UXR-31a, sessão 20261003-1707-ux-base, demanda
+// 4c7f2264 — Nicola 03/10 21:28: "novo contrato ainda com elementos fora"):
+// bloco de cada fiador deixa o estilo solto (fundo #f8fafc, bordas #cbd5e1,
+// rótulos 10 px) e passa a .rz-card + .rz-f/.rz-f2 — mesma casca do resto do
+// formulário; "Remover" vira botão terciário; divisão de sócios vira .rz-row
+// com campo % na casca única e ✕ como .rz-ico-btn. Sem mudança de dado.
 //
 // v1.36.1 (demanda 854f6343, pedido do Nicola 03/10/2026 11:20, sessão
 // 20260927-2205-contratos) — o sheet "Itens do imóvel" (IPTU/condomínio do
@@ -653,7 +660,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.36.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.37.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -898,61 +905,60 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 const campo = function(rotulo, chave, tipo, obrigatorioVisual) {
                     tipo = tipo || 'text';
                     const v = (f[chave] || '').toString().replace(/"/g, '&quot;');
-                    return `<div style="flex:1;min-width:140px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">${rotulo}${obrigatorioVisual ? ' <span style="color:var(--danger)">*</span>' : ''}</label>
-                        <input type="${tipo}" value="${v}" onchange="atualizarCampoFiador(${i}, '${chave}', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;"></div>`;
+                    return `<div class="rz-f"><label>${rotulo}${obrigatorioVisual ? ' <i>*</i>' : ''}</label>
+                        <input type="${tipo}" value="${v}" onchange="atualizarCampoFiador(${i}, '${chave}', this.value)"></div>`;
                 };
                 return `
-                <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;background:#f8fafc;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <span style="font-size:11px;font-weight:bold;color:#334155;">Fiador ${i + 1}</span>
-                        <button type="button" onclick="removerFiadorPopup(${i})" style="color:#ef4444;font-weight:bold;font-size:11px;background:none;border:none;">Remover ✕</button>
+                <div class="rz-card" style="margin-bottom:12px">
+                    <div class="rz-card-h"><h3>Fiador ${i + 1}</h3>
+                        <button type="button" onclick="removerFiadorPopup(${i})" class="rz-btn rz-sm rz-btn-3" style="color:var(--danger);text-decoration-color:var(--danger-bg)">Remover</button>
                     </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                    <div class="rz-f2">
                         ${campo('Nome completo', 'nome', 'text', true)}
                         ${campo('CPF/CNPJ', 'cpf', 'text', true)}
                     </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                    <div class="rz-f2">
                         ${campo('RG', 'rg')}
                         ${campo('Órgão expedidor', 'rg_orgao_expedidor')}
                         ${campo('Nacionalidade', 'nacionalidade')}
                         ${campo('Data de nascimento', 'data_nascimento', 'date')}
                     </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                    <div class="rz-f2">
                         ${campo('Profissão', 'profissao')}
-                        <div style="flex:1;min-width:140px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">Estado civil</label>
-                            <select onchange="atualizarCampoFiador(${i}, 'estado_civil', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;background:#fff;">
+                        <div class="rz-f"><label>Estado civil</label>
+                            <select onchange="atualizarCampoFiador(${i}, 'estado_civil', this.value)">
                                 <option value="">-- Selecione --</option>
                                 ${['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União estável'].map(op => `<option ${f.estado_civil === op ? 'selected' : ''}>${op}</option>`).join('')}
                             </select>
                         </div>
-                        <div style="flex:1;min-width:180px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">Regime de bens</label>
-                            <select onchange="atualizarCampoFiador(${i}, 'regime_bens', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;background:#fff;">
+                        <div class="rz-f"><label>Regime de bens</label>
+                            <select onchange="atualizarCampoFiador(${i}, 'regime_bens', this.value)">
                                 <option value="">-- Se casado(a) --</option>
                                 ${['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens', 'Separação obrigatória de bens', 'Participação final nos aquestos'].map(op => `<option ${f.regime_bens === op ? 'selected' : ''}>${op}</option>`).join('')}
                             </select>
                         </div>
                     </div>
-                    <p style="font-size:10px;color:#94a3b8;margin:0 0 4px;">Cônjuge (obrigatório assinar junto se casado(a) fora de separação total/obrigatória de bens — Art. 1.647 do Código Civil):</p>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                    <p class="rz-desc" style="margin:0 0 8px">Cônjuge — assina junto se casado(a) fora de separação total ou obrigatória de bens (art. 1.647 do Código Civil).</p>
+                    <div class="rz-f2">
                         ${campo('Nome do cônjuge', 'conjuge_nome')}
                         ${campo('CPF do cônjuge', 'conjuge_cpf')}
                         ${campo('RG do cônjuge', 'conjuge_rg')}
                         ${campo('Profissão do cônjuge', 'conjuge_profissao')}
                     </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                    <div class="rz-f2">
                         ${campo('WhatsApp', 'whatsapp')}
                         ${campo('E-mail', 'email', 'email')}
                     </div>
-                    <div style="margin-bottom:6px;"><label style="font-size:10px;font-weight:bold;color:#64748b;">Endereço atual</label>
-                        <textarea rows="2" onchange="atualizarCampoFiador(${i}, 'endereco_atual', this.value)" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;margin-top:2px;">${(f.endereco_atual || '').replace(/</g, '&lt;')}</textarea>
+                    <div class="rz-f"><label>Endereço atual</label>
+                        <textarea rows="2" onchange="atualizarCampoFiador(${i}, 'endereco_atual', this.value)">${(f.endereco_atual || '').replace(/</g, '&lt;')}</textarea>
                     </div>
-                    <label style="font-size:11px;display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-                        <input type="checkbox" ${f.possui_imovel_proprio ? 'checked' : ''} onchange="atualizarCampoFiador(${i}, 'possui_imovel_proprio', this.checked)"> Possui imóvel próprio quitado (garantia patrimonial)
+                    <label class="rz-row rz-chk" style="padding:8px 0;border-top:0;min-height:44px">
+                        <input type="checkbox" ${f.possui_imovel_proprio ? 'checked' : ''} onchange="atualizarCampoFiador(${i}, 'possui_imovel_proprio', this.checked)"> <span style="font-size:15px">Possui imóvel próprio quitado (garantia patrimonial)</span>
                     </label>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <div class="rz-f2">
                         ${campo('Matrícula do imóvel', 'imovel_matricula')}
                         ${campo('Cartório de registro', 'imovel_cartorio_registro')}
-                        ${campo('Endereço do imóvel', 'imovel_endereco')}
+                        <div style="grid-column:1/-1">${campo('Endereço do imóvel', 'imovel_endereco')}</div>
                     </div>
                 </div>`;
             }).join('')
@@ -991,12 +997,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             }
 
             listaEl.innerHTML = divisaoContratoAtual.map(function(s, index) {
-                return `<div class="flex items-center justify-between gap-2">
-                    <span class="text-slate-700 truncate">${s.nome}</span>
-                    <div class="flex items-center gap-1 flex-none">
-                        <input type="number" value="${s.pct}" min="0" max="100" onchange="atualizarPctDivisaoContrato(${index}, this.value)" class="w-14 p-1 border rounded text-center font-bold text-[11px]">
-                        <span class="text-[10px]">%</span>
-                        <button type="button" onclick="removerSocioContrato(${index})" class="text-red-500 font-bold px-1"><svg data-lucide="x" style="width:14px;height:14px"></svg></button>
+                return `<div class="rz-row" style="cursor:default">
+                    <div class="rz-tx"><b>${s.nome}</b></div>
+                    <div style="display:flex;align-items:center;gap:6px;flex:none">
+                        <input type="number" value="${s.pct}" min="0" max="100" inputmode="decimal" onchange="atualizarPctDivisaoContrato(${index}, this.value)" style="width:84px;text-align:right;font-weight:600">
+                        <span style="font-size:13px;color:var(--muted)">%</span>
+                        <button type="button" onclick="removerSocioContrato(${index})" class="rz-ico-btn" style="width:40px;height:40px;box-shadow:none;color:var(--danger)" aria-label="Remover sócio"><svg data-lucide="x" style="width:18px;height:18px"></svg></button>
                     </div>
                 </div>`;
             }).join('');

@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.289.3) — encargos v2 (demanda 854f6343, plano aprovado pelo
+Nicola em 02/10 13:28): quem paga IPTU/condomínio passa a ser decidido em cada
+ocorrência, pela vigência do contrato, e fica escrito na descrição dela; fora
+da vigência (ou sem contrato) paga o proprietário. IPTU vira item por exercício:
+parcelas no ano (1 = à vista), só as que faltam até dezembro, com datas e credor
+do padrão da cidade quando existe (js/contratos.js 1.34.0 → 1.35.0). Editar item
+não apaga mais o subtipo; ficha mostra "Proprietário (padrão)"
+(js/cofre-controles.js 1.36.0 → 1.37.0). Banco: contratos_encargos_responsavel_v2.
+Versão anterior (Beta v1.289.2):
+------------------------------------------------------------------
+Versões anteriores (v1.289.2 … v1.289.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.289.2) — pedido do Nicola (02/10, 01:55): menu ⋮ da ficha do
 contrato sem "Abrir o imóvel" e com "Dados do contrato" (só leitura: Contrato,
 Revisionais, Encargos, Locatário) — js/contratos.js 1.33.0 → 1.34.0.
