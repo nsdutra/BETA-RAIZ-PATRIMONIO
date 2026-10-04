@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.300.1) — demanda 2923ff4d (plano aprovado pelo Nicola 04/10 12:40). Só import map:
+js/financeiro.js 1.31.0 → 1.32.0 (despesa em dois níveis: Categoria → Subcategoria, casca .rz-f,
+chips do caminho) e js/cofre-controles.js 1.44.0 → 1.45.0 (novo item nasce do ativo: só tipos com
+subtipo válido; chips do caminho). Banco: migration catalogo_tipos_categorias_v4 (árvore + IPVA).
+Versão anterior (Beta v1.300.0):
+------------------------------------------------------------------
+Versões anteriores (v1.300.0 … v1.300.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.300.0) — F1.2 do PLANO_UX (UXR-22/28/29; plano de 04/10 12:20 com a observação do
 Nicola 12:25: nada executa só por deslizar; grupos com ver e escolher). Alertas e Pontos de atenção:
 deslizar a linha REVELA até 2 ações por lado e só o toque executa — 1 alerta: Tratar/Vincular/

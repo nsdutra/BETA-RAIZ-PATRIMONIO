@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.51.0 · 03/10/2026
+// Versão: 1.52.0 · 04/10/2026
+//
+// v1.52.0 (catálogo único 2b-3c, demanda 2923ff4d, sessão 20261004-1815-catalogo-2b3c; plano 2b-3 aprovado pelo Nicola 04/10) —
+// "Confira o que a IA leu": o campo "Categoria › Subcategoria" passa a se chamar "Espécie do documento"
+// (cofre_categorias virou a lista de 15 espécies na migration catalogo_tipos_categorias_v5).
+//
+// Versão anterior: 1.51.0 · 03/10/2026
 //
 // v1.51.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: botão do bot com título "Falar com a Raiz IA no WhatsApp".
 //
@@ -458,7 +464,7 @@
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
 
-export const VERSAO = '1.51.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.52.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -1380,7 +1386,7 @@ export const ATIVOS_MARKUP = `<style>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Nome de exibição <span style="color:var(--danger)">*</span></label><input type="text" id="uc-nome" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
-            <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Categoria › Subcategoria <span style="color:var(--danger)">*</span></label><select id="uc-categoria" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-categoria-mudou"></select></div>
+            <div class="sm:col-span-2"><label class="text-xs font-semibold block mb-1">Espécie do documento <span style="color:var(--danger)">*</span></label><select id="uc-categoria" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-categoria-mudou"></select></div>
             <div><label class="text-xs font-semibold block mb-1">Data do documento</label><input type="date" id="uc-data-documento" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm"></div>
             <div><label class="text-xs font-semibold block mb-1">Vence em <span id="uc-validade-flag" class="hidden text-xs font-normal" style="color:var(--warning)">· calculada — confira</span></label><input type="date" id="uc-validade" class="w-full border-2 border-slate-300 rounded-xl p-2 text-sm" data-action-change="uc-validade-mudou"></div>
             <div id="uc-vigencia-bloco" class="hidden sm:col-span-2 grid grid-cols-2 gap-3">

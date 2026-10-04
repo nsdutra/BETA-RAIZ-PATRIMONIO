@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.24.0 · 04/10/2026
+// Versão: 2.25.0 · 04/10/2026
+//
+// v2.25.0 (catálogo único 2b-3c, demanda 2923ff4d, sessão 20261004-1815-catalogo-2b3c; plano 2b-3 aprovado pelo Nicola 04/10) —
+// o documento passa a mostrar o caminho da árvore. cofre_categorias virou a lista de 15 ESPÉCIES
+// (migration catalogo_tipos_categorias_v5); o nó (tipo › subtipo) vem do tipo de documento e o
+// contexto vem do vínculo. (a) "Confira": linha de chips #uc-caminho — vínculo · tipo de ativo ·
+// tipo › subtipo · espécie — atualizada ao trocar tipo, espécie ou vínculo; o select de espécie
+// deixa os grupos por bem (imóvel/veículo/...) e lista as espécies na ordem do catálogo.
+// (b) Ficha: chips #fd-caminho com tipo · subtipo · espécie no lugar do nome solto da categoria.
+// (c) Sheet "Categorizar" vira "Espécie do documento". Sem style inline no código novo (REGRAS §17).
+//
+// Versão anterior: 2.24.0 · 04/10/2026
 //
 // v2.24.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
 // esqueleto no lugar de "Carregando..." na lista de documentos arquivados.
@@ -481,7 +492,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.24.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.25.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1091,11 +1102,10 @@ function montarConfirmacaoUpload() {
     g('uc-status').textContent = '';
 
     // categorias: grupo › nome (gabarito global é a fonte; linhas do cliente só pra ids antigos)
+    // v2.25.0 — espécies (lista única, ordem do catálogo); o caminho vem do tipo e do vínculo
     const cats = catalogoCategoriasParaSelect();
-    const grupos = {};
-    cats.forEach(c => { const gr = c.grupo || 'outros'; (grupos[gr] = grupos[gr] || []).push(c); });
-    g('uc-categoria').innerHTML = Object.keys(grupos).sort().map(gr =>
-        `<optgroup label="${escapeHtml(rotuloGrupo(gr))}">${grupos[gr].map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('')}</optgroup>`).join('');
+    g('uc-categoria').innerHTML = cats.map(c => `<option value="${c.id}">${escapeHtml(c.nome)}</option>`).join('');
+    ligarCaminhoUpload();
 
     // tipo de documento (catálogo). v2.4.0 — se a extração falhou, o motor
     // devolve 'outro' mas a classificação sabe o tipo: usa o classificado.
@@ -1185,6 +1195,31 @@ function subtipoSelecionado() {
     return (subtiposControle || []).find(s => s.codigo === codigo) || null;
 }
 
+// v2.25.0 — linha de chips com o caminho do documento no "Confira":
+// vínculo · tipo de ativo · tipo › subtipo · espécie (mesmo padrão de #ic-caminho em cofre-controles.js).
+function ligarCaminhoUpload() {
+    const blocoTipo = document.getElementById('uc-tipo-doc')?.closest('.mb-3');
+    if (!blocoTipo) return;
+    if (!document.getElementById('uc-caminho')) {
+        const caminho = document.createElement('div');
+        caminho.id = 'uc-caminho';
+        caminho.className = 'rz-chips mb-3';
+        blocoTipo.insertAdjacentElement('afterend', caminho);
+    }
+    atualizarCaminhoUpload();
+}
+function atualizarCaminhoUpload() {
+    const caminho = document.getElementById('uc-caminho');
+    if (!caminho || !up) return;
+    const s = subtipoSelecionado();
+    const selEsp = document.getElementById('uc-categoria');
+    const especie = selEsp?.value ? selEsp.options[selEsp.selectedIndex]?.text : '';
+    const vinculo = up.vinculo?.nome || up.novoAtivo?.nome || '';
+    const partes = [vinculo, up.tipoAtivo ? rotuloTipoAtivo(up.tipoAtivo) : '',
+        s?.tipo ? rotuloTipoControle(s.tipo) : '', s?.nome || '', especie].filter(Boolean);
+    caminho.innerHTML = partes.map(p => `<span class="rz-chip">${escapeHtml(p)}</span>`).join('');
+}
+
 // v2.14.0 — extraído de aplicarSubtipoUpload pra também rodar quando só o
 // VÍNCULO muda (subtipo de documento já selecionado — o caso comum, IA
 // classifica antes do usuário escolher o vínculo): antes, esta checagem só
@@ -1206,6 +1241,7 @@ function atualizarDisponibilidadeControleUpload() {
         : vencido ? 'Documento vencido não gera controle. Envie o documento novo para controlar o vencimento.'
         : !vinculoPermiteControle() ? 'Vincule a um ativo ou contrato pra controlar o vencimento.'
         : 'Cria um item de controle com alerta no WhatsApp.';
+    atualizarCaminhoUpload(); // v2.25.0 — vínculo ou tipo mudou
     return permite;
 }
 
@@ -1388,15 +1424,13 @@ export async function relerComoTipoUpload() {
     st.textContent = '';
 }
 
-function rotuloGrupo(gr) {
-    return { imovel: 'Imóvel', contrato: 'Contrato', financeiro: 'Financeiro', societario: 'Societário', operacional: 'Operacional', veiculo: 'Veículo', vida: 'Vida e proteção', outros: 'Outros' }[gr] || gr;
-}
 
 // Troca de categoria (ou 1ª montagem): aplica os padrões parametrizados —
 // manter arquivo e controlar vencimento — e pré-preenche o bloco de controle.
 export function aplicarPadroesCategoriaUpload(primeira = false) {
     // v2.1.0 — o tipo de documento manda; troca manual de categoria só reaplica "manter arquivo".
     if (!up) return;
+    atualizarCaminhoUpload(); // v2.25.0
     const g = id => document.getElementById(id);
     if (!subtipoSelecionado()) {
         // FIX 18/09/2026 (achado real, relato Nicola — "categoria › subtipo,
@@ -1809,7 +1843,23 @@ export async function abrirFichaDocumento(id) {
 
     const statusVinculo = classificarStatusVinculo(d.cofre_documento_vinculos);
     const cat = (estado.categorias || []).find(c => c.id === d.categoria_id);
-    document.getElementById('fd-contexto-label').textContent = cat ? cat.nome : 'Sem categoria';
+    document.getElementById('fd-contexto-label').textContent = cat ? cat.nome : 'Sem espécie';
+    // v2.25.0 — caminho do documento: tipo · subtipo · espécie
+    if (!subtiposControle) {
+        try { subtiposControle = await api.listarCatalogoSubtipos(); }
+        catch (e) { console.warn('catálogo (ficha do documento):', e.message); }
+    }
+    const subDoc = d.subtipo_codigo ? (subtiposControle || []).find(x => x.codigo === d.subtipo_codigo) : null;
+    const partesCaminho = [subDoc?.tipo ? rotuloTipoControle(subDoc.tipo) : '', subDoc?.nome || '', cat?.nome || ''].filter(Boolean);
+    let fdCaminho = document.getElementById('fd-caminho');
+    if (!fdCaminho) {
+        fdCaminho = document.createElement('div');
+        fdCaminho.id = 'fd-caminho';
+        fdCaminho.className = 'rz-chips';
+        document.getElementById('fd-chips')?.insertAdjacentElement('beforebegin', fdCaminho);
+    }
+    fdCaminho.innerHTML = partesCaminho.map(p => `<span class="rz-chip">${escapeHtml(p)}</span>`).join('');
+    fdCaminho.classList.toggle('hidden', !partesCaminho.length);
 
     const dias = diasAte(d.validade_em);
     const chip = chipVencimento(dias);
@@ -1937,13 +1987,13 @@ export async function categorizarDocumentoAtual() {
         catch (e) { mostrarToast('Erro ao carregar categorias: ' + e.message, 'erro'); return; }
     }
     const d = estado.documentos.find(x => x.id === docAtualId);
-    window.abrirSheetAcoes({ titulo: 'Categorizar', sub: d?.nome_exibicao || '', acoes: (estado.categorias || []).map(c => ({
-        icone: c.id === d?.categoria_id ? 'check' : 'tag', titulo: c.nome, sub: c.id === d?.categoria_id ? 'Categoria atual' : '',
+    window.abrirSheetAcoes({ titulo: 'Espécie do documento', sub: d?.nome_exibicao || '', acoes: (estado.categorias || []).map(c => ({ // v2.25.0
+        icone: c.id === d?.categoria_id ? 'check' : 'tag', titulo: c.nome, sub: c.id === d?.categoria_id ? 'Espécie atual' : '',
         aoTocar: async () => {
             try {
                 await api.atualizarDocumento(docAtualId, { categoria_id: c.id });
                 if (d) d.categoria_id = c.id;
-                mostrarToast(`Categoria: ${c.nome}`);
+                mostrarToast(`Espécie: ${c.nome}`);
                 window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
                 emitirEscrita('documento', { id: docAtualId, acao: 'categorizar' }); // v2.21.0
                 await abrirFichaDocumento(docAtualId);
