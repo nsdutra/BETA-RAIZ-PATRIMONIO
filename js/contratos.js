@@ -1,7 +1,14 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.39.0 · 04/10/2026
+// Versão: 1.39.1 · 04/10/2026
+//
+// v1.39.1 (F0.2a, testes do Nicola 04/10 00:52) — (1) "Remover fiador" desvincula a parte do
+// contrato e agora tem "Desfazer" por 5 s no toast (regra aprovada: Desfazer onde voltar é
+// trivial). (2) Divisão do contrato com soma ≠ 100%: sai a pergunta "Salvar mesmo assim?" —
+// o banco nunca aceita; vira aviso vermelho e o sheet continua aberto para ajustar.
+//
+// Versão anterior: 1.39.0 · 04/10/2026
 //
 // v1.39.0 (F0.2a do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo"
 // do Nicola 04/10 00:22; UXR-29/30) — ZERO diálogo nativo neste módulo: os 26 alert(),
@@ -678,7 +685,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.39.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.39.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2036,7 +2043,9 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const validas = __divisaoPopupContrato.filter(s => s.nome && s.nome.trim());
             const total = validas.reduce((s, x) => s + (parseFloat(x.pct) || 0), 0);
             if (validas.length > 0 && Math.abs(total - 100) > 0.5) {
-                if (!await rzPerguntar({ titulo: 'A soma não fecha 100%', impacto: `Os percentuais somam ${total.toFixed(1)}%. Salvar mesmo assim?`, rotuloConfirmar: 'Salvar assim', rotuloCancelar: 'Voltar e ajustar' })) return;
+                // v1.39.1 — o banco exige 100% (trigger da divisão): não há "salvar assim"
+                rzAvisar(`A divisão do contrato precisa somar 100%. Hoje está em ${total.toFixed(1)}%.`, 'danger');
+                return;
             }
 
             // Mesma resolução pessoa_id/nome_externo que sincronizarContratoSupabase
@@ -3111,15 +3120,28 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             abrirSheetAcoes({ titulo: 'Remover qual fiador?', acoes: fiadoresContratoAtual.map((f, i) => ({ icone: 'shield-check', titulo: f.nome || `Fiador ${i + 1}`, tipo: 'bad', aoTocar: () => removerFiadorDireto(contratoId, i) })) });
         }
 
+        // v1.39.1 (F0.2a, teste 2 — Nicola 04/10 00:52) — remover fiador DESVINCULA a parte do
+        // contrato (a parte continua cadastrada): é o caso de "Desfazer" da regra aprovada. O toast
+        // ganha "Desfazer" por 5 s, que regrava a lista anterior pela mesma RPC.
         export async function removerFiadorDireto(contratoId, index) {
+            const antes = fiadoresContratoAtual.filter(f => f.nome && f.cpf).map((f, i) => Object.assign({}, f, { ordem: i + 1 }));
+            const removido = fiadoresContratoAtual[index];
             const linhas = fiadoresContratoAtual.filter((_, i) => i !== index).filter(f => f.nome && f.cpf).map((f, i) => Object.assign({}, f, { ordem: i + 1 }));
+            const gravar = (lista) => dbAuth.rpc('substituir_fiadores_contrato', { p_contrato_id: contratoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_linhas: lista });
             mostrarCarregamentoGlobal('Removendo...');
             try {
-                const { error } = await dbAuth.rpc('substituir_fiadores_contrato', { p_contrato_id: contratoId, p_cliente_id: CLIENTE_ID_SUPABASE, p_linhas: linhas });
+                const { error } = await gravar(linhas);
                 if (error) throw error;
                 esconderCarregamentoGlobal();
-                mostrarToast('Fiador removido.', 'success');
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                const msg = `${removido?.nome || 'Fiador'} saiu do contrato.`;
+                const desfazer = async () => {
+                    const { error: errVolta } = await gravar(antes);
+                    if (errVolta) { rzAvisar('Não consegui desfazer: ' + errVolta.message, 'danger'); return; }
+                    rzAvisar('Fiador de volta ao contrato.', 'success');
+                    if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+                };
+                if (window.rzToast) window.rzToast(msg, { tipo: 'success', desfazer }); else rzAvisar(msg, 'success');
             } catch (err) {
                 esconderCarregamentoGlobal();
                 mostrarToast('Não consegui remover: ' + (err.message || String(err)), 'danger');

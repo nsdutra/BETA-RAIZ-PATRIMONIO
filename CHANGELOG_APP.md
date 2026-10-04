@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.294.1) — correções achadas pelo Nicola em 03/10 23:13:
+(1) REGRESSÃO da F0.5c (1.292.2): no celular, formulários com grade de 2 colunas viravam 1
+coluna, mas filhos col-span-2 criavam uma 2ª coluna implícita que espremia a 1ª (Editar item
+de controle: Tipo/Subtipo, Datas e Repetir/Unidade sobrepostos, 89 px). Agora, abaixo de
+600 px, filhos col-span-* ocupam a linha inteira e grades de 3 colunas com campo também viram
+1 coluna (UXR-31b). Só CSS. (2) Import map: js/cofre-ui.js 1.4.0 → 1.5.0 (erroInline: aviso de
+erro no formulário vibra, é lido pelo leitor de tela e rola até a vista — UXR-29/35),
+js/cofre-ativos.js 1.69.0 → 1.70.0 (avisos de erro de salvar ativo usam erroInline).
+Versão anterior (Beta v1.294.0):
+------------------------------------------------------------------
+Versões anteriores (v1.294.0 … v1.294.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.294.0) — P1a da ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0 (absorve a F3.4 e a
 parte Financeiro da F2.3 do PLANO_UX — D26), DIRETRIZES UXR-10/11/12/25/30/41:
 Financeiro com barra de busca + "+" no topo (.rz-topo/.rz-search), segmento de 4 opções
