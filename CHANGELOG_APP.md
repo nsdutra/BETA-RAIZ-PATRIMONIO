@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.291.0) — F0.1 do PLANO_UX_PWA_ATUAL (demanda 3b1da217, "pode
+executar" do Nicola em 03/10 17:07), regras UXR-29/31/32 das DIRETRIZES_UX_RAIZ_2026:
+corpo 15 px e secundário 13 px (tokens --text-sm/--text-xs do Tailwind e seletores
+rz-*), piso de 12 px (text-[9/10/11px] e font-size ≤11,5 px viram 12; piso por CSS
+para as classes ainda emitidas pelos módulos), campos com 16 px em tela de toque
+(sem auto-zoom do WebKit), touch-action: manipulation, viewport-fit=cover + safe
+area no cabeçalho, sheet com altura por visualViewport/dvh, botões 48 px (pequeno
+40, chip/segmento 36), toast centralizado acima da bottom nav com aria-live.
+maximum-scale=1 FICA até o teste no iPhone (UXR-32, passo b).
+Versão anterior (Beta v1.290.1):
+------------------------------------------------------------------
+Versões anteriores (v1.290.1 … v1.290.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.290.1) — pedido do Nicola (03/10 11:20): os itens de IPTU e
 condomínio do contrato só são oferecidos/gerados com o contrato Ativo (ao ativar),
 não mais em Assinando (js/contratos.js 1.36.0 → 1.36.1; banco contratos_encargos_v3_2).

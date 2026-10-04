@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.293.0
-   LINHAS: 16227
-   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.4 adaptador de dispositivo)
+   VERSÃO: Beta v1.293.1
+   LINHAS: 16221
+   DATA: 03/10/2026 (sessão 20261003-1707-ux-base, F0.4 correção do háptico em Ativos)
+   NOVIDADES (Beta v1.293.1) — teste 3 da F0.4 reprovado (Nicola 03/10 22:33: "no Android não
+   vibrou ao salvar um ativo"). Causa: Ativos usava o toast próprio do Cofre. Só import map:
+   js/cofre-ui.js 1.3.1 → 1.4.0 (o toast do Cofre delega ao toast único do app).
+   Versão anterior (Beta v1.293.0):
    NOVIDADES (Beta v1.293.0) — F0.4 do PLANO_UX_PWA_ATUAL (demanda 717fc21d, "pode seguir"
    do Nicola 03/10 22:01), UXR-35/40/41/44: módulo NOVO js/raiz-device.js 1.0.0 (adaptador
    único — plataforma, haptic, abrirExterno, whatsapp, email, share, escolherArquivo, scan,
@@ -40,18 +44,8 @@
    no Chrome do iPhone em 03/10). Botão "Buscar" do CEP vira .rz-btn (48 px)
    (js/comum-endereco.js 1.1.0 → 1.2.0).
    Versão anterior (Beta v1.291.0):
-   NOVIDADES (Beta v1.291.0) — F0.1 do PLANO_UX_PWA_ATUAL (demanda 3b1da217, "pode
-   executar" do Nicola em 03/10 17:07), regras UXR-29/31/32 das DIRETRIZES_UX_RAIZ_2026:
-   corpo 15 px e secundário 13 px (tokens --text-sm/--text-xs do Tailwind e seletores
-   rz-*), piso de 12 px (text-[9/10/11px] e font-size ≤11,5 px viram 12; piso por CSS
-   para as classes ainda emitidas pelos módulos), campos com 16 px em tela de toque
-   (sem auto-zoom do WebKit), touch-action: manipulation, viewport-fit=cover + safe
-   area no cabeçalho, sheet com altura por visualViewport/dvh, botões 48 px (pequeno
-   40, chip/segmento 36), toast centralizado acima da bottom nav com aria-live.
-   maximum-scale=1 FICA até o teste no iPhone (UXR-32, passo b).
-   Versão anterior (Beta v1.290.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.290.1 … v1.290.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.291.0 … v1.291.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -76,7 +70,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.37.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.38.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.3.1","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.37.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.41.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.38.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.4.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.2.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.49.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3514,7 +3508,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.293.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.293.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

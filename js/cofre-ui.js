@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.3.1 · 28/09/2026
+// Versão: 1.4.0 · 03/10/2026
+//
+// v1.4.0 (F0.4, demanda 717fc21d, sessão 20261003-1707-ux-base — teste 3
+// reprovado pelo Nicola: "no Android não vibrou ao editar e salvar um ativo").
+// CAUSA: o app tinha 2 toasts; Ativos usava este (#toast próprio, sem
+// háptico), não o do index.html. mostrarToast passa a delegar ao toast único
+// do app quando roda dentro dele (window.mostrarToast); no cofre.html avulso
+// continua com o #toast local. Mesma assinatura, mesmo texto.
 //
 // v1.3.1 (demanda c7c0cc6f, achado do Nicola testando o item 6/CIB) —
 // #modal-generico (modalGenerico()) ganhou z-index PRÓPRIO (460, faixa
@@ -30,10 +37,17 @@
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
-export const VERSAO = '1.3.1'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
 import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
 
 export function mostrarToast(msg, tipo) {
+    // v1.4.0 — dentro do app principal, delega ao toast ÚNICO do index.html
+    // (acima da bottom nav, aria-live, háptico pelo RaizDevice — UXR-29/35).
+    // Guarda contra recursão: só delega se o global não for esta função.
+    if (typeof window !== 'undefined' && typeof window.mostrarToast === 'function' && window.mostrarToast !== mostrarToast) {
+        window.mostrarToast(msg, tipo === 'erro' ? 'danger' : (tipo === 'aviso' ? 'info' : 'success'));
+        return;
+    }
     const el = document.getElementById('toast');
     if (!el) return;
     el.textContent = msg;
