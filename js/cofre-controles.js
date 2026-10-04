@@ -1,6 +1,21 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.38.0 · 03/10/2026
+// Versão: 1.39.0 · 03/10/2026
+//
+// v1.39.0 (demanda d3260b23, Ficha F1 — plano aprovado pelo Nicola em
+// 03/10/2026 21:37, sessão 20261003-2140-controles-despesa):
+//   1) CORRIGIDO: item de tipo `despesa` abria a edição com o Tipo em branco
+//      (o combo fic-ed-tipo do cofre.html só tinha seguro/manutenção/tributo) e
+//      o salvar mandava tipo vazio — erro cofre_itens_controle_tipo_check. Agora
+//      o combo ganha "Despesa" (cofre.html v1.30.0) e abrirEditarItem garante a
+//      opção do tipo do próprio item mesmo que o combo não a conheça.
+//   2) salvarEdicaoItem e salvarItemControle recusam Tipo vazio com aviso, sem
+//      chamar o banco.
+//   3) Lista de itens: o subtítulo mostra "· até dd/mm/aaaa" quando o item tem
+//      data fim (validade de chave, crédito, apólice).
+//   4) Cabeçalho do card Controles: complemento neutro "· N encerrado(s) ·
+//      M sem alerta" quando houver, para o item desligado não passar despercebido.
+//      Nenhuma cor de urgência muda; o Motor continua decidindo cor e texto.
 //
 // v1.38.0 (demanda 854f6343, encargos v3, plano aprovado pelo Nicola em
 // 02/10/2026 23:47, sessão 20260927-2205-contratos) — ficha do item de IPTU/
@@ -523,7 +538,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.38.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.39.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -608,13 +623,24 @@ function statusHtml(sem, texto) {
 // so o NUMERO de itens; quem decide cor e texto e o Motor, em
 // aplicarMotorNoChipControles(). O texto local fica como estado provisorio
 // ate a resposta do Motor chegar, e nunca acende vermelho sozinho.
+// v1.39.0 — complemento neutro do cabeçalho do card Controles: itens encerrados
+// e itens com alertas desligados não contam no contador e ficavam sem sinal.
+function comComplementoControles(baseHtml) {
+    const enc = itensDoAtivoAtual.filter(i => i.ativo === false).length;
+    const semAlerta = itensDoAtivoAtual.filter(i => i.ativo !== false && i.alerta_ativo === false).length;
+    const partes = [];
+    if (enc) partes.push(`${enc} encerrado${enc === 1 ? '' : 's'}`);
+    if (semAlerta) partes.push(`${semAlerta} sem alerta`);
+    if (!partes.length) return baseHtml;
+    return `${baseHtml || ''} <span class="rz-sub" style="font-size:12px;color:var(--ink-3,#6b7280)">· ${partes.join(' · ')}</span>`;
+}
 function atualizarEstadoChipControles() {
     const ativos = itensDoAtivoAtual.filter(i => i.ativo !== false); // v1.20.0 — encerrados não contam
     if (typeof window.faAtualizarContadorFicha === 'function') window.faAtualizarContadorFicha('controles', ativos.length, false);
     const cab = document.getElementById('fa-controles-status');
     if (!cab) return;
     if (motorDecidiuChipControles) return; // o Motor já falou; não sobrescreve
-    cab.innerHTML = ativos.length ? statusHtml('neu', `${ativos.length} ite${ativos.length === 1 ? 'm' : 'ns'}`) : '';
+    cab.innerHTML = comComplementoControles(ativos.length ? statusHtml('neu', `${ativos.length} ite${ativos.length === 1 ? 'm' : 'ns'}`) : '');
 }
 
 // Rótulo curto por tipo de alerta, para o cabeçalho do chip dizer o MOTIVO
@@ -673,7 +699,7 @@ export function aplicarMotorNoChipControles(alertas) {
 
     if (!lista.length) {
         chip?.classList.remove('rz-warn');
-        if (cab) cab.innerHTML = ativos.length ? statusHtml('ok', 'Em dia') : '';
+        if (cab) cab.innerHTML = comComplementoControles(ativos.length ? statusHtml('ok', 'Em dia') : '');
         return;
     }
 
@@ -683,7 +709,7 @@ export function aplicarMotorNoChipControles(alertas) {
 
     if (!urgentes.length) {
         chip?.classList.remove('rz-warn');
-        if (cab) cab.innerHTML = statusHtml('ok', 'Em dia');
+        if (cab) cab.innerHTML = comComplementoControles(statusHtml('ok', 'Em dia'));
         return;
     }
 
@@ -691,10 +717,10 @@ export function aplicarMotorNoChipControles(alertas) {
     if (!cab) return;
 
     const vencidos = urgentes.filter(x => x.dias !== null && x.dias < 0).length;
-    if (vencidos) { cab.innerHTML = statusHtml('bad', `${vencidos} vencido${vencidos === 1 ? '' : 's'}`); return; }
+    if (vencidos) { cab.innerHTML = comComplementoControles(statusHtml('bad', `${vencidos} vencido${vencidos === 1 ? '' : 's'}`)); return; }
 
     const venceHoje = urgentes.filter(x => x.dias === 0).length;
-    if (venceHoje) { cab.innerHTML = statusHtml('warn', venceHoje === 1 ? 'Vence hoje' : `${venceHoje} vencem hoje`); return; }
+    if (venceHoje) { cab.innerHTML = comComplementoControles(statusHtml('warn', venceHoje === 1 ? 'Vence hoje' : `${venceHoje} vencem hoje`)); return; }
 
     // Sem data: o motivo é o tipo mais frequente entre os alertas do ativo.
     const contagem = {};
@@ -702,7 +728,7 @@ export function aplicarMotorNoChipControles(alertas) {
     const tipo = Object.keys(contagem).sort((a, b) => contagem[b] - contagem[a])[0];
     const n = contagem[tipo];
     const rot = ROTULO_ALERTA_CHIP[tipo] || ['pendência', 'pendências'];
-    cab.innerHTML = statusHtml('warn', `${n} ${n === 1 ? rot[0] : rot[1]}`);
+    cab.innerHTML = comComplementoControles(statusHtml('warn', `${n} ${n === 1 ? rot[0] : rot[1]}`));
 }
 
 // v1.20.0 — chip Ativos/Encerrados (mesmo molde do chip "Encerrados" de Contratos)
@@ -768,7 +794,8 @@ function itemResumoHtml(item) {
     // (trigger trg_contrato_sincroniza_encargos); só o locatário aparece na
     // lista — proprietário é o padrão e não precisa de texto.
     const subtitulo = (item.cofre_controle_subtipos?.nome || rotuloTipoControle(item.tipo))
-        + (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '');
+        + (item.responsavel_pagamento === 'locatario' ? ' · Paga: locatário' : '')
+        + (item.data_fim ? ' · até ' + formatarDataBR(item.data_fim) : ''); // v1.39.0
     const iconeTipo = { seguro: 'shield', tributo: 'landmark', manutencao: 'wrench' }[item.tipo] || 'clipboard-check';
     if (item.ativo === false) { // v1.20.0 — encerrado: histórico visível, sem urgência
         return `<div class="rz-row rz-link" data-action="abrir-item-controle" data-id="${item.id}">
@@ -1546,7 +1573,15 @@ export async function abrirEditarItem() {
         try { subtiposCache = await api.listarSubtiposControle(estado.clienteId); }
         catch (err) { console.warn('[controles] catálogo de subtipos:', err.message); }
     }
-    document.getElementById('fic-ed-tipo').value = item.tipo;
+    const selTipoEd = document.getElementById('fic-ed-tipo');
+    // v1.39.0 — o tipo do próprio item nunca some do combo (despesa abria em branco).
+    if (selTipoEd && item.tipo && !Array.from(selTipoEd.options).some(o => o.value === item.tipo)) {
+        const opTipo = document.createElement('option');
+        opTipo.value = item.tipo;
+        opTipo.textContent = String(rotuloTipoControle(item.tipo)).replace(/^./, c => c.toUpperCase());
+        selTipoEd.appendChild(opTipo);
+    }
+    selTipoEd.value = item.tipo;
     popularSelectSubtipoEm('fic-ed-subtipo', item.tipo, item.subtipo_id);
     // garantia: o subtipo do próprio item nunca some do seletor
     const selSub = document.getElementById('fic-ed-subtipo');
@@ -1591,6 +1626,7 @@ export async function salvarEdicaoItem() {
     const valorPrevisto = parseFloat(document.getElementById('fic-ed-valor-previsto')?.value) || null; // v1.20.0
     const parcelas = Math.max(1, parseInt(document.getElementById('fic-ed-parcelas')?.value, 10) || 1);
     const parcelaIntervalo = Math.max(1, parseInt(document.getElementById('fic-ed-parcela-intervalo')?.value, 10) || 30);
+    if (!tipo) { mostrarToast('Escolha o tipo do item.', 'erro'); return; } // v1.39.0
     if (!titulo) { mostrarToast('Informe um título.', 'erro'); return; }
     if (!dataInicio) { mostrarToast('Informe a data início.', 'erro'); return; }
     if (direcaoAlerta === 'fim' && !dataFim) { mostrarToast('Pra gerar a partir do fim, informe a data fim.', 'erro'); return; }
@@ -2076,6 +2112,7 @@ export async function salvarItemControle() {
     // changelog completo em js/ativos/ativos-markup.js (mesmo checkbox).
     const gerarDesdeInicio = document.getElementById('ic-gerar-desde-inicio') ? document.getElementById('ic-gerar-desde-inicio').checked : false;
 
+    if (!tipo) { mostrarToast('Escolha o tipo do item.', 'erro'); return; } // v1.39.0
     if (!titulo) { mostrarToast('Informe um título para o item de controle.', 'erro'); return; }
     if (!dataBase) { mostrarToast('Informe a data início.', 'erro'); return; }
     // Pedido explícito (25/08/2026): gerar retroativo exige saber a partir

@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.292.0) — F0.5 do PLANO_UX_PWA_ATUAL v1.10.1 (demanda 4c7f2264,
+"estou de acordo" do Nicola em 03/10 19:35), regra UXR-31a: casca única de campo
+em todo formulário — 48 px, borda --line, raio 10, texto 16 px, foco --sprout,
+rótulo 13 px --muted acima; .rz-f sobe de 44/14 para 48/16; ícone de cabeçalho
+e "+" a 48 px (UXR-10); cards de formulário do contrato (Revisionais, Avançado)
+perdem a borda verde; tela de entrar fica fora da casca (.rz-raw).
+Zoom livre: maximum-scale=1 removido (UXR-32 passo b — teste 4 da F0.1 aprovado
+no Chrome do iPhone em 03/10). Botão "Buscar" do CEP vira .rz-btn (48 px)
+(js/comum-endereco.js 1.1.0 → 1.2.0).
+Versão anterior (Beta v1.291.0):
+------------------------------------------------------------------
+Versões anteriores (v1.291.0 … v1.291.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.291.0) — F0.1 do PLANO_UX_PWA_ATUAL (demanda 3b1da217, "pode
 executar" do Nicola em 03/10 17:07), regras UXR-29/31/32 das DIRETRIZES_UX_RAIZ_2026:
 corpo 15 px e secundário 13 px (tokens --text-sm/--text-xs do Tailwind e seletores

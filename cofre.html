@@ -10,9 +10,14 @@
   CONTROLE DE VERSÃO — OBRIGATÓRIO EM TODA ENTREGA
 
   Componente : cofre.html (shell) + js/*.js (módulos)
-  Versão     : 1.29.0
-  Data       : 22/09/2026 (soft launch · show stoppers)
-  Linhas     : cofre.html = 3286
+  Versão     : 1.30.0
+  Data       : 03/10/2026 (controles · despesa)
+  Linhas     : cofre.html = 3294
+  CHANGELOG v1.30.0 (demanda d3260b23, Ficha F1 — plano aprovado pelo Nicola em
+               03/10/2026 21:37, sessão 20261003-2140-controles-despesa) — combos de
+               Tipo do item de controle ganham "Despesa" (#ic-tipo, novo item, e
+               #fic-ed-tipo, edição). Antes o item de despesa abria a edição com o Tipo
+               em branco e o salvar falhava. Lógica em js/cofre-controles.js v1.39.0.
   CHANGELOG v1.29.0 (demanda 8b2d37d7, C4) — os 2 botões "Novo ativo"
                (#btn-toggle-ativo e o do estado vazio) ganharam
                data-rz-codigo="cofre.ativos.criar": com a porta de licença
@@ -2618,6 +2623,7 @@
                 <option value="tributo">Tributo</option>
                 <option value="taxa">Taxa</option>
                 <option value="documento">Documento</option>
+                <option value="despesa">Despesa</option>
             </select>
             <select id="ic-subtipo" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-1"></select>
             <input id="ic-titulo" placeholder="Título (ex.: Seguro patrimonial 2026)" class="border-2 border-slate-300 rounded-lg p-2 text-xs col-span-2">
@@ -2689,6 +2695,7 @@
                     <option value="seguro">Seguro</option>
                     <option value="manutencao">Manutenção</option>
                     <option value="tributo">Tributo</option>
+                    <option value="despesa">Despesa</option>
                 </select>
             </div>
             <div>
