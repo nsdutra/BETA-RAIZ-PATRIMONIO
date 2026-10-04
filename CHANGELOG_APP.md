@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.293.3) — demanda d3260b23, testes reprovados (Nicola 03/10 23:02). Só import map:
+js/ativos/ativos-markup.js 1.49.0 → 1.50.0 ("Despesa" no novo item do app), js/cofre-app.js
+1.41.0 → 1.42.0 ("Voltar ao ativo" volta à lista de Controles), js/cofre-validacoes.js 2.2.0 →
+2.3.0 (ficha mostra "Despesa"), js/cofre-controles.js 1.39.0 → 1.40.0 (data fim no início do subtítulo).
+Versão anterior (Beta v1.293.2):
+------------------------------------------------------------------
+Versões anteriores (v1.293.2 … v1.293.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.293.2) — demanda d3260b23 (Ficha F1), "de acordo" do Nicola 03/10 21:37.
 Só import map: js/cofre-controles.js 1.38.0 → 1.39.0 (Tipo "Despesa" na edição e no novo
 item, bloqueio de Tipo vazio, "· até dd/mm/aaaa" na lista, cabeçalho do card Controles

@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.296.0
-   LINHAS: 15974
-   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 29bed5eb)
+   VERSÃO: Beta v1.297.0
+   LINHAS: 15977
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 9e4aca28)
+   NOVIDADES (Beta v1.297.0) — F0.2a do PLANO_UX (zero diálogo nativo, UXR-29/30; "de acordo"
+   do Nicola 04/10 00:22). Atalhos rzAvisar/rzPerguntar/rzEscolherUm/rzResumo/rzPedirTexto
+   para os substitutos do js/raiz-ui.js. Saem do index todos os alert/confirm/prompt fora do
+   Financeiro (etapa 6): exclusões de administradora, síndico, manutencista, parte, documento
+   e links de vitrine viram confirmação em Sheet (item vermelho); adicionar proprietário vira
+   escolha em lista; "Solicitar acesso" vira 1 Sheet com 3 campos; avisos viram toast ou resumo.
+   Tocar na logo deixa de recarregar a página (volta ao topo). identificarComoAdmin() removida
+   (sem chamador, usuário fixo no código). Ficam de propósito: recarga nas 2 telas de erro e
+   ao sair da conta. Import map: js/contratos.js 1.38.0 → 1.39.0.
+   Versão anterior (Beta v1.296.0):
    NOVIDADES (Beta v1.296.0) — F0.3 do PLANO_UX (texto e consistência; "de acordo" do Nicola
    03/10 23:57). Textos internos saem da tela: Alertas sem "Tom de notícia, nunca recomendação",
    Menu › Versões com "Versão do app em uso". Recibo sem dado inventado: sem CNPJ falso nem
@@ -45,13 +55,8 @@
    js/raiz-ui.js 1.0.0 (rzToast/rzConfirmar/rzEscolher/rzAviso — D25) carregado no boot.
    Import map: js/financeiro.js 1.27.3 → 1.28.0, js/raiz-ui.js 1.0.0 (novo).
    Versão anterior (Beta v1.293.3):
-   NOVIDADES (Beta v1.293.3) — demanda d3260b23, testes reprovados (Nicola 03/10 23:02). Só import map:
-   js/ativos/ativos-markup.js 1.49.0 → 1.50.0 ("Despesa" no novo item do app), js/cofre-app.js
-   1.41.0 → 1.42.0 ("Voltar ao ativo" volta à lista de Controles), js/cofre-validacoes.js 2.2.0 →
-   2.3.0 (ficha mostra "Despesa"), js/cofre-controles.js 1.39.0 → 1.40.0 (data fim no início do subtítulo).
-   Versão anterior (Beta v1.293.2):
    ------------------------------------------------------------------
-   Versões anteriores (v1.293.2 … v1.293.2): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.293.3 … v1.293.3): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -76,7 +81,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.29.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.38.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.2","./js/imoveis.js":"./js/imoveis.js?v=1.6.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.71.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.41.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.22.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.5.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.202.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.51.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.29.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.39.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.2","./js/imoveis.js":"./js/imoveis.js?v=1.6.1","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.71.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.41.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.22.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.5.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.202.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.51.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3529,7 +3534,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.296.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.297.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3578,6 +3583,33 @@
         }
 
         // opcoes: { classe: 'rz-menu' | '', aoFechar: fn }
+        // v1.297.0 (F0.2a, UXR-30) — atalhos para os substitutos do js/raiz-ui.js (aviso,
+        // confirmação, escolha, resumo e pedido de texto) no código inline. Antes do módulo
+        // carregar, o aviso cai no mostrarToast e a pergunta responde "não" (nunca diálogo nativo).
+        function rzAvisar(msg, tipo = 'info') {
+            if (window.rzToast) return window.rzToast(msg, tipo);
+            mostrarToast(rzEsc(msg), ({ erro: 'danger', aviso: 'info', ok: 'success' })[tipo] || tipo);
+        }
+        function rzPerguntar(opcoes) { return window.rzConfirmar ? window.rzConfirmar(opcoes) : Promise.resolve(false); }
+        function rzEscolherUm(opcoes) { return window.rzEscolher ? window.rzEscolher(opcoes) : Promise.resolve(null); }
+        function rzResumo(opcoes) { return window.rzAviso ? window.rzAviso(opcoes) : Promise.resolve(); }
+        // pedido de texto livre (substitui prompt() de texto): Sheet com 1 campo → texto ou null
+        function rzPedirTexto({ titulo, sub = '', rotulo, placeholder = '', tipo = 'text', valor = '', rotuloSalvar = 'Continuar' }) {
+            return new Promise((resolve) => {
+                let feito = false; const fim = (v) => { if (!feito) { feito = true; resolve(v); } };
+                abrirSheetForm({
+                    titulo, sub, rotuloSalvar,
+                    corpo: `<div class="rz-f"><label for="rz-pt-campo">${rzEsc(rotulo)}</label><input id="rz-pt-campo" type="${rzEsc(tipo)}" value="${rzEsc(valor)}" placeholder="${rzEsc(placeholder)}"></div>`,
+                    aoSalvar: (el) => {
+                        const v = (el.querySelector('#rz-pt-campo')?.value || '').trim();
+                        if (!v) { rzAvisar('Preencha o campo para continuar.', 'danger'); return false; }
+                        fim(v);
+                    },
+                    aoFechar: () => fim(null),
+                });
+            });
+        }
+
         function abrirSheet(html, opcoes = {}) {
             const veil = rzGarantirVeil();
             const sheet = document.getElementById('rz-sheet');
@@ -4082,53 +4114,28 @@
 
         // nesta instalação do PWA, usado para o esquema de aprovação de acesso.
 
-        // v7.4.1 — Escape hatch sempre disponível: independente do dispositivo
-        // já estar (ou não) aprovado como algum sócio, o admin sempre consegue
-        // se identificar explicitamente por aqui. Uma vez verificado, fica
-        // salvo neste aparelho e passa a ter prioridade em todo login futuro.
-        function identificarComoAdmin() {
+        // v1.297.0 (F0.2a) — identificarComoAdmin() REMOVIDA: sem chamador desde o login por
+        // e-mail (Supabase Auth), e guardava um usuário de administrador fixo no código.
 
-            const tentativa = prompt("Digite o usuário do administrador:");
-
-            if (tentativa !== 'Nicola-Adm') {
-
-                if (tentativa !== null) alert("⚠️ Usuário não reconhecido.");
-
-                return;
-
-            }
-
-            localStorage.setItem(chaveLocal('admin_verificado'), 'Nicola-Adm');
-
-            alert("✅ Identificado como administrador. Entrando...");
-
-            entrarNoSistema();
-
+        // v1.297.0 (F0.2a) — os 3 prompt() viraram 1 Sheet com 3 campos (nome, WhatsApp, e-mail).
+        function solicitarAcessoSocio() {
+            abrirSheetForm({
+                titulo: 'Solicitar acesso', sub: 'Sócio da empresa, sem senha', rotuloSalvar: 'Enviar solicitação',
+                corpo: `<div class="rz-f"><label for="sas-nome">Seu nome</label><input id="sas-nome" autocomplete="name" placeholder="Como está no cadastro"></div>
+                    <div class="rz-f"><label for="sas-zap">WhatsApp com DDD</label><input id="sas-zap" type="tel" inputmode="tel" placeholder="11 99999-9999"></div>
+                    <div class="rz-f"><label for="sas-email">E-mail</label><input id="sas-email" type="email" inputmode="email" placeholder="nome@exemplo.com"></div>`,
+                aoSalvar: (el) => {
+                    const nomeEscolhido = (el.querySelector('#sas-nome')?.value || '').trim();
+                    const nomeNormalizado = NOMES_SOCIOS_PERFIL.find(n => n.toLowerCase() === nomeEscolhido.toLowerCase());
+                    if (!nomeNormalizado) { rzAvisar('Nome não reconhecido. Confira se está igual ao cadastro.', 'danger'); return false; }
+                    const whatsappSocio = (el.querySelector('#sas-zap')?.value || '').replace(/\D/g, '');
+                    const emailSocio = (el.querySelector('#sas-email')?.value || '').trim();
+                    enviarSolicitacaoAcessoSocio(nomeNormalizado, whatsappSocio, emailSocio);
+                },
+            });
         }
 
-        async function solicitarAcessoSocio() {
-
-            const nomeEscolhido = prompt(`Digite seu nome (com a primeira letra maiúscula):`);
-
-            if (!nomeEscolhido) return;
-
-            const nomeNormalizado = NOMES_SOCIOS_PERFIL.find(n => n === nomeEscolhido.trim());
-
-            if (!nomeNormalizado) {
-
-                alert(`⚠️ Nome não reconhecido. Confira se digitou certinho, com a primeira letra maiúscula.`);
-
-                return;
-
-            }
-
-            // Já aproveita e coleta o contato aqui — evita ter que ficar perguntando
-
-            // toda vez que for enviar um resumo por WhatsApp/e-mail depois.
-
-            const whatsappSocio = (prompt(`Seu WhatsApp (só números, com DDD):`) || '').trim().replace(/\D/g, '');
-
-            const emailSocio = (prompt(`Seu e-mail:`) || '').trim();
+        async function enviarSolicitacaoAcessoSocio(nomeNormalizado, whatsappSocio, emailSocio) {
 
             const btn = document.getElementById('btn-solicitar-acesso-socio') || document.getElementById('btn-solicitar-acesso-socio-negado');
 
@@ -4156,11 +4163,11 @@
 
                     if (jaExiste.status === 'Aprovado') {
 
-                        alert("✅ Este aparelho já está aprovado! Toque em 'Acessar Sistema'.");
+                        rzAvisar("Este aparelho já está aprovado. Toque em 'Acessar Sistema'.", 'success');
 
                     } else {
 
-                        alert("⏳ Já existe uma solicitação para este aparelho, aguardando aprovação.");
+                        rzAvisar('Já existe uma solicitação para este aparelho, aguardando aprovação.', 'info');
 
                     }
 
@@ -4198,11 +4205,11 @@
 
                 btn.classList.add('hidden');
 
-                alert(`✅ Solicitação enviada como "${nomeNormalizado}". Assim que for aprovada, este aparelho entra direto, sem senha.`);
+                rzResumo({ titulo: 'Solicitação enviada', linhas: [`Enviada como "${nomeNormalizado}".`, 'Assim que for aprovada, este aparelho entra direto, sem senha.'] });
 
             } catch (err) {
 
-                alert("⚠️ Não foi possível enviar a solicitação. Verifique sua internet e tente novamente.");
+                rzAvisar('Não foi possível enviar a solicitação. Verifique a internet e tente de novo.', 'danger');
 
                 btn.disabled = false;
 
@@ -4378,10 +4385,11 @@
 
             timerCliqueLogo = setTimeout(() => {
 
-                // v7.4.2 — Antes só mostrava a splash de novo (sem buscar nada
-                // novo do servidor). Agora recarrega a página de verdade, para
-                // sempre pegar a versão mais recente publicada.
-                location.reload();
+                // v1.297.0 (F0.2a) — tocar na logo NÃO recarrega mais a página (gesto oculto
+                // que perdia formulário aberto — ESTUDO §4.4). Volta ao topo da tela atual.
+                // A troca de empresa vai para o cabeçalho do menu (F2.5); a versão nova
+                // chega pelo import map a cada abertura do app.
+                window.scrollTo({ top: 0, behavior: 'smooth' });
 
             }, 250);
 
@@ -5467,13 +5475,13 @@
                 // fiador agora?" (v1.270.0) saiu: o formulário único de contrato
                 // já tem o card Fiadores na mesma tela, antes de salvar.
                 emitirEscritaGlobal('contrato', { id: con.id, acao: con._novo ? 'criar' : 'editar' }); // v1.284.0
-                alert("Contrato de locação salvo!");
+                rzAvisar('Contrato salvo.', 'success');
                 return true; // v1.284.0 — saveContrato (contratos.js 1.31.0) espera isto antes de reabrir a ficha
 
             } catch (err) {
 
                 esconderCarregamentoGlobal();
-                alert(`⚠️ Falha ao salvar na nuvem: Contratos.\n\n${con.locatario || con.id}: ${err.message}\n\nVeja os Logs do Sistema (aba DEV) para o detalhe do erro.`);
+                rzAvisar(`Não consegui salvar o contrato de ${con.locatario || 'locação'}: ${err.message}`, 'danger');
                 logScreen('Erro ao salvar contrato individual: ' + err.message, true);
                 return false;
 
@@ -6115,7 +6123,7 @@
                 return;
             }
 
-            alert('✅ Senha definida com sucesso!');
+            rzAvisar('Senha definida.', 'success');
             document.getElementById('area-definir-senha').classList.add('hidden');
             await verificarAcessoEEntrar();
         }
@@ -7101,7 +7109,7 @@
 
             if (vagas <= 0) {
 
-                alert("⚠️ Você já tem 10 fotos anexadas (o máximo). Remova alguma antes de adicionar novas.");
+                rzAvisar('Já são 10 fotos, o máximo. Remova alguma antes de adicionar.', 'danger');
 
                 inputElement.value = '';
 
@@ -7113,7 +7121,7 @@
 
             if (files.length > vagas) {
 
-                alert(`⚠️ Só há espaço para mais ${vagas} foto(s) (máximo de 10 no total). As ${count} primeira(s) selecionada(s) serão usadas.`);
+                rzAvisar(`Cabem só mais ${vagas} foto(s) (máximo de 10). Vão as ${count} primeira(s).`, 'info');
 
             }
 
@@ -7161,7 +7169,7 @@
 
             if (falhas > 0) {
 
-                alert(`⚠️ ${falhas} foto(s) não puderam ser processadas e foram ignoradas. As demais foram anexadas normalmente.`);
+                rzAvisar(`${falhas} foto(s) não puderam ser lidas e ficaram de fora. As outras foram anexadas.`, 'info');
 
             }
 
@@ -8097,7 +8105,7 @@
 
                     devLog("AVISO_FOTOS", `Rota '${rota}' salva, mas com ${corpo.avisos.length} aviso(s).`, corpo.avisos);
 
-                    alert(`⚠️ '${rota}' foi salvo, mas houve problema com ${corpo.avisos.length} foto(s):\n\n` + corpo.avisos.join('\n'));
+                    rzResumo({ titulo: 'Salvo, com aviso nas fotos', linhas: [`Houve problema com ${corpo.avisos.length} foto(s):`, ...corpo.avisos] });
 
                 }
 
@@ -8269,7 +8277,7 @@
                     .map(r => `${nomesAmigaveis[r.rota] || r.rota}:\n` + r.detalhesFalha.map(d => '  • ' + d).join('\n'))
                     .join('\n\n');
 
-                alert(`⚠️ Falha ao salvar na nuvem: ${falhas.join(', ')}.\n\n${todosDetalhes || 'Veja os Logs do Sistema (aba DEV) para o detalhe do erro.'}\n\nSe o item com problema não tem relação com o que você acabou de fazer, é um registro antigo pendente — corrija-o separadamente.`);
+                rzResumo({ titulo: 'Não salvou tudo', linhas: [`Falhou: ${falhas.join(', ')}.`, ...(todosDetalhes ? todosDetalhes.split('\n\n') : []), 'Se o item com problema não tem relação com o que você acabou de fazer, é um registro antigo pendente — corrija-o separadamente.'] });
 
             } else {
 
@@ -8695,11 +8703,11 @@
 
                 esconderBannerPendencia();
 
-                alert("✅ Dados reenviados e confirmados na planilha com sucesso!");
+                rzAvisar('Dados reenviados e confirmados.', 'success');
 
             } else {
 
-                alert(`⚠️ Ainda não foi possível sincronizar: ${aindaFalhando.map(r => r.rota).join(', ')}. Tente novamente em instantes.`);
+                rzAvisar(`Ainda não sincronizou: ${aindaFalhando.map(r => r.rota).join(', ')}. Tente de novo em instantes.`, 'danger');
 
             }
 
@@ -10132,7 +10140,7 @@
 
         }
 
-        function adicionarSocioInput() {
+        async function adicionarSocioInput() {
 
             // UNIFICADO — isto agora cobre tanto sócios internos (cadastrados em
             // Pessoas) quanto terceiros externos (proprietário de fora da
@@ -10149,30 +10157,25 @@
             // mesmo sem nenhuma cota — inclusive você mesmo, sem % nenhum).
             const pessoasDisponiveis = pessoas.filter(p => !nomesJaAdicionados.includes(p.nome) && p.percentualCotasEmpresa && p.percentualCotasEmpresa > 0);
 
-            const opcoesTexto = pessoasDisponiveis.map((p, i) => `${i + 1}. ${p.nome}${p.percentualCotasEmpresa ? ' (' + p.percentualCotasEmpresa + '% de cotas)' : ''}`).join('\n');
-            const opcaoExterno = pessoasDisponiveis.length + 1;
-
-            const escolha = prompt(
-                "Escolha o proprietário pelo número:\n\n" +
-                (opcoesTexto ? opcoesTexto + '\n' : '') +
-                opcaoExterno + ". Outro (terceiro externo, não cadastrado em Pessoas)"
-            );
-            if (!escolha) return;
-
-            const indice = parseInt(escolha) - 1;
-
-            if (indice === pessoasDisponiveis.length) {
+            // v1.297.0 (F0.2a) — prompt() numerado virou escolha em lista + Sheet de nome livre.
+            const escolha = await rzEscolherUm({
+                titulo: 'Adicionar proprietário', sub: 'Sócio com cotas ou terceiro de fora',
+                opcoes: [
+                    ...pessoasDisponiveis.map((p, i) => ({ valor: String(i), titulo: p.nome, sub: p.percentualCotasEmpresa ? p.percentualCotasEmpresa + '% de cotas' : '', icone: 'user' })),
+                    { valor: 'externo', titulo: 'Outro proprietário', sub: 'Terceiro, não cadastrado em Pessoas', icone: 'user-plus' },
+                ],
+            });
+            if (escolha === null) return;
+            if (escolha === 'externo') {
                 // Terceiro externo — nome livre, não precisa estar em Pessoas
-                const nomeExterno = prompt("Nome do proprietário externo:");
-                if (!nomeExterno || !nomeExterno.trim()) return;
-                sociosAdicionais.push({ nome: nomeExterno.trim(), pct: 0 });
+                const nomeExterno = await rzPedirTexto({ titulo: 'Proprietário externo', rotulo: 'Nome do proprietário', rotuloSalvar: 'Adicionar' });
+                if (!nomeExterno) return;
+                sociosAdicionais.push({ nome: nomeExterno, pct: 0 });
                 renderSocioInputs();
                 return;
             }
-
-            const pessoaEscolhida = pessoasDisponiveis[indice];
-            if (!pessoaEscolhida) return alert("Opção inválida.");
-
+            const pessoaEscolhida = pessoasDisponiveis[Number(escolha)];
+            if (!pessoaEscolhida) return;
             const pctSugerido = pessoaEscolhida.percentualCotasEmpresa || 0;
             sociosAdicionais.push({ nome: pessoaEscolhida.nome, pct: pctSugerido });
             renderSocioInputs();
@@ -10392,7 +10395,7 @@
 
             if (!zap || zap.length < 8) {
 
-                alert("⚠️ WhatsApp de manutenção não cadastrado corretamente.");
+                rzAvisar('O WhatsApp da manutenção não está cadastrado corretamente.', 'danger');
 
                 return;
 
@@ -10613,19 +10616,19 @@
 
         }
 
-        function excluirAdministradora(id) {
+        async function excluirAdministradora(id) {
 
             const emUso = contratos.some(c => c.administradoraId === id);
 
             if (emUso) {
 
-                alert("⚠️ Não é possível excluir: há contrato(s) vinculado(s) a esta administradora. Desvincule antes de excluir.");
+                rzAvisar('Não dá para excluir: há contrato ligado a esta administradora. Desvincule antes.', 'danger');
 
                 return;
 
             }
 
-            if (!confirm("Confirma a exclusão desta administradora?")) return;
+            if (!await rzPerguntar({ titulo: 'Excluir administradora?', impacto: 'Ela sai da lista de partes.', destrutivo: true, rotuloConfirmar: 'Excluir administradora' })) return;
 
             dbAuth.from('prestadores').delete().eq('id', id).then(({ error }) => {
                 if (error) logScreen('Erro ao excluir administradora no Supabase: ' + error.message, true);
@@ -13093,7 +13096,7 @@
                 if (error) throw error;
                 window.open(data.signedUrl, '_blank');
             } catch (err) {
-                alert('❌ Não consegui abrir o documento: ' + (err.message || String(err)));
+                rzAvisar('Não consegui abrir o documento: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -13105,7 +13108,7 @@
             const v = (window.__docsFichaAtual || [])[indice];
             const doc = v?.cofre_documentos;
             if (!v || !doc) return;
-            if (!confirm('Excluir este documento definitivamente?\n\nNão fica guardado no Cofre depois — essa ação não pode ser desfeita.')) return;
+            if (!await rzPerguntar({ titulo: 'Excluir documento?', impacto: 'Ele sai também do Cofre e não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Excluir documento' })) return;
             try {
                 const { error: errVinculo } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', v.id);
                 if (errVinculo) throw errVinculo;
@@ -13122,7 +13125,7 @@
                 const chipAtivo = document.querySelector('#ficha-imovel-doc-filtros button.bg-slate-700');
                 if (chipAtivo) selecionarFiltroDocumentoFicha(chipAtivo.id.replace('doc-filtro-', ''));
             } catch (err) {
-                alert('❌ Erro ao excluir: ' + (err.message || String(err)));
+                rzAvisar('Não consegui excluir: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -14854,8 +14857,8 @@
             });
         }
 
-        function revogarLinkVitrine(token) {
-            if (!confirm('Revogar o link ' + token + '? Quem tiver esse link deixa de conseguir abrir a vitrine por ele.')) return;
+        async function revogarLinkVitrine(token) {
+            if (!await rzPerguntar({ titulo: 'Revogar link?', impacto: 'Quem tiver este link deixa de abrir a vitrine por ele.', destrutivo: true, rotuloConfirmar: 'Revogar link', icone: 'link-2-off' })) return;
             apagarLinkVitrineSupabase(token).then(function() {
                 links = links.filter(function(l) { return l.token !== token; });
                 carregarLinksVitrine();
@@ -14866,8 +14869,8 @@
             });
         }
 
-        function apagarTodosLinksVitrine() {
-            if (!confirm('Apagar TODOS os links de vitrine desta empresa? Não pode ser desfeito.')) return;
+        async function apagarTodosLinksVitrine() {
+            if (!await rzPerguntar({ titulo: 'Apagar todos os links?', impacto: 'Todos os links de vitrine da empresa deixam de funcionar. Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Apagar todos os links' })) return;
             apagarTodosLinksVitrineSupabase().then(function() {
                 links = [];
                 carregarLinksVitrine();
@@ -15143,11 +15146,11 @@
             if (digitos.length > 0) {
                 const tipo = digitos.length > 11 ? 'CNPJ' : 'CPF';
                 if (tipo === 'CPF' && !validarCPF(documento)) {
-                    alert("⚠️ O documento informado não é um CPF válido.");
+                    rzAvisar('O CPF informado não é válido.', 'danger');
                     return;
                 }
                 if (tipo === 'CNPJ' && !validarCNPJ(documento)) {
-                    alert("⚠️ O documento informado não é um CNPJ válido.");
+                    rzAvisar('O CNPJ informado não é válido.', 'danger');
                     return;
                 }
             }
@@ -15188,13 +15191,13 @@
             rzImoSeCarregado('renderImoveis'); // v1.0.0 imoveis.js (A.8)
         }
 
-        function excluirSindico(id) {
+        async function excluirSindico(id) {
             const emUso = imoveis.some(i => i.sindicoId === id);
             if (emUso) {
-                alert("⚠️ Não é possível excluir: há imóvel(is) vinculado(s) a este síndico. Desvincule antes de excluir.");
+                rzAvisar('Não dá para excluir: há imóvel ligado a este síndico. Desvincule antes.', 'danger');
                 return;
             }
-            if (!confirm("Confirma a exclusão deste síndico?")) return;
+            if (!await rzPerguntar({ titulo: 'Excluir síndico?', impacto: 'Ele sai da lista de partes.', destrutivo: true, rotuloConfirmar: 'Excluir síndico' })) return;
             dbAuth.from('prestadores').delete().eq('id', id).then(({ error }) => {
                 if (error) logScreen('Erro ao excluir síndico no Supabase: ' + error.message, true);
             });
@@ -15827,7 +15830,7 @@
         // juntos. O pré-bloqueio local por papeisPorParte saiu (era a causa).
         async function excluirParte(id) {
             const pt = partesCliente.find(x => x.id === id); if (!pt) return;
-            if (!confirm(`Excluir "${pt.nome}"? Esta ação não pode ser desfeita.`)) return;
+            if (!await rzPerguntar({ titulo: `Excluir ${pt.nome}?`, impacto: 'Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Excluir parte' })) return;
             try {
                 const { error } = await dbAuth.rpc('fn_parte_excluir', { p_parte_id: id });
                 if (error) throw error;
@@ -15875,13 +15878,13 @@
         }
 
         // v1.125.0 (fatia 9a) — salvarManutencista() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
-        function excluirManutencista(id) {
+        async function excluirManutencista(id) {
             const emUso = imoveis.some(i => i.manutencistaId === id);
             if (emUso) {
-                alert("⚠️ Não é possível excluir: há imóvel(is) vinculado(s) a este manutencista. Desvincule antes de excluir.");
+                rzAvisar('Não dá para excluir: há imóvel ligado a este manutencista. Desvincule antes.', 'danger');
                 return;
             }
-            if (!confirm("Confirma a exclusão deste manutencista?")) return;
+            if (!await rzPerguntar({ titulo: 'Excluir manutencista?', impacto: 'Ele sai da lista de partes.', destrutivo: true, rotuloConfirmar: 'Excluir manutencista' })) return;
             dbAuth.from('prestadores').delete().eq('id', id).then(({ error }) => {
                 if (error) logScreen('Erro ao excluir manutencista no Supabase: ' + error.message, true);
             });

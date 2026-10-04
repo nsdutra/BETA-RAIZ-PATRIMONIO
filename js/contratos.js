@@ -1,7 +1,19 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.38.0 · 03/10/2026
+// Versão: 1.39.0 · 04/10/2026
+//
+// v1.39.0 (F0.2a do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo"
+// do Nicola 04/10 00:22; UXR-29/30) — ZERO diálogo nativo neste módulo: os 26 alert(),
+// 7 confirm() e 2 prompt() viram os substitutos do js/raiz-ui.js pelos atalhos do index
+// (rzAvisar = toast, rzPerguntar = confirmação em Sheet — destrutiva como último item
+// vermelho, rzEscolherUm = escolha em lista, rzPedirTexto = Sheet com campo, rzResumo =
+// resumo de várias linhas). Textos reescritos sem emoji e sem pedido técnico ("copie esta
+// mensagem e me envie"). Funções que perguntam viraram async (adicionarSocioContrato).
+// CORREÇÃO NA MESMA ENTREGA: 4 mostrarToast(..., 'erro') saíam com a cor de SUCESSO (o
+// toast não conhece 'erro') — passam a 'danger'.
+//
+// Versão anterior: 1.38.0 · 03/10/2026
 //
 // v1.38.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — forma de pagamento única: o contrato passa a usar a mesma lista da baixa (PIX, Boleto, Dinheiro,
 // Transferência, Cheque). "Depósito" sai (nenhum contrato usava) e, se vier de dado antigo, abre
@@ -666,7 +678,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.38.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.39.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1025,32 +1037,28 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             renderDivisaoContrato();
         }
 
-        export function adicionarSocioContrato() {
+        export async function adicionarSocioContrato() {
             const nomesJaAdicionados = divisaoContratoAtual.map(s => s.nome);
             const pessoasDisponiveis = pessoas.filter(p => p.percentualCotasEmpresa > 0 && !nomesJaAdicionados.includes(p.nome));
 
-            const opcoesTexto = pessoasDisponiveis.map((p, i) => `${i + 1}. ${p.nome} (${p.percentualCotasEmpresa}% de cotas)`).join('\n');
-            const opcaoExterno = pessoasDisponiveis.length + 1;
-
-            const escolha = prompt(
-                "Escolha o sócio pelo número:\n\n" +
-                (opcoesTexto ? opcoesTexto + '\n' : '') +
-                opcaoExterno + ". Outro (terceiro externo)"
-            );
-            if (!escolha) return;
-
-            const indice = parseInt(escolha) - 1;
-
-            if (indice === pessoasDisponiveis.length) {
-                const nomeExterno = prompt("Nome do terceiro externo:");
-                if (!nomeExterno || !nomeExterno.trim()) return;
-                divisaoContratoAtual.push({ nome: nomeExterno.trim(), pct: 0 });
+            // v1.39.0 (F0.2a) — prompt() numerado virou escolha em lista + Sheet de nome livre.
+            const escolha = await rzEscolherUm({
+                titulo: 'Adicionar sócio ao rateio', sub: 'Sócio com cotas ou terceiro de fora',
+                opcoes: [
+                    ...pessoasDisponiveis.map((p, i) => ({ valor: String(i), titulo: p.nome, sub: (p.percentualCotasEmpresa || 0) + '% de cotas', icone: 'user' })),
+                    { valor: 'externo', titulo: 'Outro beneficiário', sub: 'Terceiro, não cadastrado em Pessoas', icone: 'user-plus' },
+                ],
+            });
+            if (escolha === null) return;
+            if (escolha === 'externo') {
+                const nomeExterno = await rzPedirTexto({ titulo: 'Terceiro externo', rotulo: 'Nome do terceiro', rotuloSalvar: 'Adicionar' });
+                if (!nomeExterno) return;
+                divisaoContratoAtual.push({ nome: nomeExterno, pct: 0 });
                 renderDivisaoContrato();
                 return;
             }
-
-            const pessoaEscolhida = pessoasDisponiveis[indice];
-            if (!pessoaEscolhida) return alert("Opção inválida.");
+            const pessoaEscolhida = pessoasDisponiveis[Number(escolha)];
+            if (!pessoaEscolhida) return;
 
             divisaoContratoAtual.push({ nome: pessoaEscolhida.nome, pct: pessoaEscolhida.percentualCotasEmpresa || 0 });
             renderDivisaoContrato();
@@ -1165,13 +1173,13 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             if (temMensalidade) {
 
-                alert("⚠️ Não é possível excluir este contrato: existem lançamentos mensais vinculados a ele. Apague os lançamentos mensais primeiro (na aba Mensal, apenas os não recebidos podem ser apagados).");
+                rzResumo({ titulo: 'Não dá para excluir', linhas: ['Este contrato tem lançamentos mensais.', 'Apague primeiro os lançamentos em Financeiro › Recebimentos (só os não recebidos podem ser apagados).'] });
 
                 return;
 
             }
 
-            if (!confirm(`Confirma a exclusão do contrato de "${con.locatario}"? Esta ação não pode ser desfeita.`)) return;
+            if (!await rzPerguntar({ titulo: 'Excluir contrato?', impacto: `O contrato de ${con.locatario || 'locação'} é apagado. Não dá para desfazer.`, destrutivo: true, rotuloConfirmar: 'Excluir contrato' })) return;
 
             mostrarCarregamentoGlobal('Excluindo contrato...');
 
@@ -1208,7 +1216,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui excluir o contrato: ' + (err.message || String(err)));
+                rzAvisar('Não consegui excluir o contrato: ' + (err.message || String(err)), 'danger');
             }
 
         }
@@ -1233,8 +1241,8 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const con = contratos.find(c => c.id === contratoId);
             if (!con) return;
             const imo = imoveis.find(i => i.id === con.imovelId);
-            if (!con.whatsapp) { alert('⚠️ Este contrato não tem WhatsApp do locatário cadastrado.'); return; }
-            if (!imo || !imo.codigoIPTU) { alert('⚠️ Este imóvel não tem código de IPTU cadastrado.'); return; }
+            if (!con.whatsapp) { rzAvisar('Este contrato não tem o WhatsApp do locatário.', 'danger'); return; }
+            if (!imo || !imo.codigoIPTU) { rzAvisar('Este imóvel não tem o código do IPTU.', 'danger'); return; }
             const txt = `Olá! Segue o código do IPTU do imóvel ${imo.empreendimento || ''} (${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}) para consulta e pagamento: ${imo.codigoIPTU}`;
             if (navigator.clipboard) navigator.clipboard.writeText(imo.codigoIPTU).catch(() => {});
             window.open(`https://api.whatsapp.com/send?phone=55${con.whatsapp}&text=${encodeURIComponent(txt)}`, '_blank');
@@ -1660,10 +1668,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     if (mesesRetroativos.length > 0) {
                         const primeiroMes = mesesRetroativos[0];
                         const rotuloRange = mesesRetroativos.length === 1 ? primeiroMes : `${primeiroMes} a ${mesesRetroativos[mesesRetroativos.length - 1]}`;
-                        const querRetroativo = confirm(
-                            `Este contrato começa em ${primeiroMes}. Criar também os recebimentos retroativos de ${rotuloRange}? ` +
-                            `(${mesesRetroativos.length} ${mesesRetroativos.length === 1 ? 'mês' : 'meses'})`
-                        );
+                        const querRetroativo = await rzPerguntar({
+                            titulo: 'Criar recebimentos retroativos?',
+                            impacto: `Este contrato começa em ${primeiroMes}. Criar também os recebimentos de ${rotuloRange} (${mesesRetroativos.length} ${mesesRetroativos.length === 1 ? 'mês' : 'meses'})?`,
+                            rotuloConfirmar: 'Criar retroativos', rotuloCancelar: 'Só daqui para frente',
+                        });
                         if (querRetroativo) {
                             for (const ref of mesesRetroativos) {
                                 const [mesRef, anoRef] = ref.split('/');
@@ -1707,7 +1716,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (document.querySelector('.tab-content.active')?.id === 'tab-imoveis') renderImoveis();
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui alterar o status: ' + (err.message || String(err)));
+                rzAvisar('Não consegui alterar o status: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -1752,7 +1761,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui salvar: ' + (err.message || String(err)));
+                rzAvisar('Não consegui salvar: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -2027,7 +2036,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const validas = __divisaoPopupContrato.filter(s => s.nome && s.nome.trim());
             const total = validas.reduce((s, x) => s + (parseFloat(x.pct) || 0), 0);
             if (validas.length > 0 && Math.abs(total - 100) > 0.5) {
-                if (!confirm(`A soma dos percentuais é ${total.toFixed(1)}%, não 100%. Salvar mesmo assim?`)) return;
+                if (!await rzPerguntar({ titulo: 'A soma não fecha 100%', impacto: `Os percentuais somam ${total.toFixed(1)}%. Salvar mesmo assim?`, rotuloConfirmar: 'Salvar assim', rotuloCancelar: 'Voltar e ajustar' })) return;
             }
 
             // Mesma resolução pessoa_id/nome_externo que sincronizarContratoSupabase
@@ -2059,7 +2068,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (fichaContratoAtualId === contratoId) montarDistribuicaoContrato(contratoId);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui salvar: ' + (err.message || String(err)));
+                rzAvisar('Não consegui salvar: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -2075,7 +2084,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             fichaContratoAtualId = id;
             const con = contratos.find(c => c.id === id);
-            if (!con) { alert('Contrato não encontrado.'); return; }
+            if (!con) { rzAvisar('Contrato não encontrado.', 'danger'); return; }
 
             const imo = imoveis.find(i => i.id === con.imovelId);
             const enderecoImo = imo ? `${imo.empreendimento || ''} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}` : '-';
@@ -2968,7 +2977,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 }
                 window.dispatchEvent(new CustomEvent('cofre:abrir-ficha-parte', { detail: { id: data.parte_id } }));
             } catch (err) {
-                mostrarToast('Erro ao abrir a parte: ' + (err.message || String(err)), 'erro');
+                mostrarToast('Erro ao abrir a parte: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -3383,7 +3392,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         export function abrirAcoesAnexoContrato(vinculoId) {
             const v = __docsContratoAtual.find(x => x.id === vinculoId);
             const doc = v?.cofre_documentos;
-            if (!doc || typeof abrirSheetAcoes !== 'function') { mostrarToast('Documento não encontrado.', 'erro'); return; }
+            if (!doc || typeof abrirSheetAcoes !== 'function') { mostrarToast('Documento não encontrado.', 'danger'); return; }
             abrirSheetAcoes({ titulo: doc.nome_exibicao || 'Documento', acoes: [
                 { icone: 'download', titulo: 'Baixar', aoTocar: () => baixarAnexoContrato(doc) },
                 { icone: 'trash-2', titulo: 'Excluir', tipo: 'bad', aoTocar: () => excluirAnexoContrato(vinculoId, doc) },
@@ -3396,12 +3405,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (error) throw error;
                 window.open(data.signedUrl, '_blank');
             } catch (err) {
-                mostrarToast('Erro ao abrir o documento: ' + (err.message || String(err)), 'erro');
+                mostrarToast('Erro ao abrir o documento: ' + (err.message || String(err)), 'danger');
             }
         }
 
         async function excluirAnexoContrato(vinculoId, doc) {
-            if (!confirm('Excluir este documento definitivamente?\n\nNão fica guardado no Cofre depois — essa ação não pode ser desfeita.')) return;
+            if (!await rzPerguntar({ titulo: 'Excluir documento?', impacto: 'Ele sai também do Cofre e não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Excluir documento' })) return;
             try {
                 const { error: errVinculo } = await dbAuth.from('cofre_documento_vinculos').delete().eq('id', vinculoId);
                 if (errVinculo) throw errVinculo;
@@ -3414,7 +3423,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 mostrarToast('Documento excluído.');
                 if (fichaContratoAtualId) montarDocumentosContrato(fichaContratoAtualId);
             } catch (err) {
-                mostrarToast('Erro ao excluir: ' + (err.message || String(err)), 'erro');
+                mostrarToast('Erro ao excluir: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -3464,7 +3473,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 montarDocumentosContrato(contratoId);
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('❌ Não consegui carregar o documento: ' + (err.message || String(err)));
+                rzAvisar('Não consegui carregar o documento: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -3581,7 +3590,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             if (vagas <= 0) {
 
-                alert(`⚠️ Você já tem 5 documentos do tipo "${tipo}" (o máximo). Remova algum antes de adicionar novos.`);
+                rzAvisar(`Já são 5 documentos do tipo "${tipo}", o máximo. Remova algum antes de adicionar.`, 'danger');
 
                 inputElement.value = '';
 
@@ -3593,7 +3602,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             if (files.length > vagas) {
 
-                alert(`⚠️ Só há espaço para mais ${vagas} documento(s) do tipo "${tipo}" (máximo de 5). Os ${count} primeiro(s) selecionado(s) serão usados.`);
+                rzAvisar(`Cabem só mais ${vagas} documento(s) do tipo "${tipo}" (máximo de 5). Vão os ${count} primeiro(s).`, 'info');
 
             }
 
@@ -3622,7 +3631,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             renderPreviewDocumentosContrato();
 
-            if (falhas > 0) alert(`⚠️ ${falhas} documento(s) não puderam ser enviados.`);
+            if (falhas > 0) rzAvisar(`${falhas} documento(s) não puderam ser enviados.`, 'danger');
 
         }
 
@@ -3671,7 +3680,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const doc = documentosCarregadosContrato.find(d => d.id === docId);
             if (!doc) return;
 
-            if (!confirm(`Remover o documento "${doc.nome}"? Isso apaga o arquivo de vez, não dá pra desfazer.`)) return;
+            if (!await rzPerguntar({ titulo: 'Remover documento?', impacto: `"${doc.nome}" é apagado de vez. Não dá para desfazer.`, destrutivo: true, rotuloConfirmar: 'Remover documento' })) return;
 
             // CORRIGIDO (bug real — excluir documento não apagava nada de
             // verdade): antes só tirava da lista em memória. Se o documento já
@@ -3729,7 +3738,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                         }
                     }
                 } catch (err) {
-                    alert('⚠️ O documento foi removido da tela, mas houve uma falha ao limpar tudo no banco: ' + err.message);
+                    rzAvisar('O documento saiu da tela, mas a limpeza no banco falhou: ' + err.message, 'danger');
                     logScreen('Erro ao remover documento: ' + err.message, true);
                 }
             }
@@ -3773,7 +3782,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (divisaoContratoAtual.length > 0) {
                 const somaDivisaoContrato = divisaoContratoAtual.reduce(function(acc, s) { return acc + (s.pct || 0); }, 0);
                 if (somaDivisaoContrato !== 100) {
-                    alert("⚠️ A soma do rateio deste contrato precisa ser exatamente 100%. Total atual: " + somaDivisaoContrato + "%");
+                    rzAvisar('A soma do rateio precisa dar 100%. Hoje está em ' + somaDivisaoContrato + '%.', 'danger');
                     return false;
                 }
             }
@@ -3796,18 +3805,18 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // desta função agora retorna `false` explicitamente — quem
             // chama por fora (ver salvarDadosNovoContratoPopup) confere
             // isso antes de fechar/mostrar sucesso.
-            if(!imoId) { alert("⚠️ Selecione um imóvel."); return false; }
+            if(!imoId) { rzAvisar('Escolha o imóvel do contrato.', 'danger'); return false; }
 
             if(docTipo === 'CPF' && !validarCPF(docVal)) {
 
-                alert("⚠️ O documento informado não é um CPF válido.");
+                rzAvisar('O CPF informado não é válido.', 'danger');
                 return false;
 
             }
 
             if(docTipo === 'CNPJ' && !validarCNPJ(docVal)) {
 
-                alert("⚠️ O documento informado não é um CNPJ válido.");
+                rzAvisar('O CNPJ informado não é válido.', 'danger');
                 return false;
 
             }
@@ -3819,7 +3828,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             const reajusteTetoVal = document.getElementById('con-reajuste-teto').value.trim();
             const reajustePisoVal = document.getElementById('con-reajuste-piso').value.trim();
             if (reajusteTetoVal !== '' && reajustePisoVal !== '' && parseFloat(reajustePisoVal) > parseFloat(reajusteTetoVal)) {
-                alert("⚠️ O piso do reajuste não pode ser maior que o teto.");
+                rzAvisar('O piso do reajuste não pode ser maior que o teto.', 'danger');
                 return false;
             }
 
@@ -3829,7 +3838,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // (placeholder de minuta, mesmo formato de sempre) e os campos
             // separados vão pra Parte do locatário (sincronizarContratoSupabase).
             const enderecoLido = lerEnderecoLocatarioDoForm(id);
-            if (!enderecoLido.ok) { alert(enderecoLido.mensagem); return false; }
+            if (!enderecoLido.ok) { rzAvisar(enderecoLido.mensagem, 'danger'); return false; }
             document.getElementById('con-locatario-endereco').value = enderecoLido.texto;
 
             // Lógica de "Novo Valor": o campo sempre abre em branco. Se o usuário
@@ -3847,7 +3856,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // v1.41.0 (Fase 1) — vigência da alteração é obrigatória sempre que
             // houver um novo valor/reajuste digitado no painel de reajuste.
             if (!isNaN(novoValorDigitado) && novoValorDigitado > 0 && !document.getElementById('con-vigente-desde').value) {
-                alert("⚠️ Informe a vigência da alteração (data a partir de quando o novo valor passa a valer).");
+                rzAvisar('Informe a partir de quando o novo valor vale (vigência).', 'danger');
                 return false;
             }
 
@@ -4252,7 +4261,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             } catch (err) {
 
-                alert("⚠️ Erro ao salvar o contrato: " + err.message + "\n\nPor favor, copie esta mensagem e me envie para eu corrigir.");
+                rzResumo({ titulo: 'Não consegui salvar o contrato', linhas: [err.message, 'Se continuar, envie esta mensagem ao suporte da Raiz.'] });
 
                 devLog("ERRO_SALVAR_CONTRATO", `Falha ao salvar contrato: ${err.message}`, err);
 
@@ -4641,7 +4650,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             } catch (err) {
 
-                alert("⚠️ Erro ao abrir a edição do contrato: " + err.message);
+                rzAvisar('Não consegui abrir a edição do contrato: ' + err.message, 'danger');
 
                 devLog("ERRO_EDITAR_CONTRATO", `Falha ao abrir edição: ${err.message}`, err);
 
@@ -4906,7 +4915,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             }
 
-            alert(alertas.length > 0 ? alertas.join("\n\n") : "Sem alertas para este contrato.");
+            if (alertas.length > 0) rzResumo({ titulo: 'Alertas do contrato', linhas: alertas }); else rzAvisar('Sem alertas para este contrato.', 'success');
 
         }
 
