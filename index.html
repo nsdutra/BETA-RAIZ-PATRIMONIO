@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.293.3
-   LINHAS: 16217
-   DATA: 03/10/2026 (sessão 20261003-2305-controles-despesa-b, testes reprovados da v1.293.2)
+   VERSÃO: Beta v1.294.0
+   LINHAS: 16243
+   DATA: 03/10/2026 (sessão 20261003-2250-financeiro, demanda 94245176)
+   NOVIDADES (Beta v1.294.0) — P1a da ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0 (absorve a F3.4 e a
+   parte Financeiro da F2.3 do PLANO_UX — D26), DIRETRIZES UXR-10/11/12/25/30/41:
+   Financeiro com barra de busca + "+" no topo (.rz-topo/.rz-search), segmento de 4 opções
+   Recebimentos · Saídas · Conciliação · Distribuição (.rz-seg-4; Distribuição = tab-socios, que
+   passa ao grupo Financeiro e sai do segmento de Relatórios), card "Rotinas de <mês>" no lugar da
+   grade 3x2 (#fin-rotinas-*), Atrasados como ficha ("‹ Financeiro", sem segmento), módulo NOVO
+   js/raiz-ui.js 1.0.0 (rzToast/rzConfirmar/rzEscolher/rzAviso — D25) carregado no boot.
+   Import map: js/financeiro.js 1.27.3 → 1.28.0, js/raiz-ui.js 1.0.0 (novo).
+   Versão anterior (Beta v1.293.3):
    NOVIDADES (Beta v1.293.3) — demanda d3260b23, testes reprovados (Nicola 03/10 23:02). Só import map:
    js/ativos/ativos-markup.js 1.49.0 → 1.50.0 ("Despesa" no novo item do app), js/cofre-app.js
    1.41.0 → 1.42.0 ("Voltar ao ativo" volta à lista de Controles), js/cofre-validacoes.js 2.2.0 →
@@ -33,15 +42,8 @@
    bot, do banner de contratação e do Suporte passam pelo adaptador. Links do Financeiro
    (recibo e resumo por e-mail) ficam para a etapa 6.
    Versão anterior (Beta v1.292.2):
-   NOVIDADES (Beta v1.292.2) — F0.5c (demanda 4c7f2264, "de acordo" do Nicola 03/10 21:55),
-   regra UXR-31b: em tela < 600 px todo formulário vira uma coluna (.rz-f2 e grids de 2
-   colunas com campo); lado a lado só nos pares curtos marcados .rz-f2-curto — no contrato:
-   Início/Fim, Aluguel/Dia, Novo valor/%, Teto/Piso, IPTU/Condomínio (quem paga e valor);
-   no endereço do cadastro: UF/CEP. Vale também para os formulários dos módulos (fiador,
-   parte, financeiro) sem tocar nos arquivos deles.
-   Versão anterior (Beta v1.292.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.292.1 … v1.292.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.292.2 … v1.292.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -66,7 +68,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.27.3","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.37.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.42.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.40.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.4.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.50.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.1","./js/financeiro.js":"./js/financeiro.js?v=1.28.0","./js/fechamento.js":"./js/fechamento.js?v=1.11.0","./js/contratos.js":"./js/contratos.js?v=1.37.0","./js/minutas.js":"./js/minutas.js?v=1.1.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.1","./js/imoveis.js":"./js/imoveis.js?v=1.6.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.46.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.42.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.69.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.40.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.21.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.4.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.2","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.8.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.201.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.50.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -778,6 +780,17 @@
           .rz-f2:not(.rz-f2-curto){grid-template-columns:minmax(0,1fr)}
           .grid.grid-cols-2:not(.rz-f2-curto):has(input:not([type=checkbox]):not([type=radio]),select,textarea){grid-template-columns:minmax(0,1fr)}
         }
+        /* v1.294.0 (UXR-10/11) — topo de aba: barra de busca de largura inteira + "+" (48 px) */
+        .rz-topo{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+        .rz-search{flex:1;min-width:0;height:48px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-pill);padding:0 16px;color:var(--muted);font-size:15px;text-align:left;cursor:pointer}
+        .rz-search svg{width:18px;height:18px;flex:none}
+        .rz-search span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-topo .rz-ico-btn{flex:none}
+        /* v1.294.0 (UXR-25) — segmento de 4 opções do Financeiro; rótulo curto em tela estreita */
+        .rz-seg.rz-seg-4 button{font-size:12px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+        .rz-seg .rz-seg-s{display:none}
+        @media (max-width:389px){ .rz-seg .rz-seg-l{display:none} .rz-seg .rz-seg-s{display:inline} }
+        .rz-row.rz-off{opacity:.55}
         /* toast acima da bottom nav (UXR-29) */
         #toast-container{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:500;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
         #toast-container>div{pointer-events:auto}
@@ -788,6 +801,8 @@
 <body class="bg-gray-100 font-sans text-gray-800 pb-16">
     <script type="module">/* v1.293.0 (F0.4, UXR-40): adaptador único de dispositivo — window.RaizDevice */
     import('./js/raiz-device.js').catch(function(e){ console.warn('[raiz-device] não carregou', e); });
+    /* v1.294.0 (UXR-30, D25): rzToast/rzConfirmar/rzEscolher/rzAviso — window.rz* */
+    import('./js/raiz-ui.js').catch(function(e){ console.warn('[raiz-ui] não carregou', e); });
     </script>
     <script>/* v1.293.0 — ponte: chamada antes do módulo carregar cai no comportamento web de sempre */
     window.rzDev = function(nome){ var a=[].slice.call(arguments,1); var d=window.RaizDevice;
@@ -2647,17 +2662,20 @@
                  (#fin-quadrantes-*, financeiroQuadrantesHtml) → seletor
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
             <button id="btn-voltar-financeiro" onclick="voltarDoFinanceiroFiltrado()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
-            <div class="flex items-center gap-2 mb-3">
-                <p class="text-[12px] text-gray-500 flex-1 text-left">Acompanhe recebimentos e dê baixa.</p>
-                <button id="btn-mensal-busca" onclick="abrirBuscaMensal()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+            <!-- v1.294.0 (UXR-10/25, demanda 94245176) — topo em 2 linhas: barra de busca + "+"
+                 (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
+                 "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
+                 e da linha de descrição + lupa. -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" onclick="abrirBuscaFinanceiro('mensal')" aria-label="Buscar"><svg data-lucide="search"></svg><span>Buscar lançamento, locatário ou valor</span></button>
+                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('mensal')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
             </div>
+            <div class="rz-seg rz-seg-4" id="fin-chips-nivel-mensal"></div>
             <div class="rz-mes-bar">
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
                 <span class="rz-mes-centro"><b id="fin-competencia-label-mensal" class="rz-mes-label">—</b><span id="fin-competencia-lock-mensal" class="rz-mes-lock hidden" title="Competência fechada" aria-label="Competência fechada"><svg data-lucide="lock"></svg></span></span>
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
             </div>
-            <div id="fin-quadrantes-mensal"></div>
-            <div class="rz-seg" id="fin-chips-nivel-mensal"></div>
 
             <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
                  · Recebido · Em atraso · A receber), sempre vindos de
@@ -2672,6 +2690,7 @@
                 <button type="button" class="rz-kpi rz-bad" onclick="abrirTelaAtrasados()"><small>Em atraso</small><b id="mensal-resumo-atraso">R$ 0</b></button>
                 <div class="rz-kpi"><small>A receber</small><b id="mensal-resumo-avencer">R$ 0</b></div>
             </div>
+            <div id="fin-rotinas-mensal"></div>
 
             <!-- v1.178.9 — achado do Nicola: chips de status pra filtrar
                  (Todos/Pagos/A vencer/Em atraso) — o resumo de cada
@@ -2718,18 +2737,21 @@
                  #fin-competencia-lock-*, sem ⋮) → 6 botões
                  (#fin-quadrantes-*, financeiroQuadrantesHtml) → seletor
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
-            <div class="flex items-center gap-2 mb-3">
-                <p class="text-[12px] text-gray-500 flex-1 text-left">Importe o extrato e concilie pagamentos e despesas.</p>
-                <button id="btn-conc-busca" onclick="abrirBuscaConciliacao()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+            <!-- v1.294.0 (UXR-10/25, demanda 94245176) — topo em 2 linhas: barra de busca + "+"
+                 (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
+                 "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
+                 e da linha de descrição + lupa. -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" onclick="abrirBuscaFinanceiro('conciliacao')" aria-label="Buscar"><svg data-lucide="search"></svg><span>Buscar lançamento, locatário ou valor</span></button>
+                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('conciliacao')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
             </div>
+            <div class="rz-seg rz-seg-4" id="fin-chips-nivel-conciliacao"></div>
             <div class="rz-mes-bar">
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
                 <span class="rz-mes-centro"><b id="fin-competencia-label-conciliacao" class="rz-mes-label">—</b><span id="fin-competencia-lock-conciliacao" class="rz-mes-lock hidden" title="Competência fechada" aria-label="Competência fechada"><svg data-lucide="lock"></svg></span></span>
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
             </div>
             <input type="file" id="extrato-file-input" accept=".xlsx,.xls,.pdf,.jpg,.jpeg,.png" class="hidden" onchange="processarExtratoImportado(this)">
-            <div id="fin-quadrantes-conciliacao"></div>
-            <div class="rz-seg" id="fin-chips-nivel-conciliacao"></div>
 
             <!-- Entrega F.4 (21/09/2026, pedido explícito) — "o card resumo
                  da tela de fechamento/conciliação deve ter o mesmo padrão
@@ -2744,6 +2766,7 @@
                 <div class="rz-kpi rz-in"><small>Recebido</small><b id="fin-kpi-fech-recebido">R$ 0 (0)</b></div>
                 <div class="rz-kpi"><small>Pago</small><b id="fin-kpi-fech-pago">R$ 0 (0)</b></div>
             </div>
+            <div id="fin-rotinas-conciliacao"></div>
 
             <!-- Entrega F.4 (21/09/2026, pedido explícito) — a lista de
                  Conciliação passa a seguir o filtro de competência do card
@@ -2783,16 +2806,12 @@
                  chip "Atrasados" solto tirado (redundante — já estamos
                  nela), "< Voltar" condicional pro caminho mais comum de
                  chegada (toque em "Em atraso" no hero de Recebimentos). -->
-            <div class="rz-seg">
-                <button onclick="switchTab('tab-mensal')" class="">Recebimentos</button>
-                <button onclick="switchTab('tab-saidas')" class="">Saídas</button>
-                <button onclick="switchTab('tab-conciliacao')" class="">Conciliação</button>
-            </div>
+            <!-- v1.294.0 (UXR-25/46, demanda 94245176) — Atrasados deixa de ser aba do segmento e vira
+                 ficha aberta pela linha "Atrasados" do card Rotinas: "‹ Financeiro", título e busca. -->
+            <button id="btn-voltar-inadimplencia" type="button" onclick="switchTab('tab-mensal')" style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--pine);background:none;border:0;padding:0;min-height:40px;margin-bottom:4px"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Financeiro</button>
 
-            <button id="btn-voltar-inadimplencia" onclick="switchTab('tab-mensal')" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3 mt-2"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
-
-            <div class="flex items-center gap-2 mb-4 mt-2">
-                <p class="text-[12px] text-gray-500 flex-1 text-left">Acompanhe recebimentos em atraso, agrupados por mês, locatário ou imóvel.</p>
+            <div class="rz-card-h" style="margin-bottom:12px">
+                <h3 style="font-size:20px">Atrasados <span class="rz-sub" style="font-family:var(--font-body);font-size:13px;font-weight:400;letter-spacing:0">· todos os meses</span></h3>
                 <button id="btn-inad-busca" onclick="abrirBuscaInadimplencia()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search" style="width:20px;height:20px"></svg></button>
             </div>
 
@@ -2849,17 +2868,20 @@
                  (#fin-quadrantes-*, financeiroQuadrantesHtml) → seletor
                  (#fin-chips-nivel-*) → KPIs. Sem <h2>. -->
             <button id="btn-voltar-saidas" onclick="voltarDasSaidasFiltradas()" class="hidden text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
-            <div class="flex items-center gap-2 mb-3">
-                <p class="text-[12px] text-gray-500 flex-1 text-left">Despesas e saídas do patrimônio — pagas e a pagar.</p>
-                <button id="btn-saidas-busca" onclick="abrirBuscaSaidas()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+            <!-- v1.294.0 (UXR-10/25, demanda 94245176) — topo em 2 linhas: barra de busca + "+"
+                 (Lançar) e o segmento de 4 opções; depois a competência, os 4 KPIs e o card
+                 "Rotinas de <mês>" (#fin-rotinas-*, financeiroRotinasHtml) no lugar da grade 3x2
+                 e da linha de descrição + lupa. -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" onclick="abrirBuscaFinanceiro('saidas')" aria-label="Buscar"><svg data-lucide="search"></svg><span>Buscar lançamento, locatário ou valor</span></button>
+                <button type="button" class="rz-ico-btn rz-primary" onclick="abrirLancarFinanceiro('saidas')" aria-label="Lançar"><svg data-lucide="plus"></svg></button>
             </div>
+            <div class="rz-seg rz-seg-4" id="fin-chips-nivel-saidas"></div>
             <div class="rz-mes-bar">
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(-1)" aria-label="Mês anterior"><svg data-lucide="chevron-left"></svg></button>
                 <span class="rz-mes-centro"><b id="fin-competencia-label-saidas" class="rz-mes-label">—</b><span id="fin-competencia-lock-saidas" class="rz-mes-lock hidden" title="Competência fechada" aria-label="Competência fechada"><svg data-lucide="lock"></svg></span></span>
                 <button type="button" class="rz-ico-btn" onclick="financeiroMudarCompetencia(1)" aria-label="Próximo mês"><svg data-lucide="chevron-right"></svg></button>
             </div>
-            <div id="fin-quadrantes-saidas"></div>
-            <div class="rz-seg" id="fin-chips-nivel-saidas"></div>
 
             <!-- Entrega F.1 — 4 KPIs de totalizador da competência (Previsto
                  · Pago · Vencido · A pagar), sempre vindos de
@@ -2872,6 +2894,7 @@
                 <button type="button" class="rz-kpi rz-bad" onclick="filtrarSaidasPorStatus('atrasado')"><small>Vencido</small><b id="saidas-resumo-atrasado">R$ 0</b></button>
                 <div class="rz-kpi"><small>A pagar</small><b id="saidas-resumo-avencer">R$ 0</b></div>
             </div>
+            <div id="fin-rotinas-saidas"></div>
 
             <!-- v1.178.9 — achado do Nicola: chips de status pra filtrar
                  (Todas/Pagas/A vencer/Atrasadas) — reaproveita o mesmo
@@ -3041,9 +3064,8 @@
              analítico e distribuição aos sócios. Pacote do contador e
              parâmetros entram quando existirem (R8 Financeiro+, 1b). -->
         <section id="tab-relatorios-catalogo" class="tab-content">
-            <div class="rz-seg">
+            <div class="rz-seg"><!-- v1.294.0 — Distribuição saiu daqui: é segmento do Financeiro (UXR-25) -->
                 <button onclick="switchTab('tab-relatorios')">Desempenho</button>
-                <button onclick="switchTab('tab-socios')">Distribuição</button>
                 <button class="rz-on" onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
             </div>
             <div class="rz-tabhead"><p>Tudo que sai do app em PDF ou planilha. Recibos e vitrines ficam no ⋮ de cada item.</p></div>
@@ -3051,10 +3073,13 @@
         </section>
         <section id="tab-socios" class="tab-content">
 
-            <div class="rz-seg">
-                <button onclick="switchTab('tab-relatorios')">Desempenho</button>
+            <!-- v1.294.0 (UXR-25) — Distribuição é a 4ª opção do segmento do Financeiro (vinda de
+                 Resultados). A tela em si é remodelada na P1b. -->
+            <div class="rz-seg rz-seg-4">
+                <button onclick="switchTab('tab-mensal')"><span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span></button>
+                <button onclick="switchTab('tab-saidas')">Saídas</button>
+                <button onclick="switchTab('tab-conciliacao')">Conciliação</button>
                 <button class="rz-on" onclick="switchTab('tab-socios')">Distribuição</button>
-                <button onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
             </div>
 
             <!-- CORRIGIDO (v1.52.0 — pedido explícito): título "Distribuições"
@@ -3504,7 +3529,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.293.3"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.294.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8783,7 +8808,7 @@
             'tab-saidas': 'tab-mensal',
             // v1.254.0 (frente fiscal, Fase 5) — Fiscal da competência é do grupo Financeiro.
             'tab-fiscal-competencia': 'tab-mensal',
-            'tab-socios': 'tab-relatorios'
+            'tab-socios': 'tab-mensal' // v1.294.0 (UXR-25) — Distribuição é do grupo Financeiro
         };
 
         // v1.62.3 (pedido explícito) — deep-link pós-login via ?ir=tab-X.
@@ -9067,6 +9092,7 @@
             'abrirAcoesImportarConciliacao', // v1.178.9 — menu único Importar/Reprocessar
             'abrirBuscaConciliacao', 'fecharBuscaConciliacao', 'limparBuscaConciliacao', 'atualizarCamposTipoConciliacao', // v1.179.0 — lupa de filtro
             'financeiroMudarCompetencia', 'rzTocarChipFechamentoDesligado', // Entrega F.1 (21/09/2026) — card de competência + chip Fechamento
+            'abrirLancarFinanceiro', 'abrirBuscaFinanceiro', // v1.294.0 — "+" (Lançar) e barra de busca do topo (UXR-10/12)
             'abrirAcoesAdicionarFinanceiro', 'abrirNovoRecebimento', 'nrecAoTrocarContrato', 'nrecAlternarSituacao', 'salvarNovoRecebimento', // v1.246.0 — demanda 0e40951a, complemento: criar recebimento avulso
             'financeiroRedesenharQuadrantes', 'financeiroIrParaRotinas', // v1.249.0 — demanda 7bdcb8d4: 6 botões com status (chamado por fechamento.js) + Fiscal desligado
             'recalcularValoresBaixaBruto', 'abrirAjusteValoresMensalidade', 'recalcularAjusteValores', // v1.260.0 — demanda d92a6dfc: bruto/taxa/líquido editáveis
@@ -9137,7 +9163,7 @@
             'tab-relatorios': 'Resultados', 'tab-alertas': 'Alertas', 'tab-fiscal': 'Fiscal', 'tab-fiscal-competencia': 'Fiscal da competência',
             'tab-minha-empresa': 'Minha empresa', 'tab-partes': 'Partes', 'tab-saidas': 'Saídas', 'tab-conciliacao': 'Conciliação',
             'tab-inadimplencia': 'Atrasados', 'tab-pessoas': 'Pessoas', 'tab-minutas': 'Minutas', 'tab-licenca': 'Licença',
-            'tab-sobre': 'Sobre', 'tab-contrato-ficha': 'Contrato', 'tab-relatorios-catalogo': 'Relatórios', 'tab-socios': 'Sócios',
+            'tab-sobre': 'Sobre', 'tab-contrato-ficha': 'Contrato', 'tab-relatorios-catalogo': 'Relatórios', 'tab-socios': 'Distribuição',
         };
         // telas que já têm o próprio "voltar" no topo — sem atalho duplicado
         var RZ_SEM_VOLTAR_GLOBAL = ['tab-alertas', 'tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine'];

@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.292.2) — F0.5c (demanda 4c7f2264, "de acordo" do Nicola 03/10 21:55),
+regra UXR-31b: em tela < 600 px todo formulário vira uma coluna (.rz-f2 e grids de 2
+colunas com campo); lado a lado só nos pares curtos marcados .rz-f2-curto — no contrato:
+Início/Fim, Aluguel/Dia, Novo valor/%, Teto/Piso, IPTU/Condomínio (quem paga e valor);
+no endereço do cadastro: UF/CEP. Vale também para os formulários dos módulos (fiador,
+parte, financeiro) sem tocar nos arquivos deles.
+Versão anterior (Beta v1.292.1):
+------------------------------------------------------------------
+Versões anteriores (v1.292.1 … v1.292.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.292.1) — complemento da F0.5 (demanda 4c7f2264, Nicola 03/10 21:28):
 o bloco Histórico sai do formulário de contrato (vive na ficha); bloco de fiadores e
 divisão de sócios na casca única (js/contratos.js 1.36.1 → 1.37.0).

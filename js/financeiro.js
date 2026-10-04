@@ -1,7 +1,30 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.27.3 · 02/10/2026
+// Versão: 1.28.0 · 03/10/2026
+//
+// v1.28.0 (03/10/2026, sessão 20261003-2250-financeiro, demanda 94245176 —
+// ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0 §5 P1a, decisões D24–D26 do
+// Nicola) — Financeiro no padrão da DIRETRIZES_UX_RAIZ_2026 (UXR-10/12/25/30/41):
+//   · topo: barra de busca + "+" (abrirBuscaFinanceiro / abrirLancarFinanceiro);
+//   · segmento com 4 opções: Recebimentos · Saídas · Conciliação ·
+//     Distribuição (tab-socios, gate repasses.ver com cadeado e motivo);
+//   · a grade 3x2 (financeiroQuadrantesHtml) vira o card "Rotinas de <mês>"
+//     (financeiroRotinasHtml): Fechar/Reabrir · Contador · Fiscal · Atrasados,
+//     mesmos estados de antes; Importar e Adicionar foram para o "+";
+//   · "Lançar" único no "+" (Importar extrato (IA) · Ler um documento (IA) ·
+//     Adicionar recebimento · Adicionar saída; Reprocessar só em Conciliação);
+//     abrirAcoesAdicionarFinanceiro/abrirAcoesImportarConciliacao continuam
+//     existindo e abrem o mesmo Sheet;
+//   · zero diálogo nativo: os 23 usos viram rzToast/rzConfirmar/rzAviso
+//     (js/raiz-ui.js 1.0.0, D25); exclusões são confirmação destrutiva
+//     (último item vermelho, REGRAS §6);
+//   · Cobrar pelo WhatsApp sai por rzDev('whatsapp') (UXR-41), não mais
+//     window.open direto;
+//   · Dar baixa: validação que falha mantém o Sheet aberto (antes fechava).
+// Sem objeto de banco. "Desfazer" nas ações destrutivas fica para a fatia
+// que criar a operação inversa de cada uma (registrado na ENTREGA).
+// Versão anterior: 1.27.3.
 //
 // v1.27.3 (02/10/2026, pedido do Nicola) — despesa da licença Raiz
 // (origem_tipo='licenca') ganha "Ver comprovante" no ⋮ quando a empresa
@@ -779,13 +802,15 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.27.3'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.28.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
 // precisar saber" (ver changelog do topo). aoEscrever usado só pelo listener
 // interno registrado em montarAbaFinanceiro(), logo abaixo.
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
+// v1.28.0 (UXR-30, D25) — substitutos dos diálogos nativos (js/raiz-ui.js 1.0.0).
+import { rzToast, rzConfirmar, rzAviso } from './raiz-ui.js';
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -918,18 +943,26 @@ export function financeiroMudarCompetencia(delta) {
  * nada de verdade. Agora conta em cima do próprio cache, que desde esta
  * entrega só guarda pendente+não controlado (ver carregarConciliacaoUnificada). */
 function financeiroChipsNivelHtml(aba) {
+    // v1.28.0 (UXR-25, demanda 94245176) — 4ª opção "Distribuição" (retiradas
+    // e distribuição por sócio, vinda de Resultados — D24 do estudo de UX).
+    // Gate do catálogo repasses.ver: sem direito, aparece com cadeado e o
+    // toque mostra o motivo (REGRAS regra 9, ACE-04) — nunca some.
+    // "Recebimentos" tem rótulo curto em tela estreita (.rz-seg-4, index.html).
     const fechamentoOff = financeiroRotinaFechamentoLigada === false;
+    const distrib = (typeof podeUsar === 'function') ? podeUsar('repasses.ver') : { ok: true };
     const itens = [
-        { chave: 'mensal', rotulo: 'Recebimentos', tab: 'tab-mensal' },
+        { chave: 'mensal', rotulo: '<span class="rz-seg-l">Recebimentos</span><span class="rz-seg-s">Receb.</span>', tab: 'tab-mensal' },
         { chave: 'saidas', rotulo: 'Saídas', tab: 'tab-saidas' },
         { chave: 'conciliacao', rotulo: 'Conciliação', tab: 'tab-conciliacao', off: fechamentoOff }, // v1.21.0 — pedido explícito: "Mude o titulo da aba fechamento para conciliacao"
+        { chave: 'socios', rotulo: 'Distribuição', tab: 'tab-socios', bloqueio: distrib.ok ? null : 'repasses.ver' },
     ];
     return itens.map(it => {
-        const classes = [it.chave === aba ? 'rz-on' : '', it.off ? 'rz-off' : ''].filter(Boolean).join(' ');
-        const onclick = it.off ? 'rzTocarChipFechamentoDesligado()' : `switchTab('${it.tab}')`;
-        const contador = (it.chave === 'conciliacao' && conciliacaoUniCache.filter(x => x.status_conciliacao === 'pendente').length)
-            ? ` <span class="rz-n">${conciliacaoUniCache.filter(x => x.status_conciliacao === 'pendente').length}</span>` : '';
-        return `<button type="button" class="${classes}" onclick="${onclick}">${it.rotulo}${contador}</button>`;
+        const off = it.off || !!it.bloqueio;
+        const classes = [it.chave === aba ? 'rz-on' : '', off ? 'rz-off' : ''].filter(Boolean).join(' ');
+        const onclick = it.bloqueio ? `rzMostrarBloqueio('${it.bloqueio}')` : (it.off ? 'rzTocarChipFechamentoDesligado()' : `switchTab('${it.tab}')`);
+        const nPend = it.chave === 'conciliacao' ? conciliacaoUniCache.filter(x => x.status_conciliacao === 'pendente').length : 0;
+        const contador = nPend ? ` <span class="rz-n">${nPend}</span>` : '';
+        return `<button type="button" class="${classes}" onclick="${onclick}"${off ? ' aria-disabled="true"' : ''}>${it.rotulo}${contador}</button>`;
     }).join('');
 }
 
@@ -989,14 +1022,30 @@ function financeiroRedesenharChipsNivel() {
 // Extrato fica sempre disponível: o import cobre várias datas e o banco já
 // bloqueia gravação em competência fechada (trigger), então travar aqui
 // esconderia o extrato dos outros meses.
-function financeiroQuadrantesHtml(aba) {
+function financeiroMesExtenso(iso) {
+    const nomes = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    return nomes[parseInt(String(iso || financeiroCompetenciaHojeISO()).split('-')[1], 10) - 1];
+}
+
+// v1.28.0 (UXR-25, demanda 94245176 — absorve a F3.4 do PLANO_UX) — a grade
+// 3x2 vira o card "Rotinas de <mês>", com 4 linhas e estado: Fechar/Reabrir o
+// mês · Contador · Fiscal · Atrasados. Importar e Adicionar saíram da grade e
+// foram para o "+" do topo (abrirLancarFinanceiro, UXR-12). Os ESTADOS são os
+// mesmos da v1.20.0 (window.RZ_FIN_FECHAMENTO / RZ_FIN_FISCAL, publicados por
+// js/fechamento.js) — só a forma mudou: linha (.rz-row) com placa, título,
+// 1 linha de contexto e status (renderStatus), em vez de botão de grade.
+// Rotina desligada aparece desabilitada com o motivo (UXR-25) e leva a
+// Empresa › Rotinas, como antes.
+function financeiroRotinasHtml(aba) {
     const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    const quad = ({ icone, estado = '', titulo, explicacao, onclick, off = false }) => `
-        <button type="button" class="rz-fin-quad${off ? ' rz-off' : ''}" onclick="${esc(onclick)}"${off ? ' aria-disabled="true"' : ''}>
-            <div class="rz-ic${estado ? ' rz-' + estado : ''}"><svg data-lucide="${icone}"></svg></div>
-            <div class="rz-tx"><b>${esc(titulo)}</b><small>${esc(explicacao)}</small></div>
-        </button>`;
-    const aviso = (msg) => `mostrarToast('${String(msg).replace(/'/g, "\\'")}', 'info')`;
+    const st = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : esc(rot);
+    const linha = ({ icone, sem = '', titulo, sub, status = '', onclick, off = false }) => `
+        <div class="rz-row rz-link${off ? ' rz-off' : ''}" role="button" tabindex="0" onclick="${esc(onclick)}"${off ? ' aria-disabled="true"' : ''}>
+            <div class="rz-ic${sem ? ' rz-' + sem : ''}"><svg data-lucide="${off ? 'lock' : icone}"></svg></div>
+            <div class="rz-tx"><b>${esc(titulo)}</b><span>${esc(sub)}</span></div>
+            <div class="rz-rt">${status}</div>
+            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+        </div>`;
 
     const est = (typeof window !== 'undefined') ? (window.RZ_FIN_FECHAMENTO || null) : null;
     const fis = (typeof window !== 'undefined') ? (window.RZ_FIN_FISCAL || null) : null;
@@ -1004,56 +1053,47 @@ function financeiroQuadrantesHtml(aba) {
     const fechada = est?.status === 'concluido';
     const pend = est?.pendencias || null;
 
-    // v1.21.0 (pedido explícito: "o botao extrato generalize para importar documento mas deixa a palavra extrato")
-    const extrato = quad({ icone: 'file-down', estado: 'ia', titulo: 'Importar', explicacao: 'Extrato ou outro documento', onclick: 'abrirAcoesImportarConciliacao()' });
-
-    const adicionar = fechada
-        ? quad({ icone: 'plus', titulo: 'Adicionar', explicacao: 'Competência fechada — reabra para lançar', off: true,
-                 onclick: aviso('Competência fechada. Toque em "Reabrir" para lançar algo neste mês.') })
-        : quad({ icone: 'plus', titulo: 'Adicionar', explicacao: 'Recebimento ou despesa avulsa', onclick: 'abrirAcoesAdicionarFinanceiro()' });
-
     let fechar;
     if (rotinaOff) {
-        fechar = quad({ icone: 'lock-open', titulo: 'Fechar', explicacao: 'Rotina de fechamento desligada', off: true, onclick: 'rzTocarChipFechamentoDesligado()' });
+        fechar = linha({ icone: 'lock-open', titulo: 'Fechar o mês', sub: 'Rotina de fechamento desligada', status: st('neu', 'Desligada'), off: true, onclick: 'rzTocarChipFechamentoDesligado()' });
     } else if (!est) {
-        fechar = quad({ icone: 'lock-open', estado: 'mute', titulo: 'Fechar', explicacao: 'Verificando…', onclick: 'fechamentoAlternarBotao()' });
+        fechar = linha({ icone: 'lock-open', sem: 'neu', titulo: 'Fechar o mês', sub: 'Verificando…', onclick: 'fechamentoAlternarBotao()' });
     } else if (fechada) {
-        const quando = est.fechadoEm ? `Fechada em ${new Date(est.fechadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : 'Fechada';
-        fechar = quad({ icone: 'lock', estado: pend?.tem ? 'warn' : 'ok', titulo: 'Reabrir', explicacao: `${quando} — reabra pra corrigir`, onclick: 'fechamentoAlternarBotao()' });
+        const quando = est.fechadoEm ? `Fechado em ${new Date(est.fechadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : 'Fechado';
+        fechar = linha({ icone: 'lock', sem: pend?.tem ? 'warn' : '', titulo: 'Reabrir o mês', sub: quando, status: st('ok', 'Fechado'), onclick: 'fechamentoAlternarBotao()' });
     } else {
-        fechar = quad({ icone: 'lock-open', estado: pend?.tem ? 'warn' : '', titulo: 'Fechar',
-                        explicacao: pend?.tem ? 'Competência com lançamentos em atraso' : 'Fecha a competência do mês', onclick: 'fechamentoAlternarBotao()' });
+        fechar = linha({ icone: 'lock-open', sem: pend?.tem ? 'warn' : '', titulo: 'Fechar o mês',
+                         sub: pend?.tem ? 'Há atrasos neste mês' : 'Fecha a competência', status: st(pend?.tem ? 'warn' : 'neu', 'Aberto'), onclick: 'fechamentoAlternarBotao()' });
     }
 
     const contador = rotinaOff
-        ? quad({ icone: 'send', titulo: 'Contador', explicacao: 'Rotina de fechamento desligada', off: true, onclick: 'rzTocarChipFechamentoDesligado()' })
-        : quad({ icone: 'send', estado: fechada ? 'ok' : 'mute', titulo: 'Contador',
-                 explicacao: fechada ? 'Enviar esta competência' : 'Envia competências já fechadas', onclick: 'fechamentoAbrirCompartilharContador()' });
+        ? linha({ icone: 'send', titulo: 'Contador', sub: 'Rotina de fechamento desligada', status: st('neu', 'Desligada'), off: true, onclick: 'rzTocarChipFechamentoDesligado()' })
+        : linha({ icone: 'send', titulo: 'Contador', sub: fechada ? 'Pacote deste mês' : 'Meses já fechados',
+                  status: fechada ? st('ok', 'Pronto') : st('neu', 'Aguardando'), onclick: 'fechamentoAbrirCompartilharContador()' });
 
     let fiscal;
     if (!fis) {
-        fiscal = quad({ icone: 'file-check-2', estado: 'mute', titulo: 'Fiscal', explicacao: 'Verificando…', onclick: 'abrirFiscalCompetencia()' });
+        fiscal = linha({ icone: 'file-check-2', sem: 'neu', titulo: 'Fiscal', sub: 'Verificando…', onclick: 'abrirFiscalCompetencia()' });
     } else if (!fis.ligada) {
-        fiscal = quad({ icone: 'file-check-2', titulo: 'Fiscal', explicacao: 'Rotina fiscal desligada', off: true, onclick: 'financeiroIrParaRotinas()' });
+        fiscal = linha({ icone: 'file-check-2', titulo: 'Fiscal', sub: 'Rotina fiscal desligada', status: st('neu', 'Desligada'), off: true, onclick: 'financeiroIrParaRotinas()' });
     } else if (fis.notas && (fis.notas.aPreparar + fis.notas.preparadas) > 0) {
-        // v1.23.0 — notas do mês primeiro: é a tarefa do dia a dia
-        const n = fis.notas.aPreparar + fis.notas.preparadas;
-        fiscal = quad({ icone: 'file-check-2', estado: 'warn', titulo: 'Fiscal', explicacao: `${n} nota${n > 1 ? 's' : ''} a preparar`, onclick: 'abrirFiscalCompetencia()' });
+        const n = fis.notas.aPreparar + fis.notas.preparadas; // v1.23.0 — notas do mês primeiro
+        fiscal = linha({ icone: 'file-check-2', sem: 'warn', titulo: 'Fiscal', sub: `${n} nota${n > 1 ? 's' : ''} a preparar`, status: st('warn', String(n)), onclick: 'abrirFiscalCompetencia()' });
     } else if (fis.total === 0) {
-        fiscal = quad({ icone: 'file-check-2', estado: 'ok', titulo: 'Fiscal', explicacao: 'Pronto para NFS-e', onclick: 'abrirFiscalCompetencia()' });
+        fiscal = linha({ icone: 'file-check-2', titulo: 'Fiscal', sub: 'Pronto para NFS-e', status: st('ok', 'Em dia'), onclick: 'abrirFiscalCompetencia()' });
     } else {
-        fiscal = quad({ icone: 'file-check-2', estado: 'warn', titulo: 'Fiscal', explicacao: `${fis.total} pendência${fis.total > 1 ? 's' : ''} para NFS-e`, onclick: 'abrirFiscalCompetencia()' });
+        fiscal = linha({ icone: 'file-check-2', sem: 'warn', titulo: 'Fiscal', sub: `${fis.total} pendência${fis.total > 1 ? 's' : ''} para NFS-e`, status: st('warn', String(fis.total)), onclick: 'abrirFiscalCompetencia()' });
     }
 
     const valorAtraso = Number(pend?.recebimentosEmAtraso || 0);
     // sem rotina / falha de verificação: o banco não calculou pendências — neutro, nunca "nada em atraso"
     const atrasados = (!est || est.status === 'sem_rotina' || est.status === 'indisponivel')
-        ? quad({ icone: 'alarm-clock', estado: 'mute', titulo: 'Atrasados', explicacao: 'Recebimentos em atraso', onclick: 'abrirTelaAtrasados()' })
+        ? linha({ icone: 'alarm-clock', sem: 'neu', titulo: 'Atrasados', sub: 'Todos os meses', onclick: 'abrirTelaAtrasados()' })
         : valorAtraso > 0
-            ? quad({ icone: 'alarm-clock', estado: 'bad', titulo: 'Atrasados', explicacao: `${formatarMoedaBR(valorAtraso)} em atraso`, onclick: 'abrirTelaAtrasados()' })
-            : quad({ icone: 'alarm-clock', estado: 'ok', titulo: 'Atrasados', explicacao: 'Nada em atraso neste mês', onclick: 'abrirTelaAtrasados()' });
+            ? linha({ icone: 'alarm-clock', sem: 'bad', titulo: 'Atrasados', sub: 'Em atraso neste mês', status: st('bad', formatarMoedaBR(valorAtraso)), onclick: 'abrirTelaAtrasados()' })
+            : linha({ icone: 'alarm-clock', titulo: 'Atrasados', sub: 'Nada em atraso neste mês', status: st('ok', 'Em dia'), onclick: 'abrirTelaAtrasados()' });
 
-    return `<div class="rz-fin-quad-grid">${extrato}${adicionar}${fechar}${contador}${fiscal}${atrasados}</div>`;
+    return `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Rotinas de ${financeiroMesExtenso(financeiroCompetenciaAtual)}</h3></div>${fechar}${contador}${fiscal}${atrasados}</div>`;
 }
 
 // v1.20.0 — cadeado ao lado do mês (#fin-competencia-lock-*), só com a
@@ -1071,8 +1111,8 @@ function financeiroRenderCadeadoCompetencia() {
 // já montadas) e o cadeado.
 export function financeiroRedesenharQuadrantes() {
     ['mensal', 'saidas', 'conciliacao'].forEach(aba => {
-        const el = document.getElementById(`fin-quadrantes-${aba}`);
-        if (el) el.innerHTML = financeiroQuadrantesHtml(aba);
+        const el = document.getElementById(`fin-rotinas-${aba}`); // v1.28.0 — card Rotinas (era a grade fin-quadrantes-*)
+        if (el) el.innerHTML = financeiroRotinasHtml(aba);
     });
     financeiroRenderCadeadoCompetencia();
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1086,15 +1126,41 @@ export function financeiroIrParaRotinas() {
     setTimeout(() => document.getElementById('cme-rotinas-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 
-// v1.19.0 — menu do quadrante "Adicionar" (Recebimentos/Saídas/Fechamento):
-// 2 ações, mesmo padrão de menu ⋮ (abrirSheetAcoes) usado no resto do app.
-export function abrirAcoesAdicionarFinanceiro() {
+// v1.28.0 (UXR-10/12, demanda 94245176) — o "+" do topo do Financeiro abre
+// "Lançar": um Sheet só com o que era Importar + Adicionar (a v1.19.0/v1.21.0
+// tinha 2 botões e 2 menus). IA no topo (rzOrdenarAcoes). Competência fechada:
+// Adicionar recebimento/saída aparecem com o motivo e o toque explica — o
+// mesmo bloqueio da grade antiga. "Falar um lançamento" (UXR-12) só entra
+// quando a Raiz IA embutida existir (F4.1); "Importar fatura de cartão" entra
+// na onda P5 com código próprio no catálogo (REGRAS regra 9: sem código, não
+// entra no menu). Reprocessar fica disponível só a partir de Conciliação.
+export function abrirLancarFinanceiro(aba) {
     if (typeof abrirSheetAcoes !== 'function') return;
-    abrirSheetAcoes({ titulo: 'Adicionar', acoes: [
-        { icone: 'arrow-down-left', titulo: 'Novo recebimento', sub: 'Lança um recebimento avulso, vinculado a um contrato', aoTocar: () => abrirNovoRecebimento() },
-        { icone: 'arrow-up-right', titulo: 'Nova despesa', sub: 'Lança uma despesa avulsa', aoTocar: () => abrirNovaDespesa() },
-    ] });
+    const fechada = (typeof window !== 'undefined') && window.RZ_FIN_FECHAMENTO?.status === 'concluido';
+    const avisoFechada = () => rzToast('Competência fechada. Reabra o mês em "Rotinas" para lançar algo nele.', { tipo: 'info' });
+    const acoes = [
+        { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto — a Raiz IA concilia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+        { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto ou nota — a Raiz IA classifica e vincula', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
+        { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Competência fechada — reabra para lançar' : 'Recebimento avulso de um contrato', aoTocar: () => fechada ? avisoFechada() : abrirNovoRecebimento() },
+        { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Competência fechada — reabra para lançar' : 'Despesa, tributo, manutenção', aoTocar: () => fechada ? avisoFechada() : abrirNovaDespesa() },
+    ];
+    if (aba === 'conciliacao') {
+        acoes.push({ icone: 'refresh-cw', titulo: 'Reprocessar pendências', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação nas pendências, se algo mudou depois da importação', aoTocar: () => reprocessarConciliacaoPendente() });
+    }
+    abrirSheetAcoes({ titulo: 'Lançar', sub: financeiroCompetenciaLabel(financeiroCompetenciaAtual || financeiroCompetenciaHojeISO()), acoes });
 }
+
+// v1.28.0 — barra de busca do topo (UXR-10/11): abre o filtro da lista da aba
+// em que está (os mesmos overlays de antes; a busca universal é a F2.3).
+export function abrirBuscaFinanceiro(aba) {
+    if (aba === 'saidas') return abrirBuscaSaidas();
+    if (aba === 'conciliacao') return abrirBuscaConciliacao();
+    return abrirBuscaMensal();
+}
+
+// Mantidas por compatibilidade (ponte window do index.html e chamadas antigas):
+// as duas abrem o mesmo "Lançar".
+export function abrirAcoesAdicionarFinanceiro() { abrirLancarFinanceiro(); }
 
 // ============================================================================
 // v1.19.0 (demanda 0e40951a, complemento — pedido explícito do Nicola,
@@ -1342,10 +1408,9 @@ function financeiroRenderCabecalho(aba) {
     if (elLabel) elLabel.textContent = financeiroCompetenciaLabel(financeiroCompetenciaAtual);
     const elChips = document.getElementById(`fin-chips-nivel-${aba}`);
     if (elChips) elChips.innerHTML = financeiroChipsNivelHtml(aba);
-    // v1.18.0 (demanda 0e40951a) — grid 2x2 de funções, ver
-    // financeiroQuadrantesHtml() acima.
-    const elQuad = document.getElementById(`fin-quadrantes-${aba}`);
-    if (elQuad) elQuad.innerHTML = financeiroQuadrantesHtml(aba);
+    // v1.28.0 — card "Rotinas de <mês>" (UXR-25) no lugar da grade 3x2.
+    const elRot = document.getElementById(`fin-rotinas-${aba}`);
+    if (elRot) elRot.innerHTML = financeiroRotinasHtml(aba);
     financeiroRenderCadeadoCompetencia(); // v1.20.0 (demanda 7bdcb8d4)
     if (financeiroRotinaFechamentoLigada === null) financeiroVerificarRotinaFechamento();
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
@@ -2057,7 +2122,7 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export async function estornarPagamentoDespesa(id) {
-            if (!confirm('Estornar este pagamento? A despesa volta a "previsto".')) return;
+            if (!await rzConfirmar({ titulo: 'Estornar pagamento', impacto: 'A despesa volta para "previsto" e sai do caixa deste mês.', rotuloConfirmar: 'Estornar pagamento' })) return;
             mostrarCarregamentoGlobal('Salvando...');
             try {
                 const { error } = await dbAuth.from('lancamentos').update({
@@ -2084,7 +2149,7 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export async function excluirDespesa(id) {
-            if (!confirm('Excluir esta despesa? Ação não pode ser desfeita.')) return;
+            if (!await rzConfirmar({ titulo: 'Excluir despesa', impacto: 'A despesa some do Financeiro. Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Excluir despesa' })) return;
             mostrarCarregamentoGlobal('Excluindo...');
             try {
                 const { error } = await dbAuth.from('lancamentos').delete().eq('id', id);
@@ -2129,10 +2194,10 @@ function financeiroRenderCabecalho(aba) {
 
             recebimentoDetalheAtualId = mensalidadeId;
             const men = mensalidades.find(m => m.id === mensalidadeId);
-            if (!men) { alert('Recebimento não encontrado.'); return; }
+            if (!men) { rzToast('Recebimento não encontrado.', { tipo: 'danger' }); return; }
 
             const con = contratos.find(c => c.id === men.contratoId);
-            if (!con) { alert('Contrato deste recebimento não encontrado.'); return; }
+            if (!con) { rzToast('Contrato deste recebimento não encontrado.', { tipo: 'danger' }); return; }
 
             const imo = imoveis.find(i => i.id === con.imovelId);
             const localImovel = imo ? `${imo.empreendimento || ''} - ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}` : '';
@@ -2404,7 +2469,7 @@ function financeiroRenderCabecalho(aba) {
                 obsManual = (obsManual ? obsManual + ' | ' : '') + resumoExtras.join(' | ');
             }
 
-            if(!dataManual || isNaN(valorManual)) return alert("Preencha data e valor.");
+            if (!dataManual || isNaN(valorManual)) { rzToast('Preencha data e valor.', { tipo: 'danger' }); return false; }
 
             const idx = mensalidades.findIndex(m => m.id === menId);
 
@@ -2456,7 +2521,7 @@ function financeiroRenderCabecalho(aba) {
                 renderRelatorios();
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('⚠️ Falha ao salvar o pagamento: ' + err.message);
+                rzToast('Não consegui salvar o pagamento: ' + err.message, { tipo: 'danger' });
                 logScreen('Erro ao dar baixa (mensalidade ' + menId + '): ' + err.message, true);
             }
 
@@ -2470,7 +2535,7 @@ function financeiroRenderCabecalho(aba) {
 
         export async function estornarMensalidade(menId) {
 
-            if(!confirm("Confirmar estorno do caixa?")) return;
+            if (!await rzConfirmar({ titulo: 'Estornar recebimento', impacto: 'O recebimento volta para "a receber" e sai do caixa deste mês.', rotuloConfirmar: 'Estornar recebimento' })) return;
 
             const idx = mensalidades.findIndex(m => m.id === menId);
 
@@ -2591,7 +2656,7 @@ function financeiroRenderCabecalho(aba) {
 
                 if (!data?.extraido) {
                     esconderCarregamentoGlobal();
-                    alert('⚠️ ' + (data?.motivo || 'Não consegui ler as transações desse arquivo.'));
+                    rzToast(data?.motivo || 'Não consegui ler as transações desse arquivo.', { tipo: 'danger' });
                     inputElement.value = '';
                     return;
                 }
@@ -2613,7 +2678,7 @@ function financeiroRenderCabecalho(aba) {
                 esconderCarregamentoGlobal();
 
                 if (transacoes.length === 0) {
-                    alert("⚠️ Nenhum lançamento válido encontrado nesse arquivo.");
+                    rzToast('Nenhum lançamento válido encontrado nesse arquivo.', { tipo: 'danger' });
                     inputElement.value = '';
                     return;
                 }
@@ -2632,7 +2697,7 @@ function financeiroRenderCabecalho(aba) {
 
                 esconderCarregamentoGlobal();
 
-                alert("⚠️ Falha ao ler o arquivo: " + err.message);
+                rzToast('Não consegui ler o arquivo: ' + err.message, { tipo: 'danger' });
 
                 devLog("ERRO_EXTRATO_IA", `Falha ao processar extrato via IA: ${err.message}`);
 
@@ -2689,7 +2754,7 @@ function financeiroRenderCabecalho(aba) {
 
                     esconderCarregamentoGlobal();
 
-                    alert("⚠️ Não consegui identificar o formato do extrato. Verifique se é um extrato detalhado do Itaú (.xlsx) e tente novamente.");
+                    rzAviso({ titulo: 'Formato não reconhecido', linhas: ['Não consegui identificar o formato do extrato.', 'Confira se é o extrato detalhado do Itaú (.xlsx) e tente de novo — ou envie o PDF ou uma foto, que a Raiz IA lê.'] });
 
                     return;
 
@@ -2725,7 +2790,7 @@ function financeiroRenderCabecalho(aba) {
 
                 if (transacoes.length === 0) {
 
-                    alert("⚠️ Nenhum lançamento válido encontrado nesse arquivo.");
+                    rzToast('Nenhum lançamento válido encontrado nesse arquivo.', { tipo: 'danger' });
 
                     return;
 
@@ -2737,7 +2802,7 @@ function financeiroRenderCabecalho(aba) {
 
                 esconderCarregamentoGlobal();
 
-                alert("⚠️ Falha ao ler o arquivo: " + err.message);
+                rzToast('Não consegui ler o arquivo: ' + err.message, { tipo: 'danger' });
 
                 devLog("ERRO_EXTRATO", `Falha ao processar extrato: ${err.message}`);
 
@@ -3132,23 +3197,19 @@ function financeiroRenderCabecalho(aba) {
             // resolveu sozinho). Ver changelog do topo.
             emitirEscrita('conciliacao', { acao: 'importar', qtdConciliados, qtdRepasses, qtdPendencias });
 
-            alert(
-
-                `${tituloResumo || '📥 Importação concluída!'}\n\n` +
-
-                `✅ ${qtdConciliados} recebimento(s) conciliado(s) automaticamente\n` +
-
-                `💸 ${qtdRepasses} repasse(s) de sócio lançado(s)\n` +
-
-                (resumoMotor.length > 0 ? `⚙️ ${resumoMotor.reduce((s, r) => s + (r.quantidade || 0), 0)} linha(s) tratada(s) sozinha(s) pelo motor de regras (rendimento, tarifa, repasse de administradora...)\n` : '') +
-
-                `❓ ${qtdPendencias} item(ns) precisam da sua revisão (veja abaixo)\n` +
-
-                `🚫 ${qtdIgnorados} lançamento(s) sem ação automática nesta importação — confira em "Conciliação", alguns podem ter sido resolvidos pelo motor logo acima\n` +
-
-                (qtdJaProcessadas > 0 ? `♻️ ${qtdJaProcessadas} transação(ões) já estava(m) conciliada(s) antes — nada novo feito` : '')
-
-            );
+            // v1.28.0 (UXR-30) — o resumo que era diálogo nativo vira Sheet de leitura (rzAviso).
+            const tratadosMotor = resumoMotor.reduce((t, r) => t + (r.quantidade || 0), 0);
+            rzAviso({
+                titulo: String(tituloResumo || 'Importação concluída').replace(/^[^A-Za-zÀ-ú]+/, '').replace(/!$/, ''),
+                linhas: [
+                    `${qtdConciliados} recebimento(s) conciliado(s) automaticamente.`,
+                    `${qtdRepasses} retirada(s) de sócio lançada(s).`,
+                    tratadosMotor > 0 ? `${tratadosMotor} linha(s) tratada(s) sozinha(s) pelas regras (rendimento, tarifa, administradora…).` : '',
+                    `${qtdPendencias} item(ns) precisam da sua revisão em Conciliação.`,
+                    qtdIgnorados > 0 ? `${qtdIgnorados} lançamento(s) sem ação automática — confira em Conciliação.` : '',
+                    qtdJaProcessadas > 0 ? `${qtdJaProcessadas} transação(ões) já estava(m) conciliada(s) antes — nada novo feito.` : '',
+                ],
+            });
 
             if (document.getElementById('conc-uni-lista')) await carregarConciliacaoUnificada();
 
@@ -3169,19 +3230,8 @@ function financeiroRenderCabecalho(aba) {
         // v1.178.9 — achado do Nicola: Importar + Reprocessar viraram 1
         // botão só, que abre este menu com as duas opções (antes eram um
         // card cheio + um link separado, ocupando 2 blocos no topo da aba).
-        export function abrirAcoesImportarConciliacao() {
-            if (typeof abrirSheetAcoes !== 'function') return;
-            // v1.21.0 (pedido explícito: "o botao extrato generalize para
-            // importar documento mas deixa a palavra extrato") — menu virou
-            // "Importar" com 3 ações: extrato (conciliação, como antes),
-            // documento (comprovante/boleto/nota — mesmo upload com IA do
-            // Raiz IA, abrirUploadDocumentoNoApp em index.html) e reprocessar.
-            abrirSheetAcoes({ titulo: 'Importar', acoes: [
-                { icone: 'file-down', titulo: 'Importar extrato', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto — concilia os lançamentos', tipo: 'ia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
-                { icone: 'file-plus', titulo: 'Importar documento', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto ou nota — a IA classifica e vincula', tipo: 'ia', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
-                { icone: 'refresh-cw', titulo: 'Reprocessar', codigo: 'conciliacao.resolver', sub: 'Refaz a comparação de regras nas pendências, se algo mudou depois da importação', aoTocar: () => reprocessarConciliacaoPendente() },
-            ] });
-        }
+        // v1.28.0 — o menu "Importar" fundiu-se no "Lançar" do "+" (UXR-12).
+        export function abrirAcoesImportarConciliacao() { abrirLancarFinanceiro('conciliacao'); }
 
         export async function reprocessarConciliacaoPendente() {
 
@@ -3193,13 +3243,13 @@ function financeiroRenderCabecalho(aba) {
 
             if (!pendentesFp || pendentesFp.length === 0) {
 
-                alert("Não há entradas pendentes para reprocessar agora.");
+                rzToast('Não há entradas pendentes para reprocessar agora.', { tipo: 'info' });
 
                 return;
 
             }
 
-            if (!confirm(`Reprocessar ${pendentesFp.length} entrada(s) pendente(s)? Isso tenta achar contrato e mensalidade de novo para cada uma.`)) return;
+            if (!await rzConfirmar({ titulo: 'Reprocessar pendências', impacto: `${pendentesFp.length} entrada(s) pendente(s). A Raiz tenta achar contrato e recebimento de novo para cada uma.`, rotuloConfirmar: 'Reprocessar' })) return;
 
             mostrarCarregamentoGlobal("Reprocessando conciliação...");
 
@@ -3951,9 +4001,9 @@ function financeiroRenderCabecalho(aba) {
         // v1.6.0 — Etapa 8: exportada — agora também chamada via onclick=""
         // (string HTML, escopo global) na linha "Automática" da lista, além
         // do aoTocar de sempre (closure de módulo, não precisava de export).
-        export function confirmarEstornarConciliacaoSaida(fingerprintId) {
+        export async function confirmarEstornarConciliacaoSaida(fingerprintId) {
             fecharSheet();
-            if (!confirm('Estornar esta linha? Se a despesa foi criada a partir dela, ela some; se já existia, volta pra prevista.')) return;
+            if (!await rzConfirmar({ titulo: 'Estornar conciliação', impacto: 'Se a despesa foi criada a partir desta linha, ela some; se já existia, volta para prevista.', rotuloConfirmar: 'Estornar' })) return;
             (async () => {
                 mostrarCarregamentoGlobal('Estornando…');
                 try {
@@ -3983,13 +4033,13 @@ function financeiroRenderCabecalho(aba) {
 
             if (men.status !== 'Inadimplente') {
 
-                alert("⚠️ Só é possível excluir lançamentos ainda não recebidos. Este já foi baixado — use 'Estornar' se precisar reverter.");
+                rzToast('Só dá para excluir o que ainda não foi recebido. Para reverter uma baixa, use "Estornar".', { tipo: 'info' });
 
                 return;
 
             }
 
-            if (!confirm("Confirma a exclusão deste lançamento mensal pendente?")) return;
+            if (!await rzConfirmar({ titulo: 'Excluir recebimento', impacto: 'O recebimento pendente some do Financeiro. Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Excluir recebimento' })) return;
 
             // CORRIGIDO (v1.39.4) — antes o delete() disparava SEM await (fire
             // and forget) e o código seguia em frente imediatamente, sem saber
@@ -4017,7 +4067,7 @@ function financeiroRenderCabecalho(aba) {
                 renderRelatorios();
             } catch (err) {
                 esconderCarregamentoGlobal();
-                alert('⚠️ Falha ao excluir: ' + err.message);
+                rzToast('Não consegui excluir: ' + err.message, { tipo: 'danger' });
                 logScreen('Erro ao excluir mensalidade: ' + err.message, true);
             }
 
@@ -4185,7 +4235,7 @@ function financeiroRenderCabecalho(aba) {
                     <div class="rz-f"><label>Multa / juros (R$)</label><input type="number" step="0.01" id="multa-${men.id}" value="0" data-multa-anterior="0" oninput="recalcularTotalBaixaExtra('${men.id}')"></div>
                 </div>`;
             abrirSheetForm({ titulo: 'Dar baixa', sub: `${con.locatario || ''} · ${men.referencia} · ${formatarMoedaBR(men.valorConfirmado)}`, corpo, rotuloSalvar: 'Confirmar recebimento',
-                aoSalvar: async () => { await liquidarMensalidade(men.id); } });
+                aoSalvar: async () => (await liquidarMensalidade(men.id)) });
         }
 
         // v1.24.0 (demanda d92a6dfc) — correção de bruto/taxa/líquido de um
@@ -4221,7 +4271,7 @@ function financeiroRenderCabecalho(aba) {
                         p_motivo: motivo, p_pessoa_id: (typeof pessoaIdLogada !== 'undefined' ? pessoaIdLogada : null), p_canal: 'app',
                         p_acao: 'ajuste_pos_baixa',
                     });
-                    if (error) { alert('⚠️ Não consegui ajustar: ' + error.message); return false; }
+                    if (error) { rzToast('Não consegui ajustar: ' + error.message, { tipo: 'danger' }); return false; }
                     const idx = mensalidades.findIndex(m => m.id === men.id);
                     if (idx !== -1) {
                         mensalidades[idx].valorBruto = data?.valor_bruto ?? bruto;
@@ -4716,7 +4766,7 @@ function financeiroRenderCabecalho(aba) {
         }
 
         export async function dispararCobrancaWhatsAppDirect(celular, grupoTitle, itensText, valorTotal) {
-            if (!celular || celular.length < 5) { alert("⚠️ Celular do locatário não cadastrado."); return; }
+            if (!celular || celular.length < 5) { rzToast('Celular do locatário não cadastrado.', { tipo: 'danger' }); return; }
             let pix = null;
             try {
                 const { data } = await dbAuth.rpc('fn_pix_brcode_empresa', { p_cliente_id: CLIENTE_ID_SUPABASE, p_valor: Number(valorTotal) || 0 });
@@ -4739,7 +4789,7 @@ function financeiroRenderCabecalho(aba) {
                     if (typeof rzIcones === 'function') rzIcones();
                     el.closest('.rz-sheet')?.querySelector('.rz-sh-f')?.classList.add('hidden');
                     el.querySelector('#fin-cob-code').addEventListener('click', () => {
-                        window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(pix.brcode)}`, '_blank');
+                        rzDev('whatsapp', '55' + celular, pix.brcode); // v1.28.0 (UXR-41) — pelo adaptador
                         if (typeof fecharSheet === 'function') fecharSheet();
                     });
                     return false;
@@ -4751,7 +4801,7 @@ function financeiroRenderCabecalho(aba) {
 
             if(!celular || celular.length < 5) {
 
-                alert("⚠️ Celular do locatário não cadastrado.");
+                rzToast('Celular do locatário não cadastrado.', { tipo: 'danger' });
 
                 return;
 
@@ -4762,6 +4812,6 @@ function financeiroRenderCabecalho(aba) {
             const txt = `⚠️ *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - NOTIFICAÇÃO DE CAIXA*\nRef: *${grupoTitle}*\n\nConstam em aberto os seguintes lançamentos pendentes:\n${formatText}\n\n*Total Consolidado: R$ ${valorTotal.toLocaleString('pt-BR')}*\n\nQualquer dúvida sobre a conciliação, estamos à disposição.`
                 + (pix ? `\n\n💠 *Pague por Pix*\nChave: ${pix.chave}\nRecebedor: ${pix.nome}` + (pix.brcode ? `\n\nNa próxima mensagem envio o *Pix copia e cola* com o valor total — é só tocar e segurar para copiar.` : '') : '');
 
-            window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(txt)}`, '_blank');
+            rzDev('whatsapp', '55' + celular, txt); // v1.28.0 (UXR-41) — pelo adaptador
 
         }
