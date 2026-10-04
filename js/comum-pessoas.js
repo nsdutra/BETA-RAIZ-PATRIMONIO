@@ -1,6 +1,14 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.203.0 · 04/10/2026
+// Versão: 1.204.0 · 04/10/2026
+//
+// v1.204.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
+// aprovada pelo Nicola 12:43) — contas da pessoa: card "Contas" na ficha e ação
+// "Contas" no ⋮. Mostra as contas de que a pessoa é titular (criar, editar,
+// padrão, encerrar — mesma ficha de Minha empresa) e "Quem ela vê": Todas ·
+// Só as dela · As dela e as da empresa (fn_pessoa_escopo_contas_definir, só
+// master). Master sempre vê todas. Sem Premium, a ação aparece com cadeado.
+// Versão anterior: 1.203.0.
 //
 // v1.203.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: excluir pessoa vira perguntar() (Sheet,
 // item vermelho); tirar acesso não pergunta mais e ganha "Desfazer" (devolve login e perfil);
@@ -231,9 +239,13 @@
 // outro arquivo).
 // ============================================================================
 
-export const VERSAO = '1.203.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.204.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
+import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
+import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
 export const COMUM_PESSOAS_VERSAO = '2.1.0';
+// v1.204.0 — rótulos do escopo de contas (pessoas.escopo_contas)
+const ESCOPO_CONTAS_ROTULO = { propria_mais_empresa: 'Vê as contas dela e as da empresa', propria: 'Vê só as contas dela', todas: 'Vê todas as contas' };
 
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
@@ -271,6 +283,7 @@ export async function listarPessoas(dbAuth, clienteId) {
         id: row.id, nome: row.nome, email: row.email, whatsapp: row.whatsapp,
         funcao: row.funcao, percentualCotasEmpresa: row.percentual_cotas_empresa,
         userId: row.user_id, perfil: row.perfil,
+        escopoContas: row.escopo_contas || 'propria_mais_empresa', // v1.204.0
     }));
 }
 
@@ -520,8 +533,14 @@ export async function montarAbaPessoas(mountEl, ctx) {
                         ${kv('Acesso ao sistema', p.userId ? 'Sim' : 'Não')}
                     </div>
                 </div>
+                <div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="ficha-contas">
+                    <div class="rz-ic"><svg data-lucide="wallet"></svg></div>
+                    <div class="rz-tx"><b>Contas</b><span>${esc(p.perfil === 'master' ? 'Vê todas as contas' : ESCOPO_CONTAS_ROTULO[p.escopoContas] || '')}</span></div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                </div></div>
             </div>`);
         sheet.querySelector('[data-acao="ficha-editar"]')?.addEventListener('click', () => abrirFormPessoaSheet(p.id));
+        sheet.querySelector('[data-acao="ficha-contas"]')?.addEventListener('click', () => abrirContasPessoaSheet(p.id));
         icones();
     }
 
@@ -565,6 +584,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
                 abrirComunicacoesPessoaSheet(p.id);
             } });
         }
+        acoes.push({ icone: 'wallet', titulo: 'Contas', sub: 'Contas dela e quais contas ela vê', codigo: 'financeiro.contas.ver', aoTocar: () => abrirContasPessoaSheet(p.id) }); // v1.204.0
         if (autoFiltro && typeof carregarAcessosDaPessoa === 'function') {
             acoes.push({ icone: 'history', titulo: 'Acessos recentes', aoTocar: () => abrirAcessosPessoaSheet(p.id) });
         }
@@ -588,6 +608,55 @@ export async function montarAbaPessoas(mountEl, ctx) {
             acoes.push({ icone: 'trash-2', titulo: 'Excluir pessoa', codigo: 'pessoas.excluir', tipo: 'bad', aoTocar: () => excluirPessoa(p.id) });
         }
         window.abrirSheetAcoes({ titulo: p.nome || '(sem nome)', sub: p.perfil ? capitalizar(p.perfil) : 'Sem perfil', acoes });
+    }
+
+    // ---------------------------------------------------------------
+    // CONTAS DA PESSOA (v1.204.0, P4a) — regra toda no banco.
+    // ---------------------------------------------------------------
+    async function abrirContasPessoaSheet(id) {
+        const p = pessoas.find(x => x.id === id);
+        if (!p || typeof window.abrirSheet !== 'function') { onToast?.(AVISO_SO_APP, 'info'); return; }
+        let res;
+        try { res = await buscarContas(dbAuth, clienteId, true); }
+        catch (err) { onToast?.('Não foi possível carregar as contas agora.', 'danger'); return; }
+        if (!res.liberado) { rzBloqueio('financeiro.contas.ver'); return; }
+        const minhas = (res.dados || []).filter(c => c.titular_tipo === 'pessoa' && c.pessoa_id === p.id);
+        const ehMaster = p.perfil === 'master';
+        const cab = typeof window.rzSheetCabecalho === 'function' ? window.rzSheetCabecalho('Contas', p.nome || '') : `<div class="rz-sh-h"><h3>Contas</h3></div>`;
+        const vazio = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="wallet"></svg></div><p>${esc(p.nome || 'Esta pessoa')} ainda não tem conta própria. Toque no "+" para criar.</p></div></div>`;
+        const sheet = window.abrirSheet(cab + `
+            <div class="rz-sh-b">
+                <div class="rz-card rz-list"><div class="rz-row rz-link" role="button" tabindex="0" data-acao="contas-escopo">
+                    <div class="rz-ic"><svg data-lucide="eye"></svg></div>
+                    <div class="rz-tx"><b>Quem ela vê</b><span>${esc(ehMaster ? 'Todas as contas (master sempre vê todas)' : ESCOPO_CONTAS_ROTULO[p.escopoContas])}</span></div>
+                    ${ehMaster ? '' : '<svg data-lucide="chevron-right" class="rz-chev"></svg>'}
+                </div></div>
+                <div class="rz-card-h" style="margin-top:6px"><h3>Contas dela</h3><button type="button" data-acao="contas-nova" class="rz-more" aria-label="Nova conta"><svg data-lucide="plus"></svg></button></div>
+                ${minhas.length ? contasListaHtml(minhas) : vazio}
+            </div>`, { empilhar: true });
+        icones();
+        const recarregar = () => { window.fecharSheet?.(); abrirContasPessoaSheet(p.id); };
+        sheet.querySelector('[data-acao="contas-nova"]')?.addEventListener('click', () =>
+            abrirFichaConta({ dbAuth, clienteId, fixarPessoaId: p.id, onToast, aoSalvar: recarregar }));
+        sheet.querySelectorAll('[data-conta-id]').forEach(row => row.addEventListener('click', () => {
+            const c = minhas.find(x => x.id === row.dataset.contaId);
+            if (c) abrirAcoesConta({ dbAuth, clienteId, conta: c, fixarPessoaId: p.id, onToast, aoMudar: recarregar });
+        }));
+        sheet.querySelector('[data-acao="contas-escopo"]')?.addEventListener('click', async () => {
+            if (ehMaster) return;
+            if (rzBloqueio('financeiro.contas.escopo')) return;
+            if (typeof window.rzEscolher !== 'function') return;
+            const escolha = await window.rzEscolher({ titulo: 'Quem ela vê', sub: p.nome || '', opcoes: [
+                { valor: 'propria_mais_empresa', titulo: 'As dela e as da empresa', sub: 'Padrão', icone: 'building-2' },
+                { valor: 'propria', titulo: 'Só as dela', icone: 'user' },
+                { valor: 'todas', titulo: 'Todas as contas', sub: 'Inclui as dos outros sócios', icone: 'users' },
+            ] });
+            if (!escolha || escolha === p.escopoContas) return;
+            const { data, error } = await dbAuth.rpc('fn_pessoa_escopo_contas_definir', { p_cliente_id: clienteId, p_pessoa_alvo_id: p.id, p_escopo: escolha });
+            if (error) { onToast?.(error.message, 'danger'); return; }
+            onToast?.(data?.mensagem || 'Feito.', data?.ok ? 'success' : 'danger');
+            if (data?.ok) { p.escopoContas = escolha; recarregar(); }
+        });
     }
 
     // ---------------------------------------------------------------

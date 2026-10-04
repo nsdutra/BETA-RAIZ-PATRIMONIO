@@ -1,6 +1,16 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.9.0 · 04/10/2026
+// Versão: 1.10.0 · 04/10/2026
+//
+// v1.10.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
+// fichas A1–A6 aprovadas pelo Nicola 12:43) — card novo "Contas" no fim da
+// tela: a "Conta da empresa" (P3) e as contas de cada pessoa. "+" abre a ficha
+// da conta em Sheet (nome, titular, banco, 4 finais, contabilidade,
+// conciliação); toque na linha abre Editar / Definir como padrão / Encerrar.
+// Toda regra mora no banco (fn_contas_listar, fn_conta_salvar,
+// fn_conta_definir_padrao, fn_conta_encerrar — as mesmas que o bot chama).
+// Sem Premium, o card mostra só a conta da empresa e uma linha com cadeado e
+// o motivo (ACE-04). Versão anterior: 1.9.0.
 //
 // v1.9.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: remover logo e remover assinatura viram
 // perguntar() do cofre-ui (Sheet com item vermelho).
@@ -100,8 +110,9 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.9.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.10.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
+import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -401,6 +412,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         </div>
 
         <div id="cme-rotinas-card"></div>
+        <div id="cme-contas-card"></div>
     `;
     if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
     if (gate) mountEl.querySelectorAll('input,select').forEach(el => { if (el.id !== 'cme-nome') el.disabled = true; });
@@ -531,6 +543,8 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
 
     // -------- rotinas da empresa (R.2, Fase R) --------
     await renderRotinasCard();
+    // -------- contas (v1.10.0, P4a) --------
+    await renderContasCard(document.getElementById('cme-contas-card'), { dbAuth, clienteId, onToast });
 
     async function renderRotinasCard() {
         const alvo = document.getElementById('cme-rotinas-card');
@@ -605,6 +619,151 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             }
         }));
     }
+}
+
+// ----------------------------------------------------------------------------
+// CONTAS (v1.10.0, P4a) — cadastro de contas de controle. Exportado para a ficha
+// da pessoa (comum-pessoas.js) reaproveitar a mesma ficha da conta.
+// ----------------------------------------------------------------------------
+const escC = (v) => (v == null ? '' : String(v)).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+export async function buscarContas(dbAuth, clienteId, incluirEncerradas = false) {
+    const { data, error } = await dbAuth.rpc('fn_contas_listar', { p_cliente_id: clienteId, p_incluir_encerradas: incluirEncerradas });
+    if (error) throw error;
+    return data || { ok: false, dados: [], liberado: false };
+}
+
+export function contaLinhaSub(c) {
+    const partes = [c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || 'Pessoa')];
+    if (c.instituicao) partes.push(c.instituicao + (c.final_identificador ? ' ••' + c.final_identificador : ''));
+    else if (c.final_identificador) partes.push('••' + c.final_identificador);
+    if (c.titular_tipo === 'pessoa' && !c.incorpora_contabil) partes.push('fora da contabilidade');
+    return partes.join(' · ');
+}
+
+export function contasListaHtml(contas, { linhaBloqueio = false } = {}) {
+    const st = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${escC(c)}">${escC(t || c)}</span>`;
+    const linhas = contas.map(c => `
+        <div class="rz-row rz-link" role="button" tabindex="0" data-conta-id="${escC(c.id)}">
+            <div class="rz-ic${c.situacao === 'ativa' ? '' : ' rz-neu'}"><svg data-lucide="${c.titular_tipo === 'empresa' ? 'building-2' : 'user'}"></svg></div>
+            <div class="rz-tx"><b>${escC(c.nome)}</b><span>${escC(contaLinhaSub(c))}</span></div>
+            <div class="rz-rt">${c.situacao !== 'ativa' ? st('neu', 'Encerrada') : (c.padrao ? st('ok', 'Padrão') : '')}</div>
+            <svg data-lucide="chevron-right" class="rz-chev"></svg>
+        </div>`).join('');
+    const bloqueio = linhaBloqueio ? `
+        <div class="rz-row rz-link rz-off" role="button" tabindex="0" data-conta-bloqueio="1">
+            <div class="rz-ic rz-neu"><svg data-lucide="lock"></svg></div>
+            <div class="rz-tx"><b>Contas dos sócios</b><span>${escC((podeUsarMod('financeiro.contas.ver').textoCurto) || 'Disponível no plano Premium')}</span></div>
+        </div>` : '';
+    return `<div class="rz-card rz-list">${linhas}${bloqueio}</div>`;
+}
+
+async function pessoasDaEmpresa(dbAuth, clienteId) {
+    const { data } = await dbAuth.from('pessoas').select('id, nome').eq('cliente_id', clienteId).order('nome');
+    return data || [];
+}
+
+/** Ficha da conta (criar ou editar) em Sheet. `fixarPessoaId` prende o titular (ficha da pessoa). */
+export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPessoaId = null, onToast, aoSalvar }) {
+    if (typeof window.abrirSheetForm !== 'function') return;
+    if (rzBloqueio('financeiro.contas.editar')) return;
+    const pessoas = await pessoasDaEmpresa(dbAuth, clienteId);
+    const titularAtual = conta ? (conta.titular_tipo === 'empresa' ? 'empresa' : conta.pessoa_id) : (fixarPessoaId || 'empresa');
+    const travarTitular = !!conta || !!fixarPessoaId;
+    const optsTit = [`<option value="empresa" ${titularAtual === 'empresa' ? 'selected' : ''}>Empresa</option>`]
+        .concat(pessoas.map(p => `<option value="${escC(p.id)}" ${titularAtual === p.id ? 'selected' : ''}>${escC(p.nome)}</option>`)).join('');
+    window.abrirSheetForm({
+        titulo: conta ? 'Editar conta' : 'Nova conta',
+        sub: conta ? conta.nome : 'Conta da empresa ou de uma pessoa',
+        rotuloSalvar: conta ? 'Salvar' : 'Criar conta',
+        corpo: `
+            <div class="rz-f"><label>Nome da conta</label><input type="text" id="cc-nome" maxlength="60" placeholder="Ex.: Conta Itaú da empresa" value="${escC(conta?.nome)}"></div>
+            <div class="rz-f"><label>Titular</label><select id="cc-titular" ${travarTitular ? 'disabled' : ''}>${optsTit}</select>
+                ${conta ? '<span class="rz-hint">O titular não muda depois de criada.</span>' : ''}</div>
+            <div class="rz-f2">
+                <div class="rz-f"><label>Banco</label><input type="text" id="cc-inst" maxlength="40" placeholder="Opcional" value="${escC(conta?.instituicao)}"></div>
+                <div class="rz-f"><label>4 últimos números</label><input type="text" id="cc-final" inputmode="numeric" maxlength="4" placeholder="Opcional" value="${escC(conta?.final_identificador)}"></div>
+            </div>
+            <label class="text-sm" id="cc-contabil-wrap" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px"><input type="checkbox" id="cc-contabil" ${conta ? (conta.incorpora_contabil ? 'checked' : '') : 'checked'} style="margin-top:3px"><span><b>Entra na contabilidade da empresa</b><br><span class="text-xs" style="color:var(--muted)">Desmarque para conta pessoal que não vai para o contador.</span></span></label>
+            <label class="text-sm" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="cc-conciliar" ${conta ? (conta.conciliar ? 'checked' : '') : 'checked'} style="margin-top:3px"><span><b>Conciliar extrato desta conta</b></span></label>
+            <span class="rz-hint" style="display:block;margin-top:10px">Guardamos só os 4 últimos números, nunca a conta inteira.</span>`,
+        aoSalvar: async (el) => {
+            const tit = el.querySelector('#cc-titular').value;
+            const { data, error } = await dbAuth.rpc('fn_conta_salvar', {
+                p_cliente_id: clienteId, p_conta_id: conta?.id || null,
+                p_nome: el.querySelector('#cc-nome').value,
+                p_titular_tipo: tit === 'empresa' ? 'empresa' : 'pessoa',
+                p_titular_pessoa_id: tit === 'empresa' ? null : tit,
+                p_instituicao: el.querySelector('#cc-inst').value,
+                p_final_identificador: el.querySelector('#cc-final').value,
+                p_incorpora_contabil: tit === 'empresa' ? true : el.querySelector('#cc-contabil').checked,
+                p_conciliar: el.querySelector('#cc-conciliar').checked,
+            });
+            if (error) { onToast?.(error.message, 'danger'); return false; }
+            if (!data?.ok) { onToast?.(data?.mensagem || 'Não foi possível salvar.', 'danger'); return false; }
+            onToast?.(data.mensagem, 'success');
+            aoSalvar?.();
+        },
+    });
+    const sel = document.getElementById('cc-titular');
+    const wrap = document.getElementById('cc-contabil-wrap');
+    const ajustar = () => { if (wrap) wrap.style.display = sel.value === 'empresa' ? 'none' : 'flex'; };
+    sel?.addEventListener('change', ajustar); ajustar();
+    const fin = document.getElementById('cc-final');
+    fin?.addEventListener('input', () => { fin.value = fin.value.replace(/\D/g, '').slice(0, 4); });
+}
+
+/** Ações da conta (toque na linha): Editar · Definir como padrão · Encerrar. */
+export function abrirAcoesConta({ dbAuth, clienteId, conta, onToast, aoMudar, fixarPessoaId = null }) {
+    if (typeof window.abrirSheetAcoes !== 'function') return;
+    const rpc = async (fn, args) => {
+        const { data, error } = await dbAuth.rpc(fn, args);
+        if (error) { onToast?.(error.message, 'danger'); return; }
+        onToast?.(data?.mensagem || (data?.ok ? 'Feito.' : 'Não foi possível.'), data?.ok ? 'success' : 'danger');
+        if (data?.ok) aoMudar?.();
+    };
+    const acoes = [];
+    if (conta.situacao === 'ativa') {
+        acoes.push({ titulo: 'Editar', sub: 'Nome, banco, 4 finais, contabilidade', icone: 'pencil', codigo: 'financeiro.contas.editar',
+            aoTocar: () => abrirFichaConta({ dbAuth, clienteId, conta, fixarPessoaId, onToast, aoSalvar: aoMudar }) });
+        if (!conta.padrao) acoes.push({ titulo: 'Definir como padrão', sub: 'Lançamentos sem conta escolhida vão para ela', icone: 'star', codigo: 'financeiro.contas.editar',
+            aoTocar: () => rpc('fn_conta_definir_padrao', { p_conta_id: conta.id }) });
+        if (!conta.padrao) acoes.push({ titulo: 'Encerrar conta', sub: 'O histórico continua no Financeiro', icone: 'archive', tipo: 'bad', codigo: 'financeiro.contas.editar',
+            aoTocar: async () => {
+                const ok = await perguntar({ titulo: 'Encerrar a conta?', impacto: `"${conta.nome}" deixa de aparecer para novos lançamentos. O que já foi lançado nela continua.`, destrutivo: true, rotuloConfirmar: 'Encerrar conta' });
+                if (ok) rpc('fn_conta_encerrar', { p_conta_id: conta.id, p_motivo: null });
+            } });
+    }
+    if (!acoes.length) { onToast?.('Conta encerrada. O histórico dela continua no Financeiro.', 'info'); return; }
+    window.abrirSheetAcoes({ titulo: conta.nome, sub: contaLinhaSub(conta), acoes });
+}
+
+async function renderContasCard(alvo, { dbAuth, clienteId, onToast }) {
+    if (!alvo) return;
+    let res;
+    try { res = await buscarContas(dbAuth, clienteId, true); }
+    catch (err) { console.warn('[comum-minha-empresa] contas:', err.message); alvo.innerHTML = ''; return; }
+    const contas = (res.dados || []);
+    const liberado = !!res.liberado;
+    alvo.innerHTML = `
+        <div class="rz-card" style="padding-bottom:6px"><div class="rz-card-h"><h3>Contas</h3>
+            <button type="button" class="rz-more" id="cme-conta-nova" aria-label="Nova conta"><svg data-lucide="${liberado ? 'plus' : 'lock'}"></svg></button></div>
+            <span class="rz-hint" style="display:block;margin-bottom:8px">De onde sai e para onde entra cada valor. Sem escolher, tudo vai para a conta padrão.</span>
+        </div>
+        ${contasListaHtml(contas, { linhaBloqueio: !liberado })}`;
+    if (window.lucide) window.lucide.createIcons();
+    const recarregar = () => renderContasCard(alvo, { dbAuth, clienteId, onToast });
+    alvo.querySelector('#cme-conta-nova')?.addEventListener('click', () => {
+        if (!liberado) { rzBloqueio('financeiro.contas.ver'); return; }
+        abrirFichaConta({ dbAuth, clienteId, onToast, aoSalvar: recarregar });
+    });
+    alvo.querySelector('[data-conta-bloqueio]')?.addEventListener('click', () => rzBloqueio('financeiro.contas.ver'));
+    alvo.querySelectorAll('[data-conta-id]').forEach(row => row.addEventListener('click', () => {
+        const c = contas.find(x => x.id === row.dataset.contaId);
+        if (!c) return;
+        if (!liberado) { rzBloqueio('financeiro.contas.ver'); return; }
+        abrirAcoesConta({ dbAuth, clienteId, conta: c, onToast, aoMudar: recarregar });
+    }));
 }
 
 // Ícone lucide por subtipo de rotina de empresa (catálogo cofre_controle_subtipos, tipo='rotina').

@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.298.3) — F1.1, teste 3 reprovado (Nicola 04/10 08:41). Só import map:
+js/cofre-controles.js 1.43.0 → 1.44.0 (editar item: a escolha regerar/manter vem ANTES de
+salvar; fechar não salva nada), js/cofre-ui.js 1.6.0 → 1.7.0 (escolher()).
+Versão anterior (Beta v1.298.2):
+------------------------------------------------------------------
+Versões anteriores (v1.298.2 … v1.298.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.298.2) — demanda 2923ff4d ("de acordo" do Nicola 03/10 23:42). Só import map:
 js/financeiro.js 1.30.1 → 1.31.0 (categorias de despesa, rótulo e ícone vindos de
 lancamento_categorias), js/cofre-controles.js 1.42.0 → 1.43.0 (combo Tipo de controle_tipos;

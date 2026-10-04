@@ -1,7 +1,19 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.32.0 · 04/10/2026
+// Versão: 1.33.0 · 04/10/2026
+//
+// v1.33.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
+// fichas A1–A6 aprovadas pelo Nicola 12:43) — conta no Financeiro (Premium):
+// (1) chip de recorte "Conta: Todas ▾" no fim dos chips de Recebimentos e
+// Saídas (UXR-13), só com a funcionalidade financeiro.contas.ver e mais de 1
+// conta ativa visível; filtra a lista e os 4 totais
+// (fn_financeiro_totalizadores_por_conta). (2) No sheet de cada recebimento e
+// despesa, a linha "Conta: <nome>" mostra a conta e, com
+// financeiro.contas.escolher, troca (fn_lancamento_definir_conta — a mesma
+// função que o bot usa). (3) Nova/Editar despesa ganha o campo Conta quando
+// há mais de 1 conta (padrão já escolhida). Sem Premium nada aparece e tudo
+// segue na conta da empresa. Versão anterior: 1.32.0.
 //
 // v1.32.0 (demanda 2923ff4d, catálogo 2b-2 — plano aprovado pelo Nicola em 04/10/2026 12:40; sessão 20261004-1245-catalogo-2b2) —
 // teste 2 reprovado ("lista com muita coisa misturada"): Nova/Editar despesa em dois níveis —
@@ -852,7 +864,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.32.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.33.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1443,6 +1455,68 @@ async function financeiroRecarregarSaidas() {
     } finally { financeiroSaidasCarregando = false; }
 }
 
+// ---------------------------------------------------------------------------
+// v1.33.0 — CONTAS (P4a). Regra no banco: fn_contas_listar já devolve só as
+// contas visíveis e diz se a funcionalidade está liberada (Premium).
+// ---------------------------------------------------------------------------
+let financeiroContasInfo = { clienteId: null, liberado: false, contas: [] };
+let financeiroContaFiltro = null; // null = todas as visíveis
+let financeiroContasCarregando = null;
+async function financeiroGarantirContas() {
+    if (financeiroContasInfo.clienteId === CLIENTE_ID_SUPABASE) return financeiroContasInfo;
+    if (financeiroContasCarregando) return financeiroContasCarregando;
+    financeiroContasCarregando = (async () => {
+        try {
+            const { data, error } = await dbAuth.rpc('fn_contas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
+            if (error) throw error;
+            financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: !!data?.liberado, contas: (data?.dados || []).filter(c => c.situacao === 'ativa') };
+        } catch (e) {
+            console.warn('[financeiro] contas:', e.message);
+            financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: false, contas: [] };
+        }
+        financeiroContaFiltro = null;
+        financeiroContasCarregando = null;
+        return financeiroContasInfo;
+    })();
+    return financeiroContasCarregando;
+}
+function financeiroContasMultiplas() {
+    return financeiroContasInfo.clienteId === CLIENTE_ID_SUPABASE && financeiroContasInfo.liberado && financeiroContasInfo.contas.length > 1;
+}
+function financeiroNomeConta(id) {
+    const c = financeiroContasInfo.contas.find(x => x.id === id);
+    return c ? c.nome : '';
+}
+function financeiroChipContaHtml() {
+    if (!financeiroContasMultiplas()) return '';
+    const nome = financeiroContaFiltro ? financeiroNomeConta(financeiroContaFiltro) || 'Conta' : 'Todas';
+    return `<button type="button" onclick="financeiroEscolherContaFiltro()" class="rz-chip ${financeiroContaFiltro ? 'rz-on' : ''}">Conta: ${escapeHtmlSaidas(nome)} ▾</button>`;
+}
+export async function financeiroEscolherContaFiltro() {
+    if (!financeiroContasMultiplas() || typeof window.rzEscolher !== 'function') return;
+    const opcoes = [{ valor: '__todas', titulo: 'Todas as contas', icone: 'layers' }]
+        .concat(financeiroContasInfo.contas.map(c => ({ valor: c.id, titulo: c.nome, sub: c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || ''), icone: c.titular_tipo === 'empresa' ? 'building-2' : 'user' })));
+    const v = await window.rzEscolher({ titulo: 'Ver qual conta', opcoes });
+    if (!v) return;
+    financeiroContaFiltro = v === '__todas' ? null : v;
+    if (document.getElementById('tab-mensal')?.classList.contains('active')) { financeiroAtualizarKpis('mensal'); renderMensalidades(); renderOutrasReceitas(); }
+    if (document.getElementById('tab-saidas')?.classList.contains('active')) { financeiroAtualizarKpis('saidas'); renderSaidas(); }
+}
+/** Linha "Conta: <nome>" nos sheets de recebimento/despesa (só com mais de 1 conta). */
+function financeiroAcaoConta(origemTipo, id, contaId, aoMudar) {
+    if (!financeiroContasMultiplas()) return [];
+    return [{ icone: 'wallet', titulo: `Conta: ${financeiroNomeConta(contaId) || '—'}`, sub: 'Trocar a conta deste movimento', codigo: 'financeiro.contas.escolher',
+        aoTocar: async () => {
+            if (typeof window.rzEscolher !== 'function') return;
+            const v = await window.rzEscolher({ titulo: 'Mover para a conta', opcoes: financeiroContasInfo.contas.map(c => ({ valor: c.id, titulo: c.nome, sub: c.id === contaId ? 'Conta atual' : (c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || '')), icone: c.titular_tipo === 'empresa' ? 'building-2' : 'user' })) });
+            if (!v || v === contaId) return;
+            const { data, error } = await dbAuth.rpc('fn_lancamento_definir_conta', { p_origem_tipo: origemTipo, p_origem_id: id, p_conta_id: v });
+            if (error) { mostrarToast(error.message, 'danger'); return; }
+            mostrarToast(data?.mensagem || 'Feito.', data?.ok ? 'success' : 'danger');
+            if (data?.ok) aoMudar?.(v);
+        } }];
+}
+
 async function financeiroAtualizarKpis(aba) {
     const tipo = aba === 'mensal' ? 'recebimento' : 'saida';
     const comp = financeiroCompetenciaAtual || financeiroCompetenciaHojeISO();
@@ -1453,7 +1527,10 @@ async function financeiroAtualizarKpis(aba) {
     // por 1 instante como se já fosse do mês novo).
     Object.values(ids).forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '...'; });
     try {
-        const { data, error } = await dbAuth.rpc('fn_financeiro_totalizadores', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_tipo: tipo });
+        const contasPrimeiraVez = financeiroContasInfo.clienteId !== CLIENTE_ID_SUPABASE; // v1.33.0
+        await financeiroGarantirContas();
+        if (contasPrimeiraVez && financeiroContasMultiplas()) { if (aba === 'mensal') renderMensalidades(); else renderSaidas(); } // chip "Conta" aparece
+        const { data, error } = await dbAuth.rpc('fn_financeiro_totalizadores_por_conta', { p_cliente_id: CLIENTE_ID_SUPABASE, p_competencia: comp, p_tipo: tipo, p_conta_id: financeiroContaFiltro });
         if (error) throw error;
         const linha = (data && data[0]) || { previsto: 0, realizado: 0, em_atraso: 0, em_aberto: 0 };
         Object.entries(ids).forEach(([campo, id]) => {
@@ -1602,7 +1679,7 @@ function financeiroRenderCabecalho(aba) {
                 { chave: 'a_vencer', rotulo: 'A vencer', n: contagem.a_vencer },
                 { chave: 'atrasado', rotulo: 'Atrasadas', n: contagem.atrasado },
             ];
-            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarSaidasPorChip('${c.chave}')" class="rz-chip ${atual === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('');
+            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarSaidasPorChip('${c.chave}')" class="rz-chip ${atual === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('') + financeiroChipContaHtml(); // v1.33.0
         }
 
         // Chip — mesmo <select> de sempre, sem o scroll do toque no hero
@@ -1699,11 +1776,13 @@ function financeiroRenderCabecalho(aba) {
                         aoTocar: () => alternarIncluirContabilidade('lancamento', id),
                     });
                 }
+                acoesRealizado.push(...financeiroAcaoConta('lancamento', id, d.contaId, (v) => { d.contaId = v; renderSaidas(); })); // v1.33.0
                 abrirSheetAcoes({ titulo: escapeHtmlSaidas(d.descricao || 'Despesa'), sub, acoes: acoesRealizado });
                 return;
             }
             abrirSheetAcoes({ titulo: estaAtrasadaDespesa(d) ? 'Em atraso' : 'A pagar', sub, acoes: [
                 ...acaoOrigem,
+                ...financeiroAcaoConta('lancamento', id, d.contaId, (v) => { d.contaId = v; renderSaidas(); }), // v1.33.0
                 { icone: 'check', titulo: 'Dar baixa / editar', sub: 'Abre o formulário completo', aoTocar: () => abrirEditarDespesa(id) },
                 { icone: 'trash-2', titulo: 'Excluir despesa', tipo: 'bad', aoTocar: () => excluirDespesa(id) },
             ] });
@@ -1764,6 +1843,7 @@ function financeiroRenderCabecalho(aba) {
             // pros chips contarem sem o próprio chip se esconder da contagem).
             const filtradasSemStatus = lancamentos.filter(d => {
                 if (dataParaCompetencia(d.competencia) !== compAtualRef) return false;
+                if (financeiroContaFiltro && d.contaId !== financeiroContaFiltro) return false; // v1.33.0
                 if (fCategoria !== 'todos' && d.categoria !== fCategoria) return false;
                 if (fAtivo !== 'todos' && d.ativoId !== fAtivo) return false;
                 if (fFornecedor !== 'todos' && d.parteId !== fFornecedor) return false;
@@ -2048,6 +2128,7 @@ function financeiroRenderCabecalho(aba) {
                             <input id="desp-fornecedor-novo-nome" type="text" placeholder="Nome do novo fornecedor" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:6px;display:none;">
                             <p style="font-size:10px;color:#94a3b8;margin-top:2px;">Vira um cadastro em Partes, mesmo que incompleto — dá pra completar depois.</p>
                         </div>
+                        ${financeiroContasMultiplas() && (typeof podeUsar !== 'function' || podeUsar('financeiro.contas.escolher').ok) ? `<div class="rz-f"><label>Conta</label><select id="desp-conta">${financeiroContasInfo.contas.map(c => `<option value="${c.id}" ${(d?.contaId ? d.contaId === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('')}</select></div>` : ''}
                         <div style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border-radius:8px;padding:8px;">
                             <input id="desp-reembolsavel" type="checkbox" ${d?.reembolsavel ? 'checked' : ''} style="margin-top:2px;">
                             <label for="desp-reembolsavel" style="font-size:11px;color:#475569;">Reembolsável — não entra no cálculo de líquido dos sócios</label>
@@ -2209,6 +2290,9 @@ function financeiroRenderCabecalho(aba) {
                     ativo_id: ativoId, parte_id: parteId,
                     reembolsavel, observacao: observacao || null
                 };
+                // v1.33.0 — conta escolhida (campo só aparece com mais de 1 conta; sem ele o banco põe a padrão)
+                const selConta = document.getElementById('desp-conta');
+                if (selConta && selConta.value) payload.conta_id = selConta.value;
 
                 if (despesaEmEdicaoId) {
                     const { error } = await dbAuth.from('lancamentos').update(payload).eq('id', despesaEmEdicaoId);
@@ -4396,6 +4480,7 @@ function financeiroRenderCabecalho(aba) {
                         aoTocar: () => alternarIncluirContabilidade('mensalidade', men.id),
                     });
                 }
+                acoesPago.push(...financeiroAcaoConta('mensalidade', men.id, men.contaId, (v) => { men.contaId = v; renderMensalidades(); })); // v1.33.0
                 abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: acoesPago });
                 return;
             }
@@ -4405,6 +4490,7 @@ function financeiroRenderCabecalho(aba) {
                 { icone: 'check', titulo: 'Dar baixa', sub: 'Registrar o recebimento', codigo: 'mensal.baixar', aoTocar: () => rzAbrirBaixaMensalidade(men.id) },
                 ...(emAtraso ? [{ icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Mensagem ao locatário, com o Pix da empresa', codigo: 'cobrar.lembrete',
                     aoTocar: () => dispararCobrancaWhatsAppDirect(con.whatsapp, `Locatário: ${con.locatario || ''}`, `- Competência ${men.referencia}: R$ ${valorMen.toLocaleString('pt-BR')}`, valorMen) }] : []),
+                ...financeiroAcaoConta('mensalidade', men.id, men.contaId, (v) => { men.contaId = v; renderMensalidades(); }), // v1.33.0
                 { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', codigo: 'mensal.excluir', aoTocar: () => excluirLancamentoMensal(men.id) },
             ] });
         }
@@ -4529,7 +4615,7 @@ function financeiroRenderCabecalho(aba) {
                 { chave: 'a_vencer', rotulo: 'A vencer', n: contagem.a_vencer },
                 { chave: 'atrasado', rotulo: 'Em atraso', n: contagem.atrasado },
             ];
-            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarMensalPorChip('${c.chave}')" class="rz-chip ${mensalChipStatus === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('');
+            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarMensalPorChip('${c.chave}')" class="rz-chip ${mensalChipStatus === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('') + financeiroChipContaHtml(); // v1.33.0
         }
 
         export function filtrarMensalPorChip(chave) {
@@ -4562,6 +4648,7 @@ function financeiroRenderCabecalho(aba) {
 
             const filtradas = mensalidades.filter(men => {
                 if (men.referencia !== compAtualRef) return false;
+                if (financeiroContaFiltro && men.contaId !== financeiroContaFiltro) return false; // v1.33.0
                 const con = contratos.find(c => c.id === men.contratoId);
                 if (!con) return false;
                 if (fLoc !== 'todos' && con.locatario !== fLoc) return false;
@@ -5110,6 +5197,7 @@ export async function renderOutrasReceitas() {
         const { data, error } = await dbAuth.from('lancamentos')
             .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo')
             .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('direcao', 'entrada').eq('competencia', comp)
+            .match(financeiroContaFiltro ? { conta_id: financeiroContaFiltro } : {}) // v1.33.0
             .order('vencimento', { ascending: true });
         if (error) throw error;
         linhas = data || [];
