@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.45.0 · 04/10/2026
+// Versão: 1.46.0 · 04/10/2026
+//
+// v1.46.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
+// esqueleto no lugar de "Carregando..." nas partes do item de controle.
+//
+// Versão anterior: 1.45.0 · 04/10/2026
 //
 // v1.45.0 (demanda 2923ff4d, catálogo 2b-2 — plano aprovado pelo Nicola em 04/10/2026 12:40; sessão 20261004-1245-catalogo-2b2) —
 // Novo item nasce do ativo: o combo Tipo só oferece tipos que têm subtipo válido para a
@@ -573,7 +578,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.45.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.46.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -915,7 +920,7 @@ let partesClienteCache = null; // null = ainda não carregado
 async function montarPartesItemControle(item) {
     const mount = document.getElementById('fic-partes');
     if (!mount) return;
-    mount.innerHTML = `<p class="text-xs" style="color:var(--sage)">Carregando...</p>`;
+    mount.innerHTML = rzSk('linhas', 2);
 
     const linhas = await api.buscarPartesDoItemControle(item.id);
 
@@ -2769,4 +2774,13 @@ function renderizarModelosControle() {
             </div>`).join('')}
         </div>`;
     }).join('') || `<p class="text-xs" style="color:var(--sage)">Nenhum modelo cadastrado ainda.</p>`;
+}
+
+
+// v1.46.0 (UX F1.4a, demanda c71f617c) — esqueleto no lugar de "Carregando…" (UXR, REGRAS §8).
+// window.rzSkeleton vive no index.html; no cofre.html avulso cai no texto de antes.
+function rzSk(tipo, n) {
+    return (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function')
+        ? window.rzSkeleton(tipo, n)
+        : '<p class="rz-desc">Carregando…</p>';
 }

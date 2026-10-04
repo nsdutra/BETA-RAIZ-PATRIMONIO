@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.298.4) — alerta "1 ocorrência · Cadastro" (imóvel sem finalidade de uso) no
+padrão título + ativo (Nicola 04/10 11:27): título "Imóvel sem finalidade de uso" (ou "N imóveis
+sem finalidade de uso") e 2ª linha com o imóvel. Só texto, sem banco.
+Versão anterior (Beta v1.298.3):
+------------------------------------------------------------------
+Versões anteriores (v1.298.3 … v1.298.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.298.3) — F1.1, teste 3 reprovado (Nicola 04/10 08:41). Só import map:
 js/cofre-controles.js 1.43.0 → 1.44.0 (editar item: a escolha regerar/manter vem ANTES de
 salvar; fechar não salva nada), js/cofre-ui.js 1.6.0 → 1.7.0 (escolher()).

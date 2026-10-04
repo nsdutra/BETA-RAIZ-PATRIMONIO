@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.23.0 · 04/10/2026
+// Versão: 2.24.0 · 04/10/2026
+//
+// v2.24.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
+// esqueleto no lugar de "Carregando..." na lista de documentos arquivados.
+//
+// Versão anterior: 2.23.0 · 04/10/2026
 //
 // v2.23.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 4 confirm() viram perguntar() do cofre-ui.
 // Tirar documento da empresa (desvincular) não pergunta mais e ganha "Desfazer".
@@ -476,7 +481,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.23.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.24.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1968,7 +1973,7 @@ export async function excluirDocumentoAtual() {
 let arquivadosCache = [];
 
 export async function abrirDocumentosArquivados() {
-    document.getElementById('doc-arq-lista').innerHTML = `<p class="text-xs" style="color:var(--sage)">Carregando...</p>`;
+    document.getElementById('doc-arq-lista').innerHTML = rzSk('linhas', 3);
     abrirModal('modal-documentos-arquivados');
     try {
         arquivadosCache = await api.listarDocumentosArquivados(estado.clienteId);
@@ -2267,3 +2272,12 @@ if (!window.__rzListenerEscritaDocumentoLigado) {
 window.addEventListener('cofre:recarregar-documentos', () => {
     if (document.getElementById('me-documentos')) renderizarDocumentosEmpresa();
 });
+
+
+// v2.24.0 (UX F1.4a, demanda c71f617c) — esqueleto no lugar de "Carregando…" (UXR, REGRAS §8).
+// window.rzSkeleton vive no index.html; no cofre.html avulso cai no texto de antes.
+function rzSk(tipo, n) {
+    return (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function')
+        ? window.rzSkeleton(tipo, n)
+        : '<p class="rz-desc">Carregando…</p>';
+}

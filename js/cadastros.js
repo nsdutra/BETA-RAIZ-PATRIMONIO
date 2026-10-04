@@ -1,6 +1,11 @@
 // ============================================================================
 // cadastros.js — Raiz Patrimônio · Telas de cadastro do menu ⚙️
-// Versão: 1.0.2 · 04/10/2026
+// Versão: 1.1.0 · 04/10/2026
+//
+// v1.1.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
+// esqueleto no lugar de "Carregando…" nas listas de cadastro.
+//
+// Versão anterior: 1.0.2 · 04/10/2026
 //
 // v1.0.2 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: excluir cadastro vira confirmação em Sheet.
 //
@@ -31,7 +36,7 @@
 //    index → acessíveis via window.
 // ============================================================================
 
-export const VERSAO = '1.0.2'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const db = () => window.__raizDbAuth;
 const ponte = () => window.__raizCadastrosPonte || {};
 
@@ -69,7 +74,7 @@ export async function montarCadastroTipos(clienteId, chave) {
             <p>${cfg.descricao}</p>
             <button type="button" data-cad-novo="${chave}" title="Adicionar" aria-label="Adicionar" class="rz-ico-btn rz-primary"><svg data-lucide="plus"></svg></button>
         </div>
-        <div class="rz-card rz-list" id="cad-lista-${chave}"><div class="rz-empty"><p>Carregando…</p></div></div>`;
+        <div class="rz-card rz-list" id="cad-lista-${chave}">${rzSk('linhas', 4)}</div>`;
     mount.querySelector('[data-cad-novo]').addEventListener('click', () => abrirFormNome(chave));
     if (window.rzIcones) window.rzIcones();
     await recarregar(chave);
@@ -167,4 +172,13 @@ async function excluir(chave, item) {
     } catch (err) {
         window.mostrarToast?.('Não consegui excluir: ' + (err.message || String(err)), 'danger');
     }
+}
+
+
+// v1.1.0 (UX F1.4a, demanda c71f617c) — esqueleto no lugar de "Carregando…" (UXR, REGRAS §8).
+// window.rzSkeleton vive no index.html; no cofre.html avulso cai no texto de antes.
+function rzSk(tipo, n) {
+    return (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function')
+        ? window.rzSkeleton(tipo, n)
+        : '<p class="rz-desc">Carregando…</p>';
 }

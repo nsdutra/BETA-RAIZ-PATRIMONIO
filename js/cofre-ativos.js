@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.73.0 · 04/10/2026
+// Versão: 1.74.0 · 04/10/2026
+//
+// v1.74.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
+// esqueleto (window.rzSkeleton) no lugar de "Carregando..." no Financeiro e na Propriedade da ficha do ativo.
+//
+// Versão anterior: 1.73.0 · 04/10/2026
 //
 // v1.73.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) —
 // zero diálogo nativo: excluir ativo e marcar como vendido viram perguntar() do cofre-ui
@@ -908,7 +913,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.73.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -2166,7 +2171,7 @@ async function montarFinanceiroAtivo(a) {
     const painelRevisao = document.getElementById('fa-financeiro-revisao');
     if (!painelResumo || !painelGrafico || !painelGrid) return;
 
-    painelResumo.innerHTML = `<p class="rz-desc" style="grid-column:1/-1">Carregando...</p>`;
+    painelResumo.innerHTML = `<div style="grid-column:1/-1">${rzSk('texto', 2)}</div>`;
     painelGrafico.innerHTML = '';
     painelGrid.innerHTML = '';
     if (painelRevisao) painelRevisao.innerHTML = '';
@@ -2658,7 +2663,7 @@ let propriedadeEditorAlvo = { linhas: 'pe-linhas', soma: 'pe-soma' };
 async function montarPropriedadeAtivo(a) {
     const lista = document.getElementById('fa-propriedade-lista');
     if (!lista) return;
-    lista.innerHTML = `<p class="rz-desc">Carregando...</p>`;
+    lista.innerHTML = rzSk('linhas', 2);
 
     const linhas = await api.buscarPropriedadeDoAtivo(a.id);
 
@@ -3530,3 +3535,12 @@ export async function alternarVitrineFoto(fotoId, valor) {
 // não deve ter opção "Histórico" no Mais ações do box do Ativo.
 // api.listarHistoricoAtivo() (cofre-api.js) foi mantida — infraestrutura
 // de log genérica, pode servir outro consumidor no futuro.
+
+
+// v1.74.0 (UX F1.4a, demanda c71f617c) — esqueleto no lugar de "Carregando…" (UXR, REGRAS §8).
+// window.rzSkeleton vive no index.html; no cofre.html avulso cai no texto de antes.
+function rzSk(tipo, n) {
+    return (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function')
+        ? window.rzSkeleton(tipo, n)
+        : '<p class="rz-desc">Carregando…</p>';
+}

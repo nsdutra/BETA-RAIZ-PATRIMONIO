@@ -1,8 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.8.2 (03/10/2026 — demanda 29bed5eb)
+// VERSÃO: Beta v1.9.0 (04/10/2026 — demanda c71f617c)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
+// NOVIDADES (Beta v1.9.0) — UX F1.4a (sessão 20261003-1707-ux-base, aprovada pelo
+//   Nicola 04/10 15:46): esqueleto (window.rzSkeleton) no lugar de "Carregando..." nos
+//   sheets de Reajustes e de Revisional/Renovação do mês e na abertura da tela (cards).
+// Versão anterior: Beta v1.8.2 (03/10/2026 — demanda 29bed5eb)
 // NOVIDADES (Beta v1.8.2) — F0.3 do PLANO_UX (sessão 20261003-1707-ux-base,
 //   "de acordo" do Nicola 03/10 23:57): a falha ao carregar deixa de mandar
 //   "puxar a lupa e tocar em Aplicar" e o erro técnico some da tela; o card
@@ -185,7 +189,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.8.2';
+export const VERSAO = '1.9.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -261,7 +265,7 @@ export async function renderResultados() {
         filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', alvoId: null, alvoNome: null };
     }
 
-    mount.innerHTML = montarCabecalho() + `<div id="resultados-conteudo"><p class="text-xs text-slate-400 text-center py-6">Carregando resultados...</p></div>`;
+    mount.innerHTML = montarCabecalho() + `<div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
     if (typeof rzIcones === 'function') rzIcones();
 
     await renderizarConteudo();
@@ -737,7 +741,7 @@ function ligarBarrasCalendario(seletor, meses, aoTocarMes) {
 }
 
 export async function abrirResultadosMesReajuste(mes) {
-    abrirSheet(rzSheetCabecalho(`Reajustes de ${NOMES_MES[mes - 1]}/${filtro.ano}`, null) + `<div class="rz-sh-b" id="res-mes-reajuste-corpo"><p class="text-xs text-slate-400 text-center py-6">Carregando...</p></div>`);
+    abrirSheet(rzSheetCabecalho(`Reajustes de ${NOMES_MES[mes - 1]}/${filtro.ano}`, null) + `<div class="rz-sh-b" id="res-mes-reajuste-corpo">${rzSk('linhas', 3)}</div>`);
     try {
         const { data, error } = await dbAuth.rpc('fn_carteira_reajustes_mes', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_mes: mes });
         if (error) throw error;
@@ -762,7 +766,7 @@ export async function abrirResultadosMesReajuste(mes) {
 // do contrato (fn_carteira_revisionais_mes). Subtítulo mostra a data de
 // término em vez do índice (não faz sentido aqui — não é reajuste).
 export async function abrirResultadosMesRevisional(mes) {
-    abrirSheet(rzSheetCabecalho(`Revisional/Renovação de ${NOMES_MES[mes - 1]}/${filtro.ano}`, null) + `<div class="rz-sh-b" id="res-mes-revisional-corpo"><p class="text-xs text-slate-400 text-center py-6">Carregando...</p></div>`);
+    abrirSheet(rzSheetCabecalho(`Revisional/Renovação de ${NOMES_MES[mes - 1]}/${filtro.ano}`, null) + `<div class="rz-sh-b" id="res-mes-revisional-corpo">${rzSk('linhas', 3)}</div>`);
     try {
         const { data, error } = await dbAuth.rpc('fn_carteira_revisionais_mes', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_mes: mes });
         if (error) throw error;
@@ -913,4 +917,11 @@ function estadoAtivosParaFiltro() {
         return (typeof imoveis !== 'undefined' && Array.isArray(imoveis) ? imoveis : [])
             .map(i => ({ id: i.id, nome: `${i.empreendimento || ''} ${i.enderecoRua ? '- ' + i.enderecoRua : ''}`.trim() || i.id }));
     } catch (e) { return []; }
+}
+
+// v1.9.0 (UX F1.4a, demanda c71f617c) — esqueleto no lugar de "Carregando…".
+function rzSk(tipo, n) {
+    return (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function')
+        ? window.rzSkeleton(tipo, n)
+        : '<p class="rz-desc">Carregando…</p>';
 }

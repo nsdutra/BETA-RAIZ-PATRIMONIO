@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-boot.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.3.0 · 09/09/2026
+// Versão: 1.4.0 · 04/10/2026
+//
+// v1.4.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola
+// 04/10 15:46) — a abertura de Ativos mostra o esqueleto da lista (window.rzSkeleton) no
+// lugar do círculo girando com "Carregando Ativos...".
+//
+// Versão anterior: 1.3.0 · 09/09/2026
 //
 // v1.3.0 — CORRIDA QUE ABRIA A EMPRESA ERRADA: o passo 3 punha ?cliente_id=
 // na URL e o `finally` restaurava a URL assim que o import resolvia — mas
@@ -81,7 +87,7 @@
 // de ser a porta de entrada padrão.
 // ============================================================================
 
-export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.4.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 let ativosJaInicializado = false;
 let clienteIdDoBoot = null; // v1.3.0 — pra detectar troca de empresa sem reload
 
@@ -112,11 +118,10 @@ export async function montarAtivosTab(clienteIdAtual) {
     // deixa de parecer que a tela travou ou quebrou, que era o
     // problema relatado (tela em branco, sem nenhum sinal de que algo
     // estava acontecendo).
-    container.innerHTML = `<div class="flex flex-col items-center justify-center py-16 gap-3">
-        <svg style="width:28px;height:28px;color:var(--sprout);animation:raiz-girar 0.8s linear infinite" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-        <p class="text-xs" style="color:var(--sage)">Carregando Ativos...</p>
-        <style>@keyframes raiz-girar { to { transform: rotate(360deg); } }</style>
-    </div>`;
+    // v1.4.0 (UX F1.4a) — esqueleto da lista no lugar do "Carregando Ativos..." de tela cheia.
+    container.innerHTML = (typeof window.rzSkeleton === 'function')
+        ? `<div style="padding:4px 0">${window.rzSkeleton('lista', 5)}</div>`
+        : `<p class="text-xs" style="color:var(--sage);padding:24px 0;text-align:center">Carregando Ativos…</p>`;
 
     // 1) injeta o markup extraído do Cofre
     const { ATIVOS_MARKUP } = await import('./ativos-markup.js');

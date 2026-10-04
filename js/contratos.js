@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.39.1 · 04/10/2026
+// Versão: 1.40.0 · 04/10/2026
+//
+// v1.40.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
+// esqueleto no lugar de "Carregando..." em Ocorrências, Distribuição, Itens de controle e Documentos
+// da ficha do contrato.
+//
+// Versão anterior: 1.39.1 · 04/10/2026
 //
 // v1.39.1 (F0.2a, testes do Nicola 04/10 00:52) — (1) "Remover fiador" desvincula a parte do
 // contrato e agora tem "Desfazer" por 5 s no toast (regra aprovada: Desfazer onde voltar é
@@ -685,7 +691,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.39.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.40.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2262,7 +2268,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     </div>
                     <div class="rz-card" id="fc-card-ocorrencias">
                         <div class="rz-card-h"><h3>Ocorrências</h3><span class="rz-sub" id="fc-ocorrencias-status"></span><button type="button" onclick="abrirAcoesFichaContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
-                        <div id="fc-ocorrencias"><p class="rz-desc">Carregando...</p></div>
+                        <div id="fc-ocorrencias">${rzSk('linhas', 2)}</div>
                     </div>
                     <!-- NOVO (19/09/2026, rodada 10, pedido explícito: "no chip
                          resumo de um contrato, deve aparecer a visão de
@@ -2278,7 +2284,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                          montarDistribuicaoContrato() abaixo. -->
                     <div class="rz-card" id="fc-card-distribuicao">
                         <div class="rz-card-h"><h3>Distribuição</h3><span class="rz-sub">Rateio do aluguel entre proprietários</span><button type="button" onclick="abrirAcoesDistribuicaoContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button></div>
-                        <div id="fc-distribuicao"><p class="rz-desc">Carregando...</p></div>
+                        <div id="fc-distribuicao">${rzSk('linhas', 2)}</div>
                     </div>
                 </div>
 
@@ -2360,7 +2366,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                          simplesmente não têm item aqui; card mostra vazio. -->
                     <div class="rz-card" id="fc-card-itens-controle">
                         <div class="rz-card-h"><h3>Linha do tempo</h3><span class="rz-sub">Reajuste e revisão</span></div>
-                        <div id="fc-itens-controle"><p class="rz-desc">Carregando...</p></div>
+                        <div id="fc-itens-controle">${rzSk('linhas', 2)}</div>
                     </div>
                 </div>
 
@@ -2399,7 +2405,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                     <div class="rz-card">
                         <div class="rz-card-h"><h3 id="fc-anexos-titulo">Anexos</h3><span class="rz-sub" id="fc-anexos-sub"></span>${abreArquivos ? `<button type="button" onclick="abrirAcoesAnexosContrato('${con.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>` : ''}</div>
                         ${abreArquivos
-                            ? `<div id="fc-documentos"><p class="rz-desc">Carregando...</p></div>`
+                            ? `<div id="fc-documentos">${rzSk('linhas', 2)}</div>`
                             : `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Contrato encerrado: os documentos ficam guardados no Cofre.</p></div>`}
                     </div>
                 </div>`;
@@ -5262,3 +5268,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
 
         }
+
+
+// v1.40.0 (UX F1.4a, demanda c71f617c) — esqueleto no lugar de "Carregando…" (UXR, REGRAS §8).
+// window.rzSkeleton vive no index.html; no cofre.html avulso cai no texto de antes.
+function rzSk(tipo, n) {
+    return (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function')
+        ? window.rzSkeleton(tipo, n)
+        : '<p class="rz-desc">Carregando…</p>';
+}
