@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.300.2) — P4a do Financeiro: contas (Premium; fichas A1–A6, de acordo do
+Nicola 04/10 12:43). Minha empresa ganha o card "Contas" (criar, editar, padrão, encerrar);
+a ficha da pessoa ganha "Contas" (as dela e "Quem ela vê"); Recebimentos e Saídas ganham o
+chip "Conta" e a troca de conta no sheet do movimento; Nova despesa ganha o campo Conta.
+Toda regra no banco (fn_contas_*, fn_conta_*, fn_lancamento_definir_conta — as mesmas do bot).
+index: contaId nos objetos de mensalidade e despesa; ponte financeiroEscolherContaFiltro.
+Import map: comum-minha-empresa 1.9.0 → 1.10.0, comum-pessoas 1.203.0 → 1.204.0,
+financeiro 1.32.0 → 1.33.0.
+Versão anterior (Beta v1.300.1):
+------------------------------------------------------------------
+Versões anteriores (v1.300.1 … v1.300.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.300.1) — demanda 2923ff4d (plano aprovado pelo Nicola 04/10 12:40). Só import map:
 js/financeiro.js 1.31.0 → 1.32.0 (despesa em dois níveis: Categoria → Subcategoria, casca .rz-f,
 chips do caminho) e js/cofre-controles.js 1.44.0 → 1.45.0 (novo item nasce do ativo: só tipos com

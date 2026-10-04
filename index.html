@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.302.2
-   LINHAS: 16949
-   DATA: 04/10/2026 (sessão 20261004-1815-catalogo-2b3c, demanda 2923ff4d)
+   VERSÃO: Beta v1.303.0
+   LINHAS: 16990
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda da6c64b6)
+   NOVIDADES (Beta v1.303.0) — F2.2 do PLANO_UX (Alertas como aba; "podemos avançar" do Nicola 04/10
+   18:21, opção (a)). Barra inferior: Visão Geral · Ativos · Contratos · Financeiro · Alertas, com o
+   número de pendências na cor da pior severidade. O sino sai do cabeçalho; Alertas sai do menu ⚙️.
+   Resultados sai da barra até a F2.1: atalho "Resultados do ano" no topo da Visão Geral e no menu.
+   Grupo de alertas abre e fecha ali mesmo no toque (deslizar: Ver lista · Escolher). Alerta "ativo
+   sem proprietário" abre a ficha direto em Propriedade. Ativos ganha o chip "Com alerta" (import map:
+   cofre-ativos 1.75.0). Sem banco.
+   Versão anterior (Beta v1.302.2):
    NOVIDADES (Beta v1.302.2) — catálogo único 2b-3c (plano 2b-3 aprovado pelo Nicola 04/10): o
    documento mostra o caminho da árvore. "Confira o que a IA leu" ganha chips vínculo · tipo de ativo ·
    tipo · subtipo · espécie e o campo vira "Espécie do documento" (15 espécies, migration v5); a ficha
@@ -36,17 +44,8 @@
    Import map: resultados 1.9.0, cofre-ativos 1.74.0, cofre-controles 1.46.0, cofre-documentos 2.24.0,
    contratos 1.40.0, cadastros 1.1.0, ativos-boot 1.4.0. Sem banco.
    Versão anterior (Beta v1.300.2):
-   NOVIDADES (Beta v1.300.2) — P4a do Financeiro: contas (Premium; fichas A1–A6, de acordo do
-   Nicola 04/10 12:43). Minha empresa ganha o card "Contas" (criar, editar, padrão, encerrar);
-   a ficha da pessoa ganha "Contas" (as dela e "Quem ela vê"); Recebimentos e Saídas ganham o
-   chip "Conta" e a troca de conta no sheet do movimento; Nova despesa ganha o campo Conta.
-   Toda regra no banco (fn_contas_*, fn_conta_*, fn_lancamento_definir_conta — as mesmas do bot).
-   index: contaId nos objetos de mensalidade e despesa; ponte financeiroEscolherContaFiltro.
-   Import map: comum-minha-empresa 1.9.0 → 1.10.0, comum-pessoas 1.203.0 → 1.204.0,
-   financeiro 1.32.0 → 1.33.0.
-   Versão anterior (Beta v1.300.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.300.1 … v1.300.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.300.2 … v1.300.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +70,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.33.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.40.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.74.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.46.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.25.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.9.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.33.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.40.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.46.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.25.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.9.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -386,6 +385,9 @@
         /* Barra inferior (v1.39.8) — indicador do item ativo: barrinha fina no
            topo do botão, além da cor. */
         #bottom-nav-bar button{position:relative}
+        /* v1.303.0 (UX F2.2, UXR-05/22) — número de pendências na aba Alertas, na cor da pior severidade */
+        #bottom-nav-bar .rz-nav-n{position:absolute;top:3px;left:calc(50% + 4px);min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:12px;font-weight:700;line-height:20px;text-align:center;color:#fff;background:var(--sage)}
+        #bottom-nav-bar .rz-nav-n.rz-bad{background:var(--danger)}#bottom-nav-bar .rz-nav-n.rz-warn{background:var(--warning)}
         #bottom-nav-bar button.rz-nav-off{opacity:.45}#bottom-nav-bar button.rz-nav-off::after{content:'';position:absolute;top:6px;right:calc(50% - 16px);width:10px;height:10px;border-radius:50%;background:var(--wine)} /* v1.130 — aba bloqueada */
         .rz-chip.rz-off{opacity:.5}.rz-chip.rz-off::before{content:'🔒';font-size:12px;margin-right:2px} /* v1.130 — chip bloqueado */
         [data-rz-codigo].rz-off{opacity:.5;position:relative}[data-rz-codigo].rz-off::after{content:'🔒';position:absolute;top:-6px;right:-6px;font-size:12px;line-height:1} /* v1.248 — botão com porta (comum-licenca.aplicarCadeados) */
@@ -1574,10 +1576,7 @@
                  (tab-geral), mora só aqui agora: mesmo botão, mesmo
                  onclick, mesmo #geral-sino-dot (renderizarPontosAtencao-
                  Geral continua escrevendo nele, nada mudou no JS). -->
-            <button type="button" class="rz-ico-btn" onclick="abrirTabAlertas()" title="Alertas" aria-label="Alertas">
-                <svg data-lucide="bell"></svg>
-                <span id="geral-sino-dot" class="rz-dot hidden"></span>
-            </button>
+            <!-- v1.303.0 (UX F2.2, UXR-08) — o sino saiu do cabeçalho: Alertas é a 5ª aba da barra inferior. -->
             <button type="button" id="btn-raiz-ia-header" class="rz-ia" onclick="abrirSheetRaizIA()" title="Raiz IA" aria-label="Raiz IA">
                 <svg data-lucide="sparkles"></svg>
                 <span id="raiz-ia-dot" class="rz-dot hidden"></span>
@@ -1673,9 +1672,13 @@
              está numa dessas telas — sem isso, o destaque da barra ficaria
              errado ao entrar nelas. -->
 
-        <button onclick="irParaAbaRodape('tab-relatorios')" id="btn-tab-relatorios" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
-            <svg data-lucide="bar-chart-3" style="width:21px;height:21px"></svg>
-            <span class="text-[12px] font-bold">Resultados</span>
+        <!-- v1.303.0 (UX F2.2, demanda da6c64b6; UXR-05/06/22) — Alertas é a 5ª aba. Resultados sai da
+             barra até a F2.1 (vai para dentro de Hoje); enquanto isso fica no atalho do topo da Visão
+             Geral e no menu ⚙️ (opção (a), "podemos avançar" do Nicola 04/10 18:21). -->
+        <button onclick="irParaAbaRodape('tab-alertas')" id="btn-tab-alertas" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
+            <svg data-lucide="bell" style="width:21px;height:21px"></svg>
+            <span class="text-[12px] font-bold">Alertas</span>
+            <span id="nav-alertas-n" class="rz-nav-n hidden" aria-live="polite"></span>
         </button>
 
     </nav>
@@ -1776,6 +1779,14 @@
                  continua válido (era flex, sobra só o parágrafo). -->
             <div class="rz-tabhead">
                 <p>Seu patrimônio hoje: o que entrou, o que atrasou e o que pede atenção.</p>
+            </div>
+            <!-- v1.303.0 (UX F2.2, opção (a)) — Resultados saiu da barra; até a F2.1 o acesso é este atalho e o menu ⚙️ -->
+            <div class="rz-card rz-list" id="geral-atalho-resultados">
+                <div class="rz-row rz-link" onclick="switchTab('tab-relatorios')">
+                    <div class="rz-ic"><svg data-lucide="bar-chart-3"></svg></div>
+                    <div class="rz-tx"><b>Resultados do ano</b><span>Desempenho, distribuição e relatórios</span></div>
+                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                </div>
             </div>
             <!-- Entrega A.4 (21/09/2026, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
                  v2.0.0 + ESP_RESULTADOS_MERCADO_FISCAL §3.1) — seletor de universo
@@ -3091,7 +3102,7 @@
                  4 lugares (3 cards na Visão Geral + 1 item no menu ⚙️) —
                  por isso a origem é sempre a tela real de onde veio
                  (origemAoAbrirAlertas), nunca um destino fixo. -->
-            <button onclick="voltarDeAlertas()" class="text-xs font-bold text-slate-600 flex items-center gap-1 mb-3"><svg data-lucide="chevron-left" style="width:16px;height:16px"></svg> Voltar</button>
+<!-- v1.303.0 — Alertas virou aba primária: sem "Voltar" próprio (vindo de um card, o "‹" global aparece). -->
 
             <!-- AL.3 (REGRAS §14) — "<h2> Alertas + 'n abertos'": id próprio
                  pra montarAlertasPatrimonio() escrever a contagem sem
@@ -3573,7 +3584,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.302.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.303.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -8351,6 +8362,27 @@
             if (typeof rzAtualizarFaixaSemRede === 'function') rzAtualizarFaixaSemRede(); // v1.302.0
         }
         // v1.302.0 — a faixa diz de quando é o dado mostrado (a resposta guardada mais antiga em uso)
+        // v1.303.0 (UX F2.2) — número da aba Alertas: mesmo total ponderado do chip "Todos" (pesoAlerta),
+        // cor da pior severidade (crítico › atenção › informativo). Some quando não há nada.
+        function rzAtualizarNumeroAlertas(visiveis) {
+            const el = document.getElementById('nav-alertas-n'); if (!el) return;
+            const lista = Array.isArray(visiveis) ? visiveis : [];
+            const total = lista.reduce((s, r) => s + (typeof pesoAlerta === 'function' ? pesoAlerta(r) : 1), 0);
+            el.classList.remove('rz-bad', 'rz-warn');
+            if (!total) { el.classList.add('hidden'); el.textContent = ''; return; }
+            const pior = lista.some(r => r.severidade === 'critico') ? 'rz-bad' : (lista.some(r => r.severidade === 'atencao') ? 'rz-warn' : '');
+            if (pior) el.classList.add(pior);
+            el.textContent = total > 99 ? '99+' : String(total);
+            el.classList.remove('hidden');
+            el.setAttribute('aria-label', `${total} alerta${total > 1 ? 's' : ''}`);
+        }
+        // Ativos com algum alerta do Motor (o chip "Com alerta" de Ativos lê daqui — cofre-ativos.js)
+        window.rzAtivosComAlerta = function () {
+            const fonte = (alertasVisiveisTodos && alertasVisiveisTodos.length) ? alertasVisiveisTodos : (geralVisiveisTodos || []);
+            const ids = new Set();
+            fonte.forEach(r => { const id = r.detalhe?.ativo_id || (r.entidade_tipo === 'ativo' ? r.entidade_id : null); if (id) ids.add(id); });
+            return ids;
+        };
         function rzAtualizarFaixaSemRede() {
             const span = document.querySelector('#rz-sem-rede span'); if (!span) return;
             if (!rzCacheMaisAntigo) { span.textContent = 'Sem conexão — mostrando o que já estava carregado. Salvar volta quando a rede voltar.'; return; }
@@ -9223,7 +9255,8 @@
             'tab-saidas': 'tab-mensal',
             // v1.254.0 (frente fiscal, Fase 5) — Fiscal da competência é do grupo Financeiro.
             'tab-fiscal-competencia': 'tab-mensal',
-            'tab-socios': 'tab-mensal' // v1.294.0 (UXR-25) — Distribuição é do grupo Financeiro
+            'tab-socios': 'tab-mensal', // v1.294.0 (UXR-25) — Distribuição é do grupo Financeiro
+            'tab-relatorios': 'tab-geral', 'tab-relatorios-catalogo': 'tab-geral' // v1.303.0 (F2.2) — até a F2.1 levar Resultados para dentro de Hoje
         };
 
         // v1.62.3 (pedido explícito) — deep-link pós-login via ?ir=tab-X.
@@ -9262,7 +9295,7 @@
         // v1.124 — abas que exigem um *.ver liberado. Bloqueada: toast com o
         // motivo, fica onde está. Abas sem código não são gateadas.
         const TAB_CODIGO_VER = { 'tab-ativos': 'cofre.ver', 'tab-contratos': 'contratos.ver', 'tab-mensal': 'mensal.ver', 'tab-saidas': 'mensal.ver', 'tab-inadimplencia': 'mensal.ver', 'tab-conciliacao': 'conciliacao.ver', 'tab-regras-conciliacao': 'conciliacao.configurar',
-            'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar', 'tab-fiscal': 'fiscal.checkup', 'tab-fiscal-competencia': 'mensal.ver' };
+            'tab-relatorios': 'relatorios.ver', 'tab-relatorios-catalogo': 'relatorios.ver', 'tab-alertas': 'cofre.alertas.ver', 'tab-socios': 'repasses.ver', 'tab-pessoas': 'pessoas.ver', 'tab-developer': 'dev.acessar', 'tab-fiscal': 'fiscal.checkup', 'tab-fiscal-competencia': 'mensal.ver' };
         // v1.136 (A.4) — catálogo de relatórios: cada linha tem código próprio
         // (relatorios.resultados / .distribuicao) → cadeado por plano/perfil.
         function renderCatalogoRelatorios() {
@@ -9584,7 +9617,7 @@
             'tab-sobre': 'Sobre', 'tab-contrato-ficha': 'Contrato', 'tab-relatorios-catalogo': 'Relatórios', 'tab-socios': 'Distribuição',
         };
         // telas que já têm o próprio "voltar" no topo — sem atalho duplicado
-        var RZ_SEM_VOLTAR_GLOBAL = ['tab-alertas', 'tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine'];
+        var RZ_SEM_VOLTAR_GLOBAL = ['tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine']; // v1.303.0 — tab-alertas saiu (aba primária)
         // var (não let/const): switchTab pode ser chamada no boot antes desta linha ser avaliada
         var rzNavPorRodape = false, rzNavVoltando = false, rzNavEstado = null;
 
@@ -9918,7 +9951,7 @@
             // guarda de onde a pessoa veio (mesma variável usada por
             // voltarDeAlertas()) — resolve o destaque por ela, não por
             // tab-alertas.
-            const tabId2 = (tabId === 'tab-alertas' && typeof origemAoAbrirAlertas !== 'undefined' && origemAoAbrirAlertas) ? origemAoAbrirAlertas : tabId;
+            const tabId2 = tabId; // v1.303.0 (F2.2) — Alertas é aba da barra: acende o próprio botão
             const tabParaDestaque = TAB_PARENT_MAP[tabId2] || tabId2;
             const btnDestaque = document.getElementById('btn-' + tabParaDestaque);
             if (btnDestaque && btnDestaque.closest('#bottom-nav-bar')) {
@@ -10320,7 +10353,7 @@
                         // em ccd04ad4 (multi-empresa/family office).
                     ]},
                     { titulo: 'Conta', acoes: [
-                        { icone: 'bell', titulo: 'Alertas do patrimônio', codigo: 'cofre.alertas.ver', aoTocar: abrirTabAlertas },
+                        { icone: 'bar-chart-3', titulo: 'Resultados', sub: 'Desempenho, distribuição e relatórios', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios') }, // v1.303.0 (F2.2) — Alertas virou aba; Resultados fica aqui até a F2.1
                         { icone: 'package-check', titulo: 'Versões', sub: 'Versão do app em uso', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
                         { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => rzDev('whatsapp', '5511947461828') },
@@ -11877,6 +11910,7 @@
             // card saíram junto com a moldura (não tem mais o que colorir).
             const criticosCount = visiveis.filter(r => r.tipo_alerta === 'atraso_pagamento').length;
             const totalPontos = visiveis.reduce((s, r) => s + pesoAlerta(r), 0); // v1.186.0
+            if (!(alertasVisiveisTodos && alertasVisiveisTodos.length)) rzAtualizarNumeroAlertas(visiveis); // v1.303.0
             const dot = document.getElementById('geral-sino-dot');
             if (dot) { dot.classList.toggle('hidden', totalPontos === 0); dot.classList.toggle('rz-warn', criticosCount === 0); }
 
@@ -12350,7 +12384,7 @@
                 // ficha do ativo direto no chip Resumo, onde os campos se editam.
                 case 'ativo/ficha':
                     switchTab('tab-ativos');
-                    if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(row.entidade_id, 'resumo');
+                    if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(row.entidade_id, row.tipo_alerta === 'ativo_sem_proprietario' ? 'propriedade' : 'resumo'); // v1.303.0 — vai direto ao que resolve
                     return;
                 // AL.3 (Fase AL.2) — os 5 alertas de rotina de escopo empresa
                 // (fechamento, contador, NFS-e, relatório, indicadores) não
@@ -12748,6 +12782,7 @@
             });
 
             alertasTodos = agruparEMapearAlertas(porSeveridade);
+            rzAtualizarNumeroAlertas(alertasVisiveisTodos); // v1.303.0 — número da aba (todas as severidades)
             renderSegSeveridadeAlertas();
             renderChipsAlertas();
             renderListaAlertas();
@@ -13480,8 +13515,14 @@
                 const ref = row.dataset.rzGrupo;
                 const aberto = rzGruposAbertos.has(ref);
                 let sw = null;
+                // v1.303.0 (F2.2, UXR-22 "inbox com grupos colapsáveis") — o toque no grupo abre e fecha
+                // os itens ali mesmo; a lista em sheet passa para o deslizar ("Ver lista").
+                const sep = ref.indexOf('|'), modo = ref.slice(0, sep), chaveGrupo = ref.slice(sep + 1);
+                row.removeAttribute('onclick');
+                row.addEventListener('click', () => rzAlternarGrupoAqui(ref, sw || row));
+                row.setAttribute('aria-expanded', aberto ? 'true' : 'false');
                 const acoes = [
-                    { icone: aberto ? 'chevron-up' : 'chevron-down', titulo: aberto ? 'Recolher' : 'Ver aqui', tipo: 'neu', aoTocar: () => rzAlternarGrupoAqui(ref, sw) },
+                    { icone: 'list', titulo: 'Ver lista', tipo: 'neu', aoTocar: () => abrirListaAlertasGrupo(modo, chaveGrupo) },
                     { icone: 'list-checks', titulo: 'Escolher', aoTocar: () => rzEscolherNoGrupo(ref) },
                 ];
                 sw = rzSwipe(row, { dir: acoes, esq: acoes });

@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.74.0 · 04/10/2026
+// Versão: 1.75.0 · 04/10/2026
+//
+// v1.75.0 (UX F2.2, demanda da6c64b6, sessão 20261003-1707-ux-base; "podemos avançar" do Nicola
+// 04/10 18:21; UXR-13/15/22) — chip "Com alerta" em Ativos, logo depois de "Todos": conta os
+// ativos com algum alerta do Motor (window.rzAtivosComAlerta, index.html) ou com ocorrência de item
+// vencendo; só aparece com contador > 0 e filtra a lista. No cofre.html avulso usa só as ocorrências.
+//
+// Versão anterior: 1.74.0 · 04/10/2026
 //
 // v1.74.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
 // esqueleto (window.rzSkeleton) no lugar de "Carregando..." no Financeiro e na Propriedade da ficha do ativo.
@@ -913,7 +920,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.74.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1288,8 +1295,11 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         return filtroAlerta === 'com' ? temAlerta : !temAlerta;
     };
 
+    const soComAlerta = !!GRUPOS_CHIP_TIPO[chipAtivoAtual]?.alerta; // v1.75.0 (F2.2)
+    const comAlerta = soComAlerta ? ativosComAlerta(ocorrenciasPorAtivo) : null;
     const lista = estado.ativos.filter(a => {
-        if (tiposFiltro && !tiposFiltro.includes(a.tipo_ativo)) return false;
+        if (tiposFiltro && tiposFiltro.length && !tiposFiltro.includes(a.tipo_ativo)) return false;
+        if (comAlerta && !comAlerta.has(a.id)) return false;
         // v1.41.0 (16/09/2026, achado no teste real — "Casa de Campo cai
         // em Outros ativos") — ehCategoriaImovel(a.tipo_ativo) no lugar
         // de entidade_origem_tipo==='imovel': cobre imóvel nativo (Onda
@@ -1371,6 +1381,8 @@ function explicarListaVazia(el) {
 // ============================================================================
 const GRUPOS_CHIP_TIPO = [
     { rotulo: 'Todos', tipos: null },
+    // v1.75.0 (F2.2) — chip de ação: tipos [] = sem filtro de tipo; filtra pelos ativos com alerta
+    { rotulo: 'Com alerta', tipos: [], alerta: true },
     // v1.32.1 (E4.2 fatia B) — cada grupo aceita valor antigo E novo
     { rotulo: 'Imóveis', tipos: ['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'] },
     { rotulo: 'Veículos', tipos: ['veiculo', 'veiculo_blindado'] },
@@ -1386,10 +1398,13 @@ let chipAtivoAtual = 0;
 function renderChipsAtivos() {
     const wrap = document.getElementById('ativos-chips-tipo');
     if (!wrap) return; // cofre.html standalone não tem este container ainda — no-op seguro
+    const comAlerta = ativosComAlerta(); // v1.75.0 (F2.2)
     wrap.innerHTML = GRUPOS_CHIP_TIPO.map((g, i) => {
-        const qtd = g.tipos ? estado.ativos.filter(a => g.tipos.includes(a.tipo_ativo)).length : estado.ativos.length;
+        const qtd = g.alerta ? estado.ativos.filter(a => comAlerta.has(a.id)).length
+            : (g.tipos ? estado.ativos.filter(a => g.tipos.includes(a.tipo_ativo)).length : estado.ativos.length);
         const ativo = i === chipAtivoAtual;
-        return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${ativo ? ' rz-on' : ''}">${escapeHtml(g.rotulo)} <span class="rz-n">${qtd}</span></button>`;
+        if (g.alerta && !qtd && !ativo) return ''; // chip de estado só aparece com contador > 0 (UXR-15)
+        return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${ativo ? ' rz-on' : ''}${g.alerta && qtd ? ' rz-warn' : ''}">${escapeHtml(g.rotulo)} <span class="rz-n">${qtd}</span></button>`;
     }).join('');
     // v1.9.0 (02/09/2026, pedido explícito: "os chips devem correr na
     // horizontal mas sem deixar a mostra a rolagem") — a barra em si já
@@ -3543,4 +3558,14 @@ function rzSk(tipo, n) {
     return (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function')
         ? window.rzSkeleton(tipo, n)
         : '<p class="rz-desc">Carregando…</p>';
+}
+
+// v1.75.0 (UX F2.2) — ativos com alerta: Motor de Alertas (index.html, window.rzAtivosComAlerta)
+// + ocorrências de item de controle em aberto. Set de ids de cofre_ativos.
+function ativosComAlerta(ocorrenciasPorAtivo) {
+    const ids = new Set();
+    try { if (typeof window !== 'undefined' && typeof window.rzAtivosComAlerta === 'function') window.rzAtivosComAlerta().forEach(id => ids.add(id)); } catch (_) { /* sem Motor (cofre.html) */ }
+    if (ocorrenciasPorAtivo) Object.keys(ocorrenciasPorAtivo).forEach(id => ids.add(id));
+    else (estado.ocorrenciasAbertas || []).forEach(oc => { const id = oc.cofre_itens_controle?.ativo_id; if (id) ids.add(id); });
+    return ids;
 }
