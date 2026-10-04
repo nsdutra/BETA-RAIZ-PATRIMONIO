@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.297.5
-   LINHAS: 16007
-   DATA: 04/10/2026 (sessão 20261004-0810-financeiro, demanda cad6ec67)
+   VERSÃO: Beta v1.298.0
+   LINHAS: 16104
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda c5d844a4)
+   NOVIDADES (Beta v1.298.0) — F1.1 do PLANO_UX (sheet empilhável e arrastável; DIRETRIZES
+   UXR-28, REGRAS §2; "Aprovado. Siga" do Nicola 04/10 08:09). abrirSheet ganha a opção
+   empilhar: com um sheet aberto, o novo abre POR CIMA (nível 2, "‹" no lugar do X) e o de
+   baixo volta intacto, com o que foi digitado. fecharSheet() fecha o nível de cima. Puxar
+   a alça ou o título para baixo fecha; para cima abre cheio quando o conteúdo é longo.
+   abrirSheetForm aceita empilhar; rzPedirTexto empilha. Import map: js/raiz-ui.js 1.0.0 →
+   1.1.0 (confirmação, escolha e resumo empilham).
+   Versão anterior (Beta v1.297.5):
    NOVIDADES (Beta v1.297.5) — alertas de cadastro da P2 com texto de gente (Nicola 04/10 08:06).
    "Ativo sem proprietário", "Contrato sem divisão do aluguel" e "Chave Pix da empresa
    pendente" mostravam o código cru no título e no Sheet; o grupo dizia só "6 alertas" — agora
@@ -36,15 +44,8 @@
    número que o banco devolve. Import map: js/contratos.js 1.39.0 → 1.39.1 (Desfazer ao remover
    fiador; soma da divisão ≠ 100% vira aviso, sem "Salvar mesmo assim").
    Versão anterior (Beta v1.297.1):
-   NOVIDADES (Beta v1.297.1) — P2 do Financeiro (PLANO_P2_FINANCEIRO_INTEGRIDADE v1.0.0, 5 fichas aprovadas):
-   só import map — js/financeiro.js 1.29.0 → 1.30.0 (receitas sem contrato nos totais),
-   js/fechamento.js 1.11.0 → 1.12.0 (pacote do contador com "Outras receitas"),
-   js/cofre-ativos.js 1.71.0 → 1.72.0 (ativo dentro/fora da contabilidade da empresa).
-   Banco: trava de 100% na divisão do contrato, alertas ativo_sem_proprietario/contrato_sem_divisao,
-   cofre_ativos.registro_contabil, fn_fechamento_calcular_contabil e fn_financeiro_totalizadores.
-   Versão anterior (Beta v1.297.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.297.0 … v1.297.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.297.1 … v1.297.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -69,7 +70,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.2","./js/financeiro.js":"./js/financeiro.js?v=1.30.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.39.1","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.73.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.42.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.23.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.6.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.9.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.203.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.0.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.51.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.2","./js/financeiro.js":"./js/financeiro.js?v=1.30.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.39.1","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.73.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.42.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.23.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.6.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.3.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.9.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.203.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.51.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -644,6 +645,16 @@
         .rz-veil.rz-on{opacity:1;pointer-events:auto}
         .rz-sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;max-height:86vh;max-height:calc(var(--rz-vvh,100dvh) * .86);display:flex;flex-direction:column;transform:translateY(24px);transition:transform .18s}
         .rz-veil.rz-on .rz-sheet{transform:none}
+        /* v1.298.0 — F1.1 (DIRETRIZES UXR-28, REGRAS §2): pilha de 2 níveis e arraste */
+        .rz-sheet.rz-n2{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-height:78vh;max-height:calc(var(--rz-vvh,100dvh) * .78);box-shadow:0 -10px 30px -12px rgba(23,33,30,.35);transform:translateY(24px)}
+        .rz-veil.rz-on .rz-sheet.rz-n2.rz-n2-on{transform:none}
+        .rz-veil.rz-tem-n2 #rz-sheet{pointer-events:none;filter:brightness(.92)}
+        .rz-sheet.rz-cheio{max-height:calc(var(--rz-vvh,100dvh) - 12px);height:calc(var(--rz-vvh,100dvh) - 12px)}
+        .rz-sheet.rz-arrastando{transition:none}
+        .rz-grab{touch-action:none;cursor:grab}
+        .rz-grab::before{content:"";display:block;height:20px;margin:-10px -40px -6px}
+        .rz-sh-h{touch-action:pan-x}
+        .rz-x.rz-voltar{order:-1}
         .rz-sheet.rz-menu{background:var(--paper)}
         .rz-grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:10px auto 0;flex:none}
         .rz-sh-h{display:flex;align-items:center;gap:10px;padding:10px 16px 8px;flex:none}
@@ -3522,7 +3533,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.297.5"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.298.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3586,7 +3597,7 @@
             return new Promise((resolve) => {
                 let feito = false; const fim = (v) => { if (!feito) { feito = true; resolve(v); } };
                 abrirSheetForm({
-                    titulo, sub, rotuloSalvar,
+                    titulo, sub, rotuloSalvar, empilhar: true, // v1.298.0 — F1.1: abre por cima do sheet atual
                     corpo: `<div class="rz-f"><label for="rz-pt-campo">${rzEsc(rotulo)}</label><input id="rz-pt-campo" type="${rzEsc(tipo)}" value="${rzEsc(valor)}" placeholder="${rzEsc(placeholder)}"></div>`,
                     aoSalvar: (el) => {
                         const v = (el.querySelector('#rz-pt-campo')?.value || '').trim();
@@ -3598,25 +3609,111 @@
             });
         }
 
+        // v1.298.0 — F1.1 (demanda c5d844a4; DIRETRIZES UXR-28, REGRAS §2). PILHA DE 2 NÍVEIS:
+        // com { empilhar: true } e um sheet já aberto, o novo abre POR CIMA (nível 2, "‹" no
+        // lugar do X) e o de baixo fica intacto — inclusive o que foi digitado. Sem a opção,
+        // o comportamento é o de sempre (troca o conteúdo). fecharSheet() fecha sempre o nível
+        // de cima. Usado pelos substitutos do js/raiz-ui.js e pelo rzPedirTexto.
+        // ARRASTE: puxar a alça ou o título para baixo fecha; para cima abre cheio quando o
+        // conteúdo é maior que a tela. Sem animação com "reduzir movimento".
         function abrirSheet(html, opcoes = {}) {
             const veil = rzGarantirVeil();
+            if (opcoes.empilhar && veil.classList.contains('rz-on') && !document.getElementById('rz-sheet-2')) {
+                return rzAbrirNivel2(veil, html, opcoes);
+            }
+            rzFecharNivel2(true); // abrir um sheet comum descarta o nível 2 (resolve como cancelado)
             const sheet = document.getElementById('rz-sheet');
             sheet.className = 'rz-sheet' + (opcoes.classe ? ' ' + opcoes.classe : '');
+            sheet.style.transform = '';
             sheet.innerHTML = '<div class="rz-grab"></div>' + html;
             sheet._aoFechar = opcoes.aoFechar || null;
             veil.classList.add('rz-on');
             rzIcones();
+            rzLigarArraste(sheet);
             return sheet;
+        }
+
+        function rzAbrirNivel2(veil, html, opcoes) {
+            const s2 = document.createElement('div');
+            s2.id = 'rz-sheet-2';
+            s2.className = 'rz-sheet rz-n2' + (opcoes.classe ? ' ' + opcoes.classe : '');
+            s2.setAttribute('role', 'dialog'); s2.setAttribute('aria-modal', 'true');
+            s2.innerHTML = '<div class="rz-grab"></div>' + html;
+            s2._aoFechar = opcoes.aoFechar || null;
+            // o X do cabeçalho vira "‹ Voltar" (volta ao sheet de baixo)
+            const x = s2.querySelector('.rz-sh-h .rz-x');
+            if (x) { x.classList.add('rz-voltar'); x.setAttribute('aria-label', 'Voltar'); x.innerHTML = '<svg data-lucide="chevron-left"></svg>'; }
+            veil.appendChild(s2);
+            veil.classList.add('rz-tem-n2');
+            rzIcones();
+            requestAnimationFrame(() => s2.classList.add('rz-n2-on'));
+            rzLigarArraste(s2);
+            return s2;
+        }
+
+        // cancelado=true: o nível 2 sai porque outro sheet comum abriu por cima de tudo
+        function rzFecharNivel2() {
+            const s2 = document.getElementById('rz-sheet-2');
+            if (!s2) return false;
+            const veil = document.getElementById('rz-veil');
+            const cb = s2._aoFechar; s2._aoFechar = null;
+            s2.remove();
+            if (veil) veil.classList.remove('rz-tem-n2');
+            if (typeof cb === 'function') cb();
+            return true;
         }
 
         function fecharSheet() {
             const veil = document.getElementById('rz-veil');
             if (!veil || !veil.classList.contains('rz-on')) return;
+            if (rzFecharNivel2()) return; // fecha só o nível de cima
             veil.classList.remove('rz-on');
             const sheet = document.getElementById('rz-sheet');
+            if (sheet) { sheet.classList.remove('rz-cheio'); sheet.style.transform = ''; }
             const cb = sheet && sheet._aoFechar;
             if (sheet) sheet._aoFechar = null;
             if (typeof cb === 'function') cb();
+        }
+
+        // Arraste pela alça (.rz-grab) e pelo cabeçalho (.rz-sh-h, fora dos botões).
+        function rzLigarArraste(sheet) {
+            if (!sheet || sheet._rzArraste) return;
+            sheet._rzArraste = true;
+            let y0 = 0, t0 = 0, dy = 0, ativo = false;
+            const inicio = (ev) => {
+                const alvo = ev.target;
+                if (!alvo.closest('.rz-grab, .rz-sh-h') || alvo.closest('button, a, input, select, textarea')) return;
+                ativo = true; y0 = ev.clientY; t0 = Date.now(); dy = 0;
+                sheet.classList.add('rz-arrastando');
+                try { sheet.setPointerCapture(ev.pointerId); } catch (_) {}
+            };
+            const mover = (ev) => {
+                if (!ativo) return;
+                dy = ev.clientY - y0;
+                if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
+            };
+            const fim = () => {
+                if (!ativo) return;
+                ativo = false;
+                sheet.classList.remove('rz-arrastando');
+                const vel = dy / Math.max(1, Date.now() - t0);
+                const altura = sheet.getBoundingClientRect().height || 1;
+                if (dy > altura * 0.3 || (dy > 40 && vel > 0.6)) {
+                    sheet.style.transform = '';
+                    try { if (typeof rzDev === 'function') rzDev('haptic', 'light'); } catch (_) {}
+                    if (sheet.id === 'rz-sheet-2') rzFecharNivel2(); else fecharSheet();
+                    return;
+                }
+                sheet.style.transform = '';
+                if (dy < -40) {
+                    const corpo = sheet.querySelector('.rz-sh-b');
+                    if (corpo && corpo.scrollHeight > corpo.clientHeight + 4) sheet.classList.add('rz-cheio');
+                }
+            };
+            sheet.addEventListener('pointerdown', inicio);
+            sheet.addEventListener('pointermove', mover);
+            sheet.addEventListener('pointerup', fim);
+            sheet.addEventListener('pointercancel', fim);
         }
 
         // acoes: [{ icone, titulo, sub, tipo: 'ia' | 'bad' | '', aoTocar: fn, manterAberto: bool }]
@@ -3798,11 +3895,11 @@
 
         // corpo: string HTML ou função(el) que preenche; aoSalvar(corpoEl) pode
         // devolver Promise; se devolver false (ou rejeitar), o sheet fica aberto.
-        function abrirSheetForm({ titulo, sub, corpo = '', rotuloSalvar = 'Salvar', rotuloCancelar = 'Cancelar', aoSalvar, semRodape = false, aoFechar }) {
+        function abrirSheetForm({ titulo, sub, corpo = '', rotuloSalvar = 'Salvar', rotuloCancelar = 'Cancelar', aoSalvar, semRodape = false, aoFechar, empilhar = false }) {
             const rodape = semRodape ? '' :
                 `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" onclick="fecharSheet()">${rzEsc(rotuloCancelar)}</button>` +
                 `<button type="button" class="rz-btn rz-btn-1" id="rz-sheet-salvar">${rzEsc(rotuloSalvar)}</button></div>`;
-            const sheet = abrirSheet(rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b" id="rz-sheet-corpo">${typeof corpo === 'string' ? corpo : ''}</div>` + rodape, { aoFechar });
+            const sheet = abrirSheet(rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b" id="rz-sheet-corpo">${typeof corpo === 'string' ? corpo : ''}</div>` + rodape, { aoFechar, empilhar }); // v1.298.0 — F1.1
             const corpoEl = sheet.querySelector('#rz-sheet-corpo');
             if (typeof corpo === 'function') { corpo(corpoEl); rzIcones(); }
             const btn = sheet.querySelector('#rz-sheet-salvar');

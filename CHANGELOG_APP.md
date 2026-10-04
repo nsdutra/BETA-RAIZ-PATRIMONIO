@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.297.1) — P2 do Financeiro (PLANO_P2_FINANCEIRO_INTEGRIDADE v1.0.0, 5 fichas aprovadas):
+só import map — js/financeiro.js 1.29.0 → 1.30.0 (receitas sem contrato nos totais),
+js/fechamento.js 1.11.0 → 1.12.0 (pacote do contador com "Outras receitas"),
+js/cofre-ativos.js 1.71.0 → 1.72.0 (ativo dentro/fora da contabilidade da empresa).
+Banco: trava de 100% na divisão do contrato, alertas ativo_sem_proprietario/contrato_sem_divisao,
+cofre_ativos.registro_contabil, fn_fechamento_calcular_contabil e fn_financeiro_totalizadores.
+Versão anterior (Beta v1.297.0):
+------------------------------------------------------------------
+Versões anteriores (v1.297.0 … v1.297.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.297.0) — F0.2a do PLANO_UX (zero diálogo nativo, UXR-29/30; "de acordo"
 do Nicola 04/10 00:22). Atalhos rzAvisar/rzPerguntar/rzEscolherUm/rzResumo/rzPedirTexto
 para os substitutos do js/raiz-ui.js. Saem do index todos os alert/confirm/prompt fora do

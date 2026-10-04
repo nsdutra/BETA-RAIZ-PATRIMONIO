@@ -1,6 +1,14 @@
 // ============================================================================
 // raiz-ui.js — Raiz Patrimônio · Diálogos sem diálogo nativo (UXR-29/30)
-// Versão: 1.0.0 · 03/10/2026
+// Versão: 1.1.0 · 04/10/2026
+//
+// v1.1.0 (F1.1 do PLANO_UX, demanda c5d844a4, sessão 20261003-1707-ux-base, "Aprovado.
+// Siga" do Nicola 04/10 08:09; DIRETRIZES UXR-28) — rzConfirmar, rzEscolher e rzAviso
+// abrem com { empilhar: true }: com um sheet já aberto, vão para o NÍVEL 2 da pilha
+// (index.html 1.298.0) e o sheet de baixo volta intacto ao responder ou fechar. Sem sheet
+// aberto, nada muda. Assinaturas iguais.
+//
+// Versão anterior: 1.0.0 · 03/10/2026
 //
 // v1.0.0 (03/10/2026, sessão 20261003-2250-financeiro, demanda 94245176,
 // decisão D25 do Nicola) — módulo NOVO com os 3 substitutos que a DIRETRIZES
@@ -23,7 +31,7 @@
 // 'warning' (UXR-35). Também publica window.rzToast/rzConfirmar/rzEscolher/
 // rzAviso para código inline do index.html.
 // ============================================================================
-export const VERSAO = '1.0.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.1.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const g = (nome) => (typeof window !== 'undefined' && typeof window[nome] === 'function') ? window[nome] : null;
@@ -92,7 +100,7 @@ export function rzConfirmar({ titulo = 'Confirmar', impacto = '', destrutivo = f
                 `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-rz-cancelar>${esc(rotuloCancelar)}</button>` +
                 `<button type="button" class="rz-btn rz-btn-1" data-rz-ok>${esc(rotuloConfirmar)}</button></div>`;
         }
-        const sheet = abrir(html, { aoFechar: () => decidir(false) });
+        const sheet = abrir(html, { aoFechar: () => decidir(false), empilhar: true });
         sheet.querySelector('[data-rz-ok]')?.addEventListener('click', () => { decidir(true); fechar(); });
         sheet.querySelector('[data-rz-cancelar]')?.addEventListener('click', () => { decidir(false); fechar(); });
     });
@@ -107,7 +115,7 @@ export function rzEscolher({ titulo = 'Escolher', sub = '', opcoes = [] } = {}) 
         const decidir = (v) => { if (decidido) return; decidido = true; resolve(v); };
         const itens = opcoes.map((o, i) => `<button type="button" class="rz-act" data-rz-i="${i}"><div class="rz-ic"><svg data-lucide="${esc(o.icone || 'chevron-right')}"></svg></div>` +
             `<div>${esc(o.titulo)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</div></button>`).join('');
-        const sheet = abrir(cabecalho(titulo, sub) + `<div class="rz-sh-b">${itens}</div>`, { aoFechar: () => decidir(null) });
+        const sheet = abrir(cabecalho(titulo, sub) + `<div class="rz-sh-b">${itens}</div>`, { aoFechar: () => decidir(null), empilhar: true });
         sheet.querySelectorAll('[data-rz-i]').forEach(b => b.addEventListener('click', () => {
             decidir(opcoes[Number(b.dataset.rzI)].valor); fechar();
         }));
@@ -122,7 +130,7 @@ export function rzAviso({ titulo = 'Aviso', linhas = [], rotulo = 'Entendi' } = 
         const corpo = (Array.isArray(linhas) ? linhas : [linhas]).filter(Boolean)
             .map(l => `<p style="font-size:15px;color:var(--ink);margin:0 0 10px;line-height:1.45">${esc(l)}</p>`).join('');
         const sheet = abrir(cabecalho(titulo) + `<div class="rz-sh-b">${corpo}</div>` +
-            `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" data-rz-ok>${esc(rotulo)}</button></div>`, { aoFechar: () => resolve() });
+            `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" data-rz-ok>${esc(rotulo)}</button></div>`, { aoFechar: () => resolve(), empilhar: true });
         sheet.querySelector('[data-rz-ok]')?.addEventListener('click', () => fechar());
     });
 }
