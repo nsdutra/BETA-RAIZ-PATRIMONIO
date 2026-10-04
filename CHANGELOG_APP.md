@@ -4,6 +4,24 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.296.0) — F0.3 do PLANO_UX (texto e consistência; "de acordo" do Nicola
+03/10 23:57). Textos internos saem da tela: Alertas sem "Tom de notícia, nunca recomendação",
+Menu › Versões com "Versão do app em uso". Recibo sem dado inventado: sem CNPJ falso nem
+"Belo Horizonte" no modelo; sem CNPJ, a linha some. Nome único da IA: "Raiz IA" no app e
+"Raiz IA no WhatsApp" para o número (splash, menu, sheet da IA, saudação ao bot). Forma de
+pagamento do contrato = lista da baixa (PIX, Boleto, Dinheiro, Transferência, Cheque).
+Import map: contratos 1.38.0, cofre-documentos 2.22.0, resultados 1.8.2, vitrine 1.3.2,
+imoveis 1.6.1, cofre-app 1.43.0, ativos-markup 1.51.0, comum-renovacao 1.3.3,
+cofre-ativos 1.71.0, cofre-controles 1.41.0, comum-pessoas 1.202.0 (vincular login por
+e-mail — função nova fn_pessoa_vincular_login_por_email).
+Versão anterior (Beta v1.295.0):
+------------------------------------------------------------------
+Versões anteriores (v1.295.0 … v1.295.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.295.0) — P1b do Financeiro (ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0):
 Distribuição (tab-socios) remodelada no padrão UXR-10/25 — barra de busca + "+", competência,
 corpo desenhado por js/financeiro.js (renderDistribuicao, número de fn_apurar_distribuicao);

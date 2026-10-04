@@ -1,7 +1,18 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.30.0 · 04/10/2026
+// Versão: 1.30.1 · 04/10/2026
+//
+// v1.30.1 (04/10/2026, demanda cad6ec67 — correção dos testes da P2):
+// (1) o card "Outras receitas" mostrava o título partido em duas colunas
+// (título à esquerda, legenda à direita, quebrando em 2 linhas no celular);
+// agora é só o título, numa linha. (2) A rotina "Fechamento do mês" era
+// verificada 1x por sessão: ligar/desligar em Minha empresa não refletia no
+// Financeiro sem recarregar a página. Agora reverifica a cada entrada na aba
+// Financeiro (e quando a empresa muda), sem apagar o estado anterior antes
+// da resposta (sem piscar). Também avança window.__rzFinRotinasEpoca para
+// o fechamento.js reverificar a rotina fiscal no mesmo momento.
+// Versão anterior: 1.30.0.
 //
 // v1.30.0 (04/10/2026, demanda cad6ec67 — P2 Ficha 5): as receitas sem
 // contrato passaram a entrar nos 4 totais de Recebimentos
@@ -829,7 +840,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.30.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.30.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -841,6 +852,10 @@ import { rzToast, rzConfirmar, rzAviso, rzEscolher } from './raiz-ui.js';
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
+    // v1.30.1 — rotinas podem ter sido ligadas/desligadas em Minha empresa
+    // desde a última visita: reverifica nesta entrada (fechamento também).
+    financeiroRotinaReverificar = true;
+    if (typeof window !== 'undefined') window.__rzFinRotinasEpoca = (window.__rzFinRotinasEpoca || 0) + 1;
     // v1.17.0 (Fase 1 do wrapper de escrita) — assina 1x por boot o evento
     // padrão de escrita pras 4 entidades que este módulo emite (despesa/
     // mensalidade/conciliacao/recibo — ver changelog do topo). Guard por
@@ -919,6 +934,8 @@ export function resetarFinanceiroParaAbaInicial() {
 // mostra a lista vazia mesmo (mesmo comportamento do KPI zerado) — é a
 // consequência aceita da unificação, não um bug.
 let financeiroCompetenciaAtual = null; // 'YYYY-MM-01'; null = ainda não inicializada (usa o mês corrente)
+let financeiroRotinaFechamentoClienteId = null; // v1.30.1
+let financeiroRotinaReverificar = false; // v1.30.1 — true a cada entrada na aba
 let financeiroRotinaFechamentoLigada = null; // null = ainda não verificado nesta sessão; true/false depois
 
 function financeiroCompetenciaHojeISO() {
@@ -1369,7 +1386,14 @@ export async function salvarNovoRecebimento() {
 // destino/padrão já usado pelos 5 alertas de rotina de escopo empresa
 // (rzAbrirDestinoAlerta, case 'empresa/rotinas', Entrega AL.3).
 async function financeiroVerificarRotinaFechamento() {
-    if (financeiroRotinaFechamentoLigada !== null) return; // já verificado nesta sessão
+    // v1.30.1 — reverifica a cada entrada na aba (financeiroRotinaReverificar)
+    // e quando a empresa muda; antes era 1x por sessão e ligar/desligar a
+    // rotina em Minha empresa só aparecia depois de recarregar a página.
+    const mesmaEmpresa = financeiroRotinaFechamentoClienteId === CLIENTE_ID_SUPABASE;
+    if (financeiroRotinaFechamentoLigada !== null && mesmaEmpresa && !financeiroRotinaReverificar) return;
+    financeiroRotinaReverificar = false;
+    financeiroRotinaFechamentoClienteId = CLIENTE_ID_SUPABASE;
+    const anterior = financeiroRotinaFechamentoLigada;
     try {
         const { data, error } = await dbAuth.rpc('fn_rotinas_empresa_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
         if (error) throw error;
@@ -1377,8 +1401,9 @@ async function financeiroVerificarRotinaFechamento() {
         financeiroRotinaFechamentoLigada = linha ? !!linha.ligada : true; // rotina fora do catálogo não deve travar o chip
     } catch (e) {
         console.error('[financeiro] fn_rotinas_empresa_listar', e);
-        financeiroRotinaFechamentoLigada = true; // falha de rede nunca trava o chip — só a rotina desligada de propósito trava
+        financeiroRotinaFechamentoLigada = (anterior === null || !mesmaEmpresa) ? true : anterior; // falha de rede nunca trava o chip — só a rotina desligada de propósito trava
     }
+    if (mesmaEmpresa && anterior === financeiroRotinaFechamentoLigada) return; // v1.30.1 — nada mudou, não redesenha
     financeiroRedesenharChipsNivel();
     financeiroRedesenharQuadrantes(); // v1.20.0 — Fechar/Contador dependem da rotina
 }
@@ -1443,7 +1468,7 @@ function financeiroRenderCabecalho(aba) {
     const elRot = document.getElementById(`fin-rotinas-${aba}`);
     if (elRot) elRot.innerHTML = financeiroRotinasHtml(aba);
     financeiroRenderCadeadoCompetencia(); // v1.20.0 (demanda 7bdcb8d4)
-    if (financeiroRotinaFechamentoLigada === null) financeiroVerificarRotinaFechamento();
+    financeiroVerificarRotinaFechamento(); // v1.30.1 — a função decide se precisa ir ao banco
     if (aba === 'mensal' || aba === 'saidas') financeiroAtualizarKpis(aba);
     if (aba === 'saidas') financeiroRecarregarSaidas(); // v1.27.2
     // Entrega F.2 — card de Fechar/Reabrir dentro do chip Fechamento
@@ -4997,7 +5022,7 @@ export async function renderOutrasReceitas() {
     if (!linhas.length) { alvo.innerHTML = ''; return; }
     window.__rzOutrasReceitas = linhas;
     const st = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : esc(rot);
-    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Outras receitas</h3><span class="rz-sub">sem contrato · já somadas nos totais</span></div>` +
+    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Outras receitas</h3></div>` +
         linhas.map(l => {
             const recebido = l.status === 'realizado';
             const origem = l.origem_tipo === 'licenca' ? 'Licença' : (l.origem_tipo === 'extrato' ? 'Extrato' : 'Manual');

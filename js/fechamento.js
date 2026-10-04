@@ -1,6 +1,13 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.12.0 · 04/10/2026
+// Versão: 1.12.1 · 04/10/2026
+//
+// v1.12.1 (04/10/2026, demanda cad6ec67 — correção dos testes da P2): a
+// rotina "NFS-e da competência" ficava em cache até trocar de empresa;
+// ligar/desligar em Minha empresa só aparecia no Financeiro depois de
+// recarregar a página. Agora também reverifica quando o financeiro.js
+// avança window.__rzFinRotinasEpoca (a cada entrada na aba Financeiro).
+// Versão anterior: 1.12.0.
 //
 // v1.12.0 (04/10/2026, demanda cad6ec67 — P2 Ficha 4): o pacote do contador
 // ganha a seção "Outras receitas" (bloco outras_receitas de
@@ -314,7 +321,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.12.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.12.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -329,6 +336,7 @@ let fechamentoCarregando = false;
 // selecionada: verificado 1x por sessão, igual financeiroRotinaFechamentoLigada.
 let fechamentoRotinaFiscalLigada = null; // null = não verificado ainda; true/false = ligada/desligada
 let fechamentoRotinaFiscalClienteId = null; // v1.11.0 — cliente_id em que o cache acima foi verificado; ver fechamentoAtualizarFiscal
+let fechamentoRotinaFiscalEpoca = 0; // v1.12.1 — window.__rzFinRotinasEpoca em que o cache acima foi verificado
 let fechamentoFiscalPendencias = []; // v1.6.0 — linhas de fn_fiscal_pendencias_cadastro
 let fechamentoFiscalNotas = null; // v1.7.0 — KPIs de notas da competência (fn_fiscal_competencia); null = não verificado
 
@@ -495,7 +503,9 @@ async function fechamentoAtualizarFiscal(forcar = false) {
     // herdava esse valor errado. Agora reavalia sempre que CLIENTE_ID_SUPABASE
     // mudar desde a última verificação (mesmo padrão de ativos-boot.js, sem o
     // location.reload() dele — aqui é só o chip).
-    if (fechamentoRotinaFiscalClienteId !== CLIENTE_ID_SUPABASE) {
+    const epocaRotinas = (typeof window !== 'undefined') ? (window.__rzFinRotinasEpoca || 0) : 0; // v1.12.1
+    if (fechamentoRotinaFiscalClienteId !== CLIENTE_ID_SUPABASE || fechamentoRotinaFiscalEpoca !== epocaRotinas) {
+        fechamentoRotinaFiscalEpoca = epocaRotinas;
         fechamentoRotinaFiscalLigada = null;
         fechamentoFiscalPendencias = [];
         fechamentoFiscalNotas = null;
