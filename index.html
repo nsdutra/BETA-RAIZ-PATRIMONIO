@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.298.4
-   LINHAS: 16154
-   DATA: 04/10/2026 (sessão 20261004-1130-financeiro, demanda cad6ec67)
+   VERSÃO: Beta v1.299.0
+   LINHAS: 16387
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 798e7b64)
+   NOVIDADES (Beta v1.299.0) — F1.3 do PLANO_UX (REGRAS §4; "Pode implementar!" do Nicola 04/10
+   11:28). Cada aba guarda a rolagem: voltar a ela (rodapé ou voltar) devolve a posição; ficha
+   de contrato aberta "para a frente" começa no topo. Tocar na aba já aberta sobe ao topo, suave,
+   com háptico leve (em Ativos com ficha aberta, o 1º toque volta à lista). Links diretos
+   #/ativo/<id>, #/contrato/<id> e #/alerta/<chave>, também depois do login e no hashchange
+   (?ir=tab-X continua). Puxar para atualizar em Visão Geral, Ativos (lista), Contratos,
+   Resultados, Alertas e Partes: só a aba aberta recarrega; Financeiro fora. Import map:
+   js/cofre-navegacao.js 1.8.0 → 1.9.0 (rolagem por tela do Cofre). Sem banco.
+   Versão anterior (Beta v1.298.4):
    NOVIDADES (Beta v1.298.4) — alerta "1 ocorrência · Cadastro" (imóvel sem finalidade de uso) no
    padrão título + ativo (Nicola 04/10 11:27): título "Imóvel sem finalidade de uso" (ou "N imóveis
    sem finalidade de uso") e 2ª linha com o imóvel. Só texto, sem banco.
@@ -28,16 +37,8 @@
    "N pendências de cadastro", na Visão Geral e em Alertas; o toque abre a lista com o nome de
    cada alerta e o item na 2ª linha. O chip Cadastro conta e mostra os mesmos itens. Sem banco.
    Versão anterior (Beta v1.298.0):
-   NOVIDADES (Beta v1.298.0) — F1.1 do PLANO_UX (sheet empilhável e arrastável; DIRETRIZES
-   UXR-28, REGRAS §2; "Aprovado. Siga" do Nicola 04/10 08:09). abrirSheet ganha a opção
-   empilhar: com um sheet aberto, o novo abre POR CIMA (nível 2, "‹" no lugar do X) e o de
-   baixo volta intacto, com o que foi digitado. fecharSheet() fecha o nível de cima. Puxar
-   a alça ou o título para baixo fecha; para cima abre cheio quando o conteúdo é longo.
-   abrirSheetForm aceita empilhar; rzPedirTexto empilha. Import map: js/raiz-ui.js 1.0.0 →
-   1.1.0 (confirmação, escolha e resumo empilham).
-   Versão anterior (Beta v1.297.5):
    ------------------------------------------------------------------
-   Versões anteriores (v1.297.5 … v1.297.5): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.298.0 … v1.298.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -62,7 +63,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.2","./js/financeiro.js":"./js/financeiro.js?v=1.31.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.39.1","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.73.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.44.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.23.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.8.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.9.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.203.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.51.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.0.2","./js/financeiro.js":"./js/financeiro.js?v=1.31.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.39.1","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.73.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.44.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.23.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.9.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.203.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.8.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.3.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.51.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -803,6 +804,15 @@
         /* toast acima da bottom nav (UXR-29) */
         #toast-container{position:fixed;left:16px;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:500;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
         #toast-container>div{pointer-events:auto}
+        /* v1.299.0 (UX F1.3) — puxar para atualizar: indicador sob o cabeçalho */
+        html.rz-ptr-on{overscroll-behavior-y:contain}
+        #rz-ptr{position:fixed;left:50%;top:0;z-index:45;width:36px;height:36px;margin-left:-18px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;color:var(--pine);opacity:0;transform:translateY(-48px);pointer-events:none;transition:transform var(--m-base,200ms) ease,opacity var(--m-base,200ms) ease}
+        #rz-ptr.rz-puxando{transition:none}
+        #rz-ptr svg{width:18px;height:18px}
+        #rz-ptr.rz-pronto{color:var(--sprout)}
+        @keyframes rz-ptr-girar{to{transform:rotate(360deg)}}
+        #rz-ptr.rz-girando svg{animation:rz-ptr-girar .8s linear infinite}
+        @media (prefers-reduced-motion:reduce){#rz-ptr.rz-girando svg{animation:none}}
     </style>
 
 </head>
@@ -3525,7 +3535,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.298.4"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.299.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -7955,6 +7965,7 @@
                         // logo em seguida (history.replaceState), pra um F5
                         // não reabrir a mesma aba de novo à força.
                         abrirAbaPorDeepLink();
+                        rzAplicarRotaHash(); // v1.299.0 (UX F1.3) — link direto para ativo, contrato ou alerta
 
                         // Beta v1.71.0 — REVERTIDO pra chamar 'raiz:comunicacoes:processar'
                         // direto de novo (era assim até v1.69.1). O wrapper
@@ -9230,9 +9241,11 @@
 
         function switchTab(tabId) {
             const anterior = document.querySelector('.tab-content.active')?.id || null;
+            rzRolagemGuardar(anterior); // v1.299.0 (UX F1.3) — cada aba guarda onde estava
             rzSwitchTabInterno(tabId);
             const atual = document.querySelector('.tab-content.active')?.id || null;
             if (!atual || atual === anterior) return;
+            rzRolagemAoEntrar(atual, rzNavVoltando || rzNavPorRodape);
             let voltarPara = (!rzNavPorRodape && anterior) ? anterior : null;
             if (rzNavVoltando) {
                 voltarPara = (history.state && history.state.rzVoltar) || null;
@@ -9280,6 +9293,220 @@
             try { switchTab(st.rzTab); } finally { rzNavVoltando = false; }
             rzNavEstado = st;
         });
+
+        // =====================================================================
+        // v1.299.0 (UX F1.3, demanda 798e7b64) — ESTADO POR ABA, LINKS DIRETOS
+        // E PUXAR PARA ATUALIZAR. REGRAS §4 (navegação).
+        //  · Rolagem: cada aba guarda onde estava ao sair. Volta para ela pelo
+        //    rodapé ou pelo voltar: mesma posição. Entrar "para a frente" numa
+        //    ficha (contrato, ativo) abre no topo. Em Ativos a chave é a tela
+        //    do Cofre ('cofre:<tela>'), o mesmo mapa que cofre-navegacao.js usa.
+        //    Financeiro e as telas dele ficam como estão (etapa 6).
+        //  · Links: #/ativo/<uuid>, #/contrato/<uuid>, #/alerta/<chave>. Valem
+        //    ao abrir o app por link (inclusive depois do login) e no
+        //    hashchange. O link só sugere navegação: quem autoriza é o banco.
+        //    Não conflita com o hash do login (#access_token / type=recovery).
+        //  · Puxar para atualizar: só a aba aberta recarrega; Financeiro fora.
+        // =====================================================================
+        // var (não const): switchTab() roda no boot antes deste trecho ser avaliado
+        window.__rzRolagem = window.__rzRolagem || {};
+        var RZ_ROLAGEM_FINANCEIRO = ['tab-mensal', 'tab-saidas', 'tab-inadimplencia', 'tab-conciliacao', 'tab-regras-conciliacao', 'tab-socios', 'tab-fiscal-competencia'];
+        var RZ_ROLAGEM_SEMPRE_TOPO = ['tab-contrato-ficha']; // ficha: para a frente abre no topo; pelo voltar, onde estava
+        var rzRolagemToken = 0;
+
+        function rzTelaCofre() {
+            const el = document.querySelector('#ativos-mount-point [data-screen]:not(.hidden)');
+            return el ? el.dataset.screen : null;
+        }
+        function rzChaveRolagem(tabId) {
+            if (!tabId || (RZ_ROLAGEM_FINANCEIRO || []).includes(tabId)) return null;
+            if (tabId === 'tab-ativos') { const t = rzTelaCofre(); return t ? 'cofre:' + t : null; }
+            return tabId;
+        }
+        function rzRolagemGuardar(tabId) {
+            const k = rzChaveRolagem(tabId);
+            if (k) (window.__rzRolagem = window.__rzRolagem || {})[k] = Math.max(0, Math.round(window.scrollY || 0));
+        }
+        // Volta a uma posição; insiste algumas vezes porque a aba pode estar
+        // terminando de desenhar. Para se a pessoa mexer na tela.
+        function rzRolagemPara(y) {
+            const meu = ++rzRolagemToken;
+            let ultimo = null;
+            [0, 120, 350, 800].forEach(ms => setTimeout(() => {
+                if (meu !== rzRolagemToken) return;
+                if (ultimo !== null && Math.abs((window.scrollY || 0) - ultimo) > 4) { rzRolagemToken++; return; }
+                window.scrollTo(0, y);
+                ultimo = window.scrollY || 0;
+            }, ms));
+        }
+        window.rzRolagemCancelar = () => { rzRolagemToken++; }; // o Cofre chama ao trocar de tela dentro de Ativos
+        ['touchstart', 'wheel', 'keydown'].forEach(ev => window.addEventListener(ev, () => { rzRolagemToken++; }, { passive: true }));
+        function rzRolagemAoEntrar(tabId, lembrar) {
+            if ((RZ_ROLAGEM_FINANCEIRO || []).includes(tabId)) return;
+            const k = rzChaveRolagem(tabId);
+            const guardado = k ? (window.__rzRolagem || {})[k] : undefined;
+            const usar = (lembrar || !(RZ_ROLAGEM_SEMPRE_TOPO || []).includes(tabId)) ? (guardado || 0) : 0;
+            rzRolagemPara(usar);
+            rzPtrConferirAba();
+        }
+        function rzSubirAoTopo() {
+            rzRolagemToken++;
+            const reduzido = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            window.scrollTo({ top: 0, behavior: reduzido ? 'auto' : 'smooth' });
+            try { if (typeof rzDev === 'function') rzDev('haptic', 'light'); } catch (_) { /* sem háptico */ }
+        }
+
+        // ---- Links diretos ----
+        const RZ_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        function rzRotaDoHash() {
+            const m = (window.location.hash || '').match(/^#\/(ativo|contrato|alerta)\/([^/?#&]{1,240})$/);
+            if (!m) return null;
+            let ref = '';
+            try { ref = decodeURIComponent(m[2]); } catch (_) { return null; }
+            if (m[1] === 'alerta' ? !/^[\w.:-]{1,200}$/.test(ref) : !RZ_UUID.test(ref)) return null;
+            return { tipo: m[1], ref };
+        }
+        function rzAppPronto() {
+            return !!CLIENTE_ID_SUPABASE && !document.getElementById('main-content')?.classList.contains('hidden');
+        }
+        function rzEsperar(cond, ms) {
+            return new Promise(res => {
+                const t0 = Date.now();
+                const passo = () => { if (cond()) return res(true); if (Date.now() - t0 > ms) return res(false); setTimeout(passo, 150); };
+                passo();
+            });
+        }
+        async function rzAplicarRotaHash() {
+            if (!/^#\//.test(window.location.hash || '')) return;
+            if (!rzAppPronto()) return; // fica no endereço; entrarNoSistema() chama de novo depois do login
+            const rota = rzRotaDoHash();
+            try { history.replaceState(history.state, '', window.location.pathname + window.location.search); } catch (_) { /* segue */ }
+            if (!rota) { mostrarToast('Esse link não abre nada no app.', 'danger'); return; }
+            logScreen(`Link direto: ${rota.tipo}`);
+            if (document.getElementById('rz-veil')?.classList.contains('rz-on') && typeof fecharSheet === 'function') fecharSheet();
+            try {
+                if (rota.tipo === 'contrato') {
+                    if (!contratos.some(c => c.id === rota.ref)) { mostrarToast('Esse contrato não está na empresa aberta.', 'danger'); return; }
+                    const m = await carregarContratos();
+                    m.abrirFichaContrato(rota.ref);
+                } else if (rota.tipo === 'ativo') {
+                    switchTab('tab-ativos');
+                    const [{ estado }, ativos] = await Promise.all([import('./js/cofre-estado.js'), import('./js/cofre-ativos.js')]);
+                    if (!estado.clienteId) await rzEsperar(() => !!estado.clienteId, 8000);
+                    await ativos.abrirFichaAtivo(rota.ref);
+                } else if (rota.tipo === 'alerta') {
+                    abrirTabAlertas();
+                    const achou = await rzEsperar(() => alertasPorChave.has(rota.ref), 8000);
+                    if (achou) abrirAlertaDetalheSheet(rota.ref);
+                    else mostrarToast('Esse alerta não está na empresa aberta ou já foi resolvido.', 'danger');
+                }
+            } catch (err) {
+                mostrarToast('Não consegui abrir o link: ' + (err.message || String(err)), 'danger');
+            }
+        }
+        window.addEventListener('hashchange', () => { rzAplicarRotaHash(); });
+
+        // ---- Puxar para atualizar ----
+        const RZ_PTR_LIMIAR = 70;
+        var RZ_PTR_ABAS = {
+            'tab-geral': async () => { imoveis = await carregarImoveisSupabase(); contratos = await carregarContratosSupabase(); renderVisaoGeral(); },
+            'tab-contratos': async () => { contratos = await carregarContratosSupabase(); rzConSeCarregado('renderContratos'); },
+            'tab-ativos': async () => {
+                const t = rzTelaCofre();
+                if (t === 'home') window.dispatchEvent(new CustomEvent('cofre:montar-home'));
+                else window.dispatchEvent(new CustomEvent('cofre:recarregar-ativos'));
+                await new Promise(r => setTimeout(r, 700));
+            },
+            'tab-relatorios': async () => { const m = await carregarResultados(); await m.renderResultados(); },
+            'tab-alertas': async () => { await montarAlertasPatrimonio(); },
+            'tab-partes': async () => { await carregarPartes(); },
+        };
+        function rzPtrPodeNaAba() {
+            const aba = document.querySelector('.tab-content.active')?.id;
+            if (!aba || !RZ_PTR_ABAS || !RZ_PTR_ABAS[aba]) return null;
+            if (aba === 'tab-ativos' && !['ativos', 'home'].includes(rzTelaCofre())) return null; // ficha do Cofre: não
+            return aba;
+        }
+        function rzPtrConferirAba() {
+            document.documentElement.classList.toggle('rz-ptr-on', !!rzPtrPodeNaAba());
+        }
+        (function rzPtrInstalar() {
+            let y0 = null, x0 = 0, puxado = 0, ativo = false, rodando = false, avisou = false;
+            const ind = () => {
+                let el = document.getElementById('rz-ptr');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'rz-ptr'; el.setAttribute('aria-hidden', 'true');
+                    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>';
+                    document.body.appendChild(el);
+                }
+                const h = document.getElementById('main-header');
+                el.style.top = (h && !h.classList.contains('hidden') ? Math.max(0, h.getBoundingClientRect().bottom) : 0) + 'px';
+                return el;
+            };
+            const mostrar = (dist) => {
+                const el = ind();
+                el.classList.add('rz-puxando');
+                el.style.opacity = String(Math.min(1, dist / RZ_PTR_LIMIAR));
+                el.style.transform = `translateY(${Math.min(dist, RZ_PTR_LIMIAR + 20) * 0.6 - 24}px) rotate(${dist * 3}deg)`;
+                el.classList.toggle('rz-pronto', dist >= RZ_PTR_LIMIAR);
+            };
+            const esconder = () => {
+                const el = document.getElementById('rz-ptr'); if (!el) return;
+                el.classList.remove('rz-puxando', 'rz-pronto', 'rz-girando');
+                el.style.opacity = '0'; el.style.transform = 'translateY(-48px)';
+            };
+            const bloqueado = () => rodando
+                || document.getElementById('rz-veil')?.classList.contains('rz-on')
+                || !rzAppPronto();
+            window.addEventListener('touchstart', (e) => {
+                y0 = null; ativo = false; puxado = 0; avisou = false;
+                rzPtrConferirAba();
+                if (e.touches.length !== 1 || (window.scrollY || 0) > 0 || bloqueado() || !rzPtrPodeNaAba()) return;
+                if (e.target.closest && e.target.closest('input,textarea,select,[contenteditable],.rz-chips,.overflow-x-auto')) return;
+                y0 = e.touches[0].clientY; x0 = e.touches[0].clientX;
+            }, { passive: true });
+            window.addEventListener('touchmove', (e) => {
+                if (y0 === null) return;
+                const dy = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0);
+                if (!ativo) {
+                    if (dy < 8) { if (dy < 0 || dx > 8) y0 = null; return; }
+                    if (dx > dy || (window.scrollY || 0) > 0) { y0 = null; return; }
+                    ativo = true;
+                }
+                puxado = dy;
+                mostrar(puxado);
+                if (puxado >= RZ_PTR_LIMIAR && !avisou) { avisou = true; try { rzDev('haptic', 'light'); } catch (_) { /* sem háptico */ } }
+            }, { passive: true });
+            const soltar = async () => {
+                if (y0 === null) return;
+                y0 = null;
+                if (!ativo) return;
+                ativo = false;
+                if (puxado < RZ_PTR_LIMIAR) { esconder(); return; }
+                const aba = rzPtrPodeNaAba();
+                if (!aba) { esconder(); return; }
+                rodando = true;
+                const el = ind();
+                el.classList.remove('rz-puxando', 'rz-pronto'); el.classList.add('rz-girando');
+                el.style.opacity = '1'; el.style.transform = `translateY(${RZ_PTR_LIMIAR * 0.6 - 24}px)`;
+                const t0 = Date.now();
+                try {
+                    await RZ_PTR_ABAS[aba]();
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                } catch (err) {
+                    console.warn('[puxar-para-atualizar]', aba, err);
+                    mostrarToast('Não consegui atualizar. Tente de novo.', 'danger');
+                } finally {
+                    const falta = 500 - (Date.now() - t0);
+                    if (falta > 0) await new Promise(r => setTimeout(r, falta));
+                    esconder();
+                    rodando = false;
+                }
+            };
+            window.addEventListener('touchend', soltar, { passive: true });
+            window.addEventListener('touchcancel', () => { y0 = null; ativo = false; esconder(); }, { passive: true });
+        })();
 
         function rzSwitchTabInterno(tabId) {
             if (TAB_CODIGO_VER[tabId] && rzMostrarBloqueio(TAB_CODIGO_VER[tabId])) return;
@@ -9540,6 +9767,12 @@
         //     da visita anterior", mesmo tratamento de qualquer outro
         //     filtro de lista do app (fora do escopo desta demanda).
         function irParaAbaRodape(tabId) {
+            // v1.299.0 (UX F1.3) — tocar na aba que já está aberta sobe ao topo.
+            // Em Ativos com uma ficha aberta, o 1º toque volta à lista (como antes)
+            // e só o 2º sobe ao topo.
+            const abaAberta = document.querySelector('.tab-content.active')?.id || null;
+            const fichaCofreAberta = tabId === 'tab-ativos' && /^ficha/.test(rzTelaCofre() || '');
+            if (abaAberta === tabId && !fichaCofreAberta) setTimeout(rzSubirAoTopo, 0);
             if (tabId === 'tab-ativos' && document.querySelector('#ativos-mount-point #app-cofre')) {
                 import('./js/cofre-ativos.js')
                     .then(m => { if (typeof m.fecharFichaAtivo === 'function') m.fecharFichaAtivo(); })

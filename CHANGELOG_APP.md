@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.298.0) — F1.1 do PLANO_UX (sheet empilhável e arrastável; DIRETRIZES
+UXR-28, REGRAS §2; "Aprovado. Siga" do Nicola 04/10 08:09). abrirSheet ganha a opção
+empilhar: com um sheet aberto, o novo abre POR CIMA (nível 2, "‹" no lugar do X) e o de
+baixo volta intacto, com o que foi digitado. fecharSheet() fecha o nível de cima. Puxar
+a alça ou o título para baixo fecha; para cima abre cheio quando o conteúdo é longo.
+abrirSheetForm aceita empilhar; rzPedirTexto empilha. Import map: js/raiz-ui.js 1.0.0 →
+1.1.0 (confirmação, escolha e resumo empilham).
+Versão anterior (Beta v1.297.5):
+------------------------------------------------------------------
+Versões anteriores (v1.297.5 … v1.297.5): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.297.5) — alertas de cadastro da P2 com texto de gente (Nicola 04/10 08:06).
 "Ativo sem proprietário", "Contrato sem divisão do aluguel" e "Chave Pix da empresa
 pendente" mostravam o código cru no título e no Sheet; o grupo dizia só "6 alertas" — agora

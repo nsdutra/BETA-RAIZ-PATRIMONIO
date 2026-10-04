@@ -1,5 +1,12 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
+// v1.9.0 (04/10/2026) — UX F1.3 (demanda 798e7b64): mudarTela() guarda a
+// rolagem da tela que sai e devolve a da lista ao voltar (Ativos, Início,
+// Alertas). Fichas ('ficha-*') abrem sempre no topo. O mapa é
+// window.__rzRolagem com chave 'cofre:<tela>', o mesmo que o index.html usa
+// para a aba Ativos; no App, só rola a janela quando a aba Ativos está à
+// vista (senão mexeria na rolagem de outra aba).
+//
 // v1.8.0 (22/09/2026) — PORTA DE LICENÇA NO BOOT (demanda 8b2d37d7, C4).
 // bootstrap() passa a instalar a porta compartilhada (js/comum-licenca.js
 // v1.4.0, instalarPortaGlobal) em paralelo com carregarTudo(). No cofre.html
@@ -10,8 +17,8 @@
 // aplicados. Falha na porta não derruba o boot (a trava de banco segue
 // valendo, com a mensagem do design system — c3_porta_amigos_v1).
 //
-// Versão: 1.8.0 · 22/09/2026
-// Versão anterior: 1.7.1 · 15/09/2026
+// Versão: 1.9.0 · 04/10/2026
+// Versão anterior: 1.8.0 · 22/09/2026
 //
 // v1.7.1 (15/09/2026) — PLANO_IMPLEMENTACAO v1.0, etapa E14.4:
 // listarContatos() saiu de carregarTudo() — estado.contatos nunca era
@@ -126,7 +133,7 @@
 // imediata, e é IMEDIATAMENTE substituído pelo nome real assim que a
 // consulta volta — nunca fica sozinho como fonte de verdade.
 // ============================================================================
-export const VERSAO = '1.8.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.9.0'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';
@@ -362,9 +369,29 @@ export async function abrirContexto(tipo, ref, nomeCosmetico) {
 // secundária", "Categorias é configuração, não atividade diária")
 // ============================================================================
 export function mudarTela(nome) {
+    // v1.9.0 (UX F1.3) — rolagem por tela; ver cabeçalho
+    const mapa = (window.__rzRolagem = window.__rzRolagem || {});
+    const abaAtivos = document.getElementById('tab-ativos');
+    const aVista = !abaAtivos || abaAtivos.classList.contains('active');
+    const saindo = document.querySelector('[data-screen]:not(.hidden)')?.dataset.screen || null;
+    if (aVista && saindo && saindo !== nome) mapa['cofre:' + saindo] = Math.max(0, Math.round(window.scrollY || 0));
     document.querySelectorAll('[data-screen]').forEach(el => el.classList.toggle('hidden', el.dataset.screen !== nome));
     document.querySelectorAll('[data-nav-item]').forEach(el => el.classList.toggle('active', el.dataset.navItem === nome));
-    window.scrollTo(0, 0);
+    const ehFicha = /^ficha/.test(nome);
+    if (ehFicha) mapa['cofre:' + nome] = 0;
+    const alvo = ehFicha ? 0 : (mapa['cofre:' + nome] || 0);
+    if (aVista && saindo !== nome) { // mesma tela de novo (ex.: recarregar a lista): não mexe na rolagem
+        try { if (typeof window.rzRolagemCancelar === 'function') window.rzRolagemCancelar(); } catch (_) { /* App ausente */ }
+        window.scrollTo(0, alvo);
+        // a lista pode estar terminando de desenhar: tenta de novo, se ninguém mexeu
+        if (alvo > 0) {
+            let ultimo = window.scrollY || 0;
+            [150, 450].forEach(ms => setTimeout(() => {
+                if (Math.abs((window.scrollY || 0) - ultimo) > 4 || document.querySelector('[data-screen]:not(.hidden)')?.dataset.screen !== nome) return;
+                window.scrollTo(0, alvo); ultimo = window.scrollY || 0;
+            }, ms));
+        }
+    }
     refrescarIcones();
 }
 
