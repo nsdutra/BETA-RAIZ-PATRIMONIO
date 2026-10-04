@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.298.1) — alertas de cadastro numa linha só (decisão do Nicola 04/10 08:35).
+Todos os alertas de cadastro (ativo sem proprietário, contrato sem divisão, Pix da empresa,
+cadastro incompleto, CIB pendente, dado que impede a nota e o sinal "Cadastro") viram 1 linha,
+"N pendências de cadastro", na Visão Geral e em Alertas; o toque abre a lista com o nome de
+cada alerta e o item na 2ª linha. O chip Cadastro conta e mostra os mesmos itens. Sem banco.
+Versão anterior (Beta v1.298.0):
+------------------------------------------------------------------
+Versões anteriores (v1.298.0 … v1.298.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.298.0) — F1.1 do PLANO_UX (sheet empilhável e arrastável; DIRETRIZES
 UXR-28, REGRAS §2; "Aprovado. Siga" do Nicola 04/10 08:09). abrirSheet ganha a opção
 empilhar: com um sheet aberto, o novo abre POR CIMA (nível 2, "‹" no lugar do X) e o de

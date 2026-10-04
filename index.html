@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.299.0
-   LINHAS: 16387
-   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 798e7b64)
+   VERSÃO: Beta v1.300.0
+   LINHAS: 16696
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 8e479a7e)
+   NOVIDADES (Beta v1.300.0) — F1.2 do PLANO_UX (UXR-22/28/29; plano de 04/10 12:20 com a observação do
+   Nicola 12:25: nada executa só por deslizar; grupos com ver e escolher). Alertas e Pontos de atenção:
+   deslizar a linha REVELA até 2 ações por lado e só o toque executa — 1 alerta: Tratar/Vincular/
+   Resolver/Visto à direita, Adiar (7 ou 30 dias)/Dispensar à esquerda; grupo: "Ver aqui" (abre os
+   itens ali mesmo, cada um com o seu deslizar) e "Escolher" (marca vários e adia, dispensa ou marca
+   como visto de uma vez). Pressão longa: ações rápidas (grupo: Escolher). Toda marcação de alerta tem
+   "Desfazer" por 5 s, também pelo sheet. O toque na linha continua igual. Sem banco.
+   Versão anterior (Beta v1.299.0):
    NOVIDADES (Beta v1.299.0) — F1.3 do PLANO_UX (REGRAS §4; "Pode implementar!" do Nicola 04/10
    11:28). Cada aba guarda a rolagem: voltar a ela (rodapé ou voltar) devolve a posição; ficha
    de contrato aberta "para a frente" começa no topo. Tocar na aba já aberta sobe ao topo, suave,
@@ -31,14 +39,8 @@
    lancamento_categorias), js/cofre-controles.js 1.42.0 → 1.43.0 (combo Tipo de controle_tipos;
    "Lançar despesa" do item usa a categoria do banco) e js/cofre-validacoes.js 2.3.0 → 2.4.0.
    Versão anterior (Beta v1.298.1):
-   NOVIDADES (Beta v1.298.1) — alertas de cadastro numa linha só (decisão do Nicola 04/10 08:35).
-   Todos os alertas de cadastro (ativo sem proprietário, contrato sem divisão, Pix da empresa,
-   cadastro incompleto, CIB pendente, dado que impede a nota e o sinal "Cadastro") viram 1 linha,
-   "N pendências de cadastro", na Visão Geral e em Alertas; o toque abre a lista com o nome de
-   cada alerta e o item na 2ª linha. O chip Cadastro conta e mostra os mesmos itens. Sem banco.
-   Versão anterior (Beta v1.298.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.298.0 … v1.298.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.298.1 … v1.298.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -811,6 +813,24 @@
         #rz-ptr svg{width:18px;height:18px}
         #rz-ptr.rz-pronto{color:var(--sprout)}
         @keyframes rz-ptr-girar{to{transform:rotate(360deg)}}
+        /* v1.300.0 (UX F1.2, UXR-28) — deslizar a linha revela até 2 ações por lado; só o toque na ação executa */
+        .rz-card.rz-list:has(.rz-sw){overflow:hidden}
+        .rz-sw{position:relative;overflow:hidden;margin:0 -16px}
+        .rz-sw:not(:first-child){border-top:1px solid var(--line)}
+        .rz-sw>.rz-row{position:relative;z-index:1;background:var(--card);padding-left:16px;padding-right:16px;border-top:0;touch-action:pan-y;transition:transform var(--m-base,200ms) ease}
+        .rz-sw.rz-sw-arrastando>.rz-row{transition:none}
+        .rz-sw-a{position:absolute;top:0;bottom:0;display:flex;z-index:0}
+        .rz-sw-a.rz-sw-dir{left:0}.rz-sw-a.rz-sw-esq{right:0}
+        .rz-sw-a button{width:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;color:#fff;border:0;background:var(--pine);padding:0 4px;text-align:center;line-height:1.2}
+        .rz-sw-a button svg{width:20px;height:20px}
+        .rz-sw-a button.rz-sw-bad{background:var(--danger)}.rz-sw-a button.rz-sw-warn{background:var(--warning)}.rz-sw-a button.rz-sw-neu{background:var(--sage)}
+        .rz-lp{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+        .rz-grupo-itens{margin:0 -16px;background:var(--tile);border-top:1px solid var(--line)}
+        .rz-grupo-itens .rz-sw{margin:0}
+        .rz-grupo-itens .rz-row{padding-left:28px;padding-right:16px}
+        .rz-grupo-itens .rz-sw>.rz-row{background:var(--tile)}
+        .rz-row.rz-aberto .rz-chev{transform:rotate(90deg)}
+        @media (prefers-reduced-motion:reduce){.rz-sw>.rz-row{transition:none}}
         #rz-ptr.rz-girando svg{animation:rz-ptr-girar .8s linear infinite}
         @media (prefers-reduced-motion:reduce){#rz-ptr.rz-girando svg{animation:none}}
     </style>
@@ -3535,7 +3555,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.299.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.300.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3594,6 +3614,115 @@
         function rzPerguntar(opcoes) { return window.rzConfirmar ? window.rzConfirmar(opcoes) : Promise.resolve(false); }
         function rzEscolherUm(opcoes) { return window.rzEscolher ? window.rzEscolher(opcoes) : Promise.resolve(null); }
         function rzResumo(opcoes) { return window.rzAviso ? window.rzAviso(opcoes) : Promise.resolve(); }
+
+        // ---------------------------------------------------------------------
+        // v1.300.0 (UX F1.2, demanda 8e479a7e; DIRETRIZES UXR-28, REGRAS §8).
+        // rzSwipe(linha, {dir, esq}) — deslizar a linha REVELA até 2 ações por
+        // lado; NADA executa só por deslizar (decisão do Nicola, 04/10 12:25):
+        // a ação roda no toque no botão. Uma linha aberta por vez; tocar fora
+        // ou na própria linha fecha. Não começa a menos de 24 px da borda (o
+        // "voltar" do celular). rzLongPress(el, fn) — segurar 0,5 s.
+        // O toque na linha e o sheet continuam sendo o caminho sem gesto.
+        // ---------------------------------------------------------------------
+        var rzSwipeAberto = null;
+        function rzSwipeFechar(sw) {
+            sw = sw || rzSwipeAberto; if (!sw) return;
+            const row = sw.querySelector(':scope > .rz-row');
+            if (row) row.style.transform = '';
+            sw.classList.remove('rz-sw-on'); sw.dataset.pos = '0';
+            if (rzSwipeAberto === sw) rzSwipeAberto = null;
+        }
+        function rzSwipe(row, { dir = [], esq = [] } = {}) {
+            if (!row || !row.parentNode || row.closest('.rz-sw')) return null;
+            dir = (dir || []).slice(0, 2); esq = (esq || []).slice(0, 2);
+            if (!dir.length && !esq.length) return null;
+            const sw = document.createElement('div'); sw.className = 'rz-sw';
+            row.parentNode.insertBefore(sw, row);
+            const painel = (lista, lado) => {
+                if (!lista.length) return;
+                const p = document.createElement('div'); p.className = 'rz-sw-a rz-sw-' + lado;
+                p.innerHTML = lista.map((a, i) => `<button type="button" data-i="${i}" class="${a.tipo ? 'rz-sw-' + a.tipo : ''}"><svg data-lucide="${rzEsc(a.icone || 'chevron-right')}"></svg><span>${rzEsc(a.titulo)}</span></button>`).join('');
+                p.querySelectorAll('button').forEach(b => b.addEventListener('click', (ev) => {
+                    ev.stopPropagation(); rzSwipeFechar(sw);
+                    const a = lista[Number(b.dataset.i)];
+                    try { if (a && typeof a.aoTocar === 'function') a.aoTocar(); }
+                    catch (e) { console.error('[rzSwipe]', e); mostrarToast('Não consegui fazer isso agora.', 'danger'); }
+                }));
+                sw.appendChild(p);
+            };
+            painel(dir, 'dir'); painel(esq, 'esq');
+            sw.appendChild(row);
+            const L = 76, wDir = dir.length * L, wEsq = esq.length * L;
+            let x0 = null, y0 = 0, eixo = null, pos = 0, base = 0, mexeu = false;
+            row.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) { x0 = null; return; }
+                const t = e.touches[0];
+                if (t.clientX < 24 || t.clientX > window.innerWidth - 24) { x0 = null; return; }
+                if (rzSwipeAberto && rzSwipeAberto !== sw) rzSwipeFechar();
+                x0 = t.clientX; y0 = t.clientY; eixo = null; mexeu = false;
+                base = Number(sw.dataset.pos || 0); pos = base;
+            }, { passive: true });
+            row.addEventListener('touchmove', (e) => {
+                if (x0 === null) return;
+                const t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
+                if (!eixo) {
+                    if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+                    eixo = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+                    if (eixo === 'x') { sw.classList.add('rz-sw-arrastando'); mexeu = true; }
+                }
+                if (eixo !== 'x') return;
+                let p = base + mx;
+                if (p > wDir) p = wDir + (p - wDir) * 0.2;
+                if (p < -wEsq) p = -wEsq + (p + wEsq) * 0.2;
+                pos = p; row.style.transform = `translateX(${p}px)`;
+            }, { passive: true });
+            const soltar = () => {
+                if (x0 === null) return;
+                x0 = null; sw.classList.remove('rz-sw-arrastando');
+                if (eixo !== 'x') return;
+                let alvo = 0;
+                if (wDir && pos > wDir / 2) alvo = wDir; else if (wEsq && pos < -wEsq / 2) alvo = -wEsq;
+                if (!alvo) { rzSwipeFechar(sw); return; }
+                const jaAberto = sw.classList.contains('rz-sw-on') && Number(sw.dataset.pos) === alvo;
+                row.style.transform = `translateX(${alvo}px)`; sw.dataset.pos = String(alvo);
+                sw.classList.add('rz-sw-on'); rzSwipeAberto = sw;
+                if (!jaAberto) { try { rzDev('haptic', 'light'); } catch (_) { /* sem háptico */ } }
+            };
+            row.addEventListener('touchend', soltar, { passive: true });
+            row.addEventListener('touchcancel', soltar, { passive: true });
+            // toque logo depois de arrastar, ou com a linha aberta: só fecha
+            sw.addEventListener('click', (e) => {
+                if (e.target.closest('.rz-sw-a')) return;
+                if (mexeu || sw.classList.contains('rz-sw-on')) {
+                    e.stopImmediatePropagation(); e.preventDefault(); mexeu = false; rzSwipeFechar(sw);
+                }
+            }, true);
+            return sw;
+        }
+        document.addEventListener('touchstart', (e) => { if (rzSwipeAberto && !rzSwipeAberto.contains(e.target)) rzSwipeFechar(); }, { passive: true, capture: true });
+        function rzLongPress(el, fn) {
+            if (!el || el.dataset.rzLp) return;
+            el.dataset.rzLp = '1'; el.classList.add('rz-lp');
+            let t = null, x = 0, y = 0, disparou = false;
+            el.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                disparou = false; x = e.touches[0].clientX; y = e.touches[0].clientY;
+                clearTimeout(t);
+                t = setTimeout(() => {
+                    t = null; disparou = true;
+                    try { rzDev('haptic', 'light'); } catch (_) { /* sem háptico */ }
+                    rzSwipeFechar(); fn();
+                }, 500);
+            }, { passive: true });
+            el.addEventListener('touchmove', (e) => {
+                if (!t) return;
+                const p = e.touches[0];
+                if (Math.abs(p.clientX - x) > 8 || Math.abs(p.clientY - y) > 8) { clearTimeout(t); t = null; }
+            }, { passive: true });
+            ['touchend', 'touchcancel'].forEach(ev => el.addEventListener(ev, () => { clearTimeout(t); t = null; }, { passive: true }));
+            el.addEventListener('click', (e) => { if (disparou) { disparou = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+            el.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
         // pedido de texto livre (substitui prompt() de texto): Sheet com 1 campo → texto ou null
         function rzPedirTexto({ titulo, sub = '', rotulo, placeholder = '', tipo = 'text', valor = '', rotuloSalvar = 'Continuar' }) {
             return new Promise((resolve) => {
@@ -11521,6 +11650,7 @@
             if (segEl) segEl.innerHTML = segSeveridadeHtml('alertas-seg-severidade-geral', geralSeveridadeFiltro, 'filtrarGeralPorSeveridade');
             if (wrapper) wrapper.innerHTML = cardsHtml.length ? `<div class="rz-card rz-list">${cardsHtml.join('')}</div>`
                 : (visiveis.length ? `<p class="text-xs text-center py-6" style="color:var(--sage)">Nenhum alerta desta severidade.</p>` : '');
+            if (wrapper) rzLigarGestosAlertas(wrapper); // v1.300.0 (F1.2)
 
             // v1.185.0 — badge do sino: migrou de renderVisaoGeral() (cálculo
             // local) pra cá (única fonte, Motor). v1.187.0 — borda/status do
@@ -12116,6 +12246,7 @@
                 // sheet. Resumos de grupo (abaixo) continuam navegando direto
                 // — um card "12 atrasos" não tem 1 conteúdo só pra mostrar.
                 onClick: `abrirAlertaDetalheSheet('${r.alerta_chave}')`,
+                alertaChave: r.alerta_chave, // v1.300.0 (F1.2) — gestos da linha
             };
         }
 
@@ -12235,6 +12366,7 @@
                     titulo: tituloResumoCadastro(deCadastro.length),
                     subtitulo: subtituloResumoCadastro(deCadastro),
                     onClick: `abrirListaAlertasGrupo('cadastro', 'cadastro')`,
+                    grupoRef: 'cadastro|cadastro', grupoChaves: deCadastro.map(r => r.alerta_chave), // v1.300.0 (F1.2)
                 });
                 rows = rows.filter(r => grupoExibicaoAlerta(r) !== 'cadastro');
             }
@@ -12290,6 +12422,7 @@
                     titulo: tituloResumoPorTipo(tipoAlerta, grupo.length),
                     subtitulo: subtituloResumoPorTipo(tipoAlerta, grupo),
                     onClick: `abrirListaAlertasGrupo('tipo', '${tipoAlerta}')`,
+                    grupoRef: 'tipo|' + tipoAlerta, grupoChaves: grupo.map(r => r.alerta_chave), // v1.300.0 (F1.2)
                 });
             });
 
@@ -12316,6 +12449,7 @@
                     titulo: tituloResumoPorEntidade(grupo[0].tipo_alerta, grupo.length),
                     subtitulo: ativoNome,
                     onClick: `abrirListaAlertasGrupo('entidade', '${chave}')`,
+                    grupoRef: 'entidade|' + chave, grupoChaves: grupo.map(r => r.alerta_chave), // v1.300.0 (F1.2)
                 });
             });
 
@@ -12338,6 +12472,7 @@
                     titulo: tituloResumoPorNatureza(nat, grupo.length),
                     subtitulo: subtituloResumoPorTipo(grupo[0].tipo_alerta, grupo), // mesmo fallback genérico (sem case próprio pra este tipo)
                     onClick: `abrirListaAlertasGrupo('natureza', '${chave}')`,
+                    grupoRef: 'natureza|' + chave, grupoChaves: grupo.map(r => r.alerta_chave), // v1.300.0 (F1.2)
                 });
             });
 
@@ -12481,6 +12616,7 @@
             // 'item_controle'). ICONE_TIPO_ALERTA sobrepõe por tipo quando
             // existe, antes do fallback por categoria.
             mount.innerHTML = `<div class="rz-card rz-list">` + ordenados.map(linhaAlertaHtml).join('') + `</div>`;
+            rzLigarGestosAlertas(mount); // v1.300.0 (F1.2)
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -12560,7 +12696,11 @@
                 const onClickSeguro = clicavel
                     ? `try{ ${a.onClick} }catch(erroClique){ console.error('[alertas] onClick falhou:', erroClique); if (typeof mostrarToast === 'function') mostrarToast('Não consegui abrir esse alerta agora.', 'danger'); }`
                     : '';
-                return `<div class="rz-row ${clicavel ? 'rz-link' : ''}" ${clicavel ? `onclick="${onClickSeguro}"` : ''}>
+                // v1.300.0 (F1.2) — marca a linha para os gestos (rzLigarGestosAlertas)
+                let dadosGesto = '';
+                if (a.alertaChave) dadosGesto = ` data-rz-alerta="${rzEsc(a.alertaChave)}"`;
+                else if (a.grupoRef && Array.isArray(a.grupoChaves)) { rzGrupoChaves.set(a.grupoRef, a.grupoChaves); dadosGesto = ` data-rz-grupo="${rzEsc(a.grupoRef)}"`; }
+                return `<div class="rz-row ${clicavel ? 'rz-link' : ''}${a.grupoRef && rzGruposAbertos.has(a.grupoRef) ? ' rz-aberto' : ''}"${dadosGesto} ${clicavel ? `onclick="${onClickSeguro}"` : ''}>
                     <div class="rz-ic${classeIc}"><svg data-lucide="${icone}"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(a.titulo)}</b><span>${escapeHtmlSaidas(a.subtitulo)}</span></div>
                     <div class="rz-rt">${rotulo ? st(sem, rotulo) : ''}</div>
@@ -12833,28 +12973,7 @@
             // gated pela natureza, mesma regra de fn_alerta_marcar (o app só
             // espelha, nunca reimplementa, CAN-03); Dispensar nunca aparece
             // pra alerta obrigatório (não pode ser adiado nem dispensado).
-            const acoes = [];
-            // v1.257.0 — cadastro fiscal: completa ali mesmo, qualquer campo (CPF/CNPJ, destinação, município pelo CEP, CIB)
-            if (r.tipo_alerta === 'fiscal_cadastro_incompleto' && r.detalhe?.campo && typeof window.fiscalCompletarPendencia === 'function') {
-                acoes.push({ icone: 'pencil', titulo: 'Completar agora', sub: r.detalhe?.texto || '', aoTocar: () => window.fiscalCompletarPendencia(
-                    { entidade_tipo: r.entidade_tipo, entidade_id: r.entidade_id, campo: r.detalhe.campo, detalhe: r.detalhe.texto, titulo: r.titulo },
-                    () => { if (typeof montarAlertasPatrimonio === 'function') montarAlertasPatrimonio(); if (typeof renderVisaoGeral === 'function') renderVisaoGeral(); }) });
-            }
-            if (r.destino_rota && !campoAcao) {
-                acoes.push({ icone: 'arrow-right-circle', titulo: 'Tratar', sub: 'Ver e resolver', aoTocar: () => rzAbrirDestinoAlerta(alertaChave) });
-            }
-            if (r.natureza === 'informativo') {
-                acoes.push(r.marcado_visto
-                    ? { icone: 'eye-off', titulo: 'Desmarcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto', true) }
-                    : { icone: 'eye', titulo: 'Marcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto') });
-            }
-            if (r.natureza === 'acionavel') {
-                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 7 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 7) });
-                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 30 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 30) });
-            }
-            if (r.natureza !== 'obrigatorio') {
-                acoes.push({ icone: 'x-circle', titulo: 'Dispensar', tipo: 'bad', aoTocar: () => rzMarcarAlerta(alertaChave, 'dispensado') });
-            }
+            const acoes = rzAcoesAlerta(r, alertaChave); // v1.300.0 (F1.2) — mesma lista do toque longo
 
             const renderAcoesLista = () => {
                 if (!acoesEl) return;
@@ -12916,25 +13035,215 @@
         // se fundiu com Tratar/Compartilhar numa lista só, embutida no
         // próprio abrirAlertaDetalheSheet — ver comentário ali. Nenhum
         // outro ponto do app chamava esta função.
+        // =====================================================================
+        // v1.300.0 (UX F1.2, demanda 8e479a7e; UXR-22/28/29) — AÇÕES DO ALERTA,
+        // GESTOS DA LINHA E "DESFAZER".
+        //  · rzAcoesAlerta: lista única de ações (sheet do alerta e toque longo).
+        //  · Linha de 1 alerta: deslizar revela Tratar/Vincular/Resolver/Visto
+        //    (direita) e Adiar/Dispensar (esquerda); só o toque executa.
+        //  · Linha de grupo: deslizar revela "Ver aqui" (abre os itens ali mesmo,
+        //    cada um com o seu deslizar) e "Escolher" (marca vários e age neles).
+        //    O toque na linha continua abrindo a lista.
+        //  · Toda marcação (visto, adiado, dispensado) mostra "Desfazer" por 5 s
+        //    (fn_alerta_desmarcar, já existente). Sem banco novo.
+        // =====================================================================
+        var rzGrupoChaves = new Map();   // grupoRef → chaves dos alertas do grupo
+        var rzGruposAbertos = new Set(); // grupos abertos com "Ver aqui"
+
+        function rzRecarregarAlertasTela() {
+            if (typeof montarAlertasPatrimonio === 'function') montarAlertasPatrimonio();
+            if (typeof renderVisaoGeral === 'function') renderVisaoGeral();
+        }
+        function rzAcoesAlerta(r, alertaChave) {
+            const campoAcao = campoAcaoAlerta(r);
+            const acoes = [];
+            // v1.257.0 — cadastro fiscal: completa ali mesmo, qualquer campo (CPF/CNPJ, destinação, município pelo CEP, CIB)
+            if (r.tipo_alerta === 'fiscal_cadastro_incompleto' && r.detalhe?.campo && typeof window.fiscalCompletarPendencia === 'function') {
+                acoes.push({ icone: 'pencil', titulo: 'Completar agora', sub: r.detalhe?.texto || '', aoTocar: () => window.fiscalCompletarPendencia(
+                    { entidade_tipo: r.entidade_tipo, entidade_id: r.entidade_id, campo: r.detalhe.campo, detalhe: r.detalhe.texto, titulo: r.titulo },
+                    rzRecarregarAlertasTela) });
+            }
+            if (r.destino_rota && !campoAcao) {
+                acoes.push({ icone: 'arrow-right-circle', titulo: 'Tratar', sub: 'Ver e resolver', aoTocar: () => rzAbrirDestinoAlerta(alertaChave) });
+            }
+            if (r.natureza === 'informativo') {
+                acoes.push(r.marcado_visto
+                    ? { icone: 'eye-off', titulo: 'Desmarcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto', true) }
+                    : { icone: 'eye', titulo: 'Marcar como visto', aoTocar: () => rzMarcarAlerta(alertaChave, 'visto') });
+            }
+            if (r.natureza === 'acionavel') {
+                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 7 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 7) });
+                acoes.push({ icone: 'calendar-clock', titulo: 'Adiar 30 dias', aoTocar: () => rzMarcarAlerta(alertaChave, 'adiado', false, 30) });
+            }
+            if (r.natureza !== 'obrigatorio') {
+                acoes.push({ icone: 'x-circle', titulo: 'Dispensar', tipo: 'bad', aoTocar: () => rzMarcarAlerta(alertaChave, 'dispensado') });
+            }
+            return acoes;
+        }
+
+        // Marca 1 ou vários alertas e oferece "Desfazer" (devolve todos).
+        async function rzMarcarAlertas(chaves, tipo, diasAdiar = null) {
+            chaves = (chaves || []).filter(Boolean);
+            if (!chaves.length || !pessoaIdLogada) return;
+            const p_ate = tipo === 'adiado' ? new Date(Date.now() + diasAdiar * 86400000).toISOString().slice(0, 10) : null;
+            const res = await Promise.all(chaves.map(c => dbAuth.rpc('fn_alerta_marcar', { p_alerta_chave: c, p_pessoa_id: pessoaIdLogada, p_tipo: tipo, p_ate })
+                .then(({ error }) => ({ c, error })).catch(error => ({ c, error }))));
+            const feitos = res.filter(x => !x.error).map(x => x.c);
+            const falhas = res.filter(x => x.error);
+            if (falhas.length) console.warn('[alertas] fn_alerta_marcar:', falhas.map(f => f.error?.message));
+            rzRecarregarAlertasTela();
+            if (!feitos.length) { mostrarToast(falhas[0]?.error?.message || 'Não consegui salvar agora.', 'danger'); return; }
+            const n = feitos.length;
+            const verbo = tipo === 'dispensado' ? (n > 1 ? 'dispensados' : 'dispensado') : tipo === 'adiado' ? (n > 1 ? 'adiados' : 'adiado') : (n > 1 ? 'marcados como vistos' : 'marcado como visto');
+            let msg = n > 1 ? `${n} alertas ${verbo}.` : `Alerta ${verbo}.`;
+            if (tipo === 'adiado') msg = msg.replace(/\.$/, ` por ${diasAdiar} dias.`);
+            if (falhas.length) msg += ` ${falhas.length} não deu.`;
+            const desfazer = async () => {
+                await Promise.all(feitos.map(c => dbAuth.rpc('fn_alerta_desmarcar', { p_alerta_chave: c, p_pessoa_id: pessoaIdLogada, p_tipo: tipo })));
+                rzRecarregarAlertasTela();
+                mostrarToast('Desfeito.', 'success');
+            };
+            if (window.rzToast) window.rzToast(msg, { tipo: 'success', desfazer });
+            else mostrarToast(rzEsc(msg), 'success');
+        }
+
         async function rzMarcarAlerta(alertaChave, tipo, desmarcar = false, diasAdiar = null) {
             const r = alertasPorChave.get(alertaChave);
             if (!r || !pessoaIdLogada) return;
+            if (!desmarcar) return rzMarcarAlertas([alertaChave], tipo, diasAdiar);
             try {
-                if (desmarcar) {
-                    const { error } = await dbAuth.rpc('fn_alerta_desmarcar', { p_alerta_chave: alertaChave, p_pessoa_id: pessoaIdLogada, p_tipo: tipo });
-                    if (error) throw error;
-                } else {
-                    const p_ate = tipo === 'adiado' ? new Date(Date.now() + diasAdiar * 86400000).toISOString().slice(0, 10) : null;
-                    const { error } = await dbAuth.rpc('fn_alerta_marcar', { p_alerta_chave: alertaChave, p_pessoa_id: pessoaIdLogada, p_tipo: tipo, p_ate });
-                    if (error) throw error;
-                }
-                mostrarToast(tipo === 'dispensado' ? 'Alerta dispensado.' : (tipo === 'adiado' ? 'Alerta adiado.' : (desmarcar ? 'Desmarcado.' : 'Marcado como visto.')), 'success');
-                fecharSheet();
-                if (typeof montarAlertasPatrimonio === 'function') montarAlertasPatrimonio();
-                if (typeof renderVisaoGeral === 'function') renderVisaoGeral();
+                const { error } = await dbAuth.rpc('fn_alerta_desmarcar', { p_alerta_chave: alertaChave, p_pessoa_id: pessoaIdLogada, p_tipo: tipo });
+                if (error) throw error;
+                rzRecarregarAlertasTela();
+                const desfazer = async () => {
+                    await dbAuth.rpc('fn_alerta_marcar', { p_alerta_chave: alertaChave, p_pessoa_id: pessoaIdLogada, p_tipo: tipo, p_ate: null });
+                    rzRecarregarAlertasTela();
+                };
+                if (window.rzToast) window.rzToast('Desmarcado.', { tipo: 'success', desfazer }); else mostrarToast('Desmarcado.', 'success');
             } catch (e) {
                 mostrarToast(e.message || 'Não consegui salvar agora.', 'danger');
             }
+        }
+
+        async function rzAdiarAlertas(chaves) {
+            const dias = await rzEscolherUm({ titulo: chaves.length > 1 ? `Adiar ${chaves.length} alertas` : 'Adiar o alerta', sub: 'Ele some da lista e volta depois', opcoes: [
+                { icone: 'calendar-clock', titulo: '7 dias', valor: 7 },
+                { icone: 'calendar-clock', titulo: '30 dias', valor: 30 },
+            ] });
+            if (dias) rzMarcarAlertas(chaves, 'adiado', dias);
+        }
+
+        // Lados do deslizar de uma linha de 1 alerta (máx. 2 por lado)
+        function rzLadosAlerta(r, chave) {
+            const campo = campoAcaoAlerta(r);
+            const completar = r.tipo_alerta === 'fiscal_cadastro_incompleto' && r.detalhe?.campo && typeof window.fiscalCompletarPendencia === 'function';
+            const dir = [], esq = [];
+            if (campo || completar) dir.push({ icone: 'pencil', titulo: 'Resolver', aoTocar: () => abrirAlertaDetalheSheet(chave) });
+            else if (r.destino_rota === 'cofre/documento#vincular') dir.push({ icone: 'link', titulo: 'Vincular', aoTocar: () => rzAbrirDestinoAlerta(chave) });
+            else if (r.destino_rota) dir.push({ icone: 'arrow-right-circle', titulo: 'Tratar', aoTocar: () => rzAbrirDestinoAlerta(chave) });
+            if (r.natureza === 'informativo') dir.push(r.marcado_visto
+                ? { icone: 'eye-off', titulo: 'Não visto', tipo: 'neu', aoTocar: () => rzMarcarAlerta(chave, 'visto', true) }
+                : { icone: 'eye', titulo: 'Visto', tipo: 'neu', aoTocar: () => rzMarcarAlerta(chave, 'visto') });
+            if (r.natureza === 'acionavel') esq.push({ icone: 'calendar-clock', titulo: 'Adiar', tipo: 'warn', aoTocar: () => rzAdiarAlertas([chave]) });
+            if (r.natureza !== 'obrigatorio') esq.push({ icone: 'x-circle', titulo: 'Dispensar', tipo: 'bad', aoTocar: () => rzMarcarAlerta(chave, 'dispensado') });
+            return { dir, esq };
+        }
+        function rzAcoesRapidasAlerta(chave) {
+            const r = alertasPorChave.get(chave);
+            if (!r) { mostrarToast('Não encontrei esse alerta — a lista pode ter mudado.', 'danger'); return; }
+            const acoes = rzAcoesAlerta(r, chave);
+            acoes.unshift({ icone: 'info', titulo: 'Ver detalhes', aoTocar: () => abrirAlertaDetalheSheet(chave) });
+            abrirSheetAcoes({ titulo: tituloAlertaMotor(r), sub: subtituloAlertaMotor(r), acoes });
+        }
+        function rzLinhasDoGrupo(ref) {
+            return (rzGrupoChaves.get(ref) || []).map(k => alertasPorChave.get(k)).filter(Boolean)
+                .sort((a, b) => (a.dias ?? 9999) - (b.dias ?? 9999));
+        }
+        function rzAlternarGrupoAqui(ref, sw) {
+            if (rzGruposAbertos.has(ref)) rzGruposAbertos.delete(ref); else rzGruposAbertos.add(ref);
+            // redesenha só a tela onde a linha está
+            if (sw && sw.closest('#alertas-patrimonio-mount')) renderListaAlertas();
+            else if (sw && sw.closest('#geral-atencao-fundidos')) renderizarPontosAtencaoGeral();
+            else { if (typeof renderListaAlertas === 'function') renderListaAlertas(); }
+        }
+        function rzMostrarGrupoAqui(sw, ref) {
+            const linhas = rzLinhasDoGrupo(ref);
+            if (!linhas.length) return;
+            const div = document.createElement('div');
+            div.className = 'rz-grupo-itens';
+            div.innerHTML = linhas.map(r => linhaAlertaHtml(itemAvulso(r))).join('');
+            sw.after(div);
+            rzLigarGestosAlertas(div);
+        }
+        function rzEscolherNoGrupo(ref) {
+            const linhas = rzLinhasDoGrupo(ref);
+            if (!linhas.length) { mostrarToast('Não encontrei esses alertas — a lista pode ter mudado.', 'danger'); return; }
+            const st = (sem, txt) => (typeof renderStatus === 'function') ? renderStatus(sem, txt) : `<span class="rz-st rz-${sem}">${txt}</span>`;
+            const marcados = new Set();
+            const corpo = `<div class="rz-card rz-list">
+                <label class="rz-row rz-chk"><input type="checkbox" data-rz-todos><div class="rz-tx"><b>Todos (${linhas.length})</b></div></label>
+                ${linhas.map((r, i) => {
+                    const sem = ROTINA_PRONTA_ALERTA.includes(r.tipo_alerta) ? 'neu' : (r.dias === null ? 'neu' : (r.dias < 0 ? 'bad' : (r.dias <= 14 ? 'warn' : 'run')));
+                    return `<label class="rz-row rz-chk"><input type="checkbox" data-rz-k="${i}"><div class="rz-tx"><b>${rzEsc(tituloAlertaMotor(r))}</b><span>${rzEsc(subtituloAlertaMotor(r))}</span></div>${r.dias === null ? '' : `<div class="rz-rt">${st(sem, prazoAlertaTexto(r))}</div>`}</label>`;
+                }).join('')}
+            </div><div id="rz-escolher-acoes"></div>`;
+            const sheet = abrirSheet(rzSheetCabecalho('Escolher alertas', 'Marque e escolha o que fazer') + `<div class="rz-sh-b">${corpo}</div>`);
+            const caixas = [...sheet.querySelectorAll('[data-rz-k]')];
+            const todos = sheet.querySelector('[data-rz-todos]');
+            const acoesEl = sheet.querySelector('#rz-escolher-acoes');
+            const desenharAcoes = () => {
+                const sel = [...marcados].map(i => linhas[i]);
+                if (!sel.length) { acoesEl.innerHTML = '<p class="rz-desc" style="margin-top:12px">Marque um ou mais alertas para ver o que dá para fazer.</p>'; return; }
+                const chs = sel.map(r => r.alerta_chave);
+                const acoes = [];
+                if (sel.length === 1) acoes.push({ icone: 'info', titulo: 'Abrir o alerta', aoTocar: () => abrirAlertaDetalheSheet(chs[0]) });
+                if (sel.every(r => r.natureza === 'acionavel')) acoes.push({ icone: 'calendar-clock', titulo: 'Adiar', sub: '7 ou 30 dias', aoTocar: () => rzAdiarAlertas(chs) });
+                if (sel.every(r => r.natureza === 'informativo' && !r.marcado_visto)) acoes.push({ icone: 'eye', titulo: 'Marcar como visto', aoTocar: () => rzMarcarAlertas(chs, 'visto') });
+                if (sel.every(r => r.natureza !== 'obrigatorio')) acoes.push({ icone: 'x-circle', titulo: 'Dispensar', tipo: 'bad', aoTocar: () => rzMarcarAlertas(chs, 'dispensado') });
+                if (!acoes.length) { acoesEl.innerHTML = '<p class="rz-desc" style="margin-top:12px">Esses alertas não têm ação em comum. Abra um de cada vez.</p>'; return; }
+                const planas = rzOrdenarAcoes(acoes);
+                acoesEl.innerHTML = `<div class="rz-group">Com ${sel.length} marcado${sel.length > 1 ? 's' : ''}</div><div class="rz-card rz-list">${planas.map(rzAcaoItemHtml).join('')}</div>`;
+                acoesEl.querySelectorAll('[data-rz-i]').forEach(btn => btn.addEventListener('click', () => {
+                    const a = planas[Number(btn.dataset.rzI)];
+                    fecharSheet(); a.aoTocar();
+                }));
+                if (typeof rzIcones === 'function') rzIcones();
+            };
+            caixas.forEach(cx => cx.addEventListener('change', () => {
+                const i = Number(cx.dataset.rzK);
+                if (cx.checked) marcados.add(i); else marcados.delete(i);
+                todos.checked = marcados.size === linhas.length;
+                desenharAcoes();
+            }));
+            todos.addEventListener('change', () => {
+                caixas.forEach(cx => { cx.checked = todos.checked; const i = Number(cx.dataset.rzK); if (todos.checked) marcados.add(i); else marcados.delete(i); });
+                desenharAcoes();
+            });
+            desenharAcoes();
+            if (typeof rzIcones === 'function') rzIcones();
+        }
+        function rzLigarGestosAlertas(container) {
+            if (!container) return;
+            container.querySelectorAll('.rz-row[data-rz-alerta]').forEach(row => {
+                const chave = row.dataset.rzAlerta;
+                const r = alertasPorChave.get(chave);
+                if (!r) return;
+                const sw = rzSwipe(row, rzLadosAlerta(r, chave)) || row;
+                rzLongPress(sw, () => rzAcoesRapidasAlerta(chave));
+            });
+            container.querySelectorAll('.rz-row[data-rz-grupo]').forEach(row => {
+                const ref = row.dataset.rzGrupo;
+                const aberto = rzGruposAbertos.has(ref);
+                let sw = null;
+                const acoes = [
+                    { icone: aberto ? 'chevron-up' : 'chevron-down', titulo: aberto ? 'Recolher' : 'Ver aqui', tipo: 'neu', aoTocar: () => rzAlternarGrupoAqui(ref, sw) },
+                    { icone: 'list-checks', titulo: 'Escolher', aoTocar: () => rzEscolherNoGrupo(ref) },
+                ];
+                sw = rzSwipe(row, { dir: acoes, esq: acoes });
+                rzLongPress(sw || row, () => rzEscolherNoGrupo(ref));
+                if (aberto && sw) rzMostrarGrupoAqui(sw, ref);
+            });
+            if (typeof rzIcones === 'function') rzIcones();
         }
 
         // Ponte pro módulo Ativos (Cofre) — primeira nesta direção neste
