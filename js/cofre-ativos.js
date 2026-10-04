@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.71.0 · 03/10/2026
+// Versão: 1.72.0 · 04/10/2026
+//
+// v1.72.0 (04/10/2026, sessão 20261004-0020-financeiro, demanda cad6ec67 — P2
+// Ficha 3): eixo contábil do ativo. Chip Propriedade ganha a linha
+// "Contabilidade da empresa" (Entra / Fora) e o ⋮ ganha "Tirar da / Incluir
+// na contabilidade da empresa" (gate imoveis.divisao), gravando
+// cofre_ativos.registro_contabil. "Fora" = continua no Raiz, mas não vai ao
+// pacote do contador (fn_fechamento_calcular_contabil).
+// Versão anterior: 1.71.0.
 //
 // v1.71.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: documento que chegou pelo bot mostra "pela Raiz IA"
 // (antes "pelo Robô").
@@ -894,7 +902,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.71.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.72.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico } from './cofre-ui.js';
@@ -2517,10 +2525,45 @@ if (typeof window !== 'undefined') window.__rzNovoContratoAtivo = abrirEscolhaNo
 
 export function abrirAcoesPropriedade() {
     const a = estado.ativoEmFoco; if (!a) return;
+    const fora = a.registro_contabil === 'fora';
     sheetOuAviso({ titulo: 'Propriedade', sub: a.nome_exibicao, acoes: [
         { icone: 'pencil', titulo: 'Editar divisão', codigo: 'imoveis.divisao', sub: 'Sócios e percentuais', aoTocar: () => abrirEditarPropriedadeAtivo() },
+        // v1.72.0 (P2 Ficha 3, demanda cad6ec67) — eixo contábil do ativo (cofre_ativos.registro_contabil)
+        { icone: fora ? 'plus-circle' : 'ban', titulo: fora ? 'Incluir na contabilidade da empresa' : 'Tirar da contabilidade da empresa', codigo: 'imoveis.divisao',
+          sub: fora ? 'Volta a entrar no pacote do contador nos próximos fechamentos' : 'Patrimônio fora da empresa: continua no Raiz, mas não vai ao contador',
+          aoTocar: () => alternarRegistroContabilAtivo() },
     ] });
 }
+
+// v1.72.0 (P2 Ficha 3, demanda cad6ec67) — alterna o eixo contábil do ativo.
+// "fora" = patrimônio fora da PJ (pessoa física, sócio externo): continua no
+// Raiz para controle e distribuição, mas fn_fechamento_calcular_contabil
+// deixa de levar recebimentos e lançamentos dele ao pacote do contador.
+// Pacotes já gerados não mudam (snapshot imutável).
+async function alternarRegistroContabilAtivo() {
+    const a = estado.ativoEmFoco; if (!a) return;
+    const novo = a.registro_contabil === 'fora' ? 'empresa' : 'fora';
+    try {
+        await api.atualizarAtivo(a.id, { registro_contabil: novo });
+        a.registro_contabil = novo;
+        emitirEscrita('ativo', { id: a.id, acao: 'registro_contabil' });
+        mostrarToast(novo === 'fora' ? 'Ativo fora da contabilidade da empresa' : 'Ativo de volta à contabilidade da empresa', 'sucesso');
+        await montarPropriedadeAtivo(a);
+    } catch (err) {
+        mostrarToast('Não consegui alterar: ' + (err.message || err), 'erro');
+    }
+}
+
+// v1.72.0 — linha de leitura no fim do chip Propriedade (o toque abre o ⋮).
+function registroContabilLinhaHtml(a) {
+    const fora = a.registro_contabil === 'fora';
+    return `<div class="rz-row rz-link" role="button" tabindex="0" onclick="window.__rzAcoesPropriedade && window.__rzAcoesPropriedade()">
+            <div class="rz-ic${fora ? ' rz-neu' : ''}"><i data-lucide="${fora ? 'ban' : 'landmark'}"></i></div>
+            <div class="rz-tx"><b>Contabilidade da empresa</b><span>${fora ? 'Fora — não vai ao pacote do contador' : 'Entra no pacote do contador'}</span></div>
+            <div class="rz-rt"><span class="rz-st rz-${fora ? 'neu' : 'ok'}">${fora ? 'Fora' : 'Entra'}</span></div>
+        </div>`;
+}
+if (typeof window !== 'undefined') window.__rzAcoesPropriedade = () => abrirAcoesPropriedade();
 // v1.67.0 (demanda c0d255e3, retorno do piloto — "no botão de cadastro
 // novo... deixe claro que ele pode adicionar um documento-IA ou cadastrar
 // via tela") — "Carregar documento" entra como 1ª opção, igual ao "+" da
@@ -2614,7 +2657,7 @@ async function montarPropriedadeAtivo(a) {
     const linhas = await api.buscarPropriedadeDoAtivo(a.id);
 
     if (!linhas.length) {
-        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Sem divisão de propriedade ainda. Sem ela, a distribuição de resultados não sabe pra quem repassar.</p></div>`;
+        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Sem divisão de propriedade ainda. Sem ela, a distribuição de resultados não sabe pra quem repassar.</p></div>` + registroContabilLinhaHtml(a);
         refrescarIcones();
         return;
     }
@@ -2633,7 +2676,7 @@ async function montarPropriedadeAtivo(a) {
             <div class="rz-ic"><i data-lucide="${l.nome_pessoa ? 'user' : 'user-round'}"></i></div>
             <div class="rz-tx"><b>${escapeHtml(l.nome_pessoa || l.nome_externo || 'Sem nome')}</b><span>${l.nome_pessoa ? 'Sócio' : 'Parte externa'}</span></div>
             <div class="rz-rt"><b style="color:var(--sprout)">${Number(l.percentual)}%</b></div>
-        </div>`).join('');
+        </div>`).join('') + registroContabilLinhaHtml(a); // v1.72.0 (P2 Ficha 3)
     refrescarIcones();
 }
 

@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.294.0) — P1a da ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0 (absorve a F3.4 e a
+parte Financeiro da F2.3 do PLANO_UX — D26), DIRETRIZES UXR-10/11/12/25/30/41:
+Financeiro com barra de busca + "+" no topo (.rz-topo/.rz-search), segmento de 4 opções
+Recebimentos · Saídas · Conciliação · Distribuição (.rz-seg-4; Distribuição = tab-socios, que
+passa ao grupo Financeiro e sai do segmento de Relatórios), card "Rotinas de <mês>" no lugar da
+grade 3x2 (#fin-rotinas-*), Atrasados como ficha ("‹ Financeiro", sem segmento), módulo NOVO
+js/raiz-ui.js 1.0.0 (rzToast/rzConfirmar/rzEscolher/rzAviso — D25) carregado no boot.
+Import map: js/financeiro.js 1.27.3 → 1.28.0, js/raiz-ui.js 1.0.0 (novo).
+Versão anterior (Beta v1.293.3):
+------------------------------------------------------------------
+Versões anteriores (v1.293.3 … v1.293.3): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.293.3) — demanda d3260b23, testes reprovados (Nicola 03/10 23:02). Só import map:
 js/ativos/ativos-markup.js 1.49.0 → 1.50.0 ("Despesa" no novo item do app), js/cofre-app.js
 1.41.0 → 1.42.0 ("Voltar ao ativo" volta à lista de Controles), js/cofre-validacoes.js 2.2.0 →

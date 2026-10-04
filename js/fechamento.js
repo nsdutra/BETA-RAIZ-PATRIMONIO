@@ -1,6 +1,15 @@
 // ============================================================================
 // js/fechamento.js — Raiz Patrimônio · Fechamento da competência
-// Versão: 1.11.0 · 26/09/2026
+// Versão: 1.12.0 · 04/10/2026
+//
+// v1.12.0 (04/10/2026, demanda cad6ec67 — P2 Ficha 4): o pacote do contador
+// ganha a seção "Outras receitas" (bloco outras_receitas de
+// fn_fechamento_calcular_contabil: entradas sem contrato — licenças,
+// juros, receitas avulsas), que antes saíam misturadas em "Saídas". Vale
+// no PDF, na planilha e no texto do compartilhamento. Pacotes antigos (sem
+// o bloco) continuam abrindo igual. Ativos marcados "fora da contabilidade"
+// (cofre_ativos.registro_contabil) já chegam excluídos pela função.
+// Versão anterior: 1.11.0.
 //
 // v1.11.0 (demandas cdd8a2a5 e d9c1753c, entrega 2/3 do lote de 29): (1)
 // chip "Fiscal OK" ficava preso no estado (ligada/desligada) da primeira
@@ -305,7 +314,7 @@
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
 
-export const VERSAO = '1.11.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.12.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.3.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1088,6 +1097,7 @@ function fechamentoMontarCsvPacote(linha) {
     const cel = (v) => { const t = String(v ?? ''); return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
     const linhas = [['Seção', 'Data', 'Valor', 'Descrição', 'Detalhe', 'Origem/Status']];
     (dados.recebimentos || []).forEach(i => linhas.push(['Recebimento', data(i.data_pgto), num(i.valor), '', '', fechamentoOrigemRotulo(i.origem)]));
+    (dados.outras_receitas || []).forEach(i => linhas.push(['Outra receita', data(i.data_pagamento), num(i.valor), i.descricao || '', '', i.origem === 'licenca' ? 'Licença' : fechamentoOrigemRotulo(i.origem)])); // v1.12.0
     (dados.saidas || []).forEach(i => linhas.push(['Saída', data(i.data_pagamento), num(i.valor), i.categoria || '', '', fechamentoOrigemRotulo(i.origem)]));
     (dados.repasses || []).forEach(i => linhas.push(['Repasse', data(i.data), num(i.valor), i.razao_social || '', '', 'Extrato']));
     if (fis) {
@@ -1138,12 +1148,14 @@ function fechamentoMontarPdfPacote(linha) {
     const recebimentos = dados.recebimentos || [];
     const saidas = dados.saidas || [];
     const repasses = dados.repasses || [];
+    const outrasRec = dados.outras_receitas || []; // v1.12.0
 
     const totalRec = recebimentos.reduce((s, i) => s + Number(i.valor || 0), 0);
+    const totalOut = outrasRec.reduce((s, i) => s + Number(i.valor || 0), 0);
     const totalSai = saidas.reduce((s, i) => s + Number(i.valor || 0), 0);
     const totalRep = repasses.reduce((s, i) => s + Number(i.valor || 0), 0);
     pdf.setFont('Helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(26, 54, 93);
-    pdf.text(`Recebido: ${fechamentoMoeda(totalRec)}   ·   Pago: ${fechamentoMoeda(totalSai)}   ·   Repasses: ${fechamentoMoeda(totalRep)}`, margin, y);
+    pdf.text(`Recebido: ${fechamentoMoeda(totalRec)}${outrasRec.length ? `   ·   Outras receitas: ${fechamentoMoeda(totalOut)}` : ''}   ·   Pago: ${fechamentoMoeda(totalSai)}   ·   Repasses: ${fechamentoMoeda(totalRep)}`, margin, y);
     y += 10;
 
     const secao = (titulo, itens, colunas) => {
@@ -1162,6 +1174,8 @@ function fechamentoMontarPdfPacote(linha) {
 
     secao('Recebimentos', recebimentos, (i) =>
         `${i.data_pgto ? new Date(i.data_pgto).toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(i.valor)}  ·  ${fechamentoOrigemRotulo(i.origem)}`);
+    if (outrasRec.length) secao('Outras receitas', outrasRec, (i) =>
+        `${i.data_pagamento ? new Date(i.data_pagamento).toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(i.valor)}  ·  ${i.descricao || ''}  ·  ${i.origem === 'licenca' ? 'Licença' : fechamentoOrigemRotulo(i.origem)}`);
     secao('Saídas', saidas, (i) =>
         `${i.data_pagamento ? new Date(i.data_pagamento).toLocaleDateString('pt-BR') : '—'}  ·  ${fechamentoMoeda(i.valor)}  ·  ${i.categoria || ''}  ·  ${fechamentoOrigemRotulo(i.origem)}`);
     secao('Repasses', repasses, (i) =>
@@ -1230,8 +1244,9 @@ function fechamentoTextoResumo(pacotes) {
         const dados = p.dados || {};
         const totalRec = (dados.recebimentos || []).reduce((s, i) => s + Number(i.valor || 0), 0);
         const totalSai = (dados.saidas || []).reduce((s, i) => s + Number(i.valor || 0), 0);
+        const totalOut = (dados.outras_receitas || []).reduce((s, i) => s + Number(i.valor || 0), 0); // v1.12.0
         const f = dados.fiscal?.resumo; // v1.8.0
-        return `${mes}: recebido ${fechamentoMoeda(totalRec)}, pago ${fechamentoMoeda(totalSai)}`
+        return `${mes}: recebido ${fechamentoMoeda(totalRec)}${totalOut ? `, outras receitas ${fechamentoMoeda(totalOut)}` : ''}, pago ${fechamentoMoeda(totalSai)}`
             + (f ? `; ${f.notas_emitidas ?? 0} nota(s) emitida(s), ${f.rascunhos ?? 0} rascunho(s) para emitir` : '');
     });
     return `Pacote do fechamento:\n${linhas.join('\n')}`;

@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.29.0 · 03/10/2026
+// Versão: 1.30.0 · 04/10/2026
+//
+// v1.30.0 (04/10/2026, demanda cad6ec67 — P2 Ficha 5): as receitas sem
+// contrato passaram a entrar nos 4 totais de Recebimentos
+// (fn_financeiro_totalizadores soma os lançamentos de entrada); o card
+// "Outras receitas" deixa de dizer "fora dos totais acima".
+// Versão anterior: 1.29.0.
 //
 // v1.29.0 (03/10/2026, sessão 20261003-2345-financeiro, demanda 4a369778 —
 // P1b da ESP_FINANCEIRO_CUSTOS_DISTRIBUICAO v2.3.0; "Siga em frente", Nicola 23:38):
@@ -823,7 +829,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.29.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.30.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -4907,9 +4913,8 @@ function financeiroRenderCabecalho(aba) {
 // em `lancamentos` (categoria 'outro' até a migration de vocabulário da F5,
 // D17; origem_tipo 'manual'). O card "Outras receitas" lista as entradas
 // sem contrato da competência (inclui as licenças registradas pelo Gestão).
-// Elas NÃO entram nos 4 KPIs de Recebimentos, que vêm de
-// fn_financeiro_totalizadores (só mensalidades) — o card diz isso; somar no
-// cliente é proibido (REGRAS §11) e mudar a função é ficha (P2).
+// v1.30.0 (P2 Ficha 5) — entram nos 4 KPIs de Recebimentos: a soma é feita
+// no banco (fn_financeiro_totalizadores), nunca no cliente (REGRAS §11).
 // ============================================================================
 export async function abrirAdicionarRecebimento() {
     const v = await rzEscolher({ titulo: 'Adicionar recebimento', opcoes: [
@@ -4992,7 +4997,7 @@ export async function renderOutrasReceitas() {
     if (!linhas.length) { alvo.innerHTML = ''; return; }
     window.__rzOutrasReceitas = linhas;
     const st = (cod, rot) => (typeof renderStatus === 'function') ? renderStatus(cod, rot) : esc(rot);
-    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Outras receitas</h3><span class="rz-sub">sem contrato · fora dos totais acima</span></div>` +
+    alvo.innerHTML = `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Outras receitas</h3><span class="rz-sub">sem contrato · já somadas nos totais</span></div>` +
         linhas.map(l => {
             const recebido = l.status === 'realizado';
             const origem = l.origem_tipo === 'licenca' ? 'Licença' : (l.origem_tipo === 'extrato' ? 'Extrato' : 'Manual');
