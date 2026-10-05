@@ -1,7 +1,22 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v1.9.0 (04/10/2026 — demanda c71f617c)
+// VERSÃO: Beta v2.0.0 (04/10/2026 — demanda 217e3a38)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.0.0) — UX F2.1a (sessão 20261003-1707-ux-base, "Sim de acordo" do
+//   Nicola 04/10 21:11; DIRETRIZES UXR-16 a 19): Resultados deixa de ser aba e passa a
+//   morar em Hoje (antiga Visão Geral).
+//   — Herói unificado (UXR-17) em #hoje-heroi-mount: Patrimônio sob gestão + nº de ativos,
+//     Resultado do ano e Rentabilidade · Ocupação · Inadimplência, num bloco --pine só.
+//     Ano (‹ 2026 ›) e contexto (Tudo · Comercial · Família) dentro do herói (UXR-18);
+//     o contexto é o mesmo de Hoje inteiro (index.html, escolherGeralUniverso).
+//   — Cards de Resultados em #hoje-resultados-mount com o título "Resultados · <ano>",
+//     na ordem de sempre e com ⓘ (UXR-19). O bloco de KPIs sai (virou o herói).
+//   — Sai a lupa e o sheet Filtros: abrangência (empreendimento · imóvel) não existe em
+//     Hoje (UXR-18) — o imóvel tem Performance na própria ficha; empreendimento fica para
+//     a ficha do empreendimento (demanda própria).
+//   — Desenhos que se atropelam (trocar o contexto rápido) não sobrescrevem o mais novo.
+// Versão anterior: Beta v1.9.0 (04/10/2026 — demanda c71f617c)
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.9.0) — UX F1.4a (sessão 20261003-1707-ux-base, aprovada pelo
 //   Nicola 04/10 15:46): esqueleto (window.rzSkeleton) no lugar de "Carregando..." nos
@@ -189,7 +204,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '1.9.0';
+export const VERSAO = '2.0.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -205,10 +220,6 @@ const CONTEXTO_USO = { tudo: null, comercial: 'comercial', familia: 'nao_comerci
 const CONTEXTO_ROTULO = { tudo: 'Tudo', comercial: 'Comercial', familia: 'Família' };
 const ABRANGENCIA_ROTULO = { carteira: 'Carteira', empreendimento: 'Empreendimento', imovel: 'Imóvel' };
 const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-function filtroForaDoPadrao() {
-    return filtro.ano !== ANO_ATUAL || filtro.abrangencia !== 'carteira' || filtro.contexto !== 'tudo';
-}
 
 function pctFmt(v) { return v == null ? '—' : `${v}%`; }
 
@@ -251,154 +262,86 @@ function botaoInfoCard(onclick) {
 }
 
 // ---------------------------------------------------------------------
-// Boot — chamado por switchTab('tab-relatorios') via carregarResultados()
-// (bridge em index.html, mesmo desenho de carregarImoveis/Contratos).
+// v2.0.0 (UX F2.1a) — Boot: chamado por Hoje (index.html, rzRenderResultadosHoje) a cada
+// desenho da aba, com o contexto de Hoje. Herói em #hoje-heroi-mount; cards em
+// #hoje-resultados-mount. Abrangência é sempre a carteira (UXR-18).
 // ---------------------------------------------------------------------
-export async function renderResultados() {
-    const mount = document.getElementById('resultados-novo-mount');
-    if (!mount || !CLIENTE_ID_SUPABASE) return;
-
-    if (filtro.abrangencia === 'imovel') {
-        // Não deveria sobreviver — aplicar filtro com Imóvel já navega
-        // embora (abrirResultadosFiltroAplicar). Defensivo: volta pro
-        // padrão se alguém chegar aqui vindo de outro estado salvo.
-        filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', alvoId: null, alvoNome: null };
-    }
-
-    mount.innerHTML = montarCabecalho() + `<div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
+let geracao = 0; // só o desenho mais novo escreve na tela
+export async function renderResultados(opcoes) {
+    const heroi = document.getElementById('hoje-heroi-mount');
+    const cards = document.getElementById('hoje-resultados-mount');
+    if (!heroi || !cards || !CLIENTE_ID_SUPABASE) return;
+    if (opcoes && Object.prototype.hasOwnProperty.call(CONTEXTO_USO, opcoes.contexto)) filtro.contexto = opcoes.contexto;
+    filtro.abrangencia = 'carteira'; filtro.alvoId = null; filtro.alvoNome = null;
+    heroi.innerHTML = montarHeroi(null, null, true);
+    cards.innerHTML = `<h3 class="rz-plain-title">Resultados · ${filtro.ano}</h3><div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
     if (typeof rzIcones === 'function') rzIcones();
-
     await renderizarConteudo();
 }
 
-function montarCabecalho() {
-    const dot = filtroForaDoPadrao() ? '<span class="rz-dot rz-warn"></span>' : '';
-    const alvo = filtro.alvoNome ? ` · ${rzEsc(filtro.alvoNome)}` : '';
-    const resumoTxto = `${filtro.ano} · ${ABRANGENCIA_ROTULO[filtro.abrangencia]}${alvo} · ${CONTEXTO_ROTULO[filtro.contexto]}`;
-    return `
-        <div class="rz-tabhead">
-            <p>Performance da carteira: resultado, ocupação e risco.</p>
-            <button id="res-lupa" onclick="abrirResultadosFiltros()" class="rz-ico-btn" aria-label="Filtros">
-                <svg data-lucide="search"></svg>${dot}
-            </button>
-            <button onclick="abrirResultadosExportar()" class="rz-ico-btn" aria-label="Exportar">
-                <svg data-lucide="share"></svg>
-            </button>
-        </div>
-        <div class="rz-chips" style="margin-top:-6px">
-            <span class="rz-chip">${rzEsc(resumoTxto)}</span>
-        </div>
-    `;
-}
-
-// ---------------------------------------------------------------------
-// Sheet Filtros
-// ---------------------------------------------------------------------
-export function abrirResultadosFiltros() {
-    rascunho = { ...filtro };
-    abrirSheet(rzSheetCabecalho('Filtros', null) + `<div class="rz-sh-b" id="res-filtros-corpo">${montarCorpoFiltros()}</div>${montarRodapeFiltros()}`);
-}
-
-function chipOpcao(grupo, valor, rotulo, atual) {
-    return `<button class="rz-chip${valor === atual ? ' rz-on' : ''}" onclick="escolherResultadosFiltro('${grupo}','${valor}')">${rzEsc(rotulo)}</button>`;
-}
-
-function montarCorpoFiltros() {
-    const r = rascunho;
-    let alvoPicker = '';
-    if (r.abrangencia === 'empreendimento') {
-        const lista = (typeof empreendimentosCadastrados !== 'undefined' ? empreendimentosCadastrados : []) || [];
-        alvoPicker = `<div class="rz-group">Qual empreendimento</div>` + (lista.length
-            ? `<div class="rz-card rz-list">${lista.map(e => `<div class="rz-row rz-link" onclick="escolherResultadosAlvo('${e.id}','${rzEsc(e.nome).replace(/'/g, "\\'")}')"><div class="rz-tx"><b>${rzEsc(e.nome)}</b></div>${r.alvoId === e.id ? '<svg data-lucide="check" style="color:var(--sprout)"></svg>' : ''}</div>`).join('')}</div>`
-            : `<p class="rz-desc">Nenhum empreendimento cadastrado ainda.</p>`);
-    } else if (r.abrangencia === 'imovel') {
-        const lista = (typeof estadoAtivosParaFiltro === 'function' ? estadoAtivosParaFiltro() : []) || [];
-        alvoPicker = `<div class="rz-group">Qual imóvel</div>` + (lista.length
-            ? `<div class="rz-card rz-list">${lista.map(a => `<div class="rz-row rz-link" onclick="escolherResultadosAlvo('${a.id}','${rzEsc(a.nome).replace(/'/g, "\\'")}')"><div class="rz-tx"><b>${rzEsc(a.nome)}</b></div>${r.alvoId === a.id ? '<svg data-lucide="check" style="color:var(--sprout)"></svg>' : ''}</div>`).join('')}</div>`
-            : `<p class="rz-desc">Nenhum imóvel cadastrado ainda.</p>`);
-    }
-    return `
-        <div class="rz-group">Período</div>
-        <div class="rz-chips">${[ANO_ATUAL - 2, ANO_ATUAL - 1, ANO_ATUAL].map(a => chipOpcao('ano', a, String(a), r.ano)).join('')}</div>
-        <div class="rz-group">Abrangência</div>
-        <div class="rz-chips">${['carteira', 'empreendimento', 'imovel'].map(v => chipOpcao('abrangencia', v, ABRANGENCIA_ROTULO[v], r.abrangencia)).join('')}</div>
-        <div id="res-filtros-alvo">${alvoPicker}</div>
-        <div class="rz-group">Contexto</div>
-        <div class="rz-chips">${['tudo', 'comercial', 'familia'].map(v => chipOpcao('contexto', v, CONTEXTO_ROTULO[v], r.contexto)).join('')}</div>
-    `;
-}
-
-function montarRodapeFiltros() {
-    return `<div class="rz-sh-f">
-        <button class="rz-btn rz-btn-3" onclick="limparResultadosFiltros()">Limpar</button>
-        <button class="rz-btn rz-btn-1" onclick="aplicarResultadosFiltros()">Aplicar</button>
-    </div>`;
-}
-
-function reescreverCorpoFiltros() {
-    const corpo = document.getElementById('res-filtros-corpo');
-    if (corpo) corpo.innerHTML = montarCorpoFiltros();
-    if (typeof rzIcones === 'function') rzIcones();
-}
-
-export function escolherResultadosFiltro(grupo, valor) {
-    if (!rascunho) rascunho = { ...filtro };
-    // BUG REAL (achado pelo Nicola, 21/09/2026): o onclick é HTML gerado
-    // por template string — `${valor}` sempre vira texto no atributo,
-    // então um clique no chip de ano manda '2026' (string) pra cá, mas o
-    // padrão do filtro (ANO_ATUAL) é number. chipOpcao() compara com
-    // === : depois do 1º clique em qualquer ano, nenhum chip nunca mais
-    // batia (number !== string), o ano ficava "sem marcação" pra sempre
-    // (mesmo quando o valor aplicado era o certo). Só 'ano' precisa de
-    // Number — os outros grupos (abrangencia/contexto) já nascem string
-    // dos dois lados (padrão E clique), nunca tiveram esse problema.
-    rascunho[grupo] = grupo === 'ano' ? Number(valor) : valor;
-    if (grupo === 'abrangencia') rascunho.alvoId = null, rascunho.alvoNome = null;
-    reescreverCorpoFiltros();
-}
-
-export function escolherResultadosAlvo(id, nome) {
-    if (!rascunho) return;
-    rascunho.alvoId = id;
-    rascunho.alvoNome = nome;
-    reescreverCorpoFiltros();
-}
-
-export function limparResultadosFiltros() {
-    rascunho = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', alvoId: null, alvoNome: null };
-    reescreverCorpoFiltros();
-}
-
-// v1.4.0 (22/09/2026, demanda 60284322 — "navegação por rodapé sempre
-// reseta a aba") — diferente de limparResultadosFiltros() (que só mexe no
-// RASCUNHO dentro do sheet Filtros), esta reseta o filtro JÁ APLICADO
-// (`filtro`, module-scoped, sobrevive entre trocas de aba — ver comentário
-// da declaração acima). Chamada por index.html (irParaAbaRodape) ANTES do
-// switchTab, só o reset em si — quem redesenha é o gancho que o próprio
-// switchTab('tab-relatorios') já dispara (carregarResultados().then(m =>
-// m.renderResultados())), sem duplicar render aqui.
-export function resetarResultadosParaAbaInicial() {
-    filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', alvoId: null, alvoNome: null };
-}
-
-export function aplicarResultadosFiltros() {
-    if (!rascunho) { fecharSheet(); return; }
-    if (rascunho.abrangencia !== 'carteira' && !rascunho.alvoId) {
-        mostrarToast('Escolha um ' + (rascunho.abrangencia === 'empreendimento' ? 'empreendimento' : 'imóvel') + ' antes de aplicar.', 'danger');
-        return;
-    }
-    filtro = { ...rascunho };
-    fecharSheet();
-    if (filtro.abrangencia === 'imovel') {
-        // ESP §4.2 — Imóvel não fica em Resultados: abre a ficha do
-        // ativo direto no chip Performance.
-        const alvoId = filtro.alvoId, alvoNome = filtro.alvoNome;
-        filtro = { ano: filtro.ano, abrangencia: 'carteira', contexto: filtro.contexto, alvoId: null, alvoNome: null };
-        if (typeof window.abrirFichaAtivoNoChip === 'function') window.abrirFichaAtivoNoChip(alvoId, 'performance');
-        else mostrarToast(`Abrindo ${alvoNome}...`, 'info');
-        return;
-    }
+// Ano do herói: ‹ › entre os 2 anos anteriores e o corrente (os mesmos 3 do antigo filtro).
+export function escolherResultadosAno(delta) {
+    const novo = filtro.ano + Number(delta);
+    if (novo < ANO_ATUAL - 2 || novo > ANO_ATUAL) return;
+    filtro.ano = novo;
     renderResultados();
+}
+
+// v1.4.0 (demanda 60284322) — tocar em Hoje na barra volta ao ano corrente. O contexto é
+// de Hoje (index.html) e não muda aqui. Quem redesenha é o próprio switchTab.
+export function resetarResultadosParaAbaInicial() {
+    filtro.ano = ANO_ATUAL;
+}
+
+// UXR-17 — herói unificado. `carregando`: casca com "—" enquanto as funções respondem.
+function montarHeroi(resumo, perf, carregando) {
+    const familia = filtro.contexto === 'familia';
+    const tem = !!(resumo || perf);
+    const traco = '—';
+    const patrimonio = perf ? perf.patrimonio : (resumo ? resumo.soma_valor_mercado : null);
+    const totalAtivos = perf ? perf.total_ativos : (resumo ? resumo.total_imoveis : null);
+    const resultadoAno = perf ? perf.resultado_liquido : (resumo ? resumo.resultado_liquido_ano : null);
+    const saidasAno = perf ? perf.saidas_ano : (resumo ? resumo.saidas_ano : null);
+    const rentabilidade = perf ? perf.rentabilidade_pct : (resumo ? resumo.yield_ano_pct : null);
+    const inadimplencia = perf ? perf.inadimplencia_valor : (resumo ? resumo.inadimplencia_valor : null);
+    const ocupacao = resumo ? resumo.ocupacao_pct : null;
+    const moeda = v => formatarMoedaBR(v || 0, { semCentavos: true });
+    const pctBR = v => v == null ? traco : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%'; // 5,2%
+
+    const resRotulo = familia ? 'Custo · ' + filtro.ano : 'Resultado do ano';
+    const resValor = !tem ? traco : (familia ? moeda(saidasAno) : moeda(resultadoAno));
+    const resNeg = tem && !familia && Number(resultadoAno) < 0 ? ' class="rz-neg"' : '';
+    const celula = (r, v, neg) => `<div><small>${r}</small><b${neg ? ' class="rz-neg"' : ''}>${v}</b></div>`;
+    const celulas = familia
+        ? [celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0)]
+        : [
+            celula('Rentabilidade', tem ? pctBR(rentabilidade) : traco),
+            celula('Ocupação', tem ? pctBR(ocupacao) : traco),
+            celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0),
+        ];
+    const ativosTxt = totalAtivos == null ? '' : `${totalAtivos} ${Number(totalAtivos) === 1 ? 'ativo' : 'ativos'}`;
+    const seg = ['tudo', 'comercial', 'familia'].map(v =>
+        `<button type="button" onclick="escolherGeralUniverso('${v}')" class="${v === filtro.contexto ? 'rz-on' : ''}">${CONTEXTO_ROTULO[v]}</button>`
+    ).join('');
+
+    return `<div class="rz-heroi"${carregando ? ' aria-busy="true"' : ''}>
+        <div class="rz-heroi-top">
+            <div class="rz-heroi-ano">
+                <button type="button" onclick="escolherResultadosAno(-1)" aria-label="Ano anterior"${filtro.ano <= ANO_ATUAL - 2 ? ' disabled' : ''}><svg data-lucide="chevron-left"></svg></button>
+                <b>${filtro.ano}</b>
+                <button type="button" onclick="escolherResultadosAno(1)" aria-label="Próximo ano"${filtro.ano >= ANO_ATUAL ? ' disabled' : ''}><svg data-lucide="chevron-right"></svg></button>
+            </div>
+            <button type="button" class="rz-heroi-exp" onclick="abrirResultadosExportar()" aria-label="Exportar"><svg data-lucide="share"></svg></button>
+        </div>
+        <small>Patrimônio sob gestão</small>
+        <b class="rz-heroi-pat">${tem ? formatarPatrimonioCompacto(patrimonio) : traco}</b>
+        ${ativosTxt ? `<small>${ativosTxt}</small>` : ''}
+        <div class="rz-heroi-res">
+            <small>${resRotulo}</small><b${resNeg}>${resValor}</b>
+            <div class="rz-heroi-3${celulas.length === 1 ? ' rz-um' : ''}">${celulas.join('')}</div>
+        </div>
+        <div class="rz-seg" role="group" aria-label="Contexto">${seg}</div>
+    </div>`;
 }
 
 // ---------------------------------------------------------------------
@@ -428,6 +371,7 @@ export function abrirResultadosExportar() {
 async function renderizarConteudo() {
     const alvo = document.getElementById('resultados-conteudo');
     if (!alvo) return;
+    const minha = ++geracao; // v2.0.0
     const p_uso = CONTEXTO_USO[filtro.contexto];
     const nivel = filtro.abrangencia; // 'carteira' | 'empreendimento'
     const alvoId = filtro.abrangencia === 'empreendimento' ? filtro.alvoId : null;
@@ -464,6 +408,7 @@ async function renderizarConteudo() {
             filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_indicadores_resumo'),
             filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_carteira_indicador_series', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_codigo: 'ipca' }),
         ]);
+        if (minha !== geracao) return; // v2.0.0 — chegou um desenho mais novo
         if (resumoR.error) throw resumoR.error;
         if (perfR.error) throw perfR.error;
         if (mensalR.error) throw mensalR.error;
@@ -482,8 +427,10 @@ async function renderizarConteudo() {
         const indicadores = indR.data || [];
         const graficoIndicador = graficoIndR.data || [];
 
+        // v2.0.0 (UXR-17) — os números de cima vão para o herói de Hoje; os cards ficam abaixo
+        const heroiEl = document.getElementById('hoje-heroi-mount');
+        if (heroiEl) heroiEl.innerHTML = montarHeroi(resumo, perf);
         alvo.innerHTML = [
-            montarKpis(resumo, perf),
             montarCardIndicadores(indicadores),
             montarGraficoMensal(mensal),
             montarGraficoIndicador(graficoIndicador, 'ipca'),
@@ -497,48 +444,13 @@ async function renderizarConteudo() {
         ligarBarrasCalendario('.rz-res-barra-mes', reajustes, abrirResultadosMesReajuste);
         ligarBarrasCalendario('.rz-res-barra-revisional', revisionais, abrirResultadosMesRevisional);
     } catch (err) {
+        if (minha !== geracao) return;
         console.warn('[resultados] Falha ao carregar conteúdo:', err.message);
+        const heroiErr = document.getElementById('hoje-heroi-mount');
+        if (heroiErr) heroiErr.innerHTML = montarHeroi(null, null);
         alvo.innerHTML = `<div class="rz-card"><p class="rz-desc">Não deu para carregar os resultados agora.</p><button type="button" class="rz-btn rz-btn-2" id="rz-res-tentar" style="margin-top:10px">Tentar de novo</button></div>`;
         alvo.querySelector('#rz-res-tentar')?.addEventListener('click', () => renderizarConteudo());
     }
-}
-
-function montarKpis(resumo, perf) {
-    if (!resumo && !perf) return '';
-    const familia = filtro.contexto === 'familia';
-    const resultadoAno = perf ? perf.resultado_liquido : (resumo ? resumo.resultado_liquido_ano : null);
-    const saidasAno = perf ? perf.saidas_ano : (resumo ? resumo.saidas_ano : null);
-    const patrimonio = perf ? perf.patrimonio : (resumo ? resumo.soma_valor_mercado : null);
-    const rentabilidade = perf ? perf.rentabilidade_pct : (resumo ? resumo.yield_ano_pct : null);
-    // v1.5.0 (demanda 8ac32623) — 4ª caixa: Inadimplência (valor em atraso
-    // no período — decisão do Nicola entre as opções propostas). Mesmo
-    // campo inadimplencia_valor que o card "Performance" já usa mais
-    // abaixo (montarPerformanceGrid) — fonte única, nunca 2 contas
-    // diferentes pra "quanto está em atraso" na mesma tela.
-    const inadimplencia = perf ? perf.inadimplencia_valor : (resumo ? resumo.inadimplencia_valor : null);
-    // Carteira usa fn_resumo_resultados.ocupacao_pct direto; Empreendimento
-    // não tem esse campo pronto (fn_performance_empreendimento só devolve
-    // dias_alugado_medio/dias_vago_medio) — deriva o % localmente, mesma
-    // conta que a função já faz por trás (dias/período).
-    const ocupacaoValor = resumo ? resumo.ocupacao_pct
-        : (perf && perf.dias_alugado_medio != null && (perf.dias_alugado_medio + perf.dias_vago_medio) > 0
-            ? Math.round((perf.dias_alugado_medio / (perf.dias_alugado_medio + perf.dias_vago_medio)) * 1000) / 10
-            : null);
-
-    const heroLabel = familia ? 'Custo · ano' : 'Resultado do ano';
-    const heroValor = familia ? formatarMoedaBR(saidasAno || 0, { semCentavos: true }) : formatarMoedaBR(resultadoAno || 0, { semCentavos: true });
-    const heroClasse = !familia && Number(resultadoAno) < 0 ? ' rz-bad' : '';
-
-    const cards = [`<div class="rz-kpi rz-hero${heroClasse}"><small>${heroLabel}</small><b>${heroValor}</b></div>`];
-    cards.push(`<div class="rz-kpi"><small>Patrimônio</small><b>${formatarPatrimonioCompacto(patrimonio)}</b></div>`);
-    if (!familia) cards.push(`<div class="rz-kpi"><small>Rentabilidade</small><b>${pctFmt(rentabilidade)}</b></div>`);
-    const totalAtivos = perf ? perf.total_ativos : (resumo ? resumo.total_imoveis : null); // v1.7.0
-    cards.push(familia
-        ? `<div class="rz-kpi"><small>Ativos</small><b>${totalAtivos ?? '—'}</b></div>`
-        : `<div class="rz-kpi"><small>Ocupação</small><b>${pctFmt(ocupacaoValor)}</b></div>`);
-    cards.push(`<div class="rz-kpi${Number(inadimplencia) > 0 ? ' rz-bad' : ''}"><small>Inadimplência</small><b>${formatarMoedaBR(inadimplencia || 0, { semCentavos: true })}</b></div>`);
-
-    return `<div class="rz-kpis">${cards.join('')}</div>`;
 }
 
 function montarCardIndicadores(indicadores) {
@@ -834,7 +746,7 @@ export function abrirInfoIndicadores() {
 
 export function abrirInfoResultadoMensal() {
     const itens = [
-        ['Resultado mês a mês', 'A diferença entre o que entrou (aluguéis recebidos) e o que saiu (despesas, tributos, repasses) em cada mês do ano escolhido no filtro.'],
+        ['Resultado mês a mês', 'A diferença entre o que entrou (aluguéis recebidos) e o que saiu (despesas, tributos, repasses) em cada mês do ano escolhido no topo de Hoje.'],
         ['Barra vermelha', 'Mês em que saiu mais dinheiro do que entrou (resultado negativo).'],
         ['Números no topo', 'O maior e o menor resultado do ano, em destaque.'],
     ];
@@ -905,18 +817,6 @@ function montarPerformanceGrid(perf) {
         <div class="rz-card-h" style="justify-content:space-between"><b>Performance</b>${botaoInfoCard('abrirInfoPerformanceGrid()')}</div>
         <div class="rz-kv">${linhas.join('')}</div>
     </div>`;
-}
-
-// Helper local: lista de ativos pra picker de "Imóvel" no Sheet Filtros
-// — usa o mesmo array global `imoveis` que o resto do app já usa (não
-// importa cofre-estado.js aqui pra não acoplar a dois modelos de dado
-// diferentes; `imoveis` é o array clássico já usado por
-// abrirSeletorImovel() em outras telas).
-function estadoAtivosParaFiltro() {
-    try {
-        return (typeof imoveis !== 'undefined' && Array.isArray(imoveis) ? imoveis : [])
-            .map(i => ({ id: i.id, nome: `${i.empreendimento || ''} ${i.enderecoRua ? '- ' + i.enderecoRua : ''}`.trim() || i.id }));
-    } catch (e) { return []; }
 }
 
 // v1.9.0 (UX F1.4a, demanda c71f617c) — esqueleto no lugar de "Carregando…".

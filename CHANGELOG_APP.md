@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.301.0) — F1.4a do PLANO_UX ("Sim pode fazer. Estou de acordo" do Nicola 04/10
+15:46). (1) Esqueleto no lugar de "Carregando…": rzSkeleton (linhas, lista, cards, texto) no
+index e nos módulos (Ativos, ficha do contrato, Resultados, Cofre, cadastros). (2) Otimista: marcar,
+adiar e dispensar alerta tiram a linha na hora (volta se o banco recusar; Desfazer devolve na
+hora); excluir parte tira só a linha. (3) Sem conexão de verdade: online/offline, faixa única,
+Salvar dos sheets não envia sem rede e erro de rede em português. (4) LGPD: dado da carteira no
+aparelho com chave por empresa + login e apagado no Sair; o cache antigo (chave pelo nome) some.
+Import map: resultados 1.9.0, cofre-ativos 1.74.0, cofre-controles 1.46.0, cofre-documentos 2.24.0,
+contratos 1.40.0, cadastros 1.1.0, ativos-boot 1.4.0. Sem banco.
+Versão anterior (Beta v1.300.2):
+------------------------------------------------------------------
+Versões anteriores (v1.300.2 … v1.300.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.300.2) — P4a do Financeiro: contas (Premium; fichas A1–A6, de acordo do
 Nicola 04/10 12:43). Minha empresa ganha o card "Contas" (criar, editar, padrão, encerrar);
 a ficha da pessoa ganha "Contas" (as dela e "Quem ela vê"); Recebimentos e Saídas ganham o

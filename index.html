@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.303.0
-   LINHAS: 16990
-   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda da6c64b6)
+   VERSÃO: Beta v1.304.0
+   LINHAS: 17043
+   DATA: 04/10/2026 (sessão 20261003-1707-ux-base, demanda 217e3a38)
+   NOVIDADES (Beta v1.304.0) — F2.1a do PLANO_UX (Hoje com Resultados dentro; "Sim de acordo" do
+   Nicola 04/10 21:11; UXR-16 a 19). Visão Geral vira Hoje (nome na barra). Herói unificado no topo
+   (js/resultados.js 2.0.0): patrimônio, nº de ativos, Resultado do ano, Rentabilidade · Ocupação ·
+   Inadimplência, com o ano ‹ › e o contexto Tudo · Comercial · Família dentro dele. Os cards de
+   Resultados vêm embaixo ("Resultados · <ano>"). Sem descrição no topo e sem o atalho da F2.2;
+   switchTab('tab-relatorios') cai em Hoje, na parte de Resultados; o menu troca Resultados por
+   Relatórios. Sem acesso a Resultados, volta o bloco antigo de KPIs. Quebra por tipo conta uso NULL
+   como Família, igual ao banco (migration ux_resumo_uso_nulo_v1, demanda 94290613). Import map:
+   resultados 2.0.0.
+   Versão anterior (Beta v1.303.0):
    NOVIDADES (Beta v1.303.0) — F2.2 do PLANO_UX (Alertas como aba; "podemos avançar" do Nicola 04/10
    18:21, opção (a)). Barra inferior: Visão Geral · Ativos · Contratos · Financeiro · Alertas, com o
    número de pendências na cor da pior severidade. O sino sai do cabeçalho; Alertas sai do menu ⚙️.
@@ -34,18 +44,8 @@
    Aberto sem rede com o login vencido, entra só para consulta. A faixa de sem conexão diz de quando
    é o dado. sw.js 2.1 → 3.0 (o app abre sem rede). Sem banco.
    Versão anterior (Beta v1.301.0):
-   NOVIDADES (Beta v1.301.0) — F1.4a do PLANO_UX ("Sim pode fazer. Estou de acordo" do Nicola 04/10
-   15:46). (1) Esqueleto no lugar de "Carregando…": rzSkeleton (linhas, lista, cards, texto) no
-   index e nos módulos (Ativos, ficha do contrato, Resultados, Cofre, cadastros). (2) Otimista: marcar,
-   adiar e dispensar alerta tiram a linha na hora (volta se o banco recusar; Desfazer devolve na
-   hora); excluir parte tira só a linha. (3) Sem conexão de verdade: online/offline, faixa única,
-   Salvar dos sheets não envia sem rede e erro de rede em português. (4) LGPD: dado da carteira no
-   aparelho com chave por empresa + login e apagado no Sair; o cache antigo (chave pelo nome) some.
-   Import map: resultados 1.9.0, cofre-ativos 1.74.0, cofre-controles 1.46.0, cofre-documentos 2.24.0,
-   contratos 1.40.0, cadastros 1.1.0, ativos-boot 1.4.0. Sem banco.
-   Versão anterior (Beta v1.300.2):
    ------------------------------------------------------------------
-   Versões anteriores (v1.300.2 … v1.300.2): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.301.0 … v1.301.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -70,7 +70,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.33.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.40.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.46.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.25.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=1.9.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.33.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.40.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.46.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.25.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.0.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -627,6 +627,26 @@
            linha; 4+ = 2 linhas balanceadas) — esta classe só define o
            grid em si (gap/margem), sem colunas fixas. */
         .rz-kpis-3{display:grid;gap:8px;margin-bottom:12px}
+        /* v1.304.0 (UX F2.1a, UXR-17/18) — herói unificado de Hoje: um só bloco --pine com patrimônio,
+           nº de ativos, Resultado do ano e 3 números; ano (‹ 2026 ›) e contexto dentro do herói. */
+        .rz-heroi{background:var(--pine);color:#fff;border-radius:18px;padding:12px 16px 16px;margin-bottom:12px}
+        .rz-heroi-top{display:flex;align-items:center;justify-content:space-between;margin:-4px -10px 4px}
+        .rz-heroi-ano{display:flex;align-items:center}
+        .rz-heroi-ano button,.rz-heroi-top .rz-heroi-exp{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:#fff;border-radius:12px}
+        .rz-heroi-ano button:disabled{opacity:.3}
+        .rz-heroi-ano b{font-size:16px;font-weight:700;min-width:44px;text-align:center}
+        .rz-heroi small{display:block;font-size:12px;color:rgba(255,255,255,.75)}
+        .rz-heroi-pat{display:block;font-family:var(--font-title);font-size:30px;letter-spacing:-.02em;line-height:1.15;margin-top:2px}
+        .rz-heroi-res{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18)}
+        .rz-heroi-res b{display:block;font-family:var(--font-title);font-size:22px;letter-spacing:-.02em;margin-top:2px}
+        .rz-heroi .rz-neg{color:var(--wine-light)}
+        .rz-heroi-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+        .rz-heroi-3.rz-um{grid-template-columns:1fr}
+        .rz-heroi-3 div{background:rgba(255,255,255,.08);border-radius:12px;padding:8px 10px;min-width:0}
+        .rz-heroi-3 b{display:block;font-size:16px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .rz-heroi .rz-seg{background:rgba(255,255,255,.12);margin:14px 0 0}
+        .rz-heroi .rz-seg button{color:rgba(255,255,255,.85)}
+        .rz-heroi .rz-seg button.rz-on{background:#fff;color:var(--pine)}
         .rz-prog{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
         .rz-prog i{display:block;height:100%;background:var(--sprout)}
         .rz-empty{text-align:center;padding:18px 8px 8px}
@@ -1631,7 +1651,7 @@
 
         <button onclick="irParaAbaRodape('tab-geral')" id="btn-tab-geral" class="flex-1 flex flex-col items-center justify-center py-2 gap-0.5">
             <svg data-lucide="layout-dashboard" style="width:21px;height:21px"></svg>
-            <span class="text-[12px] font-bold">Visão Geral</span>
+            <span class="text-[12px] font-bold">Hoje</span><!-- v1.304.0 (UX F2.1a, UXR-16) — Visão Geral virou Hoje -->
         </button>
 
         <!-- v1.80.0 — reaproveita o Cofre inteiro (js/cofre-*.js) dentro do
@@ -1777,17 +1797,12 @@
                  cabeçalho global (#main-header), pedido explícito: "o sino
                  de alertas deve ir para o topo". rz-tabhead sem o 2º filho
                  continua válido (era flex, sobra só o parágrafo). -->
-            <div class="rz-tabhead">
-                <p>Seu patrimônio hoje: o que entrou, o que atrasou e o que pede atenção.</p>
-            </div>
-            <!-- v1.303.0 (UX F2.2, opção (a)) — Resultados saiu da barra; até a F2.1 o acesso é este atalho e o menu ⚙️ -->
-            <div class="rz-card rz-list" id="geral-atalho-resultados">
-                <div class="rz-row rz-link" onclick="switchTab('tab-relatorios')">
-                    <div class="rz-ic"><svg data-lucide="bar-chart-3"></svg></div>
-                    <div class="rz-tx"><b>Resultados do ano</b><span>Desempenho, distribuição e relatórios</span></div>
-                    <svg data-lucide="chevron-right" class="rz-chev"></svg>
-                </div>
-            </div>
+            <!-- v1.304.0 (UX F2.1a, demanda 217e3a38; "Sim de acordo" do Nicola 04/10 21:11) — Visão Geral
+                 vira Hoje e Resultados mora aqui dentro (UXR-16 a 19). Sem linha de descrição no topo
+                 (UXR-10) e sem o atalho "Resultados do ano" da F2.2. O herói unificado (patrimônio +
+                 Resultado do ano + 3 números, ano e contexto dentro dele) e os cards de Resultados são
+                 montados por js/resultados.js em #hoje-heroi-mount e #hoje-resultados-mount. -->
+            <div id="hoje-heroi-mount"></div>
             <!-- Entrega A.4 (21/09/2026, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
                  v2.0.0 + ESP_RESULTADOS_MERCADO_FISCAL §3.1) — seletor de universo
                  Tudo·Comercial·Família, .rz-seg (3 posições, REGRAS §7), MESMO
@@ -1802,8 +1817,12 @@
                  mantido por renderVisaoGeral() e escolherGeralUniverso();
                  estado próprio (geralUniversoFiltro), independente do contexto
                  da aba Resultados e do filtro de severidade logo abaixo. -->
-            <div id="geral-seg-universo" class="rz-seg"></div>
-            <div class="rz-kpis">
+            <!-- v1.304.0 — o contexto (Tudo · Comercial · Família) foi para dentro do herói (UXR-18). Este
+                 segmento e os KPIs antigos ficam escondidos (ids preservados: renderVisaoGeral e
+                 carregarDadosAssincronosVisaoGeral continuam escrevendo neles) e só reaparecem se a
+                 pessoa não tem acesso a Resultados ou se o módulo não carregar. -->
+            <div id="geral-seg-universo" class="rz-seg hidden"></div>
+            <div class="rz-kpis hidden" id="geral-kpis-antigos">
                 <div class="rz-kpi rz-hero"><small>Patrimônio sob gestão</small><b id="geral-patrimonio-total">—</b></div>
                 <div class="rz-kpi rz-in"><small id="geral-recebido-mes-label">Recebido no mês</small><b id="geral-recebido-mes">—</b></div>
                 <div class="rz-kpi rz-bad"><small>Em atraso</small><b id="geral-inadimplentes">0</b></div>
@@ -1851,6 +1870,9 @@
                 <div id="alertas-seg-severidade-geral" class="rz-seg"></div>
                 <div id="geral-atencao-lista"></div>
             </div>
+
+            <!-- v1.304.0 (UXR-19) — Resultados · <ano>: os cards atuais de Resultados, nesta ordem e com ⓘ -->
+            <div id="hoje-resultados-mount"></div>
 
             <!-- Onda 12 (pedido explícito, 16/09/2026: "retirar o link
                  para relatórios da tela visão geral") — o card/link
@@ -3584,7 +3606,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.303.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.304.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9256,7 +9278,7 @@
             // v1.254.0 (frente fiscal, Fase 5) — Fiscal da competência é do grupo Financeiro.
             'tab-fiscal-competencia': 'tab-mensal',
             'tab-socios': 'tab-mensal', // v1.294.0 (UXR-25) — Distribuição é do grupo Financeiro
-            'tab-relatorios': 'tab-geral', 'tab-relatorios-catalogo': 'tab-geral' // v1.303.0 (F2.2) — até a F2.1 levar Resultados para dentro de Hoje
+            'tab-relatorios': 'tab-geral', 'tab-relatorios-catalogo': 'tab-geral' // v1.304.0 — Resultados mora em Hoje; Relatórios (menu) acende Hoje
         };
 
         // v1.62.3 (pedido explícito) — deep-link pós-login via ?ir=tab-X.
@@ -9472,8 +9494,8 @@
             return import('./js/resultados.js').then(m => (__rzResModulo = m));
         }
         [
-            'renderResultados', 'abrirResultadosFiltros', 'escolherResultadosFiltro', 'escolherResultadosAlvo',
-            'limparResultadosFiltros', 'aplicarResultadosFiltros', 'abrirResultadosExportar', 'abrirResultadosMesReajuste',
+            // v1.304.0 — sem lupa em Hoje (UXR-18): os 5 nomes do sheet Filtros saem; entra o ano do herói
+            'renderResultados', 'escolherResultadosAno', 'abrirResultadosExportar', 'abrirResultadosMesReajuste',
             // v1.1.0 (achado/pedido do Nicola testando A.3 ao vivo) — card
             // novo Revisional/Renovação + ícone (i) de explicação nos dois
             // calendários (Reajustes e Revisional/Renovação).
@@ -9610,7 +9632,7 @@
         // O roteador de sempre virou rzSwitchTabInterno (corpo intacto).
         // ===================================================================
         var RZ_NOME_TAB = {
-            'tab-geral': 'Visão Geral', 'tab-ativos': 'Ativos', 'tab-contratos': 'Contratos', 'tab-mensal': 'Financeiro',
+            'tab-geral': 'Hoje', 'tab-ativos': 'Ativos', 'tab-contratos': 'Contratos', 'tab-mensal': 'Financeiro',
             'tab-relatorios': 'Resultados', 'tab-alertas': 'Alertas', 'tab-fiscal': 'Fiscal', 'tab-fiscal-competencia': 'Fiscal da competência',
             'tab-minha-empresa': 'Minha empresa', 'tab-partes': 'Partes', 'tab-saidas': 'Saídas', 'tab-conciliacao': 'Conciliação',
             'tab-inadimplencia': 'Atrasados', 'tab-pessoas': 'Pessoas', 'tab-minutas': 'Minutas', 'tab-licenca': 'Licença',
@@ -9891,6 +9913,12 @@
         })();
 
         function rzSwitchTabInterno(tabId) {
+            // v1.304.0 (UX F2.1a, UXR-19) — Resultados mora dentro de Hoje: quem ainda chama
+            // switchTab('tab-relatorios') (alertas, atalhos antigos) cai em Hoje, já na parte de Resultados.
+            if (tabId === 'tab-relatorios') {
+                tabId = 'tab-geral';
+                setTimeout(() => document.getElementById('hoje-resultados-mount')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 600);
+            }
             if (TAB_CODIGO_VER[tabId] && rzMostrarBloqueio(TAB_CODIGO_VER[tabId])) return;
             if (tabId === 'tab-relatorios-catalogo') setTimeout(renderCatalogoRelatorios, 0); // v1.136
 
@@ -10159,7 +10187,7 @@
                 import('./js/cofre-ativos.js')
                     .then(m => { if (typeof m.fecharFichaAtivo === 'function') m.fecharFichaAtivo(); })
                     .catch(err => console.warn('[nav-rodape] Falha ao resetar Ativos:', err.message));
-            } else if (tabId === 'tab-relatorios' && __rzResModulo) {
+            } else if (tabId === 'tab-geral' && __rzResModulo) { // v1.304.0 — Resultados vive em Hoje
                 if (typeof __rzResModulo.resetarResultadosParaAbaInicial === 'function') __rzResModulo.resetarResultadosParaAbaInicial();
             } else if (tabId === 'tab-mensal' && __rzFinModulo) {
                 if (typeof __rzFinModulo.resetarFinanceiroParaAbaInicial === 'function') __rzFinModulo.resetarFinanceiroParaAbaInicial();
@@ -10353,7 +10381,7 @@
                         // em ccd04ad4 (multi-empresa/family office).
                     ]},
                     { titulo: 'Conta', acoes: [
-                        { icone: 'bar-chart-3', titulo: 'Resultados', sub: 'Desempenho, distribuição e relatórios', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios') }, // v1.303.0 (F2.2) — Alertas virou aba; Resultados fica aqui até a F2.1
+                        { icone: 'file-text', titulo: 'Relatórios', sub: 'PDFs, distribuição aos sócios e catálogo', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.304.0 (UXR-09) — Resultados foi para Hoje; Relatórios fica no menu
                         { icone: 'package-check', titulo: 'Versões', sub: 'Versão do app em uso', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
                         { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => rzDev('whatsapp', '5511947461828') },
@@ -11657,7 +11685,27 @@
             // num instante diferente, dando sensação de tela remontando
             // aos pedaços. Ver função pra detalhe de cada busca.
             carregarDadosAssincronosVisaoGeral();
+            rzRenderResultadosHoje(); // v1.304.0
 
+        }
+
+        // v1.304.0 (UX F2.1a) — Hoje monta o herói e os cards de Resultados (js/resultados.js), no
+        // contexto escolhido aqui (geralUniversoFiltro — uma fonte só para Hoje inteiro). Sem acesso a
+        // Resultados (relatorios.ver) ou com o módulo fora do ar, volta o bloco antigo de KPIs.
+        function rzRenderResultadosHoje() {
+            const antigos = () => {
+                document.getElementById('geral-kpis-antigos')?.classList.remove('hidden');
+                document.getElementById('geral-seg-universo')?.classList.remove('hidden');
+            };
+            const pode = typeof podeUsar === 'function' ? podeUsar('relatorios.ver') : null;
+            if (pode && pode.ok === false) {
+                ['hoje-heroi-mount', 'hoje-resultados-mount'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+                antigos();
+                return;
+            }
+            carregarResultados()
+                .then(m => m.renderResultados({ contexto: geralUniversoFiltro }))
+                .catch(err => { console.warn('[hoje] Falha ao carregar Resultados:', err.message); antigos(); });
         }
 
         // v1.95.0 (pedido explícito, 01/09/2026: "as funções de
@@ -11718,6 +11766,10 @@
         // manda pra esta query, não o de fn_alertas_listar.
         function construirQueryQuebraTipoGeral(p_uso) {
             const q = dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
+            // v1.304.0 (demanda 94290613) — fn_resumo_resultados passou a contar uso NULL como
+            // 'nao_comercial' (igual à fn_alertas_listar): a quebra segue o mesmo critério, para a
+            // soma dos tipos continuar batendo com o herói.
+            if (p_uso === 'nao_comercial') return q.or('uso.eq.nao_comercial,uso.is.null');
             return p_uso ? q.eq('uso', p_uso) : q;
         }
 
@@ -12124,6 +12176,7 @@
             // (ESP §3.1): re-chama fn_resumo_resultados/fn_alertas_listar
             // com o novo p_uso.
             carregarDadosAssincronosVisaoGeral();
+            rzRenderResultadosHoje(); // v1.304.0 — herói e cards de Resultados no mesmo contexto
         }
 
         // AL.3 (20/09/2026, Motor de Alertas) — REGRAS_EXPERIENCIA v3.16.0 §14:
