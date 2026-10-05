@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.302.0) — F1.4b do PLANO_UX (abrir sem rede, só consulta; plano aprovado pelo
+Nicola 04/10 15:46). Toda leitura ao banco (GET de tabela e funções de leitura conferidas) passa
+por rzFetchComCache: com rede guarda a resposta no IndexedDB do aparelho; sem rede devolve a
+última (até 7 dias). Escrita nunca usa cache. Chave por login; trocar de login ou Sair apaga tudo.
+Aberto sem rede com o login vencido, entra só para consulta. A faixa de sem conexão diz de quando
+é o dado. sw.js 2.1 → 3.0 (o app abre sem rede). Sem banco.
+Versão anterior (Beta v1.301.0):
+------------------------------------------------------------------
+Versões anteriores (v1.301.0 … v1.301.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.301.0) — F1.4a do PLANO_UX ("Sim pode fazer. Estou de acordo" do Nicola 04/10
 15:46). (1) Esqueleto no lugar de "Carregando…": rzSkeleton (linhas, lista, cards, texto) no
 index e nos módulos (Ativos, ficha do contrato, Resultados, Cofre, cadastros). (2) Otimista: marcar,

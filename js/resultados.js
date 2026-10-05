@@ -1,7 +1,17 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.0.0 (04/10/2026 — demanda 217e3a38)
+// VERSÃO: Beta v2.1.0 (04/10/2026 — demanda 557d3a6b)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.1.0) — frente 5, fatia 5A (sessão 20261004-1800-indicadores, "de acordo"
+//   do Nicola 04/10 18:00 e 22:06): o card Indicadores passa dos 3 para os 6 indicadores
+//   coletados (IPCA, IGP-M, INCC-DI, Selic, CDI, IVG-R), cada um com o valor do último mês
+//   fechado, o mês de referência e o acumulado de 12 meses. O ⓘ abre um parágrafo por
+//   indicador, lido do banco (indicador_series.explicacao, via fn_indicadores_resumo — fonte
+//   única para app, bot e relatórios). Migration indicadores_resumo_seis_v1: IVG-R vira
+//   variação e o mês em andamento (Selic/CDI provisórios) não entra. Texto do card a 12 px
+//   (era 10,5 — UXR-31).
+// Versão anterior: Beta v2.0.0 (04/10/2026 — demanda 217e3a38)
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.0.0) — UX F2.1a (sessão 20261003-1707-ux-base, "Sim de acordo" do
 //   Nicola 04/10 21:11; DIRETRIZES UXR-16 a 19): Resultados deixa de ser aba e passa a
@@ -204,7 +214,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '2.0.0';
+export const VERSAO = '2.1.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -248,6 +258,15 @@ function pctSinal(v) {
 }
 
 const NOME_CURTO_INDICADOR = { ipca: 'IPCA', igpm: 'IGP-M', selic: 'Selic', ivgr: 'IVG-R', inccdi: 'INCC-DI', cdi: 'CDI' };
+// v2.1.0 (5A) — última leitura de fn_indicadores_resumo, para o ⓘ mostrar o texto de cada
+// indicador sem consultar de novo. Só leitura; quem escreve é renderizarConteudo().
+let ultimosIndicadores = [];
+const MES_CURTO_IND = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function competenciaCurta(iso) {
+    if (!iso) return '';
+    const [a, m] = String(iso).split('-');
+    return `${MES_CURTO_IND[(+m || 1) - 1]}/${String(a).slice(2)}`;
+}
 
 // v1.2.0 (21/09/2026, pedido explícito ao vivo: "o icone i deve entrar em
 // todos os cards desta tela") — botão (i) reaproveitado por TODOS os
@@ -425,6 +444,7 @@ async function renderizarConteudo() {
         const reajustes = reajR.data || [];
         const revisionais = revR.data || [];
         const indicadores = indR.data || [];
+        ultimosIndicadores = indicadores; // v2.1.0 (5A) — alimenta o ⓘ
         const graficoIndicador = graficoIndR.data || [];
 
         // v2.0.0 (UXR-17) — os números de cima vão para o herói de Hoje; os cards ficam abaixo
@@ -469,11 +489,17 @@ function montarCardIndicadores(indicadores) {
             </div>
         </div>`;
     }
+    // v2.1.0 (5A) — 6 indicadores: mês de referência, valor do mês e 12 meses.
     return `<div class="rz-card">
         <div class="rz-card-h" style="justify-content:space-between"><b>Indicadores</b>${botaoInfoCard('abrirInfoIndicadores()')}</div>
-        <div class="rz-kv">${indicadores.map(ind => `
-            <div><small>${rzEsc(NOME_CURTO_INDICADOR[ind.codigo] || ind.nome)}</small><b>${pctSinal(ind.acumulado_12m_pct)} <span style="font-weight:400;color:var(--muted);font-size:10.5px">12m</span></b></div>
-        `).join('')}</div>
+        <div class="rz-kv">${indicadores.map(ind => {
+            const mes = ind.valor_mes_pct == null ? null : Number(ind.valor_mes_pct);
+            return `<div>
+                <small style="display:flex;justify-content:space-between;gap:6px"><span>${rzEsc(NOME_CURTO_INDICADOR[ind.codigo] || ind.nome)}</span><span>${rzEsc(competenciaCurta(ind.competencia_mes))}</span></small>
+                <b style="${mes != null && mes < 0 ? 'color:var(--danger)' : ''}">${pctSinal(mes)}</b>
+                <span style="display:block;font-size:12px;color:var(--muted)">${pctSinal(ind.acumulado_12m_pct)} em 12 meses</span>
+            </div>`;
+        }).join('')}</div>
     </div>`;
 }
 
@@ -735,10 +761,13 @@ export function abrirInfoRevisionais() {
 // (rz-kv/rz-full dentro de Sheet), uma por card que ainda não tinha.
 export function abrirInfoIndicadores() {
     const itens = [
-        ['Indicadores', 'Os índices de mercado que orientam reajuste de aluguel e comparação de rentabilidade — IPCA, IGP-M e Selic.'],
-        ['Fonte', 'Banco Central do Brasil (Sistema Gerenciador de Séries Temporais — SGS), acumulado dos últimos 12 meses capturados.'],
+        // v2.1.0 (5A) — um parágrafo por indicador, do banco (indicador_series.explicacao).
+        ...ultimosIndicadores.filter(ind => ind.explicacao).map(ind => [
+            `${NOME_CURTO_INDICADOR[ind.codigo] || ind.nome} · ${pctSinal(ind.acumulado_12m_pct)} em 12 meses`, ind.explicacao]),
+        ['Como ler', 'O número grande é a variação do último mês fechado; embaixo, o acumulado dos últimos 12 meses. O mês em andamento não entra na conta.'],
+        ['Fonte', 'Banco Central do Brasil (Sistema Gerenciador de Séries Temporais — SGS).'],
     ];
-    abrirSheet(rzSheetCabecalho('Sobre o card Indicadores') +
+    abrirSheet(rzSheetCabecalho('O que cada indicador mede') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
             itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b style="font-weight:500;font-size:12.5px">${rzEsc(v)}</b></div>`).join('')
         }</div></div></div>`);
