@@ -1,7 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.1.0 (04/10/2026 — demanda 557d3a6b)
+// VERSÃO: Beta v2.2.0 (04/10/2026 — demanda e42f649b)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.2.0) — frente 5, fatia 5B (sessão 20261004-1800-indicadores, "De acordo com
+//   5B" do Nicola 04/10 22:06): o card Indicadores ganha "Ver todos", que carrega o módulo novo
+//   js/indicadores.js (lazy) com Mês a mês · Sua carteira · Simulador. Sem o código
+//   resultados.indicadores, o botão aparece desabilitado com cadeado e o motivo (ACE-04).
+// Versão anterior: Beta v2.1.0 (04/10/2026 — demanda 557d3a6b)
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.1.0) — frente 5, fatia 5A (sessão 20261004-1800-indicadores, "de acordo"
 //   do Nicola 04/10 18:00 e 22:06): o card Indicadores passa dos 3 para os 6 indicadores
@@ -214,7 +220,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '2.1.0';
+export const VERSAO = '2.2.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -500,6 +506,7 @@ function montarCardIndicadores(indicadores) {
                 <span style="display:block;font-size:12px;color:var(--muted)">${pctSinal(ind.acumulado_12m_pct)} em 12 meses</span>
             </div>`;
         }).join('')}</div>
+        ${botaoVerTodosIndicadores()}
     </div>`;
 }
 
@@ -759,6 +766,20 @@ export function abrirInfoRevisionais() {
 // v1.2.0 (21/09/2026, pedido explícito ao vivo: "o icone i deve entrar em
 // todos os cards desta tela") — mesmo padrão das 2 funções acima
 // (rz-kv/rz-full dentro de Sheet), uma por card que ainda não tinha.
+// v2.2.0 (5B) — "Ver todos" abre a tela de indicadores (módulo lazy js/indicadores.js).
+function botaoVerTodosIndicadores() {
+    const pode = typeof podeUsar === 'function' ? podeUsar('resultados.indicadores') : true;
+    if (pode === false) {
+        return `<button type="button" disabled title="Disponível nos planos com Resultados" style="display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--muted);font-weight:600;font-size:14px;min-height:44px"><svg data-lucide="lock" style="width:14px;height:14px"></svg>Ver todos — disponível nos planos com Resultados</button>`;
+    }
+    return `<button type="button" onclick="abrirIndicadores()" style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;margin-top:12px;padding-top:12px;border:0;border-top:1px solid var(--line);background:none;color:var(--sprout);font-weight:600;font-size:14px;min-height:44px">Ver todos<svg data-lucide="chevron-right" style="width:16px;height:16px"></svg></button>`;
+}
+
+export function abrirIndicadores() {
+    return import('./indicadores.js').then(m => m.abrirTelaIndicadores(filtro.ano))
+        .catch(err => { console.warn('[resultados] indicadores.js:', err?.message); if (typeof mostrarToast === 'function') mostrarToast('Não deu para abrir os indicadores agora.', 'erro'); });
+}
+
 export function abrirInfoIndicadores() {
     const itens = [
         // v2.1.0 (5A) — um parágrafo por indicador, do banco (indicador_series.explicacao).

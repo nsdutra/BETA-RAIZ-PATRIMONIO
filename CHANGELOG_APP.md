@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.302.1) — teste da P4a: "Excluir conta" sempre nas ações da conta (apaga
+se não tiver movimento; com movimento explica e sugere Encerrar — fn_conta_excluir) e
+"Encerrar" também na padrão de uma pessoa. Só import map: comum-minha-empresa 1.10.0 → 1.10.1.
+Versão anterior (Beta v1.302.0):
+------------------------------------------------------------------
+Versões anteriores (v1.302.0 … v1.302.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.302.0) — F1.4b do PLANO_UX (abrir sem rede, só consulta; plano aprovado pelo
 Nicola 04/10 15:46). Toda leitura ao banco (GET de tabela e funções de leitura conferidas) passa
 por rzFetchComCache: com rede guarda a resposta no IndexedDB do aparelho; sem rede devolve a
