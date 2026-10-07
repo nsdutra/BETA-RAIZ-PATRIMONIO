@@ -6,9 +6,20 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.313.1
-   LINHAS: 17447
-   DATA: 07/10/2026 (sessão 20261007-0137-financeiro, demanda f3e6cd27)
+   VERSÃO: Beta v1.314.0
+   LINHAS: 17509
+   DATA: 07/10/2026 (sessão 20261007-0129-upload-ia-b, demanda 9ddb9f34)
+   NOVIDADES (Beta v1.314.0) — leitura com IA, fatia U1b + U2 ("De acordo" do Nicola 07/10 01:29).
+   (1) Sheet TRAVADO: abrirSheet(html, { travado: true }) e rzSheetTravar(on) — sem X, sem arrastar,
+   toque fora, Esc e voltar não fecham; outro sheet que abrir enquanto isso entra por cima (nível 2).
+   Usado pelo "Enviar documento" (cofre-documentos 2.28.0, agora Sheet de ações do app). (2) O
+   "puxar para atualizar" do NAVEGADOR fica desligado no app todo (overscroll-behavior-y:contain no
+   html e no body): puxar a ficha do ativo para baixo recarregava a página e perdia a leitura; o
+   puxar do app continua nas listas. (3) U2: ao entrar, rzLeituraPendenteVerificar() oferece retomar
+   a leitura que ficou no meio (anotação do aparelho, apagada no Sair) — "Conferir e salvar" com o
+   resultado guardado pelo cofre-extrair-documento 1.11, "Ler de novo" se não terminou, ou
+   "Descartar". Import map: cofre-documentos 2.28.0, cofre-api 1.48.0.
+   Versão anterior (Beta v1.313.1):
    NOVIDADES (Beta v1.313.1) — teste do Nicola 07/10 01:37 (sessão 20261007-0137-financeiro, demanda
    f3e6cd27). Relatórios sai do grupo Conta e passa para o grupo Empresa do menu. Os filtros dos
    relatórios Fluxo de caixa e Visão gerencial (período, conta) abriam por trás do relatório; agora
@@ -36,17 +47,8 @@
    Não deu para ler, Interrompida (ler de novo sem reenviar) ou Envio não concluído. O fundo do
    "Confira" não fecha mais (só Salvar/Cancelar). Import map: cofre-documentos 2.27.0. Sem banco.
    Versão anterior (Beta v1.310.0):
-   NOVIDADES (Beta v1.310.0) — F2.1b do PLANO_UX (Jornal do dia; "Aprovado, siga" do Nicola 06/10
-   22:41; UXR-16/20/21). Hoje ganha os chips Patrimônio · Jornal do dia (ponto vermelho quando há
-   crítico ainda não visto). Jornal: data por extenso, Norte (anel 0–100 da fn_saude_patrimonio,
-   palavra, o que pesa, marcos), Pontos de atenção (3 do Motor + Ver todos → Alertas; sai de
-   Patrimônio), Para você (a comunicação que a Central escolheria agora; Ver abre pela Central,
-   Agora não registra e esconde 7 dias) e Novidades do Raiz (fn_novidade_sortear). Detalhe da
-   Central de Comunicações num lugar só (rzDetalheComunicacoes). fn_saude_patrimonio e
-   fn_novidade_sortear entram nas leituras guardadas para abrir sem rede. Sem banco novo.
-   Versão anterior (Beta v1.309.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.309.0 … v1.309.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.310.0 … v1.310.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +73,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.27.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.0.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.28.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.0.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -874,6 +876,9 @@
         #toast-container>div{pointer-events:auto}
         /* v1.299.0 (UX F1.3) — puxar para atualizar: indicador sob o cabeçalho */
         html.rz-ptr-on{overscroll-behavior-y:contain}
+        /* v1.314.0 (9ddb9f34) — o puxar-para-atualizar NATIVO do navegador recarregava a página onde o do
+           app não atua (ex.: ficha do ativo) e perdia o que estava em andamento. Desligado no app todo. */
+        html,body{overscroll-behavior-y:contain}
         #rz-ptr{position:fixed;left:50%;top:0;z-index:45;width:36px;height:36px;margin-left:-18px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;color:var(--pine);opacity:0;transform:translateY(-48px);pointer-events:none;transition:transform var(--m-base,200ms) ease,opacity var(--m-base,200ms) ease}
         #rz-ptr.rz-puxando{transition:none}
         #rz-ptr svg{width:18px;height:18px}
@@ -3663,7 +3668,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.313.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.314.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -3871,6 +3876,8 @@
         // conteúdo é maior que a tela. Sem animação com "reduzir movimento".
         function abrirSheet(html, opcoes = {}) {
             const veil = rzGarantirVeil();
+            // v1.314.0 — com o sheet de baixo TRAVADO (processo em andamento), o novo entra por cima.
+            if (!opcoes.empilhar && veil.classList.contains('rz-on') && document.getElementById('rz-sheet')?._travado) opcoes = { ...opcoes, empilhar: true };
             if (opcoes.empilhar && veil.classList.contains('rz-on') && !document.getElementById('rz-sheet-2')) {
                 return rzAbrirNivel2(veil, html, opcoes);
             }
@@ -3880,6 +3887,7 @@
             sheet.style.transform = '';
             sheet.innerHTML = '<div class="rz-grab"></div>' + html;
             sheet._aoFechar = opcoes.aoFechar || null;
+            sheet._travado = !!opcoes.travado; // v1.314.0
             veil.classList.add('rz-on');
             rzIcones();
             rzLigarArraste(sheet);
@@ -3916,10 +3924,11 @@
             return true;
         }
 
-        function fecharSheet() {
+        function fecharSheet(forcar) {
             const veil = document.getElementById('rz-veil');
             if (!veil || !veil.classList.contains('rz-on')) return;
             if (rzFecharNivel2()) return; // fecha só o nível de cima
+            if (document.getElementById('rz-sheet')?._travado && forcar !== true) return; // v1.314.0 — travado: só o próprio processo fecha
             veil.classList.remove('rz-on');
             const sheet = document.getElementById('rz-sheet');
             if (sheet) { sheet.classList.remove('rz-cheio'); sheet.style.transform = ''; }
@@ -3928,6 +3937,10 @@
             if (typeof cb === 'function') cb();
         }
 
+        // v1.314.0 (9ddb9f34) — SHEET TRAVADO: enquanto um processo roda (ex.: leitura com IA), o sheet
+        // de nível 1 não fecha por X, toque fora, Esc, arraste ou voltar do celular. Quem travou destrava.
+        function rzSheetTravar(on) { const s = document.getElementById('rz-sheet'); if (s) s._travado = !!on; }
+
         // Arraste pela alça (.rz-grab) e pelo cabeçalho (.rz-sh-h, fora dos botões).
         function rzLigarArraste(sheet) {
             if (!sheet || sheet._rzArraste) return;
@@ -3935,6 +3948,7 @@
             let y0 = 0, t0 = 0, dy = 0, ativo = false;
             const inicio = (ev) => {
                 const alvo = ev.target;
+                if (sheet._travado) return; // v1.314.0
                 if (!alvo.closest('.rz-grab, .rz-sh-h') || alvo.closest('button, a, input, select, textarea')) return;
                 ativo = true; y0 = ev.clientY; t0 = Date.now(); dy = 0;
                 sheet.classList.add('rz-arrastando');
@@ -4200,7 +4214,7 @@
         // Exposta pra js/comum-pessoas.js poder abrir a MESMA tela "Minhas
         // notificações" quando o ⋮ de "Comunicações" é da própria pessoa
         // logada (Sheet de ações > Comunicações).
-        Object.assign(window, { rzIcones, rzEsc, abrirSheet, fecharSheet, abrirSheetAcoes, abrirSheetForm, renderStatus, rzSemantica, RZ_STATUS, abrirPreferenciasComunicacao });
+        Object.assign(window, { rzIcones, rzEsc, abrirSheet, fecharSheet, abrirSheetAcoes, abrirSheetForm, renderStatus, rzSemantica, RZ_STATUS, abrirPreferenciasComunicacao, rzSheetCabecalho, rzSheetTravar });
 
         const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyIcM2uVKmaQqghY6ur-34dfXYCF_9Q7PNeMH9jly8Le_5K-VtxJpj8NivpNBtc1_Kt/exec";
 
@@ -8363,6 +8377,7 @@
                         // não reabrir a mesma aba de novo à força.
                         abrirAbaPorDeepLink();
                         rzAplicarRotaHash(); // v1.299.0 (UX F1.3) — link direto para ativo, contrato ou alerta
+                        setTimeout(() => rzLeituraPendenteVerificar(), 2500); // v1.314.0 (U2)
 
                         // Beta v1.71.0 — REVERTIDO pra chamar 'raiz:comunicacoes:processar'
                         // direto de novo (era assim até v1.69.1). O wrapper
@@ -10494,6 +10509,53 @@
         // v1.308.0 (D2, demanda 860233ca) — configuração inicial: mesma porta do Cofre, a partir de
         // qualquer tela (+ de Contratos, alerta "Nenhum ativo cadastrado"). Quem desenha é
         // js/configuracao-inicial.js, carregado pelo cofre-app.js só quando é usado.
+        // v1.314.0 (demanda 9ddb9f34, U2) — LEITURA QUE FICOU NO MEIO. O Cofre anota no aparelho
+        // (chaveDados('leitura_pendente'): empresa + login, apagada no Sair) a leitura com IA em
+        // andamento; o leitor guarda o resultado em <empresa>/tmp-ia/<id>.leitura.json. Se o app foi
+        // recarregado ou fechado no meio, ao entrar oferece: Conferir e salvar (resultado guardado),
+        // Ler de novo (não terminou; o arquivo já está enviado) ou Descartar. Fechar o sheet deixa para
+        // depois (pergunta de novo na próxima entrada, até 48 h). Espera outro sheet fechar.
+        async function rzLeituraPendenteVerificar(tentativa = 0) {
+            const k = chaveDados('leitura_pendente'); if (!k) return;
+            let p = null;
+            try { p = JSON.parse(localStorage.getItem(k) || 'null'); } catch (_) { p = null; }
+            if (!p || !p.documentoId || !p.storagePath) return;
+            if (Date.now() - (p.criado_em || 0) > 48 * 3600 * 1000) { try { localStorage.removeItem(k); } catch (_) {} return; }
+            if (document.getElementById('rz-veil')?.classList.contains('rz-on')) {
+                if (tentativa < 20) setTimeout(() => rzLeituraPendenteVerificar(tentativa + 1), 3000);
+                return;
+            }
+            let guardada = null;
+            try {
+                const { data } = await dbAuth.storage.from('cofre-documentos').download(`${CLIENTE_ID_SUPABASE}/tmp-ia/${p.documentoId}.leitura.json`);
+                if (data) guardada = JSON.parse(await data.text());
+            } catch (_) { guardada = null; }
+            const r = guardada?.resposta || null;
+            const tipo = r?.resultado?.motor?.subtipo_nome || r?.resultado?.tipoDocumentoDetectado || '';
+            const titulo = r ? (r.analisado ? 'Leitura pronta para conferir' : 'Leitura concluída sem reconhecer') : 'A leitura não terminou';
+            abrirSheetAcoes({
+                titulo, sub: (p.nome || 'Documento') + (tipo ? ' · ' + tipo : '') + ' · o app foi fechado no meio',
+                acoes: [
+                    r ? { icone: 'check', titulo: r.analisado ? 'Conferir e salvar' : 'Ver e preencher', sub: 'Abre o envio de onde parou, sem ler de novo', aoTocar: () => rzRetomarLeitura(p, r) }
+                      : { icone: 'refresh-cw', tipo: 'ia', titulo: 'Ler de novo', sub: 'O arquivo já foi enviado: não precisa escolher de novo', aoTocar: () => rzRetomarLeitura(p, null) },
+                    { icone: 'trash-2', tipo: 'bad', titulo: 'Descartar', sub: 'Apaga o arquivo enviado e esta leitura', aoTocar: () => rzDescartarLeituraPendente(p, k) },
+                ],
+            });
+        }
+        function rzRetomarLeitura(p, resposta) {
+            switchTab('tab-ativos');
+            const disparar = () => window.dispatchEvent(new CustomEvent('cofre:retomar-leitura', { detail: { ...p, resposta } }));
+            if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
+            window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
+        }
+        async function rzDescartarLeituraPendente(p, k) {
+            if (!await rzPerguntar({ titulo: 'Descartar a leitura?', impacto: 'O arquivo enviado e o que a IA leu serão apagados. O documento não entra no Cofre.', destrutivo: true, rotuloConfirmar: 'Descartar' })) return;
+            const base = `${CLIENTE_ID_SUPABASE}/tmp-ia/${p.documentoId}`;
+            try { await dbAuth.storage.from('cofre-documentos').remove([p.storagePath, base + '.leitura.json', base + '.jpg', base + '.pdf']); } catch (_) { /* a rotina diária limpa o que sobrar */ }
+            try { localStorage.removeItem(k); } catch (_) {}
+            rzAvisar('Leitura descartada', 'ok');
+        }
+
         function abrirConfiguracaoInicial() {
             if (window.podeUsar && !window.podeUsar('cofre.configuracao_inicial').ok) {
                 mostrarToast(window.podeUsar('cofre.configuracao_inicial').motivo || 'Disponível em outro plano.', 'aviso');

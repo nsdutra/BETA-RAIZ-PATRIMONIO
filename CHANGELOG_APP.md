@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.310.0) — F2.1b do PLANO_UX (Jornal do dia; "Aprovado, siga" do Nicola 06/10
+22:41; UXR-16/20/21). Hoje ganha os chips Patrimônio · Jornal do dia (ponto vermelho quando há
+crítico ainda não visto). Jornal: data por extenso, Norte (anel 0–100 da fn_saude_patrimonio,
+palavra, o que pesa, marcos), Pontos de atenção (3 do Motor + Ver todos → Alertas; sai de
+Patrimônio), Para você (a comunicação que a Central escolheria agora; Ver abre pela Central,
+Agora não registra e esconde 7 dias) e Novidades do Raiz (fn_novidade_sortear). Detalhe da
+Central de Comunicações num lugar só (rzDetalheComunicacoes). fn_saude_patrimonio e
+fn_novidade_sortear entram nas leituras guardadas para abrir sem rede. Sem banco novo.
+Versão anterior (Beta v1.309.0):
+------------------------------------------------------------------
+Versões anteriores (v1.309.0 … v1.309.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.309.0) — vínculos de parte, complemento (teste do Nicola 07/10 00:01; plano
 aprovado 00:05). Chip Partes do contrato: ⋮ do fiador com "Encerrar fiador" e "Excluir fiador"
 (contratos.js 1.42.0). Chip Partes do item de controle: "Encerrar vínculo" e "Excluir vínculo"

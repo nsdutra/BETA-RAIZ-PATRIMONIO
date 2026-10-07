@@ -1,6 +1,24 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.27.0 · 07/10/2026
+// Versão: 2.28.0 · 07/10/2026
+//
+// v2.28.0 (demanda 9ddb9f34, fatia U1b + U2, sessão 20261007-0129-upload-ia-b; "De acordo" do Nicola
+// 07/10 01:29, protótipo PROTOTIPO_LEITURA_IA_RAIZ v1.1.0) —
+//   (a) "Enviar documento" vira Sheet de ações do app (REGRAS §2): Fotografar e ler com IA · Escolher
+//       arquivo e ler com IA · Só guardar o arquivo (IA no topo; sem IA no plano, cadeado com motivo).
+//       Sai a caixinha "Ler com IA". Leitura e resultado no mesmo sheet, TRAVADO (rzSheetTravar do
+//       index 1.312.0: sem X, sem arrastar, toque fora e voltar não fecham). No cofre.html avulso
+//       (sem Sheet), o modal de sempre.
+//   (b) Durante a leitura, sair/recarregar pede confirmação do navegador (beforeunload).
+//   (c) U2 — antes de chamar a IA, o app anota no aparelho a leitura em andamento (chave do Sair,
+//       raiz_d_<empresa>_<pessoa>_leitura_pendente: ids, nome do arquivo e vínculo) e manda
+//       leitura_id ao leitor (cofre-extrair-documento 1.11 guarda o resultado). Se o app for
+//       recarregado ou fechado no meio, o index oferece retomar ao reabrir; o evento
+//       cofre:retomar-leitura reconstrói o envio com o arquivo já enviado e mostra o resultado
+//       guardado (ou lê de novo, se não terminou). Salvar, cancelar, descartar ou "outra foto"
+//       apagam a anotação e o resultado guardado.
+//
+// Versão anterior: 2.27.0 · 07/10/2026
 //
 // v2.27.0 (demanda 9ddb9f34, sessão 20261007-0059-upload-ia; fatia U1 aprovada pelo Nicola 07/10 00:59,
 // protótipo PROTOTIPO_LEITURA_IA_RAIZ v1.0.0) — leitura com IA com tela travada e resultado na tela:
@@ -531,7 +549,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.27.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.28.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -797,6 +815,7 @@ export async function abrirUploadConfiguracao(tipo, aoTerminar) {
     if (!up) return;
     up.config = { tipo, aoTerminar };
     document.getElementById('upload-contexto-legenda').textContent = `Configuração inicial · ${ROTULO_TIPO_CFG[tipo] || 'documento'}. Um documento por vez.`;
+    if (up.modoSheet) { const sub = document.querySelector('#rz-sheet .rz-sh-h .rz-sub'); if (sub) sub.textContent = subEnvio(); } // v2.28.0
 }
 function avisarConfig(cfg, res) {
     if (cfg && typeof cfg.aoTerminar === 'function') setTimeout(() => cfg.aoTerminar(res || {}), 150);
@@ -833,13 +852,56 @@ async function abrirPickerUpload(contexto, comIA) {
     document.getElementById('up-com-ia-hint').textContent = podeIA() ? '— preenche tudo pra você só conferir' : '— indisponível no seu plano';
     ['up-arquivo', 'up-camera'].forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('up-status').textContent = '';
+    if (modoSheet()) { up.modoSheet = true; abrirSheetEnvio(); return; } // v2.28.0
     abrirModal('modal-upload');
     refrescarIcones();
 }
 
+// v2.28.0 — "Enviar documento" como Sheet de ações do app (REGRAS §2): IA no topo, cada opção com
+// ícone, verbo e explicação; leitura e resultado no mesmo sheet (#up-progresso), travado.
+function subEnvio() {
+    if (up?.config) return `Configuração inicial · ${ROTULO_TIPO_CFG[up.config.tipo] || 'documento'}. Um documento por vez.`;
+    if (up?.vinculo) return `Vai sair vinculado a: ${up.vinculo.nome}`;
+    return 'O resto você confere na tela seguinte';
+}
+function abrirSheetEnvio() {
+    const ia = window.podeUsar ? window.podeUsar('cofre.analisar_ia') : { ok: true };
+    const acao = (id, icone, tipo, titulo, sub, off) =>
+        `<button type="button" class="rz-act ${off ? 'rz-off' : ''}" data-up-escolha="${id}" ${off ? 'aria-disabled="true"' : ''}>` +
+        `<div class="rz-ic ${tipo ? 'rz-' + tipo : ''}"><svg data-lucide="${off ? 'lock' : icone}"></svg></div>` +
+        `<div>${escapeHtml(titulo)}<small>${escapeHtml(off ? (ia.textoCurto || ia.motivo || 'Indisponível no seu plano') : sub)}</small></div></button>`;
+    const html = window.rzSheetCabecalho('Enviar documento', subEnvio()) +
+        `<div class="rz-sh-b"><div id="up-sh-escolha">` +
+        acao('camera', 'camera', 'ia', 'Fotografar e ler com IA', 'A IA preenche tudo; você só confere', !ia.ok) +
+        acao('arquivo', 'file-text', 'ia', 'Escolher arquivo e ler com IA', 'PDF ou foto da galeria', !ia.ok) +
+        acao('guardar', 'folder-open', '', 'Só guardar o arquivo', 'Sem leitura: Word, Excel ou o que não precisa ler', false) +
+        `<p class="rz-desc" style="margin:8px 0 0">Até 25 MB por arquivo.</p></div>` +
+        `<div id="up-sh-status" aria-live="polite"></div><div id="up-progresso" aria-live="polite"></div></div>`;
+    const sheet = window.abrirSheet(html, { aoFechar: aoFecharSheetEnvio });
+    if (!sheet) return;
+    sheet.classList.add('up-sheet');
+    sheet.querySelectorAll('[data-up-escolha]').forEach(b => b.addEventListener('click', () => {
+        if (!up || leitura) return;
+        const id = b.dataset.upEscolha;
+        if (b.classList.contains('rz-off')) { if (typeof window.rzMostrarBloqueio === 'function') window.rzMostrarBloqueio('cofre.analisar_ia'); return; }
+        up.comIA = id !== 'guardar';
+        up.origemInput = id === 'camera' ? 'up-camera' : 'up-arquivo';
+        const st = statusUpload(); if (st) st.textContent = '';
+        document.getElementById(up.origemInput).value = '';
+        document.getElementById(up.origemInput).click();
+    }));
+    sheet.querySelector('#up-progresso')?.addEventListener('click', aoTocarResultadoLeitura);
+    refrescarIcones();
+}
+// Fechou o sheet de envio sem mandar nada (X, toque fora, arraste): volta para a configuração.
+function aoFecharSheetEnvio() {
+    if (!up || up._indoConfira) return;
+    if (up.config && !up.storagePath) { const cfg = up.config; up = null; avisarConfig(cfg, { cancelado: true }); }
+}
+
 // v2.2.0 — foto reprovada no quality gate: mostra o que corrigir, sem gastar IA.
 function mostrarBloqueioQualidade(q) {
-    const el = document.getElementById('up-status');
+    const el = statusUpload();
     el.style.color = 'var(--danger)';
     el.innerHTML = q.bloqueios.map(b => `⚠️ ${escapeHtml(b.mensagem)}`).join('<br>') +
         `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">` +
@@ -853,7 +915,7 @@ function mostrarBloqueioQualidade(q) {
 
 // v2.7.0 (A.24) — pedido de senha do PDF, no próprio sheet de upload.
 function mostrarPedidoSenhaPdf(erro = false) {
-    const el = document.getElementById('up-status');
+    const el = statusUpload();
     el.style.color = erro ? 'var(--danger)' : 'var(--sage)';
     el.innerHTML = `${erro ? '⚠️ Senha incorreta — tente de novo.' : '🔒 Este PDF está protegido por senha. Informe a senha pra IA conseguir ler.'}<br>
         <span style="font-size:11px;color:var(--sage)">A senha é usada só aqui no seu celular e não fica guardada. O arquivo original, ainda protegido, é o que vai pro Cofre.</span>
@@ -868,7 +930,7 @@ function mostrarPedidoSenhaPdf(erro = false) {
 export async function destravarPdfUpload() {
     const senha = document.getElementById('up-pdf-senha')?.value ?? '';
     if (!senha) { mostrarPedidoSenhaPdf(); return; }
-    const el = document.getElementById('up-status');
+    const el = statusUpload();
     el.style.color = 'var(--sage)'; el.textContent = 'Abrindo o PDF…';
     try {
         const r = await destravarPdf(up.arquivo, senha);
@@ -887,7 +949,7 @@ export async function enviarPdfSemLeituraUpload() {
 }
 
 export function tentarOutraFotoUpload() {
-    document.getElementById('up-status').textContent = '';
+    statusUpload().textContent = '';
     up.bloqueadoPorQualidade = null;
     // v2.6.0 — reabre a MESMA origem (câmera ou seletor de arquivos).
     if (up.origemInput === 'up-arquivo') escolherArquivoUpload(); else escolherCameraUpload();
@@ -899,12 +961,13 @@ export async function enviarAssimMesmoUpload() {
     const inputCam = document.getElementById('up-camera'), inputArq = document.getElementById('up-arquivo');
     const f = q.arquivo || up.arquivoBloqueado; if (!f) { mostrarToast('Escolha a foto de novo.', 'aviso'); return; }
     up.arquivo = f; up.qualidadeIgnorada = true; up.bloqueadoPorQualidade = null;
-    document.getElementById('up-status').textContent = '';
+    statusUpload().textContent = '';
     await processarArquivoUpload();
 }
 
 export function fecharUpload() {
     if (leitura) return; // v2.27.0 — travado até o resultado (botões da própria tela)
+    if (up?.modoSheet) { window.fecharSheet(); return; } // v2.28.0 — aoFecharSheetEnvio avisa a configuração
     fecharModal('modal-upload');
     // v2.26.0 (D2) — fechou o picker sem mandar nada: volta para a tela da configuração.
     if (up?.config && !up.storagePath) { const cfg = up.config; up = null; avisarConfig(cfg, { cancelado: true }); }
@@ -917,10 +980,10 @@ export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
     if (!f || !up) return;
     up.origemInput = inputId; // v2.6.0 — pra "outra foto"/"outro arquivo" reabrir a origem certa
     up.pdfDestravado = null; up.pdfSemLeitura = false; // v2.7.0 — arquivo novo, estado de senha zerado
-    const statusEl = document.getElementById('up-status');
+    const statusEl = statusUpload();
     if (f.size > LIMITE_ARQUIVO) { statusEl.textContent = '⚠️ Arquivo maior que 25MB.'; statusEl.style.color = 'var(--danger)'; document.getElementById(inputId).value = ''; return; }
     up.arquivo = f;
-    up.comIA = document.getElementById('up-com-ia').checked && podeIA();
+    up.comIA = up.modoSheet ? (up.comIA && podeIA()) : (document.getElementById('up-com-ia').checked && podeIA()); // v2.28.0
     await processarArquivoUpload();
 }
 
@@ -943,11 +1006,39 @@ const LIMITE_LEITURA_MS = 90000;
 const TEMPO_TIPICO_S = 40;
 let leitura = null; // { token, inicio, inicioIa, passo, comIA, relogio, wake, saiuDaTela, estado }
 
+// v2.28.0 — no app o envio é Sheet (precisa do sheet travado do index 1.312.0); no avulso, modal.
+function modoSheet() { return typeof window.abrirSheet === 'function' && typeof window.rzSheetTravar === 'function' && typeof window.rzSheetCabecalho === 'function'; }
+function caixaUpload() { return up?.modoSheet ? document.getElementById('rz-sheet') : document.querySelector('#modal-upload .modal-box'); }
+function statusUpload() { return document.getElementById(up?.modoSheet ? 'up-sh-status' : 'up-status'); }
+function bloquearSaida(ev) { ev.preventDefault(); ev.returnValue = ''; return ''; }
+
+// v2.28.0 (U2) — leitura em andamento anotada no aparelho (chave apagada no Sair: prefixo raiz_d_).
+function chaveLeituraPendente() { return (estado.clienteId && estado.pessoa?.id) ? `raiz_d_${estado.clienteId}_${estado.pessoa.id}_leitura_pendente` : null; }
+function anotarLeituraPendente() {
+    const k = chaveLeituraPendente(); if (!k || !up?.documentoId || !up.storagePath || !up.arquivo) return;
+    const ctx = up.contexto ? { entidadeTipo: up.contexto.entidadeTipo, entidadeId: up.contexto.entidadeId, nome: up.contexto.nome || null, tipoAtivo: up.contexto.tipoAtivo || null } : null;
+    try {
+        localStorage.setItem(k, JSON.stringify({
+            v: 1, documentoId: up.documentoId, storagePath: up.storagePath, nome: up.arquivo.name, mime: api.mimeDoArquivo(up.arquivo),
+            contexto: ctx, configTipo: up.config?.tipo || null, criado_em: Date.now(),
+        }));
+    } catch (e) { /* aparelho sem espaço: segue sem a anotação */ }
+}
+function esquecerLeituraPendente() {
+    const k = chaveLeituraPendente();
+    if (k) { try { localStorage.removeItem(k); } catch (e) { /* segue */ } }
+    if (up?.documentoId && estado.clienteId) api.removerArquivoDocumento(`${estado.clienteId}/tmp-ia/${up.documentoId}.leitura.json`).catch(() => {});
+}
+
 const CSS_LEITURA = `
 #modal-upload .modal-box.up-lendo > :not(.up-cab):not(#up-progresso){display:none}
 #modal-upload .modal-box.up-lendo [data-action="fechar-upload"]{visibility:hidden}
 #up-progresso{display:none}
-#modal-upload .modal-box.up-lendo #up-progresso{display:block}
+.up-lendo #up-progresso{display:block}
+.up-sheet.up-lendo #up-sh-escolha,.up-sheet.up-lendo #up-sh-status{display:none}
+.up-sheet.up-lendo .rz-x,.up-sheet.up-lendo .rz-grab{visibility:hidden}
+#up-sh-status{margin-top:10px}
+#up-sh-status:empty{display:none}
 #up-progresso .up-arq{display:flex;gap:10px;align-items:center;background:var(--tile,#e9ece5);border-radius:10px;padding:9px 11px;font-size:13px;margin:4px 0 14px;overflow-wrap:anywhere}
 #up-progresso .up-arq small{display:block;color:var(--muted,#6f7a76)}
 #up-progresso .up-passos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
@@ -999,7 +1090,7 @@ function garantirModaisUpload() {
         const s = document.createElement('style'); s.id = 'rz-up-estilo'; s.textContent = CSS_LEITURA; document.head.appendChild(s);
     }
     const box = document.querySelector('#modal-upload .modal-box');
-    if (box && !box.querySelector('#up-progresso')) {
+    if (!modoSheet() && box && !box.querySelector('#up-progresso')) {
         box.firstElementChild?.classList.add('up-cab');
         const d = document.createElement('div');
         d.id = 'up-progresso'; d.setAttribute('aria-live', 'polite');
@@ -1026,7 +1117,7 @@ function soltarTelaAcesa() {
 }
 
 function tituloEnvio(txt) {
-    const h = document.querySelector('#modal-upload .up-cab h3');
+    const h = caixaUpload()?.querySelector('.up-cab h3, .rz-sh-h h3');
     if (h) { if (!h.dataset.original) h.dataset.original = h.textContent; h.textContent = txt || h.dataset.original; }
 }
 
@@ -1035,9 +1126,11 @@ function iniciarLeitura(comIA) {
     pararRelogioLeitura();
     leitura = { token: Math.random().toString(36).slice(2), inicio: Date.now(), inicioIa: null, passo: 0, comIA: !!comIA, relogio: null, wake: null, saiuDaTela: false, estado: 'lendo' };
     if (up) up.processando = true;
-    document.querySelector('#modal-upload .modal-box')?.classList.add('up-lendo');
+    caixaUpload()?.classList.add('up-lendo');
+    if (up?.modoSheet) window.rzSheetTravar(true); // v2.28.0
+    window.addEventListener('beforeunload', bloquearSaida); // v2.28.0
     tituloEnvio(comIA ? 'Lendo o documento' : 'Enviando o documento');
-    const st = document.getElementById('up-status'); if (st) st.textContent = '';
+    const st = statusUpload(); if (st) st.textContent = '';
     pedirTelaAcesa();
     leitura.relogio = setInterval(atualizarRelogioLeitura, 1000);
     desenharProgressoLeitura();
@@ -1049,7 +1142,9 @@ function encerrarLeitura() {
     pararRelogioLeitura(); soltarTelaAcesa();
     leitura = null;
     if (up) up.processando = false;
-    document.querySelector('#modal-upload .modal-box')?.classList.remove('up-lendo');
+    caixaUpload()?.classList.remove('up-lendo');
+    if (up?.modoSheet) window.rzSheetTravar(false); // v2.28.0
+    window.removeEventListener('beforeunload', bloquearSaida);
     tituloEnvio(null);
     const p = document.getElementById('up-progresso'); if (p) p.innerHTML = '';
 }
@@ -1108,6 +1203,7 @@ function mostrarResultadoLeitura(estadoRes, info = {}) {
     if (!leitura) iniciarLeitura(!!up?.comIA);
     pararRelogioLeitura(); soltarTelaAcesa();
     leitura.estado = estadoRes;
+    window.removeEventListener('beforeunload', bloquearSaida); // v2.28.0 — o resultado já está na tela
     const el = document.getElementById('up-progresso');
     if (!el) return;
     el.setAttribute('aria-busy', 'false');
@@ -1148,7 +1244,7 @@ function mostrarResultadoLeitura(estadoRes, info = {}) {
         html = `<div class="up-res falha"><div class="up-res-ic">!</div><div><b>Não consegui enviar o arquivo</b><span>${escapeHtml(info.motivo || 'Verifique a conexão e tente de novo.')}</span></div></div>
             ${cartaoArquivoLeitura()}
             <div class="up-acoes">
-                <button type="button" class="rz-btn rz-btn-1" data-up="reenviar">Tentar de novo</button>
+                ${up?.arquivo ? '<button type="button" class="rz-btn rz-btn-1" data-up="reenviar">Tentar de novo</button>' : ''}
                 <button type="button" class="rz-btn rz-btn-3" data-up="cancelar">Cancelar o envio</button>
             </div>`;
     }
@@ -1166,13 +1262,16 @@ async function aoTocarResultadoLeitura(ev) {
     if (acao === 'ler-de-novo') {
         leitura.estado = 'lendo'; leitura.inicio = Date.now(); leitura.inicioIa = null; leitura.saiuDaTela = false;
         tituloEnvio('Lendo o documento'); pedirTelaAcesa();
+        window.addEventListener('beforeunload', bloquearSaida); // v2.28.0
         leitura.relogio = setInterval(atualizarRelogioLeitura, 1000);
         await etapaLeituraIA();
         return;
     }
     if (acao === 'reenviar') { encerrarLeitura(); await processarArquivoUpload(); return; }
     if (acao === 'outra' || acao === 'cancelar') {
-        if (up.storagePath) { try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ } }
+        esquecerLeituraPendente(); // v2.28.0 (U2)
+        // v2.28.0 — sem await: "outra foto" abre o seletor ainda dentro do toque (o navegador exige)
+        if (up.storagePath) api.removerArquivoDocumento(up.storagePath).catch(() => { /* melhor esforço */ });
         up.storagePath = null; up.documentoId = null; up.ia = null; up.motor = null; up.hash = null;
         encerrarLeitura();
         if (acao === 'outra') { up.arquivo = null; tentarOutraFotoUpload(); }
@@ -1238,8 +1337,9 @@ async function etapaLeituraIA() {
         }
     } catch (err) { console.warn('pré-processamento pulado:', err.message); }
     let res;
+    anotarLeituraPendente(); // v2.28.0 (U2) — se o app cair daqui em diante, dá para retomar
     try {
-        res = await lerComIALimitada(caminhoLeitura, mimeLeitura, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null });
+        res = await lerComIALimitada(caminhoLeitura, mimeLeitura, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null, leituraId: up.documentoId });
     } finally {
         if (up?.storagePathTemp) { try { await api.removerArquivoDocumento(up.storagePathTemp); } catch (e) { /* melhor esforço */ } up.storagePathTemp = null; }
     }
@@ -1250,10 +1350,49 @@ async function etapaLeituraIA() {
     mostrarResultadoLeitura(res.estado, res.info);
 }
 
+// v2.28.0 (U2) — retomar a leitura depois que o app foi recarregado/fechado no meio. O index
+// (rzLeituraPendenteVerificar) lê a anotação, busca o resultado guardado e dispara
+// cofre:retomar-leitura com { ...anotação, resposta } quando a pessoa escolhe continuar.
+async function retomarLeituraPendente(p) {
+    if (!p?.documentoId || !p?.storagePath || leitura) return;
+    await abrirPickerUpload(p.contexto || null, true);
+    if (!up) return;
+    if (p.configTipo) up.config = { tipo: p.configTipo, aoTerminar: null };
+    up.documentoId = p.documentoId; up.storagePath = p.storagePath; up.comIA = true; up.origemInput = 'up-arquivo';
+    iniciarLeitura(true);
+    tituloEnvio('Retomando a leitura');
+    leitura.saiuDaTela = true;
+    passoLeitura(1);
+    try {
+        const blob = await api.baixarArquivoDocumento(p.storagePath);
+        up.arquivo = new File([blob], p.nome || 'documento', { type: p.mime || blob.type || 'application/octet-stream' });
+        up.hash = await api.calcularHashSha256(up.arquivo);
+    } catch (err) {
+        esquecerLeituraPendente();
+        up.storagePath = null; up.documentoId = null;
+        mostrarResultadoLeitura('erro_envio', { motivo: 'O arquivo enviado não está mais disponível. Envie de novo.' });
+        return;
+    }
+    const r = p.resposta;
+    if (r && r.analisado && r.resultado) {
+        up.ia = r.resultado; up.motor = r.resultado.motor || null;
+        passoLeitura(3); try { await carregarApoioUpload(); } catch (e) { /* segue */ }
+        mostrarResultadoLeitura('pronto', { avisoLimite: r.avisoLimite });
+    } else if (r) {
+        up.leituraFalhou = true;
+        passoLeitura(3); try { await carregarApoioUpload(); } catch (e) { /* segue */ }
+        mostrarResultadoLeitura('falha', { motivo: r.motivo || r.erro || '' });
+    } else {
+        await etapaLeituraIA();
+    }
+}
+window.addEventListener('cofre:retomar-leitura', (ev) => { retomarLeituraPendente(ev.detail).catch(err => console.warn('retomar leitura:', err?.message)); });
+
 // Sai do sheet de envio para o "Confira".
 function seguirParaConfira() {
     if (up?.storagePathTemp) { const t = up.storagePathTemp; up.storagePathTemp = null; api.removerArquivoDocumento(t).catch(() => {}); }
     encerrarLeitura();
+    if (up?.modoSheet) { up._indoConfira = true; window.fecharSheet(); if (up) up._indoConfira = false; } // v2.28.0
     fecharModal('modal-upload');
     garantirModaisUpload();
     montarConfirmacaoUpload();
@@ -1262,7 +1401,7 @@ function seguirParaConfira() {
 }
 
 async function processarArquivoUpload() {
-    const statusEl = document.getElementById('up-status');
+    const statusEl = statusUpload();
     const f = up.arquivo;
     garantirModaisUpload();
 
@@ -1613,6 +1752,7 @@ async function tentarOutraFotoConfiguracao() {
     const cfg = up?.config;
     if (up?.storagePath) { try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ } }
     fecharModal('modal-confirmar-upload');
+    esquecerLeituraPendente(); // v2.28.0 (U2)
     up = null;
     if (cfg) await abrirUploadConfiguracao(cfg.tipo, cfg.aoTerminar);
 }
@@ -1671,6 +1811,7 @@ async function descartarUploadConfiguracao(motivo) {
         return marcarErroConfirmacao('Não consegui descartar: ' + err.message);
     }
     fecharModal('modal-confirmar-upload');
+    esquecerLeituraPendente(); // v2.28.0 (U2)
     up = null;
     mostrarToast('Documento descartado.');
     window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
@@ -2130,6 +2271,7 @@ export async function cancelarConfirmacaoUpload() {
     const cfg = up?.config || null; // v2.26.0 (D2)
     if (up?.storagePath) { try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ } }
     fecharModal('modal-confirmar-upload');
+    esquecerLeituraPendente(); // v2.28.0 (U2)
     up = null;
     avisarConfig(cfg, { cancelado: true });
 }
@@ -2298,6 +2440,7 @@ export async function salvarConfirmacaoUpload() {
         criarContrato, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null,
         dadosContrato: criarContrato ? { ...(up.motor?.campos || {}), ...dadosEstruturados, partes: up.motor?.partes || up.motor?.campos?.partes || [] } : null,
     };
+    esquecerLeituraPendente(); // v2.28.0 (U2)
     up = null;
     window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
     if (itemCriado) window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));

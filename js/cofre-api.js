@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.47.0 · 04/10/2026
+// Versão: 1.48.0 · 07/10/2026
+//
+// v1.48.0 (demanda 9ddb9f34, U2, sessão 20261007-0129-upload-ia-b; "De acordo" do Nicola 07/10 01:29) —
+// analisarArquivoComIA aceita opcoes.leituraId (vai como leitura_id: o cofre-extrair-documento 1.11
+// guarda o resultado em <cliente>/tmp-ia/<leituraId>.leitura.json). Novas: baixarArquivoDocumento()
+// e lerLeituraGuardada() — para retomar a leitura quando o app foi recarregado no meio.
+//
+// Versão anterior: 1.47.0 · 04/10/2026
 //
 // v1.47.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo" do Nicola 04/10 00:22 e 01:03; UXR-29/30) — lerVinculo/restaurarVinculo e restaurarFotoAtivo, para o
 // "Desfazer" de desvincular documento e de remover foto (a foto já era só arquivada).
@@ -421,7 +428,7 @@
 // única por módulo).
 // ============================================================================
 
-export const VERSAO = '1.47.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.48.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -567,6 +574,21 @@ export async function uploadArquivoDocumento(storagePath, file) {
 
 export async function removerArquivoDocumento(storagePath) {
     await dbAuth.storage.from('cofre-documentos').remove([storagePath]);
+}
+
+// v1.48.0 (U2) — arquivo já enviado (para retomar a leitura sem pedir o arquivo de novo).
+export async function baixarArquivoDocumento(storagePath) {
+    const { data, error } = await dbAuth.storage.from('cofre-documentos').download(storagePath);
+    if (error) throw error;
+    return data;
+}
+// v1.48.0 (U2) — resultado guardado pelo cofre-extrair-documento 1.11; null quando não existe.
+export async function lerLeituraGuardada(clienteId, leituraId) {
+    try {
+        const { data, error } = await dbAuth.storage.from('cofre-documentos').download(`${clienteId}/tmp-ia/${leituraId}.leitura.json`);
+        if (error || !data) return null;
+        return JSON.parse(await data.text());
+    } catch (e) { return null; }
 }
 
 export async function inserirDocumento(payload) {
@@ -733,6 +755,7 @@ export async function analisarArquivoComIA(storagePath, mimeType, opcoes = {}) {
     if (opcoes.ativoId) body.ativo_id = opcoes.ativoId;
     if (opcoes.classificacaoForcada) body.classificacao_forcada = opcoes.classificacaoForcada;
     if (opcoes.motor) body.motor = opcoes.motor;
+    if (opcoes.leituraId) body.leitura_id = opcoes.leituraId; // v1.48.0 (U2)
     const { data, error } = await dbAuth.functions.invoke('cofre-extrair-documento', { body });
     if (error) throw error;
     return data; // { analisado, modo:'pre_insert', motor_versao, resultado?: {...legado, motor}, motivo?, avisoLimite? }
