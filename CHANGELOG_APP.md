@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.308.0) — frente D, fatia D2 ("Estou de acordo" do Nicola 06/10 23:48): Configuração
+inicial pelos documentos que a pessoa já tem — no + de Ativos, no + de Contratos e no alerta novo
+"Nenhum ativo cadastrado" (tratar abre a configuração). Módulo novo js/configuracao-inicial.js 1.0.0
+(lazy); pontes abrirConfiguracaoInicial e abrirNovoContratoDoDocumento; destino de alerta
+ativos/configuracao-inicial. Contrato de locação lido pela IA pergunta "Criar o contrato" ou "Só
+guardar" e abre o contrato preenchido, com o documento anexado (be7cdd7c). Documento de pessoa entra
+restrito. Import map: cofre-app 1.44.0, cofre-documentos 2.26.0, contratos 1.41.0,
+configuracao-inicial 1.0.0.
+Versão anterior (Beta v1.307.0):
+------------------------------------------------------------------
+Versões anteriores (v1.307.0 … v1.307.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.307.0) — vínculos de parte (regra do Nicola 06/10, plano aprovado 23:26). A ficha
 da parte mostra TODOS os vínculos: Ativos e Encerrados, cada um com status (Ativo / Encerrado em
 dd/mm/aaaa), papel, a que está ligado e o detalhe; o toque abre o contrato, o ativo ou o item de

@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.312.0
-   LINHAS: 17335
-   DATA: 07/10/2026 (sessão 20261007-0110-financeiro, demanda f3e6cd27)
+   VERSÃO: Beta v1.313.0
+   LINHAS: 17451
+   DATA: 07/10/2026 (sessão 20261003-1707-ux-base, demandas 217e3a38 e dab013a2)
+   NOVIDADES (Beta v1.313.0) — F2.1c do PLANO_UX + detalhe da Novidade ("de acordo" do Nicola 07/10
+   01:24; UXR-19/20). Hoje › Patrimônio por tipo vira donut tocável: cada fatia ou linha abre Ativos
+   já filtrado no grupo; grupo sem ativo vira convite "Cadastre também…", que abre o "+" de Ativos.
+   Jornal › Novidades do Raiz: o toque abre o guia da funcionalidade (como funciona, por que vale a
+   pena, onde usar no app, se dá para usar no WhatsApp) com "Experimentar agora", que leva direto à
+   funcionalidade (lista fechada de atalhos RZ_ATALHOS). Banco: migration ux_funcionalidade_guia_v1
+   (colunas guia_* e fn_funcionalidade_guia). Capturar ficou no backlog (decisão do Nicola).
+   Versão anterior (Beta v1.312.0):
    NOVIDADES (Beta v1.312.0) — P4b do Financeiro, parte 1 (fichas B3/B5 e D35/D36 aprovadas pelo
    Nicola 07/10). Relatórios ganha Fluxo de caixa e Visão gerencial (Premium), no modelo executivo
    do PADRAO_RELATORIOS v1.2.0: capa com a conclusão (Leitura), 3 pontos-chave, 4 números e 2
@@ -41,17 +49,8 @@
    excluir fiador pela ficha tira ele também da lista do contrato. Import map: contratos 1.42.0,
    cofre-controles 1.47.0.
    Versão anterior (Beta v1.308.0):
-   NOVIDADES (Beta v1.308.0) — frente D, fatia D2 ("Estou de acordo" do Nicola 06/10 23:48): Configuração
-   inicial pelos documentos que a pessoa já tem — no + de Ativos, no + de Contratos e no alerta novo
-   "Nenhum ativo cadastrado" (tratar abre a configuração). Módulo novo js/configuracao-inicial.js 1.0.0
-   (lazy); pontes abrirConfiguracaoInicial e abrirNovoContratoDoDocumento; destino de alerta
-   ativos/configuracao-inicial. Contrato de locação lido pela IA pergunta "Criar o contrato" ou "Só
-   guardar" e abre o contrato preenchido, com o documento anexado (be7cdd7c). Documento de pessoa entra
-   restrito. Import map: cofre-app 1.44.0, cofre-documentos 2.26.0, contratos 1.41.0,
-   configuracao-inicial 1.0.0.
-   Versão anterior (Beta v1.307.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.307.0 … v1.307.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.308.0 … v1.308.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -633,6 +632,24 @@
            linha; 4+ = 2 linhas balanceadas) — esta classe só define o
            grid em si (gap/margem), sem colunas fixas. */
         .rz-kpis-3{display:grid;gap:8px;margin-bottom:12px}
+        /* v1.313.0 (UX F2.1c, UXR-19) — Patrimônio por tipo em donut tocável; detalhe da Novidade */
+        .rz-donut{display:flex;gap:16px;align-items:center}
+        .rz-donut svg{width:112px;height:112px;flex:none}
+        .rz-donut circle{fill:none;stroke-width:16;cursor:pointer}
+        .rz-donut text{font-family:var(--font-title);fill:var(--ink)}
+        .rz-donut-leg{flex:1;min-width:0;display:flex;flex-direction:column}
+        .rz-donut-leg button{display:flex;align-items:center;gap:8px;min-height:48px;padding:0;background:none;border:0;text-align:left;font:inherit;color:var(--ink);width:100%}
+        .rz-donut-leg i{width:10px;height:10px;border-radius:50%;flex:none}
+        .rz-donut-leg span{flex:1;min-width:0;font-size:14px}
+        .rz-donut-leg small{display:block;font-size:12px;color:var(--muted)}
+        .rz-donut-leg b{font-size:14px;white-space:nowrap}
+        .rz-convite{display:flex;align-items:center;gap:8px;min-height:48px;margin-top:8px;padding:0 12px;border:1px dashed var(--sage);border-radius:12px;background:none;width:100%;font:inherit;font-size:13px;font-weight:600;color:var(--pine);text-align:left}
+        .rz-guia h4{font-family:var(--font-title);font-size:15px;margin:16px 0 6px}
+        .rz-guia p{font-size:15px;line-height:1.45;margin:0;color:var(--ink)}
+        .rz-guia .rz-guia-lead{font-size:16px}
+        .rz-guia ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+        .rz-guia li{display:flex;gap:8px;font-size:15px;line-height:1.35}
+        .rz-guia li svg{width:18px;height:18px;flex:none;color:var(--success);margin-top:1px}
         /* v1.310.0 (UX F2.1b, UXR-16/20/21) — chips de Hoje e Jornal do dia */
         .rz-chip .rz-pt{width:8px;height:8px;border-radius:50%;background:var(--danger);flex:none}
         .rz-jornal-data{font-size:13px;color:var(--muted);margin:0 2px 10px}
@@ -3650,7 +3667,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.312.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.313.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4273,7 +4290,7 @@
             'fn_fiscal_pendencias_cadastro', 'fn_fiscal_checkup_historico', 'fn_fiscal_competencia', 'fn_fechamento_listar_fechadas',
             'fn_financeiro_totalizadores_por_conta', 'fn_financeiro_totalizador_fechamento', 'fn_apurar_distribuicao',
             'fn_ofertas_renovacao', 'fn_alerta_compartilhar_texto',
-            'fn_saude_patrimonio', 'fn_novidade_sortear']); // v1.310.0 — STABLE, só leitura
+            'fn_saude_patrimonio', 'fn_novidade_sortear', 'fn_funcionalidade_guia']); // v1.313.0 // v1.310.0 — STABLE, só leitura
         var RZ_IDB_NOME = 'raiz-cache', RZ_IDB_LOJA = 'respostas', RZ_IDB_VALIDADE = 7 * 86400000;
         var rzIdbPromessa = null, rzPersistPedido = false, rzCacheMaisAntigo = null;
         function rzIdb() {
@@ -11830,9 +11847,66 @@
             if (pvEl) pvEl.innerHTML = rzParaVoceHtml(c);
             const n = ok(novid) && Array.isArray(novid.value.data) ? novid.value.data[0] : null;
             const nvEl = document.getElementById('jornal-novidades');
-            if (nvEl) nvEl.innerHTML = n ? `<h3 class="rz-plain-title">Novidades do Raiz</h3><div class="rz-card"><div class="rz-row"><div class="rz-ic"><svg data-lucide="sparkles"></svg></div><div class="rz-tx"><b>${rzEsc(n.nome_comercial)}</b><span>${rzEsc(n.descricao_comercial)}</span></div></div></div>` : '';
+            // v1.313.0 (demanda dab013a2) — o toque abre o guia da funcionalidade
+            if (nvEl) nvEl.innerHTML = n ? `<h3 class="rz-plain-title">Novidades do Raiz</h3><div class="rz-card rz-list"><div class="rz-row rz-link" onclick="rzAbrirGuiaFuncionalidade('${rzEsc(n.codigo).replace(/'/g, '')}')"><div class="rz-ic"><svg data-lucide="sparkles"></svg></div><div class="rz-tx"><b>${rzEsc(n.nome_comercial)}</b><span>${rzEsc(n.descricao_comercial)}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div></div>` : '';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
+        // v1.313.0 (demanda dab013a2) — guia de uma funcionalidade: como funciona, vantagens, onde usar,
+        // se dá para usar no WhatsApp e o atalho "Experimentar agora". Texto vem do catálogo
+        // (fn_funcionalidade_guia). Os atalhos são uma lista fechada: código fora dela não mostra botão.
+        var RZ_ATALHOS = {
+            'ativos': () => irParaAbaRodape('tab-ativos'),
+            'ler-documento': () => abrirUploadDocumentoNoApp(),
+            'configuracao-inicial': () => abrirConfiguracaoInicial(),
+            'contratos': () => irParaAbaRodape('tab-contratos'),
+            'minutas': () => switchTab('tab-minutas'),
+            'financeiro': () => irParaAbaRodape('tab-mensal'),
+            'importar-extrato': () => { irParaAbaRodape('tab-mensal'); setTimeout(() => document.getElementById('extrato-file-input')?.click(), 250); },
+            'fiscal': () => switchTab('tab-fiscal'),
+            'alertas': () => irParaAbaRodape('tab-alertas'),
+            'relatorios': () => switchTab('tab-relatorios-catalogo'),
+            'indicadores': () => { if (typeof window.abrirIndicadores === 'function') window.abrirIndicadores(); },
+            'distribuicao': () => switchTab('tab-socios'),
+            'pessoas': () => switchTab('tab-pessoas'),
+            'minha-empresa': () => switchTab('tab-minha-empresa'),
+            'vitrine': () => switchTab('tab-vitrine'),
+            'whatsapp': () => abrirBotWhatsapp(),
+        };
+        var rzGuiaAtual = null;
+        async function rzAbrirGuiaFuncionalidade(codigo) {
+            if (!codigo) return;
+            abrirSheet(rzSheetCabecalho('Novidade do Raiz') + `<div class="rz-sh-b">${rzSkeletonSeguro('linhas', 3)}</div>`);
+            let g = null;
+            try {
+                const { data, error } = await dbAuth.rpc('fn_funcionalidade_guia', { p_codigo: codigo });
+                if (error) throw error;
+                g = data;
+            } catch (e) { console.warn('[guia] ', e.message); }
+            if (!g) { fecharSheet(); mostrarToast('Não deu para abrir os detalhes agora.', 'danger'); return; }
+            rzGuiaAtual = g;
+            const pode = typeof podeUsar === 'function' ? podeUsar(g.codigo) : { ok: true };
+            const temAtalho = !!(g.atalho && RZ_ATALHOS[g.atalho]);
+            const vant = (Array.isArray(g.vantagens) ? g.vantagens : []).map(v => `<li><svg data-lucide="check-circle-2"></svg><span>${rzEsc(v)}</span></li>`).join('');
+            const bot = g.no_bot ? rzEsc(g.no_bot) : 'Ainda não dá para usar pelo WhatsApp — use aqui no app.';
+            const rodape = !pode || pode.ok !== false
+                ? (temAtalho ? `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1" style="flex:1" onclick="rzGuiaExperimentar()">Experimentar agora</button></div>` : '')
+                : `<div class="rz-sh-f"><p class="rz-desc" style="flex:1">${rzEsc(pode.textoCurto || pode.motivo || 'Disponível em outro plano.')}</p></div>`;
+            abrirSheet(rzSheetCabecalho(g.nome || 'Novidade do Raiz', g.usa_ia ? 'Com a Raiz IA' : 'Novidade do Raiz') + `
+                <div class="rz-sh-b rz-guia">
+                    ${g.resumo ? `<p class="rz-guia-lead">${rzEsc(g.resumo)}</p>` : ''}
+                    ${g.como_funciona ? `<h4>Como funciona</h4><p>${rzEsc(g.como_funciona)}</p>` : ''}
+                    ${vant ? `<h4>Por que vale a pena</h4><ul>${vant}</ul>` : ''}
+                    ${g.onde_usar ? `<h4>Onde usar no app</h4><p>${rzEsc(g.onde_usar)}</p>` : ''}
+                    <h4>No WhatsApp</h4><p>${bot}</p>
+                </div>${rodape}`);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        function rzGuiaExperimentar() {
+            const g = rzGuiaAtual; if (!g || !RZ_ATALHOS[g.atalho]) return;
+            fecharSheet();
+            setTimeout(() => RZ_ATALHOS[g.atalho](), 150);
+        }
+
         function rzSkeletonSeguro(tipo, n) { return typeof window.rzSkeleton === 'function' ? window.rzSkeleton(tipo, n) : '<p class="rz-desc">Carregando…</p>'; }
 
         // Norte (UXR-21): nota de ORGANIZAÇÃO, não de desempenho financeiro. Marcos ✓/○, sem confete.
@@ -12095,6 +12169,29 @@
         // existem 3 grupos possíveis (Imóveis/Veículos/Outros), mas a
         // regra já nasce genérica pra aguentar um 4º/5º grupo futuro
         // sem precisar mexer aqui de novo.
+        var RZ_CONVITE_GRUPO = { 'Imóveis': 'Imóveis', 'Veículos': 'Veículos', 'Outros': 'Obras, seguros e outros bens' };
+        // v1.313.0 — abre Ativos já no chip do grupo (o mesmo chip da aba: Imóveis, Veículos, Outros)
+        function rzFiltrarAtivosPorGrupo(rotulo) {
+            irParaAbaRodape('tab-ativos');
+            let tent = 0;
+            const tentar = () => {
+                const chip = [...document.querySelectorAll('#ativos-chips-tipo [data-chip-indice]')].find(b => (b.textContent || '').trim().startsWith(rotulo));
+                if (chip) { chip.click(); return; }
+                if (++tent < 25) setTimeout(tentar, 120);
+            };
+            setTimeout(tentar, 60);
+        }
+        // v1.313.0 — convite: abre o "+" de Ativos (Novo ativo, Carregar documento, Configuração inicial…)
+        function rzAbrirMaisAtivos() {
+            irParaAbaRodape('tab-ativos');
+            let tent = 0;
+            const tentar = () => {
+                const b = document.querySelector('[data-action="abrir-acoes-ativos"]');
+                if (b && b.offsetParent) { b.click(); return; }
+                if (++tent < 25) setTimeout(tentar, 120);
+            };
+            setTimeout(tentar, 60);
+        }
         function renderizarQuebraTipoGeral(rows) {
             const secao = document.getElementById('geral-quebra-tipo-secao');
             const wrap = document.getElementById('geral-quebra-tipo');
@@ -12111,20 +12208,39 @@
             // <= 1 grupo: nada pra comparar, some (mesmo com 1 grupo tendo
             // ativos) — pedido explícito do Nicola.
             if (grupos.length <= 1) {
+                // v1.313.0 — com 1 grupo só o donut não compara nada; fica só o convite dos outros tipos
+                if (grupos.length === 1) {
+                    wrap.className = ''; wrap.style.gridTemplateColumns = '';
+                    const outros = GRUPOS_TIPO_GERAL.filter(g => g.rotulo !== grupos[0].rotulo).map(g => RZ_CONVITE_GRUPO[g.rotulo] || g.rotulo);
+                    wrap.innerHTML = `<button type="button" class="rz-convite" onclick="rzAbrirMaisAtivos()"><svg data-lucide="plus" style="width:18px;height:18px"></svg>Cadastre também: ${outros.join(' · ')}</button>`;
+                    secao.classList.remove('hidden');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    return;
+                }
                 secao.classList.add('hidden');
                 return;
             }
-            const n = grupos.length;
-            const colunas = n <= 3 ? n : Math.ceil(n / 2);
-            wrap.style.gridTemplateColumns = `repeat(${colunas}, 1fr)`;
-            // rotulo vem só dos 3 literais fixos acima (nunca de dado do
-            // banco/usuário) — sem risco de injeção, e este arquivo (index.html,
-            // script clássico, não ES module) não tem um escapeHtml() global
-            // como cofre-ativos.js tem; nada aqui precisa de um.
-            wrap.innerHTML = grupos.map(g =>
-                `<div class="rz-kpi"><small>${g.rotulo} · ${g.qtd}</small><b>${formatarValorCompacto(g.valor)}</b></div>`
-            ).join('');
+            // v1.313.0 (UX F2.1c, UXR-19) — donut tocável: cada fatia/linha abre Ativos já filtrado no grupo.
+            // Grupo vazio vira convite ("Cadastre também…") que abre o "+" de Ativos.
+            wrap.className = '';
+            wrap.style.gridTemplateColumns = '';
+            const vazios = GRUPOS_TIPO_GERAL.filter(g => !grupos.some(x => x.rotulo === g.rotulo)).map(g => RZ_CONVITE_GRUPO[g.rotulo] || g.rotulo);
+            const convite = vazios.length ? `<button type="button" class="rz-convite" onclick="rzAbrirMaisAtivos()"><svg data-lucide="plus" style="width:18px;height:18px"></svg>Cadastre também: ${vazios.join(' · ')}</button>` : '';
+            const usaValor = grupos.some(g => g.valor > 0); // sem valor cadastrado, a fatia é pela quantidade
+            const peso = g => usaValor ? g.valor : g.qtd;
+            const totalV = grupos.reduce((s2, g) => s2 + peso(g), 0) || 1;
+            const CORES = ['var(--pine)', 'var(--sprout)', 'var(--sage)', 'var(--wine)'];
+            const C = 2 * Math.PI * 40;
+            let acum = 0;
+            const arcos = grupos.map((g, i) => {
+                const frac = peso(g) / totalV, len = C * frac;
+                const arco = `<circle cx="56" cy="56" r="40" style="stroke:${CORES[i % CORES.length]};stroke-dasharray:${len.toFixed(1)} ${(C - len).toFixed(1)};stroke-dashoffset:${(-acum).toFixed(1)}" transform="rotate(-90 56 56)" onclick="rzFiltrarAtivosPorGrupo('${g.rotulo}')"><title>${g.rotulo}</title></circle>`;
+                acum += len; return arco;
+            }).join('');
+            const leg = grupos.map((g, i) => `<button type="button" onclick="rzFiltrarAtivosPorGrupo('${g.rotulo}')"><i style="background:${CORES[i % CORES.length]}"></i><span>${g.rotulo}<small>${g.qtd} ${g.qtd === 1 ? 'ativo' : 'ativos'} · ${Math.round(peso(g) / totalV * 100)}%</small></span><b>${formatarValorCompacto(g.valor)}</b></button>`).join('');
+            wrap.innerHTML = `<div class="rz-card"><div class="rz-donut"><svg viewBox="0 0 112 112" role="img" aria-label="Patrimônio por tipo">${arcos}<text x="56" y="61" text-anchor="middle" font-size="15">${grupos.reduce((s2, g) => s2 + g.qtd, 0)}</text></svg><div class="rz-donut-leg">${leg}</div></div>${convite}</div>`;
             secao.classList.remove('hidden');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // v1.187.0 — separado de carregarDadosAssincronosVisaoGeral() pra
