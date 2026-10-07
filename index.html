@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.311.0
-   LINHAS: 17327
-   DATA: 07/10/2026 (sessão 20261007-0059-upload-ia, demanda 9ddb9f34)
+   VERSÃO: Beta v1.312.0
+   LINHAS: 17335
+   DATA: 07/10/2026 (sessão 20261007-0110-financeiro, demanda f3e6cd27)
+   NOVIDADES (Beta v1.312.0) — P4b do Financeiro, parte 1 (fichas B3/B5 e D35/D36 aprovadas pelo
+   Nicola 07/10). Relatórios ganha Fluxo de caixa e Visão gerencial (Premium), no modelo executivo
+   do PADRAO_RELATORIOS v1.2.0: capa com a conclusão (Leitura), 3 pontos-chave, 4 números e 2
+   gráficos; páginas de detalhe com rastreador; rodapé com nome, data e hora e usuário. Tela e PDF
+   pelo mesmo documento (PDF = imprimir). Módulo novo js/relatorios-executivos.js 1.0.0 (lazy);
+   ponte abrirRelatorioExecutivo. Banco: fn_contas_fluxo_caixa, fn_contas_visao_gerencial e os
+   códigos relatorios.fluxo_caixa / relatorios.gerencial. Import map: relatorios-executivos 1.0.0.
+   Versão anterior (Beta v1.311.0):
    NOVIDADES (Beta v1.311.0) — leitura com IA com tela travada e resultado na tela (fatia U1 aprovada
    pelo Nicola 07/10 00:59). Do arquivo escolhido até o resultado, o envio não fecha (sem ✕, fundo e
    voltar não escondem); passos visíveis com o tempo; tela acesa. Fim sempre na tela: Pronto,
@@ -42,18 +50,8 @@
    restrito. Import map: cofre-app 1.44.0, cofre-documentos 2.26.0, contratos 1.41.0,
    configuracao-inicial 1.0.0.
    Versão anterior (Beta v1.307.0):
-   NOVIDADES (Beta v1.307.0) — vínculos de parte (regra do Nicola 06/10, plano aprovado 23:26). A ficha
-   da parte mostra TODOS os vínculos: Ativos e Encerrados, cada um com status (Ativo / Encerrado em
-   dd/mm/aaaa), papel, a que está ligado e o detalhe; o toque abre o contrato, o ativo ou o item de
-   controle. O ⋮ do vínculo oferece Encerrar (troca real, como síndico substituído — fica no
-   histórico) e Excluir (cadastro errado). O aviso de "Não dá para excluir" a parte diz quantos
-   vínculos são ativos e quantos encerrados e leva à ficha. Banco (migration
-   parte_vinculos_excluir_encerrar_v1): tirar alguém de contrato, ativo ou item de controle no
-   formulário EXCLUI o vínculo (antes inativava e recriava tudo a cada salvamento); funções novas
-   fn_vinculo_encerrar e fn_vinculo_excluir; coluna partes_papeis.encerrado_em.
-   Versão anterior (Beta v1.306.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.306.0 … v1.306.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.307.0 … v1.307.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -78,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.27.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.27.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.0.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3652,7 +3650,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.311.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.312.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9351,6 +9349,9 @@
             const socios = [...new Set((typeof repasses !== 'undefined' && Array.isArray(repasses) ? repasses : []).map(r => r.socio).filter(Boolean))];
             const itens = [
                 { codigo: 'relatorios.resultados', icone: 'bar-chart-2', titulo: 'Resultados analítico', sub: 'PDF com filtros de imóvel e período da aba Desempenho', acao: () => baixarRelatorioPdfLocal() },
+                // v1.312.0 (P4b, REL-49 a 55) — modelo executivo: capa + detalhe, tela e PDF pelo mesmo documento
+                { codigo: 'relatorios.fluxo_caixa', icone: 'trending-up', titulo: 'Fluxo de caixa', sub: 'Previsto × realizado por mês e por conta, com projeção', acao: () => abrirRelatorioExecutivo('fluxo') },
+                { codigo: 'relatorios.gerencial', icone: 'pie-chart', titulo: 'Visão gerencial', sub: 'Resultado do mês por conta e por pessoa', acao: () => abrirRelatorioExecutivo('gerencial') },
                 { codigo: 'relatorios.distribuicao', icone: 'users', titulo: 'Distribuição aos sócios', sub: socios.length ? `PDF por sócio · ${socios.length} sócio${socios.length > 1 ? 's' : ''}` : 'PDF por sócio', acao: () => abrirSheetAcoes({ titulo: 'Distribuição aos sócios', sub: 'Escolha o sócio', acoes: socios.length ? socios.map(sc => ({ icone: 'user', titulo: sc, codigo: 'relatorios.distribuicao', aoTocar: () => exportarRelatorioSocioPDF(sc) })) : [{ icone: 'info', titulo: 'Nenhum sócio com distribuição registrada', aoTocar: () => {} }] }) },
             ];
             el.innerHTML = itens.map((it, i) => {
@@ -9360,6 +9361,13 @@
             el.querySelectorAll('[data-rel]').forEach(r => r.addEventListener('click', () => { const it = itens[Number(r.dataset.rel)]; if (rzMostrarBloqueio(it.codigo)) return; it.acao(); }));
             if (typeof rzIcones === 'function') rzIcones();
         }
+        // v1.312.0 (P4b) — relatórios no modelo executivo vivem em js/relatorios-executivos.js (lazy)
+        let __rzRelExecModulo = null;
+        function carregarRelatoriosExecutivos() {
+            if (__rzRelExecModulo) return Promise.resolve(__rzRelExecModulo);
+            return import('./js/relatorios-executivos.js').then(m => (__rzRelExecModulo = m));
+        }
+        ['abrirRelatorioExecutivo', 'fecharRelatorioExecutivo'].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarRelatoriosExecutivos, nome, args); });
         // =====================================================================
         // R8 (fatia 4, Beta v1.143.0) — VITRINE VIVE EM js/vitrine.js
         // Mesmo desenho de Financeiro/Contratos/Minutas (blocos abaixo).

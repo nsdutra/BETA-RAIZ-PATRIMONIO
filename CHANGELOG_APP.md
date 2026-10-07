@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.307.0) — vínculos de parte (regra do Nicola 06/10, plano aprovado 23:26). A ficha
+da parte mostra TODOS os vínculos: Ativos e Encerrados, cada um com status (Ativo / Encerrado em
+dd/mm/aaaa), papel, a que está ligado e o detalhe; o toque abre o contrato, o ativo ou o item de
+controle. O ⋮ do vínculo oferece Encerrar (troca real, como síndico substituído — fica no
+histórico) e Excluir (cadastro errado). O aviso de "Não dá para excluir" a parte diz quantos
+vínculos são ativos e quantos encerrados e leva à ficha. Banco (migration
+parte_vinculos_excluir_encerrar_v1): tirar alguém de contrato, ativo ou item de controle no
+formulário EXCLUI o vínculo (antes inativava e recriava tudo a cada salvamento); funções novas
+fn_vinculo_encerrar e fn_vinculo_excluir; coluna partes_papeis.encerrado_em.
+Versão anterior (Beta v1.306.0):
+------------------------------------------------------------------
+Versões anteriores (v1.306.0 … v1.306.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.306.0) — catálogo único, fatia 4b (fichas F-C8/F-C9 aprovadas pelo Nicola 06/10
 23:16). Resultados ganha o card "Por grupo" (Receitas, Despesas e "Fora do resultado", pelo nível 1 da
 árvore). Nova despesa e Receita sem contrato mostram se a subcategoria entra no resultado e trazem
