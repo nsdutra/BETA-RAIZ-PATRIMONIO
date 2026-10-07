@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.312.0) — P4b do Financeiro, parte 1 (fichas B3/B5 e D35/D36 aprovadas pelo
+Nicola 07/10). Relatórios ganha Fluxo de caixa e Visão gerencial (Premium), no modelo executivo
+do PADRAO_RELATORIOS v1.2.0: capa com a conclusão (Leitura), 3 pontos-chave, 4 números e 2
+gráficos; páginas de detalhe com rastreador; rodapé com nome, data e hora e usuário. Tela e PDF
+pelo mesmo documento (PDF = imprimir). Módulo novo js/relatorios-executivos.js 1.0.0 (lazy);
+ponte abrirRelatorioExecutivo. Banco: fn_contas_fluxo_caixa, fn_contas_visao_gerencial e os
+códigos relatorios.fluxo_caixa / relatorios.gerencial. Import map: relatorios-executivos 1.0.0.
+Versão anterior (Beta v1.311.0):
+------------------------------------------------------------------
+Versões anteriores (v1.311.0 … v1.311.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.311.0) — leitura com IA com tela travada e resultado na tela (fatia U1 aprovada
 pelo Nicola 07/10 00:59). Do arquivo escolhido até o resultado, o envio não fecha (sem ✕, fundo e
 voltar não escondem); passos visíveis com o tempo; tela acesa. Fim sempre na tela: Pronto,

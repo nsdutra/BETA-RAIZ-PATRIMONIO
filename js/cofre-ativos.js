@@ -1,6 +1,15 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.75.0 · 04/10/2026
+// Versão: 1.76.0 · 07/10/2026
+//
+// v1.76.0 (07/10/2026, sessão 20261007-0158-financeiro, demanda f3e6cd27 — pedido do Nicola 01:58:
+// "há 3 telas distintas, padronize") — "Editar divisão de propriedade" passa a abrir o editor único
+// rzEditarDivisao (raiz-ui 1.2.0), o mesmo da divisão do contrato/imóvel e da exceção de um
+// lançamento: linha compacta (nome · % · remover), "Adicionar pessoa" (sócio cadastrado ou parte
+// externa), soma ao vivo e Salvar só em 100%. Grava como antes (substituir_propriedade_ativo).
+// No cofre.html avulso (sem sheets do app) continua o formulário antigo.
+//
+// Versão anterior: 1.75.0 · 04/10/2026
 //
 // v1.75.0 (UX F2.2, demanda da6c64b6, sessão 20261003-1707-ux-base; "podemos avançar" do Nicola
 // 04/10 18:21; UXR-13/15/22) — chip "Com alerta" em Ativos, logo depois de "Todos": conta os
@@ -920,7 +929,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.75.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -942,6 +951,7 @@ import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 // dentro). Piloto único desta entrega: salvarEdicaoAtivo() (ver
 // changelog do topo do arquivo).
 import { emitirEscrita } from './raiz-eventos.js';
+import { rzEditarDivisao } from './raiz-ui.js'; // v1.76.0 — editor único de divisão
 import { rzMostrarBloqueio, recarregarFuncionalidadesLiberadas } from './comum-licenca.js'; // v1.62.0 — porta de licença
 
 // E6.2 — único critério usado em todo o arquivo pra decidir se um ativo
@@ -2792,6 +2802,25 @@ export async function abrirEditarPropriedadeAtivo() {
     }
 
     const linhasAtuais = await api.buscarPropriedadeDoAtivo(a.id);
+    // v1.76.0 — no app, o editor único de divisão; o formulário abaixo fica só para o cofre.html avulso
+    if (typeof window !== 'undefined' && typeof window.abrirSheet === 'function') {
+        rzEditarDivisao({
+            titulo: 'Divisão de propriedade', sub: a.nome_exibicao || a.nome || '',
+            itens: linhasAtuais.map(l => ({ pessoa_id: l.tipo_proprietario === 'socio_interno' ? l.pessoa_id : null, nome_externo: l.tipo_proprietario === 'socio_interno' ? null : l.nome_externo,
+                nome: l.nome_pessoa || l.nome_externo || '', percentual: l.percentual })),
+            candidatos: (propriedadePessoasCache || []).map(p => ({ id: p.id, nome: p.nome, sub: 'Sócio' })),
+            permitirExterno: true, rotuloAdicionar: 'Adicionar dono',
+            aoSalvar: async (itens) => {
+                await api.salvarPropriedadeAtivo(a.id, itens.map(i => ({
+                    tipo_proprietario: i.pessoa_id ? 'socio_interno' : 'terceiro_externo',
+                    pessoa_id: i.pessoa_id || '', nome_externo: i.pessoa_id ? '' : i.nome_externo, percentual: i.percentual })));
+                mostrarToast('Divisão de propriedade salva.', 'sucesso');
+                await montarPropriedadeAtivo(a);
+                return true;
+            }
+        });
+        return;
+    }
     propriedadeLinhasEmEdicao = linhasAtuais.length
         ? linhasAtuais.map(l => ({ tipo_proprietario: l.tipo_proprietario, pessoa_id: l.pessoa_id, nome_externo: l.nome_externo, percentual: l.percentual }))
         : [{ tipo_proprietario: 'socio_interno', pessoa_id: null, nome_externo: null, percentual: 100 }];

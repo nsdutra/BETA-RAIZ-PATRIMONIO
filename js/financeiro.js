@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.35.0 · 07/10/2026
+// Versão: 1.35.1 · 07/10/2026
+//
+// v1.35.1 (07/10/2026, sessão 20261007-0158-financeiro — pedido do Nicola 01:58: "tela amontoada,
+// padronize as 3"): "Editar divisão" passa a usar o editor único rzEditarDivisao (raiz-ui 1.2.0),
+// o mesmo da divisão do contrato/imóvel e da propriedade do ativo. Versão anterior: 1.35.0.
 //
 // v1.35.0 (07/10/2026, sessão 20261007-0137-financeiro, demanda f3e6cd27 — P4b, ficha B1b e B4
 // aprovadas pelo Nicola 07/10 01:37) — DIVISÃO de quem arca com o valor:
@@ -890,7 +894,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.35.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.35.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -898,7 +902,7 @@ export const VERSAO = '1.35.0'; // v-check: lido por ⚙️ › Conta › Versõ
 // interno registrado em montarAbaFinanceiro(), logo abaixo.
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js';
 // v1.28.0 (UXR-30, D25) — substitutos dos diálogos nativos (js/raiz-ui.js 1.0.0).
-import { rzToast, rzConfirmar, rzAviso, rzEscolher } from './raiz-ui.js';
+import { rzToast, rzConfirmar, rzAviso, rzEscolher, rzEditarDivisao } from './raiz-ui.js';
 
 /** Ponto de entrada do switchTab (1 chamada por troca de aba; barato). */
 export function montarAbaFinanceiro(tabId) {
@@ -1575,51 +1579,15 @@ async function financeiroGravarDivisao(origemTipo, id, itens, aoMudar) {
     return true;
 }
 function financeiroEditarDivisao(origemTipo, id, valor, atuais, aoMudar) {
-    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    const itens = atuais.map(l => ({ pessoa_id: l.pessoa_id || null, nome_externo: l.pessoa_id ? null : (l.nome_externo || l.nome), nome: l.nome, percentual: Number(l.percentual) }));
-    let corpoEl = null;
-    const soma = () => Math.round(itens.reduce((t, i) => t + (Number(i.percentual) || 0), 0) * 100) / 100;
-    const desenhar = () => {
-        if (!corpoEl) return;
-        const s = soma();
-        corpoEl.innerHTML = `<p style="margin:0 0 10px;font-size:14px;color:var(--muted)">Vale só para este lançamento. O contrato e a propriedade do imóvel não mudam.</p>
-            <div class="rz-card rz-list">${itens.map((i, k) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div>
-                <div class="rz-tx"><b>${esc(i.nome)}</b><span>${formatarMoedaBR(Number(valor || 0) * (Number(i.percentual) || 0) / 100)}</span></div>
-                <div class="rz-rt" style="display:flex;align-items:center;gap:6px"><input type="number" inputmode="decimal" step="0.01" min="0" max="100" data-div-pct="${k}" value="${i.percentual || ''}" aria-label="Percentual de ${esc(i.nome)}" style="width:84px;height:44px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;text-align:right"><span>%</span>
-                <button type="button" class="rz-x" data-div-tirar="${k}" aria-label="Tirar ${esc(i.nome)}" style="width:44px;height:44px"><svg data-lucide="x"></svg></button></div></div>`).join('') || '<div class="rz-empty"><p>Ninguém na divisão ainda.</p></div>'}</div>
-            <button type="button" class="rz-act" data-div-add><div class="rz-ic"><svg data-lucide="user-plus"></svg></div><div>Adicionar pessoa<small>Sócio ou pessoa cadastrada</small></div></button>
-            <p data-div-soma style="margin:10px 0 0;font-size:15px;font-weight:600;color:${Math.abs(s - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'}">Soma: ${pctBR(s)}${Math.abs(s - 100) < 0.01 ? '' : ' · precisa dar 100%'}</p>`;
-        corpoEl.querySelectorAll('[data-div-pct]').forEach(inp => inp.addEventListener('input', () => {
-            itens[Number(inp.dataset.divPct)].percentual = parseFloat(String(inp.value).replace(',', '.')) || 0;
-            const s2 = soma(), ok = Math.abs(s2 - 100) < 0.01;
-            const el = corpoEl.querySelector('[data-div-soma]');
-            if (el) { el.textContent = 'Soma: ' + pctBR(s2) + (ok ? '' : ' · precisa dar 100%'); el.style.color = ok ? 'var(--success)' : 'var(--danger)'; }
-            const btn = document.getElementById('rz-sheet-salvar'); if (btn) btn.disabled = !ok;
-        }));
-        corpoEl.querySelectorAll('[data-div-tirar]').forEach(b => b.addEventListener('click', () => { itens.splice(Number(b.dataset.divTirar), 1); desenhar(); }));
-        corpoEl.querySelector('[data-div-add]')?.addEventListener('click', async () => {
-            const lista = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas : [];
-            const ja = new Set(itens.map(i => i.pessoa_id).filter(Boolean));
-            const opcoes = lista.filter(p => p.id && !ja.has(p.id)).sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
-                .map(p => ({ valor: p.id, titulo: p.nome, sub: Number(p.percentualCotasEmpresa) > 0 ? 'Sócio' : '', icone: 'user' }));
-            if (!opcoes.length) { rzToast('Todas as pessoas cadastradas já estão na divisão.', { tipo: 'info' }); return; }
-            const v = await rzEscolher({ titulo: 'Adicionar à divisão', opcoes });
-            if (!v) return;
-            const p = lista.find(x => x.id === v);
-            const falta = Math.max(0, Math.round((100 - soma()) * 100) / 100);
-            itens.push({ pessoa_id: v, nome_externo: null, nome: p?.nome || 'Pessoa', percentual: falta });
-            desenhar();
-        });
-        const btn = document.getElementById('rz-sheet-salvar'); if (btn) btn.disabled = Math.abs(soma() - 100) >= 0.01;
-        if (typeof rzIcones === 'function') rzIcones();
-    };
-    abrirSheetForm({
-        titulo: 'Editar divisão', sub: 'Só este lançamento', rotuloSalvar: 'Salvar divisão',
-        corpo: (el) => { corpoEl = el; desenhar(); },
-        aoSalvar: async () => {
-            if (Math.abs(soma() - 100) >= 0.01) { rzToast('A divisão precisa somar 100%.', { tipo: 'danger' }); return false; }
-            return financeiroGravarDivisao(origemTipo, id, itens.map(i => ({ pessoa_id: i.pessoa_id, nome_externo: i.pessoa_id ? null : i.nome_externo, percentual: i.percentual })), aoMudar);
-        }
+    // v1.35.1 — editor único de divisão (raiz-ui rzEditarDivisao), o mesmo do contrato e do ativo
+    const lista = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas : [];
+    rzEditarDivisao({
+        titulo: 'Editar divisão', sub: 'Só este lançamento', nota: 'O contrato e a propriedade do imóvel não mudam.',
+        itens: atuais.map(l => ({ pessoa_id: l.pessoa_id || null, nome_externo: l.pessoa_id ? null : (l.nome_externo || l.nome), nome: l.nome, percentual: Number(l.percentual) })),
+        candidatos: lista.filter(p => p.id).sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
+            .map(p => ({ id: p.id, nome: p.nome, sub: Number(p.percentualCotasEmpresa) > 0 ? 'Sócio' : '' })),
+        permitirExterno: true, valorBase: Number(valor || 0),
+        aoSalvar: (itens) => financeiroGravarDivisao(origemTipo, id, itens.map(i => ({ pessoa_id: i.pessoa_id, nome_externo: i.nome_externo, percentual: i.percentual })), aoMudar)
     });
 }
 

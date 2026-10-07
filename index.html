@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.314.1
-   LINHAS: 17514
-   DATA: 07/10/2026 (sessão 20261007-0137-financeiro, demanda f3e6cd27)
+   VERSÃO: Beta v1.314.2
+   LINHAS: 17532
+   DATA: 07/10/2026 (sessão 20261007-0158-financeiro, demanda f3e6cd27)
+   NOVIDADES (Beta v1.314.2) — pedido do Nicola 07/10 01:58 ("tela amontoada; há 3 telas distintas,
+   padronize"; sessão 20261007-0158-financeiro, demanda f3e6cd27). Editor único de divisão em %
+   (raiz-ui 1.2.0, rzEditarDivisao) nas 3 telas: exceção de um lançamento (financeiro 1.35.1),
+   propriedade do ativo (cofre-ativos 1.76.0) e Divisão societária — o popup antigo com 2 listas e
+   2 botões vira um sheet com "Divisão do imóvel" e "Divisão do contrato", cada uma abrindo o
+   editor; grava por pessoa (não mais pelo nome). Import map: raiz-ui 1.2.0, financeiro 1.35.1,
+   cofre-ativos 1.76.0. Sem banco.
+   Versão anterior (Beta v1.314.1):
    NOVIDADES (Beta v1.314.1) — P4b do Financeiro, parte 2 (ficha B1b e B4 aprovadas pelo Nicola
    07/10 01:37; sessão 20261007-0137-financeiro, demanda f3e6cd27). Despesa e recebimento ganham
    "Divisão": quem arca (contrato, propriedade do imóvel ou ajustada só naquele lançamento), com
@@ -42,16 +50,8 @@
    funcionalidade (lista fechada de atalhos RZ_ATALHOS). Banco: migration ux_funcionalidade_guia_v1
    (colunas guia_* e fn_funcionalidade_guia). Capturar ficou no backlog (decisão do Nicola).
    Versão anterior (Beta v1.312.0):
-   NOVIDADES (Beta v1.312.0) — P4b do Financeiro, parte 1 (fichas B3/B5 e D35/D36 aprovadas pelo
-   Nicola 07/10). Relatórios ganha Fluxo de caixa e Visão gerencial (Premium), no modelo executivo
-   do PADRAO_RELATORIOS v1.2.0: capa com a conclusão (Leitura), 3 pontos-chave, 4 números e 2
-   gráficos; páginas de detalhe com rastreador; rodapé com nome, data e hora e usuário. Tela e PDF
-   pelo mesmo documento (PDF = imprimir). Módulo novo js/relatorios-executivos.js 1.0.0 (lazy);
-   ponte abrirRelatorioExecutivo. Banco: fn_contas_fluxo_caixa, fn_contas_visao_gerencial e os
-   códigos relatorios.fluxo_caixa / relatorios.gerencial. Import map: relatorios-executivos 1.0.0.
-   Versão anterior (Beta v1.311.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.311.0 … v1.311.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.312.0 … v1.312.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -76,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.35.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.28.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.35.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.76.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.28.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3671,7 +3671,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.314.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.314.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -14699,46 +14699,64 @@
         let __divisaoPopupImovel = [];
         let __divisaoPopupContrato = [];
 
-        function abrirAlteracoesDivisaoSocietaria(imovelId, contratoId) {
+        // v1.314.2 (07/10/2026, pedido do Nicola: "há 3 telas distintas, padronize") — o popup antigo
+        // (modal-campo-contrato com as 2 listas e 2 botões Salvar) virou um sheet com 2 linhas,
+        // "Divisão do imóvel" (quem é dono) e "Divisão do contrato" (quem recebe o aluguel); cada uma
+        // abre o editor ÚNICO window.rzEditarDivisao (raiz-ui 1.2.0), o mesmo da propriedade do ativo
+        // e da exceção de um lançamento. Lê e grava por pessoa_id (não mais pelo nome):
+        // fn_propriedade_do_ativo/substituir_propriedade_ativo e divisao_repasse_contrato/
+        // substituir_divisao_repasse_contrato. renderListaDivisaoPopup e afins ficam sem chamador.
+        async function abrirAlteracoesDivisaoSocietaria(imovelId, contratoId) {
             const imo = imoveis.find(i => i.id === imovelId);
             const con = contratoId ? contratos.find(c => c.id === contratoId) : null;
-            if (!imo) return;
-
-            __divisaoPopupImovel = imo.divisao && typeof imo.divisao === 'object'
-                ? Object.entries(imo.divisao).map(([nome, pct]) => ({ nome, pct }))
-                : [];
-            __divisaoPopupContrato = (con && Array.isArray(con.divisaoRepasse))
-                ? con.divisaoRepasse.map(d => ({ nome: d.nome, pct: d.percentual }))
-                : [];
-
-            document.getElementById('modal-campo-contrato')?.remove();
-            const modal = document.createElement('div');
-            modal.id = 'modal-campo-contrato';
-            modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:85vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Divisão Societária</h3>
-                        <button onclick="fecharModalCampoContrato()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-                    </div>
-
-                    <p style="font-size:12px;font-weight:bold;color:#64748b;margin-bottom:4px;">Divisão do Imóvel</p>
-                    <div id="dvs-lista-imovel"></div>
-                    <button onclick="dvsAdicionarLinha('imovel')" style="font-size:12px;font-weight:bold;color:var(--sprout);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
-                    <button onclick="salvarDivisaoImovelPopup('${imovelId}')" style="width:100%;background:var(--sprout);color:#fff;font-weight:bold;font-size:13px;padding:8px;border:none;border-radius:8px;margin-top:4px;">Salvar divisão do imóvel</button>
-
-                    ${con ? `
-                    <p style="font-size:12px;font-weight:bold;color:#64748b;margin:16px 0 4px;">Divisão do Contrato</p>
-                    <div id="dvs-lista-contrato"></div>
-                    <button onclick="dvsAdicionarLinha('contrato')" style="font-size:12px;font-weight:bold;color:var(--pine);background:none;border:none;padding:6px 0;">+ Adicionar sócio</button>
-                    <button onclick="salvarDivisaoContratoPopup('${con.id}')" style="width:100%;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:8px;border:none;border-radius:8px;margin-top:4px;">Salvar divisão do contrato</button>
-                    ` : `<p style="font-size:12px;color:#94a3b8;margin-top:16px;">Sem contrato vigente para editar divisão própria.</p>`}
-                </div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
-
-            renderListaDivisaoPopup('imovel');
-            if (con) renderListaDivisaoPopup('contrato');
+            if (!imo || typeof window.rzEditarDivisao !== 'function') return;
+            const nomePessoa = (id) => ((pessoas || []).find(p => p.id === id) || {}).nome || '';
+            const candidatos = (pessoas || []).filter(p => p.id).sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
+                .map(p => ({ id: p.id, nome: p.nome, sub: Number(p.percentualCotasEmpresa) > 0 ? 'Sócio' : '' }));
+            let ativoId = null, prop = [], div = [];
+            try {
+                const { data: at } = await dbAuth.from('cofre_ativos').select('id').eq('entidade_origem_tipo', 'imovel').eq('entidade_origem_id', imovelId).maybeSingle();
+                ativoId = at?.id || null;
+                if (ativoId) { const r = await dbAuth.rpc('fn_propriedade_do_ativo', { p_ativo_id: ativoId }); prop = r.data || []; }
+                if (con) { const r2 = await dbAuth.from('divisao_repasse_contrato').select('pessoa_id, nome_externo, percentual').eq('contrato_id', con.id); div = r2.data || []; }
+            } catch (e) { console.warn('[divisao] leitura', e); }
+            const itensProp = prop.map(l => ({ pessoa_id: l.tipo_proprietario === 'socio_interno' ? l.pessoa_id : null, nome_externo: l.tipo_proprietario === 'socio_interno' ? null : l.nome_externo, nome: l.nome_pessoa || l.nome_externo || '', percentual: l.percentual }));
+            const itensDiv = div.map(l => ({ pessoa_id: l.pessoa_id || null, nome_externo: l.pessoa_id ? null : l.nome_externo, nome: l.pessoa_id ? nomePessoa(l.pessoa_id) : l.nome_externo, percentual: l.percentual }));
+            const resumo = (arr) => arr.length ? arr.map(x => `${String(x.nome || '').split(' ')[0]} ${Number(x.percentual).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`).join(' · ') : 'Ninguém definido';
+            const local = [imo.empreendimento, imo.enderecoRua && `${imo.enderecoRua}, ${imo.enderecoNum || ''}`].filter(Boolean).join(' · ');
+            const reabrirFichas = () => {
+                if (typeof fichaImovelAtualId !== 'undefined' && fichaImovelAtualId === imovelId && typeof renderFichaImovelUnica === 'function') renderFichaImovelUnica(imo);
+                if (con && typeof montarDistribuicaoContrato === 'function') montarDistribuicaoContrato(con.id);
+            };
+            const acoes = [{ icone: 'home', titulo: 'Divisão do imóvel', sub: 'Quem é dono · ' + resumo(itensProp), codigo: 'imoveis.editar', aoTocar: () => {
+                if (!ativoId) { mostrarToast('Não achei o ativo deste imóvel.', 'danger'); return; }
+                window.rzEditarDivisao({ titulo: 'Divisão do imóvel', sub: local, itens: itensProp, candidatos, permitirExterno: true, rotuloAdicionar: 'Adicionar dono',
+                    aoSalvar: async (itens) => {
+                        const { error } = await dbAuth.rpc('substituir_propriedade_ativo', { p_ativo_id: ativoId, p_linhas: itens.map(i => ({
+                            tipo_proprietario: i.pessoa_id ? 'socio_interno' : 'terceiro_externo', pessoa_id: i.pessoa_id || '', nome_externo: i.pessoa_id ? '' : i.nome_externo, percentual: i.percentual })) });
+                        if (error) { mostrarToast('Não consegui salvar: ' + error.message, 'danger'); return false; }
+                        const obj = {}; itens.forEach(i => { obj[i.nome] = i.percentual; }); imo.divisao = obj;
+                        mostrarToast('Divisão do imóvel salva!', 'success');
+                        registrarLog('imoveis.divisao_societaria', { imovelId });
+                        reabrirFichas();
+                        return true;
+                    } });
+            } }];
+            if (con) acoes.push({ icone: 'file-signature', titulo: 'Divisão do contrato', sub: 'Quem recebe o aluguel · ' + resumo(itensDiv), codigo: 'contratos.editar', aoTocar: () => {
+                window.rzEditarDivisao({ titulo: 'Divisão do contrato', sub: con.locatario || local, itens: itensDiv, candidatos, permitirExterno: true,
+                    nota: 'Sem divisão no contrato, vale a divisão do imóvel.',
+                    aoSalvar: async (itens) => {
+                        const { error } = await dbAuth.rpc('substituir_divisao_repasse_contrato', { p_contrato_id: con.id, p_linhas: itens.map(i => ({
+                            tipo_beneficiario: i.pessoa_id ? 'socio_interno' : 'terceiro_externo', pessoa_id: i.pessoa_id || '', nome_externo: i.pessoa_id ? '' : i.nome_externo, percentual: i.percentual })) });
+                        if (error) { mostrarToast('Não consegui salvar: ' + error.message, 'danger'); return false; }
+                        con.divisaoRepasse = itens.map(i => ({ nome: i.nome, percentual: i.percentual }));
+                        mostrarToast('Divisão do contrato salva!', 'success');
+                        registrarLog('imoveis.divisao', { contratoId: con.id });
+                        reabrirFichas();
+                        return true;
+                    } });
+            } });
+            abrirSheetAcoes({ titulo: 'Divisão societária', sub: local, acoes });
         }
 
         function renderListaDivisaoPopup(tipo) {
