@@ -1,7 +1,19 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.33.0 · 04/10/2026
+// Versão: 1.34.0 · 06/10/2026
+//
+// v1.34.0 (06/10/2026, sessão 20261006-2320-catalogo-f4b, demanda 2923ff4d — fatia 4b; fichas F-C8/F-C9
+// aprovadas pelo Nicola 06/10 23:16) — resultado e contabilidade são dois eixos da categoria:
+// (1) Nova despesa: o caminho ganha os chips "Entra no resultado"/"Fora do resultado" (grupo_resultado
+// da subcategoria) e "Contabilidade: sim/não"; na criação aparece "Entra na contabilidade", pré-marcado
+// pelo padrão da categoria (lancamento_categorias.contabilidade_padrao) e gravado em incluir_contabilidade.
+// Na edição o chip mostra o valor gravado (a troca continua pela ação da despesa, financeiro.contabilidade_ajustar).
+// (2) Receita sem contrato: deixa de gravar a categoria 'outro' (que é de saída e caía fora da receita) —
+// pede Categoria (nível 1 de entrada) → Subcategoria, com os mesmos chips e o mesmo "Entra na contabilidade".
+// Ex.: Vendas › Venda de bem = fora do resultado (imobilizado vira caixa) e, por padrão, na contabilidade.
+//
+// Versão anterior: 1.33.0 · 04/10/2026
 //
 // v1.33.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
 // fichas A1–A6 aprovadas pelo Nicola 12:43) — conta no Financeiro (Premium):
@@ -864,7 +876,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.33.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.34.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1929,7 +1941,7 @@ function financeiroRenderCabecalho(aba) {
                 catalogoCategoriasCarregando = (async () => {
                     try {
                         const { data, error } = await dbAuth.from('lancamento_categorias')
-                            .select('codigo,nome,direcao,categoria_pai,icone,ordem').eq('ativo', true).order('ordem');
+                            .select('codigo,nome,direcao,categoria_pai,icone,ordem,grupo_resultado,contabilidade_padrao').eq('ativo', true).order('ordem'); // v1.34.0
                         if (error) throw error;
                         catalogoCategoriasLanc = data || [];
                     } catch (err) { console.warn('[financeiro] catálogo de categorias:', err.message); }
@@ -1940,6 +1952,14 @@ function financeiroRenderCabecalho(aba) {
             return catalogoCategoriasCarregando;
         }
         function categoriaDoCatalogo(v) { return (catalogoCategoriasLanc || []).find(c => c.codigo === v) || null; }
+        // v1.34.0 — chips de classificação da folha: resultado (grupo_resultado) e contabilidade
+        function chipsClassificacaoLanc(folha, contab) {
+            const partes = [];
+            if (folha) partes.push(folha.grupo_resultado === 'fora_resultado' ? 'Fora do resultado' : 'Entra no resultado');
+            if (contab != null) partes.push(contab ? 'Contabilidade: sim' : 'Contabilidade: não');
+            return partes;
+        }
+        let despContabEdicao = null; // v1.34.0 — na edição, o incluir_contabilidade gravado (só leitura)
 
         export function rotuloCategoriaSaida(v) {
             const doCatalogo = categoriaDoCatalogo(v); // v1.31.0
@@ -2092,7 +2112,8 @@ function financeiroRenderCabecalho(aba) {
                         <div class="rz-f">
                             <label for="desp-categoria">Subcategoria <i>*</i></label>
                             <select id="desp-categoria">${optsCategorias}</select>
-                        </div>` : ''}
+                        </div>
+                        ${ehEdicao ? '' : `<label class="rz-row rz-chk"><input type="checkbox" id="desp-contab" checked><div class="rz-tx"><b>Entra na contabilidade</b><span>Vai no pacote do contador; sugerido pela subcategoria</span></div></label>`}` : ''}
                         <div class="grid grid-cols-2 gap-2">
                             <div${usarArvoreDesp ? ' class="hidden"' : ''}>
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;">Categoria <span style="color:var(--danger)">*</span></label>
@@ -2179,6 +2200,7 @@ function financeiroRenderCabecalho(aba) {
                 </div>`;
             document.body.appendChild(modal);
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            despContabEdicao = ehEdicao ? d?.incluirContabilidade !== false : null; // v1.34.0
             ligarCascataCategoriaDesp(); // v1.32.0
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -2201,7 +2223,9 @@ function financeiroRenderCabecalho(aba) {
                 const grupo = selGrupo && selGrupo.value ? selGrupo.options[selGrupo.selectedIndex]?.text : '';
                 const sub = selSub.value ? selSub.options[selSub.selectedIndex]?.text : '';
                 const valor = parseFloat(document.getElementById('desp-valor')?.value);
-                const partes = ['Saída', nomeAtivo, grupo, sub, isNaN(valor) ? '' : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })].filter(Boolean);
+                const chkContab = document.getElementById('desp-contab'); // v1.34.0
+                const classif = chipsClassificacaoLanc(selSub.value ? categoriaDoCatalogo(selSub.value) : null, chkContab ? chkContab.checked : despContabEdicao);
+                const partes = ['Saída', nomeAtivo, grupo, sub, isNaN(valor) ? '' : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), ...classif].filter(Boolean);
                 caminho.innerHTML = partes.map(p => `<span class="rz-chip">${escapeHtmlSaidas(p)}</span>`).join('');
             };
             if (selGrupo) selGrupo.addEventListener('change', () => {
@@ -2212,7 +2236,15 @@ function financeiroRenderCabecalho(aba) {
                 if (folhas.length === 1) selSub.value = folhas[0].codigo;
                 atualizar();
             });
-            selSub.addEventListener('change', atualizar);
+            // v1.34.0 — a subcategoria sugere "Entra na contabilidade" (contabilidade_padrao)
+            const sugerirContab = () => {
+                const chk = document.getElementById('desp-contab');
+                const folha = selSub.value ? categoriaDoCatalogo(selSub.value) : null;
+                if (chk && folha) chk.checked = folha.contabilidade_padrao !== false;
+            };
+            selSub.addEventListener('change', () => { sugerirContab(); atualizar(); });
+            if (selGrupo) selGrupo.addEventListener('change', () => { sugerirContab(); atualizar(); });
+            document.getElementById('desp-contab')?.addEventListener('change', atualizar);
             document.getElementById('desp-valor')?.addEventListener('input', atualizar);
             document.getElementById('desp-ativo')?.addEventListener('change', atualizar);
             atualizar();
@@ -2305,8 +2337,10 @@ function financeiroRenderCabecalho(aba) {
                     // CHECK) e, depois de criar, vincula o fingerprint de
                     // volta — sem duplicar a lógica de criação, só fecha o
                     // laço com o que já existia.
+                    const chkContab = document.getElementById('desp-contab'); // v1.34.0
                     const { data: criado, error } = await dbAuth.from('lancamentos').insert({
                         ...payload, status: 'previsto',
+                        ...(chkContab ? { incluir_contabilidade: chkContab.checked } : {}),
                         origem_tipo: despesaOrigemFingerprintId ? 'extrato' : 'manual',
                         origem_id: despesaOrigemFingerprintId || null,
                     }).select('id').single();
@@ -5139,8 +5173,16 @@ export async function abrirReceitaAvulsa() {
     const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const hoje = new Date().toISOString().slice(0, 10);
     const optsAtivo = `<option value="">Nenhum — receita da empresa</option>` + ativos.map(a => `<option value="${a.id}">${esc(a.nome_exibicao)}</option>`).join('');
+    // v1.34.0 — a entrada é classificada: Categoria (nível 1 de entrada) → Subcategoria
+    const cat = (await carregarCatalogoCategorias()) || [];
+    const gruposEnt = cat.filter(c => !c.categoria_pai && c.direcao === 'entrada' && cat.some(f => f.categoria_pai === c.codigo));
+    const optsGrupoEnt = `<option value="">— escolha a categoria —</option>` + gruposEnt.map(g => `<option value="${g.codigo}">${esc(g.nome)}</option>`).join('');
     const corpo = `
         <div class="rz-f"><label>Descrição <i>*</i></label><input type="text" id="rav-descricao" placeholder="Ex.: Juros da aplicação"></div>
+        <div class="rz-f"><label for="rav-grupo">Categoria <i>*</i></label><select id="rav-grupo">${optsGrupoEnt}</select></div>
+        <div class="rz-f"><label for="rav-categoria">Subcategoria <i>*</i></label><select id="rav-categoria"><option value="">— escolha a categoria primeiro —</option></select></div>
+        <div class="rz-chips" id="rav-caminho"></div>
+        <label class="rz-row rz-chk"><input type="checkbox" id="rav-contab" checked><div class="rz-tx"><b>Entra na contabilidade</b><span>Vai no pacote do contador; sugerido pela subcategoria</span></div></label>
         <div class="rz-f2 rz-f2-curto">
             <div class="rz-f"><label>Valor (R$) <i>*</i></label><input type="number" step="0.01" inputmode="decimal" id="rav-valor"></div>
             <div class="rz-f"><label>Data <i>*</i></label><input type="date" id="rav-data" value="${hoje}"></div>
@@ -5158,6 +5200,24 @@ export async function abrirReceitaAvulsa() {
         corpo, rotuloSalvar: 'Registrar receita',
         aoSalvar: () => salvarReceitaAvulsa(),
     });
+    // v1.34.0 — cascata, sugestão de contabilidade e chips do caminho
+    const selG = sheet?.querySelector('#rav-grupo'), selC = sheet?.querySelector('#rav-categoria'), chkC = sheet?.querySelector('#rav-contab');
+    const atualizarRav = () => {
+        const caminho = sheet?.querySelector('#rav-caminho');
+        if (!caminho) return;
+        const folha = selC?.value ? categoriaDoCatalogo(selC.value) : null;
+        const partes = ['Entrada', selG?.value ? selG.options[selG.selectedIndex]?.text : '', folha?.nome || '', ...chipsClassificacaoLanc(folha, chkC ? chkC.checked : null)].filter(Boolean);
+        caminho.innerHTML = partes.map(p => `<span class="rz-chip">${esc(p)}</span>`).join('');
+    };
+    selG?.addEventListener('change', () => {
+        const folhas = cat.filter(c => c.categoria_pai === selG.value);
+        selC.innerHTML = `<option value="">${selG.value ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` + folhas.map(f => `<option value="${f.codigo}">${esc(f.nome)}</option>`).join('');
+        if (folhas.length === 1) { selC.value = folhas[0].codigo; if (chkC) chkC.checked = folhas[0].contabilidade_padrao !== false; }
+        atualizarRav();
+    });
+    selC?.addEventListener('change', () => { const f = categoriaDoCatalogo(selC.value); if (chkC && f) chkC.checked = f.contabilidade_padrao !== false; atualizarRav(); });
+    chkC?.addEventListener('change', atualizarRav);
+    atualizarRav();
     sheet?.querySelectorAll('#rav-seg button').forEach(b => b.addEventListener('click', () => {
         sheet.querySelectorAll('#rav-seg button').forEach(x => x.classList.toggle('rz-on', x === b));
         sheet.querySelector('#rav-situacao').value = b.dataset.v;
@@ -5170,11 +5230,14 @@ async function salvarReceitaAvulsa() {
     const data = document.getElementById('rav-data')?.value;
     const recebido = document.getElementById('rav-situacao')?.value !== 'receber';
     const ativoId = document.getElementById('rav-ativo')?.value || null;
+    const categoria = document.getElementById('rav-categoria')?.value || ''; // v1.34.0
+    const incluirContab = document.getElementById('rav-contab') ? document.getElementById('rav-contab').checked : true;
     if (!descricao) { rzToast('Informe a descrição.', { tipo: 'danger' }); return false; }
+    if (!categoria) { rzToast('Escolha a categoria e a subcategoria.', { tipo: 'danger' }); return false; }
     if (!(valor > 0)) { rzToast('Informe um valor maior que zero.', { tipo: 'danger' }); return false; }
     if (!data) { rzToast('Informe a data.', { tipo: 'danger' }); return false; }
     const linha = {
-        cliente_id: CLIENTE_ID_SUPABASE, direcao: 'entrada', categoria: 'outro', descricao, valor,
+        cliente_id: CLIENTE_ID_SUPABASE, direcao: 'entrada', categoria, incluir_contabilidade: incluirContab, descricao, valor, // v1.34.0
         competencia: data.slice(0, 8) + '01', vencimento: data, data_pagamento: recebido ? data : null,
         status: recebido ? 'realizado' : 'previsto', ativo_id: ativoId, origem_tipo: 'manual', reembolsavel: false,
     };

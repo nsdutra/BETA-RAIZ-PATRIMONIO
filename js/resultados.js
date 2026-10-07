@@ -1,7 +1,15 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.2.0 (04/10/2026 — demanda e42f649b)
+// VERSÃO: Beta v2.3.0 (06/10/2026 — demanda 2923ff4d)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.3.0) — catálogo único, fatia 4b (sessão 20261006-2320-catalogo-f4b; fichas F-C8/F-C9
+//   aprovadas pelo Nicola 06/10 23:16): card "Por grupo" logo abaixo do Resultado mês a mês — o ano aberto
+//   pelo nível 1 da árvore (fn_resultado_por_grupo): Receitas, Despesas e, à parte, "Fora do resultado"
+//   (repasses, venda de bem). Se a função falhar, só o card some; o resto da tela segue. Textos do ⓘ de
+//   Resultado mês a mês e Performance atualizados (receita inclui os recebimentos lançados de categoria de
+//   receita; o que está fora do resultado não entra). Sem style inline no código novo (REGRAS §17).
+// Versão anterior: Beta v2.2.0 (04/10/2026 — demanda e42f649b)
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.2.0) — frente 5, fatia 5B (sessão 20261004-1800-indicadores, "De acordo com
 //   5B" do Nicola 04/10 22:06): o card Indicadores ganha "Ver todos", que carrega o módulo novo
@@ -220,7 +228,7 @@
 //     DESIGN_SYSTEM (checklist §17 do REGRAS).
 // =====================================================================
 
-export const VERSAO = '2.2.0';
+export const VERSAO = '2.3.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -411,7 +419,7 @@ async function renderizarConteudo() {
         // por empreendimento/imóvel — decisão documentada no changelog
         // acima): olhar o índice de mercado contra UM imóvel só não faz
         // sentido, a leitura é sempre da carteira.
-        const [resumoR, perfR, mensalR, concR, reajR, revR, indR, graficoIndR] = await Promise.all([
+        const [resumoR, perfR, mensalR, concR, reajR, revR, indR, graficoIndR, grupoR] = await Promise.all([
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
                 : Promise.resolve({ data: null }),
@@ -432,6 +440,8 @@ async function renderizarConteudo() {
                 : Promise.resolve({ data: [] }),
             filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_indicadores_resumo'),
             filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_carteira_indicador_series', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_codigo: 'ipca' }),
+            // v2.3.0 — abertura por grupo (nível 1 da árvore); erro aqui só esconde o card
+            dbAuth.rpc('fn_resultado_por_grupo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso }),
         ]);
         if (minha !== geracao) return; // v2.0.0 — chegou um desenho mais novo
         if (resumoR.error) throw resumoR.error;
@@ -452,6 +462,8 @@ async function renderizarConteudo() {
         const indicadores = indR.data || [];
         ultimosIndicadores = indicadores; // v2.1.0 (5A) — alimenta o ⓘ
         const graficoIndicador = graficoIndR.data || [];
+        if (grupoR.error) console.warn('[resultados] por grupo:', grupoR.error.message); // v2.3.0
+        const porGrupo = grupoR.error ? [] : (grupoR.data || []);
 
         // v2.0.0 (UXR-17) — os números de cima vão para o herói de Hoje; os cards ficam abaixo
         const heroiEl = document.getElementById('hoje-heroi-mount');
@@ -459,6 +471,7 @@ async function renderizarConteudo() {
         alvo.innerHTML = [
             montarCardIndicadores(indicadores),
             montarGraficoMensal(mensal),
+            montarPorGrupo(porGrupo), // v2.3.0
             montarGraficoIndicador(graficoIndicador, 'ipca'),
             cardsLocacao ? montarConcentracao(concentracao) : '',
             cardsLocacao ? montarReajustesCalendario(reajustes) : '',
@@ -636,6 +649,48 @@ function montarConcentracao(linhas) {
     </div>`;
 }
 
+// v2.3.0 — card "Por grupo": o ano aberto pelo nível 1 da árvore de categorias.
+function montarPorGrupo(linhas) {
+    if (!linhas || !linhas.length) return '';
+    const moeda = v => formatarMoedaBR(Number(v || 0), { semCentavos: true });
+    const secao = (titulo, itens, { entrada, neutro }) => {
+        if (!itens.length) return '';
+        const total = itens.reduce((s, l) => s + Number(l.valor || 0), 0);
+        const rows = itens.map(l => {
+            const pct = total > 0 ? Math.round(Number(l.valor || 0) / total * 100) : 0;
+            const qtd = Number(l.qtd || 0);
+            return `<div class="rz-row">
+                <span class="rz-ic${neutro ? ' rz-neu' : ''}"><i data-lucide="${rzEsc(l.icone || 'circle-dollar-sign')}"></i></span>
+                <div class="rz-tx"><b>${rzEsc(l.grupo_nome || l.grupo_codigo)}</b><span>${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'}${neutro ? '' : ` · ${pct}%`}</span></div>
+                <div class="rz-rt"><b${entrada && !neutro ? ' class="rz-in"' : ''}>${moeda(l.valor)}</b></div>
+            </div>`;
+        }).join('');
+        return `<p class="rz-sub">${titulo} · ${moeda(total)}</p>${rows}`;
+    };
+    const fora = linhas.filter(l => l.grupo_resultado === 'fora_resultado');
+    const receitas = linhas.filter(l => l.direcao === 'entrada' && l.grupo_resultado !== 'fora_resultado');
+    const despesas = linhas.filter(l => l.direcao === 'saida' && l.grupo_resultado !== 'fora_resultado');
+    return `<div class="rz-card">
+        <div class="rz-card-h"><h3>Por grupo</h3>${botaoInfoCard('abrirInfoPorGrupo()')}</div>
+        ${secao('Receitas', receitas, { entrada: true })}
+        ${secao('Despesas', despesas, { entrada: false })}
+        ${secao('Fora do resultado', fora, { entrada: false, neutro: true })}
+    </div>`;
+}
+
+export function abrirInfoPorGrupo() {
+    const itens = [
+        ['Por grupo', 'O ano aberto pelos grupos do catálogo (Aluguéis, Licenças e serviços, Tributos e taxas, Condomínio e administração, Manutenção…), somando os recebimentos e os lançamentos realizados.'],
+        ['Receitas e Despesas', 'Entram no resultado. O percentual é a fatia de cada grupo dentro da sua seção.'],
+        ['Fora do resultado', 'Movimento de caixa que não é receita nem despesa: repasses e venda de bem (o imobilizado vira caixa). Aparece para conferência e não entra na conta.'],
+        ['De onde vem a classificação', 'Cada subcategoria diz se entra no resultado. A contabilidade é outro eixo: cada lançamento pode ou não ir para o pacote do contador.'],
+    ];
+    abrirSheet(rzSheetCabecalho('Sobre o card Por grupo') +
+        `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${
+            itens.map(([r, v]) => `<div class="rz-full"><small>${rzEsc(r)}</small><b>${rzEsc(v)}</b></div>`).join('')
+        }</div></div></div>`);
+}
+
 // v1.1.0 — Reajustes e Revisional/Renovação viraram 2 cards com o MESMO
 // desenho (12 barras, por VALOR, mês que concentra ≥25% do ano vira
 // warning) — motor comum, só muda o título, o dado e o botão de info.
@@ -796,7 +851,7 @@ export function abrirInfoIndicadores() {
 
 export function abrirInfoResultadoMensal() {
     const itens = [
-        ['Resultado mês a mês', 'A diferença entre o que entrou (aluguéis recebidos) e o que saiu (despesas, tributos, repasses) em cada mês do ano escolhido no topo de Hoje.'],
+        ['Resultado mês a mês', 'A diferença entre o que entrou (aluguéis recebidos e recebimentos lançados em categorias de receita) e o que saiu (despesas e tributos) em cada mês do ano escolhido no topo de Hoje. Repasses e venda de bem ficam fora do resultado.'],
         ['Barra vermelha', 'Mês em que saiu mais dinheiro do que entrou (resultado negativo).'],
         ['Números no topo', 'O maior e o menor resultado do ano, em destaque.'],
     ];
@@ -833,9 +888,9 @@ export function abrirInfoConcentracao() {
 
 export function abrirInfoPerformanceGrid() {
     const itens = [
-        ['Resultado líquido', 'Receita do ano menos despesas, tributos e repasses — o que sobrou de fato.'],
+        ['Resultado líquido', 'Receita do ano menos despesas e tributos — o que sobrou de fato. Repasses e venda de bem ficam fora.'],
         ['Rentabilidade', 'O resultado do ano dividido pelo valor de mercado da carteira — some em Família.'],
-        ['Receita do ano', 'Tudo o que foi efetivamente recebido no ano (aluguéis pagos).'],
+        ['Receita do ano', 'Tudo o que foi efetivamente recebido no ano: aluguéis pagos e recebimentos lançados em categorias de receita.'],
         ['Patrimônio', 'Soma do valor de mercado dos ativos considerados neste recorte.'],
         ['Tempo médio alugado / vago', 'Média de dias que os imóveis passaram alugados e vagos no período.'],
         ['Tributos, Manutenção, Seguros', 'Total gasto no ano em cada categoria de despesa.'],

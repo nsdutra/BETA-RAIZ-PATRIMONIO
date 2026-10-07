@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.302.2) — catálogo único 2b-3c (plano 2b-3 aprovado pelo Nicola 04/10): o
+documento mostra o caminho da árvore. "Confira o que a IA leu" ganha chips vínculo · tipo de ativo ·
+tipo · subtipo · espécie e o campo vira "Espécie do documento" (15 espécies, migration v5); a ficha
+mostra tipo · subtipo · espécie. Só import map: cofre-documentos 2.24.0 → 2.25.0, ativos-markup
+1.51.0 → 1.52.0.
+Versão anterior (Beta v1.302.1):
+------------------------------------------------------------------
+Versões anteriores (v1.302.1 … v1.302.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.302.1) — teste da P4a: "Excluir conta" sempre nas ações da conta (apaga
 se não tiver movimento; com movimento explica e sugere Encerrar — fn_conta_excluir) e
 "Encerrar" também na padrão de uma pessoa. Só import map: comum-minha-empresa 1.10.0 → 1.10.1.
