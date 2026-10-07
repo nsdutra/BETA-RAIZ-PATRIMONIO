@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.306.0) — catálogo único, fatia 4b (fichas F-C8/F-C9 aprovadas pelo Nicola 06/10
+23:16). Resultados ganha o card "Por grupo" (Receitas, Despesas e "Fora do resultado", pelo nível 1 da
+árvore). Nova despesa e Receita sem contrato mostram se a subcategoria entra no resultado e trazem
+"Entra na contabilidade" sugerido pela categoria; a receita sem contrato passa a pedir Categoria ›
+Subcategoria. Banco: fn_resultado_por_grupo e lancamento_categorias.contabilidade_padrao; as 5 funções
+do Resultado leem a classificação (4a). Ponte: abrirInfoPorGrupo. Import map: resultados 2.3.0,
+financeiro 1.34.0.
+Versão anterior (Beta v1.305.0):
+------------------------------------------------------------------
+Versões anteriores (v1.305.0 … v1.305.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.305.0) — frente 5, fatia 5B (de acordo do Nicola 04/10 22:06): "Ver todos" no
 card Indicadores abre a tela de indicadores — Mês a mês (6 indicadores, acumulado no ano e em 12
 meses), Sua carteira (contratos e receita por índice, índice ponderado em 12/24/36 meses) e

@@ -1,6 +1,23 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.26.0 · 06/10/2026
+// Versão: 2.27.0 · 07/10/2026
+//
+// v2.27.0 (demanda 9ddb9f34, sessão 20261007-0059-upload-ia; fatia U1 aprovada pelo Nicola 07/10 00:59,
+// protótipo PROTOTIPO_LEITURA_IA_RAIZ v1.0.0) — leitura com IA com tela travada e resultado na tela:
+//   (a) Do arquivo escolhido até o resultado, o sheet de envio não fecha: sem ✕, o fundo não fecha e
+//       os sheets de envio e do "Confira" passam a viver no <body> (o voltar do celular e a troca de
+//       aba não os escondem mais). O fundo do "Confira" também deixa de fechar (só Salvar/Cancelar):
+//       fechar por ali deixava o arquivo solto no Storage.
+//   (b) Passos visíveis (Conferindo · Enviando · Lendo com IA · Preparando a conferência), tempo
+//       correndo, aviso para manter o app aberto e tela acesa (Wake Lock, quando o aparelho tem).
+//   (c) Resultado sempre na tela, sem toast: Pronto (tipo lido, segurança, tempo; "Conferir e
+//       salvar"), Não deu para ler (motivo; Preencher eu mesmo · Outra foto · Pedir para a equipe na
+//       configuração inicial · Cancelar o envio), Interrompida (conexão caiu ou mais de 90 s; Ler de
+//       novo sem reenviar o arquivo) e Envio não concluído. Resposta que chega depois dos 90 s vira
+//       Pronto sozinha. Cancelar remove o arquivo do Storage.
+//   (d) "Reler como" trava o "Confira" durante a releitura e mostra o resultado na própria tela.
+//
+// Versão anterior: 2.26.0 · 06/10/2026
 //
 // v2.26.0 (frente D, fatia D2 — demandas 860233ca e be7cdd7c; sessão 20261006-2348-setup-d2; "Estou de
 // acordo" do Nicola 06/10 23:48, plano PLANO_INDICADORES_E_SETUP_DOCUMENTOS v1.1.0) — o leitor do Cofre
@@ -514,7 +531,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.26.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.27.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -803,6 +820,7 @@ function rotuloEntidadeTipo(t) {
 }
 
 async function abrirPickerUpload(contexto, comIA) {
+    garantirModaisUpload(); if (leitura) encerrarLeitura(); // v2.27.0
     up = {
         contexto, tipoAtivo: contexto?.tipoAtivo || null, comIA: comIA && podeIA(), arquivo: null, hash: null, documentoId: null, storagePath: null, ia: null,
         vinculo: contexto ? { tipo: contexto.entidadeTipo, id: contexto.entidadeId, nome: contexto.nome || rotuloEntidadeTipo(contexto.entidadeTipo) } : null,
@@ -886,6 +904,7 @@ export async function enviarAssimMesmoUpload() {
 }
 
 export function fecharUpload() {
+    if (leitura) return; // v2.27.0 — travado até o resultado (botões da própria tela)
     fecharModal('modal-upload');
     // v2.26.0 (D2) — fechou o picker sem mandar nada: volta para a tela da configuração.
     if (up?.config && !up.storagePath) { const cfg = up.config; up = null; avisarConfig(cfg, { cancelado: true }); }
@@ -905,9 +924,347 @@ export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
     await processarArquivoUpload();
 }
 
+// ---------------------------------------------------------------------------
+// v2.27.0 (demanda 9ddb9f34) — LEITURA COM TELA TRAVADA E RESULTADO NA TELA.
+// Do arquivo escolhido até o cliente decidir o que fazer com o resultado, o
+// sheet de envio fica travado: sem ✕, o fundo não fecha e o voltar do celular
+// não o esconde (os dois sheets do envio passam a viver no <body>, fora da aba
+// Ativos, então trocar de aba por baixo não os some). Quatro passos visíveis
+// com o tempo correndo; a tela não apaga (Wake Lock, quando o aparelho tem).
+// O fim sempre aparece na tela, nunca em toast: Pronto (vai para o Confira),
+// Não deu para ler (motivo + saídas) ou Interrompida (lê de novo sem enviar o
+// arquivo outra vez). Passou de 90 s sem resposta vira Interrompida; se a
+// resposta chegar depois, a tela vira Pronto sozinha. DS §9: o fundo não
+// fecha por razão de negócio — fechar no meio deixava o arquivo solto no
+// Storage e a leitura (já cobrada) perdida.
+// ---------------------------------------------------------------------------
+const PASSOS_LEITURA = ['Conferindo o arquivo', 'Enviando para o Cofre', 'Lendo com IA', 'Preparando a conferência'];
+const LIMITE_LEITURA_MS = 90000;
+const TEMPO_TIPICO_S = 40;
+let leitura = null; // { token, inicio, inicioIa, passo, comIA, relogio, wake, saiuDaTela, estado }
+
+const CSS_LEITURA = `
+#modal-upload .modal-box.up-lendo > :not(.up-cab):not(#up-progresso){display:none}
+#modal-upload .modal-box.up-lendo [data-action="fechar-upload"]{visibility:hidden}
+#up-progresso{display:none}
+#modal-upload .modal-box.up-lendo #up-progresso{display:block}
+#up-progresso .up-arq{display:flex;gap:10px;align-items:center;background:var(--tile,#e9ece5);border-radius:10px;padding:9px 11px;font-size:13px;margin:4px 0 14px;overflow-wrap:anywhere}
+#up-progresso .up-arq small{display:block;color:var(--muted,#6f7a76)}
+#up-progresso .up-passos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+#up-progresso .up-passo{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted,#6f7a76)}
+#up-progresso .up-bola{width:22px;height:22px;border-radius:50%;border:2px solid var(--line,#e6e3da);flex:none;display:grid;place-items:center;font-size:12px}
+#up-progresso .up-passo.feito{color:var(--ink,#17211e)}
+#up-progresso .up-passo.feito .up-bola{background:var(--pine);border-color:var(--pine);color:#fff}
+#up-progresso .up-passo.agora{color:var(--ink,#17211e);font-weight:600}
+#up-progresso .up-passo.agora .up-bola{border-color:var(--brass,#c68a3b);border-top-color:transparent;animation:upGira .9s linear infinite}
+#up-progresso .up-passo.ia.agora{color:var(--brass-deep,#a86f27)}
+@keyframes upGira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#up-progresso .up-passo.agora .up-bola{animation:none;border-top-color:var(--brass,#c68a3b)}}
+#up-progresso .up-barra{height:6px;background:var(--tile,#e9ece5);border-radius:3px;margin:16px 0 8px;overflow:hidden}
+#up-progresso .up-barra i{display:block;height:100%;width:0;background:var(--brass,#c68a3b);transition:width .6s}
+#up-progresso .up-tempo{font-size:12.5px;color:var(--muted,#6f7a76)}
+#up-progresso .up-aviso{margin-top:14px;background:var(--brass-bg,#fbf1e2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--brass-deep,#a86f27)}
+#up-progresso .up-trava{font-size:11.5px;color:var(--muted,#6f7a76);text-align:center;margin-top:10px}
+#up-progresso .up-res{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:12px;margin-bottom:12px;background:var(--tile,#e9ece5)}
+#up-progresso .up-res.ok{background:#e6f0ea}
+#up-progresso .up-res.falha{background:var(--warning-bg,#f3e7e9)}
+#up-progresso .up-res-ic{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;color:#fff;background:var(--pine)}
+#up-progresso .up-res.ok .up-res-ic{background:#2f6b4f}
+#up-progresso .up-res.falha .up-res-ic{background:var(--warning,#7d4b54)}
+#up-progresso .up-res b{display:block;font-size:14.5px}
+#up-progresso .up-res span{display:block;font-size:13px;color:var(--muted,#6f7a76)}
+#up-progresso .up-resumo{border:1px solid var(--line,#e6e3da);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+#up-progresso .up-acoes{display:flex;flex-direction:column;gap:8px}
+#up-progresso .up-acoes .rz-btn{width:100%}
+`;
+
+// Os dois sheets do envio passam a viver no <body> (fora da aba Ativos) e
+// ganham a guarda do fundo. Idempotente.
+function garantirModaisUpload() {
+    ['modal-upload', 'modal-confirmar-upload'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.parentElement !== document.body) document.body.appendChild(el);
+        if (el.dataset.rzGuarda) return;
+        el.dataset.rzGuarda = '1';
+        el.addEventListener('click', (ev) => {
+            if (ev.target !== el) return;
+            // o delegador geral (cofre-app.js) esconderia o sheet no clique do fundo
+            ev.stopPropagation();
+            if (id === 'modal-upload' && !leitura) fecharUpload();
+            // Confira: só Salvar ou Cancelar (o fundo deixava o arquivo solto no Storage)
+        });
+    });
+    if (!document.getElementById('rz-up-estilo')) {
+        const s = document.createElement('style'); s.id = 'rz-up-estilo'; s.textContent = CSS_LEITURA; document.head.appendChild(s);
+    }
+    const box = document.querySelector('#modal-upload .modal-box');
+    if (box && !box.querySelector('#up-progresso')) {
+        box.firstElementChild?.classList.add('up-cab');
+        const d = document.createElement('div');
+        d.id = 'up-progresso'; d.setAttribute('aria-live', 'polite');
+        box.appendChild(d);
+        d.addEventListener('click', aoTocarResultadoLeitura);
+    }
+    if (!garantirModaisUpload._vis) {
+        garantirModaisUpload._vis = true;
+        document.addEventListener('visibilitychange', () => {
+            if (!leitura || leitura.estado !== 'lendo') return;
+            if (document.visibilityState === 'hidden') leitura.saiuDaTela = true;
+            else pedirTelaAcesa();
+        });
+    }
+}
+
+async function pedirTelaAcesa() {
+    if (!leitura || !('wakeLock' in navigator)) return;
+    try { leitura.wake = await navigator.wakeLock.request('screen'); } catch (e) { /* sem suporte ou negado: segue */ }
+}
+function soltarTelaAcesa() {
+    try { leitura?.wake?.release?.(); } catch (e) { /* segue */ }
+    if (leitura) leitura.wake = null;
+}
+
+function tituloEnvio(txt) {
+    const h = document.querySelector('#modal-upload .up-cab h3');
+    if (h) { if (!h.dataset.original) h.dataset.original = h.textContent; h.textContent = txt || h.dataset.original; }
+}
+
+function iniciarLeitura(comIA) {
+    garantirModaisUpload();
+    pararRelogioLeitura();
+    leitura = { token: Math.random().toString(36).slice(2), inicio: Date.now(), inicioIa: null, passo: 0, comIA: !!comIA, relogio: null, wake: null, saiuDaTela: false, estado: 'lendo' };
+    if (up) up.processando = true;
+    document.querySelector('#modal-upload .modal-box')?.classList.add('up-lendo');
+    tituloEnvio(comIA ? 'Lendo o documento' : 'Enviando o documento');
+    const st = document.getElementById('up-status'); if (st) st.textContent = '';
+    pedirTelaAcesa();
+    leitura.relogio = setInterval(atualizarRelogioLeitura, 1000);
+    desenharProgressoLeitura();
+}
+function pararRelogioLeitura() { if (leitura?.relogio) { clearInterval(leitura.relogio); leitura.relogio = null; } }
+
+// Fim da trava: o sheet volta ao normal (escolher arquivo).
+function encerrarLeitura() {
+    pararRelogioLeitura(); soltarTelaAcesa();
+    leitura = null;
+    if (up) up.processando = false;
+    document.querySelector('#modal-upload .modal-box')?.classList.remove('up-lendo');
+    tituloEnvio(null);
+    const p = document.getElementById('up-progresso'); if (p) p.innerHTML = '';
+}
+
+function passoLeitura(i) {
+    if (!leitura) return;
+    leitura.passo = i;
+    if (i === 2 && !leitura.inicioIa) leitura.inicioIa = Date.now();
+    desenharProgressoLeitura();
+}
+
+function cartaoArquivoLeitura() {
+    const f = up?.arquivo;
+    if (!f) return '';
+    return `<div class="up-arq"><i data-lucide="file-text" style="width:22px;height:22px;flex:none;color:var(--pine)"></i><div><b>${escapeHtml(f.name)}</b><small>${formatarBytes(f.size)}</small></div></div>`;
+}
+
+function desenharProgressoLeitura() {
+    const el = document.getElementById('up-progresso');
+    if (!el || !leitura || leitura.estado !== 'lendo') return;
+    const passos = leitura.comIA ? PASSOS_LEITURA : [PASSOS_LEITURA[0], PASSOS_LEITURA[1], PASSOS_LEITURA[3]];
+    const atual = leitura.comIA ? leitura.passo : (leitura.passo >= 3 ? 2 : Math.min(leitura.passo, 1));
+    el.setAttribute('aria-busy', 'true');
+    el.innerHTML = `${cartaoArquivoLeitura()}
+        <ol class="up-passos">${passos.map((p, k) => `<li class="up-passo ${k < atual ? 'feito' : (k === atual ? 'agora' : '')} ${p === PASSOS_LEITURA[2] ? 'ia' : ''}"><span class="up-bola">${k < atual ? '✓' : ''}</span>${p}</li>`).join('')}</ol>
+        <div class="up-barra"><i id="up-barra"></i></div>
+        <div class="up-tempo" id="up-tempo"></div>
+        <div class="up-aviso">Mantenha o app aberto até terminar.</div>
+        <div class="up-trava">Esta tela fecha sozinha quando terminar</div>`;
+    refrescarIcones();
+    atualizarRelogioLeitura();
+}
+
+function atualizarRelogioLeitura() {
+    if (!leitura || leitura.estado !== 'lendo') return;
+    const s = Math.round((Date.now() - leitura.inicio) / 1000);
+    const t = document.getElementById('up-tempo');
+    if (t) t.textContent = leitura.comIA ? `${s} s · costuma levar até ${TEMPO_TIPICO_S} s` : `${s} s`;
+    const b = document.getElementById('up-barra');
+    if (b) {
+        let pct = [8, 25, 25, 95][leitura.passo] ?? 95;
+        if (leitura.passo === 2 && leitura.inicioIa) pct = 25 + Math.min(65, ((Date.now() - leitura.inicioIa) / 1000) / TEMPO_TIPICO_S * 65);
+        b.style.width = pct + '%';
+    }
+}
+
+function rotuloConfiancaLeitura() {
+    const m = up?.motor, r = up?.ia;
+    if (m && typeof m.confianca === 'number') return m.confianca >= LIMIAR_CONFIRA ? 'Leitura segura' : (m.confianca >= 0.55 ? 'Confira com atenção' : 'Leitura incerta, confira com atenção');
+    if (r?.confianca === 'baixa') return 'Leitura incerta, confira com atenção';
+    return 'Confira antes de salvar';
+}
+
+// Resultado na tela. estado: 'pronto' | 'falha' | 'interrompida' | 'erro_envio'
+function mostrarResultadoLeitura(estadoRes, info = {}) {
+    if (!leitura) iniciarLeitura(!!up?.comIA);
+    pararRelogioLeitura(); soltarTelaAcesa();
+    leitura.estado = estadoRes;
+    const el = document.getElementById('up-progresso');
+    if (!el) return;
+    el.setAttribute('aria-busy', 'false');
+    const seg = Math.max(1, Math.round((Date.now() - leitura.inicio) / 1000));
+    const outra = up?.origemInput === 'up-arquivo' ? 'Escolher outro arquivo' : 'Tirar outra foto';
+    const fora = leitura.saiuDaTela ? ' · terminou enquanto o app estava fora' : '';
+    const aviso = info.avisoLimite ? `<p class="rz-desc" style="margin:0 0 10px">${escapeHtml(info.avisoLimite)}</p>` : '';
+    let html = '';
+    if (estadoRes === 'pronto') {
+        const tipo = up?.motor?.subtipo_nome || up?.ia?.tipoDocumentoDetectado || 'documento';
+        tituloEnvio('Leitura concluída');
+        html = `<div class="up-res ok"><div class="up-res-ic">✓</div><div><b>Pronto. Lido como ${escapeHtml(tipo)}</b><span>${rotuloConfiancaLeitura()} · ${seg} s${fora}</span></div></div>
+            ${up?.ia?.resumo ? `<div class="up-resumo">${escapeHtml(up.ia.resumo)}</div>` : cartaoArquivoLeitura()}
+            ${aviso}
+            <div class="up-acoes"><button type="button" class="rz-btn rz-btn-1" data-up="conferir">Conferir e salvar</button></div>
+            <div class="up-trava">Nada é gravado antes de você conferir</div>`;
+    } else if (estadoRes === 'falha') {
+        tituloEnvio('Leitura concluída');
+        html = `<div class="up-res falha"><div class="up-res-ic">!</div><div><b>Não deu para ler este documento</b><span>${escapeHtml(info.motivo || 'A IA não reconheceu o documento.')} O arquivo já foi enviado: nada se perde.</span></div></div>
+            ${cartaoArquivoLeitura()}${aviso}
+            <div class="up-acoes">
+                <button type="button" class="rz-btn rz-btn-1" data-up="preencher">Preencher eu mesmo</button>
+                <button type="button" class="rz-btn rz-btn-2" data-up="outra">${outra}</button>
+                ${up?.config ? '<button type="button" class="rz-btn rz-btn-2" data-up="equipe">Pedir para a equipe Raiz</button>' : ''}
+                <button type="button" class="rz-btn rz-btn-3" data-up="cancelar">Cancelar o envio</button>
+            </div>`;
+    } else if (estadoRes === 'interrompida') {
+        tituloEnvio('Leitura interrompida');
+        html = `<div class="up-res"><div class="up-res-ic">↻</div><div><b>A leitura foi interrompida</b><span>${info.porTempo ? 'A IA demorou mais de 90 s para responder.' : 'A conexão caiu, por exemplo quando o app sai da tela.'} O arquivo já foi enviado: é só ler de novo.</span></div></div>
+            ${cartaoArquivoLeitura()}
+            <div class="up-acoes">
+                <button type="button" class="rz-btn rz-btn-1" data-up="ler-de-novo">Ler de novo</button>
+                <button type="button" class="rz-btn rz-btn-2" data-up="preencher">Preencher eu mesmo</button>
+                <button type="button" class="rz-btn rz-btn-3" data-up="cancelar">Cancelar o envio</button>
+            </div>`;
+    } else { // erro_envio
+        tituloEnvio('Envio não concluído');
+        html = `<div class="up-res falha"><div class="up-res-ic">!</div><div><b>Não consegui enviar o arquivo</b><span>${escapeHtml(info.motivo || 'Verifique a conexão e tente de novo.')}</span></div></div>
+            ${cartaoArquivoLeitura()}
+            <div class="up-acoes">
+                <button type="button" class="rz-btn rz-btn-1" data-up="reenviar">Tentar de novo</button>
+                <button type="button" class="rz-btn rz-btn-3" data-up="cancelar">Cancelar o envio</button>
+            </div>`;
+    }
+    el.innerHTML = html;
+    refrescarIcones();
+    el.querySelector('button')?.focus?.();
+}
+
+async function aoTocarResultadoLeitura(ev) {
+    const b = ev.target.closest('[data-up]');
+    if (!b || !up || !leitura || leitura.estado === 'lendo') return;
+    const acao = b.dataset.up;
+    if (acao === 'conferir' || acao === 'preencher') { seguirParaConfira(); return; }
+    if (acao === 'equipe') { seguirParaConfira(); await pedirEquipeConfiguracao(); return; }
+    if (acao === 'ler-de-novo') {
+        leitura.estado = 'lendo'; leitura.inicio = Date.now(); leitura.inicioIa = null; leitura.saiuDaTela = false;
+        tituloEnvio('Lendo o documento'); pedirTelaAcesa();
+        leitura.relogio = setInterval(atualizarRelogioLeitura, 1000);
+        await etapaLeituraIA();
+        return;
+    }
+    if (acao === 'reenviar') { encerrarLeitura(); await processarArquivoUpload(); return; }
+    if (acao === 'outra' || acao === 'cancelar') {
+        if (up.storagePath) { try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ } }
+        up.storagePath = null; up.documentoId = null; up.ia = null; up.motor = null; up.hash = null;
+        encerrarLeitura();
+        if (acao === 'outra') { up.arquivo = null; tentarOutraFotoUpload(); }
+        else fecharUpload();
+    }
+}
+
+// Leitura com limite de tempo. Devolve { estado, info }.
+async function lerComIALimitada(caminho, mime, opcoes) {
+    const tk = leitura?.token;
+    const promessa = api.analisarArquivoComIA(caminho, mime, opcoes).then(resp => ({ resp }), err => ({ err }));
+    let timer;
+    const limite = new Promise(res => { timer = setTimeout(() => res({ limite: true }), LIMITE_LEITURA_MS); });
+    const r = await Promise.race([promessa, limite]);
+    clearTimeout(timer);
+    if (r.limite) {
+        // a resposta pode chegar depois: se o cliente ainda estiver na tela de interrompida, vira Pronto
+        promessa.then(async tarde => {
+            if (!leitura || leitura.token !== tk || leitura.estado !== 'interrompida' || !tarde.resp?.analisado || !tarde.resp.resultado) return;
+            up.ia = tarde.resp.resultado; up.motor = tarde.resp.resultado.motor || null;
+            try { await carregarApoioUpload(); } catch (e) { /* segue */ }
+            mostrarResultadoLeitura('pronto', { avisoLimite: tarde.resp.avisoLimite });
+        });
+        return { estado: 'interrompida', info: { porTempo: true } };
+    }
+    if (r.err) {
+        const msg = String(r.err?.message || '');
+        const rede = r.err?.name === 'FunctionsFetchError' || /fetch|network|load failed|abort/i.test(msg);
+        if (rede || leitura?.saiuDaTela) return { estado: 'interrompida', info: {} };
+        let motivo = '';
+        try { const corpo = await r.err?.context?.json?.(); motivo = corpo?.erro || corpo?.motivo || ''; } catch (e) { /* segue */ }
+        return { estado: 'falha', info: { motivo: motivo || 'A IA está indisponível agora.' } };
+    }
+    const resp = r.resp;
+    if (resp?.analisado && resp.resultado) {
+        up.ia = resp.resultado; up.motor = resp.resultado.motor || null;
+        return { estado: 'pronto', info: { avisoLimite: resp.avisoLimite } };
+    }
+    return { estado: 'falha', info: { motivo: resp?.motivo || resp?.erro || '', avisoLimite: resp?.avisoLimite } };
+}
+
+// Passo "Lendo com IA" (também usado pelo "Ler de novo"): prepara a cópia de
+// leitura, chama a IA com limite, limpa a cópia e mostra o resultado.
+async function etapaLeituraIA() {
+    if (!up || !leitura) return;
+    const f = up.arquivo;
+    const mimeArquivo = api.mimeDoArquivo(f);
+    passoLeitura(2);
+    up.ia = null; up.motor = null; up.leituraFalhou = false;
+    let caminhoLeitura = up.storagePath, mimeLeitura = mimeArquivo;
+    try {
+        if (up.pdfDestravado) {
+            const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.pdf`;
+            await api.uploadArquivoDocumento(tmp, up.pdfDestravado);
+            up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'application/pdf';
+        } else {
+            up.tratamento = await tratarImagem(f, { orientacaoEsperada: null });
+            if (up.tratamento?.blob) {
+                const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.jpg`;
+                await api.uploadArquivoDocumento(tmp, up.tratamento.blob);
+                up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'image/jpeg';
+            }
+        }
+    } catch (err) { console.warn('pré-processamento pulado:', err.message); }
+    let res;
+    try {
+        res = await lerComIALimitada(caminhoLeitura, mimeLeitura, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null });
+    } finally {
+        if (up?.storagePathTemp) { try { await api.removerArquivoDocumento(up.storagePathTemp); } catch (e) { /* melhor esforço */ } up.storagePathTemp = null; }
+    }
+    if (!up || !leitura) return;
+    if (res.estado !== 'pronto') up.leituraFalhou = true;
+    passoLeitura(3);
+    try { await carregarApoioUpload(); } catch (err) { console.warn('apoio do upload:', err.message); }
+    mostrarResultadoLeitura(res.estado, res.info);
+}
+
+// Sai do sheet de envio para o "Confira".
+function seguirParaConfira() {
+    if (up?.storagePathTemp) { const t = up.storagePathTemp; up.storagePathTemp = null; api.removerArquivoDocumento(t).catch(() => {}); }
+    encerrarLeitura();
+    fecharModal('modal-upload');
+    garantirModaisUpload();
+    montarConfirmacaoUpload();
+    abrirModal('modal-confirmar-upload');
+    refrescarIcones();
+}
+
 async function processarArquivoUpload() {
     const statusEl = document.getElementById('up-status');
     const f = up.arquivo;
+    garantirModaisUpload();
 
     // v2.9.0 — sem empresa carregada, nem tenta: o caminho do Storage
     // (<clienteId>/...) sairia quebrado e a IA falharia muda lá na frente.
@@ -939,68 +1296,34 @@ async function processarArquivoUpload() {
         return;
     }
 
-    statusEl.style.color = 'var(--sage)';
-    statusEl.textContent = 'Enviando arquivo…';
-
     up.hash = await api.calcularHashSha256(f);
     if (up.hash && estado.documentos.some(d => d.hash_sha256 === up.hash)) {
         const existente = estado.documentos.find(d => d.hash_sha256 === up.hash);
         if (!await perguntar({ titulo: 'Arquivo repetido?', impacto: `Este arquivo parece idêntico a "${existente.nome_exibicao}", que já está no Cofre. Enviar mesmo assim?`, rotuloConfirmar: 'Enviar mesmo assim', rotuloCancelar: 'Não enviar' })) { statusEl.textContent = ''; return; }
     }
+
+    // v2.27.0 — daqui em diante a tela fica travada até o resultado.
+    const mimeArquivo = api.mimeDoArquivo(f); // v2.6.0 — PDF de outro app pode vir com type vazio
+    const vaiLer = up.comIA && MIMES_IA.includes(mimeArquivo);
+    iniciarLeitura(vaiLer);
+    passoLeitura(1);
     up.documentoId = crypto.randomUUID();
     up.storagePath = api.montarStoragePath(estado.clienteId, up.documentoId, f.name);
     try {
         await api.uploadArquivoDocumento(up.storagePath, f);
     } catch (err) {
-        statusEl.innerHTML = '❌ Não consegui enviar o arquivo: ' + escapeHtml(err.message) +
-            `<br><button type="button" data-action="up-tentar-outra-foto" style="margin-top:8px;background:var(--pine);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700">Tentar de novo</button>`;
-        statusEl.style.color = 'var(--danger)';
-        up.bloqueadoPorQualidade = null;
+        up.storagePath = null; up.documentoId = null; up.bloqueadoPorQualidade = null;
+        mostrarResultadoLeitura('erro_envio', { motivo: 'Não consegui enviar o arquivo: ' + err.message });
         return;
     }
 
-    const mimeArquivo = api.mimeDoArquivo(f); // v2.6.0 — PDF de outro app pode vir com type vazio
-    if (up.comIA && MIMES_IA.includes(mimeArquivo)) {
-        statusEl.style.color = 'var(--brass, #b8860b)';
-        statusEl.textContent = '✨ Lendo o documento com IA…';
-        // v2.2.0 — a leitura usa a versão tratada (recorte/orientação/contraste);
-        // o Cofre continua guardando o ORIGINAL, que já subiu acima.
-        let caminhoLeitura = up.storagePath, mimeLeitura = mimeArquivo;
-        try {
-            if (up.pdfDestravado) {
-                // v2.7.0 — cópia sem senha, só pra leitura (o original protegido já subiu)
-                const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.pdf`;
-                await api.uploadArquivoDocumento(tmp, up.pdfDestravado);
-                up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'application/pdf';
-            } else {
-                up.tratamento = await tratarImagem(f, { orientacaoEsperada: null });
-                if (up.tratamento?.blob) {
-                    const tmp = `${estado.clienteId}/tmp-ia/${up.documentoId}.jpg`;
-                    await api.uploadArquivoDocumento(tmp, up.tratamento.blob);
-                    up.storagePathTemp = tmp; caminhoLeitura = tmp; mimeLeitura = 'image/jpeg';
-                }
-            }
-        } catch (err) { console.warn('pré-processamento pulado:', err.message); }
-        try {
-            const resp = await api.analisarArquivoComIA(caminhoLeitura, mimeLeitura, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null });
-            if (resp?.analisado && resp.resultado) { up.ia = resp.resultado; up.motor = resp.resultado.motor || null; }
-            else mostrarToast(resp?.motivo || resp?.erro || 'A IA não conseguiu ler — preencha manualmente.', 'aviso');
-            if (resp?.avisoLimite) mostrarToast(resp.avisoLimite, 'aviso');
-        } catch (err) {
-            console.warn('IA indisponível neste upload:', err.message);
-            mostrarToast('IA indisponível agora — preencha manualmente.', 'aviso');
-        } finally {
-            if (up.storagePathTemp) { try { await api.removerArquivoDocumento(up.storagePathTemp); } catch (e) { /* melhor esforço */ } up.storagePathTemp = null; }
-        }
-    } else if (up.comIA) {
-        mostrarToast('Word/Excel não passam pela IA — preencha os dados.', 'aviso');
-    }
+    if (vaiLer) { await etapaLeituraIA(); return; }
 
+    // sem IA (Word/Excel, ou "Ler com IA" desmarcado): direto para o Confira, como antes
+    passoLeitura(3);
     try { await carregarApoioUpload(); } catch (err) { console.warn('apoio do upload:', err.message); }
-    fecharModal('modal-upload');
-    montarConfirmacaoUpload();
-    abrirModal('modal-confirmar-upload');
-    refrescarIcones();
+    if (up.comIA) mostrarToast('Word/Excel não passam pela IA — preencha os dados.', 'aviso');
+    seguirParaConfira();
 }
 
 async function carregarApoioUpload() {
@@ -1642,14 +1965,33 @@ export function aoMudarValidadeUpload() {
 export async function relerComoTipoUpload() {
     const codigo = document.getElementById('uc-tipo-doc').value;
     if (!up?.storagePath || !codigo || codigo === 'outro') { mostrarToast('Escolha um tipo pra reler.', 'aviso'); return; }
-    const st = document.getElementById('uc-status'); st.style.color = 'var(--brass, #b8860b)'; st.textContent = '✨ Relendo como ' + (subtipoSelecionado()?.nome || codigo) + '…';
+    if (up.processando) return;
+    // v2.27.0 (9ddb9f34) — o Confira fica travado durante a releitura e o resultado aparece na tela.
+    const st = document.getElementById('uc-status');
+    const botoes = [...document.querySelectorAll('#modal-confirmar-upload button, #modal-confirmar-upload select, #modal-confirmar-upload input')];
+    const estavam = botoes.map(b => b.disabled);
+    up.processando = true; botoes.forEach(b => { b.disabled = true; });
+    const nome = subtipoSelecionado()?.nome || codigo;
+    const inicio = Date.now();
+    st.style.color = 'var(--brass, #b8860b)';
+    const relogio = setInterval(() => { st.textContent = `✨ Relendo como ${nome}… ${Math.round((Date.now() - inicio) / 1000)} s · mantenha o app aberto`; }, 1000);
+    st.textContent = `✨ Relendo como ${nome}… mantenha o app aberto`;
+    let res;
     try {
-        const resp = await api.analisarArquivoComIA(up.storagePath, up.arquivo.type, { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null, classificacaoForcada: codigo });
-        if (resp?.analisado && resp.resultado) { up.ia = resp.resultado; up.motor = resp.resultado.motor || null; montarConfirmacaoUpload(); refrescarIcones(); }
-        else mostrarToast(resp?.motivo || 'Não deu pra reler agora.', 'aviso');
-        if (resp?.avisoLimite) mostrarToast(resp.avisoLimite, 'aviso');
-    } catch (err) { mostrarToast('IA indisponível agora.', 'aviso'); }
-    st.textContent = '';
+        res = await lerComIALimitada(up.storagePath, api.mimeDoArquivo(up.arquivo), { tipoAtivo: up.tipoAtivo, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null, classificacaoForcada: codigo });
+    } catch (err) { res = { estado: 'falha', info: { motivo: 'A IA está indisponível agora.' } }; }
+    clearInterval(relogio);
+    up.processando = false; botoes.forEach((b, k) => { b.disabled = estavam[k]; });
+    if (res.estado === 'pronto') {
+        montarConfirmacaoUpload(); refrescarIcones();
+        st.style.color = 'var(--pine)'; st.textContent = `✓ Relido como ${up.motor?.subtipo_nome || nome}. Confira os campos.`;
+    } else {
+        st.style.color = 'var(--danger)';
+        st.textContent = res.estado === 'interrompida'
+            ? '↻ A releitura foi interrompida. Toque em Reler para tentar de novo; a leitura anterior foi mantida.'
+            : `⚠️ Não deu para reler: ${res.info?.motivo || 'tente outro tipo'}. A leitura anterior foi mantida.`;
+    }
+    if (res.info?.avisoLimite) mostrarToast(res.info.avisoLimite, 'aviso');
 }
 
 
