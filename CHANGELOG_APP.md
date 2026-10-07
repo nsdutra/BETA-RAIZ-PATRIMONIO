@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.317.0) — D3b (frente D; "De acordo" do Nicola 07/10 08:02): link direto
+#/leitura/<id>, mandado pelo bot quando lê um contrato de locação. Abre a leitura guardada em
+<empresa>/tmp-ia/<id>.leitura.json (só para quem vê os documentos da empresa) e segue para o "Confira o
+que a IA leu" — ativo, vencimentos e "Criar o contrato". Leitura que não existe mais (48 h) ou de outra
+empresa: aviso. Import map: cofre-documentos 2.31.0.
+Versão anterior (Beta v1.316.0):
+------------------------------------------------------------------
+Versões anteriores (v1.316.0 … v1.316.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.316.0) — vínculos encerrados (plano aprovado pelo Nicola 07/10 02:31). Chips
 Partes do contrato (contratos.js 1.43.0) e do item de controle (cofre-controles.js 1.48.0) mostram
 o grupo "Encerrados", com a data; o ⋮ de um encerrado oferece Reativar e Excluir. Ficha da parte:

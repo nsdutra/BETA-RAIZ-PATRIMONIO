@@ -1,5 +1,16 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
+// Versão: 1.9.2 · 07/10/2026
+//
+// v1.9.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554) — ordem do
+// cabeçalho corrigida: a linha "Versão:" estava DEPOIS das entradas de changelog, e o
+// versao_de() do publicar_raiz.py lê a primeira versão que aparece nas 60 primeiras linhas.
+// Resultado: a checagem de base lia 1.9.0 enquanto o versoes.json e o export const diziam
+// 1.9.1 — o próximo deploy deste arquivo seria barrado por divergência falsa. Era o único
+// dos 34 módulos com o cabeçalho nessa ordem. Nenhuma linha de código mudou.
+//
+// Versão anterior: 1.9.1 · 07/10/2026
+//
 // v1.9.0 (04/10/2026) — UX F1.3 (demanda 798e7b64): mudarTela() guarda a
 // rolagem da tela que sai e devolve a da lista ao voltar (Ativos, Início,
 // Alertas). Fichas ('ficha-*') abrem sempre no topo. O mapa é
@@ -17,7 +28,6 @@
 // aplicados. Falha na porta não derruba o boot (a trava de banco segue
 // valendo, com a mensagem do design system — c3_porta_amigos_v1).
 //
-// Versão: 1.9.1 · 07/10/2026
 // v1.9.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
@@ -30,47 +40,11 @@
 // listarContatos() saiu de carregarTudo() — estado.contatos nunca era
 // lido por nada no app (achado ao investigar a E14.4), 1 query a menos
 // no boot do Cofre.
-//
-// v1.7.0 (09/09/2026) — EMPRESA ERRADA NA ABA ATIVOS (achado do Nicola:
-// "Rumo e Santos Dutras continuam sem aparecer os ativos"). O App fixa a
-// empresa pondo ?cliente_id= na URL antes de importar este módulo e
-// restaura a URL logo depois; como bootstrap() é assíncrono e não era
-// aguardado, na prática ele lia a URL JÁ restaurada e caía no fallback
-// "primeira empresa da lista" — que pra um usuário com 12 vínculos
-// raramente é a empresa aberta na tela. Agora bootstrap() lê primeiro
-// window.__raizClienteId (global que o hospedeiro define e não depende de
-// tempo); a URL continua funcionando como antes pro cofre.html standalone.
-//
-// (16/09/2026 — achado pelo gate gerar_versoes.py ao entregar a Onda 12:
-// esta linha "Versão:" tinha ficado presa em 1.7.0 quando a v1.7.1 foi
-// escrita acima, 15/09 — corrigida agora, nenhuma mudança de código
-// neste arquivo. Versão anterior corrigida junto, de 1.6.2 pra 1.7.0 —
-// estava pulando a própria v1.7.0.)
-//
-// Versão anterior: 1.7.0 · 09/09/2026
-//
-// v1.6.2 — "Ativos está demorando pra aparecer": a checagem de
-// cofre.categorias (que só esconde um ícone) deixou de bloquear
-// carregarTudo() — as duas disparam em paralelo, 1 ida ao banco a menos
-// no caminho crítico. Junto: o boot inteiro agora roda em segundo plano
-// logo após o login (ver prefetchModuloAtivos, index.html v1.116.0).
-//
-// v1.6.1 — BUG REAL corrigido, achado pelo Nicola via console do
-// navegador ("Falha no bootstrap do Cofre: TypeError: Cannot read
-// properties of null (reading 'classList') at Module.bootstrap"):
-// causa raiz era o prefetch do index.html (v1.95.0) chamando import()
-// em vez de <link rel="modulepreload"> — import() executa o módulo
-// (dispara bootstrap() automaticamente, sem o HTML do Cofre existir
-// ainda). Corrigido na origem (ver index.html v1.96.1), mas
-// bootstrap()/falhaAcesso() também ganharam guarda defensiva aqui
-// (2ª camada, mesmo padrão já usado em montarHome()/renderAlertas())
-// — custa pouco blindar contra a mesma classe de erro acontecer de
-// novo por outro caminho.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.6.1 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-05).
-export const VERSAO = '1.9.1'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.9.2'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';

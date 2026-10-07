@@ -355,6 +355,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -763,6 +765,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1119,6 +1123,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -2036,6 +2042,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2607,6 +2615,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-documentos.js`
 
 //
@@ -3144,6 +3154,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3292,7 +3304,50 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
+
+//
+// v1.7.0 (09/09/2026) — EMPRESA ERRADA NA ABA ATIVOS (achado do Nicola:
+// "Rumo e Santos Dutras continuam sem aparecer os ativos"). O App fixa a
+// empresa pondo ?cliente_id= na URL antes de importar este módulo e
+// restaura a URL logo depois; como bootstrap() é assíncrono e não era
+// aguardado, na prática ele lia a URL JÁ restaurada e caía no fallback
+// "primeira empresa da lista" — que pra um usuário com 12 vínculos
+// raramente é a empresa aberta na tela. Agora bootstrap() lê primeiro
+// window.__raizClienteId (global que o hospedeiro define e não depende de
+// tempo); a URL continua funcionando como antes pro cofre.html standalone.
+//
+// (16/09/2026 — achado pelo gate gerar_versoes.py ao entregar a Onda 12:
+// esta linha "Versão:" tinha ficado presa em 1.7.0 quando a v1.7.1 foi
+// escrita acima, 15/09 — corrigida agora, nenhuma mudança de código
+// neste arquivo. Versão anterior corrigida junto, de 1.6.2 pra 1.7.0 —
+// estava pulando a própria v1.7.0.)
+//
+// Versão anterior: 1.7.0 · 09/09/2026
+//
+// v1.6.2 — "Ativos está demorando pra aparecer": a checagem de
+// cofre.categorias (que só esconde um ícone) deixou de bloquear
+// carregarTudo() — as duas disparam em paralelo, 1 ida ao banco a menos
+// no caminho crítico. Junto: o boot inteiro agora roda em segundo plano
+// logo após o login (ver prefetchModuloAtivos, index.html v1.116.0).
+//
+// v1.6.1 — BUG REAL corrigido, achado pelo Nicola via console do
+// navegador ("Falha no bootstrap do Cofre: TypeError: Cannot read
+// properties of null (reading 'classList') at Module.bootstrap"):
+// causa raiz era o prefetch do index.html (v1.95.0) chamando import()
+// em vez de <link rel="modulepreload"> — import() executa o módulo
+// (dispara bootstrap() automaticamente, sem o HTML do Cofre existir
+// ainda). Corrigido na origem (ver index.html v1.96.1), mas
+// bootstrap()/falhaAcesso() também ganharam guarda defensiva aqui
+// (2ª camada, mesmo padrão já usado em montarHome()/renderAlertas())
+// — custa pouco blindar contra a mesma classe de erro acontecer de
+// novo por outro caminho.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
 //
 // v1.6.0 — bootstrap() ganhou suporte a ?abrir=categorias|subtipos|
@@ -3370,6 +3425,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3401,6 +3458,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3483,6 +3542,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -3544,6 +3605,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -3644,6 +3707,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -3848,6 +3913,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -3890,6 +3957,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -3944,6 +4013,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4633,6 +4704,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -4919,6 +4992,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -5802,6 +5877,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -5861,6 +5938,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -5951,6 +6030,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -6146,6 +6227,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -6211,6 +6294,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
