@@ -1,6 +1,28 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.25.0 · 04/10/2026
+// Versão: 2.26.0 · 06/10/2026
+//
+// v2.26.0 (frente D, fatia D2 — demandas 860233ca e be7cdd7c; sessão 20261006-2348-setup-d2; "Estou de
+// acordo" do Nicola 06/10 23:48, plano PLANO_INDICADORES_E_SETUP_DOCUMENTOS v1.1.0) — o leitor do Cofre
+// passa a servir também a configuração inicial (js/configuracao-inicial.js):
+//   (a) abrirUploadConfiguracao(tipo, aoTerminar): o mesmo picker/"Confira", marcado com o tipo que a
+//       pessoa disse que ia mandar. Salvar, descartar ou cancelar devolvem o controle à tela da
+//       configuração. Depois de salvar, o documento é ligado ao serviço "Configuração inicial"
+//       (fn_configuracao_inicial_documento) — é o que alimenta o "esperado × lido" do Gestão.
+//   (b) Leitura fraca na configuração (sem tipo, "outro", leitura que falhou ou confiança < 75%):
+//       bloco no topo do "Confira" com Tentar outra foto · Pedir para a equipe Raiz · Descartar com
+//       motivo. Pedir para a equipe abre chamado (fn_suporte_ticket_documento_abrir; sem leitura,
+//       fn_demanda_criar de suporte + vínculo do documento). Descartar grava a leitura como rejeitada e
+//       o motivo (fn_cofre_extracao_descartar); o arquivo sai do Storage e o documento fica excluído.
+//       Lista de ativos vai sempre para a equipe Raiz cadastrar.
+//   (c) be7cdd7c — contrato de locação lido (em QUALQUER envio): o "Confira" pergunta "Criar o
+//       contrato" ou "Só guardar no ativo". Criar salva o documento sem item de controle próprio e abre
+//       o formulário de contrato preenchido (contratos.js, abrirNovoContratoDoDocumento); quando o
+//       contrato é salvo, o documento é anexado a ele (evento cofre:vincular-documento).
+//   (d) Documento de pessoa (RG/CIN, CNH, passaporte…) já vem com "Restrito" marcado; o banco força o
+//       mesmo (gatilho trg_cofre_documento_restrito_pessoa), em qualquer canal.
+//
+// Versão anterior: 2.25.0 · 04/10/2026
 //
 // v2.25.0 (catálogo único 2b-3c, demanda 2923ff4d, sessão 20261004-1815-catalogo-2b3c; plano 2b-3 aprovado pelo Nicola 04/10) —
 // o documento passa a mostrar o caminho da árvore. cofre_categorias virou a lista de 15 ESPÉCIES
@@ -492,7 +514,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.25.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.26.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -751,6 +773,31 @@ export async function abrirUploadNoAtivoSemIA(ativo) { if (ativo) await abrirPic
 export async function abrirUploadContextualComFlag(entidadeTipo, entidadeId, nomeExibido, comIA) { await abrirPickerUpload({ entidadeTipo, entidadeId, nome: nomeExibido }, !!comIA); }
 export async function abrirUploadContextual(entidadeTipo, entidadeId, nomeExibido) { await abrirPickerUpload({ entidadeTipo, entidadeId, nome: nomeExibido }, true); }
 
+// v2.26.0 (D2) — configuração inicial: o mesmo leitor, marcado com o tipo esperado.
+const ROTULO_TIPO_CFG = { lista_ativos: 'Lista de ativos', documentos_ativos: 'Documentos dos ativos', contratos: 'Contratos de aluguel', contas_apolices: 'Contas e apólices', documentos_pessoas: 'Documentos de pessoas' };
+export async function abrirUploadConfiguracao(tipo, aoTerminar) {
+    await abrirPickerUpload(null, true);
+    if (!up) return;
+    up.config = { tipo, aoTerminar };
+    document.getElementById('upload-contexto-legenda').textContent = `Configuração inicial · ${ROTULO_TIPO_CFG[tipo] || 'documento'}. Um documento por vez.`;
+}
+function avisarConfig(cfg, res) {
+    if (cfg && typeof cfg.aoTerminar === 'function') setTimeout(() => cfg.aoTerminar(res || {}), 150);
+}
+async function rpcDoc(nome, args) {
+    const { data, error } = await dbAuth.rpc(nome, args);
+    if (error) throw error;
+    return data;
+}
+function ehDocumentoDePessoa(s) { return !!(s && Array.isArray(s.titular_escopo) && s.titular_escopo.includes('pessoa')); }
+function leituraFraca() {
+    if (!up) return false;
+    const m = up.motor;
+    if (!up.ia) return true;
+    if (!m) return up.ia.confianca === 'baixa';
+    return !m.subtipo_codigo || m.subtipo_codigo === 'outro' || up.leituraFalhou || (typeof m.confianca === 'number' && m.confianca < LIMIAR_CONFIRA);
+}
+
 function rotuloEntidadeTipo(t) {
     return { ativo: 'Ativo', imovel: 'Imóvel', contrato: 'Contrato', pagamento: 'Pagamento', empresa: 'Empresa', item_controle: 'Item de controle' }[t] || t;
 }
@@ -838,7 +885,11 @@ export async function enviarAssimMesmoUpload() {
     await processarArquivoUpload();
 }
 
-export function fecharUpload() { fecharModal('modal-upload'); }
+export function fecharUpload() {
+    fecharModal('modal-upload');
+    // v2.26.0 (D2) — fechou o picker sem mandar nada: volta para a tela da configuração.
+    if (up?.config && !up.storagePath) { const cfg = up.config; up = null; avisarConfig(cfg, { cancelado: true }); }
+}
 export function escolherArquivoUpload() { document.getElementById('up-arquivo').click(); }
 export function escolherCameraUpload() { document.getElementById('up-camera').click(); }
 
@@ -1161,7 +1212,181 @@ function montarConfirmacaoUpload() {
     aplicarSubtipoUpload(true);
     renderizarAvisosUpload();
     atualizarOfertaCriarAtivo();
+    montarBlocoConfiguracao(); // v2.26.0 (D2)
 }
+
+// v2.26.0 (D2) — contêiner único no topo do "Confira" para a configuração inicial e para a
+// escolha do contrato (be7cdd7c). Criado por código: a casca do modal (ativos-markup.js) não muda.
+function containerConfigUpload() {
+    let el = document.getElementById('uc-config');
+    if (!el) {
+        const ref = document.getElementById('uc-avisos');
+        if (!ref) return null;
+        el = document.createElement('div');
+        el.id = 'uc-config';
+        ref.parentNode.insertBefore(el, ref.nextSibling);
+    }
+    return el;
+}
+
+function montarBlocoConfiguracao() {
+    const el = containerConfigUpload();
+    if (!el || !up) return;
+    const partes = [];
+    if (up.config) {
+        partes.push(`<p class="rz-desc"><span class="rz-ia-tag"><i data-lucide="list-checks"></i> Configuração inicial · ${escapeHtml(ROTULO_TIPO_CFG[up.config.tipo] || 'documento')}</span></p>`);
+        if (up.config.tipo === 'lista_ativos') {
+            partes.push(`<div class="rz-card"><p class="rz-desc">A equipe Raiz cadastra os ativos desta lista e te avisa. É só salvar.</p></div>`);
+        } else if (leituraFraca()) {
+            partes.push(`<div class="rz-card" id="uc-cfg-fraca">
+                <div class="rz-card-h"><b>Não consegui ler este com segurança</b></div>
+                <p class="rz-desc">Você pode corrigir os campos abaixo e salvar, ou escolher uma destas saídas.</p>
+                <div class="rz-acts">
+                    <button type="button" class="rz-btn rz-btn-2" data-cfg="outra"><i data-lucide="camera"></i> Tentar outra foto</button>
+                    <button type="button" class="rz-btn rz-btn-2" data-cfg="equipe"><i data-lucide="life-buoy"></i> Pedir para a equipe Raiz</button>
+                    <button type="button" class="rz-btn rz-btn-3" data-cfg="descartar">Descartar</button>
+                </div>
+                <div class="rz-chips hidden" id="uc-cfg-motivos">
+                    <button type="button" class="rz-chip" data-motivo="Não era este">Não era este</button>
+                    <button type="button" class="rz-chip" data-motivo="Documento antigo">Documento antigo</button>
+                    <button type="button" class="rz-chip" data-motivo="Mando depois">Mando depois</button>
+                </div>
+            </div>`);
+        }
+    }
+    partes.push('<div id="uc-contrato-escolha"></div>');
+    el.innerHTML = partes.join('');
+    el.querySelector('[data-cfg="outra"]')?.addEventListener('click', tentarOutraFotoConfiguracao);
+    el.querySelector('[data-cfg="equipe"]')?.addEventListener('click', pedirEquipeConfiguracao);
+    el.querySelector('[data-cfg="descartar"]')?.addEventListener('click', () => document.getElementById('uc-cfg-motivos')?.classList.toggle('hidden'));
+    el.querySelectorAll('[data-motivo]').forEach(b => b.addEventListener('click', () => descartarUploadConfiguracao(b.dataset.motivo)));
+    atualizarEscolhaContrato();
+    refrescarIcones();
+}
+
+// be7cdd7c — contrato de locação: criar o contrato ou só guardar no ativo.
+function atualizarEscolhaContrato() {
+    const el = document.getElementById('uc-contrato-escolha');
+    if (!el || !up) return;
+    const ehContrato = subtipoSelecionado()?.codigo === 'contrato_locacao';
+    const podeCriar = window.podeUsar ? window.podeUsar('contratos.criar').ok : true;
+    if (!ehContrato || !podeCriar) { el.innerHTML = ''; return; }
+    if (el.innerHTML) return; // mantém a escolha feita
+    el.innerHTML = `<div class="rz-card">
+        <div class="rz-card-h"><b>É um contrato de locação. O que fazer com ele?</b></div>
+        <label class="rz-row rz-chk"><input type="radio" name="uc-contrato-acao" value="criar" checked>
+            <div class="rz-tx rz-wrap"><b>Criar o contrato</b><span>Abre o contrato já preenchido para você revisar e salvar. O documento fica anexado a ele.</span></div></label>
+        <label class="rz-row rz-chk"><input type="radio" name="uc-contrato-acao" value="guardar">
+            <div class="rz-tx rz-wrap"><b>Só guardar no ativo</b><span>Vira um documento do ativo, sem contrato no sistema.</span></div></label>
+    </div>`;
+}
+
+function escolheuCriarContrato() {
+    return subtipoSelecionado()?.codigo === 'contrato_locacao'
+        && document.querySelector('input[name="uc-contrato-acao"]:checked')?.value === 'criar';
+}
+
+async function tentarOutraFotoConfiguracao() {
+    const cfg = up?.config;
+    if (up?.storagePath) { try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ } }
+    fecharModal('modal-confirmar-upload');
+    up = null;
+    if (cfg) await abrirUploadConfiguracao(cfg.tipo, cfg.aoTerminar);
+}
+
+async function pedirEquipeConfiguracao() {
+    if (!up) return;
+    const g = id => document.getElementById(id);
+    if (!g('uc-nome').value.trim()) g('uc-nome').value = up.arquivo.name.replace(/\.[^.]+$/, '');
+    if (!g('uc-categoria').value) { const cat = categoriaIdPorCodigo('outros.outros'); if (cat) g('uc-categoria').value = cat; }
+    up.pedirEquipe = true;
+    await salvarConfirmacaoUpload();
+}
+
+async function pedirEquipeDocumento(docId, extracaoId, nome, motivo) {
+    if (extracaoId) {
+        await rpcDoc('fn_suporte_ticket_documento_abrir', { p_extracao_id: extracaoId, p_motivo: motivo || 'Cliente pediu para a equipe Raiz conferir', p_automatico: false });
+        return;
+    }
+    const r = await rpcDoc('fn_demanda_criar', {
+        p_cliente_id: estado.clienteId, p_subtipo: 'suporte', p_titulo: `Configuração inicial: ${nome}`.slice(0, 200),
+        p_descricao: motivo || 'Documento sem leitura automática enviado na configuração inicial.',
+        p_chave_idempotencia: 'cfg-doc:' + docId, p_forcar: true, p_pessoa_id: null, p_canal: null, p_severidade: 'alta',
+    });
+    if (r?.id) await api.inserirVinculo(estado.clienteId, docId, 'item_controle', r.id, false, estado.pessoa.id);
+}
+
+async function descartarUploadConfiguracao(motivo) {
+    if (!up) return;
+    const g = id => document.getElementById(id);
+    const cfg = up.config; const f = up.arquivo;
+    const statusEl = g('uc-status');
+    statusEl.style.color = 'var(--sage)';
+    statusEl.textContent = 'Descartando…';
+    let extracaoId = null;
+    try {
+        try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ }
+        await api.inserirDocumento({
+            id: up.documentoId, cliente_id: estado.clienteId, nome_original: f.name,
+            nome_exibicao: (g('uc-nome').value || f.name).trim(), bucket: 'cofre-documentos', storage_path: up.storagePath,
+            mime_type: api.mimeDoArquivo(f), extensao: (f.name.split('.').pop() || '').toLowerCase(), tamanho_bytes: f.size,
+            hash_sha256: up.hash, categoria_id: g('uc-categoria').value || null, tags: [], subtipo_codigo: subtipoSelecionado()?.codigo || null,
+            nivel_acesso: 'empresa', origem: 'app', status: 'ativo', criado_por: estado.pessoa.id,
+            arquivo_mantido: false, arquivo_descartado_em: new Date().toISOString(),
+        });
+        const confirmado = { descartado: true, motivo };
+        if (up.motor) extracaoId = await api.registrarExtracaoMotor(up.documentoId, up.motor, up.ia, 'rejeitado', confirmado);
+        else if (up.ia) extracaoId = await api.registrarExtracao(up.documentoId, up.ia, 'rejeitado', confirmado);
+        if (extracaoId) await rpcDoc('fn_cofre_extracao_descartar', { p_extracao_id: extracaoId, p_motivo: motivo });
+        if (cfg) await rpcDoc('fn_configuracao_inicial_documento', { p_extracao_id: extracaoId, p_tipo_esperado: cfg.tipo, p_documento_id: up.documentoId });
+        try {
+            await api.atualizarDocumento(up.documentoId, { status: 'excluido', excluido_em: new Date().toISOString(), excluido_por: estado.pessoa.id });
+        } catch (e) {
+            await api.atualizarDocumento(up.documentoId, { status: 'arquivado' });
+        }
+    } catch (err) {
+        return marcarErroConfirmacao('Não consegui descartar: ' + err.message);
+    }
+    fecharModal('modal-confirmar-upload');
+    up = null;
+    mostrarToast('Documento descartado.');
+    window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
+    avisarConfig(cfg, {});
+}
+
+// Depois de salvar: liga à configuração, chama a equipe quando for o caso e abre o contrato (be7cdd7c).
+async function depoisDeSalvarUpload(docId, p) {
+    if (p.cfg) {
+        try { await rpcDoc('fn_configuracao_inicial_documento', { p_extracao_id: p.extracaoId, p_tipo_esperado: p.cfg.tipo, p_documento_id: docId }); }
+        catch (err) { console.warn('[configuração inicial] ligar documento:', err.message); }
+    }
+    let mensagem = null;
+    if (p.pedirEquipe || p.cfg?.tipo === 'lista_ativos') {
+        try {
+            await pedirEquipeDocumento(docId, p.extracaoId, p.nome, p.cfg?.tipo === 'lista_ativos' ? 'Lista de ativos para cadastrar' : null);
+            mensagem = 'A equipe Raiz vai conferir e te avisar.';
+        } catch (err) {
+            mostrarToast('O documento foi salvo, mas não consegui chamar a equipe: ' + err.message, 'aviso');
+        }
+    }
+    if (p.criarContrato && typeof window.abrirNovoContratoDoDocumento === 'function') {
+        window.abrirNovoContratoDoDocumento({ ativoId: p.ativoId, dados: p.dadosContrato, documentoId: docId, aoTerminar: p.cfg ? () => avisarConfig(p.cfg, {}) : null });
+        return;
+    }
+    if (p.cfg) avisarConfig(p.cfg, { mensagem });
+}
+
+// be7cdd7c — o contrato criado a partir do documento recebe o documento anexado.
+window.addEventListener('cofre:vincular-documento', async (ev) => {
+    const d = ev.detail || {};
+    if (!d.documentoId || !d.entidadeId) return;
+    try {
+        await api.inserirVinculo(estado.clienteId, d.documentoId, d.entidadeTipo || 'contrato', d.entidadeId, false, estado.pessoa.id);
+        mostrarToast('Documento anexado ao contrato.');
+    } catch (err) {
+        mostrarToast('O contrato foi salvo, mas não consegui anexar o documento: ' + err.message, 'aviso');
+    }
+});
 
 // v2.1.0 — o select de categoria usa o gabarito global; as linhas do cliente
 // ficam só pra manter ids antigos (documentos já gravados apontam pra elas).
@@ -1260,6 +1485,9 @@ export function aplicarSubtipoUpload(primeira = false) {
     if (s?.gera_controle_padrao) { up.padroes.controleTipo = s.tipo; up.padroes.controleSubtipoId = s.id; }
     else if (s) { up.padroes.controleTipo = null; up.padroes.controleSubtipoId = null; }
     g('uc-manter-arquivo').checked = !!up.padroes.manterArquivo;
+    // v2.26.0 (D2) — documento de pessoa entra restrito (o banco força o mesmo).
+    if (s && g('up-restrito')) g('up-restrito').checked = ehDocumentoDePessoa(s);
+    atualizarEscolhaContrato();
 
     // dados estruturados: campos do tipo (valores da IA quando é o mesmo tipo)
     renderizarDadosCampos(s, mesmoDaIA ? m : null);
@@ -1557,9 +1785,11 @@ export function escolherCandidatoUpload(tipo, id, nome, tipoAtivo) {
 }
 
 export async function cancelarConfirmacaoUpload() {
+    const cfg = up?.config || null; // v2.26.0 (D2)
     if (up?.storagePath) { try { await api.removerArquivoDocumento(up.storagePath); } catch (e) { /* melhor esforço */ } }
     fecharModal('modal-confirmar-upload');
     up = null;
+    avisarConfig(cfg, { cancelado: true });
 }
 
 // Compatibilidade: chamadores antigos de salvarUpload() caem no salvar novo.
@@ -1572,7 +1802,10 @@ export async function salvarConfirmacaoUpload() {
     const nome = g('uc-nome').value.trim();
     const categoriaId = g('uc-categoria').value;
     const manter = g('uc-manter-arquivo').checked;
-    const controlar = g('uc-controlar').checked && !g('uc-controlar').disabled;
+    // v2.26.0 (D2) — contrato que vai virar contrato não ganha item de vencimento próprio (o contrato
+    // tem os dele); documento mandado para a equipe também não (a leitura é incerta).
+    const criarContrato = !up.pedirEquipe && escolheuCriarContrato();
+    const controlar = g('uc-controlar').checked && !g('uc-controlar').disabled && !criarContrato && !up.pedirEquipe;
     if (!nome) return marcarErroConfirmacao('Informe o nome de exibição.');
     if (!categoriaId) return marcarErroConfirmacao('Selecione uma categoria.');
     g('uc-ctl-data-fim').value = g('uc-validade').value || g('uc-ctl-data-fim').value || '';
@@ -1628,11 +1861,11 @@ export async function salvarConfirmacaoUpload() {
             const mc = up.motor.campos || {};
             igual = up.motor.subtipo_codigo === dados.subtipo_codigo && (up.motor.vencimento?.data || null) === validade &&
                 Object.keys(dadosEstruturados).every(k => (dadosEstruturados[k] ?? null) === (mc[k] ?? null));
-            try { await api.registrarExtracaoMotor(up.documentoId, up.motor, up.ia, igual ? 'confirmado' : 'corrigido', confirmado); }
+            try { up.extracaoId = await api.registrarExtracaoMotor(up.documentoId, up.motor, up.ia, (igual && !up.pedirEquipe) ? 'confirmado' : (up.pedirEquipe ? 'nao_revisado' : 'corrigido'), confirmado); }
             catch (err) { console.warn('auditoria do motor:', err.message); }
         } else {
             igual = (cat?.codigo || null) === (up.ia.categoriaCodigoSugerido || null) && nome === (up.ia.nomeSugerido || '') && (dados.data_documento || null) === (up.ia.dataDocumento || null);
-            try { await api.registrarExtracao(up.documentoId, up.ia, igual ? 'confirmado' : 'corrigido', confirmado); }
+            try { up.extracaoId = await api.registrarExtracao(up.documentoId, up.ia, (igual && !up.pedirEquipe) ? 'confirmado' : (up.pedirEquipe ? 'nao_revisado' : 'corrigido'), confirmado); }
             catch (err) { console.warn('auditoria da extração:', err.message); }
         }
     }
@@ -1717,11 +1950,18 @@ export async function salvarConfirmacaoUpload() {
     avisos.forEach(a => mostrarToast('Atenção — ' + a, 'aviso'));
     fecharModal('modal-confirmar-upload');
     const documentoIdSalvo = up.documentoId; // capturado antes de `up = null` (linha abaixo)
+    // v2.26.0 (D2) — o que acontece depois de salvar, capturado antes de `up = null`.
+    const posSalvar = {
+        cfg: up.config || null, extracaoId: up.extracaoId || null, pedirEquipe: !!up.pedirEquipe, nome,
+        criarContrato, ativoId: up.vinculo?.tipo === 'ativo' ? up.vinculo.id : null,
+        dadosContrato: criarContrato ? { ...(up.motor?.campos || {}), ...dadosEstruturados, partes: up.motor?.partes || up.motor?.campos?.partes || [] } : null,
+    };
     up = null;
     window.dispatchEvent(new CustomEvent('cofre:recarregar-documentos'));
     if (itemCriado) window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
     // v2.21.0 (Fase 1 do wrapper de escrita) — evento novo pra fora do Cofre.
     emitirEscrita('documento', { id: documentoIdSalvo, acao: 'criar' });
+    await depoisDeSalvarUpload(documentoIdSalvo, posSalvar); // v2.26.0 (D2)
 }
 
 function marcarErroConfirmacao(msg) {

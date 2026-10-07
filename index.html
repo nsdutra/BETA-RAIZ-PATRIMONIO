@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.307.0
-   LINHAS: 17126
-   DATA: 06/10/2026 (sessão 20261006-2326-vinculos-parte, demanda b94ef7d5)
+   VERSÃO: Beta v1.308.0
+   LINHAS: 17144
+   DATA: 07/10/2026 (sessão 20261006-2348-setup-d2, demandas 860233ca e be7cdd7c)
+   NOVIDADES (Beta v1.308.0) — frente D, fatia D2 ("Estou de acordo" do Nicola 06/10 23:48): Configuração
+   inicial pelos documentos que a pessoa já tem — no + de Ativos, no + de Contratos e no alerta novo
+   "Nenhum ativo cadastrado" (tratar abre a configuração). Módulo novo js/configuracao-inicial.js 1.0.0
+   (lazy); pontes abrirConfiguracaoInicial e abrirNovoContratoDoDocumento; destino de alerta
+   ativos/configuracao-inicial. Contrato de locação lido pela IA pergunta "Criar o contrato" ou "Só
+   guardar" e abre o contrato preenchido, com o documento anexado (be7cdd7c). Documento de pessoa entra
+   restrito. Import map: cofre-app 1.44.0, cofre-documentos 2.26.0, contratos 1.41.0,
+   configuracao-inicial 1.0.0.
+   Versão anterior (Beta v1.307.0):
    NOVIDADES (Beta v1.307.0) — vínculos de parte (regra do Nicola 06/10, plano aprovado 23:26). A ficha
    da parte mostra TODOS os vínculos: Ativos e Encerrados, cada um com status (Ativo / Encerrado em
    dd/mm/aaaa), papel, a que está ligado e o detalhe; o toque abre o contrato, o ativo ou o item de
@@ -41,18 +50,8 @@
    explica cada um com o texto do banco (migration indicadores_resumo_seis_v1). Só import map:
    resultados 2.0.0 → 2.1.0.
    Versão anterior (Beta v1.304.0):
-   NOVIDADES (Beta v1.304.0) — F2.1a do PLANO_UX (Hoje com Resultados dentro; "Sim de acordo" do
-   Nicola 04/10 21:11; UXR-16 a 19). Visão Geral vira Hoje (nome na barra). Herói unificado no topo
-   (js/resultados.js 2.0.0): patrimônio, nº de ativos, Resultado do ano, Rentabilidade · Ocupação ·
-   Inadimplência, com o ano ‹ › e o contexto Tudo · Comercial · Família dentro dele. Os cards de
-   Resultados vêm embaixo ("Resultados · <ano>"). Sem descrição no topo e sem o atalho da F2.2;
-   switchTab('tab-relatorios') cai em Hoje, na parte de Resultados; o menu troca Resultados por
-   Relatórios. Sem acesso a Resultados, volta o bloco antigo de KPIs. Quebra por tipo conta uso NULL
-   como Família, igual ao banco (migration ux_resumo_uso_nulo_v1, demanda 94290613). Import map:
-   resultados 2.0.0.
-   Versão anterior (Beta v1.303.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.303.0 … v1.303.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.304.0 … v1.304.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -77,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.40.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.43.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.46.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.25.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.41.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.46.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.26.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3613,7 +3612,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.307.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.308.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9453,6 +9452,7 @@
             'renovarContrato', 'calcularPctRenovacaoPopup', 'calcularValorRenovacaoPopup', 'salvarRenovacaoContratoPopup',
             'abrirInfoReajusteContrato', // v1.15.0 (demanda 44f30857, item 2) — ícone (i) do card "Pelo contrato"
             'abrirInfoAluguelAntecipado', 'abrirInfoDescontoEnergia', 'abrirEscolhaNovoContrato', // v1.269.0 (demandas 1163097a/c0d255e3)
+            'abrirNovoContratoDoDocumento', // v1.308.0 (D2, be7cdd7c) — contrato preenchido a partir do documento lido
             'alternarCamposAvancadosContrato' // v1.270.0 (demanda 11afd25f + ec7d8a9f)
         ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarContratos, nome, args); });
 
@@ -10443,6 +10443,20 @@
         function abrirUploadDocumentoNoApp() {
             switchTab('tab-ativos');
             const disparar = () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home'));
+            if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
+            window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
+        }
+
+        // v1.308.0 (D2, demanda 860233ca) — configuração inicial: mesma porta do Cofre, a partir de
+        // qualquer tela (+ de Contratos, alerta "Nenhum ativo cadastrado"). Quem desenha é
+        // js/configuracao-inicial.js, carregado pelo cofre-app.js só quando é usado.
+        function abrirConfiguracaoInicial() {
+            if (window.podeUsar && !window.podeUsar('cofre.configuracao_inicial').ok) {
+                mostrarToast(window.podeUsar('cofre.configuracao_inicial').motivo || 'Disponível em outro plano.', 'aviso');
+                return;
+            }
+            switchTab('tab-ativos');
+            const disparar = () => window.dispatchEvent(new CustomEvent('cofre:abrir-configuracao-inicial'));
             if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
             window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
         }
@@ -12277,6 +12291,7 @@
                 case 'ativo_sem_proprietario': return 'Ativo sem proprietário';
                 case 'contrato_sem_divisao': return 'Contrato sem divisão do aluguel';
                 case 'pix_empresa_pendente': return 'Chave Pix da empresa pendente';
+                case 'carteira_sem_ativos': return 'Nenhum ativo cadastrado'; // v1.308.0 (D2)
                 // Rede de segurança: tipo novo sem texto aqui nunca mostra o
                 // código cru — vira frase legível ("ativo sem proprietário").
                 default: return rzTipoAlertaLegivel(row.tipo_alerta);
@@ -12464,6 +12479,9 @@
                     return;
                 case 'fiscal/checklist':
                     if (typeof window.fechamentoAbrirChecklistFiscalAtualizado === 'function') window.fechamentoAbrirChecklistFiscalAtualizado();
+                    return;
+                case 'ativos/configuracao-inicial': // v1.308.0 (D2) — alerta "Nenhum ativo cadastrado"
+                    abrirConfiguracaoInicial();
                     return;
                 case 'empresa/pix': // v1.281.0 (F12)
                     switchTab('tab-minha-empresa');

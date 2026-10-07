@@ -1,7 +1,17 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.40.0 · 04/10/2026
+// Versão: 1.41.0 · 06/10/2026
+//
+// v1.41.0 (frente D, fatia D2 — demandas 860233ca e be7cdd7c; sessão 20261006-2348-setup-d2; "Estou de
+// acordo" do Nicola 06/10 23:48) — (1) o + de Contratos (e o vazio da lista, que usa o mesmo sheet) ganha
+// "Configuração inicial" (pedido do Nicola: "a opção também no card de contratos"). (2) be7cdd7c:
+// abrirNovoContratoDoDocumento({ ativoId, dados, documentoId, aoTerminar }) abre o formulário de contrato
+// preenchido com o que a Raiz IA leu do contrato (locatário, documento, valor, dia, início, fim, índice);
+// ao salvar, o documento é anexado ao contrato (evento cofre:vincular-documento, cofre-documentos.js).
+// Nada é gravado sem a pessoa salvar o formulário.
+//
+// Versão anterior: 1.40.0 · 04/10/2026
 //
 // v1.40.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
 // esqueleto no lugar de "Carregando..." em Ocorrências, Distribuição, Itens de controle e Documentos
@@ -691,7 +701,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.40.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.41.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2660,6 +2670,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => (typeof abrirUploadDocumentoNoApp === 'function') && abrirUploadDocumentoNoApp() },
                 { icone: 'plus', titulo: 'Novo contrato', codigo: 'contratos.criar', sub: comImovel ? 'Formulário já com este imóvel' : 'Preencher os dados na tela', aoTocar: abrirManual },
             ];
+            // v1.41.0 (D2) — configuração inicial também a partir de Contratos.
+            if (!comImovel && typeof abrirConfiguracaoInicial === 'function') {
+                acoes.splice(1, 0, { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Mande os contratos e documentos que você já tem', aoTocar: () => abrirConfiguracaoInicial() });
+            }
             if (comImovel && typeof iniciarProcessoContratacao === 'function') {
                 acoes.push({ icone: 'link', titulo: 'Coletar dados do locatário', codigo: 'contratos.criar', sub: 'Link, WhatsApp e minuta', aoTocar: () => iniciarProcessoContratacao(imovelId) });
             }
@@ -3520,7 +3534,41 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             switchTab('tab-contratos');
         }
 
+        // v1.41.0 (be7cdd7c) — contrato aberto a partir de um documento lido pela Raiz IA.
+        let documentoParaVincularContrato = null;
+        let aoTerminarContratoDoDocumento = null;
+
+        export async function abrirNovoContratoDoDocumento({ ativoId = null, dados = {}, documentoId = null, aoTerminar = null } = {}) {
+            const d = dados || {};
+            const temAssinando = ativoId && contratos.some(c => c.imovelId === ativoId && c.status === 'Assinando');
+            if (ativoId && !temAssinando && imoveis.some(i => i.id === ativoId)) await criarContratoParaImovel(ativoId);
+            else await abrirFormularioContrato();
+            const wrapper = document.getElementById('form-contrato-wrapper');
+            if (!wrapper || wrapper.classList.contains('hidden')) return; // limite do plano barrou a abertura
+            if (ativoId && temAssinando) { const sel = document.getElementById('con-imovel'); if (sel) sel.value = ativoId; }
+            const iso = (v) => { const t = String(v || '').trim(); if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10); const m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : ''; };
+            const num = (v) => { if (v == null || v === '') return ''; if (typeof v === 'number') return String(v); const t = String(v).replace(/[^\d,.-]/g, ''); return t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t; };
+            const pôr = (id, v, ev = 'change') => { const el = document.getElementById(id); if (!el || v == null || v === '') return; el.value = v; el.dispatchEvent(new Event(ev, { bubbles: true })); };
+            const partes = Array.isArray(d.partes) ? d.partes : [];
+            const loc = partes.find(p => String(p.papel || '').toLowerCase().startsWith('locat')) || null;
+            pôr('con-locatario', loc?.nome, 'input');
+            pôr('con-cpf', loc?.documento || loc?.cpf_cnpj, 'input');
+            pôr('con-valor', num(d.valor_aluguel ?? d.valor), 'input');
+            const dia = parseInt(d.dia_vencimento, 10);
+            if (dia >= 1 && dia <= 31) pôr('con-vencimento-dia', String(dia), 'input');
+            const ini = iso(d.vigencia_inicio || d.data_inicio || d.data_assinatura);
+            const fim = iso(d.vigencia_fim || d.data_fim);
+            pôr('con-inicio', ini); pôr('con-fim', fim);
+            const indice = String(d.indice_reajuste || d.indice || '').toUpperCase();
+            if (indice) pôr('con-reajuste', indice.includes('IGP') ? 'IGP-M' : 'IPCA');
+            if (ini && fim) { const hoje = new Date().toISOString().slice(0, 10); pôr('con-status', ini <= hoje && hoje <= fim ? 'Ativo' : 'Assinando'); }
+            documentoParaVincularContrato = documentoId || null;
+            aoTerminarContratoDoDocumento = typeof aoTerminar === 'function' ? aoTerminar : null;
+            mostrarToast('Confira os dados lidos pela Raiz IA e salve o contrato.');
+        }
+
         export async function abrirFormularioContrato() {
+            documentoParaVincularContrato = null; aoTerminarContratoDoDocumento = null; // v1.41.0
 
             // FASE 1A (v1.39.0) — mesmo mecanismo de abrirFormularioImovel().
             const permitido = await verificarLimiteAntesDeAbrir('contratos.criar', 'form_contrato');
@@ -4276,6 +4324,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             // contexto (ficha do imóvel ou ficha do próprio contrato).
             // v1.31.0 — contrato NOVO sem contexto abre a própria ficha.
             if (gravou !== false) {
+                // v1.41.0 (be7cdd7c) — contrato nascido de um documento: anexa o documento ao contrato.
+                if (documentoParaVincularContrato && !id) {
+                    window.dispatchEvent(new CustomEvent('cofre:vincular-documento', { detail: { documentoId: documentoParaVincularContrato, entidadeTipo: 'contrato', entidadeId: contratoDados.id } }));
+                }
+                documentoParaVincularContrato = null;
+                if (aoTerminarContratoDoDocumento) { const f = aoTerminarContratoDoDocumento; aoTerminarContratoDoDocumento = null; setTimeout(f, 700); }
                 if (ctxRetorno && ctxRetorno.tipo === 'fichaImovel') {
                     abrirFichaImovel(ctxRetorno.id);
                 } else if ((ctxRetorno && ctxRetorno.tipo === 'fichaContrato') || !id) {

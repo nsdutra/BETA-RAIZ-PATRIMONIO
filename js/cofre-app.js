@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.43.0 · 03/10/2026
+// Versão: 1.44.0 · 06/10/2026
+//
+// v1.44.0 (frente D, fatia D2 — demanda 860233ca; sessão 20261006-2348-setup-d2; "Estou de acordo" do
+// Nicola 06/10 23:48) — o + de Ativos ganha "Configuração inicial" (código cofre.configuracao_inicial;
+// sem ele, aparece com cadeado e motivo). O evento cofre:abrir-configuracao-inicial (disparado pelo
+// index.html: + de Contratos e alerta "Nenhum ativo cadastrado") abre a mesma tela, que vive em
+// js/configuracao-inicial.js e só carrega quando é usada (UI-05).
+//
+// Versão anterior: 1.43.0 · 03/10/2026
 //
 // v1.43.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: o atalho do bot abre "Raiz IA no WhatsApp" pelo
 // adaptador (rzDev, UXR-40), com a saudação nova.
@@ -372,7 +380,7 @@
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
-export const VERSAO = '1.43.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.44.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -482,6 +490,8 @@ document.addEventListener('click', async (ev) => {
             if (typeof window.abrirSheetAcoes !== 'function') { await ativos.abrirFormAtivo(); break; }
             window.abrirSheetAcoes({ titulo: 'Ativos', sub: 'O que você quer fazer?', acoes: [
                 { icone: 'sparkles', tipo: 'ia', titulo: 'Carregar documento', codigo: 'cofre.upload', sub: 'A IA classifica e sugere o vínculo', aoTocar: () => docs.abrirUploadHome() },
+                // v1.44.0 (D2) — configuração inicial pelos documentos que a pessoa já tem
+                { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Cadastre a carteira mandando os documentos que você já tem', aoTocar: () => abrirConfiguracaoInicialModulo() },
                 { icone: 'plus', titulo: 'Novo ativo', codigo: 'cofre.ativos.criar', sub: 'Imóvel, veículo, obra de arte…', aoTocar: () => ativos.abrirFormAtivo() },
                 { icone: 'image', titulo: 'Montar vitrine', codigo: 'vitrine.gerar', sub: 'Vários imóveis num link só', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
             ]});
@@ -941,6 +951,12 @@ window.addEventListener('cofre:abrir-form-ativo', () => ativos.abrirFormAtivo())
 // v1.25.0 (fatia 7) — upload livre acionado de fora da aba (sheet do Raiz
 // IA no cabeçalho global, index.html abrirUploadDocumentoNoApp()).
 window.addEventListener('cofre:abrir-upload-home', () => docs.abrirUploadHome());
+// v1.44.0 (D2) — configuração inicial (módulo lazy; + de Contratos e alerta chegam por este evento).
+function abrirConfiguracaoInicialModulo() {
+    return import('./configuracao-inicial.js').then(m => m.abrirConfiguracaoInicial())
+        .catch(err => { console.warn('[cofre] configuracao-inicial.js:', err?.message); mostrarToast('Não deu para abrir a configuração inicial agora.', 'aviso'); });
+}
+window.addEventListener('cofre:abrir-configuracao-inicial', () => abrirConfiguracaoInicialModulo());
 window.addEventListener('cofre:abrir-documento', (ev) => docs.abrirFichaDocumento(ev.detail.id));
 
 window.addEventListener('cofre:upload-contextual', (ev) => {

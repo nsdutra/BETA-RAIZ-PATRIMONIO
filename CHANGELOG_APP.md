@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.304.0) — F2.1a do PLANO_UX (Hoje com Resultados dentro; "Sim de acordo" do
+Nicola 04/10 21:11; UXR-16 a 19). Visão Geral vira Hoje (nome na barra). Herói unificado no topo
+(js/resultados.js 2.0.0): patrimônio, nº de ativos, Resultado do ano, Rentabilidade · Ocupação ·
+Inadimplência, com o ano ‹ › e o contexto Tudo · Comercial · Família dentro dele. Os cards de
+Resultados vêm embaixo ("Resultados · <ano>"). Sem descrição no topo e sem o atalho da F2.2;
+switchTab('tab-relatorios') cai em Hoje, na parte de Resultados; o menu troca Resultados por
+Relatórios. Sem acesso a Resultados, volta o bloco antigo de KPIs. Quebra por tipo conta uso NULL
+como Família, igual ao banco (migration ux_resumo_uso_nulo_v1, demanda 94290613). Import map:
+resultados 2.0.0.
+Versão anterior (Beta v1.303.0):
+------------------------------------------------------------------
+Versões anteriores (v1.303.0 … v1.303.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.303.0) — F2.2 do PLANO_UX (Alertas como aba; "podemos avançar" do Nicola 04/10
 18:21, opção (a)). Barra inferior: Visão Geral · Ativos · Contratos · Financeiro · Alertas, com o
 número de pendências na cor da pior severidade. O sino sai do cabeçalho; Alertas sai do menu ⚙️.
