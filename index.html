@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.306.0
-   LINHAS: 17051
-   DATA: 06/10/2026 (sessão 20261006-2320-catalogo-f4b, demanda 2923ff4d)
+   VERSÃO: Beta v1.307.0
+   LINHAS: 17126
+   DATA: 06/10/2026 (sessão 20261006-2326-vinculos-parte, demanda b94ef7d5)
+   NOVIDADES (Beta v1.307.0) — vínculos de parte (regra do Nicola 06/10, plano aprovado 23:26). A ficha
+   da parte mostra TODOS os vínculos: Ativos e Encerrados, cada um com status (Ativo / Encerrado em
+   dd/mm/aaaa), papel, a que está ligado e o detalhe; o toque abre o contrato, o ativo ou o item de
+   controle. O ⋮ do vínculo oferece Encerrar (troca real, como síndico substituído — fica no
+   histórico) e Excluir (cadastro errado). O aviso de "Não dá para excluir" a parte diz quantos
+   vínculos são ativos e quantos encerrados e leva à ficha. Banco (migration
+   parte_vinculos_excluir_encerrar_v1): tirar alguém de contrato, ativo ou item de controle no
+   formulário EXCLUI o vínculo (antes inativava e recriava tudo a cada salvamento); funções novas
+   fn_vinculo_encerrar e fn_vinculo_excluir; coluna partes_papeis.encerrado_em.
+   Versão anterior (Beta v1.306.0):
    NOVIDADES (Beta v1.306.0) — catálogo único, fatia 4b (fichas F-C8/F-C9 aprovadas pelo Nicola 06/10
    23:16). Resultados ganha o card "Por grupo" (Receitas, Despesas e "Fora do resultado", pelo nível 1 da
    árvore). Nova despesa e Receita sem contrato mostram se a subcategoria entra no resultado e trazem
@@ -41,16 +51,8 @@
    como Família, igual ao banco (migration ux_resumo_uso_nulo_v1, demanda 94290613). Import map:
    resultados 2.0.0.
    Versão anterior (Beta v1.303.0):
-   NOVIDADES (Beta v1.303.0) — F2.2 do PLANO_UX (Alertas como aba; "podemos avançar" do Nicola 04/10
-   18:21, opção (a)). Barra inferior: Visão Geral · Ativos · Contratos · Financeiro · Alertas, com o
-   número de pendências na cor da pior severidade. O sino sai do cabeçalho; Alertas sai do menu ⚙️.
-   Resultados sai da barra até a F2.1: atalho "Resultados do ano" no topo da Visão Geral e no menu.
-   Grupo de alertas abre e fecha ali mesmo no toque (deslizar: Ver lista · Escolher). Alerta "ativo
-   sem proprietário" abre a ficha direto em Propriedade. Ativos ganha o chip "Com alerta" (import map:
-   cofre-ativos 1.75.0). Sem banco.
-   Versão anterior (Beta v1.302.2):
    ------------------------------------------------------------------
-   Versões anteriores (v1.302.2 … v1.302.2): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.303.0 … v1.303.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3611,7 +3613,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.306.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.307.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -16496,40 +16498,108 @@
                     </div>
                 </div>`);
             rzIcones();
+            await carregarVinculosFichaParte(sheet, pt);
+        }
+
+        // v1.307.0 (demanda b94ef7d5, regra do Nicola 06/10) — a ficha mostra TODOS os vínculos:
+        // Ativos primeiro, depois Encerrados (histórico), cada um com status, papel, a que está
+        // ligado e o detalhe. Toque abre contrato, ativo ou item de controle. O ⋮ do vínculo
+        // oferece Encerrar (troca real — fica no histórico) e Excluir (cadastro errado).
+        // Antes: só os ativos apareciam, e a exclusão da parte contava os inativos → "tem 2
+        // vínculos" com a lista vazia (teste do Nicola na Rumo, 04/10 22:08).
+        const PARTES_VINCULO_TIPO = { contrato: 'Contrato', ativo: 'Ativo', imovel: 'Imóvel', item_controle: 'Item de controle', prestador: 'Prestador' };
+        let vinculosFichaParte = [];
+        function vinculoParteNavegavel(v) {
+            return !!v && (v.entidade_tipo === 'contrato'
+                || v.entidade_tipo === 'ativo'
+                || (v.entidade_tipo === 'item_controle' && typeof abrirAlertaItemControle === 'function'));
+        }
+        function abrirDestinoVinculoParte(papelId) {
+            const v = vinculosFichaParte.find(x => x.papel_id === papelId);
+            if (!vinculoParteNavegavel(v)) return;
+            fecharSheet();
+            if (v.entidade_tipo === 'contrato') abrirFichaContrato(v.entidade_id);
+            else if (v.entidade_tipo === 'ativo') { switchTab('tab-ativos'); window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id: v.entidade_id } })); }
+            else if (v.entidade_tipo === 'item_controle') abrirAlertaItemControle(v.entidade_id, v.ativo_ref || null);
+        }
+        async function carregarVinculosFichaParte(sheet, pt) {
+            const listaEl = sheet.querySelector('#pf-vinculos-lista');
+            const subEl = sheet.querySelector('#pf-vinculos-sub');
+            if (!listaEl) return;
             try {
                 const { data, error } = await dbAuth.rpc('fn_vinculos_da_parte', { p_parte_id: pt.id });
                 if (error) throw error;
-                const listaEl = sheet.querySelector('#pf-vinculos-lista');
-                const subEl = sheet.querySelector('#pf-vinculos-sub');
-                if (!listaEl) return;
                 const vincs = data || [];
-                if (subEl) subEl.textContent = vincs.length ? `${vincs.length} vínculo${vincs.length === 1 ? '' : 's'}` : '';
+                vinculosFichaParte = vincs;
+                const ativos = vincs.filter(v => v.ativo !== false);
+                const encerrados = vincs.filter(v => v.ativo === false);
+                if (subEl) subEl.textContent = [
+                    ativos.length ? `${ativos.length} ativo${ativos.length === 1 ? '' : 's'}` : '',
+                    encerrados.length ? `${encerrados.length} encerrado${encerrados.length === 1 ? '' : 's'}` : ''
+                ].filter(Boolean).join(' · ');
                 if (!vincs.length) {
-                    listaEl.innerHTML = '<div class="rz-empty"><p>Nenhum vínculo ainda. "Adicionar papel" liga esta parte a um contrato, ativo ou empreendimento.</p></div>';
+                    listaEl.innerHTML = '<div class="rz-empty"><p>Nenhum vínculo. "Adicionar papel" liga esta parte a um contrato, ativo ou empreendimento.</p></div>';
                     return;
                 }
-                // agrupado por papel (pedido: "pra todos os papéis e por papel")
-                const grupos = {};
-                vincs.forEach(v => { (grupos[v.papel] = grupos[v.papel] || []).push(v); });
-                listaEl.innerHTML = Object.keys(grupos).map(pp => `
-                    <div class="rz-group">${rzEsc(PARTES_ROTULO_PAPEL[pp] || pp)} · ${grupos[pp].length}</div>
-                    ${grupos[pp].map(v => {
-                        const navegavel = (v.entidade_tipo === 'contrato') || (v.entidade_tipo === 'ativo' && typeof window.rzAbrirAtivoDoImovel === 'function');
-                        const abrir = v.entidade_tipo === 'contrato' ? `fecharSheet(); abrirFichaContrato('${v.entidade_id}')`
-                            : v.entidade_tipo === 'ativo' ? `fecharSheet(); switchTab('tab-ativos'); window.dispatchEvent(new CustomEvent('cofre:abrir-ativo',{detail:{id:'${v.entidade_id}'}}))`
-                            : '';
-                        return `
-                    <div class="rz-row ${navegavel ? 'rz-link' : ''}" ${abrir ? `onclick="${abrir}"` : ''}>
-                        <div class="rz-ic"><svg data-lucide="${PARTES_ICONE_PAPEL[pp] || 'link'}"></svg></div>
-                        <div class="rz-tx"><b>${rzEsc(v.rotulo || '')}</b><span>${rzEsc(v.detalhe || '')}</span></div>
-                        ${navegavel ? '<svg data-lucide="chevron-right" class="rz-chev"></svg>' : ''}
+                const linha = (v) => {
+                    const navegavel = vinculoParteNavegavel(v);
+                    const papel = PARTES_ROTULO_PAPEL[v.papel] || v.papel;
+                    const tipo = PARTES_VINCULO_TIPO[v.entidade_tipo] || '';
+                    const detalhe = String(v.detalhe || '').replace(/^[\s,·]+|[\s,·]+$/g, '');
+                    const sub = [papel + (tipo ? ' · ' + tipo : ''), detalhe].filter(Boolean).join(' · ');
+                    const st = v.ativo === false
+                        ? `<span class="rz-st rz-neu">${v.encerrado_em ? 'Encerrado em ' + new Date(v.encerrado_em).toLocaleDateString('pt-BR') : 'Encerrado'}</span>`
+                        : '<span class="rz-st rz-ok">Ativo</span>';
+                    return `
+                    <div class="rz-row ${navegavel ? 'rz-link' : ''}" ${navegavel ? `onclick="abrirDestinoVinculoParte('${v.papel_id}')"` : ''}>
+                        <div class="rz-ic"><svg data-lucide="${PARTES_ICONE_PAPEL[v.papel] || 'link'}"></svg></div>
+                        <div class="rz-tx"><b>${rzEsc(v.rotulo || tipo || 'Vínculo')}</b><span>${rzEsc(sub)}</span></div>
+                        ${st}
+                        <button type="button" onclick="event.stopPropagation(); abrirAcoesVinculoParte('${pt.id}','${v.papel_id}')" class="rz-more" aria-label="Ações do vínculo"><svg data-lucide="ellipsis-vertical"></svg></button>
                     </div>`;
-                    }).join('')}`).join('');
+                };
+                listaEl.innerHTML =
+                    (ativos.length ? `<div class="rz-group">Ativos · ${ativos.length}</div>` + ativos.map(linha).join('') : '') +
+                    (encerrados.length ? `<div class="rz-group">Encerrados · ${encerrados.length}</div>` + encerrados.map(linha).join('') : '');
                 rzIcones();
             } catch (err) {
-                const listaEl = sheet.querySelector('#pf-vinculos-lista');
-                if (listaEl) listaEl.innerHTML = '<div class="rz-empty"><p>Não consegui carregar os vínculos agora.</p></div>';
+                listaEl.innerHTML = '<div class="rz-empty"><p>Não consegui carregar os vínculos agora.</p></div>';
                 console.warn('[partes] fn_vinculos_da_parte falhou:', err.message);
+            }
+        }
+        function abrirAcoesVinculoParte(parteId, papelId) {
+            const v = vinculosFichaParte.find(x => x.papel_id === papelId);
+            if (!v || typeof abrirSheetAcoes !== 'function') return;
+            const papel = PARTES_ROTULO_PAPEL[v.papel] || v.papel;
+            const tipo = PARTES_VINCULO_TIPO[v.entidade_tipo] || 'vínculo';
+            const acoes = [];
+            if (vinculoParteNavegavel(v)) acoes.push({ icone: 'arrow-up-right', titulo: 'Abrir ' + tipo.toLowerCase(), aoTocar: () => abrirDestinoVinculoParte(papelId) });
+            if (v.ativo !== false) acoes.push({ icone: 'archive', titulo: 'Encerrar vínculo', codigo: 'partes.editar', sub: 'Troca real (ex.: síndico substituído). Fica no histórico', aoTocar: () => encerrarVinculoParte(parteId, papelId) });
+            acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir vínculo', codigo: 'partes.editar', sub: 'Cadastro errado. Sai também do histórico', aoTocar: () => excluirVinculoParte(parteId, papelId) });
+            abrirSheetAcoes({ titulo: `${papel} · ${v.rotulo || tipo}`, sub: v.ativo === false ? 'Vínculo encerrado' : 'Vínculo ativo', acoes });
+        }
+        async function encerrarVinculoParte(parteId, papelId) {
+            const v = vinculosFichaParte.find(x => x.papel_id === papelId); if (!v) return;
+            const papel = PARTES_ROTULO_PAPEL[v.papel] || v.papel;
+            if (!await rzPerguntar({ titulo: 'Encerrar vínculo?', impacto: `${papel} em ${v.rotulo || 'vínculo'}. Sai dos vínculos ativos e continua no histórico da parte${v.papel === 'fiador' ? ', junto com o cônjuge anuente ligado a ele' : ''}.`, rotuloConfirmar: 'Encerrar vínculo' })) return;
+            await executarAcaoVinculoParte(parteId, 'fn_vinculo_encerrar', papelId, 'Vínculo encerrado.');
+        }
+        async function excluirVinculoParte(parteId, papelId) {
+            const v = vinculosFichaParte.find(x => x.papel_id === papelId); if (!v) return;
+            const papel = PARTES_ROTULO_PAPEL[v.papel] || v.papel;
+            if (!await rzPerguntar({ titulo: 'Excluir vínculo?', impacto: `${papel} em ${v.rotulo || 'vínculo'}. Use para cadastro errado: o vínculo some, inclusive do histórico${v.papel === 'fiador' ? ', junto com o cônjuge anuente ligado a ele' : ''}. Não dá para desfazer.`, destrutivo: true, rotuloConfirmar: 'Excluir vínculo' })) return;
+            await executarAcaoVinculoParte(parteId, 'fn_vinculo_excluir', papelId, 'Vínculo excluído.');
+        }
+        async function executarAcaoVinculoParte(parteId, funcao, papelId, okPadrao) {
+            try {
+                const { data, error } = await dbAuth.rpc(funcao, { p_papel_id: papelId });
+                if (error) throw error;
+                mostrarToast((data && data.mensagem) || okPadrao, 'success');
+                emitirEscritaGlobal('parte', { id: parteId, acao: 'editar' });
+                if (typeof carregarPartes === 'function') carregarPartes();
+                abrirFichaParte(parteId);
+            } catch (err) {
+                mostrarToast('Não consegui alterar o vínculo: ' + (err.message || String(err)), 'danger');
             }
         }
 
@@ -16907,11 +16977,16 @@
                 // vínculos, não QUAIS: busca os vínculos e oferece abrir a ficha da parte.
                 let lista = [];
                 try { const { data } = await dbAuth.rpc('fn_vinculos_da_parte', { p_parte_id: id }); lista = data || []; } catch (_) {}
-                const nomes = lista.slice(0, 4).map(v => `${PARTES_ROTULO_PAPEL[v.papel] || v.papel}: ${v.rotulo || ''}`).join('; ');
+                // v1.307.0 (demanda b94ef7d5) — a lista agora traz ativos e encerrados (antes só ativos,
+                // e a recusa contava os dois). Encerrado é histórico e segura a parte; cadastro errado
+                // se resolve excluindo o vínculo na ficha.
+                const nAtivos = lista.filter(v => v.ativo !== false).length, nEnc = lista.length - nAtivos;
+                const nomes = lista.slice(0, 4).map(v => `${PARTES_ROTULO_PAPEL[v.papel] || v.papel}: ${v.rotulo || ''}${v.ativo === false ? ' (encerrado)' : ''}`).join('; ');
                 const resto = lista.length > 4 ? ` e mais ${lista.length - 4}` : '';
+                const contagem = [nAtivos ? `${nAtivos} ativo${nAtivos === 1 ? '' : 's'}` : '', nEnc ? `${nEnc} encerrado${nEnc === 1 ? '' : 's'}` : ''].filter(Boolean).join(' e ');
                 const impacto = lista.length
-                    ? `Ela está ligada a ${nomes}${resto}. Remova esses vínculos na ficha da parte e tente de novo.`
-                    : (err.message || String(err)) + ' Os vínculos podem ser de histórico (contrato ou item já encerrado).';
+                    ? `Ela tem ${lista.length} vínculo${lista.length === 1 ? '' : 's'} (${contagem}): ${nomes}${resto}. Na ficha, exclua os que foram cadastro errado. Vínculo encerrado é histórico e mantém a parte.`
+                    : (err.message || String(err));
                 if (await rzPerguntar({ titulo: 'Não dá para excluir', impacto, rotuloConfirmar: 'Ver vínculos', rotuloCancelar: 'Fechar' })) abrirFichaParte(id);
             }
         }

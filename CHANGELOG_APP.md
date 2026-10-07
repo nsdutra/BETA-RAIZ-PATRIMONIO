@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.303.0) — F2.2 do PLANO_UX (Alertas como aba; "podemos avançar" do Nicola 04/10
+18:21, opção (a)). Barra inferior: Visão Geral · Ativos · Contratos · Financeiro · Alertas, com o
+número de pendências na cor da pior severidade. O sino sai do cabeçalho; Alertas sai do menu ⚙️.
+Resultados sai da barra até a F2.1: atalho "Resultados do ano" no topo da Visão Geral e no menu.
+Grupo de alertas abre e fecha ali mesmo no toque (deslizar: Ver lista · Escolher). Alerta "ativo
+sem proprietário" abre a ficha direto em Propriedade. Ativos ganha o chip "Com alerta" (import map:
+cofre-ativos 1.75.0). Sem banco.
+Versão anterior (Beta v1.302.2):
+------------------------------------------------------------------
+Versões anteriores (v1.302.2 … v1.302.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.302.2) — catálogo único 2b-3c (plano 2b-3 aprovado pelo Nicola 04/10): o
 documento mostra o caminho da árvore. "Confira o que a IA leu" ganha chips vínculo · tipo de ativo ·
 tipo · subtipo · espécie e o campo vira "Espécie do documento" (15 espécies, migration v5); a ficha
