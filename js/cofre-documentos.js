@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.29.0 · 07/10/2026
+// Versão: 2.30.0 · 07/10/2026
+//
+// v2.30.0 (demanda 6a1210a0, sessão 20261007-0226-leitura-tempo; pedido do Nicola 07/10 02:26: "levou
+// mais tempo, ajuste a expectativa") — tempos medidos no leitor em 07/10: documento simples 10–20 s;
+// contrato de locação 66 s (modelo maior + revisão). A tela passa a dizer "de 20 s a 1 min"; passado
+// 1 min, "Documento longo: ainda lendo, pode levar até 2 min". O limite antes de "Interrompida" sobe de
+// 90 s para 150 s (contrato de 1 min não chega perto). A barra anda numa escala de ~75 s.
+//
+// Versão anterior: 2.29.0 · 07/10/2026
 //
 // v2.29.0 (demanda 6a1210a0, sessão 20261007-0207-ia-falha; "Pode fazer sim" do Nicola 07/10 02:07) —
 // resultado da leitura que não engana:
@@ -560,7 +568,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.29.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.30.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1013,8 +1021,8 @@ export async function aoSelecionarArquivoUpload(inputId = 'up-arquivo') {
 // Storage e a leitura (já cobrada) perdida.
 // ---------------------------------------------------------------------------
 const PASSOS_LEITURA = ['Conferindo o arquivo', 'Enviando para o Cofre', 'Lendo com IA', 'Preparando a conferência'];
-const LIMITE_LEITURA_MS = 90000;
-const TEMPO_TIPICO_S = 40;
+const LIMITE_LEITURA_MS = 150000; // v2.30.0 — era 90 s; contrato leva ~66 s
+const TEMPO_TIPICO_S = 75; // v2.30.0 — escala da barra (simples 10–20 s; contrato ~66 s)
 let leitura = null; // { token, inicio, inicioIa, passo, comIA, relogio, wake, saiuDaTela, estado }
 
 // v2.28.0 — no app o envio é Sheet (precisa do sheet travado do index 1.312.0); no avulso, modal.
@@ -1193,7 +1201,9 @@ function atualizarRelogioLeitura() {
     if (!leitura || leitura.estado !== 'lendo') return;
     const s = Math.round((Date.now() - leitura.inicio) / 1000);
     const t = document.getElementById('up-tempo');
-    if (t) t.textContent = leitura.comIA ? `${s} s · costuma levar até ${TEMPO_TIPICO_S} s` : `${s} s`;
+    if (t) t.textContent = leitura.comIA
+        ? (s < 60 ? `${s} s · costuma levar de 20 s a 1 min` : `${s} s · documento longo: ainda lendo, pode levar até 2 min`)
+        : `${s} s`;
     const b = document.getElementById('up-barra');
     if (b) {
         let pct = [8, 25, 25, 95][leitura.passo] ?? 95;
@@ -1264,7 +1274,7 @@ function mostrarResultadoLeitura(estadoRes, info = {}) {
             </div>`;
     } else if (estadoRes === 'interrompida') {
         tituloEnvio('Leitura interrompida');
-        html = `<div class="up-res"><div class="up-res-ic">↻</div><div><b>A leitura foi interrompida</b><span>${info.porTempo ? 'A IA demorou mais de 90 s para responder.' : 'A conexão caiu, por exemplo quando o app sai da tela.'} O arquivo já foi enviado: é só ler de novo.</span></div></div>
+        html = `<div class="up-res"><div class="up-res-ic">↻</div><div><b>A leitura foi interrompida</b><span>${info.porTempo ? 'A IA demorou mais de 2 min e meio para responder.' : 'A conexão caiu, por exemplo quando o app sai da tela.'} O arquivo já foi enviado: é só ler de novo.</span></div></div>
             ${cartaoArquivoLeitura()}
             <div class="up-acoes">
                 <button type="button" class="rz-btn rz-btn-1" data-up="ler-de-novo">Ler de novo</button>

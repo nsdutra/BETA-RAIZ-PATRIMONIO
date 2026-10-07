@@ -4,6 +4,24 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.314.0) — leitura com IA, fatia U1b + U2 ("De acordo" do Nicola 07/10 01:29).
+(1) Sheet TRAVADO: abrirSheet(html, { travado: true }) e rzSheetTravar(on) — sem X, sem arrastar,
+toque fora, Esc e voltar não fecham; outro sheet que abrir enquanto isso entra por cima (nível 2).
+Usado pelo "Enviar documento" (cofre-documentos 2.28.0, agora Sheet de ações do app). (2) O
+"puxar para atualizar" do NAVEGADOR fica desligado no app todo (overscroll-behavior-y:contain no
+html e no body): puxar a ficha do ativo para baixo recarregava a página e perdia a leitura; o
+puxar do app continua nas listas. (3) U2: ao entrar, rzLeituraPendenteVerificar() oferece retomar
+a leitura que ficou no meio (anotação do aparelho, apagada no Sair) — "Conferir e salvar" com o
+resultado guardado pelo cofre-extrair-documento 1.11, "Ler de novo" se não terminou, ou
+"Descartar". Import map: cofre-documentos 2.28.0, cofre-api 1.48.0.
+Versão anterior (Beta v1.313.1):
+------------------------------------------------------------------
+Versões anteriores (v1.313.1 … v1.313.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.313.1) — teste do Nicola 07/10 01:37 (sessão 20261007-0137-financeiro, demanda
 f3e6cd27). Relatórios sai do grupo Conta e passa para o grupo Empresa do menu. Os filtros dos
 relatórios Fluxo de caixa e Visão gerencial (período, conta) abriam por trás do relatório; agora
