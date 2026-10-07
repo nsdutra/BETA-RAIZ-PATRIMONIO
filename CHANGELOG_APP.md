@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.313.1) — teste do Nicola 07/10 01:37 (sessão 20261007-0137-financeiro, demanda
+f3e6cd27). Relatórios sai do grupo Conta e passa para o grupo Empresa do menu. Os filtros dos
+relatórios Fluxo de caixa e Visão gerencial (período, conta) abriam por trás do relatório; agora
+abrem por cima (relatorios-executivos 1.0.1). Import map: relatorios-executivos 1.0.1. Sem banco.
+Versão anterior (Beta v1.313.0):
+------------------------------------------------------------------
+Versões anteriores (v1.313.0 … v1.313.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.313.0) — F2.1c do PLANO_UX + detalhe da Novidade ("de acordo" do Nicola 07/10
 01:24; UXR-19/20). Hoje › Patrimônio por tipo vira donut tocável: cada fatia ou linha abre Ativos
 já filtrado no grupo; grupo sem ativo vira convite "Cadastre também…", que abre o "+" de Ativos.

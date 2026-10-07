@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.35.1 · 07/10/2026
+// Versão: 1.36.0 · 07/10/2026
+//
+// v1.36.0 (07/10/2026, sessão 20261007-0205-financeiro, demanda f3e6cd27 — teste do Nicola 02:03;
+// decisões D39/D40): Outras receitas ganham as mesmas ações do recebimento — "Conta" (trocar a conta,
+// com mais de 1 conta) e "Divisão" (quem arca: propriedade do ativo, inclusive veículo e outros
+// ativos, ou ajustada só nesta receita). A Distribuição passa a considerar essas receitas (banco).
+// Toda receita da lista abre o sheet (antes só as manuais); estornar/excluir continuam só nas
+// manuais. A linha mostra "divisão ajustada" quando houver exceção. Versão anterior: 1.35.1.
 //
 // v1.35.1 (07/10/2026, sessão 20261007-0158-financeiro — pedido do Nicola 01:58: "tela amontoada,
 // padronize as 3"): "Editar divisão" passa a usar o editor único rzEditarDivisao (raiz-ui 1.2.0),
@@ -894,7 +901,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.35.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.36.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -5339,7 +5346,7 @@ export async function renderOutrasReceitas() {
     let linhas = [];
     try {
         const { data, error } = await dbAuth.from('lancamentos')
-            .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo')
+            .select('id, descricao, valor, status, vencimento, data_pagamento, origem_tipo, conta_id, divisao_excecao') // v1.36.0
             .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('direcao', 'entrada').eq('competencia', comp)
             .match(financeiroContaFiltro ? { conta_id: financeiroContaFiltro } : {}) // v1.33.0
             .order('vencimento', { ascending: true });
@@ -5353,10 +5360,10 @@ export async function renderOutrasReceitas() {
         linhas.map(l => {
             const recebido = l.status === 'realizado';
             const origem = l.origem_tipo === 'licenca' ? 'Licença' : (l.origem_tipo === 'extrato' ? 'Extrato' : 'Manual');
-            const tocavel = l.origem_tipo === 'manual';
+            const tocavel = true; // v1.36.0 — toda receita abre o sheet (Conta e Divisão); estornar/excluir só nas manuais
             return `<div class="rz-row${tocavel ? ' rz-link' : ''}"${tocavel ? ` role="button" tabindex="0" onclick="rzAcoesReceitaAvulsa('${l.id}')"` : ''}>
                 <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
-                <div class="rz-tx"><b>${esc(l.descricao || 'Receita')}</b><span>${formatarDataBR(l.data_pagamento || l.vencimento)} · ${origem}</span></div>
+                <div class="rz-tx"><b>${esc(l.descricao || 'Receita')}</b><span>${formatarDataBR(l.data_pagamento || l.vencimento)} · ${origem}${l.divisao_excecao ? ' · divisão ajustada' : ''}</span></div>
                 <div class="rz-rt"><b class="rz-in">+${formatarMoedaBR(Number(l.valor || 0))}</b>${st(recebido ? 'ok' : 'run', recebido ? 'Recebido' : 'A receber')}</div>
                 ${tocavel ? '<svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>' : ''}
             </div>`;
@@ -5368,9 +5375,14 @@ export function rzAcoesReceitaAvulsa(id) {
     const l = (window.__rzOutrasReceitas || []).find(x => x.id === id);
     if (!l || typeof abrirSheetAcoes !== 'function') return;
     const acoes = [];
-    if (l.status !== 'realizado') acoes.push({ icone: 'check', titulo: 'Marcar como recebida', sub: 'Usa a data de hoje', aoTocar: () => alterarReceitaAvulsa(id, 'receber') });
-    else acoes.push({ icone: 'undo-2', titulo: 'Voltar para a receber', aoTocar: () => alterarReceitaAvulsa(id, 'estornar') });
-    acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir receita', aoTocar: () => alterarReceitaAvulsa(id, 'excluir') });
+    const manual = l.origem_tipo === 'manual';
+    if (manual) {
+        if (l.status !== 'realizado') acoes.push({ icone: 'check', titulo: 'Marcar como recebida', sub: 'Usa a data de hoje', aoTocar: () => alterarReceitaAvulsa(id, 'receber') });
+        else acoes.push({ icone: 'undo-2', titulo: 'Voltar para a receber', aoTocar: () => alterarReceitaAvulsa(id, 'estornar') });
+    }
+    acoes.push(...financeiroAcaoConta('lancamento', id, l.conta_id, (v) => { l.conta_id = v; renderOutrasReceitas(); })); // v1.36.0
+    acoes.push(...financeiroAcaoDivisao('lancamento', id, Number(l.valor || 0), !!l.divisao_excecao, () => renderOutrasReceitas())); // v1.36.0 (D39)
+    if (manual) acoes.push({ icone: 'trash-2', tipo: 'bad', titulo: 'Excluir receita', aoTocar: () => alterarReceitaAvulsa(id, 'excluir') });
     abrirSheetAcoes({ titulo: l.descricao || 'Receita', sub: `${formatarMoedaBR(Number(l.valor || 0))} · sem contrato`, acoes });
 }
 
