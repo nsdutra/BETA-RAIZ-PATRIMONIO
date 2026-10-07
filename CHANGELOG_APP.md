@@ -4,6 +4,28 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.318.0) — Onda 0 da fragmentação: limpeza de código morto, sem nenhuma mudança
+de comportamento. Apagadas 24 funções que não eram chamadas por ninguém — nem pelo próprio
+index.html, nem pelos 42 módulos de js/ (subpastas incluídas), nem pelo cofre.html ou pelo sw.js.
+CAN-05, o que foi eliminado: resíduo do cadastro de síndico/manutencista/administradora anterior
+às telas próprias de Serviços (salvarSindico, saveAdministradora, normalizarAdministradora,
+abrirFormSindico, abrirFormManutencista, abrirFormularioAdministradora, cancelarEdicaoSindico,
+cancelarEdicaoManutencista, cancelarEdicaoAdministradora); tela de acesso negado da era Google
+Login (mostrarTelaNaoAutorizado, voltarParaSplash); banner e reenvio de pendências do boot antigo
+(mostrarBannerPendencia, reenviarPendencias); e mais comprimirImagem, obterOuCriarLookup,
+excluirRepasse, mensalidadeIsentaDeAlertas, lerChecksEmpreendimentos, limparLogsTela,
+dvsAdicionarLinha, abrirBuscaSocios, abrirRegistrarRetiradaPopup, limparDocumentoAoMudarTipo,
+fecharMenuConta. Nenhuma linha de HTML, CSS ou import map mudou; nenhum objeto de banco.
+Só o código apagado: -14.350 bytes e -417 linhas (o arquivo final encurta mais com o rolo do
+changelog). O index continua acima de 1 MB — quem religou a trava foi o publicar_raiz.py v1.4.0.
+Versão anterior (Beta v1.317.0):
+------------------------------------------------------------------
+Versões anteriores (v1.317.0 … v1.317.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.317.0) — D3b (frente D; "De acordo" do Nicola 07/10 08:02): link direto
 #/leitura/<id>, mandado pelo bot quando lê um contrato de locação. Abre a leitura guardada em
 <empresa>/tmp-ia/<id>.leitura.json (só para quem vê os documentos da empresa) e segue para o "Confira o

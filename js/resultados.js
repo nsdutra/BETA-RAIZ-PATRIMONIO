@@ -1,9 +1,9 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.3.1 (07/10/2026 — demanda 2923ff4d)
+// VERSÃO: Beta v2.3.2 (07/10/2026 — demanda 2923ff4d)
 // LINHAS: (ver versoes.json)
 // -----------------------------------------------------------------
-// NOVIDADES (Beta v2.3.1) — 07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 (VER-05, "de acordo"
+// NOVIDADES (Beta v2.3.1) — 07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 (VER-06, "de acordo"
 //   do Nicola 07/10 17:21): SÓ CABEÇALHO — as versões além das 5 mais recentes rolaram
 //   para o CHANGELOG_MODULOS.md. Nenhuma linha de código mudou (conferido token a token).
 // Versão anterior: Beta v2.3.0
@@ -48,9 +48,9 @@
 // --------------------------------------------------------------------------
 // Versões anteriores (v1.0.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
-// mais recentes deste cabeçalho (VER-05).
+// mais recentes deste cabeçalho (VER-06).
 
-export const VERSAO = '2.3.1';
+export const VERSAO = '2.3.2';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o

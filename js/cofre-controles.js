@@ -1,8 +1,8 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.48.1 · 07/10/2026
+// Versão: 1.48.2 · 07/10/2026
 //
-// v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
 //
@@ -34,8 +34,8 @@
 // --------------------------------------------------------------------------
 // Versões anteriores (v1.0.0 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
-// mais recentes deste cabeçalho (VER-05).
-export const VERSAO = '1.48.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+// mais recentes deste cabeçalho (VER-06).
+export const VERSAO = '1.48.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';

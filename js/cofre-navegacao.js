@@ -1,6 +1,6 @@
 // ============================================================================
 // cofre-navegacao.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.9.2 · 07/10/2026
+// Versão: 1.9.3 · 07/10/2026
 //
 // v1.9.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554) — ordem do
 // cabeçalho corrigida: a linha "Versão:" estava DEPOIS das entradas de changelog, e o
@@ -28,7 +28,7 @@
 // aplicados. Falha na porta não derruba o boot (a trava de banco segue
 // valendo, com a mensagem do design system — c3_porta_amigos_v1).
 //
-// v1.9.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// v1.9.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
 //
@@ -43,8 +43,8 @@
 // --------------------------------------------------------------------------
 // Versões anteriores (v1.6.1 … v1.7.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
-// mais recentes deste cabeçalho (VER-05).
-export const VERSAO = '1.9.2'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
+// mais recentes deste cabeçalho (VER-06).
+export const VERSAO = '1.9.3'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';

@@ -1,8 +1,8 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.7.1 · 07/10/2026
+// Versão: 1.7.2 · 07/10/2026
 //
-// v1.7.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// v1.7.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
 //
@@ -39,8 +39,8 @@
 // --------------------------------------------------------------------------
 // Versões anteriores (v1.2.0 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
-// mais recentes deste cabeçalho (VER-05).
-export const VERSAO = '1.7.1'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
+// mais recentes deste cabeçalho (VER-06).
+export const VERSAO = '1.7.2'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
 import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
 
 // v1.5.0 — aviso de erro dentro do formulário (UXR-29/35): texto + leitor de
