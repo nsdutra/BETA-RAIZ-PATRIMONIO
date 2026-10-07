@@ -1,7 +1,21 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.36.0 · 07/10/2026
+// Versão: 1.37.0 · 07/10/2026
+//
+// v1.37.0 (07/10/2026, sessão 20261007-0910-financeiro, demanda f3e6cd27 — P5a, fichas F1–F5 com de
+// acordo do Nicola 07/10 09:09; protótipo PROTOTIPO_CARTAO_FATURA_RAIZ v1.0.0) — CARTÃO DE CRÉDITO:
+// (1) Saídas mostram cada fatura como UMA linha (soma das compras do mês, "N a classificar", status
+// da fatura); toque abre a fatura (financeiroAbrirFatura). (2) Fatura: fechamento, vencimento, total,
+// conta que paga, progresso; "A classificar" em cima com a sugestão do Raiz e "Aceitar"; "Selecionar"
+// classifica em lote; toque na compra: Classificar (categoria em árvore, ativo, fornecedor — inclusive
+// cadastrar —, "Sempre assim"), Divisão (editor único) e Excluir compra. (3) "Marcar como paga" (baixa
+// manual; com extrato, a regra CT03 liga sozinha). (4) Lançar ganha "Importar fatura do cartão (IA)"
+// (código cartao.importar): cartão, PDF/foto lido pela IA, conferência (mês, total × soma, final do
+// cartão) e importação. Toda regra no banco (fn_fatura_listar/importar/item_classificar/baixar).
+// Versão anterior: 1.36.0.
+//
+// Versão anterior: 1.36.0 · 07/10/2026
 //
 // v1.36.0 (07/10/2026, sessão 20261007-0205-financeiro, demanda f3e6cd27 — teste do Nicola 02:03;
 // decisões D39/D40): Outras receitas ganham as mesmas ações do recebimento — "Conta" (trocar a conta,
@@ -901,7 +915,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.36.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.37.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1249,6 +1263,7 @@ export function abrirLancarFinanceiro(aba) {
     const avisoFechada = () => rzToast('Competência fechada. Reabra o mês em "Rotinas" para lançar algo nele.', { tipo: 'info' });
     const acoes = [
         { icone: 'file-down', tipo: 'ia', titulo: 'Importar extrato (IA)', codigo: 'conciliacao.importar', sub: 'Excel do Itaú, PDF ou foto — a Raiz IA concilia', aoTocar: () => document.getElementById('extrato-file-input')?.click() },
+        { icone: 'credit-card', tipo: 'ia', titulo: 'Importar fatura do cartão (IA)', codigo: 'cartao.importar', sub: 'PDF ou foto — compra por compra, com o que o Raiz já aprendeu', aoTocar: () => financeiroImportarFatura() }, // v1.37.0 (P5a)
         { icone: 'file-plus', tipo: 'ia', titulo: 'Ler um documento (IA)', codigo: 'cofre.analisar_ia', sub: 'Comprovante, boleto ou nota — a Raiz IA classifica e vincula', aoTocar: () => { if (typeof abrirUploadDocumentoNoApp === 'function') abrirUploadDocumentoNoApp(); } },
         { icone: 'arrow-down-left', titulo: 'Adicionar recebimento', sub: fechada ? 'Competência fechada — reabra para lançar' : 'De um contrato ou sem contrato', aoTocar: () => fechada ? avisoFechada() : abrirAdicionarRecebimento() },
         { icone: 'arrow-up-right', titulo: 'Adicionar saída', sub: fechada ? 'Competência fechada — reabra para lançar' : 'Despesa, tributo, manutenção', aoTocar: () => fechada ? avisoFechada() : abrirNovaDespesa() },
@@ -1999,7 +2014,20 @@ function financeiroRenderCabecalho(aba) {
                 if (d.incluirContabilidade === false) partes.push('Fora da contabilidade');
                 return ' · ' + partes.join(' · ');
             };
-            const cards = itens.map(d => {
+            // v1.37.0 (P5a, RF-19.9) — compras de cartão viram UMA linha por fatura (a soma das
+            // compras desta competência); toque abre a fatura item a item (financeiroAbrirFatura).
+            const porFatura = new Map();
+            const linhasLista = [];
+            itens.forEach(d => {
+                if (!d.faturaId) { linhasLista.push({ d }); return; }
+                if (!porFatura.has(d.faturaId)) { const g = { faturaId: d.faturaId, itens: [] }; porFatura.set(d.faturaId, g); linhasLista.push({ g }); }
+                porFatura.get(d.faturaId).itens.push(d);
+            });
+            if (porFatura.size && financeiroFaturasInfo.clienteId !== CLIENTE_ID_SUPABASE && !financeiroFaturasCarregando) {
+                financeiroGarantirFaturas().then(() => renderSaidas());
+            }
+            const cards = linhasLista.map(({ d, g }) => {
+                if (g) return financeiroLinhaFaturaHtml(g, rsS);
                 const atrasada = estaAtrasadaDespesa(d);
                 const pago = d.status === 'realizado';
                 const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
@@ -2016,6 +2044,323 @@ function financeiroRenderCabecalho(aba) {
             container.innerHTML = `<div class="rz-card rz-list">${cards}</div>`;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+
+        // ====================================================================
+        // v1.37.0 (07/10/2026, P5a — fichas F1–F5, de acordo do Nicola 09:09) — CARTÃO DE CRÉDITO.
+        // Regra no banco: fn_fatura_listar (consolidado e itens), fn_fatura_importar,
+        // fn_fatura_item_classificar (um ou em lote, "Sempre assim"), fn_fatura_baixar; leitura do
+        // PDF/foto pela Edge extrato-extrair-transacoes (tipo 'fatura_cartao'). A tela só mostra.
+        // ====================================================================
+        let financeiroFaturasInfo = { clienteId: null, porId: {} };
+        let financeiroFaturasCarregando = null;
+        function financeiroGarantirFaturas(forcar) {
+            if (!forcar && financeiroFaturasInfo.clienteId === CLIENTE_ID_SUPABASE) return Promise.resolve(financeiroFaturasInfo);
+            if (financeiroFaturasCarregando) return financeiroFaturasCarregando;
+            financeiroFaturasCarregando = (async () => {
+                try {
+                    const { data, error } = await dbAuth.rpc('fn_fatura_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
+                    if (error) throw error;
+                    financeiroFaturasInfo = { clienteId: CLIENTE_ID_SUPABASE, porId: Object.fromEntries((data?.dados || []).map(f => [f.id, f])) };
+                } catch (e) {
+                    console.warn('[financeiro] faturas:', e.message);
+                    financeiroFaturasInfo = { clienteId: CLIENTE_ID_SUPABASE, porId: {} };
+                }
+                financeiroFaturasCarregando = null;
+                return financeiroFaturasInfo;
+            })();
+            return financeiroFaturasCarregando;
+        }
+        function financeiroNomeCartao(f) { return f ? `${f.cartao_nome}${f.final ? ' ·· ' + f.final : ''}` : 'Fatura do cartão'; }
+        function financeiroStatusFatura(f, rs) {
+            if (!f) return rs('run', 'A pagar');
+            if (f.status === 'paga') return rs('ok', 'Paga');
+            if (f.status === 'paga_parcial') return rs('warn', 'Paga em parte');
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            return (f.data_vencimento && new Date(f.data_vencimento + 'T00:00:00') < hoje) ? rs('bad', 'Em atraso') : rs('run', 'A pagar');
+        }
+        function financeiroLinhaFaturaHtml(g, rs) {
+            const f = financeiroFaturasInfo.porId[g.faturaId];
+            const soma = g.itens.reduce((t, i) => t + Number(i.valor || 0), 0);
+            const ac = g.itens.filter(i => i.categoria === 'a_classificar').length;
+            const quem = f && f.titular_tipo === 'pessoa' ? `Cartão de ${escapeHtmlSaidas(f.titular_nome || '')} · ` : '';
+            const venc = f?.data_vencimento ? `vence ${formatarDataBR(f.data_vencimento)} · ` : '';
+            const qtd = g.itens.length === 1 ? '1 compra' : `${g.itens.length} compras`;
+            return `
+                    <div class="rz-row rz-link" onclick="financeiroAbrirFatura('${g.faturaId}')">
+                        <div class="rz-ic rz-ia"><svg data-lucide="credit-card"></svg></div>
+                        <div class="rz-tx"><b>Fatura ${escapeHtmlSaidas(financeiroNomeCartao(f))}</b><span>${ac ? `<b style="color:var(--brass-deep);display:inline;font-weight:600">${ac} a classificar</b> · ` : ''}${quem}${venc}${qtd}</span></div>
+                        <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(soma)}</b>${financeiroStatusFatura(f, rs)}</div>
+                        <svg data-lucide="chevron-right" class="rz-chev"></svg>
+                    </div>`;
+        }
+
+        /** Tela da fatura (Sheet): cabeçalho, "A classificar" com a sugestão do Raiz, classificadas, lote. */
+        export async function financeiroAbrirFatura(faturaId, opcoes = {}) {
+            if (typeof abrirSheet !== 'function') return;
+            const { data, error } = await dbAuth.rpc('fn_fatura_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_fatura_id: faturaId });
+            if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui abrir a fatura.', { tipo: 'danger' }); return; }
+            await carregarCatalogoCategorias();
+            const f = data.dados;
+            financeiroFaturasInfo.porId[f.id] = { ...f, itens: undefined };
+            const itens = f.itens || [];
+            const ac = itens.filter(i => i.categoria === 'a_classificar');
+            const ok = itens.filter(i => i.categoria !== 'a_classificar');
+            const rs = (sem, t) => (typeof renderStatus === 'function') ? renderStatus(sem, t) : `<span class="rz-st rz-${sem}">${t}</span>`;
+            const sel = new Set(opcoes.selecionados || []);
+            let selecionando = !!opcoes.selecionando;
+            const pode = (c) => typeof podeUsar !== 'function' || podeUsar(c).ok;
+            const podeClassificar = pode('cartao.classificar');
+            const nomeCat = (c) => categoriaDoCatalogo(c)?.nome || rotuloCategoriaSaida(c);
+            const icCat = (c) => c === 'a_classificar' ? 'circle-help' : (categoriaDoCatalogo(c)?.icone || ICONE_POR_CATEGORIA_SAIDA[c] || 'circle-dollar-sign');
+            const compra = (i) => i.compra ? 'Compra ' + formatarDataBR(i.compra) : '';
+            const parcela = (i) => { const m = /parcela ([0-9]+\/[0-9]+)/.exec(i.observacao || ''); return m ? ' · parcela ' + m[1] : ''; };
+            const linha = (i, pend) => {
+                const s = i.sugestao || {};
+                const temSug = pend && s.categoria;
+                const textoSug = temSug ? (s.parte_id && s.detalhe && /^É /.test(s.detalhe) ? s.detalhe.replace(/ — mesma classificação da última vez\.$/, '') + ' · ' : '') + nomeCat(s.categoria) : '';
+                const valorTxt = Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`;
+                const extra = pend ? '' : ` · ${escapeHtmlSaidas(nomeCat(i.categoria))}${i.ativo_nome ? ' · ' + escapeHtmlSaidas(i.ativo_nome) : ''}${i.parte_nome ? ' · ' + escapeHtmlSaidas(i.parte_nome) : ''}${i.divisao_ajustada ? ' · divisão ajustada' : ''}`;
+                return `<div class="rz-row rz-link" data-fat-item="${i.id}">
+                    ${selecionando && pend ? `<div style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:#fff;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
+                    <div class="rz-ic${pend ? ' rz-warn' : ''}"><svg data-lucide="${icCat(i.categoria)}"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${compra(i)}${parcela(i)}${extra}</span>
+                        ${temSug && !selecionando && podeClassificar ? `<span style="display:flex;align-items:center;gap:8px;margin-top:4px;color:var(--brass-deep);white-space:normal">Sugestão: ${escapeHtmlSaidas(textoSug)} <button type="button" class="rz-chip" data-fat-aceitar="${i.id}" style="min-height:30px;padding:3px 10px">Aceitar</button></span>` : ''}</div>
+                    <div class="rz-rt">${valorTxt}</div>
+                </div>`;
+            };
+            const classificadas = itens.length - ac.length;
+            const pct = itens.length ? Math.round(classificadas * 100 / itens.length) : 100;
+            const quem = f.titular_tipo === 'pessoa' ? `Cartão de ${f.titular_nome}` : 'Empresa';
+            const corpo = `
+                <div class="rz-card">
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Fechamento</span><b>${f.data_fechamento ? formatarDataBR(f.data_fechamento) : '—'}</b></div>
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Vencimento</span><b>${f.data_vencimento ? formatarDataBR(f.data_vencimento) : '—'}</b></div>
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Total da fatura</span><b>${formatarMoedaBR(f.valor_total)}</b></div>
+                    ${Math.abs(Number(f.valor_total) - Number(f.soma_itens)) > 0.01 ? `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Soma das compras</span><b style="color:var(--danger)">${formatarMoedaBR(f.soma_itens)}</b></div>` : ''}
+                    ${f.valor_pago ? `<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Pago</span><b>${formatarMoedaBR(f.valor_pago)}${f.data_pagamento ? ' em ' + formatarDataBR(f.data_pagamento) : ''}</b></div>` : ''}
+                    <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Paga pela conta</span><b>${escapeHtmlSaidas(f.conta_pagadora_nome || '—')}</b></div>
+                    <div style="height:8px;border-radius:999px;background:var(--tile);overflow:hidden;margin:10px 0 4px"><i style="display:block;height:100%;width:${pct}%;background:var(--sprout)"></i></div>
+                    <span class="rz-hint">${classificadas} de ${itens.length} ${itens.length === 1 ? 'compra classificada' : 'compras classificadas'}</span>
+                </div>
+                <div style="display:flex;gap:8px;margin:0 0 12px">
+                    ${ac.length && podeClassificar ? `<button type="button" class="rz-btn rz-btn-2" style="flex:1" data-fat-selecionar>${selecionando ? 'Cancelar seleção' : 'Selecionar'}</button>` : ''}
+                    ${f.status !== 'paga' ? `<button type="button" class="rz-btn rz-btn-2" style="flex:1" data-fat-baixar>Marcar como paga</button>` : ''}
+                </div>
+                ${ac.length ? `<div class="rz-group">A classificar · ${ac.length}</div><div class="rz-card rz-list">${ac.map(i => linha(i, true)).join('')}</div>` : ''}
+                ${ok.length ? `<div class="rz-group">Classificadas · ${ok.length}</div><div class="rz-card rz-list">${ok.map(i => linha(i, false)).join('')}</div>` : ''}
+                ${ac.length ? '' : '<span class="rz-hint" style="display:block;margin-top:8px">Tudo classificado. Da próxima fatura, o Raiz já usa o que você ensinou.</span>'}`;
+            const rodape = selecionando ? `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-fat-selecionar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-fat-lote ${sel.size ? '' : 'disabled'}>Classificar ${sel.size || ''}</button></div>` : '';
+            const sheet = abrirSheet(rzSheetCabecalho(`Fatura ${financeiroNomeCartao(f)}`, `${financeiroCompetenciaLabel(f.competencia)} · ${quem} · ${f.status === 'paga' ? 'paga' : f.status === 'paga_parcial' ? 'paga em parte' : 'a pagar'}`) +
+                `<div class="rz-sh-b">${corpo}</div>${rodape}`, { classe: 'rz-cheio' });
+            const reabrir = (extra = {}) => financeiroAbrirFatura(faturaId, { selecionando, selecionados: [...sel], ...extra });
+            sheet.querySelectorAll('[data-fat-selecionar]').forEach(b => b.addEventListener('click', () => financeiroAbrirFatura(faturaId, { selecionando: !selecionando, selecionados: [] })));
+            sheet.querySelector('[data-fat-baixar]')?.addEventListener('click', () => financeiroBaixarFatura(f));
+            sheet.querySelector('[data-fat-lote]')?.addEventListener('click', () => financeiroClassificarItens(itens.filter(i => sel.has(i.id)), faturaId));
+            sheet.querySelectorAll('[data-fat-aceitar]').forEach(b => b.addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                const i = itens.find(x => x.id === b.dataset.fatAceitar); const s2 = i?.sugestao || {};
+                b.disabled = true;
+                await financeiroGravarClassificacao([i.id], { categoria: s2.categoria, ativo_id: s2.ativo_id || null, parte_id: s2.parte_id || null, divisao: null, sempre_assim: false }, faturaId);
+            }));
+            sheet.querySelectorAll('[data-fat-item]').forEach(row => row.addEventListener('click', () => {
+                const id = row.dataset.fatItem;
+                if (selecionando) {
+                    if (!ac.some(i => i.id === id)) return;
+                    if (sel.has(id)) sel.delete(id); else sel.add(id);
+                    reabrir();
+                    return;
+                }
+                const i = itens.find(x => x.id === id);
+                if (i) financeiroAcoesItemFatura(i, f);
+            }));
+        }
+
+        function financeiroAcoesItemFatura(i, f) {
+            const acoes = [];
+            acoes.push({ icone: 'tags', titulo: i.categoria === 'a_classificar' ? 'Classificar' : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor e "Sempre assim"', codigo: 'cartao.classificar', manterAberto: true,
+                aoTocar: () => financeiroClassificarItens([i], f.id) });
+            acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroAbrirFatura(f.id)));
+            if (f.status !== 'paga') acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Quando a leitura trouxe uma linha que não é compra', tipo: 'bad', codigo: 'cartao.importar',
+                aoTocar: async () => {
+                    if (!await rzConfirmar({ titulo: 'Excluir esta compra?', impacto: `"${i.descricao}" sai da fatura.`, destrutivo: true, rotuloConfirmar: 'Excluir compra' })) return;
+                    const { error } = await dbAuth.from('lancamentos').delete().eq('id', i.id);
+                    if (error) { rzToast(error.message, { tipo: 'danger' }); return; }
+                    rzToast('Compra excluída.', { tipo: 'success' });
+                    financeiroDepoisDeMudarFatura(f.id);
+                } });
+            abrirSheetAcoes({ titulo: escapeHtmlSaidas(i.descricao), sub: `${i.compra ? 'Compra ' + formatarDataBR(i.compra) + ' · ' : ''}${formatarMoedaBR(Math.abs(i.valor))}`, acoes });
+        }
+
+        /** Form de classificação (1 ou várias compras): categoria (árvore), ativo, fornecedor, Sempre assim. */
+        async function financeiroClassificarItens(lista, faturaId) {
+            if (!lista.length || typeof abrirSheetForm !== 'function') return;
+            const [ativosOpts, partesOpts] = await Promise.all([carregarAtivosParaSelectSupabase(), carregarPartesParaSelectSupabase(), carregarCatalogoCategorias()]);
+            const um = lista.length === 1 ? lista[0] : null;
+            const sug = um?.sugestao || {};
+            const catAtual = um ? (um.categoria !== 'a_classificar' ? um.categoria : (sug.categoria || '')) : '';
+            const cat = (catalogoCategoriasLanc || []).filter(c => c.codigo !== 'a_classificar');
+            const grupos = cat.filter(c => !c.categoria_pai && c.direcao === 'saida' && cat.some(x => x.categoria_pai === c.codigo));
+            const grupoAtual = cat.find(c => c.codigo === catAtual)?.categoria_pai || '';
+            const optsFolhas = (g) => `<option value="">${g ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` +
+                cat.filter(c => c.categoria_pai === g && c.direcao === 'saida').map(c => `<option value="${c.codigo}" ${c.codigo === catAtual ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('');
+            const ativoAtual = um ? (um.ativo_id || sug.ativo_id || '') : '';
+            const parteAtual = um ? (um.parte_id || sug.parte_id || '') : '';
+            const est = [...new Set(lista.map(i => i.estabelecimento).filter(Boolean))];
+            const corpo = `
+                <div class="rz-f"><label>Categoria <i>*</i></label><select id="fat-cat-grupo"><option value="">— escolha a categoria —</option>${grupos.map(g => `<option value="${g.codigo}" ${g.codigo === grupoAtual ? 'selected' : ''}>${escapeHtmlSaidas(g.nome)}</option>`).join('')}</select></div>
+                <div class="rz-f"><label>Subcategoria <i>*</i></label><select id="fat-cat">${optsFolhas(grupoAtual)}</select></div>
+                <div class="rz-f"><label>Ativo (opcional)</label><select id="fat-ativo"><option value="">${um ? 'Nenhum (despesa da empresa)' : 'Manter como está'}</option>${ativosOpts.map(a => `<option value="${a.id}" ${a.id === ativoAtual ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('')}</select></div>
+                <div class="rz-f"><label>Fornecedor (opcional)</label><select id="fat-parte"><option value="">${um ? 'Nenhum' : 'Manter como está'}</option>${partesOpts.map(p => `<option value="${p.id}" ${p.id === parteAtual ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('')}<option value="__novo__">+ Cadastrar como fornecedor</option></select>
+                    <input type="text" id="fat-parte-novo" placeholder="Nome do fornecedor" value="${escapeHtmlSaidas(um ? um.descricao : '')}" style="display:none;margin-top:6px">
+                    <span class="rz-hint">Escolhendo o fornecedor, o Raiz reconhece este nome nas próximas faturas e extratos.</span></div>
+                ${est.length ? `<label class="rz-row rz-chk"><input type="checkbox" id="fat-sempre" ${um && um.categoria === 'a_classificar' ? '' : ''}><div class="rz-tx"><b>Sempre assim</b><span>Da próxima vez, compras de ${escapeHtmlSaidas(est.length === 1 ? '"' + est[0] + '"' : 'estes estabelecimentos')} já entram classificadas</span></div></label>` : ''}`;
+            const sheet = abrirSheetForm({
+                titulo: um ? 'Classificar compra' : `Classificar ${lista.length} compras`,
+                sub: um ? `${um.descricao} · ${formatarMoedaBR(Math.abs(um.valor))}` : formatarMoedaBR(lista.reduce((t, i) => t + Number(i.valor || 0), 0)),
+                corpo, rotuloSalvar: 'Classificar', empilhar: true,
+                aoSalvar: async (el) => {
+                    const categoria = el.querySelector('#fat-cat').value;
+                    if (!categoria) { rzToast('Escolha a subcategoria.', { tipo: 'danger' }); return false; }
+                    let parteId = el.querySelector('#fat-parte').value || null;
+                    if (parteId === '__novo__') {
+                        const nome = el.querySelector('#fat-parte-novo').value.trim();
+                        if (!nome) { rzToast('Informe o nome do fornecedor.', { tipo: 'danger' }); return false; }
+                        const { data: np, error: ep } = await dbAuth.from('partes').insert({ cliente_id: CLIENTE_ID_SUPABASE, nome }).select('id').single();
+                        if (ep) { rzToast(ep.message, { tipo: 'danger' }); return false; }
+                        parteId = np.id;
+                        if (typeof partesParaSelect !== 'undefined') partesParaSelect = null; // eslint-disable-line no-global-assign
+                    }
+                    return financeiroGravarClassificacao(lista.map(i => i.id), {
+                        categoria, ativo_id: el.querySelector('#fat-ativo').value || null, parte_id: parteId, divisao: null,
+                        sempre_assim: !!el.querySelector('#fat-sempre')?.checked,
+                    }, faturaId);
+                },
+            });
+            const sg = sheet?.querySelector('#fat-cat-grupo');
+            sg?.addEventListener('change', () => { sheet.querySelector('#fat-cat').innerHTML = optsFolhas(sg.value); });
+            const sp = sheet?.querySelector('#fat-parte');
+            sp?.addEventListener('change', () => { sheet.querySelector('#fat-parte-novo').style.display = sp.value === '__novo__' ? 'block' : 'none'; });
+        }
+
+        async function financeiroGravarClassificacao(ids, v, faturaId) {
+            const { data, error } = await dbAuth.rpc('fn_fatura_item_classificar', {
+                p_lancamento_ids: ids, p_categoria: v.categoria, p_ativo_id: v.ativo_id, p_parte_id: v.parte_id,
+                p_divisao: v.divisao, p_sempre_assim: !!v.sempre_assim,
+            });
+            if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui classificar.', { tipo: 'danger' }); return false; }
+            rzToast(data.mensagem, { tipo: 'success' });
+            emitirEscrita('despesa', { id: ids[0], acao: 'classificar_cartao' });
+            financeiroDepoisDeMudarFatura(faturaId);
+            return true;
+        }
+
+        function financeiroDepoisDeMudarFatura(faturaId) {
+            financeiroGarantirFaturas(true);
+            financeiroRecarregarSaidas();
+            setTimeout(() => financeiroAbrirFatura(faturaId), 30); // depois do fecharSheet do form
+        }
+
+        /** Baixa manual da fatura (quando não há extrato; com extrato, a CT03 liga sozinha). */
+        function financeiroBaixarFatura(f) {
+            if (typeof abrirSheetForm !== 'function') return;
+            const falta = Number(f.valor_total) - Number(f.valor_pago || 0);
+            const contas = (financeiroContasInfo.contas || []).filter(c => (c.tipo || 'conta') === 'conta');
+            abrirSheetForm({
+                titulo: 'Marcar fatura como paga', sub: `Fatura ${financeiroNomeCartao(f)}`, rotuloSalvar: 'Confirmar pagamento', empilhar: true,
+                corpo: `<p class="rz-hint" style="margin:0 0 10px">Se o pagamento aparecer no extrato, o Raiz liga sozinho à fatura. Use aqui quando não houver extrato.</p>
+                    <div class="rz-f2">
+                        <div class="rz-f"><label>Valor pago (R$)</label><input type="number" step="0.01" id="fb-valor" value="${falta.toFixed(2)}"></div>
+                        <div class="rz-f"><label>Data</label><input type="date" id="fb-data" value="${new Date().toISOString().slice(0, 10)}"></div>
+                    </div>
+                    ${contas.length > 1 ? `<div class="rz-f"><label>Conta</label><select id="fb-conta">${contas.map(c => `<option value="${c.id}" ${c.id === f.conta_pagadora_id ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('')}</select></div>` : ''}`,
+                aoSalvar: async (el) => {
+                    const valor = parseFloat(el.querySelector('#fb-valor').value);
+                    if (!(valor > 0)) { rzToast('Informe o valor pago.', { tipo: 'danger' }); return false; }
+                    const conta = el.querySelector('#fb-conta')?.value || null;
+                    const { data, error } = await dbAuth.rpc('fn_fatura_baixar', { p_fatura_id: f.id, p_valor: valor, p_data: el.querySelector('#fb-data').value || null, p_conta_id: conta && conta !== f.conta_pagadora_id ? conta : null });
+                    if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui registrar.', { tipo: 'danger' }); return false; }
+                    rzToast(data.mensagem, { tipo: 'success' });
+                    emitirEscrita('despesa', { id: f.id, acao: 'pagar_fatura' });
+                    financeiroDepoisDeMudarFatura(f.id);
+                    return true;
+                },
+            });
+        }
+
+        /** Lançar › Importar fatura do cartão: escolhe o cartão, lê o PDF/foto com IA, confere e importa. */
+        export async function financeiroImportarFatura() {
+            if (typeof abrirSheetForm !== 'function') return;
+            await financeiroGarantirContas();
+            const cartoes = (financeiroContasInfo.contas || []).filter(c => c.tipo === 'cartao_credito');
+            if (!cartoes.length) {
+                rzAviso({ titulo: 'Cadastre o cartão primeiro', linhas: ['Em Configurações › Empresa › Contas, toque em "+" e escolha o tipo "Cartão de crédito", com o dia do fechamento, o dia do vencimento e a conta que paga a fatura.'] });
+                return;
+            }
+            let lido = null;
+            const desenhar = (el) => {
+                const optsCartao = cartoes.map(c => `<option value="${c.id}">${escapeHtmlSaidas(c.nome)}${c.final_identificador ? ' ·· ' + c.final_identificador : ''} (${escapeHtmlSaidas(c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || ''))})</option>`).join('');
+                el.innerHTML = `
+                    <div class="rz-f"><label>Cartão</label><select id="fi-cartao">${optsCartao}</select></div>
+                    <input type="file" id="fi-arquivo" accept="application/pdf,image/*" style="display:none">
+                    <button type="button" class="rz-act" id="fi-escolher"><div class="rz-ic rz-ia"><svg data-lucide="file-up"></svg></div><div>Escolher PDF ou foto da fatura<small>A Raiz IA lê as compras; você confere antes de importar</small></div></button>
+                    <div id="fi-conf"></div>`;
+                el.querySelector('#fi-escolher').addEventListener('click', () => el.querySelector('#fi-arquivo').click());
+                el.querySelector('#fi-arquivo').addEventListener('change', async (ev) => {
+                    const file = ev.target.files?.[0]; if (!file) return;
+                    mostrarCarregamentoGlobal('Lendo a fatura com IA...');
+                    try {
+                        const base64 = await arquivoParaBase64(file);
+                        const { data, error } = await dbAuth.functions.invoke('extrato-extrair-transacoes', { body: { arquivo_base64: base64, mime_type: file.type || 'application/pdf', cliente_id: CLIENTE_ID_SUPABASE, tipo: 'fatura_cartao' } });
+                        esconderCarregamentoGlobal();
+                        if (error) throw new Error(error.message || 'Falha ao ler a fatura.');
+                        if (!data?.extraido) { rzToast(data?.motivo || data?.erro || 'Não consegui ler essa fatura.', { tipo: 'danger' }); return; }
+                        lido = data.resultado;
+                        conferir(el);
+                    } catch (e) { esconderCarregamentoGlobal(); rzToast(e.message, { tipo: 'danger' }); }
+                });
+            };
+            const conferir = (el) => {
+                const venc = lido.dataVencimento || '';
+                const comp = venc ? venc.slice(0, 7) + '-01' : (financeiroCompetenciaAtual || financeiroCompetenciaHojeISO());
+                const meses = [-1, 0, 1].map(d => { const x = new Date(comp + 'T00:00:00'); x.setMonth(x.getMonth() + d); return x.toISOString().slice(0, 7) + '-01'; });
+                const soma = lido.itens.reduce((t, i) => t + Number(i.valor || 0), 0);
+                const cart = cartoes.find(c => c.id === el.querySelector('#fi-cartao').value);
+                const finalDiverge = lido.finalCartao && cart?.final_identificador && lido.finalCartao !== cart.final_identificador;
+                el.querySelector('#fi-escolher').style.display = 'none';
+                el.querySelector('#fi-conf').innerHTML = `
+                    ${finalDiverge ? `<p class="rz-hint" style="color:var(--danger);margin:0 0 8px">A fatura é do final ${escapeHtmlSaidas(lido.finalCartao)} e o cartão escolhido é ${escapeHtmlSaidas(cart.final_identificador)}. Confira o cartão.</p>` : ''}
+                    <div class="rz-f"><label>Mês da fatura</label><select id="fi-comp">${meses.map(m => `<option value="${m}" ${m === comp ? 'selected' : ''}>${financeiroCompetenciaLabel(m)}</option>`).join('')}</select></div>
+                    <div class="rz-card">
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Vencimento</span><b>${venc ? formatarDataBR(venc) : 'pelo dia do cartão'}</b></div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Total da fatura</span><b>${lido.valorTotal != null ? formatarMoedaBR(lido.valorTotal) : '—'}</b></div>
+                        <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Soma das compras</span><b ${lido.valorTotal != null && Math.abs(soma - lido.valorTotal) > 0.01 ? 'style="color:var(--danger)"' : ''}>${formatarMoedaBR(soma)}</b></div>
+                    </div>
+                    <div class="rz-group">${lido.itens.length} ${lido.itens.length === 1 ? 'compra lida' : 'compras lidas'}</div>
+                    <div class="rz-card rz-list">${lido.itens.map(i => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${formatarDataBR(i.data)}${i.parcela ? ' · parcela ' + escapeHtmlSaidas(i.parcela) : ''}</span></div><div class="rz-rt">${Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`}</div></div>`).join('')}</div>`;
+                if (typeof rzIcones === 'function') rzIcones();
+            };
+            abrirSheetForm({
+                titulo: 'Importar fatura do cartão', sub: 'PDF ou foto', rotuloSalvar: 'Importar',
+                corpo: (el) => desenhar(el),
+                aoSalvar: async (el) => {
+                    if (!lido) { rzToast('Escolha o PDF ou a foto da fatura.', { tipo: 'danger' }); return false; }
+                    const cartaoId = el.querySelector('#fi-cartao').value;
+                    const { data, error } = await dbAuth.rpc('fn_fatura_importar', {
+                        p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: cartaoId, p_competencia: el.querySelector('#fi-comp').value,
+                        p_cabecalho: { data_vencimento: lido.dataVencimento, data_fechamento: lido.dataFechamento, valor_total: lido.valorTotal },
+                        p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela })),
+                    });
+                    if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui importar.', { tipo: 'danger' }); return false; }
+                    rzToast(data.mensagem, { tipo: 'success' });
+                    emitirEscrita('despesa', { id: data.id, acao: 'importar_fatura' });
+                    financeiroGarantirFaturas(true);
+                    financeiroRecarregarSaidas();
+                    setTimeout(() => financeiroAbrirFatura(data.id), 30);
+                    return true;
+                },
+            });
         }
 
         // v1.31.0 — catálogo de categorias (tabela lancamento_categorias, demanda 2923ff4d)

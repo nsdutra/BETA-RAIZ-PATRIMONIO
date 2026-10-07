@@ -1,6 +1,16 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.10.1 · 04/10/2026
+// Versão: 1.11.0 · 07/10/2026
+//
+// v1.11.0 (07/10/2026, sessão 20261007-0910-financeiro, demanda f3e6cd27 — P5a, fichas F1–F5
+// com de acordo do Nicola 07/10 09:09): a ficha da conta ganha "Tipo" (Conta · Cartão de
+// crédito · Caixa), escolhido na criação e fixo depois (o banco recusa trocar). Cartão pede dia
+// do fechamento, dia do vencimento e a conta que paga a fatura; não tem "Conciliar extrato" (o
+// que se concilia é a conta que paga). Lista mostra ícone de cartão e "fecha dia X · vence dia
+// Y"; "Definir como padrão" só aparece para conta. Regra no banco (fn_conta_salvar com
+// p_tipo/p_dia_fechamento/p_dia_vencimento/p_conta_pagadora_id). Versão anterior: 1.10.1.
+//
+// Versão anterior: 1.10.1 · 04/10/2026
 //
 // v1.10.1 (04/10/2026, sessão 20261004-1540-financeiro, demanda f3e6cd27 — teste
 // da P4a, de acordo do Nicola): "Excluir conta" sempre aparece nas ações da
@@ -117,7 +127,7 @@
 // comum-licenca.js).
 // ============================================================================
 
-export const VERSAO = '1.10.1'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.11.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -644,6 +654,8 @@ export function contaLinhaSub(c) {
     const partes = [c.titular_tipo === 'empresa' ? 'Empresa' : (c.titular_nome || 'Pessoa')];
     if (c.instituicao) partes.push(c.instituicao + (c.final_identificador ? ' ••' + c.final_identificador : ''));
     else if (c.final_identificador) partes.push('••' + c.final_identificador);
+    if (c.tipo === 'cartao_credito') partes.push(`fecha dia ${c.dia_fechamento} · vence dia ${c.dia_vencimento}`); // v1.11.0
+    if (c.tipo === 'caixa') partes.push('Caixa');
     if (c.titular_tipo === 'pessoa' && !c.incorpora_contabil) partes.push('fora da contabilidade');
     return partes.join(' · ');
 }
@@ -652,7 +664,7 @@ export function contasListaHtml(contas, { linhaBloqueio = false } = {}) {
     const st = typeof window.renderStatus === 'function' ? window.renderStatus : (c, t) => `<span class="rz-st rz-${escC(c)}">${escC(t || c)}</span>`;
     const linhas = contas.map(c => `
         <div class="rz-row rz-link" role="button" tabindex="0" data-conta-id="${escC(c.id)}">
-            <div class="rz-ic${c.situacao === 'ativa' ? '' : ' rz-neu'}"><svg data-lucide="${c.titular_tipo === 'empresa' ? 'building-2' : 'user'}"></svg></div>
+            <div class="rz-ic${c.situacao === 'ativa' ? '' : ' rz-neu'}"><svg data-lucide="${c.tipo === 'cartao_credito' ? 'credit-card' : c.tipo === 'caixa' ? 'wallet' : (c.titular_tipo === 'empresa' ? 'building-2' : 'user')}"></svg></div>
             <div class="rz-tx"><b>${escC(c.nome)}</b><span>${escC(contaLinhaSub(c))}</span></div>
             <div class="rz-rt">${c.situacao !== 'ativa' ? st('neu', 'Encerrada') : (c.padrao ? st('ok', 'Padrão') : '')}</div>
             <svg data-lucide="chevron-right" class="rz-chev"></svg>
@@ -674,28 +686,48 @@ async function pessoasDaEmpresa(dbAuth, clienteId) {
 export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPessoaId = null, onToast, aoSalvar }) {
     if (typeof window.abrirSheetForm !== 'function') return;
     if (rzBloqueio('financeiro.contas.editar')) return;
-    const pessoas = await pessoasDaEmpresa(dbAuth, clienteId);
+    const [pessoas, contasRes] = await Promise.all([pessoasDaEmpresa(dbAuth, clienteId), buscarContas(dbAuth, clienteId).catch(() => ({ dados: [] }))]);
+    // v1.11.0 — tipo (conta · cartão · caixa) e contas que podem pagar a fatura do cartão
+    const tipoAtual = conta?.tipo || 'conta';
+    const pagadoras = (contasRes.dados || []).filter(c => c.tipo === 'conta' && c.situacao === 'ativa');
+    const optsPag = pagadoras.map(c => `<option value="${escC(c.id)}" ${(conta?.conta_pagadora_id ? conta.conta_pagadora_id === c.id : (c.padrao && c.titular_tipo === 'empresa')) ? 'selected' : ''}>${escC(c.nome)}</option>`).join('');
     const titularAtual = conta ? (conta.titular_tipo === 'empresa' ? 'empresa' : conta.pessoa_id) : (fixarPessoaId || 'empresa');
     const travarTitular = !!conta || !!fixarPessoaId;
     const optsTit = [`<option value="empresa" ${titularAtual === 'empresa' ? 'selected' : ''}>Empresa</option>`]
         .concat(pessoas.map(p => `<option value="${escC(p.id)}" ${titularAtual === p.id ? 'selected' : ''}>${escC(p.nome)}</option>`)).join('');
     window.abrirSheetForm({
-        titulo: conta ? 'Editar conta' : 'Nova conta',
-        sub: conta ? conta.nome : 'Conta da empresa ou de uma pessoa',
-        rotuloSalvar: conta ? 'Salvar' : 'Criar conta',
+        titulo: conta ? (tipoAtual === 'cartao_credito' ? 'Editar cartão' : 'Editar conta') : 'Nova conta',
+        sub: conta ? conta.nome : 'Conta, cartão de crédito ou caixa',
+        rotuloSalvar: conta ? 'Salvar' : 'Criar',
         corpo: `
-            <div class="rz-f"><label>Nome da conta</label><input type="text" id="cc-nome" maxlength="60" placeholder="Ex.: Conta Itaú da empresa" value="${escC(conta?.nome)}"></div>
+            <div class="rz-f"><label>Tipo</label>
+                <input type="hidden" id="cc-tipo" value="${tipoAtual}">
+                <div class="rz-seg" id="cc-seg-tipo">
+                    ${[['conta', 'Conta'], ['cartao_credito', 'Cartão de crédito'], ['caixa', 'Caixa']].map(([v, t]) => `<button type="button" data-v="${v}" class="${v === tipoAtual ? 'rz-on' : ''}" ${conta && v !== tipoAtual ? 'disabled' : ''}>${t}</button>`).join('')}
+                </div>
+                ${conta ? '<span class="rz-hint">O tipo não muda depois de criado.</span>' : ''}</div>
+            <div class="rz-f"><label>Nome</label><input type="text" id="cc-nome" maxlength="60" placeholder="Ex.: Conta Itaú da empresa" value="${escC(conta?.nome)}"></div>
             <div class="rz-f"><label>Titular</label><select id="cc-titular" ${travarTitular ? 'disabled' : ''}>${optsTit}</select>
                 ${conta ? '<span class="rz-hint">O titular não muda depois de criada.</span>' : ''}</div>
             <div class="rz-f2">
                 <div class="rz-f"><label>Banco</label><input type="text" id="cc-inst" maxlength="40" placeholder="Opcional" value="${escC(conta?.instituicao)}"></div>
-                <div class="rz-f"><label>4 últimos números</label><input type="text" id="cc-final" inputmode="numeric" maxlength="4" placeholder="Opcional" value="${escC(conta?.final_identificador)}"></div>
+                <div class="rz-f"><label id="cc-final-lb">4 últimos números</label><input type="text" id="cc-final" inputmode="numeric" maxlength="4" placeholder="Opcional" value="${escC(conta?.final_identificador)}"></div>
+            </div>
+            <div id="cc-cartao" style="display:none">
+                <div class="rz-f2">
+                    <div class="rz-f"><label>Dia do fechamento</label><input type="number" id="cc-fech" inputmode="numeric" min="1" max="31" value="${escC(conta?.dia_fechamento)}"></div>
+                    <div class="rz-f"><label>Dia do vencimento</label><input type="number" id="cc-venc" inputmode="numeric" min="1" max="31" value="${escC(conta?.dia_vencimento)}"></div>
+                </div>
+                <div class="rz-f"><label>Conta que paga a fatura</label><select id="cc-pagadora">${optsPag || '<option value="">Cadastre antes uma conta</option>'}</select>
+                    <span class="rz-hint">As compras entram no caixa desta conta no dia em que a fatura é paga.</span></div>
             </div>
             <label class="text-sm" id="cc-contabil-wrap" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px"><input type="checkbox" id="cc-contabil" ${conta ? (conta.incorpora_contabil ? 'checked' : '') : 'checked'} style="margin-top:3px"><span><b>Entra na contabilidade da empresa</b><br><span class="text-xs" style="color:var(--muted)">Desmarque para conta pessoal que não vai para o contador.</span></span></label>
-            <label class="text-sm" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="cc-conciliar" ${conta ? (conta.conciliar ? 'checked' : '') : 'checked'} style="margin-top:3px"><span><b>Conciliar extrato desta conta</b></span></label>
+            <label class="text-sm" id="cc-conciliar-wrap" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="cc-conciliar" ${conta ? (conta.conciliar ? 'checked' : '') : 'checked'} style="margin-top:3px"><span><b>Conciliar extrato desta conta</b></span></label>
             <span class="rz-hint" style="display:block;margin-top:10px">Guardamos só os 4 últimos números, nunca a conta inteira.</span>`,
         aoSalvar: async (el) => {
             const tit = el.querySelector('#cc-titular').value;
+            const tipo = el.querySelector('#cc-tipo').value; // v1.11.0
+            const cartao = tipo === 'cartao_credito';
             const { data, error } = await dbAuth.rpc('fn_conta_salvar', {
                 p_cliente_id: clienteId, p_conta_id: conta?.id || null,
                 p_nome: el.querySelector('#cc-nome').value,
@@ -704,7 +736,11 @@ export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPe
                 p_instituicao: el.querySelector('#cc-inst').value,
                 p_final_identificador: el.querySelector('#cc-final').value,
                 p_incorpora_contabil: tit === 'empresa' ? true : el.querySelector('#cc-contabil').checked,
-                p_conciliar: el.querySelector('#cc-conciliar').checked,
+                p_conciliar: cartao ? false : el.querySelector('#cc-conciliar').checked,
+                p_tipo: tipo,
+                p_dia_fechamento: cartao ? (parseInt(el.querySelector('#cc-fech').value, 10) || null) : null,
+                p_dia_vencimento: cartao ? (parseInt(el.querySelector('#cc-venc').value, 10) || null) : null,
+                p_conta_pagadora_id: cartao ? (el.querySelector('#cc-pagadora').value || null) : null,
             });
             if (error) { onToast?.(error.message, 'danger'); return false; }
             if (!data?.ok) { onToast?.(data?.mensagem || 'Não foi possível salvar.', 'danger'); return false; }
@@ -716,6 +752,19 @@ export async function abrirFichaConta({ dbAuth, clienteId, conta = null, fixarPe
     const wrap = document.getElementById('cc-contabil-wrap');
     const ajustar = () => { if (wrap) wrap.style.display = sel.value === 'empresa' ? 'none' : 'flex'; };
     sel?.addEventListener('change', ajustar); ajustar();
+    // v1.11.0 — tipo: mostra os campos de cartão e esconde "Conciliar extrato" no cartão
+    const seg = document.getElementById('cc-seg-tipo');
+    const ajustarTipo = (v) => {
+        document.getElementById('cc-tipo').value = v;
+        seg?.querySelectorAll('button').forEach(b => b.classList.toggle('rz-on', b.dataset.v === v));
+        const cartao = v === 'cartao_credito';
+        document.getElementById('cc-cartao').style.display = cartao ? 'block' : 'none';
+        document.getElementById('cc-conciliar-wrap').style.display = cartao ? 'none' : 'flex';
+        document.getElementById('cc-final-lb').textContent = cartao ? '4 últimos números do cartão' : '4 últimos números';
+        const nome = document.getElementById('cc-nome'); if (nome) nome.placeholder = cartao ? 'Ex.: Itaú Black' : v === 'caixa' ? 'Ex.: Caixa do escritório' : 'Ex.: Conta Itaú da empresa';
+    };
+    seg?.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { if (!b.disabled) ajustarTipo(b.dataset.v); }));
+    ajustarTipo(tipoAtual);
     const fin = document.getElementById('cc-final');
     fin?.addEventListener('input', () => { fin.value = fin.value.replace(/\D/g, '').slice(0, 4); });
 }
@@ -731,9 +780,9 @@ export function abrirAcoesConta({ dbAuth, clienteId, conta, onToast, aoMudar, fi
     };
     const acoes = [];
     if (conta.situacao === 'ativa') {
-        acoes.push({ titulo: 'Editar', sub: 'Nome, banco, 4 finais, contabilidade', icone: 'pencil', codigo: 'financeiro.contas.editar',
+        acoes.push({ titulo: 'Editar', sub: conta.tipo === 'cartao_credito' ? 'Nome, banco, 4 finais, fechamento e vencimento' : 'Nome, banco, 4 finais, contabilidade', icone: 'pencil', codigo: 'financeiro.contas.editar',
             aoTocar: () => abrirFichaConta({ dbAuth, clienteId, conta, fixarPessoaId, onToast, aoSalvar: aoMudar }) });
-        if (!conta.padrao) acoes.push({ titulo: 'Definir como padrão', sub: 'Lançamentos sem conta escolhida vão para ela', icone: 'star', codigo: 'financeiro.contas.editar',
+        if (!conta.padrao && (conta.tipo || 'conta') === 'conta') acoes.push({ titulo: 'Definir como padrão', sub: 'Lançamentos sem conta escolhida vão para ela', icone: 'star', codigo: 'financeiro.contas.editar',
             aoTocar: () => rpc('fn_conta_definir_padrao', { p_conta_id: conta.id }) });
         if (!(conta.padrao && conta.titular_tipo === 'empresa')) acoes.push({ titulo: 'Encerrar conta', sub: 'O histórico continua no Financeiro', icone: 'archive', tipo: 'bad', codigo: 'financeiro.contas.editar',
             aoTocar: async () => {

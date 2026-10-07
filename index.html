@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.318.0
-   LINHAS: 17117
-   DATA: 07/10/2026 (sessão 20261007-0900-publicador-onda0, demanda 6b11c602)
+   VERSÃO: Beta v1.319.0
+   LINHAS: 17119
+   DATA: 07/10/2026 (sessão 20261007-0910-financeiro, demanda f3e6cd27)
+   NOVIDADES (Beta v1.319.0) — P5a, cartão de crédito (fichas F1–F5, de acordo do Nicola 07/10 09:09).
+   Lançamentos de saída passam a trazer faturaId (lancamentos.fatura_id), que o financeiro.js 1.37.0 usa
+   para mostrar cada fatura como uma linha só em Saídas. Pontes novas: financeiroAbrirFatura e
+   financeiroImportarFatura. Import map: financeiro.js 1.37.0 e comum-minha-empresa.js 1.11.0 (tipo
+   Cartão de crédito na ficha da conta). Nenhum objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.318.0):
    NOVIDADES (Beta v1.318.0) — Onda 0 da fragmentação: limpeza de código morto, sem nenhuma mudança
    de comportamento. Apagadas 24 funções que não eram chamadas por ninguém — nem pelo próprio
    index.html, nem pelos 42 módulos de js/ (subpastas incluídas), nem pelo cofre.html ou pelo sw.js.
@@ -42,14 +48,8 @@
    02:26). "De 20 s a 1 min"; depois de 1 min, "documento longo, até 2 min"; limite antes de
    "Interrompida" 150 s. Só import map: cofre-documentos 2.30.0.
    Versão anterior (Beta v1.315.1):
-   NOVIDADES (Beta v1.315.1) — teste do Nicola 07/10 02:03 e decisões D39/D40 (sessão
-   20261007-0205-financeiro, demanda f3e6cd27). Outras receitas ganham Conta e Divisão no sheet
-   (toda receita da lista abre; estornar/excluir só nas manuais) e "divisão ajustada" na linha.
-   Banco: outras receitas entram na Distribuição pela divisão; a propriedade de qualquer ativo
-   divide receitas e despesas. Import map: financeiro 1.36.0.
-   Versão anterior (Beta v1.315.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.315.0 … v1.315.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.315.1 … v1.315.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -74,7 +74,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.36.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.43.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.76.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.48.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.31.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.37.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.43.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.76.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.48.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.31.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3669,7 +3669,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.318.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.319.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6048,7 +6048,8 @@
                     // Entrega F.3/F.4 — ver nota igual em carregarMensalidadesSupabase.
                     incluirContabilidade: row.incluir_contabilidade !== false,
                     contaId: row.conta_id || null, // v1.300.2 — P4a
-                    divisaoAjustada: !!row.divisao_excecao // v1.314.1 — P4b B1b
+                    divisaoAjustada: !!row.divisao_excecao, // v1.314.1 — P4b B1b
+                    faturaId: row.fatura_id || null // v1.319.0 — P5a: compra de cartão (Saídas agrupa por fatura)
                 };
             });
         }
@@ -9393,6 +9394,7 @@
             'filtrarSaidasPorStatus', // v1.6.5 — "Atrasado" do hero de Saídas
             'filtrarSaidasPorChip', 'filtrarMensalPorChip', // v1.178.9 — chips de status
             'financeiroEscolherContaFiltro', // v1.300.2 — P4a, chip "Conta" 
+            'financeiroAbrirFatura', 'financeiroImportarFatura', // v1.319.0 — P5a, cartão de crédito
             // alternarGrupoConciliacao removida (Entrega F.4) — lista de Conciliação perdeu o agrupamento por competência
             'abrirAcoesImportarConciliacao', // v1.178.9 — menu único Importar/Reprocessar
             'abrirBuscaConciliacao', 'fecharBuscaConciliacao', 'limparBuscaConciliacao', 'atualizarCamposTipoConciliacao', // v1.179.0 — lupa de filtro
