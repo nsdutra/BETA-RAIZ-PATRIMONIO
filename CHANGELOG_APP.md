@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.313.0) — F2.1c do PLANO_UX + detalhe da Novidade ("de acordo" do Nicola 07/10
+01:24; UXR-19/20). Hoje › Patrimônio por tipo vira donut tocável: cada fatia ou linha abre Ativos
+já filtrado no grupo; grupo sem ativo vira convite "Cadastre também…", que abre o "+" de Ativos.
+Jornal › Novidades do Raiz: o toque abre o guia da funcionalidade (como funciona, por que vale a
+pena, onde usar no app, se dá para usar no WhatsApp) com "Experimentar agora", que leva direto à
+funcionalidade (lista fechada de atalhos RZ_ATALHOS). Banco: migration ux_funcionalidade_guia_v1
+(colunas guia_* e fn_funcionalidade_guia). Capturar ficou no backlog (decisão do Nicola).
+Versão anterior (Beta v1.312.0):
+------------------------------------------------------------------
+Versões anteriores (v1.312.0 … v1.312.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.312.0) — P4b do Financeiro, parte 1 (fichas B3/B5 e D35/D36 aprovadas pelo
 Nicola 07/10). Relatórios ganha Fluxo de caixa e Visão gerencial (Premium), no modelo executivo
 do PADRAO_RELATORIOS v1.2.0: capa com a conclusão (Leitura), 3 pontos-chave, 4 números e 2

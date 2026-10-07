@@ -1,7 +1,14 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/configuracao-inicial.js
-// VERSÃO: Beta v1.0.0 (06/10/2026 — demandas 860233ca e be7cdd7c)
+// VERSÃO: Beta v1.0.1 (07/10/2026 — demanda 6a1210a0)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v1.0.1) — sessão 20261007-0207-ia-falha ("Pode fazer sim" do Nicola 07/10 02:07):
+//   o erro ao começar ("Não consegui começar agora…") saía como toast VERDE com ✓ — o tipo 'aviso'
+//   não existe no mostrarToast do app e caía no padrão de sucesso. Passa a 'danger' (vermelho, com a
+//   mensagem traduzida pelo rzMensagemDeErro). O erro em si (chave de idempotência global) foi
+//   corrigido no banco pela migration setup_configuracao_inicial_v4.
+// Versão anterior: Beta v1.0.0 (06/10/2026)
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v1.0.0) — frente D, fatia D2 (sessão 20261006-2348-setup-d2; "Estou de acordo" do
 //   Nicola 06/10 23:48, plano PLANO_INDICADORES_E_SETUP_DOCUMENTOS v1.1.0; protótipo
@@ -22,7 +29,7 @@
 
 import * as docs from './cofre-documentos.js';
 
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.0.1';
 
 const TIPOS = [
     { c: 'lista_ativos', ic: 'list', t: 'Lista de ativos', d: 'Planilha ou PDF com seus imóveis, veículos e outros bens', cria: 'A equipe Raiz cadastra os ativos da lista', dica: 'Mande a planilha ou o PDF. A equipe Raiz cadastra os ativos e te avisa.' },
@@ -226,7 +233,7 @@ async function comecar() {
         desenhar();
     } catch (err) {
         if (btn) btn.disabled = false;
-        mostrarToast('Não consegui começar agora: ' + (err?.message || 'erro'), 'aviso');
+        mostrarToast('Não consegui começar agora: ' + (err?.message || 'erro'), 'danger'); // v1.0.1
     }
 }
 

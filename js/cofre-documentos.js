@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.28.0 · 07/10/2026
+// Versão: 2.29.0 · 07/10/2026
+//
+// v2.29.0 (demanda 6a1210a0, sessão 20261007-0207-ia-falha; "Pode fazer sim" do Nicola 07/10 02:07) —
+// resultado da leitura que não engana:
+//   (a) "Lido como Não classificado" (tipo "outro" ou sem tipo) deixa de ser um "Pronto" verde: vira
+//       "Não reconheci o tipo deste documento", com "Conferir e classificar" (abre o Confira, onde se
+//       escolhe o Tipo de documento e se pode Reler), outra foto, equipe Raiz (configuração) e cancelar.
+//   (b) Leitor fora do ar (cofre-extrair-documento 1.12 devolve falha_ia): "A leitura com IA está fora do
+//       ar agora", com Ler de novo (sem reenviar), Preencher eu mesmo e Cancelar.
+//   (c) O "Pronto" explica a próxima tela: conferir os dados, ajustar o tipo se precisar e salvar.
+//
+// Versão anterior: 2.28.0 · 07/10/2026
 //
 // v2.28.0 (demanda 9ddb9f34, fatia U1b + U2, sessão 20261007-0129-upload-ia-b; "De acordo" do Nicola
 // 07/10 01:29, protótipo PROTOTIPO_LEITURA_IA_RAIZ v1.1.0) —
@@ -549,7 +560,7 @@
 // triagem/candidato), ficha do documento (vínculos por nome, clicáveis),
 // busca global (secundária), categorias (configuração).
 // ============================================================================
-export const VERSAO = '2.28.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.29.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1212,14 +1223,35 @@ function mostrarResultadoLeitura(estadoRes, info = {}) {
     const fora = leitura.saiuDaTela ? ' · terminou enquanto o app estava fora' : '';
     const aviso = info.avisoLimite ? `<p class="rz-desc" style="margin:0 0 10px">${escapeHtml(info.avisoLimite)}</p>` : '';
     let html = '';
-    if (estadoRes === 'pronto') {
+    // v2.29.0 — leitura sem tipo reconhecido não é "Pronto"
+    const semTipo = estadoRes === 'pronto' && (up?.motor ? (!up.motor.subtipo_codigo || up.motor.subtipo_codigo === 'outro') : !up?.ia?.tipoDocumentoDetectado);
+    if (semTipo) {
+        tituloEnvio('Leitura concluída');
+        html = `<div class="up-res falha"><div class="up-res-ic">?</div><div><b>Não reconheci o tipo deste documento</b><span>Na próxima tela você escolhe o tipo, confere os dados e salva. Se preferir, toque em Reler lá depois de escolher o tipo.</span></div></div>
+            ${cartaoArquivoLeitura()}${aviso}
+            <div class="up-acoes">
+                <button type="button" class="rz-btn rz-btn-1" data-up="conferir">Conferir e classificar</button>
+                <button type="button" class="rz-btn rz-btn-2" data-up="outra">${outra}</button>
+                ${up?.config ? '<button type="button" class="rz-btn rz-btn-2" data-up="equipe">Pedir para a equipe Raiz</button>' : ''}
+                <button type="button" class="rz-btn rz-btn-3" data-up="cancelar">Cancelar o envio</button>
+            </div>`;
+    } else if (estadoRes === 'pronto') {
         const tipo = up?.motor?.subtipo_nome || up?.ia?.tipoDocumentoDetectado || 'documento';
         tituloEnvio('Leitura concluída');
         html = `<div class="up-res ok"><div class="up-res-ic">✓</div><div><b>Pronto. Lido como ${escapeHtml(tipo)}</b><span>${rotuloConfiancaLeitura()} · ${seg} s${fora}</span></div></div>
             ${up?.ia?.resumo ? `<div class="up-resumo">${escapeHtml(up.ia.resumo)}</div>` : cartaoArquivoLeitura()}
             ${aviso}
             <div class="up-acoes"><button type="button" class="rz-btn rz-btn-1" data-up="conferir">Conferir e salvar</button></div>
-            <div class="up-trava">Nada é gravado antes de você conferir</div>`;
+            <div class="up-trava">Na próxima tela você confere os dados lidos, ajusta o tipo se precisar e salva. Nada é gravado antes disso.</div>`;
+    } else if (estadoRes === 'falha' && info.falhaIA) {
+        tituloEnvio('Leitura indisponível');
+        html = `<div class="up-res falha"><div class="up-res-ic">!</div><div><b>A leitura com IA está fora do ar agora</b><span>O arquivo já foi enviado. Tente ler de novo em alguns minutos ou preencha você mesmo. Esta tentativa não conta no seu limite.</span></div></div>
+            ${cartaoArquivoLeitura()}
+            <div class="up-acoes">
+                <button type="button" class="rz-btn rz-btn-1" data-up="ler-de-novo">Ler de novo</button>
+                <button type="button" class="rz-btn rz-btn-2" data-up="preencher">Preencher eu mesmo</button>
+                <button type="button" class="rz-btn rz-btn-3" data-up="cancelar">Cancelar o envio</button>
+            </div>`;
     } else if (estadoRes === 'falha') {
         tituloEnvio('Leitura concluída');
         html = `<div class="up-res falha"><div class="up-res-ic">!</div><div><b>Não deu para ler este documento</b><span>${escapeHtml(info.motivo || 'A IA não reconheceu o documento.')} O arquivo já foi enviado: nada se perde.</span></div></div>
@@ -1310,7 +1342,7 @@ async function lerComIALimitada(caminho, mime, opcoes) {
         up.ia = resp.resultado; up.motor = resp.resultado.motor || null;
         return { estado: 'pronto', info: { avisoLimite: resp.avisoLimite } };
     }
-    return { estado: 'falha', info: { motivo: resp?.motivo || resp?.erro || '', avisoLimite: resp?.avisoLimite } };
+    return { estado: 'falha', info: { motivo: resp?.motivo || resp?.erro || '', avisoLimite: resp?.avisoLimite, falhaIA: !!resp?.falha_ia } };
 }
 
 // Passo "Lendo com IA" (também usado pelo "Ler de novo"): prepara a cópia de
