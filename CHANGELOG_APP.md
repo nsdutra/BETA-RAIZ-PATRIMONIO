@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.304.1) — frente 5, fatia 5A (de acordo do Nicola 04/10 18:00 e 22:06): o card
+Indicadores em Hoje › Resultados mostra os 6 indicadores coletados (IPCA, IGP-M, INCC-DI, Selic,
+CDI, IVG-R), cada um com o mês de referência, o valor do último mês fechado e os 12 meses; o ⓘ
+explica cada um com o texto do banco (migration indicadores_resumo_seis_v1). Só import map:
+resultados 2.0.0 → 2.1.0.
+Versão anterior (Beta v1.304.0):
+------------------------------------------------------------------
+Versões anteriores (v1.304.0 … v1.304.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.304.0) — F2.1a do PLANO_UX (Hoje com Resultados dentro; "Sim de acordo" do
 Nicola 04/10 21:11; UXR-16 a 19). Visão Geral vira Hoje (nome na barra). Herói unificado no topo
 (js/resultados.js 2.0.0): patrimônio, nº de ativos, Resultado do ano, Rentabilidade · Ocupação ·

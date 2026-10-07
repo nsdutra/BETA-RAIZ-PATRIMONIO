@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.46.0 · 04/10/2026
+// Versão: 1.47.0 · 07/10/2026
+//
+// v1.47.0 (demanda b94ef7d5, sessão 20261007-0005-vinculos-chips; plano aprovado pelo Nicola 07/10 00:05) —
+// ⋮ do chip Partes do item ganha "Encerrar vínculo" (troca real: sai do item e fica no histórico da
+// parte, via fn_vinculo_encerrar); "Remover parte" vira "Excluir vínculo" (cadastro errado — mesmo
+// caminho de antes, que agora exclui o vínculo).
+//
+// Versão anterior: 1.46.0 · 04/10/2026
 //
 // v1.46.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
 // esqueleto no lugar de "Carregando..." nas partes do item de controle.
@@ -578,7 +585,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.46.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.47.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -1340,7 +1347,10 @@ export async function abrirAcoesPartesItem() {
         { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'cofre.controles.editar', sub: 'Quem responde por este item', aoTocar: () => abrirAdicionarParteItem() },
         { icone: 'receipt', titulo: 'Gerar despesa', codigo: 'saidas.registrar', sub: 'Lançamento com a parte como fornecedor', aoTocar: () => abrirNovoLancamentoDoItem() },
     ];
-    if (atuais.length) acoes.push({ icone: 'user-minus', titulo: 'Remover parte', codigo: 'cofre.controles.editar', tipo: 'bad', sub: 'Tira o vínculo; o cadastro da parte continua', aoTocar: () => abrirRemoverParteItem(atuais) });
+    if (atuais.length) {
+        acoes.push({ icone: 'archive', titulo: 'Encerrar vínculo', codigo: 'cofre.controles.editar', sub: 'Troca real. Sai do item e fica no histórico da parte', aoTocar: () => abrirEncerrarParteItem(atuais) });
+        acoes.push({ icone: 'user-minus', titulo: 'Excluir vínculo', codigo: 'cofre.controles.editar', tipo: 'bad', sub: 'Cadastro errado. O cadastro da parte continua', aoTocar: () => abrirRemoverParteItem(atuais) });
+    };
     sheetAcoes({ titulo: 'Partes do item', sub: item.titulo, acoes });
 }
 
@@ -1415,7 +1425,7 @@ window.__piaMudarParte = (valor) => {
 // (o toque na parte é a confirmação; o cadastro da parte não é apagado).
 export function abrirRemoverParteItem(atuais) {
     const item = itemEmFoco; if (!item || !atuais?.length) return;
-    sheetAcoes({ titulo: 'Remover qual parte?', sub: item.titulo, acoes: atuais.map((l, i) => ({
+    sheetAcoes({ titulo: 'Excluir qual vínculo?', sub: item.titulo, acoes: atuais.map((l, i) => ({
         icone: 'user-minus', tipo: 'bad', titulo: l.nome || 'Parte', sub: rotuloPapelParteItem(l.papel),
         aoTocar: async () => {
             try {
@@ -1424,6 +1434,24 @@ export function abrirRemoverParteItem(atuais) {
                 await montarPartesItemControle(item);
                 emitirEscrita('controle', { id: item.id, acao: 'editar-partes' });
             } catch (err) { mostrarToast('Erro ao remover: ' + (err.message || String(err)), 'erro'); }
+        },
+    })) });
+}
+// v1.47.0 (demanda b94ef7d5) — "Encerrar vínculo": troca real (ex.: síndico ou seguradora
+// substituídos). A parte sai do item e o vínculo fica no histórico dela (fn_vinculo_encerrar).
+export function abrirEncerrarParteItem(atuais) {
+    const item = itemEmFoco; if (!item || !atuais?.length) return;
+    sheetAcoes({ titulo: 'Encerrar qual vínculo?', sub: item.titulo, acoes: atuais.map(l => ({
+        icone: 'archive', titulo: l.nome || 'Parte', sub: rotuloPapelParteItem(l.papel),
+        aoTocar: async () => {
+            if (!await perguntar({ titulo: 'Encerrar vínculo?', impacto: `${l.nome || 'A parte'} sai deste item e o vínculo fica no histórico da parte.`, rotuloConfirmar: 'Encerrar vínculo' })) return;
+            try {
+                const { data, error } = await api.dbAuth.rpc('fn_vinculo_encerrar', { p_papel_id: l.id });
+                if (error) throw error;
+                mostrarToast((data && data.mensagem) || 'Vínculo encerrado.');
+                await montarPartesItemControle(item);
+                emitirEscrita('controle', { id: item.id, acao: 'editar-partes' });
+            } catch (err) { mostrarToast('Erro ao encerrar: ' + (err.message || String(err)), 'erro'); }
         },
     })) });
 }

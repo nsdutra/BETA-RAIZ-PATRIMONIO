@@ -1,7 +1,14 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.41.0 · 06/10/2026
+// Versão: 1.42.0 · 07/10/2026
+//
+// v1.42.0 (demanda b94ef7d5, sessão 20261007-0005-vinculos-chips; plano aprovado pelo Nicola 07/10 00:05) —
+// ⋮ do fiador no chip Partes ganha "Encerrar fiador" (troca real: sai da lista do contrato e fica no
+// histórico da parte, com o cônjuge anuente) via fn_vinculo_encerrar; "Remover fiador" vira
+// "Excluir fiador" (cadastro errado — mesmo caminho de antes, que agora exclui o vínculo).
+//
+// Versão anterior: 1.41.0 · 06/10/2026
 //
 // v1.41.0 (frente D, fatia D2 — demandas 860233ca e be7cdd7c; sessão 20261006-2348-setup-d2; "Estou de
 // acordo" do Nicola 06/10 23:48) — (1) o + de Contratos (e o vazio da lista, que usa o mesmo sheet) ganha
@@ -701,7 +708,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.41.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.42.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -3064,8 +3071,33 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             abrirSheetAcoes({ titulo: f?.nome || 'Fiador', sub: 'Fiador', acoes: [
                 { icone: 'pencil', titulo: 'Editar fiador', codigo: 'contratos.editar', sub: 'Documento, cônjuge, contato, imóvel em garantia', aoTocar: () => abrirFormFiadorContrato(con.id, i) },
                 { icone: 'user-plus', titulo: 'Adicionar parte', codigo: 'contratos.editar', sub: 'Novo fiador do contrato', aoTocar: () => abrirFormFiadorContrato(con.id, null) },
-                { icone: 'trash-2', titulo: 'Remover fiador', codigo: 'contratos.editar', tipo: 'bad', sub: f?.nome || '', aoTocar: () => removerFiadorDireto(con.id, i) },
+                { icone: 'archive', titulo: 'Encerrar fiador', codigo: 'contratos.editar', sub: 'Troca real. Sai do contrato e fica no histórico da parte', aoTocar: () => encerrarFiadorDireto(con.id, i) },
+                { icone: 'trash-2', titulo: 'Excluir fiador', codigo: 'contratos.editar', tipo: 'bad', sub: 'Cadastro errado. Sai também do histórico da parte', aoTocar: () => removerFiadorDireto(con.id, i) },
             ] });
+        }
+
+        // v1.42.0 (demanda b94ef7d5) — encerrar = troca real: a regra mora no banco
+        // (fn_vinculo_encerrar tira o fiador de contrato_fiadores e encerra o vínculo dele e do
+        // cônjuge anuente em partes_papeis, que vira histórico na ficha da parte).
+        export async function encerrarFiadorDireto(contratoId, index) {
+            await carregarFiadoresContrato(contratoId);
+            const f = fiadoresContratoAtual[index]; if (!f) return;
+            const doc = String(f.cpf || '').replace(/\D/g, '');
+            if (!await rzPerguntar({ titulo: 'Encerrar fiador?', impacto: `${f.nome || 'O fiador'} deixa de ser fiador deste contrato e fica no histórico da parte${f.conjuge_nome ? ', junto com o cônjuge anuente' : ''}.`, rotuloConfirmar: 'Encerrar fiador' })) return;
+            try {
+                const { data: papeis, error: errPapeis } = await dbAuth.from('partes_papeis')
+                    .select('id, partes!inner(documento)')
+                    .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId).eq('papel', 'fiador').eq('ativo', true);
+                if (errPapeis) throw errPapeis;
+                const papel = (papeis || []).find(pp => String(pp.partes?.documento || '').replace(/\D/g, '') === doc);
+                if (!papel) throw new Error('não achei o vínculo deste fiador na parte');
+                const { data, error } = await dbAuth.rpc('fn_vinculo_encerrar', { p_papel_id: papel.id });
+                if (error) throw error;
+                mostrarToast((data && data.mensagem) || 'Fiador encerrado.', 'success');
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+            } catch (err) {
+                mostrarToast('Não consegui encerrar: ' + (err.message || String(err)), 'danger');
+            }
         }
 
         // v1.21.0 (demanda 3cc64651) — formulário de UM fiador, direto (novo
