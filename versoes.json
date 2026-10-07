@@ -1,8 +1,8 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-07T01:33:42",
+  "gerado_em": "2026-10-07T01:37:59",
   "arquivos": {
-    "index.html": "1.313.0",
+    "index.html": "1.313.1",
     "sw.js": "3.0",
     "js/cadastros.js": "1.1.0",
     "js/financeiro.js": "1.34.0",
@@ -31,7 +31,7 @@
     "js/resultados.js": "2.3.0",
     "js/indicadores.js": "1.0.0",
     "js/configuracao-inicial.js": "1.0.0",
-    "js/relatorios-executivos.js": "1.0.0",
+    "js/relatorios-executivos.js": "1.0.1",
     "js/raiz-eventos.js": "1.0.0",
     "js/raiz-device.js": "1.0.0",
     "js/raiz-ui.js": "1.1.0",
@@ -41,7 +41,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 17460,
+      "linhas": 17456,
       "funcoes": 70
     },
     "sw.js": {
@@ -157,7 +157,7 @@
       "funcoes": 14
     },
     "js/relatorios-executivos.js": {
-      "linhas": 598,
+      "linhas": 602,
       "funcoes": 26
     },
     "js/raiz-eventos.js": {

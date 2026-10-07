@@ -1,6 +1,10 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.0.0 · 07/10/2026
+// Versão: 1.0.1 · 07/10/2026
+//
+// v1.0.1 (07/10/2026, sessão 20261007-0137-financeiro — teste do Nicola 01:37): os
+// filtros (período, conta) abriam POR TRÁS do relatório. A tela do relatório passa a
+// ficar na camada 96, logo abaixo dos sheets (#rz-veil, 97). Versão anterior: 1.0.0.
 //
 // v1.0.0 (07/10/2026, sessão 20261007-0110-financeiro, demanda f3e6cd27 — P4b,
 // fichas B3/B5 e decisões D35/D36 aprovadas pelo Nicola): renderizador único
@@ -19,7 +23,7 @@ import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.0.0';
+export const VERSAO = '1.0.1';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -370,7 +374,7 @@ function montarGerencial(d) {
 // Tela: o documento em si (REL-36) — topo com período, rodapé PDF | Compartilhar
 // ---------------------------------------------------------------------------
 const CSS = `
-#rz-relexec{position:fixed;inset:0;z-index:9000;background:var(--paper,#f4f3ee);display:flex;flex-direction:column}
+#rz-relexec{position:fixed;inset:0;z-index:96;background:var(--paper,#f4f3ee);display:flex;flex-direction:column}
 #rz-relexec .rx-top{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card,#fff);border-bottom:1px solid var(--line,#e6e3da)}
 #rz-relexec .rx-top button{font:600 14px Inter,system-ui,sans-serif;min-height:44px;border-radius:999px;border:1px solid var(--line,#e6e3da);background:var(--card,#fff);color:var(--ink,#17211e);padding:8px 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 #rz-relexec .rx-top .rx-voltar{border:0;padding:8px 6px}

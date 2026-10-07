@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.309.0) — vínculos de parte, complemento (teste do Nicola 07/10 00:01; plano
+aprovado 00:05). Chip Partes do contrato: ⋮ do fiador com "Encerrar fiador" e "Excluir fiador"
+(contratos.js 1.42.0). Chip Partes do item de controle: "Encerrar vínculo" e "Excluir vínculo"
+(cofre-controles.js 1.47.0). Ficha da parte: locatário e proprietário ativos mostram "Alterar no
+contrato" / "Alterar no ativo" no lugar de Encerrar/Excluir (o locatário vem do contrato; a
+propriedade tem rateio em %). Banco (migration parte_vinculos_excluir_encerrar_v2): encerrar ou
+excluir fiador pela ficha tira ele também da lista do contrato. Import map: contratos 1.42.0,
+cofre-controles 1.47.0.
+Versão anterior (Beta v1.308.0):
+------------------------------------------------------------------
+Versões anteriores (v1.308.0 … v1.308.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.308.0) — frente D, fatia D2 ("Estou de acordo" do Nicola 06/10 23:48): Configuração
 inicial pelos documentos que a pessoa já tem — no + de Ativos, no + de Contratos e no alerta novo
 "Nenhum ativo cadastrado" (tratar abre a configuração). Módulo novo js/configuracao-inicial.js 1.0.0

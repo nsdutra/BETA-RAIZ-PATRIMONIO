@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.313.0
-   LINHAS: 17451
-   DATA: 07/10/2026 (sessão 20261003-1707-ux-base, demandas 217e3a38 e dab013a2)
+   VERSÃO: Beta v1.313.1
+   LINHAS: 17447
+   DATA: 07/10/2026 (sessão 20261007-0137-financeiro, demanda f3e6cd27)
+   NOVIDADES (Beta v1.313.1) — teste do Nicola 07/10 01:37 (sessão 20261007-0137-financeiro, demanda
+   f3e6cd27). Relatórios sai do grupo Conta e passa para o grupo Empresa do menu. Os filtros dos
+   relatórios Fluxo de caixa e Visão gerencial (período, conta) abriam por trás do relatório; agora
+   abrem por cima (relatorios-executivos 1.0.1). Import map: relatorios-executivos 1.0.1. Sem banco.
+   Versão anterior (Beta v1.313.0):
    NOVIDADES (Beta v1.313.0) — F2.1c do PLANO_UX + detalhe da Novidade ("de acordo" do Nicola 07/10
    01:24; UXR-19/20). Hoje › Patrimônio por tipo vira donut tocável: cada fatia ou linha abre Ativos
    já filtrado no grupo; grupo sem ativo vira convite "Cadastre também…", que abre o "+" de Ativos.
@@ -40,17 +45,8 @@
    Central de Comunicações num lugar só (rzDetalheComunicacoes). fn_saude_patrimonio e
    fn_novidade_sortear entram nas leituras guardadas para abrir sem rede. Sem banco novo.
    Versão anterior (Beta v1.309.0):
-   NOVIDADES (Beta v1.309.0) — vínculos de parte, complemento (teste do Nicola 07/10 00:01; plano
-   aprovado 00:05). Chip Partes do contrato: ⋮ do fiador com "Encerrar fiador" e "Excluir fiador"
-   (contratos.js 1.42.0). Chip Partes do item de controle: "Encerrar vínculo" e "Excluir vínculo"
-   (cofre-controles.js 1.47.0). Ficha da parte: locatário e proprietário ativos mostram "Alterar no
-   contrato" / "Alterar no ativo" no lugar de Encerrar/Excluir (o locatário vem do contrato; a
-   propriedade tem rateio em %). Banco (migration parte_vinculos_excluir_encerrar_v2): encerrar ou
-   excluir fiador pela ficha tira ele também da lista do contrato. Import map: contratos 1.42.0,
-   cofre-controles 1.47.0.
-   Versão anterior (Beta v1.308.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.308.0 … v1.308.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.309.0 … v1.309.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -75,7 +71,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.27.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.0.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.47.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.27.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.0.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3667,7 +3663,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.313.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.313.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10428,6 +10424,7 @@
                     ]},
                     { titulo: 'Empresa', acoes: [
                         { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
+                        { icone: 'file-text', titulo: 'Relatórios', sub: 'Fluxo de caixa, gerencial, resultados e distribuição', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.313.1 — pedido do Nicola 07/10: Relatórios fica no grupo Empresa (era Conta, v1.304.0 UXR-09)
                         { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // v1.252.0 — frente fiscal, Fase 3
                         { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
                         { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp },
@@ -10439,7 +10436,6 @@
                         // em ccd04ad4 (multi-empresa/family office).
                     ]},
                     { titulo: 'Conta', acoes: [
-                        { icone: 'file-text', titulo: 'Relatórios', sub: 'PDFs, distribuição aos sócios e catálogo', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.304.0 (UXR-09) — Resultados foi para Hoje; Relatórios fica no menu
                         { icone: 'package-check', titulo: 'Versões', sub: 'Versão do app em uso', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
                         { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => rzDev('whatsapp', '5511947461828') },
