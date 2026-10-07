@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.4.0 · 04/10/2026
+// Versão: 2.4.1 · 07/10/2026
+//
+// v2.4.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 2.4.0 · 04/10/2026
 //
 // v2.4.0 (demanda 2923ff4d, catálogo único — fatia 2, parte app; "de acordo" do Nicola 03/10/2026 23:42; sessão 20261004-0815-catalogo-f2) — rotuloTipoControle
 // lê primeiro o catálogo controle_tipos (definirCatalogoTiposControle, carregado pelo
@@ -37,82 +43,12 @@
 // `TIPOS_ATIVO_VALIDOS`/`SINONIMOS_TIPO_ATIVO` hardcoded — fatia
 // separada, avisada no fim da sessão, não bloqueia esta (catálogo tem
 // fallback idêntico ao comportamento de hoje, nada quebra sem o bot).
-//
-// v1.4.0 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (decisão do Nicola,
-// "pode migrar conforme sugerido os ativos"). ACHADO antes de migrar:
-// rotuloTipoAtivo/iconeAtivo/CAMPOS_POR_TIPO_ATIVO só reconhecem os
-// valores ANTIGOS de tipo_ativo — se a migration rodasse sem isto, 119
-// dos 131 ativos (91%) ficariam com rótulo cru ("imovel_predial" na
-// tela), ícone genérico, E os campos estruturados (placa, matrícula,
-// artista...) sumiriam da ficha (CAMPOS_POR_TIPO_ATIVO[tipo] || []) —
-// dado continuaria no banco, só ficaria invisível/não-editável na
-// interface. Isto aqui NÃO é a E5 completa (catálogo vindo do banco,
-// bot lendo a mesma fonte) — é só o mínimo pra rótulo/ícone/campos não
-// quebrarem para os valores novos. E5 continua no backlog, como estava.
-// - rotuloTipoAtivo/iconeAtivo ganham 4 chaves novas: imovel_predial,
-//   imovel_territorial, vida, bem_valor. Chaves antigas mantidas (pedido
-//   do próprio plano: "manter os valores antigos aceitos durante a
-//   transição").
-// - CAMPOS_POR_TIPO_ATIVO ganha as mesmas 4 chaves, cada uma reaproveitando
-//   a lista de campos do tipo antigo mais próximo (imovel_predial=imovel,
-//   imovel_territorial=terreno, vida=vida_protecao, bem_valor=obra_arte) —
-//   é o que os ativos reais de hoje precisam pra não perder campo nenhum.
-//   `colecao_bem_valor` fica como está, sem ativo nenhum usando ainda —
-//   consolidar os dois num catálogo só é trabalho da E4.3/E4.4, não desta
-//   ponte.
-// - `veiculo` ganha blindagem_empresa/blindagem_nivel como campos
-//   OPCIONAIS (antes só existiam em veiculo_blindado) — os 3 ativos que
-//   migram de veiculo_blindado pra veiculo precisam continuar vendo e
-//   editando esse dado; os outros 9 veículos simplesmente não preenchem.
-//
-// v1.3.1 — PLANO_IMPLEMENTACAO v1.0, etapa E6.2 (primeiro consumidor do
-// componente de endereço, decisão do Nicola 15/09): CAMPOS_POR_TIPO_ATIVO.
-// imovel perde o campo solto `endereco` (texto livre, sem CEP/IBGE/UF
-// estruturados). Motivo: agora existe js/comum-endereco.js, que grava
-// direto nas 8 colunas de endereço de cofre_ativos (E6.1) em vez de um
-// texto dentro de dados_especificos — evita o mesmo dado em dois formatos.
-// cofre-ativos.js (E6.2) passa a renderizar o bloco estruturado no lugar
-// deste campo, só para imóvel avulso (sem vínculo com a tabela imoveis).
-// Backfill do único registro em produção com esse campo preenchido:
-// migration endereco_ativo_avulso_backfill_v1 (Family Office Karen Corp.).
-//
-// v1.3.0 — pesquisa própria do Nicola: 3 tipos de ativo novos (aeronave,
-// embarcacao, colecao_bem_valor) em rotuloTipoAtivo/iconeAtivo/
-// CAMPOS_POR_TIPO_ATIVO — mesmo padrão dos tipos existentes. Ícones
-// Lucide escolhidos (plane/sailboat/gem) não confirmados visualmente
-// nesta sessão — conferir ao testar.
-//
-// v1.2.0 — D-2 (revisão DS, decisão do proprietário: "chips migram pro
-// [badge] do Imóveis"): chipVencimento() migrada do sistema de pill
-// próprio do Cofre (classe chip-*, ver cofre.html) pro badge OFICIAL do
-// Design System §14 — mesmas classes Tailwind literais do App (não um
-// equivalente reaproximado). 4 constantes novas EXPORTADAS
-// (BADGE_NEUTRO/BADGE_ALERTA/BADGE_PENDENTE/BADGE_OK), reaproveitadas em
-// cofre-ui.js e cofre-documentos.js — nenhum arquivo repete a string à
-// mão. `classe` retornado por chipVencimento() agora é a classe COMPLETA
-// (formato + cor); quem consome não prefixa mais com "chip ".
-//
-// v1.1.3 — removido campo `seguradora` de obra_arte/vida_protecao (seguro
-// agora é Item de Controle, não dado estruturado); `valor_estimado`
-// padronizado em TODOS os tipos de ativo (pedido explícito).
-//
-// v1.1.2 — rótulos puros de Controles/Ocorrências (rotuloTipoControle,
-// rotuloStatusOcorrencia, rotuloFrequencia) para a nova aba Controles.
-//
-// v1.1.1 — adiciona tipos de ativo veiculo_blindado/obra_arte (rótulo, ícone,
-// campos estruturados), acompanhando migration_cofre_alarmes_v2 que ampliou
-// cofre_ativos_tipo_check. Sem remoção de tipos existentes.
-//
-// Funções PURAS (sem DOM, sem rede, sem estado global) — é isso que torna
-// possível testar este arquivo isoladamente (ver tests/cofre-validacoes.test.js,
-// executável com `node tests/cofre-validacoes.test.js`, sem framework).
-//
-// Diretriz Arquitetural — Passo 2: este é o módulo mais "de baixo nível" da
-// pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
-// daqui, nunca o contrário.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.1 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '2.4.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.4.1'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }

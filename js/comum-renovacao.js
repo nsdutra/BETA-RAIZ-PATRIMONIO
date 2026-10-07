@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-renovacao.js — Raiz Patrimônio · Renovação e ampliação de plano por Pix
-// Versão: 1.3.3 · 03/10/2026
+// Versão: 1.3.4 · 07/10/2026
+//
+// v1.3.4 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.3.3 · 03/10/2026
 //
 // v1.3.3 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: "Enviar pela Raiz IA" / "no WhatsApp da Raiz IA" e
 // saudação nova da mensagem do comprovante (o bot não depende do nome no texto).
@@ -32,48 +38,12 @@
 // (ícone bot, abre o WhatsApp do R.AI.Z com o código da cobrança) — este só
 // aparece quando o R.AI.Z publicado já sabe receber comprovante (canal_raiz,
 // devolvido pelo banco). Ao fechar, a aba de Licença e as cotas recarregam.
-//
-// Versão anterior: 1.2.0 · 01/10/2026
-//
-// v1.2.0 — AJUSTES DO TESTE DO NICOLA (01/10, 13:32), só apresentação:
-// (1) cada opção ganha "Escolher ›" à direita; (2) linhas mais baixas: o anual
-// mostra "cheio riscado + preço" numa linha e a economia em texto verde curto
-// (sai a pílula), sub "12 meses, à vista" (o "pagamento à vista" cortava);
-// (3) nome do plano alinhado à esquerda com as linhas Mensal/Anual;
-// (4) aviso único no topo: quando vence (ou venceu) o plano atual, crédito do
-// que não foi usado na troca, valor final calculado ao escolher, "por enquanto
-// só Pix" — sai o rodapé; (5) na tela do Pix, "Voltar aos planos" no lugar de
-// "Fechar" (volta à lista, não à Licença); (6) subtítulo com o nome comercial.
-//
-// Versão anterior: 1.1.0 · 30/09/2026
-//
-// v1.1.0 — AJUSTES DO TESTE DO NICOLA (30/09, 20:37): (1) texto curto no topo
-// explicando o que muda entre os planos; (2) ofertas agrupadas por plano, com
-// a capacidade de cada um (ativos, contratos, pessoas, itens de controle,
-// perguntas à IA por mês, espaço no Cofre) lida de plano_funcionalidade —
-// nada escrito à mão, segue o que o banco diz; (3) nos anuais, preço cheio
-// (12 × o mensal do mesmo plano) riscado, preço à vista e "Economize R$ X (Y%)".
-// Só apresentação: valor e BR Code continuam vindo do banco (fn_licenca_cobranca_criar).
-//
-// Versão anterior: 1.0.0 · 30/09/2026
-//
-// v1.0.0 — CRIAÇÃO (demanda 1899fe67, ficha F10 v1.0.0, frente 1).
-// Tela em Sheet (única superfície modal — REGRAS §2) que:
-//   1. lista as ofertas de fn_ofertas_renovacao (renovação do plano atual,
-//      plano ampliado sugerido e upgrades), com nome e preço;
-//   2. ao escolher, chama fn_licenca_cobranca_criar — o VALOR e o BR CODE
-//      vêm do banco, nunca do navegador — e mostra QR + "Pix copia e cola",
-//      o código da cobrança (txid) e o crédito pró-rata quando houver;
-//   3. "Já paguei" chama fn_licenca_pagamento_informar; a confirmação é do
-//      Gestão (fn_gestao_pagamento_confirmar).
-// Se a cobrança anterior foi recusada, o motivo aparece em destaque.
-// Sem tabela, coluna ou função nova: consome só o que a F10 criou.
-// O QR é desenhado por qrcode-generator 1.4.4 (MIT), carregado sob demanda do
-// jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
-// continua funcionando sozinho.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '1.3.3'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.4'; // v-check (30/09/2026): lido por Dev › Versões — manter igual ao header
 
 const QR_URL = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
 let _qrPromessa = null;

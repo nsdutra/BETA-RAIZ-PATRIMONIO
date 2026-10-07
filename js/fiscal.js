@@ -1,6 +1,12 @@
 // ============================================================================
 // js/fiscal.js — Raiz Patrimônio · Fiscal (check-up da Reforma Tributária)
-// Versão: 1.5.0 · 25/09/2026
+// Versão: 1.5.1 · 07/10/2026
+//
+// v1.5.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.5.0 · 25/09/2026
 //
 // v1.5.0 (demanda d92a6dfc, pedido do Nicola 24/09 18:50 + decisão 25/09
 // "Restante de acordo. Pode implementar."): recebimento com bruto estimado
@@ -46,65 +52,12 @@
 // daquele recebimento (⋮ "Nota fiscal" do Financeiro, financeiro.js v1.23.0,
 // via window.abrirFiscalCompetencia do index.html v1.255.0). O mês pode vir
 // do alerta de notas pendentes (Motor, destino financeiro/fiscal).
-//
-// v1.1.0 (frente fiscal, Fase 5 — demanda 976fcbf6; decisão D7 do Nicola,
-// preparação em lote) — tela nova "Fiscal da competência" (section
-// tab-fiscal-competencia, aberta pelo botão Fiscal do Financeiro via
-// window.abrirFiscalCompetencia, index.html v1.254.0). Toda a regra vive no
-// banco: fn_fiscal_competencia (leitura) + fn_fiscal_documento_detalhe
-// (rascunho/DPS) + as RPCs da Fase 4 (preparar, registrar emitida, cancelar,
-// descartar, enviar ao contador, "não gera nota").
-//   · Voltar ao Financeiro, barra do mês (começa no mês do Financeiro,
-//     window.RZ_FIN_COMPETENCIA), cabeçalho "obrigatória desde …", quem
-//     emite (toque edita), aviso com o motivo quando o plano/perfil não
-//     inclui documentos fiscais.
-//   · 4 KPIs + "Preparar todos (N)" (D7) com confirmação e o resultado
-//     (criados/recusados com motivo).
-//   · Segmento Recebimentos · Notas · Cadastro (Cadastro abre o checklist
-//     fiscal atualizado, sem trocar a lista).
-//   · Ações por linha conforme o status fiscal; ações que gravam levam o
-//     código fiscal.documentos (cadeado + motivo pelo abrirSheetAcoes).
-//   · Rascunho da nota: campos da DPS na ordem do Emissor Nacional com
-//     "Copiar" por campo e "Copiar tudo"; itens; histórico.
-//   · Anexar XML da NFS-e: sobe o arquivo para o Cofre (categoria Nota
-//     fiscal, cofre-api.js) e chama a Edge cofre-extrair-documento 1.9, que
-//     registra/casa a nota. Exige também cofre.upload (regra do Storage).
-//   · fiscalEditarResponsavel ganha o parâmetro `depois` (redesenha a tela
-//     de onde foi chamado).
-//
-// v1.0.1 — card Emissão: sem contador cadastrado, a linha "Contador" abre
-// direto o cadastro já como Contador (window.abrirCadastroContador,
-// index.html v1.253.0); com contador, continua levando a Partes.
-//
-// v1.0.0 (frente fiscal, Fase 3 — demanda 976fcbf6; decisões D1 e D3 do
-// Nicola, 23/09/2026) — tela secundária ⚙️ › Empresa › Fiscal. Fatia lazy
-// (carregada por carregarFiscal() no index.html na 1ª abertura), sem
-// carregar*Supabase: toda a regra vive no banco.
-//   · Card "Resultado do check-up": PJ = prontidão para a NFS-e (data por
-//     regime + pendências); PF = resumo dos titulares.
-//   · Card "Titulares" (PF): 1 linha por pessoa proprietária, com status
-//     (Abaixo do limite · Atenção · Possível enquadramento). Tocar abre os
-//     4 blocos de texto: regra, estimativa do sistema, orientação e quando
-//     validar com o contador.
-//   · Card "Dados que faltam": o que o check-up não conseguiu ver.
-//     "Pendências de cadastro" abre o Checklist fiscal (fechamento.js).
-//   · Card "Emissão": quem emite a nota (clientes.fiscal_responsavel_emissao),
-//     contador cadastrado em Partes (fn_contadores_empresa) e a rotina
-//     "NFS-e da competência".
-//   · ⋮: "Registrar check-up" (grava o retrato imutável — fechamento_snapshot,
-//     bloco checkup_fiscal), "Ver regras usadas" (versão e fonte de cada uma)
-//     e a troca do ano analisado (este ano ⇄ próximo).
-//   · Frase fixa no rodapé: "Calculado só com o que está no Raiz…".
-// Fonte única: fn_fiscal_checkup / fn_fiscal_checkup_historico (porta
-// fiscal.checkup: plano + perfil). Nunca afirma obrigação — "valide com seu
-// contador" sempre visível no resultado amarelo/vermelho.
-//
-// ESTADO GLOBAL LIDO: dbAuth, CLIENTE_ID_SUPABASE, pessoaIdLogada, rzMostrarBloqueio, rzEsc, renderStatus,
-// abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
-// mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '1.5.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.5.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 const FIS_ROTULO_RESULTADO = {
     verde: { sem: 'ok', txt: 'Abaixo do limite' },

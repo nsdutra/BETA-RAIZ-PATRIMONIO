@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.316.0) — vínculos encerrados (plano aprovado pelo Nicola 07/10 02:31). Chips
+Partes do contrato (contratos.js 1.43.0) e do item de controle (cofre-controles.js 1.48.0) mostram
+o grupo "Encerrados", com a data; o ⋮ de um encerrado oferece Reativar e Excluir. Ficha da parte:
+chip só "Encerrado" (a data vai para a linha de baixo — o chip largo espremia o nome) e Reativar
+no ⋮ dos encerrados. Banco (migration parte_vinculos_v3): fn_vinculo_reativar (fiador volta ao
+contrato com RG, cônjuge e imóvel guardados no encerramento, coluna partes_papeis.dados_origem);
+limpeza dos 6 inativos antigos sem data. Import map: contratos 1.43.0, cofre-controles 1.48.0.
+Versão anterior (Beta v1.315.2):
+------------------------------------------------------------------
+Versões anteriores (v1.315.2 … v1.315.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.315.2) — leitura com IA: expectativa de tempo realista (pedido do Nicola 07/10
 02:26). "De 20 s a 1 min"; depois de 1 min, "documento longo, até 2 min"; limite antes de
 "Interrompida" 150 s. Só import map: cofre-documentos 2.30.0.

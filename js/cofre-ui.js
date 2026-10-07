@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ui.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.7.0 · 04/10/2026
+// Versão: 1.7.1 · 07/10/2026
+//
+// v1.7.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.7.0 · 04/10/2026
 //
 // v1.7.0 (F1.1, teste 3 reprovado pelo Nicola 04/10 08:41, demanda c5d844a4, sessão 20261003-1707-ux-base) — escolher(): escolha em lista (rzEscolher do
 // js/raiz-ui.js) para o Cofre; fechar sem escolher devolve null. No cofre.html avulso (sem
@@ -30,36 +36,11 @@
 // háptico), não o do index.html. mostrarToast passa a delegar ao toast único
 // do app quando roda dentro dele (window.mostrarToast); no cofre.html avulso
 // continua com o #toast local. Mesma assinatura, mesmo texto.
-//
-// v1.3.1 (demanda c7c0cc6f, achado do Nicola testando o item 6/CIB) —
-// #modal-generico (modalGenerico()) ganhou z-index PRÓPRIO (460, faixa
-// "Confirmação genérica" do DESIGN_SYSTEM §5). Antes, dependia só da
-// classe .modal-overlay (compartilhada com os formulários/sheets do
-// Cofre, ativos-markup.js), cujo z-index é 96 — valor LEGADO, aposentado
-// no próprio DESIGN_SYSTEM (65/70/95/96, "antigos popups Tipo A/B/C").
-// Com os 2 no mesmo z-index, quem ficava por cima dependia só da ordem
-// no DOM — por isso o modal do CIB abria por baixo do formulário de
-// imóvel aberto e ficava inacessível. z-index inline sempre vence a
-// classe compartilhada (especificidade CSS), então não depende de
-// ordem de inserção no DOM nunca mais.
-//
-// v1.3.0 (pedido explícito, 01/09/2026: "apenas um modal deve ser
-// aberto por vez") — abrirModal() passou a fechar qualquer outro
-// .modal-overlay que já estivesse aberto antes de abrir o novo. Antes,
-// nada impedia 2+ modais ficarem abertos ao mesmo tempo se um fluxo
-// disparasse um modal de dentro de outro sem fechar o anterior
-// primeiro.
-//
-// v1.2.0 — D-2 (revisão DS): chipStatusVinculoHtml() migrada pro badge
-// oficial §14 (BADGE_NEUTRO/BADGE_PENDENTE/BADGE_OK, importados de
-// cofre-validacoes.js) — removido prefixo "chip " (classe já vem
-// completa). Sem mudança de comportamento.
-//
-// Helpers de DOM reutilizáveis: toast, abrir/fechar modal, troca de aba
-// genérica, template de card, indicador de "liga/desliga" (Design System
-// v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
-// ============================================================================
-export const VERSAO = '1.7.0'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.2.0 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
+export const VERSAO = '1.7.1'; // v-check (03/10/2026): lido por Dev › Versões — manter igual ao header
 import { escapeHtml, BADGE_NEUTRO, BADGE_PENDENTE, BADGE_OK } from './cofre-validacoes.js';
 
 // v1.5.0 — aviso de erro dentro do formulário (UXR-29/35): texto + leitor de

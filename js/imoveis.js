@@ -1,7 +1,13 @@
 // ============================================================================
 // imoveis.js — Raiz Patrimônio · Imóveis (lista · ficha · formulário ·
 //               fotos do Cofre · seletor · status/step do cadastro)
-// Versão: 1.7.0 · 04/10/2026
+// Versão: 1.7.1 · 07/10/2026
+//
+// v1.7.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.7.0 · 04/10/2026
 //
 // v1.7.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 11 alert() e 3 confirm() viram
 // rzAvisar/rzPerguntar/rzResumo. Excluir imóvel em Sheet com item vermelho; remover foto
@@ -28,93 +34,12 @@
 // v1.56.0 — b46e30fa). renderImoveis() é a única chamadora e só roda pela
 // tab-imoveis, hoje redirecionada pra tab-ativos no roteador (index.html) —
 // tela morta, prioridade baixa, mas o padrão certo não custa manter.
-//
-// v1.5.1 — CORRIGIDO (QUA-01 — mesmo bug achado em contratos.js v1.13.1,
-// reportado por Nicola): box Financeiro da Ficha do imóvel ordenava
-// mensalidadesDoImovel comparando a string bruta "referencia" (formato
-// "MM/YYYY") com localeCompare, agrupando por mês (todo "12/*" antes de
-// todo "11/*") em vez de decrescente real por competência. Fix: chave
-// "AAAAMM", mesmo padrão do fix em contratos.js. Client-side only.
-//
-// v1.5.0 — PAREI DE CHUTAR. Este bug ("Editar dados do imóvel não abre")
-// já me enganou 3 vezes: cada tentativa corrigiu um problema real, mas
-// nenhuma era A causa. O motivo de eu errar sempre: qualquer exceção no
-// meio da população dos ~20 campos matava a função ANTES da linha que
-// exibe o modal — em silêncio absoluto, sem erro no console visível pro
-// usuário. Agora: o preenchimento foi extraído pra
-// preencherCamposFormularioImovel() e roda dentro de try/catch — se
-// estourar, o erro REAL aparece na tela; e o modal abre MESMO ASSIM,
-// porque campo não preenchido é muito menos grave que tela que não abre.
-// Se ainda falhar, o próximo teste finalmente dirá o motivo.
-// (resetStepsImovel saiu do caminho — é no-op desde a v1.47.0, conferido.)
-//
-// v1.4.0 — CAUSA RAIZ do "Editar dados do imóvel não abre", enfim achada
-// (3ª tentativa; as 2 anteriores corrigiram problemas reais, mas não ESTE).
-// renderPreviewFotosImovel() fazia previewContainer.innerHTML direto num
-// container que EU MESMO removi do formulário no A.9 (v1.163.0, corte do
-// upload base64) — e editarImovel() chama essa função ANTES de tirar o
-// 'hidden' do modal. Resultado: a execução morria no meio, sem erro
-// visível, e a tela nunca aparecia. Na v1.163.0 eu tinha tornado 2 outros
-// usos do mesmo id null-safe e deixei passar justamente o que estava no
-// caminho crítico. Varri os 71 ids que este módulo referencia contra o
-// index.html pra achar outros iguais — os demais órfãos estão em telas
-// mortas ou já protegidos.
-//
-// v1.3.0 — BUG REAL: o bug do "Editar dados do imóvel" PERSISTIA depois do
-// fix da v1.2.0 (esse estava certo, mas resolvia outra coisa). Causa real:
-// rzMoverFormImovelParaBody() — que move o formulário pro <body>, chamada
-// DIRETO NO BOOT do index.html, antes de qualquer interação — tinha vindo
-// pra cá na extração do A.8 por engano. Uma função de boot dentro de um
-// módulo lazy nunca roda a tempo. Voltou pro index.html (mesma categoria
-// dos 4 carregar/sincronizar de antes, só que essa eu não tinha visto).
-//
-// v1.2.0 — BUG REAL achado pelo Nicola: "Editar dados do imóvel" (a partir
-// do Ativo, via abrirGestaoImovel em cofre-ativos.js) não abria nada, sem
-// nenhum aviso. Causa: editarImovel(id) procurava no array `imoveis`
-// (carregado pelo boot do index.html) e retornava em silêncio se não
-// achasse — corrida real entre esse boot e o boot independente do Cofre/
-// Ativos. Agora recarrega uma vez antes de desistir, e avisa com toast se
-// mesmo assim não achar. Não é bug de ponte (a ponte window.editarImovel
-// do A.8 está correta) — é timing de dado.
-//
-// v1.1.0 — BUG REAL achado pelo Nicola (boot travava: "Falha ao buscar
-// imóveis: Failed to fetch dynamically imported module"). Causa: a v1.0.0
-// tinha levado carregarImoveisSupabase/sincronizarImovelSupabase/
-// sincronizarImoveisSupabase/carregarTiposImovelSupabase junto — mas esses
-// 4 são a camada de DADO/BOOT, não de tela, e o app carrega o array
-// `imoveis` antes da primeira renderização. Voltaram pra index.html — mesmo
-// padrão que contratos.js/minutas.js/financeiro.js já seguiam (nunca
-// levaram seus carregar*Supabase/sincronizar*Supabase, só a UI). 47 funções
-// ficam aqui, as 4 de dado saíram.
-//
-// R8 — FRAGMENTAÇÃO, FATIA 5 (A.8), combinada com o Nicola em 10/09/2026 como
-// parte do caminho B (imóveis → ativos): mesmo método de contratos.js/
-// vitrine.js/minutas.js/financeiro.js — ES module SOB DEMANDA via import()
-// no switchTab, pontes window[nome] no index pra quem chama de fora,
-// rzImoSeCarregado() nos ganchos de recarga (saveAll etc., pra não forçar o
-// import só por causa de um save em outra aba).
-//
-// ESTADO GLOBAL LIDO/ESCRITO DAQUI: imoveis, contratos, mensalidades,
-// pessoas, tiposImovelCadastrados, empreendimentosCadastrados, dbAuth,
-// CONFIG_CLIENTE, CLIENTE_ID_SUPABASE, pessoaIdLogada, fichaImovelAtualId,
-// imoveisFiltroAlertaContrato. Não redeclarado aqui — mesma convenção das
-// fatias anteriores (script clássico e módulo compartilham o Global
-// Environment Record; ver contratos.js para a mesma nota).
-//
-// 51 funções movidas verbatim (extração por balanceamento de chaves,
-// conferida função a função — 0 sobreposição, 0 corte no meio). Nenhuma
-// lógica mudou nesta fatia; só o "onde mora o código". valor_previsto/
-// parcelas do A.10 e a publicação real de vitrine do A.9 já estavam
-// aplicados nas versões anteriores e vieram junto sem alteração.
-//
-// PENDENTE (próximo passo do caminho B, passo 4): ainda lê `imoveis.fotos`
-// puro em vários pontos (lightbox, miniatura do card) — só mostra o que
-// está publicado na vitrine, não todas as fotos do Cofre; e `contratos`
-// ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
-// fatia de Contratos migrar (passo 4), não escopo desta entrega.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.5.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '1.7.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.7.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 
         export function abrirSeletorImovel(callback, permiteTodos) {

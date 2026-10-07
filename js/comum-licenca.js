@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.5.1 · 01/10/2026
+// Versão: 1.5.2 · 07/10/2026
+//
+// v1.5.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.5.1 · 01/10/2026
 //
 // v1.5.1 — pedido do Nicola (01/10): a lista "Limites do plano" deixa de ter
 // rolagem própria (max-h-96 overflow-y-auto saiu); a tela rola inteira.
@@ -49,67 +55,12 @@
 // nome_comercial ali; cota_tipo agora deriva de id_categoria (que já vem
 // de plano_funcionalidade) + comercial.categoria_licenca.item, com a
 // MESMA regra que fn_funcionalidades_liberadas usa no banco.
-//
-// Versão anterior: 1.3.0 · 07/09/2026
-//
-// v1.3.0 — E.3.1: cada limite mostra o tipo de cota (no mês / em uso / MB),
-// lido de funcionalidades.cota_tipo (E.3), e o número fica âmbar a partir de
-// 80% e vermelho no limite. fn_verificar_limite já conta por tipo desde a
-// migration e3_cota_tipo_e_uso_por_tipo_v1 — aqui só o rótulo mudou.
-//
-// Versão anterior: 1.2.1 · 06/09/2026
-//
-// v1.2.1 — constante VERSAO sincronizada com o header (estava presa em uma
-// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
-// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
-// trava a entrega se header ≠ VERSAO.
-//
-// Versão anterior: 1.2.0 · 06/09/2026
-//
-// v1.2.0 — gramática (REGRAS §6): caixa alta fora ("Plano atual", "Limites do plano"),
-// cards .rz-card com .rz-card-h, rótulos em sentence case. Lógica intocada.
-//
-// v1.1.0 — pedido explícito: "resolva as pendências de cores listadas".
-// 3 usos de emerald-* trocados: barra de uso (era bg-emerald-500, é
-// status semântico — DS §14 — virou var(--success), par de
-// var(--danger)/var(--warning) que os outros 2 estados já usavam
-// hardcoded fora de token também, corrigidos junto); nome do plano e
-// status viraram var(--pine).
-//
-// v1.0.0 — PRIMEIRA VERSÃO. Extraído de index.html (Beta v1.63.0 —
-// inicializarLicenca()/carregarLicencaAtual()) pra módulo compartilhado —
-// pedido explícito do usuário: Pessoas/Minha Empresa/Licença/Sobre são
-// telas de ADMINISTRAÇÃO DO CLIENTE (empresa), não do módulo Imóveis —
-// hoje moram só dentro de index.html, mas o Cofre (e módulos futuros)
-// também precisam delas. Em vez de duplicar HTML/lógica em cada app (o
-// que index.html v1.62.3 já vinha evitando com um deep-link pra cá —
-// ?ir=tab-licenca — como remendo temporário), este módulo vira a ÚNICA
-// fonte: qualquer host importa e chama montarAbaLicenca(). Começando por
-// Licença e Sobre (menos funções/elementos); Pessoas e Minha Empresa
-// ficam pra uma próxima rodada, mesmo padrão.
-//
-// MUDANÇA DE CONCEITO nesta extração (não é só mover código de lugar):
-// a versão antiga buscava só a licença do módulo 'imoveis', hardcoded
-// (`.eq('modulo', 'imoveis')` em 3 pontos diferentes de index.html).
-// Essa tela agora é de administração GERAL do cliente, então busca TODAS
-// as licenças do cliente_id, sem filtro de módulo. Confirmado contra o
-// banco ao vivo (Supabase MCP, 26/08/2026): hoje são 10 clientes com
-// licença só de 'imoveis' e 1 cliente com 'imoveis'+'gestao' — ou seja,
-// pra quase todo mundo o resultado visual continua sendo exatamente 1
-// card, idêntico a antes. Mas quando o Cofre (ou outro módulo futuro)
-// ganhar sua própria linha em `licencas`, ela aparece aqui sozinha, sem
-// precisar tocar neste arquivo de novo.
-//
-// Diretriz Arquitetural (mesma já usada no Cofre — ver cofre-api.js, e
-// em comunicacoes-app.js dentro do próprio index.html): este módulo NÃO
-// cria seu próprio cliente Supabase. Recebe `dbAuth` (o client já
-// autenticado do app hospedeiro) por parâmetro em toda função — evita
-// abrir uma 2ª sessão/round-trip de auth dentro da mesma página. Quem
-// hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
-// COMO obtém esse client; este arquivo só usa o que recebe.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '1.5.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.5.2'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------

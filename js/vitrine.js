@@ -1,7 +1,13 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.3.3 · 04/10/2026
+// Versão: 1.3.4 · 07/10/2026
+//
+// v1.3.4 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.3.3 · 04/10/2026
 //
 // v1.3.3 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: os alert() viram rzAvisar/rzResumo.
 //
@@ -24,73 +30,14 @@
 // para coleta de dados" e "Abrir WhatsApp com os dados pedidos"; "Conferir
 // minuta padrão" e "Gerar minuta" continuam só com minuta, e o grupo "Sem
 // minuta padrão cadastrada" segue oferecendo o cadastro.
-//
-// v1.2.2 (demanda 11afd25f, pedido do Nicola: "deve apagar a opção dentro do
-// link da minuta pois já tem a opção num passo antes") — o menu de Locação
-// (abrirModalOpcoesContratacao) perde "Dados novo contrato": cadastrar na tela
-// agora é escolhido antes, em "Novo contrato" (contratos.js 1.28.0,
-// abrirEscolhaNovoContrato com o imóvel), e abre o formulário único. Este menu
-// fica só com o que é dele: link de coleta, WhatsApp e minuta.
-//
-// v1.2.1 (demanda 303e68dc, achado do piloto — Claudia, 28/09/2026):
-// iniciarProcessoContratacao() (bridge da opção "Contratação: link,
-// WhatsApp e minuta" do menu de 3 pontos do ativo) ganha 1 retentativa:
-// mesmo problema do criarContratoParaImovel() em contratos.js v1.23.1 —
-// `imoveis` pode não refletir ainda um ativo recém-criado. Antes,
-// `if (!imo) return;` falhava em silêncio — é o caminho mais provável do
-// relato "clica na opção, mas não funciona o link" (esta função é quem
-// monta o link/WhatsApp/minuta). Sem mudança de banco.
-//
-// v1.2.0 — pendência 46dc7300: iniciarProcessoContratacao() grava
-// ativo_id em processos_contratacao (coluna nova), não mais imovel_id
-// (FK real pra imoveis.id, que não batia mais com o id que este array
-// carrega desde o único caminho de escrita da Onda 12 — quebrava pra
-// qualquer imóvel). Testado ponta a ponta no banco antes de entregar.
-//
-// v1.1.0 — Onda 12, E15.3 (pedido explícito, 16/09/2026: "siga direto pra
-// apontar a vitrine pra tabela de ativos"). Linha "Condomínio: R$ X | IPTU:
-// R$ Y" removida dos 2 cards (renderVitrine — aba interna — e
-// verificarFiltroVitrineExterna — página pública): os dois campos já
-// viraram item de controle automático (E8), não são mais dado do imóvel.
-// A fonte de dados da página pública em si mudou em index.html
-// (resolverVitrinePublicaSupabase, v1.188.1) — este arquivo não fala com o
-// banco diretamente, só recebe o objeto pronto; nenhuma query aqui mudou.
-//
-// R8 — FRAGMENTAÇÃO, FATIA 4 (A.8). Quarto corte do index.html (Beta
-// v1.143.0), mesmo método das fatias 1–3: ES module SOB DEMANDA, pontes
-// window[nome] no index, rzVitSeCarregado() nos ganchos de recarga.
-//
-// O QUE MORA AQUI: aba Vitrine (renderVitrine, busca, gerar link de 1 ou N
-// imóveis), modo público ?v=<token> (verificarFiltroVitrineExterna — troca o
-// <body> inteiro pela vitrine, lightbox de fotos, sair), modo público
-// ?contratar=<token> (iniciarModoContratacaoPublica, validação e envio do
-// formulário do interessado), início do processo de contratação a partir do
-// imóvel/ativo (iniciarProcessoContratacao, abrirModalOpcoesContratacao) e o
-// resumo pro WhatsApp (copyResumo).
-//
-// COMO É CHAMADO: switchTab('tab-vitrine') → montarAbaVitrine(); boot público
-// (window.onload) importa o módulo ANTES de seguir quando a URL tem ?contratar
-// ou ?v/?viewShowcase — a vitrine pública nunca deixa o visitante ver o login,
-// então o import é aguardado (await) e só então o boot continua, igual ao
-// comportamento anterior. Sem parâmetro público, o módulo não é baixado.
-// cofre-ativos.js chama window.gerarVitrineDoImovel/iniciarProcessoContratacao
-// (pontes). Ficha antiga do imóvel usa copyResumo/iniciarProcessoContratacao
-// por onclick (pontes).
-//
-// O QUE FICOU NO index.html: dados (`processosContratacao`, links_vitrine —
-// carregar/criar/apagar/resolverVitrinePublicaSupabase, usados no boot e no
-// Dev), validarCNPJ (Partes e contrato também usam), banner de contratação
-// do PLANO (mostrarBannerContratacao — é licença, não vitrine), HTML das
-// telas públicas e da aba (sai com a gramática).
-//
-// ESTADO GLOBAL LIDO: imoveis, contratos, processosContratacao, CONFIG_CLIENTE,
-// CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
-// Indentação de origem mantida. Strict verificado.
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.2.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.3.3'; // v-check: manter igual ao header
+export const VERSAO = '1.3.4'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {

@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.204.0 · 04/10/2026
+// Versão: 1.204.1 · 07/10/2026
+//
+// v1.204.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.204.0 · 04/10/2026
 //
 // v1.204.0 (04/10/2026, sessão 20261004-1245-financeiro, demanda f3e6cd27 — P4a,
 // aprovada pelo Nicola 12:43) — contas da pessoa: card "Contas" na ficha e ação
@@ -42,204 +48,12 @@
 //      local — só essa também ganhou o mesmo toggle com salvamento
 //      imediato (a Raiz não se aplica a conta de terceiro, então essa
 //      seção não entra aqui, só os avisos/alertas).
-//
-// Versão anterior: 1.200.0 · 18/09/2026
-//
-// v2.0.0 (COMUM_PESSOAS_VERSAO) / v1.200.0 (VERSAO, header) — pedido
-// explícito do Nicola (18/09/2026): "A tela de pessoas ficou no formato
-// antigo de leiaute, fora do padrão. Deve ser totalmente reescrita."
-// REESCRITA TOTAL da camada de apresentação (render + interação). A
-// camada de dados NÃO mudou — listarPessoas/buscarModulosPorPerfil/
-// buscarProativasDisponiveis/buscarPreferenciasComunicacao/
-// FREQUENCIA_OPCOES continuam com a mesma consulta e o mesmo formato de
-// retorno (index.html "Minhas notificações", linha ~9219, importa 3
-// delas direto — contrato preservado).
-//
-//   SAIU (gramática antiga, herdada do app-dev original, Tipo A):
-//   - Cartão com expansão inline (toggle .hidden) + <input> nativos
-//     sempre no DOM → virou Sheet de formulário (abrirFormPessoaSheet),
-//     mesmo padrão do módulo Partes (index.html, abrirFormParteSheet).
-//   - Botão único "Salvar pessoas" salvando TODOS os cartões de uma vez
-//     (já apontado como frágil no changelog do v1.2.0 desta mesma
-//     versão anterior — um re-render externo podia descartar edição não
-//     salva) → cada pessoa salva por si, ao tocar "Salvar"/"Cadastrar"
-//     no próprio Sheet. Sem "linha fantasma" pra pessoa nova: o "+"
-//     abre o Sheet de nova pessoa direto — só existe 1 tipo de cadastro
-//     aqui, mesmo padrão do "+" de Partes (não precisa de Sheet de
-//     ações antes, só faz sentido pra "+" com mais de 1 opção, como em
-//     Financeiro).
-//   - Lápis/lixeira redondos (v1.4.0) e ⋮ solto → toda ação mora agora
-//     no ⋮ único da linha (abrirAcoesPessoa · Sheet de ações), incluindo
-//     Editar — "não existe terceiro ícone" (REGRAS_EXPERIENCIA §8).
-//   - Badges de módulo (Imóveis/Cofre/Gestão) em cor Tailwind crua
-//     (bg-blue-50 etc., achado antigo de UI/cor) saíram da linha (linha
-//     não tem espaço pra chip por design, §8) e viraram texto dentro da
-//     Ficha (.rz-kv "Acesso a módulos").
-//   - Seção "Comunicações (avisos automáticos)" inline + botão de salvar
-//     próprio (v1.1.0/v1.2.0) → Sheet de formulário dedicado
-//     (abrirComunicacoesPessoaSheet), aberto pelo ⋮. Mesma consulta e
-//     mesma gravação em pessoa_preferencias_comunicacao, zero mudança
-//     de dado.
-//   - "Acessos recentes" (div colapsável, v1.7.0) → Sheet de leitura
-//     dedicado (abrirAcessosPessoaSheet), mesmo carregarAcessosDaPessoa
-//     lazy de sempre (LGPD — minimização, só busca ao abrir).
-//   - alert()/confirm()/prompt() nativos saíram de quase todo fluxo —
-//     ficaram só os confirm() dos 2 DELETEs irreversíveis (excluir
-//     pessoa, remover acesso), mesmo padrão aceito em excluirParte()
-//     (index.html) pra ação destrutiva real.
-//
-//   NOVO — linha da lista (.rz-row), igual ao padrão de Partes: ícone
-//   (user · shield-check se master) · nome · "Perfil · função" (1 fato +
-//   1 contexto, §8) · toque na linha abre a Ficha (abrirFichaPessoa,
-//   Sheet de leitura com .rz-card/.rz-kv), ⋮ abre o Sheet de ações.
-//
-//   ACHADO DE GOVERNANÇA (registrado, não corrigido nesta entrega —
-//   fora do escopo de "reescrever a tela de Pessoas do App"):
-//   cofre.html é página HTML separada (não carrega o <script> do
-//   index.html) e NÃO define abrirSheet/abrirSheetAcoes/abrirSheetForm/
-//   podeUsar/renderStatus — mesma lacuna já documentada no próprio
-//   changelog de cofre.html v1.25.9 pra outras classes .rz-*. Este
-//   módulo é compartilhado (montarPessoasCofre() em js/cofre-app.js
-//   também o monta): dentro do Cofre standalone, toda ação que dependa
-//   de Sheet (editar dados, perfil, comunicações, acessos recentes,
-//   criar/vincular/remover acesso, e a própria Ficha de leitura) mostra
-//   o mesmo aviso "Ações disponíveis só dentro do app principal." que
-//   cofre-controles.js/cofre-ativos.js/cofre-documentos.js já usam pras
-//   próprias ações Sheet-dependentes — NÃO é regressão desta entrega, é
-//   o mesmo padrão de degradação já aceito no resto do Cofre (ver
-//   demanda nova registrada nesta entrega). A lista de pessoas continua
-//   visível lá. ctx continua 100% retrocompatível: nenhum campo novo
-//   obrigatório, o call site do Cofre não muda.
-//
-// Versão anterior: 1.199.0 · 17/09/2026
-//
-// v1.7.0 (COMUM_PESSOAS_VERSAO) / v1.199.0 (VERSAO, header) — bc9df144,
-// item 2 (17/09/2026): "aba Pessoas" ganha auto-filtro. ctx novo e todo
-// OPCIONAL (pessoaId/autoFiltro/podeVerTodas/carregarAcessosDaPessoa) —
-// call site do Cofre (js/cofre-app.js, montarPessoasCofre) não passa
-// esses campos e continua exatamente como estava, sem autoFiltro.
-//   - autoFiltro=true (App > Conta > Pessoas, novo call site em
-//     index.html): por padrão renderLista() mostra só a pessoa cujo id é
-//     ctx.pessoaId; quem tem podeVerTodas=true (calculado no host a
-//     partir do codigo pessoas.ver_todas — perfil master da própria
-//     empresa) vê todo mundo, com as mesmas regras de sempre (master
-//     oculto de quem não é master).
-//   - "+" (nova pessoa) e o rótulo do botão de salvar só aparecem/mudam
-//     quando podeGerenciarOutras (= !autoFiltro || podeVerTodas) — no
-//     modo "só eu" não faz sentido cadastrar outra pessoa.
-//   - Novo atalho "Acessos recentes" por pessoa (acessosRecentesHtml()),
-//     lazy (só busca ao expandir — minimização de dados, LGPD): usa o
-//     callback ctx.carregarAcessosDaPessoa(pessoaId), que o host injeta
-//     reaproveitando a MESMA consulta de log_acessos que alimentava a
-//     extinta tela "Logs do Sistema" do app-dev — nenhuma lógica de
-//     consulta nova, só um ponto de entrada por pessoa em vez de
-//     multi-pessoa com filtros.
-//   - Esta seção só aparece quando ctxUi.autoFiltro é true — o Cofre
-//     nunca a vê.
-//
-// v1.6.0 — MOTOR CENTRAL DE ALERTAS, Fase 5: buscarProativasDisponiveis(),
-// buscarPreferenciasComunicacao() e FREQUENCIA_OPCOES viram export — a
-// tela nova "Minhas notificações" (index.html, menu Conta) reaproveita a
-// MESMA consulta de licença×proativa e o MESMO mapa de preferências que
-// esta tela já usa, em vez de reimplementar. Nenhuma lógica mudou aqui,
-// só a visibilidade das 3 declarações.
-//
-// v1.5.1 — constante VERSAO sincronizada com o header (estava presa em uma
-// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
-// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
-// trava a entrega se header ≠ VERSAO.
-//
-// v1.5.0 (A.5) — perfil escolhido em sheet a partir da tabela perfis (protegido só pra master);
-// os 2 prompt() de perfil saíram. Nenhum nome de perfil chumbado no fluxo.
-//
-// v1.4.0 — gramática: ⋮ por pessoa (Editar/Remover com código do catálogo → cadeado por perfil)
-// no lugar de lápis/lixeira redondos; título sem h2; + e Salvar no catálogo; perfil em
-// sentence case. Lista de perfis do prompt continua (próxima leva).
-//
-// v1.3.1 — podeEditarPerfil lê podeUsar('pessoas.editar'). Lista de perfis do
-// prompt e proteção do master ficam pro roteiro #6 (sheet + perfis.protegido).
-//
-// v1.3.0 — pedido explícito: "resolva as pendências de cores listadas".
-// 9 usos de emerald-* trocados por token: 2 pares bg-emerald-50/text-
-// emerald-700/border-emerald-200 (botões leves) → var(--sprout-light)/
-// var(--pine)/var(--sprout); 2 bg-emerald-600 (ação principal) →
-// var(--pine); 1 text-emerald-900 (título "Pessoas") → var(--pine) —
-// mesmo hex oficial da marca, Tailwind emerald-900 (#064e3b) não bate
-// exatamente com --pine (#1e3a32), por isso vale trocar mesmo em uso
-// já "certo" visualmente.
-//
-// v1.2.0 (28/08/2026) — BUG REAL corrigido, reportado pelo Nicola: a
-// seção de comunicações deixava clicar no checkbox/escolher frequência,
-// mas nada era salvo. Causa: só existia UM caminho de salvamento (o botão
-// "Salvar Pessoas" lá embaixo, fora da seção), que grava TUDO de uma vez
-// (nome/e-mail/whatsapp/perfil/avisos de todos os cards). Clicar num
-// checkbox muda o estado visual na hora (comportamento normal do
-// navegador), dando a impressão de que já "pegou" — mas sem lembrar de
-// rolar até o botão distante e clicar, nada persiste. Pior: qualquer
-// re-render externo da aba (dev_renderPessoas, chamado por outras
-// rotinas do app) reconstrói a lista inteira a partir do banco,
-// descartando silenciosamente qualquer edição ainda não salva. Corrigido
-// com um botão "Salvar avisos desta pessoa" dentro da própria seção —
-// salva só aquilo, na hora, com feedback próprio — sem depender do botão
-// de baixo nem do risco de um re-render apagar a edição no meio do
-// caminho.
-//
-// v1.1.0 (28/08/2026) — NOVO, pedido explícito do Nicola: seção
-// "Comunicações (avisos automáticos)" dentro do cadastro de cada pessoa —
-// habilitar/desabilitar, por pessoa, quais avisos proativos ela recebe
-// via WhatsApp e em qual frequência (diário/semanal/quinzenal/mensal/
-// trimestral).
-//
-//   - Escopo = funcionalidades.tipo='proativa' AND ativo=true (conferido
-//     contra o banco: 7 cadastradas, 5 ativas — batem exatamente com os
-//     5 templates Meta já aprovados). Todas as 7 já tinham `descricao`
-//     preenchida — usada como texto explicativo do escopo de cada uma,
-//     mostrado direto pra pessoa (pedido explícito: "o escopo da função
-//     deve aparecer ao usuário").
-//   - Filtrado pela LICENÇA do cliente (licencas × plano_funcionalidade)
-//     — só aparece pra configurar o que a empresa realmente contratou.
-//     Mesmo raciocínio de clienteTemFuncionalidadeLicenca() no bot,
-//     portado pra JS aqui (3 consultas + join, mesmo estilo de
-//     buscarModulosPorPerfil, sem RPC nova).
-//   - Nova tabela `pessoa_preferencias_comunicacao` (migration
-//     pessoa_preferencias_comunicacao_v1, 28/08/2026) — mesmo padrão de
-//     RLS/grants de `pessoas` (tabela irmã direta).
-//   - Sem WhatsApp cadastrado na pessoa: seção continua aparecendo (não
-//     trava), mas mostra aviso de que os envios não chegam até
-//     preencher o número.
-//   - Pessoa ainda não salva (sem id): seção mostra "salve primeiro",
-//     mesmo padrão já usado pra "criar acesso".
-//
-// v1.0.0 — PRIMEIRA VERSÃO. Extraído de index.html (dev_renderPessoas()/
-// dev_salvarPessoas()/dev_removerPessoa()/dev_criarAcessoParaPessoa()/
-// dev_vincularLoginPessoa()/dev_desvincularLoginPessoa(), Beta v1.64.0)
-// pra módulo compartilhado — pedido explícito: "faz também Minha Empresa
-// e Pessoas, incluindo os acessos no módulo de imóveis e cofre".
-//
-// SOBRE "INCLUINDO OS ACESSOS" — leitura importante antes de usar isto:
-// hoje o controle de acesso do sistema é por PERFIL (pessoas.perfil →
-// perfil_funcionalidade → funcionalidades), não por pessoa individual.
-// Ou seja, toda pessoa com o mesmo perfil (ex.: "operador") tem
-// EXATAMENTE o mesmo acesso a módulos — não existe hoje um jeito de dar
-// Cofre pra uma pessoa "operador" e negar pra outra "operador" da mesma
-// empresa. O badge/campo "Acesso a módulos" mostra, por pessoa, quais
-// módulos o PERFIL dela libera — calculado ao vivo a partir de
-// perfil_funcionalidade + funcionalidades.area, nunca hardcoded. Editar
-// o "Perfil de acesso" de uma pessoa continua sendo o único jeito de
-// mudar o acesso dela.
-//
-// Diretriz Arquitetural: não cria seu próprio cliente Supabase pra
-// leitura/escrita de conta — recebe `dbAuth` já autenticado do host, por
-// parâmetro (ver nota completa em comum-licenca.js). Exceção pontual:
-// criarAcessoPessoa() precisa de um 2º client TEMPORÁRIO, isolado
-// (persistSession:false), pra criar o login de outra pessoa sem
-// sobrescrever a sessão de quem está usando a tela. Usa a mesma URL/anon
-// key pública já hardcoded em cofre-api.js (é chave pública, protegida
-// por RLS no banco — não é segredo, mesmo padrão já replicado nesse
-// outro arquivo).
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v2.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '1.204.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.204.1'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0

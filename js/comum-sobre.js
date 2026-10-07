@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-sobre.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.3.0 · 13/09/2026
+// Versão: 1.3.1 · 07/10/2026
+//
+// v1.3.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.3.0 · 13/09/2026
 //
 // v1.3.0 — pedido do Nicola: sugestão/feedback enviado pelo card "Dúvidas,
 // suporte ou sugestões?" agora TAMBÉM vira uma demanda de Suporte
@@ -20,57 +26,12 @@
 // cards .rz-card com .rz-card-h, Enviar/Sair no catálogo de botões. Lógica intocada.
 //
 // v1.1.2 — plano_codigo === 'trial' → data_expiracao (o que vence é a licença, não o nome do plano).
-//
-// v1.1.1 — BUG FIX de conformidade visual (achado pelo usuário): botão
-// "Enviar" (feedback via texto) usava `bg-slate-700`, destoando dos 2
-// botões vizinhos no mesmo box (WhatsApp/E-mail), que já usam
-// `var(--pine)` — o padrão de ação principal do módulo de Imóveis.
-// Corrigido pra usar o mesmo token. Como este arquivo é compartilhado
-// (montado tanto dentro de index.html quanto de cofre.html via
-// mount-point), e os dois hosts já têm `--pine` definido no próprio
-// :root com o mesmo valor, a correção vale nos 2 lugares sem precisar
-// de nenhum ajuste condicional por host.
-//
-// v1.1.0 — pedido explícito: "adicione no módulo de Sobre a versão do
-// módulo do Cofre, e dos bots".
-//   1) VERSÕES DE MÓDULO (App/Cofre) — cada host passa a versão do
-//      PRÓPRIO módulo (sempre exata, o host sabe a sua) e, opcionalmente,
-//      a versão que ele conhece do(s) outro(s) módulo(s) (ctx.modulos,
-//      array). Não existe hoje nenhuma fonte única compartilhada de
-//      versão de arquivo estático entre index.html e cofre.html (2
-//      arquivos independentes, sem build/bundler) — mesma limitação já
-//      documentada no antigo modal-sobre-cofre do Cofre ("precisa ser
-//      atualizada manualmente a cada bump"). Não resolvido aqui (seria
-//      uma mudança de infra maior, não pedida); só herdado e mantido
-//      visível/documentado no lugar certo.
-//   2) VERSÃO DOS BOTS — ao contrário do módulo acima, ESTA é ao vivo de
-//      verdade: a tabela `edge_function_versoes` já existe (populada por
-//      cada Edge Function sozinha, no boot — ver whatsapp-webhook/index.ts
-//      `FUNCTION_VERSAO`/registro em `edge_function_versoes`) — nunca
-//      fica desatualizada porque não é este módulo que escreve nela,
-//      só lê. RLS da tabela já restringe SELECT a quem tem
-//      fn_sou_master() = true — então esta seção simplesmente não
-//      aparece pra usuário comum (a query volta vazia, não erro); é
-//      informação operacional, não de produto.
-//
-// v1.0.0 — PRIMEIRA VERSÃO. Ver detalhes no changelog original (extração
-// de aplicarBrandingCliente()/atualizarSecaoSobreLicenca()/
-// enviarFeedbackLivreSobre() de index.html Beta v1.63.0).
-//
-// O QUE FICOU DE FORA DE PROPÓSITO (continua no host, não neste
-// módulo): logout de verdade (signOut + reload) — cada host pode querer
-// um comportamento pós-logout diferente (ex.: redirecionar pra uma tela
-// diferente), então este módulo só dispara `ctx.onLogout()`, nunca
-// implementa o signOut ele mesmo. Mesmo princípio de callback já usado
-// em comunicacoes-app.js (onToast/onAcaoFinal) dentro do próprio
-// index.html.
-//
-// Diretriz Arquitetural: não cria seu próprio cliente Supabase pra
-// dados de conta — recebe `dbAuth` já autenticado do host, por
-// parâmetro (ver nota completa em comum-licenca.js).
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.1.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '1.3.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.3.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 import { buscarLicencaPrincipal } from './comum-licenca.js';
 
 export const COMUM_SOBRE_VERSAO = '1.1.0';

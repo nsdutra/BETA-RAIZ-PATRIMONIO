@@ -1,7 +1,12 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.3.0 (06/10/2026 — demanda 2923ff4d)
+// VERSÃO: Beta v2.3.1 (07/10/2026 — demanda 2923ff4d)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.3.1) — 07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 (VER-05, "de acordo"
+//   do Nicola 07/10 17:21): SÓ CABEÇALHO — as versões além das 5 mais recentes rolaram
+//   para o CHANGELOG_MODULOS.md. Nenhuma linha de código mudou (conferido token a token).
+// Versão anterior: Beta v2.3.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.3.0) — catálogo único, fatia 4b (sessão 20261006-2320-catalogo-f4b; fichas F-C8/F-C9
 //   aprovadas pelo Nicola 06/10 23:16): card "Por grupo" logo abaixo do Resultado mês a mês — o ano aberto
@@ -40,195 +45,12 @@
 //     Hoje (UXR-18) — o imóvel tem Performance na própria ficha; empreendimento fica para
 //     a ficha do empreendimento (demanda própria).
 //   — Desenhos que se atropelam (trocar o contexto rápido) não sobrescrevem o mais novo.
-// Versão anterior: Beta v1.9.0 (04/10/2026 — demanda c71f617c)
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v1.9.0) — UX F1.4a (sessão 20261003-1707-ux-base, aprovada pelo
-//   Nicola 04/10 15:46): esqueleto (window.rzSkeleton) no lugar de "Carregando..." nos
-//   sheets de Reajustes e de Revisional/Renovação do mês e na abertura da tela (cards).
-// Versão anterior: Beta v1.8.2 (03/10/2026 — demanda 29bed5eb)
-// NOVIDADES (Beta v1.8.2) — F0.3 do PLANO_UX (sessão 20261003-1707-ux-base,
-//   "de acordo" do Nicola 03/10 23:57): a falha ao carregar deixa de mandar
-//   "puxar a lupa e tocar em Aplicar" e o erro técnico some da tela; o card
-//   ganha o botão "Tentar de novo", que recarrega o conteúdo.
-// Versão anterior: Beta v1.8.1 (25/09/2026 — demanda 95d4009a)
-// NOVIDADES (Beta v1.8.1) — demanda 95d4009a:
-//   — fn_performance_empreendimento agora recebe p_uso (mesmo filtro que
-//     fn_performance_carteira já usava) — visão por empreendimento passa
-//     a respeitar o filtro Comercial/Residencial/Tudo em vez de sempre
-//     trazer a carteira toda; rentabilidade_pct some quando uso =
-//     'nao_comercial', igual ao que a carteira já fazia (DB corrigida
-//     antes, nesta rodada só o front passa a mandar o parâmetro).
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v1.8.0) — pedido do Nicola (23/09, 13:01): filtrando só
-// Família, os cards Dependência de locatário, Reajustes, Revisional/Renovação
-// e Performance não fazem sentido (são de carteira alugada) — saem da tela e
-// as 3 consultas deles nem rodam. Em Tudo e Comercial continuam iguais.
-// NOVIDADES (Beta v1.7.0) — demanda 43448a36 (teste reprovado pelo Nicola
-// em 23/09, Albuquerque): em Família o cartão "Ativos em uso" ficava sempre
-// "—" (ocupação só existe para long stay) e dava a impressão de que os
-// ativos sem aluguel (terreno, carros, jet-ski) estavam fora do recorte.
-// Agora mostra "Ativos" com a QUANTIDADE do recorte — o mesmo universo do
-// Patrimônio e da Visão Geral.
-// NOVIDADES (Beta v1.6.0) — demanda 8d5585a3 (achado do Nicola):
-//   — Todo valor em R$ exibido nesta tela (formatarMoedaBR) passa a usar
-//     `{ semCentavos: true }` — sem casas decimais. formatarMoedaBR() em
-//     si ganhou esse 2º parâmetro opcional (index.html), default
-//     inalterado, pra não afetar nenhuma das outras telas que já a usam
-//     (regra DESIGN_SYSTEM §2: valor monetário SEMPRE via
-//     formatarMoedaBR(), nunca .toFixed(2) — a variação fica dentro da
-//     função, nunca bypassada).
-//   — "Resultado mês a mês": removida a linha tracejada da média do
-//     período e a legenda que a explicava (v1.5.0) — os números de
-//     maior/menor no topo das barras continuam.
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v1.5.0) — demanda 8ac32623 (achado do Nicola em revisão
-// de telas, 21/09/2026):
-//   — Patrimônio (card de KPIs e card Performance) passa a mostrar em
-//     formato compacto ("R$ 41,9 mi"), reusando formatarValorCompacto que
-//     a Visão Geral (index.html) já usa — mesmo formato em vez de um 2º
-//     jeito de abreviar dinheiro (CAN-03).
-//   — 4ª caixa de KPI: Inadimplência (valor em atraso no período) — opção
-//     escolhida pelo Nicola entre as apresentadas (pergunta de múltipla
-//     escolha). Mesmo campo inadimplencia_valor que o card Performance já
-//     mostrava mais abaixo — fonte única.
-//   — "Resultado mês a mês": legenda nova pra linha tracejada (média do
-//     período), que antes só era explicada no Sheet do ícone (i).
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v1.4.0):
-//   — resetarResultadosParaAbaInicial() nova (demanda 60284322 — "navegação
-//     por rodapé sempre reseta a aba", achado do Nicola em revisão de
-//     telas): antes, o filtro aplicado (ano/abrangência/contexto/alvo)
-//     ficava preso entre trocas de aba pelo rodapé — voltar pra Resultados
-//     depois de ir noutro empreendimento/ano continuava mostrando o
-//     último filtro escolhido, não o padrão (Carteira, ano corrente,
-//     Tudo). Chamada por index.html (irParaAbaRodape) antes de
-//     switchTab('tab-relatorios'); só reseta o estado — quem redesenha é
-//     o gancho que o próprio switchTab já dispara.
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v1.3.0):
-//   — Card "Indicadores" e gráfico "Sua carteira × indicador" saem do
-//     estado vazio (que dizia "a captura automática ainda não foi
-//     construída") e passam a mostrar dado real: a B1.1 (22/09/2026,
-//     mesma rodada) já capturou IPCA/IGP-M/Selic/IVG-R/INCC-DI/CDI do
-//     BCB SGS (migration mercado_reajuste_simulador_v1 adiciona as
-//     funções de leitura — fn_indicadores_resumo, fn_carteira_
-//     indicador_series — este arquivo só passa a chamá-las).
-//   — Card Indicadores: IPCA/IGP-M/Selic, acumulado 12 meses (mesmos 3
-//     nomeados no texto que já existia aqui).
-//   — Gráfico "Sua carteira × indicador": base 100, eixo único (ESP
-//     §13.1 R9), comparando com o IPCA (índice mais comum nos contratos
-//     cadastrados — decisão revisável, mesmo padrão de "propor e
-//     documentar" da R.4); linha do indicador tracejada/cinza com
-//     rótulo direto (R10), corta no último mês já capturado — não
-//     inventa valor futuro. Fórmula documentada no changelog da
-//     migration (fn_carteira_indicador_series): índice da carteira usa
-//     o patrimônio do ano como referência fixa (o banco não guarda
-//     patrimônio mês a mês) — mesma limitação já assumida no fator de
-//     ocupação da R.4.
-//   — Escopo desta entrega (ver ENTREGA_20260922_indicadoresSimuladorB1_2.md
-//     §3): só resultados.js (Card Indicadores + gráfico, exatamente o
-//     que a B1.2 nomeia como "Arquivos do produto") e o bloco "Pelo
-//     contrato" da ficha do contrato (contratos.js, chip Renovação —
-//     simulador pelo índice do contrato). O bloco "Pelo mercado" (faixa
-//     estimada/confiança/situação) e "✨ Negociar acima do índice" NÃO
-//     entram aqui — dependem de uma fonte de dado de mercado comparável
-//     que ainda não existe (registrado como ideia de produto separada).
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v1.2.0):
-//   — Ícone (i) (mesmo botão/Sheet dos 2 cards de calendário, entrega
-//     anterior) agora em TODOS os cards da tela: Indicadores, Resultado
-//     mês a mês, Sua carteira × indicador, Dependência de locatário,
-//     Performance — 5 nomes novos exportados (abrirInfoIndicadores,
-//     abrirInfoResultadoMensal, abrirInfoGraficoIndicador,
-//     abrirInfoConcentracao, abrirInfoPerformanceGrid) + bridge em
-//     index.html. Botão extraído em botaoInfoCard() (era HTML duplicado
-//     em cada função de card) — Reajustes/Revisionais passam a usar o
-//     mesmo helper, sem mudança de comportamento. Não entra no bloco de
-//     KPIs (.rz-kpis): não é `.rz-card` na anatomia do DESIGN_SYSTEM
-//     (§5) — só os cards de verdade ganham o ícone.
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v1.1.0):
-//   — BUG REAL corrigido: chip de ano (Período) nunca marcava depois do
-//     1º clique — onclick gerado por template string sempre manda texto
-//     ('2026'), enquanto o padrão nascia number; escolherResultadosFiltro
-//     agora força Number() só pro grupo 'ano'.
-//   — Layout corrigido: linhas de "Dependência de locatário" quebravam
-//     nome E valor quando o locatário tinha nome longo (faltava
-//     flex:1;min-width:0 no nome e flex:none;white-space:nowrap no
-//     valor — mesmo mecanismo que .rz-row .rz-tx/.rz-rt já usam no
-//     resto do app).
-//   — "Reajustes no ano" corrigido: a âncora do mês era o ÚLTIMO evento
-//     de reajuste/renovação em historico_contrato, o que fazia o mês
-//     "andar" ano a ano — agora é sempre o mês de aniversário da
-//     ASSINATURA (con.inicio), fixo (migration
-//     resultados_reajustes_revisionais_v1).
-//   — Card novo "Revisional / Renovação": mesmo desenho do calendário
-//     de reajustes (12 barras, por VALOR, mês concentra ≥25% = warning),
-//     mas pelo mês de TÉRMINO do contrato (fn_carteira_revisionais_
-//     calendario/fn_carteira_revisionais_mes, funções novas) — conceito
-//     distinto de reajuste anual por índice, pedido explícito do Nicola.
-//   — Os dois cards (Reajustes, Revisional/Renovação) ganham ícone (i)
-//     no cabeçalho — abre sheet explicando os conceitos e métricas do
-//     card, mesmo padrão de explicarStatusConciliacao() (financeiro.js).
-// -----------------------------------------------------------------
-// Tela nova de Resultados (ESP_RESULTADOS_MERCADO_FISCAL §4, REGRAS §13):
-// "Resultados só mostra performance" — sem seletor, sem segmento, sem
-// chip de tela; todo recorte (Período · Abrangência · Contexto) virou
-// filtro dentro da lupa. Fatia lazy (UI-05): não chama nenhum
-// carregar*Supabase — só dbAuth.rpc(fn_*) direto (mesmo padrão que
-// montarResumoResultados()/renderRelatorios() já usavam no index.html)
-// e globais compartilhados do <script> clássico (dbAuth,
-// CLIENTE_ID_SUPABASE, mostrarToast, abrirSheet, abrirSheetAcoes,
-// fecharSheet, rzSheetCabecalho, rzEsc, rzIcones, formatarMoedaBR,
-// formatarDataBR, switchTab, empreendimentosCadastrados,
-// abrirFichaContrato, abrirFichaAtivoNoChip, podeUsar,
-// baixarRelatorioPdfLocal, exportarRelatorioSocioPDF, repasses).
-//
-// NOVIDADES (Beta v1.0.0):
-//   — Cabeçalho descrição + lupa (Filtros) + Exportar, sem nenhum
-//     controle fixo na tela (R1/R2 do §13.1 da ESP).
-//   — Sheet Filtros: Período (2024·2025·2026) · Abrangência
-//     (Carteira·Empreendimento·Imóvel) · Contexto (Tudo·Comercial·
-//     Família) — três grupos independentes, Aplicar/Limpar.
-//   — Resumo do filtro em texto abaixo do cabeçalho (nunca só a cor da
-//     lupa como pista).
-//   — Conteúdo (abrangência Carteira/Empreendimento): KPIs do período →
-//     Indicadores → Resultado mês a mês (gráfico de barras) → Sua
-//     carteira × indicador (gráfico) → Dependência de locatário →
-//     Reajustes no ano (calendário de 12 barras, por VALOR) →
-//     Performance (grid de 10 campos, fn_performance_carteira nova
-//     desta entrega ou fn_performance_empreendimento já existente).
-//   — Abrangência Imóvel não renderiza nada aqui: aplica e navega direto
-//     pra ficha do ativo, chip Performance (§4.2 da ESP).
-//   — Card Indicadores e gráfico "carteira × indicador" nascem no lugar
-//     certo (posição, regra de sumir em Família) mas em ESTADO VAZIO
-//     HONESTO: não existe hoje nenhuma fonte real de índice de mercado
-//     no banco (indicador_series/valores só nascem na Fase B1, que não
-//     é pré-requisito de A.3 — confirmado ao vivo nesta sessão: nem
-//     essas tabelas nem nada mais simples existem). Decisão registrada
-//     na demanda `45cc9f88` — fecha quando B1.2 entregar dado real (o
-//     próprio PLANO já antecipa isso: "já com o lugar certo desde A.3
-//     — só passa a ter dado real").
-//   — Contexto Família: sem rentabilidade, sem card Indicadores, sem
-//     gráfico de comparação — regra vem do banco (fn_resumo_resultados/
-//     fn_performance_carteira devolvem NULL nesses campos com
-//     p_uso='nao_comercial'), a tela só não renderiza o que vier nulo.
-//   — "Reajustes no ano": toque na barra abre sheet com os contratos do
-//     mês (fn_carteira_reajustes_mes); toque na linha abre a ficha do
-//     contrato (abrirFichaContrato) — o chip Renovação próprio (ESP §7)
-//     ainda não existe (é a Entrega A.6, adiante nesta fila), então por
-//     ora a ficha abre no chip padrão; navegação já fica pronta pra
-//     quando A.6 entregar o chip.
-//   — "Dependência de locatário": até 6 barras + "Outros N locatários"
-//     agregado sempre neutro (nunca conta como risco, ESP §4.6).
-//   — Gráficos usam só tokens de cor já existentes (--sprout/--danger/
-//     --warning/--sage) e a única dimensão em `style=""` é a geometria
-//     de dado (altura/largura da barra) — não há como expressar um
-//     valor contínuo numa classe `rz-*` fixa; zero classe/token novo no
-//     DESIGN_SYSTEM (checklist §17 do REGRAS).
-// =====================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '2.3.0';
+export const VERSAO = '2.3.1';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o

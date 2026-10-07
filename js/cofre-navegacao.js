@@ -17,7 +17,13 @@
 // aplicados. Falha na porta não derruba o boot (a trava de banco segue
 // valendo, com a mensagem do design system — c3_porta_amigos_v1).
 //
-// Versão: 1.9.0 · 04/10/2026
+// Versão: 1.9.1 · 07/10/2026
+// v1.9.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.9.0 · 04/10/2026
+//
 // Versão anterior: 1.8.0 · 22/09/2026
 //
 // v1.7.1 (15/09/2026) — PLANO_IMPLEMENTACAO v1.0, etapa E14.4:
@@ -60,80 +66,11 @@
 // (2ª camada, mesmo padrão já usado em montarHome()/renderAlertas())
 // — custa pouco blindar contra a mesma classe de erro acontecer de
 // novo por outro caminho.
-//
-// v1.6.0 — bootstrap() ganhou suporte a ?abrir=categorias|subtipos|
-// modelos (pedido explícito, 31/08/2026): abre direto uma tela de
-// configuração do Cofre que só tinha porta de entrada dentro do próprio
-// menu ⚙️ do Cofre até agora — agora alcançável também pelo menu
-// Configurações do App (index.html, abrirConfiguracaoCofre()). Mesmo
-// espírito de segurança do contexto/ref já existente: parâmetro de URL
-// nunca é autorização, só sugestão de navegação.
-//
-// v1.5.0 — REVERTIDO pra 'raiz:comunicacoes:processar' direto (mesma
-// reversão de index.html v1.71.0). Termos de Uso/Política de Privacidade/
-// Termo de Beta migraram pro motor de comunicações de verdade — não
-// precisam mais de um wrapper próprio antes de disparar a Central de
-// Comunicações. js/comunicacoes/consentimento-app.js (usado por este
-// arquivo desde a v1.4.0) fica obsoleto, junto com consentimento-{api,
-// ui}.js — não são mais importados por cofre.html (tag removida).
-//
-// v1.4.0 — Aceite de Termos/LGPD entra ANTES da Central de Comunicações
-// também aqui (mesma mudança de index.html v1.70.0) — dispatch trocou de
-// 'raiz:comunicacoes:processar' pra 'raiz:termos:verificar'. Sem isso,
-// quem loga direto pelo Cofre passava batido pelo modal de aceite de
-// Termos de Uso/Política de Privacidade/Termo de Beta. Ver changelog
-// completo no bloco do bootstrap() mais abaixo, e em
-// js/comunicacoes/consentimento-app.js (módulo novo, compartilhado com
-// index.html).
-//
-// v1.3.0 — pedido explícito do Nicola: Central de Comunicações Omnichannel
-// passa a rodar também no Cofre (antes só existia em index.html). Novo
-// dispatch de 'raiz:comunicacoes:processar' no fim de bootstrap(), mesmo
-// evento/módulo compartilhado (js/comunicacoes/*.js) que o app principal
-// usa — onAcaoFinal trata 'abrir_formulario_ativo' (dispara
-// 'cofre:abrir-form-ativo', ver cofre-app.js) e é defensivo com
-// 'abrir_formulario_imovel' (não deveria ocorrer aqui, mas não trava se
-// ocorrer). Não precisa mais passar quantidadeImoveis/plano/perfil no
-// detail — a seleção agora é decidida no banco (fn_comunicacao_proxima_app)
-// a partir de pessoaId/clienteId.
-//
-// v1.2.0 (28/08/2026) — BUG REAL corrigido: abrirContexto('imovel', ...)
-// quando o ativo já existe (caminho mais comum) disparava só
-// 'cofre:abrir-ativo' (ficha, sem upload) — agora dispara
-// 'cofre:upload-contextual' direto, igual contrato/pagamento sempre
-// fizeram. Botão "Documentos" do Imóvel no app nunca chegava no
-// formulário de anexar arquivo.
-//
-// v1.1.3 — guarda defensiva em cofre-nome-empresa (evita "Cannot set
-// properties of null" se o elemento não existir por algum motivo — ex.:
-// cache de navegador com HTML antigo enquanto o JS já é o novo).
-//
-// v1.1.2 — header: nome da empresa passa a ser o título principal
-// (#cofre-nome-empresa), com selo "Cofre" ao lado (identificação de
-// módulo). badge-empresa-atual agora mostra só o nome da pessoa (empresa
-// já aparece acima, sem duplicar).
-//
-// v1.1.1 — abrirSeletorModulo() marcada DEPRECATED (não mais chamada); ver
-// cofre-app.js v1.1.2 (novo data-action="voltar-app", header simplificado).
-//
-// v1.1.0 — CORREÇÃO DE ARQUITETURA (substitui o bootstrap simplista da
-// v1.0.0, que só aceitava ?cliente_id=). Implementa o contrato do prompt
-// corretivo §5:
-//   1. valida Supabase Auth
-//   2. resolve empresas da pessoa
-//   3. resolve contexto/ref DENTRO das empresas autorizadas
-//   4. (licença do módulo — deferido, ver HANDOFF item 18)
-//   5. valida perfil/funcionalidade (cofre.ver)
-//   6. RLS faz a validação final no banco, em toda query subsequente
-//   7. abre diretamente a tela/ficha correta
-//
-// `ref` é sempre revalidado contra o banco (nunca confiado da URL — "URL
-// nunca é autorização", Adendo §5/§18). `nome` (quando vem na URL, ver
-// alias do protótipo de Imóveis) é usado só como legenda cosmética
-// imediata, e é IMEDIATAMENTE substituído pelo nome real assim que a
-// consulta volta — nunca fica sozinho como fonte de verdade.
-// ============================================================================
-export const VERSAO = '1.9.0'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.6.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
+export const VERSAO = '1.9.1'; // v-check (04/10/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { normalizarContexto } from './cofre-validacoes.js';

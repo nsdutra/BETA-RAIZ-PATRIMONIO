@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-estado.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.5.0 · 24/08/2026
+// Versão: 1.5.1 · 07/10/2026
+//
+// v1.5.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.5.0 · 24/08/2026
 //
 // v1.21.6 — Removido botão "Arquivar" da ficha do documento + fix de RLS
 // no excluir (2 policies de UPDATE sobrepostas viraram 1). Ver changelog
@@ -25,150 +31,11 @@
 // explícito, reverte v1.21.1). Ver changelog completo em cofre.html.
 // cofre-estado.js em si não mudou de conteúdo — só o COFRE_VERSAO
 // abaixo.
-//
-// v1.21.1 — MERGE: cabeçalho padronizado com o Imóveis (cor) — pedido
-// explícito. Ver changelog completo em cofre.html. cofre-estado.js em
-// si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.21.0 — Menu "Imóvel" + cabeçalho do ativo dentro do box + bug fix
-// modal Documentos (pedido explícito). Ver changelog completo em
-// cofre.html. cofre-estado.js em si não mudou de conteúdo — só o
-// COFRE_VERSAO abaixo.
-//
-// v1.20.0 — MERGE de 2 branches paralelos que divergiram do mesmo
-// v1.18.0 em conversas separadas, cada um se autodenominando "v1.19.0"
-// (pedido explícito: "faça o merge"):
-//   (a) esta conversa — WHATSAPP + MÁSCARAS + FOTO + TIPO/SUBTIPO/
-//       CATEGORIA + EDIÇÃO DE PADRÃO DO SISTEMA;
-//   (b) conversa paralela — PESSOAS/MINHA EMPRESA/LICENÇA/SOBRE DE
-//       VERDADE NO COFRE (via js/comum-*.js compartilhados com o App).
-// Renomeado pra v1.20.0 (em vez de reaproveitar "v1.19.0" de qualquer
-// um dos 2) justamente pra não ambiguar com nenhum dos dois pais. Ver
-// changelog completo em cofre.html. cofre-estado.js em si não mudou de
-// conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.18.0 — BUG FIX FOTOS DO ATIVO + LINK IMÓVEIS + CONTATOS COMPLETOS
-// (editar/excluir/WhatsApp) (pedido explícito). Ver changelog completo
-// em cofre.html. cofre-estado.js em si não mudou de conteúdo — só o
-// COFRE_VERSAO abaixo.
-//
-// v1.17.0 — ITEM DE CONTROLE (documento + visual + cascata + edição
-// completa) + BOX DE FOTO DO ATIVO (pedido explícito). Ver changelog
-// completo em cofre.html. cofre-estado.js em si não mudou de conteúdo
-// — só o COFRE_VERSAO abaixo.
-//
-// v1.16.0 — EDIÇÃO E EXCLUSÃO DE MODELOS DE ITEM DE CONTROLE (pedido
-// explícito). Ver changelog completo em cofre.html. cofre-estado.js em
-// si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.15.1 — Prestadores de Serviço revertido pra "Em breve" (pedido
-// explícito). Ver changelog completo em cofre.html. cofre-estado.js em
-// si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.15.0 — CORREÇÃO DE COR (CONTRASTE) + REORGANIZAÇÃO COMPLETA DO
-// MENU ⚙️ (pedido explícito). Ver changelog completo em cofre.html.
-// cofre-estado.js em si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.14.0 — CORES DO CABEÇALHO — nome da empresa e badge do módulo
-// (pedido explícito). Ver changelog completo em cofre.html.
-// cofre-estado.js em si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.13.0 — ALERTAS NO PADRÃO VISUAL DO "ATENÇÃO NECESSÁRIA" DO IMÓVEIS
-// (pedido explícito). Ver changelog completo em cofre.html.
-// cofre-estado.js em si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.12.0 — 3 BUGS CRÍTICOS corrigidos (achados pelo usuário): erro de
-// constraint ao salvar contato, "Voltar" não respeitava origem real,
-// excluir item de controle não atualizava alertas da Visão Geral. Ver
-// changelog completo em cofre.html.
-//
-// v1.11.0 — MODELOS DE ITEM DE CONTROLE POR TIPO DE ATIVO (menu ⚙️ +
-// atalho "Usar modelo", pedido explícito). Ver changelog completo em
-// cofre.html. cofre-estado.js em si não mudou de conteúdo — só o
-// COFRE_VERSAO abaixo.
-//
-// v1.10.1 — BUG FIX CRÍTICO: Visão Geral ficava congelada após tratar/
-// reagendar/estornar/excluir (5 pontos não disparavam
-// cofre:recarregar-eventos). Ver changelog completo em cofre.html.
-//
-// v1.10.0 — ITEM DE CONTROLE: DATA INÍCIO/FIM + GERAÇÃO RETROATIVA +
-// ATALHOS TRATAR/ACIONAR NA VISÃO GERAL (pedido explícito). Ver
-// changelog completo em cofre.html. cofre-estado.js em si não mudou de
-// conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.9.0 — GESTÃO DE SUBTIPOS DE ITEM DE CONTROLE (menu ⚙️, pedido
-// explícito). Ver changelog completo em cofre.html. cofre-estado.js em
-// si não mudou de conteúdo — só o COFRE_VERSAO abaixo.
-//
-// v1.8.1 — BUG FIX ("Erro ao carregar alertas") + PARIDADE VISUAL COM
-// IMÓVEIS (cabeçalho de topo, card de KPIs, ícones) + TELA DO ITEM DE
-// CONTROLE REESCRITA. Ver changelog completo em cofre.html.
-//
-// v1.8.0 — DECISÕES D-1 A D-6 CONFIRMADAS (2ª rodada da revisão DS). Ver
-// changelog completo em cofre.html. cofre-estado.js em si não mudou de
-// conteúdo — só o COFRE_VERSAO abaixo (bump obrigatório de sincronia).
-//
-// v1.7.0 — LOTE DE CONFORMIDADE COM O DESIGN SYSTEM (camada mecânica, sem
-// decisão de produto pendente). Ver changelog completo em cofre.html.
-// Nesta rodada, cofre-estado.js em si não mudou de conteúdo — só o
-// COFRE_VERSAO abaixo (bump obrigatório de sincronia, mesma regra de
-// sempre: qualquer entrega do módulo bump aqui, mesmo que este arquivo
-// específico não tenha linha alterada).
-//
-// v1.6.0 — CONCLUSÃO DA MIGRAÇÃO v6 (deixada pela metade numa sessão
-// anterior) + geração automática de 120 dias + lote de ajustes visuais
-// (largura da ficha, fonte da lista de ativos, box Dados em prosa,
-// Controles virou bottom-sheet). Ver changelog completo em cofre.html.
-//
-// v1.5.1 — guarda defensiva no bootstrap (cofre-navegacao.js v1.1.3).
-//
-// v1.5.0 — item de controle ganhou tela própria (ver cofre-controles.js
-// v1.1.0); Contatos saiu da ficha do ativo (agora vincula a Item de
-// Controle); Documentos/Fotos viraram ações em "Mais ações" (modais
-// próprios, não boxes fixos); upload com 2 caminhos (IA / simples).
-// CORRIGIDO: header desta seção estava duplicado numa entrega anterior e
-// COFRE_VERSAO tinha ficado presa em 1.3.1 mesmo com o changelog já
-// falando de v1.4.0 — consolidado num único bloco de novo.
-//
-// v1.4.0 — bump maior de COFRE_VERSAO: ficha do ativo virou tela (não
-// modal com abas), header idêntico ao padrão do App (empresa + selo de
-// módulo), exclusão de ativo, valor estimado universal.
-//
-// v1.3.1 — bump de COFRE_VERSAO: header simplificado (sem seletor de
-// módulos), cofre-app.js v1.1.2 / cofre-navegacao.js v1.1.1.
-//
-// v1.5.0 (cofre-navegacao.js) — bump de COFRE_VERSAO: revertido pra
-// 'raiz:comunicacoes:processar' direto — Termos/Política/Beta migraram
-// pro motor de comunicações de verdade, não precisam mais de wrapper
-// próprio. Ver changelog completo em cofre-navegacao.js v1.5.0.
-//
-// v1.4.0 (cofre-navegacao.js) — bump de COFRE_VERSAO: Aceite de Termos/LGPD
-// entra antes da Central de Comunicações (mesma mudança de index.html
-// v1.70.0) — sem isso, quem loga direto pelo Cofre passava batido pelo
-// modal de aceite. Ver changelog completo em cofre-navegacao.js v1.4.0.
-//
-// v1.3.0 — bump de COFRE_VERSAO: nova aba Controles na ficha do ativo
-// (criar item de controle + tratar/reagendar/estornar ocorrência), módulo
-// novo cofre-controles.js v1.0.0.
-//
-// v1.2.1 — bump de COFRE_VERSAO acompanhando cofre-ativos.js/cofre-validacoes.js
-// v1.1.1 (novos tipos de ativo veiculo_blindado/obra_arte).
-//
-// Estado em memória, único, desta aba do navegador. Não é um framework de
-// estado — é um objeto simples exportado por referência, para os módulos de
-// tela (navegacao/documentos/ativos) lerem e escreverem sem precisar
-// importar uns aos outros (evita ciclo de import).
-// ============================================================================
-
-// Fonte única da versão exibida (badge do header) — sincronizada com o
-// comentário de cabeçalho de cofre.html. Atualizar aqui a cada entrega
-// (mesma regra de sincronia de 3 pontos já usada no app principal).
-//
-// NOTA (29/08/2026): pulava de '1.21.5' direto pra cá sem refletir nem a
-// v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
-// agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
-// sessões paralelas + badge fix + form fix + função Vendido).
-export const VERSAO = '1.5.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.2.1 … v1.21.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
+export const VERSAO = '1.5.1'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 export const COFRE_VERSAO = '1.26.0';
 
 export const estado = {

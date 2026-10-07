@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.11.0 · 07/10/2026
+// Versão: 1.11.1 · 07/10/2026
+//
+// v1.11.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-05, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+//
+// Versão anterior: 1.11.0 · 07/10/2026
 //
 // v1.11.0 (07/10/2026, sessão 20261007-0910-financeiro, demanda f3e6cd27 — P5a, fichas F1–F5
 // com de acordo do Nicola 07/10 09:09): a ficha da conta ganha "Tipo" (Conta · Cartão de
@@ -31,103 +37,12 @@
 //
 // v1.9.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: remover logo e remover assinatura viram
 // perguntar() do cofre-ui (Sheet com item vermelho).
-//
-// Versão anterior: 1.8.0 · 01/10/2026
-//
-// v1.8.0 (F12, demanda 3a1a5ef5, aprovada em 01/10/2026) — card novo "Pix para
-// cobrança de aluguel": Chave Pix (clientes.pix_chave) e Nome do recebedor
-// (clientes.pix_recebedor_nome; vazio = nome da empresa). Colunas já existiam
-// (F10). A cidade do Pix vem do endereço da sede. Hoje a chave é usada na
-// cobrança de aluguel pelo WhatsApp, de forma opcional na hora de cobrar.
-// Mesmo salvar de sempre (salvarDadosEmpresa). Versão anterior: 1.7.0.
-//
-// v1.7.0 (frente fiscal, Fase 2 — demanda 976fcbf6) — card "Perfil fiscal e
-// societário" ganha "Inscrição municipal" (clientes.inscricao_municipal,
-// coluna nova, opcional; até 30 caracteres, conferido também no banco).
-// Mesmo salvar de sempre (salvarDadosEmpresa). Quem emite a nota
-// (fiscal_responsavel_emissao) fica para a tela Fiscal, fases seguintes.
-//
-// v1.6.0 (Fase R / Entrega R.2, 20/09/2026) — Card "Rotinas": lista as 5
-// rotinas de empresa do catálogo (cofre_controle_subtipos, tipo='rotina',
-// titular_escopo 'empresa' — fechamento mensal, envio ao contador, NFS-e
-// da competência, relatório da carteira, indicadores de mercado) via
-// fn_rotinas_empresa_listar. Toque na linha abre Sheet de ações (⋮,
-// abrirSheetAcoes já global no host) com "Ligar rotina" (codigo
-// cofre.controles.criar — ACE-01: aparece travada com cadeado/motivo se o
-// plano não incluir, igual a qualquer outro item do catálogo) ou "Desligar
-// rotina". Camada de dados nova (buscarRotinasEmpresa/ligarRotinaEmpresa/
-// desligarRotinaEmpresa) chama fn_rotina_empresa_ligar/fn_rotina_empresa_
-// desligar/fn_rotinas_empresa_listar (migration rotinas_funcoes_ligar_
-// desligar_listar_v1). Segue o mesmo princípio do resto do arquivo: módulo
-// não pressupõe host, mas usa window.abrirSheetAcoes/window.renderStatus/
-// window.podeUsar (via codigo na ação) quando disponíveis, com fallback
-// degradado (toast "só disponível dentro do app principal") quando não.
-//
-// v1.5.0 (A.5.1, 09/09/2026) — CEP, telefone, e-mail e site da empresa:
-// colunas criadas em `clientes` (migration a5_1_clientes_cep_telefone_email_
-// site_v1, CHECK de CEP 8 dígitos e e-mail). Campos no card de contato e
-// de endereço; CEP salvo só com dígitos.
-//
-// Versão anterior: 1.4.0 · 06/09/2026
-//
-// v1.4.0 — TELA COMPLETA NA GRAMÁTICA (print do Nicola 20:16: "modelo antigo
-// com formatação ruim; traga os campos completos"). Formulário reescrito no
-// catálogo .rz-f/.rz-f2/.rz-seg (antes era Tailwind solto: alturas e labels
-// desiguais). 4 cards: Identificação (natureza PF/PJ em segmento → rótulo e
-// máscara CPF/CNPJ, responsável, pessoa de contato) · Endereço da sede (UF em
-// select, código IBGE do município) · Recibos e documentos (cidade do recibo,
-// papel na locação, LOGO com upload reduzido no navegador) · Perfil fiscal e
-// societário (regime tributário, distribuição de lucros — enums do banco).
-// Todos os campos são colunas que JÁ existem em `clientes`; nenhuma coluna
-// nova (regra do Nicola). Sem coluna no banco, logo fora da tela: CEP,
-// telefone, e-mail e site da empresa — decisão pendente (PENDÊNCIAS A.5).
-// Gate parametros.empresa.editar: sem permissão, tudo em leitura (inputs
-// desabilitados, botões de upload também). Documento gravado com máscara.
-// Índice também passou a recarregar CONFIG_CLIENTE.logoUrl após salvar.
-//
-// v1.3.1 — 06/09/2026 · constante VERSAO sincronizada.
-//
-// v1.3.1 — constante VERSAO sincronizada com o header (estava presa em uma
-// versão anterior desde o bump do header; ⚙️ › Versões lia a constante e
-// acusava "cache segurou" sem haver cache). gerar_versoes.py v1.3 agora
-// trava a entrega se header ≠ VERSAO.
-//
-// Versão anterior: 1.3.0 · 06/09/2026
-//
-// v1.3.0 — layout na gramática (print do Nicola): tabhead com descrição, card
-// "Dados da empresa" com .rz-card-h, labels leves, assinatura em card próprio.
-//
-// v1.2.0 — gramática: botões no catálogo (Salvar = rz-btn-1, assinatura = rz-btn-2 + rz-ico-btn),
-// sentence case; gate parametros.empresa.editar (sem permissão = só leitura, com motivo).
-//
-// v1.1.0 — pedido explícito: "resolva as pendências de cores listadas".
-// bg-emerald-600 (único uso deste arquivo) trocado por var(--pine) —
-// era o botão de ação principal (Salvar), token certo por definição
-// (DS §12: "Ação principal → background:var(--pine)").
-//
-// v1.0.0 — PRIMEIRA VERSÃO. Extraído de index.html (dev_carregarDadosEmpresa()/
-// dev_salvarDadosEmpresa()/processarUploadAssinatura()/calcularLimiarOtsu()/
-// salvarAssinaturaProcessada()/apagarAssinatura(), Beta v1.64.0) pra
-// módulo compartilhado — pedido explícito: "faz também Minha Empresa e
-// Pessoas" (mesma sessão/motivo de comum-sobre.js/comum-licenca.js — ver
-// changelog completo lá, não repetido aqui).
-//
-// DIFERENÇA em relação à versão original: o índex.html lia/escrevia
-// direto em CONFIG_CLIENTE (objeto global carregado no login). Este
-// módulo NÃO depende de CONFIG_CLIENTE existir no host — busca a linha
-// de `clientes` sozinho (mesmo princípio de comum-licenca.js: módulo
-// compartilhado não pressupõe variável global de nenhum host
-// específico). Depois de salvar, chama `ctx.onBrandingAtualizado?.()`
-// pra avisar o host que pode querer atualizar CONFIG_CLIENTE/branding
-// (index.html usa isso pra refletir no recibo em PDF; Cofre não tem
-// recibo, então simplesmente não passa esse callback).
-//
-// Diretriz Arquitetural: não cria seu próprio cliente Supabase — recebe
-// `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
-// comum-licenca.js).
-// ============================================================================
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-05).
 
-export const VERSAO = '1.11.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.11.1'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
