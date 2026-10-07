@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.311.0) — leitura com IA com tela travada e resultado na tela (fatia U1 aprovada
+pelo Nicola 07/10 00:59). Do arquivo escolhido até o resultado, o envio não fecha (sem ✕, fundo e
+voltar não escondem); passos visíveis com o tempo; tela acesa. Fim sempre na tela: Pronto,
+Não deu para ler, Interrompida (ler de novo sem reenviar) ou Envio não concluído. O fundo do
+"Confira" não fecha mais (só Salvar/Cancelar). Import map: cofre-documentos 2.27.0. Sem banco.
+Versão anterior (Beta v1.310.0):
+------------------------------------------------------------------
+Versões anteriores (v1.310.0 … v1.310.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.310.0) — F2.1b do PLANO_UX (Jornal do dia; "Aprovado, siga" do Nicola 06/10
 22:41; UXR-16/20/21). Hoje ganha os chips Patrimônio · Jornal do dia (ponto vermelho quando há
 crítico ainda não visto). Jornal: data por extenso, Norte (anel 0–100 da fn_saude_patrimonio,

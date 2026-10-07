@@ -1,6 +1,10 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.0.1 · 07/10/2026
+// Versão: 1.1.0 · 07/10/2026
+//
+// v1.1.0 (07/10/2026, sessão 20261007-0137-financeiro — P4b, B4): Visão gerencial mostra o reembolso
+// de quem pagou despesa da própria conta (fn_apurar_distribuicao): passo "Reembolso" na cascata da
+// capa, coluna "(+) Reembolso" no quadro por pessoa e nota explicando. Versão anterior: 1.0.1.
 //
 // v1.0.1 (07/10/2026, sessão 20261007-0137-financeiro — teste do Nicola 01:37): os
 // filtros (período, conta) abriam POR TRÁS do relatório. A tela do relatório passa a
@@ -23,7 +27,7 @@ import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.0.1';
+export const VERSAO = '1.1.0';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -294,6 +298,7 @@ function montarGerencial(d) {
     if (temDist) {
         const fora = res - num(dist.liquido);
         if (Math.abs(fora) >= 0.01) ponte.push({ l: fora > 0 ? 'Fica na|empresa' : 'Despesas|sem divisão', v: Math.abs(fora) / 1000, t: fora > 0 ? 'down' : 'up' });
+        if (num(dist.reembolso) >= 0.01) ponte.push({ l: 'Reembolso', v: num(dist.reembolso) / 1000, t: 'up' });
         ponte.push({ l: 'Já|repassado', v: num(dist.ja_repassado) / 1000, t: 'down' });
         ponte.push({ l: 'A repassar', v: num(dist.saldo_pendente) / 1000, t: 'tot' });
     }
@@ -344,9 +349,9 @@ function montarGerencial(d) {
       }<tr class="tot"><td>Total gerencial</td><td class="hm"></td><td class="n">${tab(contas.reduce((s, c) => s + num(c.entradas), 0))}</td><td class="n">${tab(contas.reduce((s, c) => s + num(c.saidas), 0))}</td><td class="n">${tab(totRes)}</td><td class="n"></td></tr></tbody></table>
       <div class="box"><b>Contábil × gerencial.</b> Resultado gerencial ${brl(cxg.resultado_gerencial)} · (−) resultado fora da contabilidade ${brl(cxg.fora_contabilidade)} · <b>(=) resultado contábil ${brl(cxg.resultado_contabil)}</b>.</div>
       ${temDist && pessoas.length ? secao(`3. Por pessoa · ${pessoas.slice(0, 2).map(x => x.nome.split(' ')[0] + ' ' + (num(x.a_repassar) >= 0 ? 'tem ' + compacto(x.a_repassar) + ' a receber' : 'recebeu ' + compacto(Math.abs(x.a_repassar)) + ' a mais')).join('; ')}`, `Parte de cada pessoa em ${comp(d.competencia)}, pela divisão do contrato e pela propriedade do imóvel · R$`) +
-        `<table><thead><tr><th>Pessoa</th><th class="n hm">Entradas</th><th class="n hm">Saídas</th><th class="n">Parte do resultado</th><th class="n hm">Já repassado</th><th class="n">A repassar</th><th class="n hm">Pago da própria conta</th></tr></thead><tbody>${
-            pessoas.map(x => `<tr><td>${esc(x.nome)}</td><td class="n hm">${tab(x.entradas)}</td><td class="n hm">${tab(x.saidas)}</td><td class="n">${tab(x.liquido)}</td><td class="n hm">${tab(x.ja_repassado)}</td><td class="n ${num(x.a_repassar) < 0 ? 'neg' : ''}">${tab(x.a_repassar)}</td><td class="n hm">${tab(x.pago_propria_conta)}</td></tr>`).join('')
-        }<tr class="tot"><td>Total</td><td class="n hm">${tab(pessoas.reduce((s, x) => s + num(x.entradas), 0))}</td><td class="n hm">${tab(pessoas.reduce((s, x) => s + num(x.saidas), 0))}</td><td class="n">${tab(dist.liquido)}</td><td class="n hm">${tab(dist.ja_repassado)}</td><td class="n">${tab(dist.saldo_pendente)}</td><td class="n hm">${tab(pessoas.reduce((s, x) => s + num(x.pago_propria_conta), 0))}</td></tr></tbody></table>`
+        `<table><thead><tr><th>Pessoa</th><th class="n hm">Entradas</th><th class="n hm">Saídas</th><th class="n">Parte do resultado</th><th class="n hm">(+) Reembolso</th><th class="n hm">Já repassado</th><th class="n">A repassar</th></tr></thead><tbody>${
+            pessoas.map(x => `<tr><td>${esc(x.nome)}</td><td class="n hm">${tab(x.entradas)}</td><td class="n hm">${tab(x.saidas)}</td><td class="n">${tab(x.liquido)}</td><td class="n hm">${tab(x.reembolso ?? x.pago_propria_conta)}</td><td class="n hm">${tab(x.ja_repassado)}</td><td class="n ${num(x.a_repassar) < 0 ? 'neg' : ''}">${tab(x.a_repassar)}</td></tr>`).join('')
+        }<tr class="tot"><td>Total</td><td class="n hm">${tab(pessoas.reduce((s, x) => s + num(x.entradas), 0))}</td><td class="n hm">${tab(pessoas.reduce((s, x) => s + num(x.saidas), 0))}</td><td class="n">${tab(dist.liquido)}</td><td class="n hm">${tab(dist.reembolso ?? 0)}</td><td class="n hm">${tab(dist.ja_repassado)}</td><td class="n">${tab(dist.saldo_pendente)}</td></tr></tbody></table>`
         : secao('3. Por pessoa', temDist ? 'Nenhuma divisão entre pessoas nesta competência.' : (dist.motivo || 'Indisponível.'))}`;
     const cats = d.categorias || [];
     const totCat = cats.reduce((s, c) => s + num(c.valor), 0);
@@ -359,7 +364,8 @@ function montarGerencial(d) {
         <p><b>Notas.</b></p>
         <p><b>Visão competência:</b> receita e despesa pelo mês a que se referem, só o que foi recebido ou pago. O Fluxo de caixa usa a data do dinheiro e dá números diferentes (REL-04).</p>
         <p><b>Receita bruta:</b> aluguéis da competência (pagos ou não) e outras receitas recebidas. <b>Inadimplência:</b> aluguéis da competência ainda não pagos.</p>
-        <p><b>Parte de cada pessoa:</b> recebimento pela divisão do contrato; despesa pela propriedade do imóvel (mesma regra da Distribuição). Despesa sem imóvel fica na empresa.</p>
+        <p><b>Parte de cada pessoa:</b> recebimento pela divisão do contrato; despesa pela propriedade do imóvel; quando o lançamento tem divisão ajustada, vale a dele (mesma regra da Distribuição). Despesa sem imóvel nem divisão fica na empresa.</p>
+        <p><b>Reembolso:</b> despesa paga pela conta de uma pessoa volta inteira a ela, além da parte do resultado, porque já reduziu o resultado de todos.</p>
         <p><b>Fora da contabilidade:</b> contas ou lançamentos marcados assim aparecem no gerencial e não entram no pacote do contador.</p>
         <p><b>Contas visíveis:</b> este relatório traz só as contas que quem gerou pode ver.</p>
         <p><b>Origem:</b> fn_contas_visao_gerencial v${d.versao || 1}${temDist ? ' e fn_apurar_distribuicao' : ''} · competência ${comp(d.competencia)} ${d.competencia_fechada ? 'fechada' : 'não fechada (PRÉVIA)'}.</p>

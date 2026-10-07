@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.314.0
-   LINHAS: 17509
-   DATA: 07/10/2026 (sessão 20261007-0129-upload-ia-b, demanda 9ddb9f34)
+   VERSÃO: Beta v1.314.1
+   LINHAS: 17514
+   DATA: 07/10/2026 (sessão 20261007-0137-financeiro, demanda f3e6cd27)
+   NOVIDADES (Beta v1.314.1) — P4b do Financeiro, parte 2 (ficha B1b e B4 aprovadas pelo Nicola
+   07/10 01:37; sessão 20261007-0137-financeiro, demanda f3e6cd27). Despesa e recebimento ganham
+   "Divisão": quem arca (contrato, propriedade do imóvel ou ajustada só naquele lançamento), com
+   Editar divisão e Voltar ao padrão; a linha da lista mostra "divisão ajustada". Distribuição e
+   Visão gerencial mostram o reembolso de quem pagou despesa da própria conta. Mapeamento de
+   lançamentos e recebimentos ganha divisaoAjustada. Banco: lancamentos/mensalidades.divisao_excecao,
+   fn_divisao_movimento, fn_divisao_excecao_definir, fn_apurar_distribuicao (+ reembolso).
+   Import map: financeiro 1.35.0, relatorios-executivos 1.1.0.
+   Versão anterior (Beta v1.314.0):
    NOVIDADES (Beta v1.314.0) — leitura com IA, fatia U1b + U2 ("De acordo" do Nicola 07/10 01:29).
    (1) Sheet TRAVADO: abrirSheet(html, { travado: true }) e rzSheetTravar(on) — sem X, sem arrastar,
    toque fora, Esc e voltar não fecham; outro sheet que abrir enquanto isso entra por cima (nível 2).
@@ -41,14 +50,8 @@
    ponte abrirRelatorioExecutivo. Banco: fn_contas_fluxo_caixa, fn_contas_visao_gerencial e os
    códigos relatorios.fluxo_caixa / relatorios.gerencial. Import map: relatorios-executivos 1.0.0.
    Versão anterior (Beta v1.311.0):
-   NOVIDADES (Beta v1.311.0) — leitura com IA com tela travada e resultado na tela (fatia U1 aprovada
-   pelo Nicola 07/10 00:59). Do arquivo escolhido até o resultado, o envio não fecha (sem ✕, fundo e
-   voltar não escondem); passos visíveis com o tempo; tela acesa. Fim sempre na tela: Pronto,
-   Não deu para ler, Interrompida (ler de novo sem reenviar) ou Envio não concluído. O fundo do
-   "Confira" não fecha mais (só Salvar/Cancelar). Import map: cofre-documentos 2.27.0. Sem banco.
-   Versão anterior (Beta v1.310.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.310.0 … v1.310.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.311.0 … v1.311.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -73,7 +76,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.34.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.28.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.0.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.35.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.1","./js/contratos.js":"./js/contratos.js?v=1.42.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.3","./js/imoveis.js":"./js/imoveis.js?v=1.7.0","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.75.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.47.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.28.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.0","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.0","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.0","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.3","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.10.1","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.0","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.0","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.1.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.0","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3668,7 +3671,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.314.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.314.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6057,7 +6060,8 @@
                     // alguém desmarque via ⋮ "Não incluir na contabilidade"
                     // (fn_financeiro_incluir_contabilidade).
                     incluirContabilidade: row.incluir_contabilidade !== false,
-                    contaId: row.conta_id || null // v1.300.2 — P4a (filtro e troca de conta)
+                    contaId: row.conta_id || null, // v1.300.2 — P4a (filtro e troca de conta)
+                    divisaoAjustada: !!row.divisao_excecao // v1.314.1 — P4b B1b (divisão por exceção)
                 };
             });
         }
@@ -6099,7 +6103,8 @@
                     origemId: row.origem_id || null, // v1.289.0 — despesa da licença acha o comprovante pelo pagamento
                     // Entrega F.3/F.4 — ver nota igual em carregarMensalidadesSupabase.
                     incluirContabilidade: row.incluir_contabilidade !== false,
-                    contaId: row.conta_id || null // v1.300.2 — P4a
+                    contaId: row.conta_id || null, // v1.300.2 — P4a
+                    divisaoAjustada: !!row.divisao_excecao // v1.314.1 — P4b B1b
                 };
             });
         }

@@ -1,7 +1,21 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.34.0 · 06/10/2026
+// Versão: 1.35.0 · 07/10/2026
+//
+// v1.35.0 (07/10/2026, sessão 20261007-0137-financeiro, demanda f3e6cd27 — P4b, ficha B1b e B4
+// aprovadas pelo Nicola 07/10 01:37) — DIVISÃO de quem arca com o valor:
+// (1) despesa e recebimento ganham a ação "Divisão": mostra quem arca (pela divisão do contrato,
+// pela propriedade do imóvel, ou ajustada só neste lançamento) e o valor de cada um; "Editar divisão"
+// abre o editor (pessoas e %, soma ao vivo, Salvar só em 100%) e "Voltar ao padrão" desfaz.
+// Regra no banco: fn_divisao_movimento (leitura) e fn_divisao_excecao_definir (as mesmas que o bot
+// usa); código financeiro.divisao.editar, nos planos que têm Distribuição. Movimento com exceção
+// mostra "divisão ajustada" na linha da lista.
+// (2) Distribuição: coluna nova "reembolso" da fn_apurar_distribuicao (despesa paga pela conta de
+// um sócio volta a ele) — aparece na linha do sócio, na ficha e no resumo compartilhado; o saldo
+// a retirar já a inclui.
+//
+// Versão anterior: 1.34.0 · 06/10/2026
 //
 // v1.34.0 (06/10/2026, sessão 20261006-2320-catalogo-f4b, demanda 2923ff4d — fatia 4b; fichas F-C8/F-C9
 // aprovadas pelo Nicola 06/10 23:16) — resultado e contabilidade são dois eixos da categoria:
@@ -876,7 +890,7 @@
 // implícita, `arguments` nem `with` (o único `this` está dentro de string).
 // ============================================================================
 
-export const VERSAO = '1.34.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.35.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1514,6 +1528,101 @@ export async function financeiroEscolherContaFiltro() {
     if (document.getElementById('tab-mensal')?.classList.contains('active')) { financeiroAtualizarKpis('mensal'); renderMensalidades(); renderOutrasReceitas(); }
     if (document.getElementById('tab-saidas')?.classList.contains('active')) { financeiroAtualizarKpis('saidas'); renderSaidas(); }
 }
+// ---------------------------------------------------------------------------
+// v1.35.0 (P4b · B1b) — DIVISÃO: quem arca com o movimento. Leitura e escrita no
+// banco (fn_divisao_movimento / fn_divisao_excecao_definir); a tela só mostra.
+// ---------------------------------------------------------------------------
+const DIVISAO_ORIGEM = {
+    excecao: 'Ajustada só neste lançamento',
+    contrato: 'Pela divisão do contrato',
+    propriedade: 'Pela propriedade do imóvel',
+    empresa: 'Fica com a empresa (sem imóvel nem divisão)'
+};
+const pctBR = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
+function financeiroAcaoDivisao(origemTipo, id, valor, ajustada, aoMudar) {
+    return [{ icone: 'split', titulo: ajustada ? 'Divisão: ajustada' : 'Divisão', sub: ajustada ? 'Ajustada só neste lançamento' : 'Quem arca com este valor',
+        aoTocar: () => financeiroAbrirDivisao(origemTipo, id, valor, aoMudar) }];
+}
+async function financeiroAbrirDivisao(origemTipo, id, valor, aoMudar) {
+    const { data, error } = await dbAuth.rpc('fn_divisao_movimento', { p_origem_tipo: origemTipo, p_origem_id: id });
+    if (error) { rzToast('Não consegui ler a divisão: ' + error.message, { tipo: 'danger' }); return; }
+    const linhas = Array.isArray(data) ? data : [];
+    const origem = linhas[0]?.origem || 'empresa';
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const compFechada = window.RZ_FIN_COMPETENCIA_FECHADA === true;
+    const rows = linhas.map(l => `<div class="rz-row"><div class="rz-ic${l.origem === 'empresa' ? ' rz-neu' : ''}"><svg data-lucide="${l.origem === 'empresa' ? 'building-2' : 'user'}"></svg></div>
+        <div class="rz-tx"><b>${esc(l.nome)}</b><span>${formatarMoedaBR(Number(valor || 0) * Number(l.percentual || 0) / 100)}${l.pessoa_id || l.origem === 'empresa' ? '' : ' · externo'}</span></div>
+        <div class="rz-rt"><b>${pctBR(l.percentual)}</b></div></div>`).join('');
+    const nota = compFechada ? '<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">Competência fechada: a divisão só muda reabrindo o fechamento.</p>' : '';
+    const botoes = compFechada ? '' : `<div class="rz-sh-f">${origem === 'excecao' ? '<button type="button" class="rz-btn rz-btn-2" data-div-padrao>Voltar ao padrão</button>' : ''}<button type="button" class="rz-btn rz-btn-1${origem === 'excecao' ? '' : ' rz-wide'}" data-div-editar>Editar divisão</button></div>`;
+    const sheet = abrirSheet(rzSheetCabecalho('Divisão', DIVISAO_ORIGEM[origem] || '') + `<div class="rz-sh-b"><div class="rz-card rz-list">${rows}</div>${nota}</div>${botoes}`);
+    sheet.querySelector('[data-div-editar]')?.addEventListener('click', () => {
+        if (typeof podeUsar === 'function' && !podeUsar('financeiro.divisao.editar').ok) { window.rzMostrarBloqueio?.('financeiro.divisao.editar'); return; }
+        financeiroEditarDivisao(origemTipo, id, valor, origem === 'empresa' ? [] : linhas, aoMudar);
+    });
+    sheet.querySelector('[data-div-padrao]')?.addEventListener('click', async () => {
+        if (typeof podeUsar === 'function' && !podeUsar('financeiro.divisao.editar').ok) { window.rzMostrarBloqueio?.('financeiro.divisao.editar'); return; }
+        await financeiroGravarDivisao(origemTipo, id, [], aoMudar);
+        fecharSheet();
+    });
+}
+async function financeiroGravarDivisao(origemTipo, id, itens, aoMudar) {
+    const { data, error } = await dbAuth.rpc('fn_divisao_excecao_definir', { p_origem_tipo: origemTipo, p_origem_id: id, p_itens: itens });
+    if (error) { rzToast(error.message, { tipo: 'danger' }); return false; }
+    rzToast(data?.mensagem || 'Feito.', { tipo: data?.ok ? 'success' : 'danger' });
+    if (!data?.ok) return false;
+    aoMudar?.(data.acao === 'divisao_ajustada');
+    return true;
+}
+function financeiroEditarDivisao(origemTipo, id, valor, atuais, aoMudar) {
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const itens = atuais.map(l => ({ pessoa_id: l.pessoa_id || null, nome_externo: l.pessoa_id ? null : (l.nome_externo || l.nome), nome: l.nome, percentual: Number(l.percentual) }));
+    let corpoEl = null;
+    const soma = () => Math.round(itens.reduce((t, i) => t + (Number(i.percentual) || 0), 0) * 100) / 100;
+    const desenhar = () => {
+        if (!corpoEl) return;
+        const s = soma();
+        corpoEl.innerHTML = `<p style="margin:0 0 10px;font-size:14px;color:var(--muted)">Vale só para este lançamento. O contrato e a propriedade do imóvel não mudam.</p>
+            <div class="rz-card rz-list">${itens.map((i, k) => `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div>
+                <div class="rz-tx"><b>${esc(i.nome)}</b><span>${formatarMoedaBR(Number(valor || 0) * (Number(i.percentual) || 0) / 100)}</span></div>
+                <div class="rz-rt" style="display:flex;align-items:center;gap:6px"><input type="number" inputmode="decimal" step="0.01" min="0" max="100" data-div-pct="${k}" value="${i.percentual || ''}" aria-label="Percentual de ${esc(i.nome)}" style="width:84px;height:44px;padding:0 8px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;text-align:right"><span>%</span>
+                <button type="button" class="rz-x" data-div-tirar="${k}" aria-label="Tirar ${esc(i.nome)}" style="width:44px;height:44px"><svg data-lucide="x"></svg></button></div></div>`).join('') || '<div class="rz-empty"><p>Ninguém na divisão ainda.</p></div>'}</div>
+            <button type="button" class="rz-act" data-div-add><div class="rz-ic"><svg data-lucide="user-plus"></svg></div><div>Adicionar pessoa<small>Sócio ou pessoa cadastrada</small></div></button>
+            <p data-div-soma style="margin:10px 0 0;font-size:15px;font-weight:600;color:${Math.abs(s - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'}">Soma: ${pctBR(s)}${Math.abs(s - 100) < 0.01 ? '' : ' · precisa dar 100%'}</p>`;
+        corpoEl.querySelectorAll('[data-div-pct]').forEach(inp => inp.addEventListener('input', () => {
+            itens[Number(inp.dataset.divPct)].percentual = parseFloat(String(inp.value).replace(',', '.')) || 0;
+            const s2 = soma(), ok = Math.abs(s2 - 100) < 0.01;
+            const el = corpoEl.querySelector('[data-div-soma]');
+            if (el) { el.textContent = 'Soma: ' + pctBR(s2) + (ok ? '' : ' · precisa dar 100%'); el.style.color = ok ? 'var(--success)' : 'var(--danger)'; }
+            const btn = document.getElementById('rz-sheet-salvar'); if (btn) btn.disabled = !ok;
+        }));
+        corpoEl.querySelectorAll('[data-div-tirar]').forEach(b => b.addEventListener('click', () => { itens.splice(Number(b.dataset.divTirar), 1); desenhar(); }));
+        corpoEl.querySelector('[data-div-add]')?.addEventListener('click', async () => {
+            const lista = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas : [];
+            const ja = new Set(itens.map(i => i.pessoa_id).filter(Boolean));
+            const opcoes = lista.filter(p => p.id && !ja.has(p.id)).sort((a, b) => String(a.nome).localeCompare(String(b.nome)))
+                .map(p => ({ valor: p.id, titulo: p.nome, sub: Number(p.percentualCotasEmpresa) > 0 ? 'Sócio' : '', icone: 'user' }));
+            if (!opcoes.length) { rzToast('Todas as pessoas cadastradas já estão na divisão.', { tipo: 'info' }); return; }
+            const v = await rzEscolher({ titulo: 'Adicionar à divisão', opcoes });
+            if (!v) return;
+            const p = lista.find(x => x.id === v);
+            const falta = Math.max(0, Math.round((100 - soma()) * 100) / 100);
+            itens.push({ pessoa_id: v, nome_externo: null, nome: p?.nome || 'Pessoa', percentual: falta });
+            desenhar();
+        });
+        const btn = document.getElementById('rz-sheet-salvar'); if (btn) btn.disabled = Math.abs(soma() - 100) >= 0.01;
+        if (typeof rzIcones === 'function') rzIcones();
+    };
+    abrirSheetForm({
+        titulo: 'Editar divisão', sub: 'Só este lançamento', rotuloSalvar: 'Salvar divisão',
+        corpo: (el) => { corpoEl = el; desenhar(); },
+        aoSalvar: async () => {
+            if (Math.abs(soma() - 100) >= 0.01) { rzToast('A divisão precisa somar 100%.', { tipo: 'danger' }); return false; }
+            return financeiroGravarDivisao(origemTipo, id, itens.map(i => ({ pessoa_id: i.pessoa_id, nome_externo: i.pessoa_id ? null : i.nome_externo, percentual: i.percentual })), aoMudar);
+        }
+    });
+}
+
 /** Linha "Conta: <nome>" nos sheets de recebimento/despesa (só com mais de 1 conta). */
 function financeiroAcaoConta(origemTipo, id, contaId, aoMudar) {
     if (!financeiroContasMultiplas()) return [];
@@ -1789,12 +1898,14 @@ function financeiroRenderCabecalho(aba) {
                     });
                 }
                 acoesRealizado.push(...financeiroAcaoConta('lancamento', id, d.contaId, (v) => { d.contaId = v; renderSaidas(); })); // v1.33.0
+                acoesRealizado.push(...financeiroAcaoDivisao('lancamento', id, d.valor, d.divisaoAjustada, (aj) => { d.divisaoAjustada = aj; renderSaidas(); })); // v1.35.0
                 abrirSheetAcoes({ titulo: escapeHtmlSaidas(d.descricao || 'Despesa'), sub, acoes: acoesRealizado });
                 return;
             }
             abrirSheetAcoes({ titulo: estaAtrasadaDespesa(d) ? 'Em atraso' : 'A pagar', sub, acoes: [
                 ...acaoOrigem,
                 ...financeiroAcaoConta('lancamento', id, d.contaId, (v) => { d.contaId = v; renderSaidas(); }), // v1.33.0
+                ...financeiroAcaoDivisao('lancamento', id, d.valor, d.divisaoAjustada, (aj) => { d.divisaoAjustada = aj; renderSaidas(); }), // v1.35.0
                 { icone: 'check', titulo: 'Dar baixa / editar', sub: 'Abre o formulário completo', aoTocar: () => abrirEditarDespesa(id) },
                 { icone: 'trash-2', titulo: 'Excluir despesa', tipo: 'bad', aoTocar: () => excluirDespesa(id) },
             ] });
@@ -1922,7 +2033,7 @@ function financeiroRenderCabecalho(aba) {
                 return `
                     <div class="rz-row rz-link" onclick="rzAcoesDespesa('${d.id}')">
                         <div class="rz-ic${atrasada && !pago ? ' rz-bad' : ''}"><svg data-lucide="${ic}"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${pago ? origemSaidaHtml(d) : ''}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(descricaoLimpa)}</b><span>${d.vencimento ? formatarDataBR(pago && d.dataPagamento ? d.dataPagamento : d.vencimento) : ''}${pago ? origemSaidaHtml(d) : ''}${d.divisaoAjustada ? ' · divisão ajustada' : ''}</span></div>
                         <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(d.valor)}</b>${st}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;
@@ -4515,6 +4626,7 @@ function financeiroRenderCabecalho(aba) {
                     });
                 }
                 acoesPago.push(...financeiroAcaoConta('mensalidade', men.id, men.contaId, (v) => { men.contaId = v; renderMensalidades(); })); // v1.33.0
+                acoesPago.push(...financeiroAcaoDivisao('mensalidade', men.id, Number(men.valorConfirmado ?? men.valor ?? 0), men.divisaoAjustada, (aj) => { men.divisaoAjustada = aj; renderMensalidades(); })); // v1.35.0
                 abrirSheetAcoes({ titulo: 'Recebimento', sub, acoes: acoesPago });
                 return;
             }
@@ -4525,6 +4637,7 @@ function financeiroRenderCabecalho(aba) {
                 ...(emAtraso ? [{ icone: 'message-circle', titulo: 'Cobrar pelo WhatsApp', sub: 'Mensagem ao locatário, com o Pix da empresa', codigo: 'cobrar.lembrete',
                     aoTocar: () => dispararCobrancaWhatsAppDirect(con.whatsapp, `Locatário: ${con.locatario || ''}`, `- Competência ${men.referencia}: R$ ${valorMen.toLocaleString('pt-BR')}`, valorMen) }] : []),
                 ...financeiroAcaoConta('mensalidade', men.id, men.contaId, (v) => { men.contaId = v; renderMensalidades(); }), // v1.33.0
+                ...financeiroAcaoDivisao('mensalidade', men.id, valorMen, men.divisaoAjustada, (aj) => { men.divisaoAjustada = aj; renderMensalidades(); }), // v1.35.0
                 { icone: 'trash-2', titulo: 'Excluir lançamento', tipo: 'bad', codigo: 'mensal.excluir', aoTocar: () => excluirLancamentoMensal(men.id) },
             ] });
         }
@@ -4761,7 +4874,7 @@ function financeiroRenderCabecalho(aba) {
                 if (men.status === 'Pago') {
                     return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
                         <div class="rz-ic"><svg data-lucide="arrow-down-left"></svg></div>
-                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}${origemMensalHtml(men)}</span></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}${origemMensalHtml(men)}${men.divisaoAjustada ? ' · divisão ajustada' : ''}</span></div>
                         <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${rsM('ok', 'Pago')}</div>
                         <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                     </div>`;
@@ -4774,7 +4887,7 @@ function financeiroRenderCabecalho(aba) {
                 // forma que ficou fixa.
                 return `<div class="rz-row rz-link" onclick="rzAcoesMensalidade('${men.id}')">
                     <div class="rz-ic${atrasada ? ' rz-bad' : ''}"><svg data-lucide="arrow-down-left"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(con.locatario || 'Locatário')}</b><span>${dataVencMensal(men, con)}${men.divisaoAjustada ? ' · divisão ajustada' : ''}</span></div>
                     <div class="rz-rt"><b>${formatarMoedaBR(men.valorConfirmado)}</b>${atrasada ? rsM('bad', 'Em atraso') : rsM('run', 'A vencer')}</div>
                     <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
@@ -5365,8 +5478,9 @@ async function distribCarregar() {
     const mapa = new Map();
     respostas.forEach(r => (r.data || []).forEach(x => {
         const chave = x.beneficiario_pessoa_id || ('ext:' + (x.beneficiario_nome_externo || x.nome_exibicao));
-        const a = mapa.get(chave) || { chave, pessoaId: x.beneficiario_pessoa_id || null, nome: x.nome_exibicao, entradas: 0, saidas: 0, liquido: 0, retirado: 0, saldo: 0 };
+        const a = mapa.get(chave) || { chave, pessoaId: x.beneficiario_pessoa_id || null, nome: x.nome_exibicao, entradas: 0, saidas: 0, liquido: 0, reembolso: 0, retirado: 0, saldo: 0 };
         a.entradas += Number(x.entradas || 0); a.saidas += Number(x.saidas || 0); a.liquido += Number(x.liquido_apurado || 0);
+        a.reembolso += Number(x.reembolso || 0); // v1.35.0 (B4) — despesa paga da própria conta volta ao sócio
         a.retirado += Number(x.ja_repassado || 0); a.saldo += Number(x.saldo_pendente || 0);
         mapa.set(chave, a);
     }));
@@ -5378,7 +5492,7 @@ async function distribCarregar() {
     // retirada de quem não teve cota no período: a função não devolve a pessoa — entra com cota zero
     (ret || []).forEach(r => {
         if (mapa.has(r.pessoa_id)) return;
-        const a = { chave: r.pessoa_id, pessoaId: r.pessoa_id, nome: r.pessoas?.nome || 'Sócio', entradas: 0, saidas: 0, liquido: 0, retirado: 0, saldo: 0, soRetirada: true };
+        const a = { chave: r.pessoa_id, pessoaId: r.pessoa_id, nome: r.pessoas?.nome || 'Sócio', entradas: 0, saidas: 0, liquido: 0, reembolso: 0, retirado: 0, saldo: 0, soRetirada: true };
         mapa.set(r.pessoa_id, a);
     });
     mapa.forEach(a => { if (a.soRetirada) { const v = (ret || []).filter(r => r.pessoa_id === a.pessoaId).reduce((t, r) => t + Number(r.valor || 0), 0); a.retirado = v; a.saldo = -v; } });
@@ -5428,7 +5542,7 @@ function distribDesenhar() {
         ? `<div class="rz-card rz-list"><div class="rz-card-h" style="padding-top:10px;margin-bottom:0"><h3>Por sócio</h3><span class="rz-sub">${esc(periodo)}</span></div>` +
           visiveis.map(l => `<div class="rz-row rz-link" role="button" tabindex="0" onclick="abrirFichaSocioDistribuicao('${esc(l.chave)}')">
                 <div class="rz-ic${l.pessoaId ? '' : ' rz-neu'}"><svg data-lucide="user"></svg></div>
-                <div class="rz-tx"><b>${esc(l.nome)}</b><span>Líquido ${moedaSinal(l.liquido)} · retirado ${formatarMoedaBR(l.retirado)}${l.pessoaId ? '' : ' · externo'}</span></div>
+                <div class="rz-tx"><b>${esc(l.nome)}</b><span>Líquido ${moedaSinal(l.liquido)}${l.reembolso > 0.004 ? ' · reembolso ' + formatarMoedaBR(l.reembolso) : ''} · retirado ${formatarMoedaBR(l.retirado)}${l.pessoaId ? '' : ' · externo'}</span></div>
                 <div class="rz-rt">${statusSaldo(l)}</div>
                 <svg data-lucide="chevron-right" class="rz-chev"></svg>
             </div>`).join('') + '</div>'
@@ -5468,7 +5582,7 @@ export function abrirFichaSocioDistribuicao(chave) {
     const motivo = !l.pessoaId ? 'Beneficiário externo — cadastre a pessoa em Pessoas para lançar retirada' : (!pode.ok ? (pode.textoCurto || 'Sem permissão') : '');
     const sheet = abrirSheet(rzSheetCabecalho(l.nome, `${distribDados.periodo} · visão competência`) + `<div class="rz-sh-b">
         <div class="rz-card"><div class="rz-kv" style="grid-template-columns:1fr">
-            ${kv('Cotas recebidas', l.entradas)}${kv('(−) Despesas do imóvel', l.saidas)}${kv('(=) Líquido apurado', l.liquido, true)}${kv('(−) Retirado', l.retirado)}${kv('(=) Saldo a retirar', l.saldo, true)}
+            ${kv('Cotas recebidas', l.entradas)}${kv('(−) Despesas do imóvel', l.saidas)}${kv('(=) Líquido apurado', l.liquido, true)}${l.reembolso > 0.004 ? kv('(+) Reembolso · pago da própria conta', l.reembolso) : ''}${kv('(−) Retirado', l.retirado)}${kv('(=) Saldo a retirar', l.saldo, true)}
         </div></div>${linhasRet}
         ${motivo ? `<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">${esc(motivo)}</p>` : ''}
         <button type="button" class="rz-act" data-rz-compartilhar><div class="rz-ic"><svg data-lucide="share"></svg></div><div>Compartilhar resumo<small>WhatsApp do sócio ou outro app</small></div></button>
@@ -5481,7 +5595,8 @@ function compartilharResumoSocio(l) {
     const p = (typeof pessoas !== 'undefined' && Array.isArray(pessoas)) ? pessoas.find(x => x.id === l.pessoaId) : null;
     const txt = `Distribuição · ${l.nome} · ${distribDados.periodo}\n` +
         `Cotas recebidas: ${formatarMoedaBR(l.entradas)}\n(−) Despesas do imóvel: ${formatarMoedaBR(l.saidas)}\n` +
-        `(=) Líquido apurado: ${moedaSinal(l.liquido)}\n(−) Retirado: ${formatarMoedaBR(l.retirado)}\n(=) Saldo a retirar: ${moedaSinal(l.saldo)}`;
+        `(=) Líquido apurado: ${moedaSinal(l.liquido)}\n` + (l.reembolso > 0.004 ? `(+) Reembolso: ${formatarMoedaBR(l.reembolso)}\n` : '') +
+        `(−) Retirado: ${formatarMoedaBR(l.retirado)}\n(=) Saldo a retirar: ${moedaSinal(l.saldo)}`;
     const num = String(p?.whatsapp || '').replace(/\D/g, '');
     if (num.length >= 10) rzDev('whatsapp', num.length <= 11 ? '55' + num : num, txt);
     else rzDev('share', { titulo: `Distribuição · ${l.nome}`, texto: txt });
