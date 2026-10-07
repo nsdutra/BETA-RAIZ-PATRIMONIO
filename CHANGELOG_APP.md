@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.314.2) — pedido do Nicola 07/10 01:58 ("tela amontoada; há 3 telas distintas,
+padronize"; sessão 20261007-0158-financeiro, demanda f3e6cd27). Editor único de divisão em %
+(raiz-ui 1.2.0, rzEditarDivisao) nas 3 telas: exceção de um lançamento (financeiro 1.35.1),
+propriedade do ativo (cofre-ativos 1.76.0) e Divisão societária — o popup antigo com 2 listas e
+2 botões vira um sheet com "Divisão do imóvel" e "Divisão do contrato", cada uma abrindo o
+editor; grava por pessoa (não mais pelo nome). Import map: raiz-ui 1.2.0, financeiro 1.35.1,
+cofre-ativos 1.76.0. Sem banco.
+Versão anterior (Beta v1.314.1):
+------------------------------------------------------------------
+Versões anteriores (v1.314.1 … v1.314.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.314.1) — P4b do Financeiro, parte 2 (ficha B1b e B4 aprovadas pelo Nicola
 07/10 01:37; sessão 20261007-0137-financeiro, demanda f3e6cd27). Despesa e recebimento ganham
 "Divisão": quem arca (contrato, propriedade do imóvel ou ajustada só naquele lançamento), com
