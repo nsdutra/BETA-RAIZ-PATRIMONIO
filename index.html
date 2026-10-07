@@ -6,9 +6,24 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.317.0
-   LINHAS: 17539
-   DATA: 07/10/2026 (sessão 20261007-0802-d3-bot, demanda 6a4c8ef0)
+   VERSÃO: Beta v1.318.0
+   LINHAS: 17117
+   DATA: 07/10/2026 (sessão 20261007-0900-publicador-onda0, demanda 6b11c602)
+   NOVIDADES (Beta v1.318.0) — Onda 0 da fragmentação: limpeza de código morto, sem nenhuma mudança
+   de comportamento. Apagadas 24 funções que não eram chamadas por ninguém — nem pelo próprio
+   index.html, nem pelos 42 módulos de js/ (subpastas incluídas), nem pelo cofre.html ou pelo sw.js.
+   CAN-05, o que foi eliminado: resíduo do cadastro de síndico/manutencista/administradora anterior
+   às telas próprias de Serviços (salvarSindico, saveAdministradora, normalizarAdministradora,
+   abrirFormSindico, abrirFormManutencista, abrirFormularioAdministradora, cancelarEdicaoSindico,
+   cancelarEdicaoManutencista, cancelarEdicaoAdministradora); tela de acesso negado da era Google
+   Login (mostrarTelaNaoAutorizado, voltarParaSplash); banner e reenvio de pendências do boot antigo
+   (mostrarBannerPendencia, reenviarPendencias); e mais comprimirImagem, obterOuCriarLookup,
+   excluirRepasse, mensalidadeIsentaDeAlertas, lerChecksEmpreendimentos, limparLogsTela,
+   dvsAdicionarLinha, abrirBuscaSocios, abrirRegistrarRetiradaPopup, limparDocumentoAoMudarTipo,
+   fecharMenuConta. Nenhuma linha de HTML, CSS ou import map mudou; nenhum objeto de banco.
+   Só o código apagado: -14.350 bytes e -417 linhas (o arquivo final encurta mais com o rolo do
+   changelog). O index continua acima de 1 MB — quem religou a trava foi o publicar_raiz.py v1.4.0.
+   Versão anterior (Beta v1.317.0):
    NOVIDADES (Beta v1.317.0) — D3b (frente D; "De acordo" do Nicola 07/10 08:02): link direto
    #/leitura/<id>, mandado pelo bot quando lê um contrato de locação. Abre a leitura guardada em
    <empresa>/tmp-ia/<id>.leitura.json (só para quem vê os documentos da empresa) e segue para o "Confira o
@@ -33,14 +48,8 @@
    Banco: outras receitas entram na Distribuição pela divisão; a propriedade de qualquer ativo
    divide receitas e despesas. Import map: financeiro 1.36.0.
    Versão anterior (Beta v1.315.0):
-   NOVIDADES (Beta v1.315.0) — leitura com IA que não engana ("Pode fazer sim" do Nicola 07/10 02:07).
-   "Lido como Não classificado" vira "Não reconheci o tipo deste documento" (Conferir e classificar);
-   leitor fora do ar (sem crédito, provedor fora — cofre-extrair-documento 1.12) mostra "A leitura com
-   IA está fora do ar agora" com Ler de novo, e não conta no limite. Erro ao começar a Configuração
-   inicial sai em vermelho. Só import map: cofre-documentos 2.29.0, configuracao-inicial 1.0.1.
-   Versão anterior (Beta v1.314.2):
    ------------------------------------------------------------------
-   Versões anteriores (v1.314.2 … v1.314.2): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.315.0 … v1.315.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3660,7 +3669,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.317.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.318.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4736,33 +4745,6 @@
         // autorizados desta instalação (USUARIOS_AUTORIZADOS, no Code.gs). Distinta
         // da tela antiga acima (que era sobre aprovação de dispositivo, um controle
         // só de UX, não de segurança de verdade).
-        function mostrarTelaNaoAutorizado(email, mensagemServidor) {
-
-            const splash = document.getElementById('splash-screen');
-
-            splash.classList.remove('opacity-0', 'hidden');
-
-            const emailExibido = email ? email : "não foi possível identificar sua Conta Google";
-
-            splash.innerHTML = `
-                <div class="w-full max-w-sm text-center space-y-6 flex flex-col justify-center h-full py-8">
-                    <div>
-                        <h1 class="text-3xl font-black tracking-widest text-emerald-400">${CONFIG_CLIENTE.nomeEmpresa}</h1>
-                        <p class="text-gray-400 text-sm mt-2 font-medium uppercase tracking-wider">Acesso Restrito</p>
-                    </div>
-                    <div class="bg-emerald-800 border border-emerald-700 rounded-xl p-5 text-left space-y-3">
-                        <p class="text-sm text-slate-200">🔒 Sua Conta Google não está autorizada a acessar este sistema.</p>
-                        <p class="text-xs text-slate-400">E-mail identificado: <strong class="text-slate-200">${emailExibido}</strong></p>
-                        <p class="text-xs text-slate-400">Peça ao administrador para adicionar este e-mail na lista de acesso desta instalação.</p>
-                    </div>
-                    <button onclick="location.reload()" class="w-full bg-emerald-800 text-slate-300 border border-emerald-700 font-bold py-2.5 px-6 rounded-xl transition active:scale-95 text-sm">
-                        🔄 Já fui liberado — Tentar de novo
-                    </button>
-                </div>
-            `;
-
-        }
-
         function obterOuCriarDeviceId() {
 
             let id = localStorage.getItem(chaveLocal('device_id'));
@@ -4910,16 +4892,6 @@
 
         }
 
-        function limparLogsTela() {
-
-            const consoleDiv = document.getElementById('system-diagnostic-logs');
-
-            screenLogEntries = [];
-
-            if (consoleDiv) consoleDiv.innerHTML = '<p class="text-slate-500">// Console de logs limpo.</p>';
-
-        }
-
         // --- MOTOR DE NORMALIZAÇÃO DE CHAVES (Sheets -> App) ---
 
         // ============================================================================
@@ -4969,23 +4941,6 @@
         // (o formulário antigo ainda usa texto livre) — cria se não existir, e
         // devolve o id. Isso preserva a tela atual sem precisar virar um <select>
         // de cadastro agora.
-        async function obterOuCriarLookup(tabela, nome, cache) {
-            if (!nome || !nome.trim()) return null;
-            const nomeLimpo = nome.trim();
-            if (cache[nomeLimpo]) return cache[nomeLimpo];
-
-            const { data: existente } = await dbAuth.from(tabela).select('id').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('nome', nomeLimpo).limit(1);
-            if (existente && existente.length > 0) {
-                cache[nomeLimpo] = existente[0].id;
-                return existente[0].id;
-            }
-
-            const { data: criado, error } = await dbAuth.from(tabela).insert({ cliente_id: CLIENTE_ID_SUPABASE, nome: nomeLimpo }).select('id').single();
-            if (error) throw error;
-            cache[nomeLimpo] = criado.id;
-            return criado.id;
-        }
-
         const cacheLookupTipos = {};
         const cacheLookupEmpreendimentos = {};
 
@@ -6777,13 +6732,6 @@
 
 
         // v1.52.0 — overlay de busca da aba Distribuição, mesmo padrão.
-        function abrirBuscaSocios() {
-            const modal = document.getElementById('modal-busca-socios');
-            modal.classList.remove('hidden');
-            modal.onclick = (ev) => { if (ev.target === modal) fecharBuscaSocios(); };
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
         function fecharBuscaSocios() {
             document.getElementById('modal-busca-socios').classList.add('hidden');
         }
@@ -6797,20 +6745,6 @@
         // duplicar a lógica de negócio de registrar retirada.
         // v1.295.0 (demanda 4a369778) — o popup "Registrar Retirada" (modal-campo-contrato, Tipo B)
         // saiu: abre o Sheet "Lançar retirada" de js/financeiro.js (.rz-f, grava por pessoa_id).
-        function abrirRegistrarRetiradaPopup() { if (typeof abrirLancarRetirada === 'function') abrirLancarRetirada(); }
-
-
-
-
-
-
-
-
-
-
-
-
-
         function normalizarContrato(raw) {
 
             return {
@@ -6878,28 +6812,6 @@
                 descricao: raw.descricao || raw.Descricao || '',
 
                 historico: raw.historico || []
-
-            };
-
-        }
-
-        function normalizarAdministradora(raw) {
-
-            if (!raw) return null;
-
-            return {
-
-                id: raw.id || 'adm_' + Date.now() + Math.random().toString(36).substr(2, 4),
-
-                nome: raw.nome || raw.Nome || '',
-
-                docTipo: raw.docTipo || 'CNPJ',
-
-                documento: raw.documento || raw.cpf || raw.cnpj || '',
-
-                taxaAdm: parseFloat(raw.taxaAdm || raw.taxa_adm || 0) || 0,
-
-                escopo: raw.escopo || ''
 
             };
 
@@ -7466,12 +7378,6 @@
 
 
 
-        function limparDocumentoAoMudarTipo() {
-
-            document.getElementById('con-cpf').value = '';
-
-        }
-
         // Redimensiona e comprime a imagem antes de gerar o base64.
 
         // Fotos de celular sem tratamento chegam a 3-8 MB (300 mil+ caracteres em base64),
@@ -7526,64 +7432,6 @@
             if (error) throw error;
             const { data } = dbAuth.storage.from('imoveis-fotos').getPublicUrl(nomeArquivo);
             return data.publicUrl;
-        }
-
-        function comprimirImagem(file, maxDimensao = 1024, qualidade = 0.6) {
-
-            return new Promise((resolve, reject) => {
-
-                const reader = new FileReader();
-
-                reader.onerror = () => reject(new Error('Falha ao ler o arquivo de imagem.'));
-
-                reader.onload = (e) => {
-
-                    const img = new Image();
-
-                    img.onerror = () => reject(new Error('Falha ao decodificar a imagem.'));
-
-                    img.onload = () => {
-
-                        let largura = img.width;
-
-                        let altura = img.height;
-
-                        if (largura > altura && largura > maxDimensao) {
-
-                            altura = Math.round(altura * (maxDimensao / largura));
-
-                            largura = maxDimensao;
-
-                        } else if (altura > maxDimensao) {
-
-                            largura = Math.round(largura * (maxDimensao / altura));
-
-                            altura = maxDimensao;
-
-                        }
-
-                        const canvas = document.createElement('canvas');
-
-                        canvas.width = largura;
-
-                        canvas.height = altura;
-
-                        const ctx = canvas.getContext('2d');
-
-                        ctx.drawImage(img, 0, 0, largura, altura);
-
-                        resolve(canvas.toDataURL('image/jpeg', qualidade));
-
-                    };
-
-                    img.src = e.target.result;
-
-                };
-
-                reader.readAsDataURL(file);
-
-            });
-
         }
 
         async function processarMultiplasFotos(inputElement) {
@@ -8519,16 +8367,6 @@
 
         }
 
-        function voltarParaSplash() {
-
-            document.getElementById('splash-screen').classList.remove('hidden', 'opacity-0', 'splash-lista-ativa'); // v1.203.0 — defensivo, ver CSS splash-lista-ativa
-
-            document.getElementById('main-header').classList.add('hidden');
-
-            document.getElementById('main-content').classList.add('hidden');
-
-        }
-
         // Registro de rotas que falharam ao gravar na nuvem, para permitir reenvio manual.
 
         // Mantemos os últimos dados de cada rota aqui até a gravação ser confirmada com sucesso.
@@ -9212,70 +9050,6 @@
                 console.warn('Falha ao carregar js/comum-sobre.js:', err.message);
                 mount.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar a tela Sobre agora.</p>';
             }
-        }
-
-        async function reenviarPendencias() {
-
-            const rotasPendentes = Object.keys(pendenciasSync);
-
-            if (rotasPendentes.length === 0) {
-
-                esconderBannerPendencia();
-
-                return;
-
-            }
-
-            devLog("REENVIO_MANUAL", `Reenviando rotas pendentes: ${rotasPendentes.join(', ')}`);
-
-            const resultados = await Promise.all(
-
-                rotasPendentes.map(rota => enviarDadosParaGoogleSheets(rota, pendenciasSync[rota]).then(ok => ({ rota, ok })))
-
-            );
-
-            const aindaFalhando = resultados.filter(r => !r.ok);
-
-            if (aindaFalhando.length === 0) {
-
-                esconderBannerPendencia();
-
-                rzAvisar('Dados reenviados e confirmados.', 'success');
-
-            } else {
-
-                rzAvisar(`Ainda não sincronizou: ${aindaFalhando.map(r => r.rota).join(', ')}. Tente de novo em instantes.`, 'danger');
-
-            }
-
-        }
-
-        function mostrarBannerPendencia() {
-
-            let banner = document.getElementById('banner-pendencia-sync');
-
-            if (!banner) {
-
-                banner = document.createElement('div');
-
-                banner.id = 'banner-pendencia-sync';
-
-                banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:200; background:#c53030; color:#fff; padding:10px 14px; font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; box-shadow:0 2px 6px rgba(0,0,0,0.3);';
-
-                banner.innerHTML = `
-
-                    <span style="flex:1;"><svg data-lucide="alert-triangle" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Há dados não confirmados na nuvem. Toque para reenviar.</span>
-
-                    <button onclick="reenviarPendencias()" style="background:#fff; color:#c53030; font-weight:bold; border:none; padding:6px 10px; border-radius:6px; font-size:12px;">🔄 Reenviar Agora</button>
-
-                `;
-
-                document.body.prepend(banner);
-
-            }
-
-            banner.style.display = 'flex';
-
         }
 
         function esconderBannerPendencia() {
@@ -10800,8 +10574,6 @@
             btn.disabled = false;
         }
 
-        function fecharMenuConta() { fecharSheet(); }
-
         // v1.115.0 (fatia 7) — verificarAcessoCofreEAtualizarMenu() (v1.46.0)
         // REMOVIDA: só alternava #menu-grupo-modulos, um grupo que deixou de
         // existir na v1.87.0. Era uma consulta a perfil_funcionalidade por
@@ -11361,34 +11133,8 @@
             aplicarIndicadorValidacao(indicadorId, validarEmailFormato(input.value), 'E-mail válido');
         }
 
-        function abrirFormularioAdministradora() {
-
-            cancelarEdicaoAdministradora();
-
-            document.getElementById('form-administradora-wrapper').classList.remove('hidden');
-
-            sincronizarBotaoToggleServico('administradora');
-
-            window.scrollTo({top: 0, behavior: 'smooth'});
-
-        }
-
         // v1.41.2 — mesmo padrão liga/desliga de Imóveis/Contratos.
         // v1.125.0 (fatia 9a) — alternarFormularioAdministradora() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
-        function cancelarEdicaoAdministradora() {
-
-            document.getElementById('adm-id').value = '';
-
-            document.getElementById('form-administradora').reset();
-
-            document.getElementById('form-administradora-titulo').innerText = 'Cadastrar Administradora';
-
-            document.getElementById('form-administradora-wrapper').classList.add('hidden');
-
-            sincronizarBotaoToggleServico('administradora');
-
-        }
-
         // v1.41.2 — helper genérico de sincronização de cor+ícone (+/X) dos
         // botões toggle de Síndico/Manutencista/Administradora.
         function sincronizarBotaoToggleServico(tipo) {
@@ -11423,50 +11169,6 @@
             sincronizarBotaoToggleServico('administradora');
 
             window.scrollTo({top: 0, behavior: 'smooth'});
-
-        }
-
-        function saveAdministradora(e) {
-
-            e.preventDefault();
-
-            const id = document.getElementById('adm-id').value;
-
-            const documento = document.getElementById('adm-documento').value.trim();
-
-            const digitos = documento.replace(/\D/g, '');
-
-            const dados = {
-
-                id: id || 'adm_' + Date.now() + Math.random().toString(36).substr(2, 4),
-
-                nome: document.getElementById('adm-nome').value.trim(),
-
-                docTipo: digitos.length > 11 ? 'CNPJ' : 'CPF',
-
-                documento: documento,
-
-                taxaAdm: parseFloat(document.getElementById('adm-taxa').value) || 0,
-
-                escopo: document.getElementById('adm-escopo').value.trim()
-
-            };
-
-            if (id) {
-
-                const idx = administradoras.findIndex(a => a.id === id);
-
-                if (idx !== -1) administradoras[idx] = dados;
-
-            } else {
-
-                administradoras.push(dados);
-
-            }
-
-            cancelarEdicaoAdministradora();
-
-            saveAll(true, "Administradora salva com sucesso!", ['administradoras']);
 
         }
 
@@ -11697,13 +11399,6 @@
         // finalidadeUso já vem populado por carregarImoveisSupabase — ver
         // cofre-api.js) — sem depender do módulo lazy, sem Promise, síncrona
         // de verdade.
-        function mensalidadeIsentaDeAlertas(m) {
-            const con = contratos.find(c => c.id === m.contratoId);
-            if (!con) return false;
-            const imo = imoveis.find(i => i.id === con.imovelId);
-            return !!imo && (imo.finalidadeUso === 'uso_proprio' || imo.finalidadeUso === 'temporada');
-        }
-
         // v1.63.0 — NOVO conceito, pedido explícito (25/08/2026): "não pago"
         // e "em atraso" NÃO são a mesma coisa. Uma mensalidade só é atraso/
         // pendência de cobrança de verdade quando, além de não paga, a data
@@ -14770,10 +14465,6 @@
                 </div>`).join('') + `<p style="font-size:12px;font-weight:bold;color:${Math.abs(total - 100) < 0.01 ? 'var(--success)' : 'var(--danger)'};">Total: ${total.toFixed(1)}%</p>`;
         }
 
-        function dvsAdicionarLinha(tipo) {
-            (tipo === 'imovel' ? __divisaoPopupImovel : __divisaoPopupContrato).push({ nome: '', pct: 0 });
-            renderListaDivisaoPopup(tipo);
-        }
         function dvsRemoverLinha(tipo, i) {
             (tipo === 'imovel' ? __divisaoPopupImovel : __divisaoPopupContrato).splice(i, 1);
             renderListaDivisaoPopup(tipo);
@@ -15680,26 +15371,6 @@
         }
 
 
-        function excluirRepasse(repId) {
-
-            const rep = repasses.find(r => r.id === repId);
-
-            if (!rep) return;
-
-            if (!confirm(`Confirma excluir o repasse de R$ ${fmtBR(rep.valor)} para ${rep.socio} (Ref ${rep.mes})?`)) return;
-
-            dbAuth.from('repasses').delete().eq('id', repId).then(({ error }) => {
-                if (error) logScreen('Erro ao excluir repasse no Supabase: ' + error.message, true);
-            });
-
-            repasses = repasses.filter(r => r.id !== repId);
-
-            registrarLog('repasses.excluir', { repasseId: repId, socio: rep.socio, valor: rep.valor });
-
-            saveAll(true, "Repasse excluído.", ['repasses']);
-
-        }
-
         function registrarRepasse() {
 
             const socio = document.getElementById('rep-socio').value;
@@ -16500,12 +16171,6 @@
             }).join('');
         }
 
-        function lerChecksEmpreendimentos(containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return [];
-            return Array.from(container.querySelectorAll('.check-empreendimento:checked')).map(chk => chk.value);
-        }
-
         // v7.3.3 — Síndico tem vigência (data de início) por empreendimento;
         // manutencista não. Por isso o síndico usa um renderer próprio, com
         // campo de data ao lado de cada checkbox.
@@ -16560,24 +16225,8 @@
             });
         }
 
-        function abrirFormSindico() {
-            cancelarEdicaoSindico();
-            document.getElementById('form-sindico-wrapper').classList.remove('hidden');
-            popularChecksEmpreendimentosSindico('sind-empreendimentos-checks', []);
-            sincronizarBotaoToggleServico('sindico');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
         // v1.41.2 — mesmo padrão liga/desliga de Imóveis/Contratos.
         // v1.125.0 (fatia 9a) — alternarFormularioSindico() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
-        function cancelarEdicaoSindico() {
-            document.getElementById('sind-id').value = '';
-            document.getElementById('form-sindico').reset();
-            document.getElementById('form-sindico-titulo').innerText = 'Cadastrar Síndico';
-            document.getElementById('form-sindico-wrapper').classList.add('hidden');
-            sincronizarBotaoToggleServico('sindico');
-        }
-
         function editarSindico(id) {
             const sind = sindicos.find(s => s.id === id);
             if (!sind) return;
@@ -16594,61 +16243,6 @@
             sincronizarBotaoToggleServico('sindico');
             popularChecksEmpreendimentosSindico('sind-empreendimentos-checks', sind.empreendimentos || []);
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        async function salvarSindico(e) {
-            e.preventDefault();
-
-            const id = document.getElementById('sind-id').value;
-            const documento = document.getElementById('sind-documento').value.trim();
-            const digitos = documento.replace(/\D/g, '');
-
-            if (digitos.length > 0) {
-                const tipo = digitos.length > 11 ? 'CNPJ' : 'CPF';
-                if (tipo === 'CPF' && !validarCPF(documento)) {
-                    rzAvisar('O CPF informado não é válido.', 'danger');
-                    return;
-                }
-                if (tipo === 'CNPJ' && !validarCNPJ(documento)) {
-                    rzAvisar('O CNPJ informado não é válido.', 'danger');
-                    return;
-                }
-            }
-
-            const empreendimentosMarcados = lerChecksEmpreendimentosSindico('sind-empreendimentos-checks');
-
-            const dados = {
-                id: id || 'sind_' + Date.now() + Math.random().toString(36).substr(2, 4),
-                nome: document.getElementById('sind-nome').value.trim(),
-                docTipo: digitos.length > 11 ? 'CNPJ' : 'CPF',
-                documento: documento,
-                nomeContato: document.getElementById('sind-contato').value.trim(),
-                whatsapp: document.getElementById('sind-whatsapp').value.trim(),
-                email: document.getElementById('sind-email').value.trim(),
-                empreendimentos: empreendimentosMarcados
-            };
-
-            if (id) {
-                const idx = sindicos.findIndex(s => s.id === id);
-                if (idx !== -1) sindicos[idx] = dados;
-            } else {
-                sindicos.push(dados);
-            }
-
-            cancelarEdicaoSindico();
-
-            // v1.41.3 — CORRIGIDO: recalcularVinculosSindicos() rodava ANTES de
-            // saveAll(), usando o id LOCAL/TEMPORÁRIO do síndico recém-criado
-            // ('sind_' + timestamp). Só que saveAll() troca esse id temporário
-            // pelo id real do banco DEPOIS de salvar (sincronizarSindicosSupabase
-            // muta o array). Resultado: imo.sindicoId ficava apontando pro id
-            // temporário, que não existia mais em nenhum síndico — o vínculo só
-            // "aparecia" depois de um refresh (que recarrega tudo já com ids
-            // reais e recalcula de novo). Agora aguarda o saveAll terminar
-            // (id já trocado pelo real) para só então recalcular e redesenhar.
-            await saveAll(true, "Síndico salvo com sucesso!", ['sindicos']);
-            recalcularVinculosSindicos();
-            rzImoSeCarregado('renderImoveis'); // v1.0.0 imoveis.js (A.8)
         }
 
         async function excluirSindico(id) {
@@ -17406,24 +17000,8 @@
 
         // ---- MANUTENCISTAS ----
 
-        function abrirFormManutencista() {
-            cancelarEdicaoManutencista();
-            document.getElementById('form-manutencista-wrapper').classList.remove('hidden');
-            popularChecksEmpreendimentos('man-empreendimentos-checks', []);
-            sincronizarBotaoToggleServico('manutencista');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
         // v1.41.2 — mesmo padrão liga/desliga de Imóveis/Contratos.
         // v1.125.0 (fatia 9a) — alternarFormularioManutencista() REMOVIDA: órfã desde a v1.117 (telas de prestadores desligadas), zero chamadores.
-        function cancelarEdicaoManutencista() {
-            document.getElementById('man-id').value = '';
-            document.getElementById('form-manutencista').reset();
-            document.getElementById('form-manutencista-titulo').innerText = 'Cadastrar Manutencista';
-            document.getElementById('form-manutencista-wrapper').classList.add('hidden');
-            sincronizarBotaoToggleServico('manutencista');
-        }
-
         function editarManutencista(id) {
             const man = manutencistas.find(m => m.id === id);
             if (!man) return;

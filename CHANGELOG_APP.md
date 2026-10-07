@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.315.0) — leitura com IA que não engana ("Pode fazer sim" do Nicola 07/10 02:07).
+"Lido como Não classificado" vira "Não reconheci o tipo deste documento" (Conferir e classificar);
+leitor fora do ar (sem crédito, provedor fora — cofre-extrair-documento 1.12) mostra "A leitura com
+IA está fora do ar agora" com Ler de novo, e não conta no limite. Erro ao começar a Configuração
+inicial sai em vermelho. Só import map: cofre-documentos 2.29.0, configuracao-inicial 1.0.1.
+Versão anterior (Beta v1.314.2):
+------------------------------------------------------------------
+Versões anteriores (v1.314.2 … v1.314.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.314.2) — pedido do Nicola 07/10 01:58 ("tela amontoada; há 3 telas distintas,
 padronize"; sessão 20261007-0158-financeiro, demanda f3e6cd27). Editor único de divisão em %
 (raiz-ui 1.2.0, rzEditarDivisao) nas 3 telas: exceção de um lançamento (financeiro 1.35.1),
