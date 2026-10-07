@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.322.0
-   LINHAS: 17120
-   DATA: 07/10/2026 (sessão 20261007-1845-financeiro, demanda f3e6cd27)
+   VERSÃO: Beta v1.322.1
+   LINHAS: 17117
+   DATA: 07/10/2026 (sessão 20261007-2005-catalogo-fim, demanda 2923ff4d)
+   NOVIDADES (Beta v1.322.1) — catálogo único (de acordo do Nicola 07/10 20:02): "Criar o ativo a partir
+   deste documento" sugere o tipo de ativo pela aplicabilidade do catálogo (e pela IA), não mais pelo
+   campo antigo nem por nomes de categoria anteriores à fatia B. Só import map: cofre-documentos 2.31.2 →
+   2.32.0.
+   Versão anterior (Beta v1.322.0):
    NOVIDADES (Beta v1.322.0) — P5a.2, cartão de crédito (plano P5 v1.3.0, de acordo do Nicola 07/10
    18:45): só import map — financeiro.js 1.38.0 (sugestão no padrão da conciliação, voltar para em
    aberto, resumo da conciliação da compra, reimportação com conferência, cartão fora das contas de
@@ -33,16 +38,8 @@
    linha de código de nenhum arquivo foi tocada: cada módulo foi conferido token a token contra o
    publicado, e a única divergência aceita foi o próprio export const VERSAO. Nenhum objeto de banco.
    Versão anterior (Beta v1.320.0):
-   NOVIDADES (Beta v1.320.0) — UX F2.4, chips de Ativos e Contratos (plano aprovado pelo Nicola 07/10
-   09:11; UXR-13/14/15). Ordem Todos → ação → recorte → convite. Ativos: "Com alerta" com ponto na cor
-   do pior alerta, grupos só com ativo, chips de convite para categorias vazias e card de convite no
-   fim da lista quando a carteira só tem imóveis. Contratos: Todos · Com alerta · A reajustar ·
-   Vencendo 90 d (do Motor de Alertas) · Vigentes · Assinando · Encerrados. CSS novo dos chips
-   (.rz-pt.rz-bad/.rz-warn, .rz-chip-convite, .rz-convite-card). Import map: cofre-ativos.js 1.77.0 e
-   contratos.js 1.44.0. Nenhum objeto de banco criado por este arquivo.
-   Versão anterior (Beta v1.319.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.319.0 … v1.319.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.320.0 … v1.320.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -67,7 +64,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.44.2","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.77.2","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.48.2","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.31.2","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.3","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.2","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.2","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.2"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.44.2","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.77.2","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.48.2","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.32.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.3","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.2","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.2","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.2"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3670,7 +3667,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.322.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.322.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

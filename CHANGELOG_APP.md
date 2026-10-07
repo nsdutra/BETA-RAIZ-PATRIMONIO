@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.320.0) — UX F2.4, chips de Ativos e Contratos (plano aprovado pelo Nicola 07/10
+09:11; UXR-13/14/15). Ordem Todos → ação → recorte → convite. Ativos: "Com alerta" com ponto na cor
+do pior alerta, grupos só com ativo, chips de convite para categorias vazias e card de convite no
+fim da lista quando a carteira só tem imóveis. Contratos: Todos · Com alerta · A reajustar ·
+Vencendo 90 d (do Motor de Alertas) · Vigentes · Assinando · Encerrados. CSS novo dos chips
+(.rz-pt.rz-bad/.rz-warn, .rz-chip-convite, .rz-convite-card). Import map: cofre-ativos.js 1.77.0 e
+contratos.js 1.44.0. Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.319.0):
+------------------------------------------------------------------
+Versões anteriores (v1.319.0 … v1.319.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.319.0) — P5a, cartão de crédito (fichas F1–F5, de acordo do Nicola 07/10 09:09).
 Lançamentos de saída passam a trazer faturaId (lancamentos.fatura_id), que o financeiro.js 1.37.0 usa
 para mostrar cada fatura como uma linha só em Saídas. Pontes novas: financeiroAbrirFatura e

@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.31.2 · 07/10/2026
+// Versão: 2.32.0 · 07/10/2026
+//
+// v2.32.0 (catálogo único, demanda 2923ff4d, sessão 20261007-2005-catalogo-fim; "Pode fazer 3 e 4" do Nicola
+// 07/10 20:02) — "Criar o ativo a partir deste documento" deixa de usar o campo antigo
+// cofre_controle_subtipos.tipo_ativo_aplicavel e o mapa fixo TIPO_ATIVO_SUGERIDO (que ainda tinha os nomes
+// de categoria anteriores à fatia B — vida_protecao, imovel, terreno, animal, veiculo_blindado — e por isso
+// criaria o ativo com um tipo que o banco recusa). O tipo vem agora da mesma regra do resto do app: as
+// categorias de ativo ligadas ao subtipo em cofre_subtipo_aplicabilidade; se houver mais de uma, vale a
+// sugestão da IA quando for uma delas; sem decisão segura, o botão não aparece. Nome e dados do ativo
+// sugeridos passam a reconhecer vida, imovel_predial e imovel_territorial.
+//
+// Versão anterior: 2.31.2 · 07/10/2026
 //
 // v2.31.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -32,29 +43,11 @@
 //   (b) Leitor fora do ar (cofre-extrair-documento 1.12 devolve falha_ia): "A leitura com IA está fora do
 //       ar agora", com Ler de novo (sem reenviar), Preencher eu mesmo e Cancelar.
 //   (c) O "Pronto" explica a próxima tela: conferir os dados, ajustar o tipo se precisar e salvar.
-//
-// Versão anterior: 2.28.0 · 07/10/2026
-//
-// v2.28.0 (demanda 9ddb9f34, fatia U1b + U2, sessão 20261007-0129-upload-ia-b; "De acordo" do Nicola
-// 07/10 01:29, protótipo PROTOTIPO_LEITURA_IA_RAIZ v1.1.0) —
-//   (a) "Enviar documento" vira Sheet de ações do app (REGRAS §2): Fotografar e ler com IA · Escolher
-//       arquivo e ler com IA · Só guardar o arquivo (IA no topo; sem IA no plano, cadeado com motivo).
-//       Sai a caixinha "Ler com IA". Leitura e resultado no mesmo sheet, TRAVADO (rzSheetTravar do
-//       index 1.312.0: sem X, sem arrastar, toque fora e voltar não fecham). No cofre.html avulso
-//       (sem Sheet), o modal de sempre.
-//   (b) Durante a leitura, sair/recarregar pede confirmação do navegador (beforeunload).
-//   (c) U2 — antes de chamar a IA, o app anota no aparelho a leitura em andamento (chave do Sair,
-//       raiz_d_<empresa>_<pessoa>_leitura_pendente: ids, nome do arquivo e vínculo) e manda
-//       leitura_id ao leitor (cofre-extrair-documento 1.11 guarda o resultado). Se o app for
-//       recarregado ou fechado no meio, o index oferece retomar ao reabrir; o evento
-//       cofre:retomar-leitura reconstrói o envio com o arquivo já enviado e mostra o resultado
-//       guardado (ou lê de novo, se não terminou). Salvar, cancelar, descartar ou "outra foto"
-//       apagam a anotação e o resultado guardado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.2.0 … v2.27.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.28.0 … v2.28.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.31.2'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.32.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -1033,33 +1026,27 @@ function padroesDaCategoria(categoriaId) {
 
 // v2.2.0 — o documento pode CRIAR o ativo. Tipo e campos vêm do catálogo +
 // do que a IA leu; a criação usa o mesmo caminho da tela de Ativos.
-const TIPO_ATIVO_SUGERIDO = {
-    cnh: 'vida_protecao', cin_rg: 'vida_protecao', passaporte: 'vida_protecao', visto: 'vida_protecao',
-    carteira_profissional: 'vida_protecao', carteira_maritimo: 'vida_protecao', carteira_aeronautica: 'vida_protecao',
-    seguro_vida: 'vida_protecao', seguro_viagem: 'vida_protecao',
-    crlv: 'veiculo', ipva_global: 'veiculo', licenciamento_veicular: 'veiculo', atpv_e: 'veiculo',
-    multa_transito: 'veiculo', seguro_veiculo: 'veiculo', financiamento_veiculo: 'veiculo', registro_blindagem: 'veiculo_blindado',
-    iptu_global: 'imovel', condominio: 'imovel', seguro_incendio: 'imovel', avcb_clcb: 'imovel',
-    contrato_locacao: 'imovel', itr: 'terreno', ccir_regularidade_cadastral: 'terreno', outorga_agua: 'terreno', licenca_ambiental_rural: 'terreno',
-    vacinacao_pet: 'animal', vermifugo_antiparasitario_pet: 'animal', consulta_checkup_pet: 'animal', seguro_plano_pet: 'animal',
-};
-
 function tipoAtivoDoDocumento() {
     const s = subtipoSelecionado();
     if (!s) return null;
     if (up?.tipoAtivo) return up.tipoAtivo;
-    if (s.tipo_ativo_aplicavel?.length === 1) return s.tipo_ativo_aplicavel[0];
-    return TIPO_ATIVO_SUGERIDO[s.codigo] || (s.tipo_ativo_aplicavel?.[0] ?? null);
+    // v2.32.0 — categorias de ativo ligadas ao subtipo na aplicabilidade (a regra do app inteiro)
+    const cats = [...new Set((aplicabilidadeSubtipos || [])
+        .filter(a => a.subtipo_id === s.id && a.escopo_tipo === 'categoria' && a.ativo !== false)
+        .map(a => a.escopo_valor))];
+    const sugIA = up?.ia?.tipoAtivoSugerido || null;
+    if (sugIA && (!cats.length || cats.includes(sugIA))) return sugIA;
+    return cats.length === 1 ? cats[0] : null;
 }
 
 // Nome do ativo a partir do que foi lido (nunca do nome do arquivo).
 function nomeAtivoSugerido(tipo, dados) {
-    if (tipo === 'vida_protecao') return dados.titular || dados.nome || null;
+    if (tipo === 'vida' || tipo === 'vida_protecao') return dados.titular || dados.nome || null; // v2.32.0
     if (tipo === 'veiculo' || tipo === 'veiculo_blindado') {
         const base = dados.marca_modelo || [dados.marca, dados.modelo].filter(Boolean).join(' ') || 'Veículo';
         return dados.placa ? `${base} — ${dados.placa}` : base;
     }
-    if (tipo === 'imovel' || tipo === 'terreno') return dados.imovel_endereco || dados.endereco || dados.inscricao_imobiliaria || null;
+    if (tipo === 'imovel_predial' || tipo === 'imovel_territorial' || tipo === 'imovel' || tipo === 'terreno') return dados.imovel_endereco || dados.endereco || dados.inscricao_imobiliaria || null;
     if (tipo === 'animal') return dados.nome_animal || dados.nome || null;
     return dados.titular || dados.proprietario || null;
 }

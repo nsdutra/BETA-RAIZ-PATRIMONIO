@@ -359,6 +359,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -771,6 +773,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1127,6 +1131,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -2052,6 +2058,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2627,7 +2635,32 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-documentos.js`
+
+//
+// Versão anterior: 2.28.0 · 07/10/2026
+//
+// v2.28.0 (demanda 9ddb9f34, fatia U1b + U2, sessão 20261007-0129-upload-ia-b; "De acordo" do Nicola
+// 07/10 01:29, protótipo PROTOTIPO_LEITURA_IA_RAIZ v1.1.0) —
+//   (a) "Enviar documento" vira Sheet de ações do app (REGRAS §2): Fotografar e ler com IA · Escolher
+//       arquivo e ler com IA · Só guardar o arquivo (IA no topo; sem IA no plano, cadeado com motivo).
+//       Sai a caixinha "Ler com IA". Leitura e resultado no mesmo sheet, TRAVADO (rzSheetTravar do
+//       index 1.312.0: sem X, sem arrastar, toque fora e voltar não fecham). No cofre.html avulso
+//       (sem Sheet), o modal de sempre.
+//   (b) Durante a leitura, sair/recarregar pede confirmação do navegador (beforeunload).
+//   (c) U2 — antes de chamar a IA, o app anota no aparelho a leitura em andamento (chave do Sair,
+//       raiz_d_<empresa>_<pessoa>_leitura_pendente: ids, nome do arquivo e vínculo) e manda
+//       leitura_id ao leitor (cofre-extrair-documento 1.11 guarda o resultado). Se o app for
+//       recarregado ou fechado no meio, o index oferece retomar ao reabrir; o evento
+//       cofre:retomar-leitura reconstrói o envio com o arquivo já enviado e mostra o resultado
+//       guardado (ou lê de novo, se não terminou). Salvar, cancelar, descartar ou "outra foto"
+//       apagam a anotação e o resultado guardado.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.2.0 … v2.27.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 2.27.0 · 07/10/2026
@@ -3168,6 +3201,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3320,6 +3355,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
 
 //
@@ -3443,6 +3480,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3474,6 +3513,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3564,6 +3605,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -3625,6 +3668,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -3729,6 +3774,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -3941,6 +3988,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -3983,6 +4032,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4041,6 +4092,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4738,6 +4791,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -5024,6 +5079,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -5932,6 +5989,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -5991,6 +6050,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6085,6 +6146,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -6288,6 +6351,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -6353,6 +6418,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 
