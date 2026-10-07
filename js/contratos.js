@@ -1,7 +1,14 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.42.0 · 07/10/2026
+// Versão: 1.43.0 · 07/10/2026
+//
+// v1.43.0 (demanda b94ef7d5, sessão 20261007-0231-vinculos-reativar; plano aprovado pelo Nicola 07/10 02:31) —
+// chip Partes da ficha do contrato ganha o grupo "Encerrados" (fiador e cônjuge anuente encerrados,
+// com a data); ⋮ de um encerrado: "Reativar" (volta ao contrato com os dados de antes —
+// fn_vinculo_reativar) e "Excluir" (fn_vinculo_excluir). Excluídos não aparecem.
+//
+// Versão anterior: 1.42.0 · 07/10/2026
 //
 // v1.42.0 (demanda b94ef7d5, sessão 20261007-0005-vinculos-chips; plano aprovado pelo Nicola 07/10 00:05) —
 // ⋮ do fiador no chip Partes ganha "Encerrar fiador" (troca real: sai da lista do contrato e fica no
@@ -708,7 +715,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.42.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.43.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -2413,6 +2420,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                             <div class="rz-tx"><b>${(f.nome || '').replace(/</g, '&lt;')}</b><span>Fiador · ${f.doc_tipo || 'CPF'} ${f.cpf || ''}${f.estado_civil ? ' · ' + f.estado_civil : ''}${f.possui_imovel_proprio ? ' · imóvel em garantia' : ''}</span></div>
                             <button type="button" onclick="event.stopPropagation(); abrirAcoesFiadorContrato('${con.id}', ${iFiador})" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                         </div>`).join('') : `<div class="rz-empty" style="padding-top:8px"><p>Nenhum fiador. Adicione se a minuta exigir.</p></div>`}
+                        <div id="fc-partes-encerrados"></div>
 
                     </div>
                 </div>
@@ -2432,6 +2440,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (typeof lucide !== 'undefined') lucide.createIcons();
             if (abreArquivos) montarDocumentosContrato(con.id);
             montarOcorrenciasContrato(con.id); // v1.1.0 — A.10
+            montarPartesEncerradasContrato(con.id); // v1.43.0 — demanda b94ef7d5
             montarDistribuicaoContrato(con.id); // NOVO (19/09/2026, rodada 10)
             montarSimulacaoReajusteContrato(con.id); // v1.14.0 (B1.2)
             montarItensControleContrato(con.id); // v1.27.0 (Bloco B)
@@ -3074,6 +3083,64 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 { icone: 'archive', titulo: 'Encerrar fiador', codigo: 'contratos.editar', sub: 'Troca real. Sai do contrato e fica no histórico da parte', aoTocar: () => encerrarFiadorDireto(con.id, i) },
                 { icone: 'trash-2', titulo: 'Excluir fiador', codigo: 'contratos.editar', tipo: 'bad', sub: 'Cadastro errado. Sai também do histórico da parte', aoTocar: () => removerFiadorDireto(con.id, i) },
             ] });
+        }
+
+        // v1.43.0 (demanda b94ef7d5) — grupo "Encerrados" no chip Partes: fiador e cônjuge
+        // anuente encerrados (troca real), com a data. Excluídos não aparecem (a linha some).
+        // ⋮: Reativar (fn_vinculo_reativar devolve ao contrato com RG, cônjuge e imóvel guardados no
+        // encerramento) ou Excluir (fn_vinculo_excluir). Ouvintes por JS — sem ponte no window.
+        export async function montarPartesEncerradasContrato(contratoId) {
+            const mount = document.getElementById('fc-partes-encerrados'); if (!mount) return;
+            try {
+                const { data, error } = await dbAuth.from('partes_papeis')
+                    .select('id, papel, encerrado_em, partes(nome, doc_tipo, documento)')
+                    .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId).eq('ativo', false)
+                    .in('papel', ['fiador', 'conjuge_anuente']).order('encerrado_em', { ascending: false });
+                if (error) throw error;
+                const lista = data || [];
+                if (!lista.length) { mount.innerHTML = ''; return; }
+                const rot = { fiador: 'Fiador', conjuge_anuente: 'Cônjuge anuente' };
+                mount.innerHTML = `<div class="rz-group">Encerrados · ${lista.length}</div>` + lista.map(v => `
+                    <div class="rz-row">
+                        <div class="rz-ic"><svg data-lucide="${v.papel === 'fiador' ? 'shield-check' : 'heart-handshake'}"></svg></div>
+                        <div class="rz-tx"><b>${escapeHtmlSaidas(v.partes?.nome || 'Parte')}</b><span>${rot[v.papel] || v.papel}${v.encerrado_em ? ' · encerrado em ' + new Date(v.encerrado_em).toLocaleDateString('pt-BR') : ''}</span></div>
+                        <span class="rz-st rz-neu">Encerrado</span>
+                        <button type="button" class="rz-more" data-enc-papel="${v.id}" aria-label="Ações do vínculo encerrado"><svg data-lucide="ellipsis-vertical"></svg></button>
+                    </div>`).join('');
+                mount.querySelectorAll('[data-enc-papel]').forEach(btn => btn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    const v = lista.find(x => x.id === btn.dataset.encPapel); if (!v) return;
+                    abrirAcoesEncerradoContrato(contratoId, v, rot[v.papel] || v.papel);
+                }));
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } catch (err) {
+                mount.innerHTML = '';
+                console.warn('[contratos] encerrados do contrato:', err.message || err);
+            }
+        }
+        function abrirAcoesEncerradoContrato(contratoId, v, rotulo) {
+            if (typeof abrirSheetAcoes !== 'function') return;
+            const nome = v.partes?.nome || 'Parte';
+            abrirSheetAcoes({ titulo: `${rotulo} · ${nome}`, sub: 'Vínculo encerrado', acoes: [
+                { icone: 'rotate-ccw', titulo: 'Reativar', codigo: 'contratos.editar', sub: v.papel === 'fiador' ? 'Volta a ser fiador deste contrato, com os dados de antes' : 'Volta como cônjuge anuente do fiador', aoTocar: () => acaoEncerradoContrato(contratoId, v, 'fn_vinculo_reativar') },
+                { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir', codigo: 'contratos.editar', sub: 'Cadastro errado. Sai também do histórico da parte', aoTocar: () => acaoEncerradoContrato(contratoId, v, 'fn_vinculo_excluir') },
+            ] });
+        }
+        async function acaoEncerradoContrato(contratoId, v, funcao) {
+            const nome = v.partes?.nome || 'a parte';
+            const excluir = funcao === 'fn_vinculo_excluir';
+            const ok = excluir
+                ? await rzPerguntar({ titulo: 'Excluir vínculo?', impacto: `${nome} sai também do histórico da parte. Não dá para desfazer.`, destrutivo: true, rotuloConfirmar: 'Excluir vínculo' })
+                : await rzPerguntar({ titulo: 'Reativar?', impacto: `${nome} volta a este contrato${v.papel === 'fiador' ? ' como fiador, com os dados de antes' : ''}.`, rotuloConfirmar: 'Reativar' });
+            if (!ok) return;
+            try {
+                const { data, error } = await dbAuth.rpc(funcao, { p_papel_id: v.id });
+                if (error) throw error;
+                mostrarToast((data && data.mensagem) || (excluir ? 'Vínculo excluído.' : 'Vínculo reativado.'), 'success');
+                if (fichaContratoAtualId === contratoId) abrirFichaContrato(contratoId);
+            } catch (err) {
+                mostrarToast('Não consegui ' + (excluir ? 'excluir' : 'reativar') + ': ' + (err.message || String(err)), 'danger');
+            }
         }
 
         // v1.42.0 (demanda b94ef7d5) — encerrar = troca real: a regra mora no banco

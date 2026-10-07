@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.314.1) — P4b do Financeiro, parte 2 (ficha B1b e B4 aprovadas pelo Nicola
+07/10 01:37; sessão 20261007-0137-financeiro, demanda f3e6cd27). Despesa e recebimento ganham
+"Divisão": quem arca (contrato, propriedade do imóvel ou ajustada só naquele lançamento), com
+Editar divisão e Voltar ao padrão; a linha da lista mostra "divisão ajustada". Distribuição e
+Visão gerencial mostram o reembolso de quem pagou despesa da própria conta. Mapeamento de
+lançamentos e recebimentos ganha divisaoAjustada. Banco: lancamentos/mensalidades.divisao_excecao,
+fn_divisao_movimento, fn_divisao_excecao_definir, fn_apurar_distribuicao (+ reembolso).
+Import map: financeiro 1.35.0, relatorios-executivos 1.1.0.
+Versão anterior (Beta v1.314.0):
+------------------------------------------------------------------
+Versões anteriores (v1.314.0 … v1.314.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.314.0) — leitura com IA, fatia U1b + U2 ("De acordo" do Nicola 07/10 01:29).
 (1) Sheet TRAVADO: abrirSheet(html, { travado: true }) e rzSheetTravar(on) — sem X, sem arrastar,
 toque fora, Esc e voltar não fecham; outro sheet que abrir enquanto isso entra por cima (nível 2).

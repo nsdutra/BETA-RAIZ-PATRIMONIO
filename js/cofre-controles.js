@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.47.0 · 07/10/2026
+// Versão: 1.48.0 · 07/10/2026
+//
+// v1.48.0 (demanda b94ef7d5, sessão 20261007-0231-vinculos-reativar; plano aprovado pelo Nicola 07/10 02:31) —
+// chip Partes do item ganha o grupo "Encerrados" (com a data); ⋮ de um encerrado: "Reativar"
+// (fn_vinculo_reativar) e "Excluir" (fn_vinculo_excluir). Excluídos não aparecem.
+//
+// Versão anterior: 1.47.0 · 07/10/2026
 //
 // v1.47.0 (demanda b94ef7d5, sessão 20261007-0005-vinculos-chips; plano aprovado pelo Nicola 07/10 00:05) —
 // ⋮ do chip Partes do item ganha "Encerrar vínculo" (troca real: sai do item e fica no histórico da
@@ -585,7 +591,7 @@
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
-export const VERSAO = '1.47.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.48.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -930,11 +936,20 @@ async function montarPartesItemControle(item) {
     mount.innerHTML = rzSk('linhas', 2);
 
     const linhas = await api.buscarPartesDoItemControle(item.id);
+    // v1.48.0 (demanda b94ef7d5) — encerrados do item, abaixo das partes ativas
+    let encerrados = [];
+    try {
+        const { data, error } = await api.dbAuth.from('partes_papeis').select('id, papel, encerrado_em, partes(nome)')
+            .eq('entidade_tipo', 'item_controle').eq('entidade_id', item.id).eq('ativo', false).order('encerrado_em', { ascending: false });
+        if (error) throw error;
+        encerrados = data || [];
+    } catch (err) { console.warn('[cofre-controles] encerrados do item:', err.message || err); }
 
     // v1.13.0 (fatia 3b-i) — de pills pra .rz-row (REGRAS §8: pill é só
     // filtro/sub-navegação). Toque abre o editor de partes.
     if (!linhas.length) {
         mount.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="users"></i></div><p>Nenhuma parte ainda. A parte responsável vira o fornecedor quando você gera a despesa.</p></div>`;
+        anexarEncerradosItem(mount, item, encerrados);
         refrescarIcones();
         return;
     }
@@ -957,7 +972,46 @@ async function montarPartesItemControle(item) {
             <div class="rz-tx"><b>${escapeHtml(l.nome)}</b><span>${escapeHtml(rotuloPapelParteItem(l.papel))}${l.whatsapp ? ' · ' + escapeHtml(l.whatsapp) : ''}</span></div>
             ${l.whatsapp ? `<button type="button" data-action="acionar-parte-item-direto" data-whatsapp="${escapeHtml(l.whatsapp)}" title="Chamar no WhatsApp" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="message-circle" style="width:18px;height:18px;color:var(--success)"></i></button>` : ''}
         </div>`).join('');
+    anexarEncerradosItem(mount, item, encerrados);
     refrescarIcones();
+}
+
+// v1.48.0 (demanda b94ef7d5) — grupo "Encerrados" (troca real, com data) + ⋮ Reativar/Excluir.
+function anexarEncerradosItem(mount, item, encerrados) {
+    if (!encerrados || !encerrados.length) return;
+    const bloco = document.createElement('div');
+    bloco.innerHTML = `<div class="rz-group">Encerrados · ${encerrados.length}</div>` + encerrados.map(v => `
+        <div class="rz-row">
+            <div class="rz-ic"><i data-lucide="briefcase"></i></div>
+            <div class="rz-tx"><b>${escapeHtml(v.partes?.nome || 'Parte')}</b><span>${escapeHtml(rotuloPapelParteItem(v.papel))}${v.encerrado_em ? ' · encerrado em ' + new Date(v.encerrado_em).toLocaleDateString('pt-BR') : ''}</span></div>
+            <span class="rz-st rz-neu">Encerrado</span>
+            <button type="button" class="rz-more" data-enc-item="${v.id}" aria-label="Ações do vínculo encerrado"><i data-lucide="ellipsis-vertical"></i></button>
+        </div>`).join('');
+    mount.appendChild(bloco);
+    bloco.querySelectorAll('[data-enc-item]').forEach(btn => btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const v = encerrados.find(x => x.id === btn.dataset.encItem); if (!v) return;
+        const nome = v.partes?.nome || 'Parte';
+        sheetAcoes({ titulo: `${rotuloPapelParteItem(v.papel)} · ${nome}`, sub: 'Vínculo encerrado', acoes: [
+            { icone: 'rotate-ccw', titulo: 'Reativar', codigo: 'cofre.controles.editar', sub: 'Volta a responder por este item', aoTocar: () => acaoEncerradoItem(item, v, 'fn_vinculo_reativar') },
+            { icone: 'trash-2', tipo: 'bad', titulo: 'Excluir', codigo: 'cofre.controles.editar', sub: 'Cadastro errado. Sai também do histórico da parte', aoTocar: () => acaoEncerradoItem(item, v, 'fn_vinculo_excluir') },
+        ] });
+    }));
+}
+async function acaoEncerradoItem(item, v, funcao) {
+    const nome = v.partes?.nome || 'a parte';
+    const excluir = funcao === 'fn_vinculo_excluir';
+    const ok = excluir
+        ? await perguntar({ titulo: 'Excluir vínculo?', impacto: `${nome} sai também do histórico da parte. Não dá para desfazer.`, destrutivo: true, rotuloConfirmar: 'Excluir vínculo' })
+        : await perguntar({ titulo: 'Reativar?', impacto: `${nome} volta a este item.`, rotuloConfirmar: 'Reativar' });
+    if (!ok) return;
+    try {
+        const { data, error } = await api.dbAuth.rpc(funcao, { p_papel_id: v.id });
+        if (error) throw error;
+        mostrarToast((data && data.mensagem) || (excluir ? 'Vínculo excluído.' : 'Vínculo reativado.'));
+        await montarPartesItemControle(item);
+        emitirEscrita('controle', { id: item.id, acao: 'editar-partes' });
+    } catch (err) { mostrarToast('Erro: ' + (err.message || String(err)), 'erro'); }
 }
 
 function partesItemLinhaHtml(l, idx) {
