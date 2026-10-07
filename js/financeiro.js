@@ -1,7 +1,20 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.37.2 · 07/10/2026
+// Versão: 1.38.0 · 07/10/2026
+//
+// v1.38.0 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2, plano P5 v1.3.0 com de acordo
+// do Nicola 07/10 18:45; ajustes do protótipo pedidos 12:52) — CARTÃO: (1) a sugestão da compra segue o padrão
+// da conciliação: "Parece: categoria · ativo · fornecedor" na lista e a etiqueta ✨ com a confiança; sai o botão
+// "Aceitar" — o toque abre a confirmação (como no extrato). (2) Ações da compra classificada: Mudar classificação,
+// Voltar para em aberto (D47), Resumo da conciliação (data e hora, origem "Fatura de cartão", modo, quem, canal —
+// colunas F7) e Excluir compra com o aviso "só volta importando a fatura de novo" (D47). (3) Importar: a
+// conferência compara com a fatura no banco (simulação): novas, já na fatura e no Raiz e não vieram no arquivo
+// (marcar para excluir); fatura já paga só recebe compra nova com confirmação. (4) Extrato: "Parece:" também
+// mostra o ativo do destino sugerido, na lista e na confirmação. (5) Cartão sai das contas de lançamento (nova
+// despesa, trocar conta, filtro) — o banco recusa (F8). Versão anterior: 1.37.2.
+//
+// Versão anterior: 1.37.2 · 07/10/2026
 //
 // v1.37.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -33,24 +46,11 @@
 // v1.35.1 (07/10/2026, sessão 20261007-0158-financeiro — pedido do Nicola 01:58: "tela amontoada,
 // padronize as 3"): "Editar divisão" passa a usar o editor único rzEditarDivisao (raiz-ui 1.2.0),
 // o mesmo da divisão do contrato/imóvel e da propriedade do ativo. Versão anterior: 1.35.0.
-//
-// v1.35.0 (07/10/2026, sessão 20261007-0137-financeiro, demanda f3e6cd27 — P4b, ficha B1b e B4
-// aprovadas pelo Nicola 07/10 01:37) — DIVISÃO de quem arca com o valor:
-// (1) despesa e recebimento ganham a ação "Divisão": mostra quem arca (pela divisão do contrato,
-// pela propriedade do imóvel, ou ajustada só neste lançamento) e o valor de cada um; "Editar divisão"
-// abre o editor (pessoas e %, soma ao vivo, Salvar só em 100%) e "Voltar ao padrão" desfaz.
-// Regra no banco: fn_divisao_movimento (leitura) e fn_divisao_excecao_definir (as mesmas que o bot
-// usa); código financeiro.divisao.editar, nos planos que têm Distribuição. Movimento com exceção
-// mostra "divisão ajustada" na linha da lista.
-// (2) Distribuição: coluna nova "reembolso" da fn_apurar_distribuicao (despesa paga pela conta de
-// um sócio volta a ele) — aparece na linha do sócio, na ficha e no resumo compartilhado; o saldo
-// a retirar já a inclui.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.34.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.35.0 … v1.35.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.37.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.38.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -656,7 +656,8 @@ async function financeiroGarantirContas() {
         try {
             const { data, error } = await dbAuth.rpc('fn_contas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
             if (error) throw error;
-            financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: !!data?.liberado, contas: (data?.dados || []).filter(c => c.situacao === 'ativa') };
+            const ativasP5 = (data?.dados || []).filter(c => c.situacao === 'ativa'); // v1.38.0 — cartão nunca é conta de lançamento (F8)
+            financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: !!data?.liberado, contas: ativasP5.filter(c => c.tipo !== 'cartao_credito'), cartoes: ativasP5.filter(c => c.tipo === 'cartao_credito') };
         } catch (e) {
             console.warn('[financeiro] contas:', e.message);
             financeiroContasInfo = { clienteId: CLIENTE_ID_SUPABASE, liberado: false, contas: [] };
@@ -1254,15 +1255,15 @@ function financeiroRenderCabecalho(aba) {
             const linha = (i, pend) => {
                 const s = i.sugestao || {};
                 const temSug = pend && s.categoria;
-                const textoSug = temSug ? (s.parte_id && s.detalhe && /^É /.test(s.detalhe) ? s.detalhe.replace(/ — mesma classificação da última vez\.$/, '') + ' · ' : '') + nomeCat(s.categoria) : '';
+                const textoSug = temSug ? financeiroTextoSugestaoCartao(s, nomeCat) : ''; // v1.38.0 — categoria · ativo · fornecedor
+                const confSug = Math.round(Number(s.confianca || 0));
                 const valorTxt = Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`;
                 const extra = pend ? '' : ` · ${escapeHtmlSaidas(nomeCat(i.categoria))}${i.ativo_nome ? ' · ' + escapeHtmlSaidas(i.ativo_nome) : ''}${i.parte_nome ? ' · ' + escapeHtmlSaidas(i.parte_nome) : ''}${i.divisao_ajustada ? ' · divisão ajustada' : ''}`;
                 return `<div class="rz-row rz-link" data-fat-item="${i.id}">
                     ${selecionando && pend ? `<div style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:#fff;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
-                    <div class="rz-ic${pend ? ' rz-warn' : ''}"><svg data-lucide="${icCat(i.categoria)}"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${compra(i)}${parcela(i)}${extra}</span>
-                        ${temSug && !selecionando && podeClassificar ? `<span style="display:flex;align-items:center;gap:8px;margin-top:4px;color:var(--brass-deep);white-space:normal">Sugestão: ${escapeHtmlSaidas(textoSug)} <button type="button" class="rz-chip" data-fat-aceitar="${i.id}" style="min-height:30px;padding:3px 10px">Aceitar</button></span>` : ''}</div>
-                    <div class="rz-rt">${valorTxt}</div>
+                    <div class="rz-ic${temSug ? (confSug < 70 ? ' rz-warn' : ' rz-ia') : (pend ? ' rz-warn' : '')}"><svg data-lucide="${temSug ? 'sparkles' : icCat(i.categoria)}"></svg></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${temSug ? 'Parece: ' + escapeHtmlSaidas(textoSug) + ' · ' : ''}${compra(i)}${parcela(i)}${extra}</span></div>
+                    <div class="rz-rt">${valorTxt}${temSug ? `<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confSug}%</span>` : ''}</div>
                 </div>`;
             };
             const classificadas = itens.length - ac.length;
@@ -1293,12 +1294,6 @@ function financeiroRenderCabecalho(aba) {
             sheet.querySelectorAll('[data-fat-selecionar]').forEach(b => b.addEventListener('click', () => financeiroAbrirFatura(faturaId, { selecionando: !selecionando, selecionados: [] })));
             sheet.querySelector('[data-fat-baixar]')?.addEventListener('click', () => financeiroBaixarFatura(f));
             sheet.querySelector('[data-fat-lote]')?.addEventListener('click', () => financeiroClassificarItens(itens.filter(i => sel.has(i.id)), faturaId));
-            sheet.querySelectorAll('[data-fat-aceitar]').forEach(b => b.addEventListener('click', async (ev) => {
-                ev.stopPropagation();
-                const i = itens.find(x => x.id === b.dataset.fatAceitar); const s2 = i?.sugestao || {};
-                b.disabled = true;
-                await financeiroGravarClassificacao([i.id], { categoria: s2.categoria, ativo_id: s2.ativo_id || null, parte_id: s2.parte_id || null, divisao: null, sempre_assim: false }, faturaId);
-            }));
             sheet.querySelectorAll('[data-fat-item]').forEach(row => row.addEventListener('click', () => {
                 const id = row.dataset.fatItem;
                 if (selecionando) {
@@ -1312,20 +1307,64 @@ function financeiroRenderCabecalho(aba) {
             }));
         }
 
+        function financeiroTextoSugestaoCartao(s, nomeCat) {
+            return [s.categoria_nome || nomeCat(s.categoria), s.ativo_nome, s.parte_nome].filter(Boolean).join(' · ');
+        }
+
         function financeiroAcoesItemFatura(i, f) {
             const acoes = [];
-            acoes.push({ icone: 'tags', titulo: i.categoria === 'a_classificar' ? 'Classificar' : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor e "Sempre assim"', codigo: 'cartao.classificar', manterAberto: true,
+            const pend = i.categoria === 'a_classificar';
+            const s = i.sugestao || {};
+            const nomeCat = (c) => categoriaDoCatalogo(c)?.nome || rotuloCategoriaSaida(c);
+            if (pend && s.categoria) {
+                acoes.push({ icone: 'sparkles', tipo: 'ia', titulo: financeiroTextoSugestaoCartao(s, nomeCat), sub: `Confiança: ${Math.round(Number(s.confianca || 0))}%`, codigo: 'cartao.classificar',
+                    aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: s.categoria, ativo_id: s.ativo_id || null, parte_id: s.parte_id || null, divisao: null, sempre_assim: false }, f.id) });
+            }
+            acoes.push({ icone: 'tags', titulo: pend ? (s.categoria ? 'Classificar de outro jeito' : 'Classificar') : 'Mudar classificação', sub: 'Categoria, ativo, fornecedor e "Sempre assim"', codigo: 'cartao.classificar', manterAberto: true,
                 aoTocar: () => financeiroClassificarItens([i], f.id) });
+            if (!pend) {
+                acoes.push({ icone: 'undo-2', titulo: 'Voltar para em aberto', sub: 'Volta para "A classificar" para editar de novo', codigo: 'cartao.classificar',
+                    aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: 'a_classificar', ativo_id: null, parte_id: null, divisao: null, sempre_assim: false }, f.id) });
+                acoes.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => financeiroResumoCompraCartao(i, f) });
+            }
             acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroAbrirFatura(f.id)));
-            if (f.status !== 'paga') acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Quando a leitura trouxe uma linha que não é compra', tipo: 'bad', codigo: 'cartao.importar',
+            acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Só volta importando a fatura de novo', tipo: 'bad', codigo: 'cartao.importar',
                 aoTocar: async () => {
-                    if (!await rzConfirmar({ titulo: 'Excluir esta compra?', impacto: `"${i.descricao}" sai da fatura.`, destrutivo: true, rotuloConfirmar: 'Excluir compra' })) return;
+                    if (!await rzConfirmar({ titulo: 'Excluir esta compra?', impacto: `"${i.descricao}" sai da fatura de vez. Ela só volta importando a fatura de novo.`, destrutivo: true, rotuloConfirmar: 'Excluir compra' })) return;
                     const { error } = await dbAuth.from('lancamentos').delete().eq('id', i.id);
                     if (error) { rzToast(error.message, { tipo: 'danger' }); return; }
-                    rzToast('Compra excluída.', { tipo: 'success' });
+                    if (typeof registrarLog === 'function') registrarLog('cartao.excluir_compra', { lancamento_id: i.id, fatura_id: f.id, descricao: i.descricao, valor: i.valor, compra: i.compra });
+                    rzToast('Compra excluída. Ela só volta importando a fatura de novo.', { tipo: 'success' });
                     financeiroDepoisDeMudarFatura(f.id);
                 } });
             abrirSheetAcoes({ titulo: escapeHtmlSaidas(i.descricao), sub: `${i.compra ? 'Compra ' + formatarDataBR(i.compra) + ' · ' : ''}${formatarMoedaBR(Math.abs(i.valor))}`, acoes });
+        }
+
+        /** Resumo da conciliação da compra de cartão — mesmo formato do extrato (data e hora, origem, modo, canal). */
+        async function financeiroResumoCompraCartao(i, f) {
+            await carregarRegrasConciliacao();
+            const dataHora = i.conciliado_em
+                ? new Date(i.conciliado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : 'Não registrado';
+            const regra = i.conciliacao_regra ? nomeRegraConc(i.conciliacao_regra) : '';
+            const modo = i.conciliacao_forma === 'automatica' ? `Automático (regra)${regra ? ' · ' + regra : ''}`
+                : i.conciliacao_forma === 'sugestao' ? `Sugestão confirmada${regra ? ' · ' + regra : ''}`
+                : i.conciliacao_forma === 'manual' ? 'Manual'
+                : 'Não registrado (compra de antes desta função existir)';
+            const canal = i.conciliacao_forma === 'automatica' ? '—'
+                : i.conciliacao_canal === 'app' ? 'App' : i.conciliacao_canal === 'bot' ? 'Bot (WhatsApp)' : 'Não registrado';
+            const linha = (rotulo, valor) => `<div class="flex justify-between items-start gap-3 py-2" style="border-bottom:1px solid var(--line)">
+                <span class="text-xs font-bold text-gray-600">${rotulo}</span>
+                <span class="text-sm text-right" style="color:var(--pine)">${rzEsc(valor)}</span>
+            </div>`;
+            abrirSheet(rzSheetCabecalho('Resumo da conciliação', `${i.descricao} · − ${formatarMoedaBR(Math.abs(i.valor))}`) +
+                `<div class="rz-sh-b">
+                    ${linha('Data e hora', dataHora)}
+                    ${linha('Origem', `Fatura de cartão — ${financeiroNomeCartao(f)}`)}
+                    ${linha('Modo', modo)}
+                    ${i.conciliado_por_nome ? linha('Por', i.conciliado_por_nome) : ''}
+                    ${linha('Canal', canal)}
+                </div>`, { empilhar: true });
         }
 
         /** Form de classificação (1 ou várias compras): categoria (árvore), ativo, fornecedor, Sempre assim. */
@@ -1428,7 +1467,7 @@ function financeiroRenderCabecalho(aba) {
         export async function financeiroImportarFatura() {
             if (typeof abrirSheetForm !== 'function') return;
             await financeiroGarantirContas();
-            const cartoes = (financeiroContasInfo.contas || []).filter(c => c.tipo === 'cartao_credito');
+            const cartoes = financeiroContasInfo.cartoes || []; // v1.38.0
             if (!cartoes.length) {
                 rzAviso({ titulo: 'Cadastre o cartão primeiro', linhas: ['Em Configurações › Empresa › Contas, toque em "+" e escolha o tipo "Cartão de crédito", com o dia do fechamento, o dia do vencimento e a conta que paga a fatura.'] });
                 return;
@@ -1456,6 +1495,30 @@ function financeiroRenderCabecalho(aba) {
                     } catch (e) { esconderCarregamentoGlobal(); rzToast(e.message, { tipo: 'danger' }); }
                 });
             };
+            let sim = null; // v1.38.0 — resultado da simulação (fn_fatura_importar com simular)
+            const simular = async (el) => {
+                const box = el.querySelector('#fi-sim'); if (!box) return;
+                box.innerHTML = '<p class="rz-hint">Comparando com o que já está na fatura…</p>';
+                const { data, error } = await dbAuth.rpc('fn_fatura_importar', {
+                    p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: el.querySelector('#fi-cartao').value, p_competencia: el.querySelector('#fi-comp').value,
+                    p_cabecalho: { simular: true }, p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela })),
+                });
+                if (error || !data?.ok) { box.innerHTML = `<p class="rz-hint" style="color:var(--danger)">${escapeHtmlSaidas(error?.message || data?.mensagem || 'Não consegui comparar.')}</p>`; sim = null; return; }
+                sim = data.dados;
+                const linhaLida = (i) => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${formatarDataBR(i.data)}${i.parcela ? ' · parcela ' + escapeHtmlSaidas(i.parcela) : ''}</span></div><div class="rz-rt">${Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`}</div></div>`;
+                const novos = (sim.novos || []).map(k => lido.itens[k]).filter(Boolean);
+                const nRep = (sim.repetidos || []).length;
+                const falt = sim.faltando || [];
+                box.innerHTML = `
+                    ${sim.fatura_status === 'paga' && novos.length ? `<label class="rz-row rz-chk"><input type="checkbox" id="fi-conf-paga"><div class="rz-tx"><b>A fatura já está paga</b><span>Marque para acrescentar ${novos.length} ${novos.length === 1 ? 'compra nova' : 'compras novas'}; ela volta para "paga em parte" se o total mudar</span></div></label>` : ''}
+                    <div class="rz-group">Novas · ${novos.length}</div>
+                    ${novos.length ? `<div class="rz-card rz-list">${novos.map(linhaLida).join('')}</div>` : '<p class="rz-hint">Nenhuma compra nova neste arquivo.</p>'}
+                    ${nRep ? `<div class="rz-group">Já estão na fatura · ${nRep}</div><p class="rz-hint">Não entram de novo.</p>` : ''}
+                    ${falt.length ? `<div class="rz-group">No Raiz e não vieram neste arquivo · ${falt.length}</div>
+                        <div class="rz-card rz-list">${falt.map(x => `<label class="rz-row rz-chk"><input type="checkbox" data-fi-excluir="${x.id}"><div class="rz-tx"><b>${escapeHtmlSaidas(x.descricao)}</b><span>${x.compra ? 'Compra ' + escapeHtmlSaidas(x.compra) + ' · ' : ''}marque para excluir</span></div><div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(x.valor)}</b></div></label>`).join('')}</div>` : ''}`;
+                const btn = document.getElementById('rz-sheet-salvar');
+                if (btn) btn.textContent = novos.length ? `Importar ${novos.length}` : 'Atualizar fatura';
+            };
             const conferir = (el) => {
                 const venc = lido.dataVencimento || '';
                 const comp = venc ? venc.slice(0, 7) + '-01' : (financeiroCompetenciaAtual || financeiroCompetenciaHojeISO());
@@ -1472,23 +1535,36 @@ function financeiroRenderCabecalho(aba) {
                         <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Total da fatura</span><b>${lido.valorTotal != null ? formatarMoedaBR(lido.valorTotal) : '—'}</b></div>
                         <div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px"><span style="color:var(--muted)">Soma das compras</span><b ${lido.valorTotal != null && Math.abs(soma - lido.valorTotal) > 0.01 ? 'style="color:var(--danger)"' : ''}>${formatarMoedaBR(soma)}</b></div>
                     </div>
-                    <div class="rz-group">${lido.itens.length} ${lido.itens.length === 1 ? 'compra lida' : 'compras lidas'}</div>
-                    <div class="rz-card rz-list">${lido.itens.map(i => `<div class="rz-row"><div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${formatarDataBR(i.data)}${i.parcela ? ' · parcela ' + escapeHtmlSaidas(i.parcela) : ''}</span></div><div class="rz-rt">${Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`}</div></div>`).join('')}</div>`;
+                    <span class="rz-hint">${lido.itens.length} ${lido.itens.length === 1 ? 'compra lida' : 'compras lidas'} no arquivo</span>
+                    <div id="fi-sim"></div>`;
                 if (typeof rzIcones === 'function') rzIcones();
+                el.querySelector('#fi-comp').addEventListener('change', () => simular(el));
+                el.querySelector('#fi-cartao').addEventListener('change', () => simular(el));
+                simular(el);
             };
             abrirSheetForm({
                 titulo: 'Importar fatura do cartão', sub: 'PDF ou foto', rotuloSalvar: 'Importar',
                 corpo: (el) => desenhar(el),
                 aoSalvar: async (el) => {
                     if (!lido) { rzToast('Escolha o PDF ou a foto da fatura.', { tipo: 'danger' }); return false; }
+                    if (!sim) { rzToast('Aguarde a comparação com a fatura.', { tipo: 'info' }); return false; }
+                    const confirmarPaga = !!el.querySelector('#fi-conf-paga')?.checked;
+                    if (el.querySelector('#fi-conf-paga') && !confirmarPaga) { rzToast('A fatura já está paga: marque a confirmação para acrescentar as compras novas.', { tipo: 'danger' }); return false; }
+                    const excluir = [...el.querySelectorAll('[data-fi-excluir]:checked')].map(x => x.dataset.fiExcluir);
+                    if (excluir.length && !await rzConfirmar({ titulo: `Excluir ${excluir.length} ${excluir.length === 1 ? 'compra' : 'compras'}?`, impacto: 'Saem da fatura de vez. Só voltam importando a fatura de novo.', destrutivo: true, rotuloConfirmar: 'Excluir e importar' })) return false;
                     const cartaoId = el.querySelector('#fi-cartao').value;
                     const { data, error } = await dbAuth.rpc('fn_fatura_importar', {
                         p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: cartaoId, p_competencia: el.querySelector('#fi-comp').value,
-                        p_cabecalho: { data_vencimento: lido.dataVencimento, data_fechamento: lido.dataFechamento, valor_total: lido.valorTotal },
+                        p_cabecalho: { data_vencimento: lido.dataVencimento, data_fechamento: lido.dataFechamento, valor_total: lido.valorTotal, confirmar_paga: confirmarPaga },
                         p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela })),
                     });
                     if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui importar.', { tipo: 'danger' }); return false; }
-                    rzToast(data.mensagem, { tipo: 'success' });
+                    for (const id of excluir) {
+                        const { error: eDel } = await dbAuth.from('lancamentos').delete().eq('id', id);
+                        if (eDel) { rzToast('Não consegui excluir uma compra: ' + eDel.message, { tipo: 'danger' }); break; }
+                        if (typeof registrarLog === 'function') registrarLog('cartao.excluir_compra', { lancamento_id: id, fatura_id: data.id, origem: 'reimportacao' });
+                    }
+                    rzToast(data.mensagem + (excluir.length ? ` ${excluir.length} ${excluir.length === 1 ? 'compra excluída' : 'compras excluídas'}.` : ''), { tipo: 'success' });
                     emitirEscrita('despesa', { id: data.id, acao: 'importar_fatura' });
                     financeiroGarantirFaturas(true);
                     financeiroRecarregarSaidas();
@@ -3412,7 +3488,7 @@ function financeiroRenderCabecalho(aba) {
                 const semConfianca = confPct < 70 ? 'warn' : 'ia';
                 return `<div class="rz-row rz-link" onclick="abrirAcoesConciliacaoLinha('${f.id}')">
                     <div class="rz-ic rz-${semConfianca}"><svg data-lucide="sparkles"></svg></div>
-                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Parece: ${escapeHtmlSaidas(sug.detalhe || nomeRegraConc(sug.regra_codigo))}</span></div>
+                    <div class="rz-tx"><b>${escapeHtmlSaidas(limparRotuloConciliacao(f.razao_social))}</b><span>Parece: ${escapeHtmlSaidas(sug.detalhe || nomeRegraConc(sug.regra_codigo))}${conciliacaoAtivoDaSugestao(sug) ? ' · ' + escapeHtmlSaidas(conciliacaoAtivoDaSugestao(sug)) : ''}</span></div>
                     <div class="rz-rt">${valorSpan}<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confPct}%</span></div>
                     <svg data-lucide="ellipsis-vertical" class="rz-chev"></svg>
                 </div>`;
@@ -3439,6 +3515,19 @@ function financeiroRenderCabecalho(aba) {
         // "Conciliação do período" saiu (ver index.html) — quem resume agora
         // são os 4 KPIs do chip Fechamento (fin-kpi-fech-*, js/fechamento.js
         // fechamentoAtualizarKpis), nunca somados aqui no cliente.
+        // v1.38.0 — ativo do destino sugerido (despesa prevista ou recebimento do contrato), para "Parece: … · ativo"
+        function conciliacaoAtivoDaSugestao(sug) {
+            if (!sug?.destino_id) return '';
+            if (sug.destino_tipo === 'lancamento') return (lancamentos.find(x => x.id === sug.destino_id)?.ativoNome) || '';
+            if (sug.destino_tipo === 'mensalidade') {
+                const m = mensalidades.find(x => x.id === sug.destino_id);
+                const con = m ? contratos.find(c => c.id === m.contratoId) : null;
+                const imo = con ? imoveis.find(i => i.id === con.imovelId) : null;
+                return imo ? (imo.empreendimento || imo.enderecoRua || '') : '';
+            }
+            return '';
+        }
+
         function renderConciliacaoUnificada() {
             const lista = document.getElementById('conc-uni-lista');
             if (!lista) return;
@@ -3499,7 +3588,7 @@ function financeiroRenderCabecalho(aba) {
                 titulo: limparRotuloConciliacao(f.razao_social),
                 sub: `${entrada ? '+' : '−'} R$ ${valorAbs} · ${formatarDataBR(f.data)}`,
                 acoes: [
-                    { icone: 'sparkles', tipo: 'ia', titulo: sug.detalhe || nomeRegraConc(sug.regra_codigo), sub: `Confiança: ${Math.round(sug.confianca || 0)}%`, aoTocar: () => confirmarSugestaoConciliacao(fingerprintId) },
+                    { icone: 'sparkles', tipo: 'ia', titulo: (sug.detalhe || nomeRegraConc(sug.regra_codigo)) + (conciliacaoAtivoDaSugestao(sug) ? ' · ' + conciliacaoAtivoDaSugestao(sug) : ''), sub: `Confiança: ${Math.round(sug.confianca || 0)}%`, aoTocar: () => confirmarSugestaoConciliacao(fingerprintId) },
                     { icone: 'search', titulo: entrada ? 'Buscar outro recebimento' : 'Buscar outra saída', aoTocar: () => abrirAcoesConciliacaoLinha(fingerprintId) },
                 ],
             });

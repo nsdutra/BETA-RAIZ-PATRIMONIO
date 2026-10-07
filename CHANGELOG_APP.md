@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.319.0) — P5a, cartão de crédito (fichas F1–F5, de acordo do Nicola 07/10 09:09).
+Lançamentos de saída passam a trazer faturaId (lancamentos.fatura_id), que o financeiro.js 1.37.0 usa
+para mostrar cada fatura como uma linha só em Saídas. Pontes novas: financeiroAbrirFatura e
+financeiroImportarFatura. Import map: financeiro.js 1.37.0 e comum-minha-empresa.js 1.11.0 (tipo
+Cartão de crédito na ficha da conta). Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.318.0):
+------------------------------------------------------------------
+Versões anteriores (v1.318.0 … v1.318.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.318.0) — Onda 0 da fragmentação: limpeza de código morto, sem nenhuma mudança
 de comportamento. Apagadas 24 funções que não eram chamadas por ninguém — nem pelo próprio
 index.html, nem pelos 42 módulos de js/ (subpastas incluídas), nem pelo cofre.html ou pelo sw.js.

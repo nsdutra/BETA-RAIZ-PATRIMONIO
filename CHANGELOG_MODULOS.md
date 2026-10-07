@@ -1,6 +1,6 @@
 # Changelog — módulos do Raiz Patrimônio (`js/`)
 
-Histórico completo de versões dos módulos, movido automaticamente pelo `gerar_versoes.py` (regra VER-05): o cabeçalho de cada módulo mantém só as 5 versões mais recentes; na entrega, as mais antigas rolam pra cá (mais recente primeiro, uma seção por arquivo). Não editar à mão — escreva o changelog no header do módulo, como sempre.
+Histórico completo de versões dos módulos, movido automaticamente pelo `gerar_versoes.py` (regra VER-06): o cabeçalho de cada módulo mantém só as 5 versões mais recentes; na entrega, as mais antigas rolam pra cá (mais recente primeiro, uma seção por arquivo). Não editar à mão — escreva o changelog no header do módulo, como sempre.
 
 ---
 
@@ -352,6 +352,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
+
+---
 
 ---
 
@@ -767,6 +769,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1123,6 +1127,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -2044,6 +2050,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2617,6 +2625,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-documentos.js`
 
 //
@@ -3156,6 +3166,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3306,6 +3318,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
 
 //
@@ -3427,6 +3441,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3458,6 +3474,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3544,6 +3562,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -3605,6 +3625,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -3707,6 +3729,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -3915,6 +3939,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -3957,6 +3983,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4013,6 +4041,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4706,6 +4736,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -4997,7 +5029,26 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+//
+// v1.35.0 (07/10/2026, sessão 20261007-0137-financeiro, demanda f3e6cd27 — P4b, ficha B1b e B4
+// aprovadas pelo Nicola 07/10 01:37) — DIVISÃO de quem arca com o valor:
+// (1) despesa e recebimento ganham a ação "Divisão": mostra quem arca (pela divisão do contrato,
+// pela propriedade do imóvel, ou ajustada só neste lançamento) e o valor de cada um; "Editar divisão"
+// abre o editor (pessoas e %, soma ao vivo, Salvar só em 100%) e "Voltar ao padrão" desfaz.
+// Regra no banco: fn_divisao_movimento (leitura) e fn_divisao_excecao_definir (as mesmas que o bot
+// usa); código financeiro.divisao.editar, nos planos que têm Distribuição. Movimento com exceção
+// mostra "divisão ajustada" na linha da lista.
+// (2) Distribuição: coluna nova "reembolso" da fn_apurar_distribuicao (despesa paga pela conta de
+// um sócio volta a ele) — aparece na linha do sócio, na ficha e no resumo compartilhado; o saldo
+// a retirar já a inclui.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.34.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.34.0 · 06/10/2026
@@ -5879,6 +5930,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -5938,6 +5991,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6030,6 +6085,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -6229,6 +6286,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -6294,6 +6353,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

@@ -1,6 +1,9 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.1.0 · 07/10/2026
+// Versão: 1.1.1 · 07/10/2026
+//
+// v1.1.1 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2): o filtro "Conta" do Fluxo de
+// caixa não lista cartão de crédito (as compras estão na conta que paga a fatura). Versão anterior: 1.1.0.
 //
 // v1.1.0 (07/10/2026, sessão 20261007-0137-financeiro — P4b, B4): Visão gerencial mostra o reembolso
 // de quem pagou despesa da própria conta (fn_apurar_distribuicao): passo "Reembolso" na cascata da
@@ -27,7 +30,7 @@ import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.1.0';
+export const VERSAO = '1.1.1';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -549,7 +552,7 @@ function escolherPeriodo() {
 async function escolherConta() {
     const { data, error } = await dbAuth.rpc('fn_contas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE });
     if (error) { rzToast('Não foi possível listar as contas: ' + error.message, 'danger'); return; }
-    const contas = Array.isArray(data?.dados) ? data.dados.filter(c => c && c.id) : [];
+    const contas = Array.isArray(data?.dados) ? data.dados.filter(c => c && c.id && c.tipo !== 'cartao_credito') : []; // v1.1.1 — cartão não é conta (as compras estão na conta que paga)
     abrirSheetAcoes({ titulo: 'Conta', sub: 'Fluxo de caixa', acoes: [
         { icone: 'layers', titulo: 'Todas as contas', aoTocar: () => { Object.assign(estado.filtro, { conta: null, contaNome: null }); carregar(); } },
         ...contas.map(c => ({ icone: 'wallet', titulo: c.nome, sub: c.situacao === 'encerrada' ? 'encerrada' : (c.titular_nome || c.titular || ''),
