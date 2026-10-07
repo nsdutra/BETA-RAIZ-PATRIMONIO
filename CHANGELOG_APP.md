@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.305.0) — frente 5, fatia 5B (de acordo do Nicola 04/10 22:06): "Ver todos" no
+card Indicadores abre a tela de indicadores — Mês a mês (6 indicadores, acumulado no ano e em 12
+meses), Sua carteira (contratos e receita por índice, índice ponderado em 12/24/36 meses) e
+Simulador (trocar a carteira para IPCA, IGP-M ou INCC-DI e ver a diferença por contrato e no
+total, com o texto-proposta e a ressalva). Módulo novo js/indicadores.js 1.0.0 (lazy); ponte
+abrirIndicadores. Histórico de 60 meses carregado (Edge capturar-indicadores 1.2.0). Import map:
+resultados 2.1.0 → 2.2.0, indicadores 1.0.0.
+Versão anterior (Beta v1.304.1):
+------------------------------------------------------------------
+Versões anteriores (v1.304.1 … v1.304.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.304.1) — frente 5, fatia 5A (de acordo do Nicola 04/10 18:00 e 22:06): o card
 Indicadores em Hoje › Resultados mostra os 6 indicadores coletados (IPCA, IGP-M, INCC-DI, Selic,
 CDI, IVG-R), cada um com o mês de referência, o valor do último mês fechado e os 12 meses; o ⓘ
