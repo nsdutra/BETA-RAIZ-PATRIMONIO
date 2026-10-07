@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.77.2 · 07/10/2026
+// Versão: 1.78.0 · 07/10/2026
+//
+// v1.78.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
+// primeiro uso, o vazio convida:
+//   · Ativos sem nenhum ativo: caixa rzVazio com o texto do passo "Comece pelo primeiro imóvel" da
+//     campanha de onboarding; "Enviar documento" (Raiz IA) primeiro, "Cadastrar primeiro imóvel"
+//     (formulário já em Imóvel, botão terciário) depois. No cofre.html avulso (sem rzVazio) fica o
+//     vazio do markup.
+//   · Chip de convite ("+ Veículo 0"): abre uma folha curta — "Enviar documento" pela Raiz IA ou
+//     "Preencher na mão" com a categoria já escolhida.
+//
+// Versão anterior: 1.77.2 · 07/10/2026
 //
 // v1.77.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -32,16 +43,11 @@
 // 04/10 18:21; UXR-13/15/22) — chip "Com alerta" em Ativos, logo depois de "Todos": conta os
 // ativos com algum alerta do Motor (window.rzAtivosComAlerta, index.html) ou com ocorrência de item
 // vencendo; só aparece com contador > 0 e filtra a lista. No cofre.html avulso usa só as ocorrências.
-//
-// Versão anterior: 1.74.0 · 04/10/2026
-//
-// v1.74.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
-// esqueleto (window.rzSkeleton) no lugar de "Carregando..." no Financeiro e na Propriedade da ficha do ativo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.1 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.77.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.78.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -146,7 +152,17 @@ export async function abrirFormAtivoComCategoria(categoria) {
     const sel = document.getElementById('at-tipo');
     if (sel && CATEGORIAS_ATIVO.includes(categoria)) { sel.value = categoria; aoMudarTipoAtivo(); }
 }
-if (typeof window !== 'undefined') window.__rzConviteAtivo = (cat) => abrirFormAtivoComCategoria(cat);
+// Convite de categoria vazia: a mesma escolha do vazio — Raiz IA primeiro, formulário depois.
+// Sem as folhas do app (cofre.html avulso) vai direto ao formulário. (dem b8602a3a)
+function abrirConviteCategoria(cat) {
+    const rot = ROTULO_CONVITE[cat] || 'bem';
+    if (typeof window.abrirSheetAcoes !== 'function') { abrirFormAtivoComCategoria(cat); return; }
+    window.abrirSheetAcoes({ titulo: `Cadastrar ${rot.toLowerCase()}`, sub: 'Como você quer cadastrar?', acoes: [
+        { icone: 'sparkles', tipo: 'ia', titulo: 'Enviar documento', codigo: 'cofre.analisar_ia', sub: 'Foto ou arquivo — a Raiz IA lê e preenche por você', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) },
+        { icone: 'plus', titulo: 'Preencher na mão', codigo: 'cofre.ativos.criar', sub: `Formulário já em ${rot}`, aoTocar: () => abrirFormAtivoComCategoria(cat) },
+    ]});
+}
+if (typeof window !== 'undefined') window.__rzConviteAtivo = (cat) => abrirConviteCategoria(cat);
 
 // F2.4 — pior severidade entre os alertas do Motor ligados a ativos (ponto do chip "Com alerta").
 function piorSeveridadeAtivos() {
@@ -502,9 +518,26 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const vazio = document.getElementById('ativos-estado-vazio');
     vazio.classList.toggle('hidden', estado.ativos.length !== 0);
     container.classList.toggle('hidden', estado.ativos.length === 0);
-    if (estado.ativos.length === 0) explicarListaVazia(vazio);
+    if (estado.ativos.length === 0) desenharVazioAtivos(vazio);
     renderChipsAtivos();
     refrescarIcones();
+}
+
+// Carteira vazia. O texto é o do passo "Comece pelo primeiro imóvel" da campanha de onboarding,
+// palavra por palavra: a pessoa lê o mesmo convite no modal e aqui. Sem rzVazio (cofre.html
+// avulso) fica o vazio que veio no markup. (dem b8602a3a)
+const TEXTO_PRIMEIRO_IMOVEL = 'Cadastre um imóvel — ou envie uma foto, documento, contrato aluguel ou Guia IPTU e a Raiz IA preenche por você. Depois você adiciona contrato e acompanha os recebimentos.';
+function desenharVazioAtivos(el) {
+    const gate = window.podeUsar ? window.podeUsar('cofre.ver') : { ok: true };
+    if (!gate.ok) { explicarListaVazia(el); return; }
+    if (typeof window.rzVazio !== 'function') return;
+    el.innerHTML = window.rzVazio({
+        dominio: 'ativos', id: 'ativos-lista',
+        titulo: 'Comece pelo primeiro imóvel',
+        beneficio: TEXTO_PRIMEIRO_IMOVEL,
+        acaoIA: { rotulo: 'Enviar documento', codigo: 'cofre.analisar_ia', aoTocar: () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home')) },
+        acaoManual: { rotulo: 'Cadastrar primeiro imóvel', codigo: 'cofre.ativos.criar', aoTocar: () => abrirFormAtivoComCategoria('imovel_predial') },
+    });
 }
 
 // Lista vazia: distingue "não tem ativo" de "não pode ver" (licença/plano).

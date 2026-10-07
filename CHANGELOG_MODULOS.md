@@ -7,6 +7,25 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 ## `js/ativos/ativos-markup.js`
 
 //
+// v1.40.0 — achado real do Nicola (relato + print, 17/09/2026): no seletor
+// "Vincular a" do upload/ficha de documento (#up-vinculo-tipo, #fd-va-tipo)
+// ainda aparecia a opção "Imóvel" — nomenclatura legada, tema desta sessão
+// é justamente imóvel ter virado extensão do ativo, não deveria mais
+// aparecer como opção separada pro usuário (buscar por "Ativo controlado"
+// já cobre imóvel — cofre_ativos.nome_exibicao tem o endereço pra imóvel
+// igual tem o nome pra qualquer outro ativo) — E faltava "Contrato", que
+// já é um tipo de vínculo válido no banco (cofre_documento_vinculos,
+// vinculoPermiteControle() em cofre-documentos.js já reconhece 'contrato'
+// há tempos) mas nunca tinha entrado nesses dois selects. Trocado: opção
+// "Imóvel" removida, opção "Contrato" adicionada (busca por locatário —
+// ver buscarCandidatosContrato em cofre-api.js v1.37.0 e o novo branch em
+// aoMudarTipoVinculoUpload/aoMudarTipoVinculoAgora, cofre-documentos.js).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.39.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
+
+//
 // v1.39.0 — pedido explícito: "toda caixa de ativo deve ter a mesma
 // altura padrão" — .card-ativo ganhou min-height (ver comentário junto
 // da regra, mais abaixo no <style>). Acompanha cofre-ativos.js v1.45.0
@@ -352,6 +371,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
+
+---
 
 ---
 
@@ -775,6 +796,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1140,7 +1163,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.74.0 · 04/10/2026
+//
+// v1.74.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
+// esqueleto (window.rzSkeleton) no lugar de "Carregando..." no Financeiro e na Propriedade da ficha do ativo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.1 … v1.73.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.73.0 · 04/10/2026
@@ -2060,6 +2095,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2637,6 +2674,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-documentos.js`
 
 //
@@ -3203,6 +3242,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3357,6 +3398,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
 
 //
@@ -3482,6 +3525,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3513,6 +3558,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3607,6 +3654,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -3668,6 +3717,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -3774,6 +3825,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -3990,6 +4043,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -4032,6 +4087,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4101,7 +4158,24 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+//
+// Versão anterior: 1.41.0 · 06/10/2026
+//
+// v1.41.0 (frente D, fatia D2 — demandas 860233ca e be7cdd7c; sessão 20261006-2348-setup-d2; "Estou de
+// acordo" do Nicola 06/10 23:48) — (1) o + de Contratos (e o vazio da lista, que usa o mesmo sheet) ganha
+// "Configuração inicial" (pedido do Nicola: "a opção também no card de contratos"). (2) be7cdd7c:
+// abrirNovoContratoDoDocumento({ ativoId, dados, documentoId, aoTerminar }) abre o formulário de contrato
+// preenchido com o que a Raiz IA leu do contrato (locatário, documento, valor, dia, início, fim, índice);
+// ao salvar, o documento é anexado ao contrato (evento cofre:vincular-documento, cofre-documentos.js).
+// Nada é gravado sem a pessoa salvar o formulário.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.1 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.40.0 · 04/10/2026
@@ -4793,6 +4867,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -5079,6 +5155,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -5991,6 +6069,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -6050,6 +6130,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6146,6 +6228,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -6353,6 +6437,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -6418,6 +6504,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

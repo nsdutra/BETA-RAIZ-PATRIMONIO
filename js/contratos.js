@@ -1,7 +1,15 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.44.2 · 07/10/2026
+// Versão: 1.45.0 · 07/10/2026
+//
+// v1.45.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
+// primeiro uso, o vazio convida: Contratos sem nenhum contrato (e sem filtro) mostra a caixa rzVazio.
+// Com bem cadastrado: "Seu primeiro contrato", com "Enviar contrato" (Raiz IA) e "Novo contrato".
+// Sem bem nenhum: o passo "Comece pelo primeiro imóvel" da campanha, porque o contrato nasce do
+// imóvel. Com filtro, ou sem rzVazio, fica o vazio de antes.
+//
+// Versão anterior: 1.44.2 · 07/10/2026
 //
 // v1.44.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -31,21 +39,10 @@
 // ⋮ do fiador no chip Partes ganha "Encerrar fiador" (troca real: sai da lista do contrato e fica no
 // histórico da parte, com o cônjuge anuente) via fn_vinculo_encerrar; "Remover fiador" vira
 // "Excluir fiador" (cadastro errado — mesmo caminho de antes, que agora exclui o vínculo).
-//
-// Versão anterior: 1.41.0 · 06/10/2026
-//
-// v1.41.0 (frente D, fatia D2 — demandas 860233ca e be7cdd7c; sessão 20261006-2348-setup-d2; "Estou de
-// acordo" do Nicola 06/10 23:48) — (1) o + de Contratos (e o vazio da lista, que usa o mesmo sheet) ganha
-// "Configuração inicial" (pedido do Nicola: "a opção também no card de contratos"). (2) be7cdd7c:
-// abrirNovoContratoDoDocumento({ ativoId, dados, documentoId, aoTerminar }) abre o formulário de contrato
-// preenchido com o que a Raiz IA leu do contrato (locatário, documento, valor, dia, início, fim, índice);
-// ao salvar, o documento é anexado ao contrato (evento cofre:vincular-documento, cofre-documentos.js).
-// Nada é gravado sem a pessoa salvar o formulário.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.1 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fase 1 do wrapper de escrita
 // v1.28.0 (demanda 11afd25f) — endereço do locatário no formulário único de
@@ -55,7 +52,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.44.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.45.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -4478,6 +4475,29 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             return { sets, critico };
         }
 
+        // Contratos vazio. O contrato nasce de um bem, então sem bem nenhum o convite é o mesmo passo 1
+        // da campanha de onboarding ("Comece pelo primeiro imóvel"); com bem, o passo 2, só a parte do
+        // contrato. As frases repetem as da campanha para a pessoa não ler duas versões. (dem b8602a3a)
+        function vazioContratosHtml() {
+            const temBem = (Array.isArray(imoveis) && imoveis.length > 0) || (Array.isArray(window.__cofreAtivos) && window.__cofreAtivos.length > 0);
+            if (!temBem) {
+                return window.rzVazio({
+                    dominio: 'ativos', id: 'contratos-sem-bem',
+                    titulo: 'Comece pelo primeiro imóvel',
+                    beneficio: 'O contrato nasce do imóvel. Cadastre um imóvel — ou envie uma foto, documento, contrato aluguel ou Guia IPTU e a Raiz IA preenche por você.',
+                    acaoIA: { rotulo: 'Enviar documento', codigo: 'cofre.analisar_ia', aoTocar: () => { if (typeof window.abrirUploadDocumentoNoApp === 'function') window.abrirUploadDocumentoNoApp(); } },
+                    acaoManual: { rotulo: 'Cadastrar primeiro imóvel', codigo: 'cofre.ativos.criar', aoTocar: () => { if (typeof window.rzAbrirMaisAtivos === 'function') window.rzAbrirMaisAtivos(); } },
+                });
+            }
+            return window.rzVazio({
+                dominio: 'contratos', id: 'contratos-lista',
+                titulo: 'Seu primeiro contrato',
+                beneficio: 'Um contrato vigente transforma o imóvel em receita acompanhada no Financeiro. Já tem o contrato assinado? Envie o arquivo e a Raiz IA lê os dados.',
+                acaoIA: { rotulo: 'Enviar contrato', codigo: 'cofre.analisar_ia', aoTocar: () => { if (typeof window.abrirUploadDocumentoNoApp === 'function') window.abrirUploadDocumentoNoApp(); } },
+                acaoManual: { rotulo: 'Novo contrato', codigo: 'contratos.criar', aoTocar: () => abrirFormularioContrato() },
+            });
+        }
+
         export function renderChipsContratos() {
             const wrap = document.getElementById('contratos-chips');
             if (!wrap) return;
@@ -4593,6 +4613,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // v1.28.0 (demanda 11afd25f) — sem filtro, o vazio ganha o
                 // atalho "+ Novo contrato" (mesmo padrão do vazio de Ativos).
                 const comFiltroCon = fStatusCon !== 'todos' || fEmpCon !== 'todos' || fLocatarioCon !== 'todos';
+                if (!comFiltroCon && typeof window.rzVazio === 'function') {
+                    container.innerHTML = vazioContratosHtml();
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                    return;
+                }
                 container.innerHTML = `<div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-text"></svg></div><p>Nenhum contrato ${comFiltroCon ? 'neste filtro' : 'ainda'}. Um contrato vigente é o que transforma um imóvel em receita.</p>${comFiltroCon ? '' : '<div class="rz-acts"><button type="button" class="rz-btn rz-btn-1" onclick="abrirEscolhaNovoContrato()"><svg data-lucide="plus"></svg> Novo contrato</button></div>'}</div></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;

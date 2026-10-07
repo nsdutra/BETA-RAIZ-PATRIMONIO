@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.322.1
-   LINHAS: 17117
-   DATA: 07/10/2026 (sessão 20261007-2005-catalogo-fim, demanda 2923ff4d)
+   VERSÃO: Beta v1.323.0
+   LINHAS: 17205
+   DATA: 07/10/2026 (sessão 20261003-1707-ux-base, demanda b8602a3a)
+   NOVIDADES (Beta v1.323.0) — UX F2.7a, primeiro uso: o vazio convida ("Pode fazer" do Nicola 07/10 20:05).
+   Caixa única rzVazio (ilustração por assunto, título, 1 frase do que se ganha, Raiz IA primária e
+   manual terciário; sem IA no plano o manual vira primário) e ilustrações RZ_VAZIO_ILU. Card "Comece
+   por aqui" no topo de Hoje › Patrimônio, espelho dos 3 passos da campanha de onboarding, marcado
+   pelos mesmos indicadores (fn_comunicacao_contexto_servidor). O botão final da campanha
+   "Cadastrar primeiro imóvel" passa a abrir o "+" de Ativos (rzAbrirMaisAtivos), a mesma porta do
+   vazio. Import map: cofre-ativos.js 1.78.0, contratos.js 1.45.0, ativos-markup.js 1.53.0. Nenhum
+   objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.322.1):
    NOVIDADES (Beta v1.322.1) — catálogo único (de acordo do Nicola 07/10 20:02): "Criar o ativo a partir
    deste documento" sugere o tipo de ativo pela aplicabilidade do catálogo (e pela IA), não mais pelo
    campo antigo nem por nomes de categoria anteriores à fatia B. Só import map: cofre-documentos 2.31.2 →
@@ -29,17 +38,8 @@
    do cabeçalho (a linha "Versão:" estava depois das entradas, e a checagem de base do publicador
    lia a versão errada). Só import map neste arquivo.
    Versão anterior (Beta v1.321.0):
-   NOVIDADES (Beta v1.321.0) — rolo universal do changelog (regra VER-05, "de acordo" do Nicola
-   07/10 17:21). O cabeçalho de todo módulo de js/ passa a guardar só as 5 versões mais recentes; o
-   resto rola para o CHANGELOG_MODULOS.md, uma seção por arquivo, mais recente primeiro — a mesma
-   regra que a v1.8 do gerar_versoes.py criou para este arquivo e que nunca tinha sido estendida aos
-   módulos. Eram 489.344 bytes de cabeçalho nos 42 arquivos, com cofre-ativos.js carregando 98
-   versões em 931 linhas. Neste index só o import map mudou (22 módulos subiram de PATCH). Nenhuma
-   linha de código de nenhum arquivo foi tocada: cada módulo foi conferido token a token contra o
-   publicado, e a única divergência aceita foi o próprio export const VERSAO. Nenhum objeto de banco.
-   Versão anterior (Beta v1.320.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.320.0 … v1.320.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.321.0 … v1.321.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -64,7 +64,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.44.2","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.77.2","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.48.2","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.32.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.3","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.2","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.2","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.52.2"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.48.2","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.78.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.48.2","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.32.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.3","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.2","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.2","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -692,6 +692,19 @@
         .rz-empty .rz-ic{width:52px;height:52px;border-radius:16px;background:var(--paper);color:var(--sage);display:inline-flex;align-items:center;justify-content:center;margin-bottom:8px}
         .rz-empty p{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.4}
         .rz-empty .rz-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+        /* v1.323.0 — vazio que convida (rzVazio): fundo em gradiente do tema, ilustração leve por
+           assunto, benefício em 1 frase, Raiz IA primeiro e cadastro manual depois */
+        .rz-vazio{text-align:center;padding:22px 16px 18px;border-radius:var(--r-card);border:1px solid var(--line);background:linear-gradient(165deg,var(--card) 0%,var(--tile) 100%)}
+        .rz-vazio .rz-vz-ilu{display:block;width:112px;height:84px;margin:0 auto 10px;color:var(--sage)}
+        .rz-vazio .rz-vz-a{fill:var(--paper)} .rz-vazio .rz-vz-b{fill:var(--brass-light)} .rz-vazio .rz-vz-c{fill:var(--pine)}
+        .rz-vazio h4{font-family:var(--font-title);font-size:16px;letter-spacing:-.02em;margin:0 0 6px;color:var(--ink)}
+        .rz-vazio p{font-size:13px;color:var(--muted);margin:0 auto 14px;line-height:1.45;max-width:340px}
+        .rz-vazio .rz-acts{display:flex;flex-direction:column;gap:4px;max-width:320px;margin:0 auto}
+        .rz-vazio .rz-btn svg{width:18px;height:18px}
+        .rz-comece .rz-comece-n{font-size:12px;font-weight:600;color:var(--sage)}
+        .rz-comece .rz-row .rz-tx span{white-space:normal}
+        .rz-comece .rz-feito .rz-ic{color:var(--sage)} .rz-comece .rz-feito .rz-tx b{color:var(--muted);font-weight:500}
+        .rz-comece .rz-prox .rz-ic{background:var(--pine);color:#fff}
         .rz-alert-sev{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:12px;color:var(--muted)}
         .rz-card.rz-sev-bad{border-left:4px solid var(--danger)} .rz-card.rz-sev-warn{border-left:4px solid var(--warning)}
         .rz-card.rz-sev-ia{border-left:4px solid var(--brass)} .rz-card.rz-sev-run{border-left:4px solid var(--info)}
@@ -1851,6 +1864,7 @@
                 <button type="button" class="rz-chip" id="hoje-chip-jornal" role="tab" aria-selected="false" onclick="rzHojeContexto('jornal')">Jornal do dia<span class="rz-pt hidden" id="hoje-jornal-pt" aria-hidden="true"></span></button>
             </div>
             <div id="hoje-patrimonio">
+            <div id="hoje-comece-mount"></div>
             <div id="hoje-heroi-mount"></div>
             <!-- Entrega A.4 (21/09/2026, PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_FISCAL
                  v2.0.0 + ESP_RESULTADOS_MERCADO_FISCAL §3.1) — seletor de universo
@@ -3667,7 +3681,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.322.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.323.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11514,6 +11528,7 @@
             // aos pedaços. Ver função pra detalhe de cada busca.
             carregarDadosAssincronosVisaoGeral();
             rzRenderResultadosHoje(); // v1.304.0
+            rzRenderComecePorAqui(); // Comece por aqui, espelho da campanha de onboarding (dem b8602a3a)
             if (rzHojeAtual === 'jornal') rzRenderJornal(); // v1.310.0
 
         }
@@ -11534,7 +11549,9 @@
                 nomeEmpresa: (typeof CONFIG_CLIENTE !== 'undefined' && CONFIG_CLIENTE?.nomeEmpresa) || null, // v1.148.0 — texto pronto do wa.me comercial
                 tela: tela || 'inicio',
                 onAcaoFinal: function(acao) {
-                    if (acao === 'abrir_formulario_imovel') abrirFormularioImovel();
+                    // "Cadastrar primeiro imóvel" abre o "+" de Ativos (Raiz IA ou na mão), a mesma
+                    // porta do vazio de Ativos — campanha e tela não podem levar a lugares diferentes. (dem b8602a3a)
+                    if (acao === 'abrir_formulario_imovel') rzAbrirMaisAtivos();
                     // Defensivo (v1.44.0): a variante "ativo" do onboarding é
                     // do Cofre (cofre.html tem seu próprio dispatch agora) — não
                     // deveria disparar aqui, mas se algum dia um cliente com os
@@ -11610,6 +11627,77 @@
         // v1.313.0 (demanda dab013a2) — guia de uma funcionalidade: como funciona, vantagens, onde usar,
         // se dá para usar no WhatsApp e o atalho "Experimentar agora". Texto vem do catálogo
         // (fn_funcionalidade_guia). Os atalhos são uma lista fechada: código fora dela não mostra botão.
+        // Vazio que convida: diz para que a tela serve e oferece primeiro a leitura pela Raiz IA,
+        // depois o cadastro manual. Sem IA no plano a ação manual vira a principal e o botão de IA
+        // some, para não convidar ao que a pessoa não pode usar. Os textos espelham a campanha de
+        // onboarding: mudou um, confere a tabela de correspondência do DESIGN_SYSTEM. (dem b8602a3a)
+        var RZ_VAZIO_ILU = {
+            ativos: '<svg class="rz-vz-ilu" viewBox="0 0 112 84" aria-hidden="true"><ellipse class="rz-vz-a" cx="56" cy="75" rx="46" ry="6"/><path class="rz-vz-a" d="M24 40 48 22l24 18v32H24z"/><path d="M24 40 48 22l24 18v32H24z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect class="rz-vz-c" x="42" y="53" width="12" height="19" rx="1.5"/><rect x="29" y="46" width="9" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M68 64h20l6 6v3H64v-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle class="rz-vz-c" cx="71" cy="73" r="3.5"/><circle class="rz-vz-c" cx="88" cy="73" r="3.5"/><path class="rz-vz-b" d="M90 14l2.2 5.3 5.3 2.2-5.3 2.2L90 29l-2.2-5.3-5.3-2.2 5.3-2.2z"/></svg>',
+            contratos: '<svg class="rz-vz-ilu" viewBox="0 0 112 84" aria-hidden="true"><ellipse class="rz-vz-a" cx="56" cy="76" rx="40" ry="5"/><rect class="rz-vz-a" x="34" y="10" width="44" height="60" rx="4"/><rect x="34" y="10" width="44" height="60" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M42 24h28M42 32h28M42 40h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M42 58c4-6 7 2 10-3s5 3 9-1" fill="none" stroke="var(--pine)" stroke-width="2" stroke-linecap="round"/><path class="rz-vz-b" d="M88 18l2.2 5.3 5.3 2.2-5.3 2.2L88 33l-2.2-5.3-5.3-2.2 5.3-2.2z"/></svg>',
+            documentos: '<svg class="rz-vz-ilu" viewBox="0 0 112 84" aria-hidden="true"><ellipse class="rz-vz-a" cx="56" cy="76" rx="42" ry="5"/><path class="rz-vz-a" d="M22 26h24l6 6h38v38H22z"/><path d="M22 26h24l6 6h38v38H22z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><rect x="44" y="14" width="26" height="34" rx="3" fill="var(--card)" stroke="currentColor" stroke-width="2"/><path d="M50 24h14M50 31h14M50 38h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="rz-vz-b" d="M86 10l2.2 5.3 5.3 2.2-5.3 2.2L86 25l-2.2-5.3-5.3-2.2 5.3-2.2z"/></svg>',
+            pessoas: '<svg class="rz-vz-ilu" viewBox="0 0 112 84" aria-hidden="true"><ellipse class="rz-vz-a" cx="56" cy="76" rx="40" ry="5"/><circle class="rz-vz-a" cx="44" cy="32" r="11"/><circle cx="44" cy="32" r="11" fill="none" stroke="currentColor" stroke-width="2"/><path d="M26 70c0-11 8-18 18-18s18 7 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="72" cy="36" r="9" fill="none" stroke="var(--pine)" stroke-width="2"/><path d="M60 70c1-9 6-15 12-15s12 6 13 15" fill="none" stroke="var(--pine)" stroke-width="2" stroke-linecap="round"/></svg>',
+            alertas: '<svg class="rz-vz-ilu" viewBox="0 0 112 84" aria-hidden="true"><ellipse class="rz-vz-a" cx="56" cy="76" rx="36" ry="5"/><path class="rz-vz-a" d="M56 10l24 9v18c0 16-10 27-24 33-14-6-24-17-24-33V19z"/><path d="M56 10l24 9v18c0 16-10 27-24 33-14-6-24-17-24-33V19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M45 40l8 8 14-15" fill="none" stroke="var(--pine)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        };
+        var RZ_VAZIO_ACOES = {};
+        function rzVazio(o) {
+            o = o || {};
+            const dom = o.dominio || 'geral';
+            const id = o.id || dom; // chave das ações: duas telas com a mesma ilustração não trocam ações entre si
+            const pode = c => !c || typeof podeUsar !== 'function' || podeUsar(c).ok;
+            const ia = o.acaoIA && pode(o.acaoIA.codigo) ? o.acaoIA : null;
+            const man = o.acaoManual || null;
+            const reg = (k, a) => { RZ_VAZIO_ACOES[id + ':' + k] = a; return `onclick="rzVazioAgir('${id}:${k}')"`; };
+            let acts = '';
+            if (ia) acts += `<button type="button" class="rz-btn rz-btn-ia" ${reg('ia', ia)}><svg data-lucide="sparkles"></svg>${rzEsc(ia.rotulo)}</button>`;
+            // Com IA o manual é terciário (REGRAS §0.7 e §6: 1 preenchido por tela, 2 botões no máximo).
+            if (man) acts += ia ? `<button type="button" class="rz-btn rz-btn-3" ${reg('manual', man)}>${rzEsc(man.rotulo)}</button>`
+                : `<button type="button" class="rz-btn rz-btn-1" ${reg('manual', man)}><svg data-lucide="${rzEsc(man.icone || 'plus')}"></svg>${rzEsc(man.rotulo)}</button>`;
+            return `<div class="rz-vazio" data-rz-vazio="${rzEsc(dom)}">${RZ_VAZIO_ILU[dom] || ''}${o.titulo ? `<h4>${rzEsc(o.titulo)}</h4>` : ''}<p>${rzEsc(o.beneficio || '')}</p>${acts ? `<div class="rz-acts">${acts}</div>` : ''}</div>`;
+        }
+        function rzVazioAgir(chave) {
+            const a = RZ_VAZIO_ACOES[chave];
+            if (!a) return;
+            if (a.codigo && typeof rzMostrarBloqueio === 'function' && rzMostrarBloqueio(a.codigo)) return;
+            try { if (typeof a.aoTocar === 'function') a.aoTocar(); } catch (e) { console.warn('[vazio]', e.message); }
+        }
+
+        // "Comece por aqui": os mesmos 3 passos da campanha de onboarding, marcados pelos mesmos
+        // indicadores que as regras da campanha leem (fn_comunicacao_contexto_servidor). Mesma fonte,
+        // então o card nunca diz uma coisa e a campanha outra. Some quando o 3º passo é cumprido ou
+        // fora da janela de 30 dias da campanha, a não ser que ainda não exista bem nenhum. (dem b8602a3a)
+        var rzComeceCache = null;
+        async function rzRenderComecePorAqui() {
+            const mount = document.getElementById('hoje-comece-mount');
+            if (!mount) return;
+            if (!pessoaIdLogada || !CLIENTE_ID_SUPABASE) { mount.innerHTML = ''; return; }
+            const fresco = rzComeceCache && rzComeceCache.cliente === CLIENTE_ID_SUPABASE && (Date.now() - rzComeceCache.em) < 60000;
+            let ctx = fresco ? rzComeceCache.ctx : null;
+            if (!fresco) {
+                try {
+                    const { data, error } = await dbAuth.rpc('fn_comunicacao_contexto_servidor', { p_pessoa_id: pessoaIdLogada, p_cliente_id: CLIENTE_ID_SUPABASE });
+                    if (error) throw error;
+                    ctx = data || null;
+                    rzComeceCache = { ctx, em: Date.now(), cliente: CLIENTE_ID_SUPABASE };
+                } catch (e) { console.warn('[comece]', e.message); mount.innerHTML = ''; return; }
+            }
+            const naJanela = ctx && ((ctx.diasDesdeCadastro ?? 0) <= 30 || !ctx.temImovelOuAtivo);
+            if (!ctx || ctx.temRecebimentoOuOcorrenciaTratada || !naJanela) { mount.innerHTML = ''; return; }
+            const soControle = ctx.temItemControle && !ctx.temContrato;
+            const passos = [
+                { feito: !!ctx.temImovelOuAtivo, titulo: 'Comece pelo primeiro imóvel', sub: 'Cadastre um imóvel — ou envie um documento e a Raiz IA preenche por você.', ir: 'rzAbrirMaisAtivos()' },
+                { feito: !!ctx.temContratoOuItemControle, titulo: 'Contrato ou item de controle', sub: 'Abra o bem e use o box Contrato ou o box Controles.', ir: "irParaAbaRodape('tab-ativos')" },
+                soControle
+                    ? { feito: !!ctx.temOcorrenciaTratada, titulo: 'Trate a primeira ocorrência', sub: 'Quando o seguro ou a manutenção vencer, marque como tratado.', ir: "irParaAbaRodape('tab-ativos')" }
+                    : { feito: !!ctx.temRecebimento, titulo: 'Experimente o Financeiro', sub: 'Dê baixa num pagamento e emita o recibo.', ir: "irParaAbaRodape('tab-mensal')" },
+            ];
+            const prox = passos.findIndex(p => !p.feito);
+            const feitos = passos.filter(p => p.feito).length;
+            mount.innerHTML = `<div class="rz-card rz-comece" style="margin-bottom:12px"><div class="rz-card-h"><h3>Comece por aqui</h3><span class="rz-comece-n">${feitos} de 3</span></div>` +
+                passos.map((p, i) => `<div class="rz-row rz-link${p.feito ? ' rz-feito' : ''}${i === prox ? ' rz-prox' : ''}" role="button" tabindex="0" onclick="${p.ir}"><div class="rz-ic"><svg data-lucide="${p.feito ? 'check-circle-2' : 'circle'}"></svg></div><div class="rz-tx"><b>${rzEsc(p.titulo)}</b><span>${rzEsc(p.sub)}</span></div><svg data-lucide="chevron-right" style="width:18px;height:18px;color:var(--sage);flex:none"></svg></div>`).join('') +
+                '</div>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
         var RZ_ATALHOS = {
             'ativos': () => irParaAbaRodape('tab-ativos'),
             'ler-documento': () => abrirUploadDocumentoNoApp(),

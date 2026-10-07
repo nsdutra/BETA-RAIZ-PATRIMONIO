@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.321.0) — rolo universal do changelog (regra VER-05, "de acordo" do Nicola
+07/10 17:21). O cabeçalho de todo módulo de js/ passa a guardar só as 5 versões mais recentes; o
+resto rola para o CHANGELOG_MODULOS.md, uma seção por arquivo, mais recente primeiro — a mesma
+regra que a v1.8 do gerar_versoes.py criou para este arquivo e que nunca tinha sido estendida aos
+módulos. Eram 489.344 bytes de cabeçalho nos 42 arquivos, com cofre-ativos.js carregando 98
+versões em 931 linhas. Neste index só o import map mudou (22 módulos subiram de PATCH). Nenhuma
+linha de código de nenhum arquivo foi tocada: cada módulo foi conferido token a token contra o
+publicado, e a única divergência aceita foi o próprio export const VERSAO. Nenhum objeto de banco.
+Versão anterior (Beta v1.320.0):
+------------------------------------------------------------------
+Versões anteriores (v1.320.0 … v1.320.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.320.0) — UX F2.4, chips de Ativos e Contratos (plano aprovado pelo Nicola 07/10
 09:11; UXR-13/14/15). Ordem Todos → ação → recorte → convite. Ativos: "Com alerta" com ponto na cor
 do pior alerta, grupos só com ativo, chips de convite para categorias vazias e card de convite no

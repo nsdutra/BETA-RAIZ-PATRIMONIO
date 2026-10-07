@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.52.2 · 07/10/2026
+// Versão: 1.53.0 · 07/10/2026
+//
+// v1.53.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
+// #ativos-estado-vazio deixa de ser um botão inteiro: no app ele recebe a caixa rzVazio, que tem os
+// próprios botões, e o toque na caixa toda abria o "+" por cima deles. O conteúdo que fica no markup
+// é o vazio do cofre.html avulso, agora com o "+ Novo ativo" como botão de verdade.
+//
+// Versão anterior: 1.52.2 · 07/10/2026
 //
 // v1.52.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -109,26 +116,11 @@
 // categorias) + #modelo-tipo-especifico (opcional) — acompanha
 // cofre-controles.js v1.26.0 (escopo_tipo/escopo_valor em vez do
 // tipo_ativo deprecated). Espelha cofre.html.
-//
-// v1.40.0 — achado real do Nicola (relato + print, 17/09/2026): no seletor
-// "Vincular a" do upload/ficha de documento (#up-vinculo-tipo, #fd-va-tipo)
-// ainda aparecia a opção "Imóvel" — nomenclatura legada, tema desta sessão
-// é justamente imóvel ter virado extensão do ativo, não deveria mais
-// aparecer como opção separada pro usuário (buscar por "Ativo controlado"
-// já cobre imóvel — cofre_ativos.nome_exibicao tem o endereço pra imóvel
-// igual tem o nome pra qualquer outro ativo) — E faltava "Contrato", que
-// já é um tipo de vínculo válido no banco (cofre_documento_vinculos,
-// vinculoPermiteControle() em cofre-documentos.js já reconhece 'contrato'
-// há tempos) mas nunca tinha entrado nesses dois selects. Trocado: opção
-// "Imóvel" removida, opção "Contrato" adicionada (busca por locatário —
-// ver buscarCandidatosContrato em cofre-api.js v1.37.0 e o novo branch em
-// aoMudarTipoVinculoUpload/aoMudarTipoVinculoAgora, cofre-documentos.js).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.39.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.40.0 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.52.2'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.53.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -364,11 +356,13 @@ export const ATIVOS_MARKUP = `<style>
             <div id="ativos-chips-tipo" class="rz-chips"></div>
 
             <div id="ativos-lista" class="space-y-2"></div>
-            <div id="ativos-estado-vazio" class="hidden text-center py-14" data-action="abrir-acoes-ativos" data-rz-codigo="cofre.ativos.criar" role="button" tabindex="0" style="cursor:pointer;border:2px dashed var(--line);border-radius:var(--r-card);margin:0 2px;" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); this.click();}">
-                <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
-                <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
-                <p class="text-xs mb-3" style="color:var(--sage)">Toque aqui para cadastrar o primeiro — veículo, imóvel, terreno ou proteção pessoal.</p>
-                <span class="px-4 py-2 rounded-xl text-sm font-semibold text-white inline-block" style="background:var(--pine)">+ Novo ativo</span>
+            <div id="ativos-estado-vazio" class="hidden">
+                <div class="text-center py-14" style="border:2px dashed var(--line);border-radius:var(--r-card);margin:0 2px;">
+                    <i data-lucide="boxes" style="width:40px;height:40px;color:var(--sage)" class="mx-auto mb-2"></i>
+                    <p class="text-sm font-semibold">Nenhum ativo controlado ainda</p>
+                    <p class="text-xs mb-3" style="color:var(--sage)">Cadastre o primeiro — veículo, imóvel, terreno ou proteção pessoal.</p>
+                    <button type="button" data-action="abrir-acoes-ativos" data-rz-codigo="cofre.ativos.criar" class="px-4 py-2 rounded-xl text-sm font-semibold text-white inline-block" style="background:var(--pine)">+ Novo ativo</button>
+                </div>
             </div>
         </section>
 
