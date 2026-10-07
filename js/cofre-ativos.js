@@ -1,6 +1,17 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.76.0 · 07/10/2026
+// Versão: 1.77.0 · 07/10/2026
+//
+// v1.77.0 (UX F2.4, demanda 6f2c8d16, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 09:11;
+// UXR-13/14/15) — chips de Ativos na ordem Todos → ação → recorte → convite:
+//   · "Com alerta" ganha o ponto na cor do pior alerta (vermelho = crítico, âmbar = atenção) e só
+//     aparece com contador > 0 (como já era);
+//   · os grupos (Imóveis · Veículos · Outros) só aparecem quando têm ativo;
+//   · cada categoria do formulário de ativo sem nenhum ativo vira chip de convite ("+ Veículo 0",
+//     vazado e tracejado); o toque abre "Novo ativo" já com a categoria escolhida;
+//   · carteira só com imóveis: card de convite no fim da lista, que abre o "+" de Ativos.
+//
+// Versão anterior: 1.76.0 · 07/10/2026
 //
 // v1.76.0 (07/10/2026, sessão 20261007-0158-financeiro, demanda f3e6cd27 — pedido do Nicola 01:58:
 // "há 3 telas distintas, padronize") — "Editar divisão de propriedade" passa a abrir o editor único
@@ -929,7 +940,7 @@
 // da v1.0.0 que este arquivo corrige). Campos estruturados por tipo em vez
 // do campo único "identificadores" da v1.0.0 (prompt corretivo §10).
 // ============================================================================
-export const VERSAO = '1.76.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.77.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1020,6 +1031,33 @@ async function garantirEmpreendimentos() {
 // ============================================================================
 // LISTA (tela Ativos)
 // ============================================================================
+// F2.4 — as 8 categorias do formulário de ativo (fonte única: seletor #at-tipo e chips de convite).
+const CATEGORIAS_ATIVO = ['imovel_predial', 'imovel_territorial', 'veiculo', 'embarcacao', 'aeronave', 'vida', 'bem_valor', 'outro'];
+// Valores antigos de tipo_ativo → categoria atual (mesma ponte de rotuloTipoAtivo).
+const CATEGORIA_POR_TIPO = { imovel: 'imovel_predial', terreno: 'imovel_territorial', veiculo_blindado: 'veiculo', vida_protecao: 'vida', obra_arte: 'bem_valor', colecao_bem_valor: 'bem_valor' };
+// Rótulo curto do chip de convite (sem "Outro": convite genérico não convida a nada).
+const ROTULO_CONVITE = { imovel_predial: 'Imóvel', imovel_territorial: 'Terreno', veiculo: 'Veículo', embarcacao: 'Embarcação', aeronave: 'Aeronave', vida: 'Vida e proteção', bem_valor: 'Obra e bem de valor' };
+function categoriaDoAtivo(tipo) { return CATEGORIA_POR_TIPO[tipo] || tipo; }
+
+// F2.4 — convite: abre "Novo ativo" já com a categoria escolhida.
+export async function abrirFormAtivoComCategoria(categoria) {
+    await abrirFormAtivo();
+    const sel = document.getElementById('at-tipo');
+    if (sel && CATEGORIAS_ATIVO.includes(categoria)) { sel.value = categoria; aoMudarTipoAtivo(); }
+}
+if (typeof window !== 'undefined') window.__rzConviteAtivo = (cat) => abrirFormAtivoComCategoria(cat);
+
+// F2.4 — pior severidade entre os alertas do Motor ligados a ativos (ponto do chip "Com alerta").
+function piorSeveridadeAtivos() {
+    try {
+        const fonte = (typeof alertasVisiveisTodos !== 'undefined' && alertasVisiveisTodos && alertasVisiveisTodos.length) ? alertasVisiveisTodos
+            : ((typeof geralVisiveisTodos !== 'undefined' && geralVisiveisTodos) || []);
+        const deAtivo = fonte.filter(r => r.detalhe?.ativo_id || r.entidade_tipo === 'ativo');
+        if (deAtivo.some(r => r.severidade === 'critico')) return 'rz-bad';
+    } catch (_) { /* sem Motor (cofre.html) */ }
+    return 'rz-warn';
+}
+
 export function popularSelectTipoAtivo() {
     const sel = document.getElementById('at-tipo');
     if (!sel || sel.options.length) return;
@@ -1027,7 +1065,7 @@ export function popularSelectTipoAtivo() {
     // valores específicos antigos. O tipo específico (Apartamento, Carro
     // blindado...) vira o 2º seletor, #at-tipo-detalhe, populado por
     // categoria via atualizarSelectTipoDetalhe().
-    sel.innerHTML = ['imovel_predial', 'imovel_territorial', 'veiculo', 'embarcacao', 'aeronave', 'vida', 'bem_valor', 'outro']
+    sel.innerHTML = CATEGORIAS_ATIVO // F2.4 — mesma lista dos chips de convite
         .map(t => `<option value="${t}">${rotuloTipoAtivo(t)}</option>`).join('');
 }
 
@@ -1347,10 +1385,18 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         if (y === '(Outros ativos)') return -1;
         return x.localeCompare(y);
     });
+    // F2.4 (UXR-15) — carteira só com imóveis: um card de convite no FIM da lista (nunca no topo).
+    const soImoveis = estado.ativos.length > 0 && estado.ativos.every(a => ehCategoriaImovel(categoriaDoAtivo(a.tipo_ativo)));
+    const cardConvite = soImoveis && chipAtivoAtual === 0 && !termo ? `
+        <div class="rz-card rz-convite-card">
+            <b>Seu patrimônio vai além dos imóveis</b>
+            <p class="rz-desc">Cadastre também veículos, obras de arte, seguros de vida e outros bens — tudo no mesmo lugar, com os vencimentos sob controle.</p>
+            <button type="button" class="rz-btn rz-btn-2" data-action="abrir-acoes-ativos" style="margin-top:10px">Cadastrar outro bem</button>
+        </div>` : '';
     container.innerHTML = nomesGrupos.map(nome => `
         <div class="rz-group">${escapeHtml(nome)} · ${grupos[nome].length}</div>
         <div class="rz-card rz-list">${grupos[nome].map(ativoCardHtml).join('')}</div>
-    `).join('');
+    `).join('') + cardConvite;
 
     const vazio = document.getElementById('ativos-estado-vazio');
     vazio.classList.toggle('hidden', estado.ativos.length !== 0);
@@ -1409,13 +1455,21 @@ function renderChipsAtivos() {
     const wrap = document.getElementById('ativos-chips-tipo');
     if (!wrap) return; // cofre.html standalone não tem este container ainda — no-op seguro
     const comAlerta = ativosComAlerta(); // v1.75.0 (F2.2)
-    wrap.innerHTML = GRUPOS_CHIP_TIPO.map((g, i) => {
+    // F2.4 (UXR-13/14/15) — Todos → ação (com ponto) → recorte (só grupos com ativo) → convite.
+    const pt = piorSeveridadeAtivos();
+    const chips = GRUPOS_CHIP_TIPO.map((g, i) => {
         const qtd = g.alerta ? estado.ativos.filter(a => comAlerta.has(a.id)).length
             : (g.tipos ? estado.ativos.filter(a => g.tipos.includes(a.tipo_ativo)).length : estado.ativos.length);
         const ativo = i === chipAtivoAtual;
-        if (g.alerta && !qtd && !ativo) return ''; // chip de estado só aparece com contador > 0 (UXR-15)
-        return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${ativo ? ' rz-on' : ''}${g.alerta && qtd ? ' rz-warn' : ''}">${escapeHtml(g.rotulo)} <span class="rz-n">${qtd}</span></button>`;
+        if (g.alerta && !qtd && !ativo) return ''; // chip de ação só aparece com contador > 0 (UXR-15)
+        if (g.tipos && g.tipos.length && !qtd && !ativo) return ''; // recorte vazio vira convite (abaixo)
+        const ponto = g.alerta && qtd ? `<span class="rz-pt ${pt}" aria-hidden="true"></span>` : '';
+        return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${ativo ? ' rz-on' : ''}">${ponto}${escapeHtml(g.rotulo)} <span class="rz-n">${qtd}</span></button>`;
     }).join('');
+    const temCategoria = new Set(estado.ativos.map(a => categoriaDoAtivo(a.tipo_ativo)));
+    const convites = estado.ativos.length ? CATEGORIAS_ATIVO.filter(c => ROTULO_CONVITE[c] && !temCategoria.has(c))
+        .map(c => `<button type="button" class="rz-chip rz-chip-convite" onclick="window.__rzConviteAtivo && window.__rzConviteAtivo('${c}')" aria-label="Cadastrar ${escapeHtml(ROTULO_CONVITE[c])}">+ ${escapeHtml(ROTULO_CONVITE[c])} <span class="rz-n">0</span></button>`).join('') : '';
+    wrap.innerHTML = chips + convites;
     // v1.9.0 (02/09/2026, pedido explícito: "os chips devem correr na
     // horizontal mas sem deixar a mostra a rolagem") — a barra em si já
     // estava escondida (.raiz-sem-scrollbar, ver ativos-markup.js), mas

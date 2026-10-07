@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.315.2) — leitura com IA: expectativa de tempo realista (pedido do Nicola 07/10
+02:26). "De 20 s a 1 min"; depois de 1 min, "documento longo, até 2 min"; limite antes de
+"Interrompida" 150 s. Só import map: cofre-documentos 2.30.0.
+Versão anterior (Beta v1.315.1):
+------------------------------------------------------------------
+Versões anteriores (v1.315.1 … v1.315.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.315.1) — teste do Nicola 07/10 02:03 e decisões D39/D40 (sessão
 20261007-0205-financeiro, demanda f3e6cd27). Outras receitas ganham Conta e Divisão no sheet
 (toda receita da lista abre; estornar/excluir só nas manuais) e "divisão ajustada" na linha.

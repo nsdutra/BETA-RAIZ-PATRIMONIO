@@ -1,7 +1,18 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.43.0 · 07/10/2026
+// Versão: 1.44.0 · 07/10/2026
+//
+// v1.44.0 (UX F2.4, demanda 6f2c8d16, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 09:11;
+// UXR-13/14/15) — chips da lista de Contratos na ordem Todos → ação → estado:
+//   Todos · ● Com alerta · ● A reajustar · ● Vencendo 90 d · Vigentes · Assinando · Encerrados.
+//   · Os 3 de ação vêm do Motor de Alertas (mesmo número da aba Alertas): "A reajustar" =
+//     reajuste_aniversario, "Vencendo 90 d" = contrato_encerramento (inclui vencido), "Com alerta" =
+//     qualquer alerta ligado ao contrato. Ponto na cor do pior alerta; só aparecem com contador > 0.
+//     Sem os alertas carregados, cai na regra local de antes (revisão, vencido, assinando).
+//   · Vigentes e Encerrados sempre aparecem (Encerrados por último); Assinando só com contador > 0.
+//
+// Versão anterior: 1.43.0 · 07/10/2026
 //
 // v1.43.0 (demanda b94ef7d5, sessão 20261007-0231-vinculos-reativar; plano aprovado pelo Nicola 07/10 02:31) —
 // chip Partes da ficha do contrato ganha o grupo "Encerrados" (fiador e cônjuge anuente encerrados,
@@ -715,7 +726,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.43.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.44.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -5106,26 +5117,67 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
         // continua sendo a única função que filtra.
         let contratosChipAtual = 'todos';
 
+        // F2.4 — conjuntos dos chips de ação, lidos do Motor de Alertas (aba Alertas ou Hoje). Sem os
+        // alertas carregados, cai na regra local de sempre. Devolve também o pior alerta de cada conjunto.
+        function contratosPorAcao() {
+            let fonte = [];
+            try {
+                fonte = (typeof alertasVisiveisTodos !== 'undefined' && alertasVisiveisTodos && alertasVisiveisTodos.length) ? alertasVisiveisTodos
+                    : ((typeof geralVisiveisTodos !== 'undefined' && geralVisiveisTodos) || []);
+            } catch (_) { fonte = []; }
+            const sets = { alerta: new Set(), reajustar: new Set(), vencendo: new Set() };
+            const critico = { alerta: false, reajustar: false, vencendo: false };
+            if (fonte.length) {
+                fonte.forEach(r => {
+                    const id = r.entidade_tipo === 'contrato' ? r.entidade_id : (r.detalhe?.contrato_id || null);
+                    if (!id) return;
+                    const crit = r.severidade === 'critico';
+                    sets.alerta.add(id); if (crit) critico.alerta = true;
+                    if (r.tipo_alerta === 'reajuste_aniversario') { sets.reajustar.add(id); if (crit) critico.reajustar = true; }
+                    if (r.tipo_alerta === 'contrato_encerramento') { sets.vencendo.add(id); if (crit) critico.vencendo = true; }
+                });
+            } else {
+                const em90 = new Date(); em90.setDate(em90.getDate() + 90);
+                contratos.forEach(c => {
+                    const venc = contratoVencido(c) || (c.status === 'Ativo' && c.fim && new Date(c.fim + 'T00:00:00') <= em90);
+                    if (contratoPrecisaRevisao(c)) sets.reajustar.add(c.id);
+                    if (venc) sets.vencendo.add(c.id);
+                    if (contratoPrecisaRevisao(c) || contratoVencido(c) || contratoAguardandoAssinatura(c) || venc) sets.alerta.add(c.id);
+                    if (contratoVencido(c)) { critico.alerta = true; critico.vencendo = true; }
+                });
+            }
+            return { sets, critico };
+        }
+
         export function renderChipsContratos() {
             const wrap = document.getElementById('contratos-chips');
             if (!wrap) return;
-            const comAlerta = contratos.filter(c => contratoPrecisaRevisao(c) || contratoVencido(c) || contratoAguardandoAssinatura(c)).length;
+            // F2.4 (UXR-13/14/15) — Todos → ação (ponto, só > 0) → estado (Vigentes e Encerrados sempre).
+            const { sets, critico } = contratosPorAcao();
+            const ids = new Set(contratos.map(c => c.id));
+            const conta = set => [...set].filter(id => ids.has(id)).length;
             const grupos = [
-                { chave: 'todos', rotulo: 'Todos', qtd: contratos.length },
-                { chave: 'Ativo', rotulo: 'Vigentes', qtd: contratos.filter(c => c.status === 'Ativo').length },
-                { chave: 'alerta', rotulo: 'Com alerta', qtd: comAlerta, warn: comAlerta > 0 },
+                { chave: 'todos', rotulo: 'Todos', qtd: contratos.length, sempre: true },
+                { chave: 'alerta', rotulo: 'Com alerta', qtd: conta(sets.alerta), acao: true, crit: critico.alerta },
+                { chave: 'reajustar', rotulo: 'A reajustar', qtd: conta(sets.reajustar), acao: true, crit: critico.reajustar },
+                { chave: 'vencendo', rotulo: 'Vencendo 90 d', qtd: conta(sets.vencendo), acao: true, crit: critico.vencendo },
+                { chave: 'Ativo', rotulo: 'Vigentes', qtd: contratos.filter(c => c.status === 'Ativo').length, sempre: true },
                 { chave: 'Assinando', rotulo: 'Assinando', qtd: contratos.filter(c => c.status === 'Assinando').length },
-                { chave: 'Finalizado', rotulo: 'Encerrados', qtd: contratos.filter(c => c.status === 'Finalizado').length },
+                { chave: 'Finalizado', rotulo: 'Encerrados', qtd: contratos.filter(c => c.status === 'Finalizado').length, sempre: true },
             ];
-            wrap.innerHTML = grupos.map(g => `<button type="button" onclick="filtrarContratosPorChip('${g.chave}')" class="rz-chip ${contratosChipAtual === g.chave ? 'rz-on' : ''} ${g.warn ? 'rz-warn' : ''}">${g.rotulo} <span class="rz-n">${g.qtd}</span></button>`).join('');
+            wrap.innerHTML = grupos.filter(g => g.sempre || g.qtd > 0 || contratosChipAtual === g.chave).map(g => {
+                const ponto = g.acao && g.qtd ? `<span class="rz-pt ${g.crit ? 'rz-bad' : 'rz-warn'}" aria-hidden="true"></span>` : '';
+                return `<button type="button" onclick="filtrarContratosPorChip('${g.chave}')" class="rz-chip ${contratosChipAtual === g.chave ? 'rz-on' : ''}">${ponto}${g.rotulo} <span class="rz-n">${g.qtd}</span></button>`;
+            }).join('');
         }
 
         export function filtrarContratosPorChip(chave) {
             contratosChipAtual = chave;
             const sel = document.getElementById('contratos-filtro-status');
             const chk = document.getElementById('contratos-filtro-somente-alerta');
-            if (sel) sel.value = (chave === 'todos' || chave === 'alerta') ? 'todos' : chave;
-            if (chk) chk.checked = chave === 'alerta';
+            const deAcao = ['alerta', 'reajustar', 'vencendo'].includes(chave); // F2.4
+            if (sel) sel.value = (chave === 'todos' || deAcao) ? 'todos' : chave;
+            if (chk) chk.checked = deAcao;
             renderContratos();
         }
 
@@ -5149,6 +5201,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             const fLocatarioCon = document.getElementById('contratos-filtro-locatario')?.value || 'todos';
 
+            let conjuntosAcao = null; // F2.4 — calculado 1x por desenho, só se o filtro de alerta estiver ligado
             const passaFiltroContrato = (con) => {
                 const imoDoContrato = imoveis.find(i => i.id === con.imovelId);
                 if (fEmpCon !== 'todos' && (!imoDoContrato || imoDoContrato.empreendimento !== fEmpCon)) return false;
@@ -5158,7 +5211,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 // v1.44.2 — checkbox "só com alerta", ligado a partir da
                 // Visão Geral ou manualmente aqui na própria aba.
                 if (document.getElementById('contratos-filtro-somente-alerta')?.checked) {
-                    if (!(contratoPrecisaRevisao(con) || contratoVencido(con) || contratoAguardandoAssinatura(con))) return false;
+                    // F2.4 — com um chip de ação aceso, filtra pelo conjunto dele (Motor); marcado à mão
+                    // no filtro, vale "Com alerta"
+                    const chave = ['alerta', 'reajustar', 'vencendo'].includes(contratosChipAtual) ? contratosChipAtual : 'alerta';
+                    if (!conjuntosAcao) conjuntosAcao = contratosPorAcao().sets;
+                    if (!conjuntosAcao[chave].has(con.id)) return false;
                 }
                 return true;
             };
