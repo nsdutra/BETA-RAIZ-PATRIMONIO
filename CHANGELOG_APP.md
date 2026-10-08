@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.324.0) — Controles da empresa (item 2, plano aprovado pelo Nicola 07/10 20:14).
+⚙️ › Minha empresa ganha o card "Controles da empresa", abaixo de "Documentos da empresa": lista
+os itens de controle da empresa (sem ativo), chip Encerrados, abre a mesma ficha do item e o
+Voltar devolve a Minha empresa. "+" do card cria item já vinculado à empresa, só com os subtipos
+que valem para ela (regra de aplicabilidade vínculo:empresa — migration
+controles_empresa_aplicabilidade_v1, só dados). Import map: cofre-controles.js 1.49.0,
+cofre-api.js 1.49.0. Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.323.0):
+------------------------------------------------------------------
+Versões anteriores (v1.323.0 … v1.323.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.323.0) — UX F2.7a, primeiro uso: o vazio convida ("Pode fazer" do Nicola 07/10 20:05).
 Caixa única rzVazio (ilustração por assunto, título, 1 frase do que se ganha, Raiz IA primária e
 manual terciário; sem IA no plano o manual vira primário) e ilustrações RZ_VAZIO_ILU. Card "Comece

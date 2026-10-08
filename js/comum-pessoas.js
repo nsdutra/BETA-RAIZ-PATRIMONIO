@@ -1,6 +1,14 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.205.0 · 08/10/2026
+// Versão: 1.206.0 · 08/10/2026
+//
+// v1.206.0 (UX F2.7c-2, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-2 aprovado pelo Nicola 08/10 14:04) — Pessoas e acessos no
+// padrão: esqueleto no lugar de "Carregando…" (lista e acessos recentes); formulário da pessoa com o
+// campo único (.rz-f, rótulo acima) e E-mail/WhatsApp em .rz-f2 (uma coluna no celular); sheet de
+// Comunicações da pessoa com as linhas de Minhas notificações (.rz-pref-2l) e o interruptor
+// .rz-switch (estado em aria-checked, sem cor em style).
+//
+// Versão anterior: 1.205.0 · 08/10/2026
 //
 // v1.205.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — Pessoas sem ninguém
 // cadastrado usa a caixa rzVazio do app ("Quem usa o Raiz com você" + "Adicionar pessoa" para quem pode
@@ -25,21 +33,11 @@
 // v1.203.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: excluir pessoa vira perguntar() (Sheet,
 // item vermelho); tirar acesso não pergunta mais e ganha "Desfazer" (devolve login e perfil);
 // o prompt() de perfil fora do app virou aviso.
-//
-// Versão anterior: 1.202.0 · 04/10/2026
-//
-// v1.202.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo opção 1" do
-// Nicola 03/10 23:57) — "Vincular login existente" deixa de pedir o UUID do Supabase
-// (texto interno vazando para o cliente, ESTUDO §4.3) e pede o e-mail do login. O vínculo
-// passa pela função nova fn_pessoa_vincular_login_por_email (migration
-// ux-base-f03_vincular_login_email_v1): confere admin/master da empresa, perfil protegido
-// só pelo master, login já ligado a outra pessoa, e grava o log no banco. O update direto
-// em pessoas.user_id pelo navegador sai.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.1.0 … v2.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.202.0 … v1.202.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.205.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.206.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -222,7 +220,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
             <p>${autoFiltro && !podeVerTodas ? 'Seu cadastro, seus avisos e seus acessos recentes.' : 'Cadastro unificado de sócios e usuários do sistema — quem tem acesso ao app e a divisão societária da empresa.'}</p>
             ${podeGerenciarOutras ? '<button type="button" id="cp-btn-nova" class="rz-ico-btn rz-primary" aria-label="Nova pessoa" title="Nova pessoa"><svg data-lucide="plus"></svg></button>' : ''}
         </div>
-        <div class="rz-card rz-list" id="cp-lista"><p class="text-xs text-center text-gray-400 py-4">Carregando pessoas...</p></div>
+        <div class="rz-card rz-list" id="cp-lista">${(typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('linhas', 3) : '<p class="rz-desc">Carregando…</p>')}</div>
     `;
 
     if (!dbAuth || !clienteId) {
@@ -482,7 +480,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         const perfilTravado = ehMaster && perfilLogado !== 'master';
         const v = campo => esc((p && p[campo]) || '');
         const campo = (rot, campoId, val, tipo = 'text', extra = '') =>
-            `<div><label class="block text-xs font-bold text-gray-600">${rot}</label><input type="${tipo}" id="${campoId}" value="${val}" ${extra} class="w-full p-2 border rounded mt-1 text-sm"></div>`;
+            `<div class="rz-f"><label for="${campoId}">${rot}</label><input type="${tipo}" id="${campoId}" value="${val}" ${extra}></div>`;
         const dis = perfilTravado ? 'disabled' : '';
         window.abrirSheetForm({
             titulo: p ? 'Editar pessoa' : 'Nova pessoa',
@@ -490,13 +488,13 @@ export async function montarAbaPessoas(mountEl, ctx) {
             rotuloSalvar: p ? 'Salvar' : 'Cadastrar',
             corpo: `
                 ${campo('Nome *', 'pe-nome', v('nome'), 'text', `required ${dis}`)}
-                <div class="grid grid-cols-2 gap-2">
+                <div class="rz-f2">
                     ${campo('E-mail', 'pe-email', v('email'), 'email', dis)}
                     ${campo('WhatsApp', 'pe-whatsapp', v('whatsapp'), 'tel', dis)}
                 </div>
                 ${campo('Função na empresa', 'pe-funcao', v('funcao'), 'text', dis)}
                 ${campo('% de cotas', 'pe-pct', p?.percentualCotasEmpresa ?? '', 'number', `min="0" max="100" step="0.01" ${dis}`)}
-                ${perfilTravado ? '<p class="text-xs text-gray-400">Dados do master só podem ser alterados pelo próprio master.</p>' : ''}
+                ${perfilTravado ? '<p class="rz-hint">Dados do master só podem ser alterados pelo próprio master.</p>' : ''}
             `,
             aoSalvar: (el) => salvarPessoaSheet(el, id || null),
         });
@@ -577,22 +575,19 @@ export async function montarAbaPessoas(mountEl, ctx) {
             const frequencia = pref ? pref.frequencia : 'semanal';
             const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
             return `
-                <div class="flex items-center gap-2 py-2 border-t border-gray-100" data-linha-codigo="${esc(f.codigo)}">
-                    <span class="text-xs text-slate-700 flex-1 min-w-0">${esc(f.descricao)}</span>
-                    <select class="pc-frequencia text-xs border rounded px-1 py-1 flex-none" data-codigo="${esc(f.codigo)}" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
-                    <button type="button" class="pc-toggle" data-codigo="${esc(f.codigo)}" data-habilitado="${habilitado ? '1' : '0'}"
-                        style="border:0;border-radius:999px;width:40px;height:22px;position:relative;cursor:pointer;flex:none;background:${habilitado ? 'var(--sprout,#3f8163)' : '#d7d2c4'};transition:background .15s">
-                        <span style="position:absolute;top:2px;left:${habilitado ? '20px' : '2px'};width:18px;height:18px;border-radius:999px;background:#fff;transition:left .15s"></span>
-                    </button>
+                <div class="rz-row rz-pref rz-pref-2l" data-linha-codigo="${esc(f.codigo)}">
+                    <div class="rz-tx"><b>${esc(f.descricao)}</b></div>
+                    <select class="pc-frequencia" data-codigo="${esc(f.codigo)}" aria-label="Frequência" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
+                    <button type="button" role="switch" class="rz-switch pc-toggle" data-codigo="${esc(f.codigo)}" data-habilitado="${habilitado ? '1' : '0'}" aria-checked="${habilitado ? 'true' : 'false'}" aria-label="${esc(f.descricao)}"></button>
                 </div>`;
         };
         window.abrirSheetForm({
             titulo: 'Comunicações', sub: p.nome, semRodape: true,
             corpo: (elCorpo) => {
                 elCorpo.innerHTML = `
-                    <p class="text-xs text-gray-500">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
-                    ${semWhatsapp ? '<p class="text-xs mt-1" style="color:var(--warning)">Sem WhatsApp cadastrado — os avisos não chegam até preencher o número.</p>' : ''}
-                    <div class="mt-1">${proativasDisponiveis.length ? proativasDisponiveis.map(linhaHtml).join('') : '<p class="text-xs text-gray-400">Nenhum aviso disponível no plano atual.</p>'}</div>
+                    <p class="rz-desc">Pelo WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 5.</p>
+                    ${semWhatsapp ? '<p class="rz-desc" style="color:var(--warning);margin-top:6px">Sem WhatsApp cadastrado — os avisos não chegam até preencher o número.</p>' : ''}
+                    <div>${proativasDisponiveis.length ? proativasDisponiveis.map(linhaHtml).join('') : '<p class="rz-desc" style="margin-top:8px">Nenhum aviso disponível no plano atual.</p>'}</div>
                 `;
                 elCorpo.querySelectorAll('.pc-toggle').forEach(btn => {
                     btn.addEventListener('click', async () => {
@@ -604,8 +599,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
                         try {
                             await salvarPreferenciaComunicacaoPessoa(p.id, codigo, novoHabilitado, frequencia);
                             btn.dataset.habilitado = novoHabilitado ? '1' : '0';
-                            btn.style.background = novoHabilitado ? 'var(--sprout)' : '#d7d2c4';
-                            btn.querySelector('span').style.left = novoHabilitado ? '20px' : '2px';
+                            btn.setAttribute('aria-checked', novoHabilitado ? 'true' : 'false');
                             if (sel) sel.disabled = !novoHabilitado;
                         } catch (err) {
                             onToast?.('Não foi possível salvar: ' + err.message, 'danger');
@@ -642,7 +636,7 @@ export async function montarAbaPessoas(mountEl, ctx) {
         const p = pessoas.find(x => x.id === id);
         if (!p) return;
         const cabecalho = typeof window.rzSheetCabecalho === 'function' ? window.rzSheetCabecalho('Acessos recentes', p.nome) : `<div class="rz-sh-h"><h3>Acessos recentes</h3></div>`;
-        const sheet = window.abrirSheet(cabecalho + `<div class="rz-sh-b"><div id="ap-lista"><p class="text-xs text-gray-400">Carregando...</p></div></div>`);
+        const sheet = window.abrirSheet(cabecalho + `<div class="rz-sh-b"><div id="ap-lista">${(typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('linhas', 3) : '<p class="rz-desc">Carregando…</p>')}</div></div>`);
         const listaEl = sheet.querySelector('#ap-lista');
         if (typeof carregarAcessosDaPessoa !== 'function') {
             if (listaEl) listaEl.innerHTML = '<div class="rz-empty"><p>Indisponível nesta tela.</p></div>';

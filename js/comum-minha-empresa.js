@@ -1,6 +1,16 @@
 // ============================================================================
 // comum-minha-empresa.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.11.2 · 07/10/2026
+// Versão: 1.12.0 · 08/10/2026
+//
+// v1.12.0 (UX F2.7c-2, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-2 aprovado pelo Nicola 08/10 14:04) — tela no padrão:
+//   · carregamento com esqueleto e mensagens de vazio/erro em .rz-desc (sem cor Tailwind);
+//   · logo e assinatura viram linhas tocáveis ("Enviar/Trocar logo", "Enviar/Trocar assinatura")
+//     com ⋮ que abre Trocar e Remover (vermelho, por último) — antes eram botões de nível 2 fora de
+//     sheet e uma lixeira solta; a remoção continua pedindo confirmação;
+//   · fundo quadriculado da prévia da assinatura com tokens; atributo style duplicado do Salvar.
+// O card de Contas (Financeiro, etapa 6) não foi tocado.
+//
+// Versão anterior: 1.11.2 · 07/10/2026
 //
 // v1.11.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -34,15 +44,11 @@
 // fn_conta_definir_padrao, fn_conta_encerrar — as mesmas que o bot chama).
 // Sem Premium, o card mostra só a conta da empresa e uma linha com cadeado e
 // o motivo (ACE-04). Versão anterior: 1.9.0.
-//
-// v1.9.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: remover logo e remover assinatura viram
-// perguntar() do cofre-ui (Sheet com item vermelho).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.8.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.9.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.11.2'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.12.0'; // v-check (20/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar } from './cofre-ui.js'; // v1.9.0 (F0.2b) — sem diálogo nativo
 import { rzMostrarBloqueio as rzBloqueio, podeUsar as podeUsarMod } from './comum-licenca.js'; // v1.10.0 — porta de licença (contas)
 export const COMUM_MINHA_EMPRESA_VERSAO = '1.0.0';
@@ -193,9 +199,9 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     if (!mountEl) return;
     const { dbAuth, clienteId, onToast, onBrandingAtualizado, registrarLog } = ctx || {};
 
-    mountEl.innerHTML = '<p class="text-xs text-gray-500 text-center py-8">Carregando dados da empresa...</p>';
+    mountEl.innerHTML = (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('lista', 3) : '<p class="rz-desc">Carregando…</p>');
     if (!dbAuth || !clienteId) {
-        mountEl.innerHTML = '<p class="text-xs text-gray-500 text-center py-8">Nenhuma empresa carregada.</p>';
+        mountEl.innerHTML = '<div class="rz-card"><p class="rz-desc">Nenhuma empresa carregada.</p></div>';
         return;
     }
 
@@ -204,11 +210,11 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         dados = await buscarDadosEmpresa(dbAuth, clienteId);
     } catch (err) {
         console.warn('[comum-minha-empresa] Falha ao carregar dados da empresa:', err.message);
-        mountEl.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar os dados da empresa agora.</p>';
+        mountEl.innerHTML = '<div class="rz-card"><p class="rz-desc" style="color:var(--danger)">Não foi possível carregar os dados da empresa agora.</p></div>';
         return;
     }
     if (!dados) {
-        mountEl.innerHTML = '<p class="text-xs text-gray-500 text-center py-8">Empresa não encontrada.</p>';
+        mountEl.innerHTML = '<div class="rz-card"><p class="rz-desc">Empresa não encontrada.</p></div>';
         return;
     }
 
@@ -306,12 +312,11 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             </div>
             <div class="rz-f" style="margin-bottom:0"><label>Logo</label>
                 <div id="cme-logo-preview-wrap" class="${dados.logo_url ? '' : 'hidden'}" style="padding:10px;border:1.5px solid var(--line);border-radius:var(--r-ctl);display:flex;align-items:center;justify-content:center;margin-bottom:6px"><img id="cme-logo-preview" alt="Logo" style="max-height:56px" src="${val(dados.logo_url)}"></div>
-                <div class="flex gap-1.5">
+                <div class="rz-row" style="border-top:0;padding:4px 0">
                     <input type="file" id="cme-logo-input" accept="image/*" class="hidden">
-                    <button id="cme-btn-logo" type="button" class="rz-btn rz-btn-2" style="flex:1" ${gate ? 'disabled' : ''}><svg data-lucide="image" style="width:14px;height:14px"></svg> <span id="cme-logo-btn-texto">${dados.logo_url ? 'Trocar logo' : 'Enviar logo'}</span></button>
-                    <button id="cme-btn-apagar-logo" type="button" title="Remover logo" aria-label="Remover logo" class="${dados.logo_url ? '' : 'hidden'} rz-ico-btn" ${gate ? 'disabled' : ''}><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
+                    <button id="cme-btn-logo" type="button" class="rz-btnrow" ${gate ? 'disabled' : ''}><div class="rz-ic"><svg data-lucide="image"></svg></div><div class="rz-tx"><b id="cme-logo-btn-texto">${dados.logo_url ? 'Trocar logo' : 'Enviar logo'}</b><span>Aparece no topo do app e na abertura · PNG ou JPG</span></div></button>
+                    <button id="cme-btn-apagar-logo" type="button" title="Mais ações do logo" aria-label="Mais ações do logo" class="${dados.logo_url ? '' : 'hidden'} rz-more" ${gate ? 'disabled' : ''}><svg data-lucide="ellipsis-vertical"></svg></button>
                 </div>
-                <span class="rz-hint">Aparece no topo do app e na abertura. PNG ou JPG; o sistema reduz para o tamanho certo.</span>
             </div>
         </div>
 
@@ -329,17 +334,17 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             </div>
         </div>
 
-        <button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" ${gate ? 'disabled style="opacity:.5"' : ''} style="margin-bottom:12px">Salvar dados da empresa</button>
+        <button id="cme-btn-salvar" class="rz-btn rz-btn-1 rz-wide" ${gate ? 'disabled' : ''} style="margin-bottom:12px${gate ? ';opacity:.5' : ''}">Salvar dados da empresa</button>
 
         <div class="rz-card"><div class="rz-card-h"><h3>Assinatura para o recibo</h3></div>
             <span class="rz-hint" style="display:block;margin-bottom:8px">Tire uma foto da assinatura numa folha em branco — o sistema trata a imagem automaticamente (fundo transparente, traço em preto) para caber no recibo.</span>
-            <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} mb-2 p-3 bg-[repeating-conic-gradient(#e5e7eb_0%_25%,white_0%_50%)] bg-[length:16px_16px] rounded-lg border border-gray-200 flex items-center justify-center">
-                <img id="cme-assinatura-preview" class="max-h-20" alt="Assinatura" src="${val(dados.assinatura_url)}">
+            <div id="cme-assinatura-preview-container" class="${dados.assinatura_url ? '' : 'hidden'} rz-quadriculado">
+                <img id="cme-assinatura-preview" style="max-height:80px" alt="Assinatura" src="${val(dados.assinatura_url)}">
             </div>
-            <div class="flex gap-1.5">
+            <div class="rz-row" style="border-top:0;padding:4px 0">
                 <input type="file" id="cme-assinatura-input" accept="image/*" capture="environment" class="hidden">
-                <button id="cme-btn-assinatura" type="button" class="rz-btn rz-btn-2" style="flex:1" ${gate ? 'disabled' : ''}><svg data-lucide="camera" style="width:14px;height:14px"></svg> <span id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar assinatura' : 'Enviar assinatura'}</span></button>
-                <button id="cme-btn-apagar-assinatura" type="button" title="Apagar assinatura" aria-label="Apagar assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-ico-btn" ${gate ? 'disabled' : ''}><svg data-lucide="trash-2" style="width:15px;height:15px"></svg></button>
+                <button id="cme-btn-assinatura" type="button" class="rz-btnrow" ${gate ? 'disabled' : ''}><div class="rz-ic"><svg data-lucide="camera"></svg></div><div class="rz-tx"><b id="cme-assinatura-btn-texto">${dados.assinatura_url ? 'Trocar assinatura' : 'Enviar assinatura'}</b><span>Foto da assinatura numa folha em branco</span></div></button>
+                <button id="cme-btn-apagar-assinatura" type="button" title="Mais ações da assinatura" aria-label="Mais ações da assinatura" class="${dados.assinatura_url ? '' : 'hidden'} rz-more" ${gate ? 'disabled' : ''}><svg data-lucide="ellipsis-vertical"></svg></button>
             </div>
         </div>
 
@@ -427,7 +432,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             onBrandingAtualizado?.();
         } catch (err) { onToast?.('Falha ao salvar o logo: ' + err.message, 'danger'); }
     });
-    document.getElementById('cme-btn-apagar-logo').addEventListener('click', async () => {
+    const removerLogo = async () => {
         if (!await perguntar({ titulo: 'Remover o logo?', impacto: 'O nome da empresa volta a aparecer no lugar.', destrutivo: true, rotuloConfirmar: 'Remover logo', icone: 'image-off' })) return;
         try {
             await salvarDadosEmpresa(dbAuth, clienteId, { logo_url: null });
@@ -436,6 +441,13 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
             document.getElementById('cme-logo-btn-texto').textContent = 'Enviar logo';
             onBrandingAtualizado?.();
         } catch (err) { onToast?.('Falha ao remover: ' + err.message, 'danger'); }
+    };
+    document.getElementById('cme-btn-apagar-logo').addEventListener('click', () => {
+        if (typeof window === 'undefined' || typeof window.abrirSheetAcoes !== 'function') { removerLogo(); return; }
+        window.abrirSheetAcoes({ titulo: 'Logo', acoes: [
+            { icone: 'image', titulo: 'Trocar logo', aoTocar: () => inputLogo.click() },
+            { icone: 'trash-2', titulo: 'Remover logo', tipo: 'bad', aoTocar: removerLogo },
+        ] });
     });
 
     // -------- assinatura --------
@@ -460,7 +472,7 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
     });
 
     const btnApagarAssinatura = document.getElementById('cme-btn-apagar-assinatura');
-    if (btnApagarAssinatura) btnApagarAssinatura.addEventListener('click', async () => {
+    const removerAssinatura = async () => {
         if (!await perguntar({ titulo: 'Remover a assinatura?', impacto: 'O recibo sai com o espaço em branco até uma nova ser enviada.', destrutivo: true, rotuloConfirmar: 'Remover assinatura' })) return;
         try {
             await salvarAssinatura(dbAuth, clienteId, null);
@@ -471,6 +483,13 @@ export async function montarAbaMinhaEmpresa(mountEl, ctx) {
         } catch (err) {
             onToast?.('Falha ao remover: ' + err.message, 'danger');
         }
+    };
+    if (btnApagarAssinatura) btnApagarAssinatura.addEventListener('click', () => {
+        if (typeof window === 'undefined' || typeof window.abrirSheetAcoes !== 'function') { removerAssinatura(); return; }
+        window.abrirSheetAcoes({ titulo: 'Assinatura', acoes: [
+            { icone: 'camera', titulo: 'Trocar assinatura', aoTocar: () => inputAssinatura.click() },
+            { icone: 'trash-2', titulo: 'Remover assinatura', tipo: 'bad', aoTocar: removerAssinatura },
+        ] });
     });
 
     // -------- rotinas da empresa (R.2, Fase R) --------
