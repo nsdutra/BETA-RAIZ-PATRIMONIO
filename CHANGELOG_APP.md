@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.321.1) — correção na mesma frente: cofre-navegacao.js 1.9.1 → 1.9.2, ordem
+do cabeçalho (a linha "Versão:" estava depois das entradas, e a checagem de base do publicador
+lia a versão errada). Só import map neste arquivo.
+Versão anterior (Beta v1.321.0):
+------------------------------------------------------------------
+Versões anteriores (v1.321.0 … v1.321.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.321.0) — rolo universal do changelog (regra VER-05, "de acordo" do Nicola
 07/10 17:21). O cabeçalho de todo módulo de js/ passa a guardar só as 5 versões mais recentes; o
 resto rola para o CHANGELOG_MODULOS.md, uma seção por arquivo, mais recente primeiro — a mesma

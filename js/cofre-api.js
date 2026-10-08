@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.48.2 · 07/10/2026
+// Versão: 1.49.0 · 07/10/2026
+//
+// v1.49.0 (demanda a30da78b, item 2, sessão 20261007-2025-controles-empresa; plano aprovado pelo Nicola 07/10 20:14) —
+// listarItensControleEmpresa (itens com empresa_id, sem ativo/contrato, fora 'sistema') e
+// listarSubtiposControleEmpresa (regra de aplicabilidade vínculo:empresa).
+//
+// Versão anterior: 1.48.2 · 07/10/2026
 //
 // v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -25,17 +31,11 @@
 // (..., documento_esperado): a ficha do item de controle (cofre-controles.js
 // v1.34.0) usa isso pra avisar quando falta documento anexado, aviso que
 // hoje só existia na tela de configuração de Subtipos.
-//
-// v1.45.0 (demanda 43448a36, decisão do Nicola de 22/09: ativo sem
-// finalidade de uso entra em Família) — criarImovelEAtivo não grava mais
-// 'long_stay' quando a finalidade vem vazia (o imóvel ia para Comercial sem
-// ninguém escolher). Vazio fica vazio.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.1 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.48.2'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.49.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1298,6 +1298,29 @@ export async function listarItensControleAtivo(ativoId, incluirEncerrados = fals
     const { data, error } = await q;
     if (error) throw error;
     return data || [];
+}
+
+// v1.49.0 (demanda a30da78b, item 2 — plano aprovado pelo Nicola 07/10 20:14) —
+// itens de controle da EMPRESA (empresa_id preenchido, sem ativo e sem contrato;
+// itens 'sistema' ficam de fora). Alimenta o card "Controles da empresa" em
+// ⚙️ › Minha empresa. Inclui encerrados (o chip filtra no cliente).
+export async function listarItensControleEmpresa(clienteId) {
+    const { data, error } = await dbAuth.from('cofre_itens_controle')
+        .select('*, cofre_ocorrencias_controle(*), cofre_controle_subtipos(nome)')
+        .eq('cliente_id', clienteId).not('empresa_id', 'is', null)
+        .is('ativo_id', null).is('contrato_id', null).neq('tipo', 'sistema')
+        .order('criado_em');
+    if (error) throw error;
+    return data || [];
+}
+
+// v1.49.0 (demanda a30da78b) — subtipos que valem para a empresa: regra de
+// aplicabilidade escopo_tipo='vinculo', escopo_valor='empresa' (mesma tabela que
+// já filtra por tipo de ativo em listarSubtiposControle).
+export async function listarSubtiposControleEmpresa(clienteId) {
+    const todos = await listarSubtiposControle(clienteId);
+    const aplicabilidade = await listarAplicabilidadeSubtipos();
+    return todos.filter(s => aplicabilidade.some(a => a.subtipo_id === s.id && a.escopo_tipo === 'vinculo' && a.escopo_valor === 'empresa'));
 }
 
 export async function criarItemControle(payload) {

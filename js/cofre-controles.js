@@ -1,6 +1,14 @@
 // ============================================================================
 // cofre-controles.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.48.2 · 07/10/2026
+// Versão: 1.49.0 · 07/10/2026
+//
+// v1.49.0 (demanda a30da78b, item 2, sessão 20261007-2025-controles-empresa; plano aprovado pelo Nicola 07/10 20:14) —
+// card "Controles da empresa" em ⚙️ › Minha empresa (montarBoxControlesEmpresa): lista os itens
+// da empresa (sem ativo), chip Encerrados, abre a MESMA ficha do item (Voltar devolve a Minha
+// empresa). "Novo item" pelo card nasce com vínculo empresa e só oferece subtipos com a regra
+// de aplicabilidade vínculo:empresa; o fluxo a partir do ativo segue igual.
+//
+// Versão anterior: 1.48.2 · 07/10/2026
 //
 // v1.48.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -23,19 +31,11 @@
 //
 // v1.46.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
 // esqueleto no lugar de "Carregando..." nas partes do item de controle.
-//
-// Versão anterior: 1.45.0 · 04/10/2026
-//
-// v1.45.0 (demanda 2923ff4d, catálogo 2b-2 — plano aprovado pelo Nicola em 04/10/2026 12:40; sessão 20261004-1245-catalogo-2b2) —
-// Novo item nasce do ativo: o combo Tipo só oferece tipos que têm subtipo válido para a
-// categoria do ativo em foco (Raiz Licença, por ex., só mostra Tecnologia e serviços e
-// Documento), e abre no primeiro deles em vez de "Seguro" fixo. Linha de chips no topo do
-// formulário com o caminho: ativo · tipo de ativo · tipo · subtipo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.48.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.49.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, refrescarIcones, abrirModal, fecharModal, modalGenerico, perguntar, escolher, avisarComDesfazer } from './cofre-ui.js';
@@ -83,9 +83,88 @@ function moedaBR(v) { return (typeof window.formatarMoedaBR === 'function') ? wi
 // pra Visão Geral. Mesma classe de bug já corrigida no Imóveis
 // (fichaImovelOrigemTab, index.html v1.61.5).
 let itemControleOrigemTela = null;
+// v1.49.0 (demanda a30da78b) — card "Controles da empresa" (⚙️ › Minha empresa):
+// itens da empresa (sem ativo), filtro próprio e o vínculo do formulário "Novo item"
+// ('empresa' quando aberto pelo card; null no fluxo de sempre, a partir do ativo).
+let itensEmpresaAtual = [];
+let filtroControlesEmpresa = 'ativos';
+let novoItemVinculo = null;
 let ocorrenciaEmAcao = null; // { ocorrenciaId, modo: 'tratar'|'reagendar'|'estornar' }
 // E14.4 — contatosDoItemAtual/contatoEmEdicaoId removidas (Contatos
 // unificado com Partes, ver comentário mais abaixo).
+
+// ============================================================================
+// v1.49.0 (demanda a30da78b, item 2 — plano aprovado pelo Nicola 07/10 20:14)
+// CARD "CONTROLES DA EMPRESA" em ⚙️ › Minha empresa. Mesmo padrão do box
+// "Documentos da empresa" (cofre-documentos.js): vive fora da árvore de telas
+// do Cofre, chamado por dev_carregarDadosEmpresa() (index.html) a cada abertura
+// da aba, listeners próprios (data-me-*) em vez de data-action — o handler
+// global do Cofre abriria a ficha sem trocar de aba. Ficha e formulário são os
+// MESMOS do item do ativo: abrir troca para a aba Ativos (onde moram) e o
+// "< Voltar" / Fechar devolvem para Minha empresa.
+// ============================================================================
+function clienteIdDisponivel() {
+    // eslint-disable-next-line no-undef
+    return estado.clienteId || (typeof CLIENTE_ID_SUPABASE !== 'undefined' ? CLIENTE_ID_SUPABASE : null);
+}
+async function garantirCofrePronto() {
+    if (typeof window.switchTab === 'function') window.switchTab('tab-ativos');
+    if (!estado.clienteId) {
+        await new Promise(resolve => {
+            window.addEventListener('cofre:dados-carregados', resolve, { once: true });
+            setTimeout(resolve, 8000);
+        });
+    }
+}
+export async function montarBoxControlesEmpresa() {
+    const alvo = document.getElementById('me-controles');
+    const btnAdd = document.getElementById('me-ctrl-add');
+    if (!alvo) return;
+    if (btnAdd && !btnAdd.dataset.ligado) { btnAdd.dataset.ligado = '1'; btnAdd.addEventListener('click', abrirNovoItemEmpresa); }
+    const clienteId = clienteIdDisponivel();
+    if (!clienteId) return;
+    if (!itensEmpresaAtual.length) alvo.innerHTML = rzSk('linhas', 2);
+    try { itensEmpresaAtual = await api.listarItensControleEmpresa(clienteId); }
+    catch (err) {
+        alvo.innerHTML = `<p class="text-xs" style="color:var(--danger)">Não consegui carregar os controles da empresa.</p>`;
+        console.warn('[controles] itens da empresa:', err.message);
+        return;
+    }
+    renderizarControlesEmpresa();
+}
+function renderizarControlesEmpresa() {
+    const alvo = document.getElementById('me-controles');
+    if (!alvo) return;
+    if (!itensEmpresaAtual.length) {
+        alvo.innerHTML = `<div class="rz-empty"><div class="rz-ic"><i data-lucide="building-2"></i></div><p>Nenhum controle da empresa ainda. Licenças, domínio e telefonia cadastrados aqui viram alertas e despesas da empresa.</p></div>`;
+        refrescarIcones();
+        return;
+    }
+    const nEnc = itensEmpresaAtual.filter(i => i.ativo === false).length;
+    if (!nEnc) filtroControlesEmpresa = 'ativos';
+    const lista = itensEmpresaAtual.filter(i => filtroControlesEmpresa === 'encerrados' ? i.ativo === false : i.ativo !== false);
+    const chip = (k, r, n) => `<button type="button" class="rz-chip ${filtroControlesEmpresa === k ? 'rz-on' : ''}" data-me-ctrl-filtro="${k}">${r} <span class="rz-n">${n}</span></button>`;
+    const chips = nEnc ? `<div class="rz-chips" style="margin-bottom:6px">${chip('ativos', 'Ativos', itensEmpresaAtual.length - nEnc)}${chip('encerrados', 'Encerrados', nEnc)}</div>` : '';
+    // mesma linha do box do ativo (itemResumoHtml), trocando o data-action pelo atributo próprio
+    alvo.innerHTML = chips + (lista.length
+        ? lista.map(itemResumoHtml).join('').replace(/data-action="abrir-item-controle" data-id=/g, 'data-me-ctrl-item=')
+        : `<div class="rz-empty"><p>Nenhum item ${filtroControlesEmpresa === 'encerrados' ? 'encerrado' : 'ativo'}.</p></div>`);
+    alvo.querySelectorAll('[data-me-ctrl-filtro]').forEach(b => b.addEventListener('click', () => { filtroControlesEmpresa = b.dataset.meCtrlFiltro; renderizarControlesEmpresa(); }));
+    alvo.querySelectorAll('[data-me-ctrl-item]').forEach(r => r.addEventListener('click', () => abrirItemControleDaEmpresa(r.dataset.meCtrlItem)));
+    refrescarIcones();
+}
+export async function abrirItemControleDaEmpresa(itemId) {
+    await garantirCofrePronto();
+    await abrirFichaItemControle(itemId);
+    itemControleOrigemTela = 'empresa-app';
+}
+export async function abrirNovoItemEmpresa() {
+    await garantirCofrePronto();
+    await abrirFormControle({ vinculo: 'empresa' });
+}
+window.addEventListener('cofre:recarregar-eventos', () => {
+    if (document.getElementById('me-controles') && document.getElementById('tab-minha-empresa')?.classList.contains('active')) montarBoxControlesEmpresa();
+});
 
 // ============================================================================
 // BOX "CONTROLES" na ficha do ativo — lista-resumo clicável
@@ -691,6 +770,13 @@ export function voltarFichaItemControle() {
     // switchTab, nenhuma tela interna do Cofre faz sentido aqui.
     if (origem === 'alertas-app' && typeof window.switchTab === 'function') {
         window.switchTab('tab-alertas');
+        window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
+        return;
+    }
+    // v1.49.0 (demanda a30da78b) — item aberto pelo card "Controles da empresa":
+    // volta para ⚙️ › Minha empresa (a troca de aba remonta o card).
+    if (origem === 'empresa-app' && typeof window.switchTab === 'function') {
+        window.switchTab('tab-minha-empresa');
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos'));
         return;
     }
@@ -1574,7 +1660,10 @@ if (!window.__rzListenerEscritaControleLigado) {
 // ============================================================================
 // CRIAR ITEM DE CONTROLE (formulário na ficha do ativo)
 // ============================================================================
-export async function abrirFormControle() {
+export async function abrirFormControle(opcoes) {
+    // v1.49.0 (demanda a30da78b) — { vinculo: 'empresa' } vem do card "Controles da
+    // empresa": subtipos pela regra vínculo:empresa, sem modelos do ativo, sem ativo.
+    novoItemVinculo = opcoes?.vinculo === 'empresa' ? 'empresa' : null;
     await carregarCatalogoTiposControle(); // v1.43.0
     popularComboTipoControle('ic-tipo', null);
     if (!subtiposCache) {
@@ -1584,12 +1673,15 @@ export async function abrirFormControle() {
     // v1.20.2 (E0.2 / A8) — catálogo do seletor filtrado pelo tipo do ativo
     // em foco (embarcação mostra 12 subtipos, não 109). Se a busca filtrada
     // falhar, cai no catálogo completo em vez de travar o formulário.
-    const tipoAtivoFoco = estado.ativoEmFoco?.tipo_ativo || null;
-    if (tipoAtivoFoco && subtiposDoAtivoCache.tipoAtivo !== tipoAtivoFoco) {
+    const tipoAtivoFoco = novoItemVinculo === 'empresa' ? null : (estado.ativoEmFoco?.tipo_ativo || null);
+    if (novoItemVinculo === 'empresa') {
+        try { subtiposDoAtivoCache = { tipoAtivo: '__empresa', lista: await api.listarSubtiposControleEmpresa(estado.clienteId) }; }
+        catch (err) { subtiposDoAtivoCache = { tipoAtivo: null, lista: null }; }
+    } else if (tipoAtivoFoco && subtiposDoAtivoCache.tipoAtivo !== tipoAtivoFoco) {
         try { subtiposDoAtivoCache = { tipoAtivo: tipoAtivoFoco, lista: await api.listarSubtiposControle(estado.clienteId, tipoAtivoFoco) }; }
         catch (err) { subtiposDoAtivoCache = { tipoAtivo: null, lista: null }; }
     }
-    if (!tipoAtivoFoco) subtiposDoAtivoCache = { tipoAtivo: null, lista: null };
+    if (!tipoAtivoFoco && novoItemVinculo !== 'empresa') subtiposDoAtivoCache = { tipoAtivo: null, lista: null };
     if (!modelosCache) {
         try { modelosCache = await api.listarModelosItemControle(estado.clienteId); }
         catch (err) { modelosCache = []; /* não bloqueia a criação manual se os modelos falharem ao carregar */ }
@@ -1631,10 +1723,10 @@ function ligarCaminhoNovoItem() {
 function atualizarCaminhoNovoItem() {
     const caminho = document.getElementById('ic-caminho');
     if (!caminho) return;
-    const a = estado.ativoEmFoco;
+    const a = novoItemVinculo === 'empresa' ? null : estado.ativoEmFoco; // v1.49.0
     const selTipo = document.getElementById('ic-tipo');
     const selSub = document.getElementById('ic-subtipo');
-    const partes = [a?.nome_exibicao, a?.tipo_ativo ? rotuloTipoAtivo(a.tipo_ativo) : '',
+    const partes = [novoItemVinculo === 'empresa' ? 'Minha empresa' : '', a?.nome_exibicao, a?.tipo_ativo ? rotuloTipoAtivo(a.tipo_ativo) : '',
         selTipo?.value ? selTipo.options[selTipo.selectedIndex]?.text : '',
         selSub?.value ? selSub.options[selSub.selectedIndex]?.text : ''].filter(Boolean);
     caminho.innerHTML = partes.map(p => `<span class="rz-chip">${escapeHtml(p)}</span>`).join('');
@@ -1665,7 +1757,7 @@ export function aoMudarFrequenciaItemControle() {
 // ajustar tudo antes de salvar, é só um atalho de preenchimento.
 function renderizarModelosSugeridosForm() {
     const el = document.getElementById('ic-modelos-sugeridos');
-    const ativo = estado.ativoEmFoco;
+    const ativo = novoItemVinculo === 'empresa' ? null : estado.ativoEmFoco; // v1.49.0 — modelos são por tipo de ativo
     // v1.26.0 — a comparação direta `m.tipo_ativo === ativo?.tipo_ativo`
     // (achado, mesmo bug pattern da trigger corrigida na demanda 7e6f4027:
     // ativo.tipo_ativo só tem os 8 valores de categoria, e nunca batia com
@@ -1695,6 +1787,11 @@ export function aplicarModeloAoForm(modeloId) {
 
 export function fecharFormControle() {
     fecharModal('modal-criar-item-controle');
+    // v1.49.0 (demanda a30da78b) — aberto pelo card da empresa: volta para Minha empresa
+    if (novoItemVinculo === 'empresa') {
+        novoItemVinculo = null;
+        if (typeof window.switchTab === 'function') window.switchTab('tab-minha-empresa');
+    }
 }
 
 function popularSelectSubtipo(tipo) {
@@ -1740,7 +1837,8 @@ export function aoMudarSubtipoControleForm() {
 }
 
 export async function salvarItemControle() {
-    const a = estado.ativoEmFoco;
+    const empresa = novoItemVinculo === 'empresa'; // v1.49.0 (demanda a30da78b)
+    const a = empresa ? null : estado.ativoEmFoco;
     const tipo = document.getElementById('ic-tipo').value;
     const subtipoId = document.getElementById('ic-subtipo').value || null;
     const titulo = document.getElementById('ic-titulo').value.trim();
@@ -1761,6 +1859,7 @@ export async function salvarItemControle() {
     // changelog completo em js/ativos/ativos-markup.js (mesmo checkbox).
     const gerarDesdeInicio = document.getElementById('ic-gerar-desde-inicio') ? document.getElementById('ic-gerar-desde-inicio').checked : false;
 
+    if (!empresa && !a) { mostrarToast('Abra o item a partir de um ativo.', 'erro'); return; } // v1.49.0
     if (!tipo) { mostrarToast('Escolha o tipo do item.', 'erro'); return; } // v1.39.0
     if (!titulo) { mostrarToast('Informe um título para o item de controle.', 'erro'); return; }
     if (!dataBase) { mostrarToast('Informe a data início.', 'erro'); return; }
@@ -1771,7 +1870,8 @@ export async function salvarItemControle() {
 
     try {
         const item = await api.criarItemControle({
-            cliente_id: estado.clienteId, ativo_id: a.id, tipo, subtipo_id: subtipoId, titulo,
+            cliente_id: estado.clienteId, ativo_id: empresa ? null : a.id, empresa_id: empresa ? estado.clienteId : null, // v1.49.0
+            tipo, subtipo_id: subtipoId, titulo,
             recorrente: !!freqIntervalo, frequencia_intervalo: freqIntervalo, frequencia_unidade: freqUnidade,
             data_base: dataBase, data_fim: dataFim, direcao_alerta: direcaoAlerta,
             alerta_ativo: true, antecedencia_alerta_dias: antecedencia,
@@ -1797,11 +1897,13 @@ export async function salvarItemControle() {
             : gerarOcorrenciasHorizonte(item, dataBase, freqIntervalo, freqUnidade, gerarDesdeInicio);
         await api.criarOcorrenciasControleBatch(payloads);
 
-        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: a.id, itemId: item.id, ocorrenciasGeradas: payloads.length });
+        await api.registrarLogAcessos(estado.clienteId, estado.pessoa.id, 'cofre.controles.criar', { ativoId: a?.id || null, empresa, itemId: item.id, ocorrenciasGeradas: payloads.length });
         mostrarToast(`Item de controle criado — ${payloads.length} ocorrência(s) gerada(s) ✅`);
-        fecharFormControle();
-        itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
-        renderizarListaControles();
+        fecharFormControle(); // v1.49.0 — no caso da empresa, já volta para Minha empresa (remonta o card)
+        if (!empresa) {
+            itensDoAtivoAtual = await api.listarItensControleAtivo(a.id);
+            renderizarListaControles();
+        }
         window.dispatchEvent(new CustomEvent('cofre:recarregar-eventos')); // atualiza Home/Visão Geral com as novas ocorrências
         emitirEscrita('controle', { id: item.id, acao: 'criar' }); // v1.32.0
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
