@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.38.0 · 07/10/2026
+// Versão: 1.38.1 · 08/10/2026
+//
+// v1.38.1 (08/10/2026, sessão 20261008-0825-financeiro, demanda f3e6cd27 — teste do Nicola 08:16): "Importar fatura"
+// dizia "Cadastre o cartão primeiro" para um cartão recém-cadastrado — a lista de contas ficava guardada desde a
+// abertura do Financeiro. Agora a importação relê as contas antes de oferecer os cartões. Versão anterior: 1.38.0.
+//
+// Versão anterior: 1.38.0 · 07/10/2026
 //
 // v1.38.0 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2, plano P5 v1.3.0 com de acordo
 // do Nicola 07/10 18:45; ajustes do protótipo pedidos 12:52) — CARTÃO: (1) a sugestão da compra segue o padrão
@@ -42,15 +48,11 @@
 // ativos, ou ajustada só nesta receita). A Distribuição passa a considerar essas receitas (banco).
 // Toda receita da lista abre o sheet (antes só as manuais); estornar/excluir continuam só nas
 // manuais. A linha mostra "divisão ajustada" quando houver exceção. Versão anterior: 1.35.1.
-//
-// v1.35.1 (07/10/2026, sessão 20261007-0158-financeiro — pedido do Nicola 01:58: "tela amontoada,
-// padronize as 3"): "Editar divisão" passa a usar o editor único rzEditarDivisao (raiz-ui 1.2.0),
-// o mesmo da divisão do contrato/imóvel e da propriedade do ativo. Versão anterior: 1.35.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.35.0 … v1.35.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.35.1 … v1.35.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.38.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.38.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1466,6 +1468,7 @@ function financeiroRenderCabecalho(aba) {
         /** Lançar › Importar fatura do cartão: escolhe o cartão, lê o PDF/foto com IA, confere e importa. */
         export async function financeiroImportarFatura() {
             if (typeof abrirSheetForm !== 'function') return;
+            financeiroContasInfo.clienteId = null; // v1.38.1 — relê as contas: cartão cadastrado depois de abrir o Financeiro aparece
             await financeiroGarantirContas();
             const cartoes = financeiroContasInfo.cartoes || []; // v1.38.0
             if (!cartoes.length) {
