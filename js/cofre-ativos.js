@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.79.0 · 08/10/2026
+// Versão: 1.80.0 · 08/10/2026
+//
+// v1.80.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — ⋮ da ficha de imóvel ganha "Compartilhar": abre o WhatsApp
+// com os dados e o link do imóvel (compartilharImovelDoAtivo, vitrine.js), para qualquer imóvel — antes "Gerar
+// vitrine" só aparecia para imóvel do cadastro antigo. Textos sem "vitrine".
+//
+// Versão anterior: 1.79.0 · 08/10/2026
 //
 // v1.79.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio dos anexos do
 // ativo no formato de vazio dentro de card (REGRAS §0.7: ícone + frase do que se ganha e de como, sem
@@ -33,20 +39,11 @@
 //   · cada categoria do formulário de ativo sem nenhum ativo vira chip de convite ("+ Veículo 0",
 //     vazado e tracejado); o toque abre "Novo ativo" já com a categoria escolhida;
 //   · carteira só com imóveis: card de convite no fim da lista, que abre o "+" de Ativos.
-//
-// Versão anterior: 1.76.0 · 07/10/2026
-//
-// v1.76.0 (07/10/2026, sessão 20261007-0158-financeiro, demanda f3e6cd27 — pedido do Nicola 01:58:
-// "há 3 telas distintas, padronize") — "Editar divisão de propriedade" passa a abrir o editor único
-// rzEditarDivisao (raiz-ui 1.2.0), o mesmo da divisão do contrato/imóvel e da exceção de um
-// lançamento: linha compacta (nome · % · remover), "Adicionar pessoa" (sócio cadastrado ou parte
-// externa), soma ao vivo e Salvar só em 100%. Grava como antes (substituir_propriedade_ativo).
-// No cofre.html avulso (sem sheets do app) continua o formulário antigo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.79.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -1221,14 +1218,9 @@ export function fecharFichaAtivo() {
 export function abrirAcoesAtivo() {
     const a = estado.ativoEmFoco;
     if (!a) return;
-    // v1.41.0 (16/09/2026) — 2 checagens agora, não 1: o rótulo do
-    // "Editar" vale pra QUALQUER imóvel (legado ou nativo, cobre os
-    // mesmos campos nos dois); "Gerar vitrine" continua exigindo um
-    // imoveis.id de verdade (links_vitrine ainda não migrou pra
-    // cofre_ativos.id — vitrine de imóvel nativo é frente própria,
-    // registrada como pendência).
+    // Imóvel (do cadastro antigo ou criado direto como ativo): "Editar" cobre endereço e valores, e
+    // "Compartilhar" manda o link — o link guarda o id do ativo.
     const ehCategoriaImovelAtivo = ehCategoriaImovel(a.tipo_ativo);
-    const ehImovelComVitrineDisponivel = a.entidade_origem_tipo === 'imovel';
     const acoes = [];
     // E15.2 (15/09/2026, "vamos desligar o form de imóveis") — os 2
     // itens que existiam aqui pra imóvel ("Editar dados do imóvel" →
@@ -1241,15 +1233,14 @@ export function abrirAcoesAtivo() {
     // chamador neste menu a partir de agora.
     acoes.push({ icone: 'pencil', titulo: 'Editar', codigo: 'cofre.editar', sub: ehCategoriaImovelAtivo ? 'Endereço, valores, uso e campos específicos' : 'Campos específicos deste tipo', aoTocar: () => { faTrocarAba('resumo'); alternarEditarAtivo(); } });
     acoes.push({ icone: 'image-plus', titulo: 'Adicionar fotos', codigo: 'cofre.editar', aoTocar: () => { faTrocarAba('arquivos'); faTrocarSegArquivos('fotos'); document.getElementById('fa-foto-input')?.click(); } });
-    // v1.22.0 (fatia 7) — "Gerar vitrine" deste imóvel (link único) —
-    // reaproveita gerarVitrineDoImovel() do App (index.html v1.115.0).
-    if (ehImovelComVitrineDisponivel && a.status !== 'vendido' && typeof window.gerarVitrineDoImovel === 'function') acoes.push({ icone: 'image', titulo: 'Gerar vitrine', codigo: 'vitrine.gerar', sub: 'Link deste imóvel pra compartilhar', aoTocar: () => window.gerarVitrineDoImovel(a.entidade_origem_id) });
+    // Compartilhar: WhatsApp já com os dados e o link deste imóvel (o link guarda o id do ativo). (dem ed5accfe)
+    if (ehCategoriaImovelAtivo && a.status !== 'vendido' && typeof window.compartilharImovelDoAtivo === 'function') acoes.push({ icone: 'share-2', titulo: 'Compartilhar', codigo: 'vitrine.gerar', sub: 'Abre o WhatsApp com os dados e o link', aoTocar: () => window.compartilharImovelDoAtivo(a.id) });
     // Fase R / Entrega R.3 (20/09/2026) — esqueleto sem IA. O botão aparece
     // sempre (nenhuma consulta nova só pra decidir se esconde); duplicidade
     // é recusada no banco por fn_revisao_valor_ativo_iniciar, com toast de
     // erro claro — evita uma 2ª chamada de rede só pra pré-checar aqui.
     if (a.status !== 'vendido') acoes.push({ icone: 'calendar-clock', titulo: 'Iniciar revisão anual', codigo: 'cofre.controles.criar', sub: 'Começa o ciclo de revisão de valor deste ativo', aoTocar: () => abrirIniciarRevisaoAnual(a) });
-    if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai da vitrine', aoTocar: () => marcarAtivoVendidoAtual() });
+    if (a.status !== 'vendido') acoes.push({ icone: 'tag', titulo: 'Marcar como vendido', codigo: 'cofre.editar', sub: 'Desliga alertas e sai dos links compartilhados', aoTocar: () => marcarAtivoVendidoAtual() });
     acoes.push({ icone: 'trash-2', titulo: 'Excluir ativo', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirAtivoAtual() });
     sheetOuAviso({ titulo: a.nome_exibicao, sub: rotuloTipoAtivo(a.tipo_ativo), acoes });
 }
@@ -2758,7 +2749,7 @@ export function navegarLightboxFotoAtivo(direcao) {
 export async function alternarVitrineFoto(fotoId, valor) {
     try {
         await api.alternarPublicarVitrineFoto(fotoId, valor, estado.clienteId);
-        mostrarToast(valor ? 'Foto publicada na vitrine.' : 'Foto removida da vitrine.');
+        mostrarToast(valor ? 'A foto aparece nos links compartilhados.' : 'A foto saiu dos links compartilhados.');
     } catch (err) { mostrarToast('Erro: ' + err.message, 'erro'); }
 }
 

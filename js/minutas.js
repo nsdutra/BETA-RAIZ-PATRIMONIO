@@ -1,7 +1,14 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.3.0 · 08/10/2026
+// Versão: 1.4.0 · 08/10/2026
+//
+// v1.4.0 (UX F2.8, demanda 42ef8b51, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) —
+// "Minuta ainda indisponível" deixa de listar chaves técnicas (locador_cnpj, imovel_endereco…): o que falta vem
+// em português, agrupado por onde se preenche (Contrato e locatário, Fiadores, Minha empresa, Imóvel, Modelo),
+// com o botão que abre a tela certa. Textos sem "vitrine".
+//
+// Versão anterior: 1.3.0 · 08/10/2026
 //
 // v1.3.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
 // "Gerar de um contrato real" vira Sheet de 2 passos (o formulário fixo do index saiu); ajuda de
@@ -86,7 +93,7 @@
 
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.3.0'; // v-check: manter igual ao header
+export const VERSAO = '1.4.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -595,7 +602,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                     container.innerHTML = rzVazio({
                         dominio: 'contratos', id: 'minutas-lista',
                         titulo: 'Seu primeiro modelo de contrato',
-                        beneficio: 'Com um modelo, a minuta sai preenchida com os dados do imóvel e do locatário — inclusive quando alguém contrata pela vitrine. Envie um contrato já assinado e a Raiz IA monta o modelo.',
+                        beneficio: 'Com um modelo, a minuta sai preenchida com os dados do imóvel e do locatário — inclusive quando o interessado preenche o link de contratação. Envie um contrato já assinado e a Raiz IA monta o modelo.',
                         acaoIA: { rotulo: 'Gerar de um contrato real', codigo: 'minutas.minutizar_ia', aoTocar: () => abrirWizardMinutizacao() },
                         acaoManual: { rotulo: 'Enviar modelo .docx', codigo: 'minutas.criar', aoTocar: () => abrirFormMinutaSheet() },
                     });
@@ -1192,6 +1199,73 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         // encontrarMinutaParaImovel(). Sem o parâmetro, comportamento
         // idêntico a antes (botão "Gerar Minuta" continua resolvendo
         // sozinho pela mais específica).
+        // Campo do modelo → onde se preenche e como se chama na tela.
+        const CAMPO_MINUTA_ROTULO = {
+            locador_nome: ['empresa', 'Nome da empresa'], locador_cnpj: ['empresa', 'CNPJ'], locador_responsavel: ['empresa', 'Responsável'],
+            locador_endereco: ['empresa', 'Endereço'], locador_cidade: ['empresa', 'Cidade'],
+            imovel_endereco: ['imovel', 'Endereço'], imovel_empreendimento: ['imovel', 'Empreendimento'], imovel_tipo: ['imovel', 'Tipo'], imovel_descricao: ['imovel', 'Descrição'],
+            aluguel_valor: ['contrato', 'Valor do aluguel (maior que zero)'], aluguel_vencimento_dia: ['contrato', 'Dia de vencimento válido (1 a 31)'],
+            contrato_inicio: ['contrato', 'Data de início da vigência'], contrato_fim: ['contrato', 'Data de fim da vigência'],
+            contrato_prazo_meses: ['contrato', 'Prazo (início e fim da vigência)'], indice_reajuste: ['contrato', 'Índice de reajuste'],
+            locatario_nome: ['contrato', 'Nome do locatário'], locatario_documento: ['contrato', 'CPF/CNPJ do locatário'], locatario_doc_tipo: ['contrato', 'Tipo de documento do locatário'],
+            locatario_whatsapp: ['contrato', 'WhatsApp do locatário'], locatario_email: ['contrato', 'E-mail do locatário'],
+            locatario_endereco_atual: ['contrato', 'Endereço atual do locatário'], locatario_profissao: ['contrato', 'Profissão do locatário'],
+            locatario_estado_civil: ['contrato', 'Estado civil do locatário'],
+        };
+        const CAMPO_FIADOR_ROTULO = { nome: 'nome', cpf: 'CPF', doc_tipo: 'tipo de documento', rg: 'RG', rg_orgao_expedidor: 'órgão do RG', nacionalidade: 'nacionalidade',
+            data_nascimento: 'data de nascimento', profissao: 'profissão', estado_civil: 'estado civil', regime_bens: 'regime de bens', conjuge_nome: 'nome do cônjuge',
+            conjuge_cpf: 'CPF do cônjuge', conjuge_rg: 'RG do cônjuge', conjuge_profissao: 'profissão do cônjuge', whatsapp: 'WhatsApp', email: 'e-mail',
+            endereco_atual: 'endereço atual', imovel_matricula: 'matrícula do imóvel de garantia', imovel_cartorio_registro: 'cartório do imóvel de garantia',
+            imovel_endereco: 'endereço do imóvel de garantia' };
+
+        // Recebe textos da conferência do contrato e {campo}/{residual} do modelo; mostra agrupado por
+        // onde se preenche, cada grupo com o botão da tela certa.
+        export function mostrarPendenciasMinuta(problemas, con, imo) {
+            const grupos = { contrato: [], fiador: [], empresa: [], imovel: [], modelo: [] };
+            const por = (g, texto) => { if (!grupos[g].includes(texto)) grupos[g].push(texto); };
+            (problemas || []).forEach(pb => {
+                if (typeof pb === 'string') {
+                    if (/empresa/i.test(pb)) por('empresa', 'Dados da empresa');
+                    else if (/^Imóvel vinculado/i.test(pb)) por('imovel', 'Imóvel ligado ao contrato');
+                    else if (/minuta/i.test(pb)) por('modelo', 'Nenhuma minuta vale para este imóvel');
+                    else por('contrato', pb);
+                } else if (pb && pb.residual) {
+                    por('modelo', 'O modelo usa {{' + pb.residual + '}}, que o Raiz não preenche');
+                } else if (pb && pb.campo) {
+                    const m = /^fiador_(\d+)_(.+)$/.exec(pb.campo);
+                    if (m) por('fiador', 'Fiador ' + m[1] + ': ' + (CAMPO_FIADOR_ROTULO[m[2]] || m[2].replace(/_/g, ' ')));
+                    else if (CAMPO_MINUTA_ROTULO[pb.campo]) por(CAMPO_MINUTA_ROTULO[pb.campo][0], CAMPO_MINUTA_ROTULO[pb.campo][1]);
+                    else por('modelo', 'Campo {{' + pb.campo + '}} sem valor');
+                }
+            });
+            const abrirContrato = () => { if (con && typeof editarContrato === 'function') editarContrato(con.id); };
+            const cfg = [
+                ['contrato', 'Contrato e locatário', 'Editar o contrato', abrirContrato],
+                ['fiador', 'Fiadores', 'Editar o contrato', abrirContrato],
+                ['empresa', 'Minha empresa', 'Abrir Minha empresa', () => switchTab('tab-minha-empresa')],
+                ['imovel', 'Imóvel', 'Abrir o imóvel', () => { if (imo) window.location.hash = '#/ativo/' + imo.id; }],
+                ['modelo', 'Modelo da minuta', 'Abrir Minutas', () => switchTab('tab-minutas')],
+            ].filter(c => grupos[c[0]].length);
+            const total = cfg.reduce((s, c) => s + grupos[c[0]].length, 0);
+            const esc = (s) => (typeof rzEsc === 'function' ? rzEsc(s) : String(s));
+            if (typeof abrirSheet !== 'function') {
+                rzResumo({ titulo: 'Faltam dados para a minuta', linhas: cfg.flatMap(c => [c[1] + ':', ...grupos[c[0]].map(x => '• ' + x)]) });
+                return;
+            }
+            const sheet = abrirSheet(rzSheetCabecalho('Faltam dados para a minuta', total === 1 ? '1 item para completar' : total + ' itens para completar') + `
+                <div class="rz-sh-b">
+                    ${cfg.map((c, i) => `<div class="rz-group">${esc(c[1])}</div>
+                        <div class="rz-card"><ul class="rz-pend-lista">${grupos[c[0]].map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+                        <button type="button" class="rz-btn rz-btn-2 rz-wide" data-pend="${i}">${esc(c[2])}</button></div>`).join('')}
+                </div>
+                <div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-1 rz-wide" onclick="fecharSheet()">Entendi</button></div>`);
+            sheet.querySelectorAll('[data-pend]').forEach(b => b.addEventListener('click', () => {
+                const acao = cfg[Number(b.getAttribute('data-pend'))][3];
+                fecharSheet();
+                setTimeout(acao, 0);
+            }));
+        }
+
         export async function gerarMinutaNoCofre(imovelId, minutaIdEscolhida) {
             const imo = imoveis.find(i => i.id === imovelId);
             if (!imo) return;
@@ -1236,8 +1310,8 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 const valores = montarValoresPlaceholdersMinuta(con, imo, fiadoresDoContrato);
                 resultadoPreenchimento = await preencherMinutaDocx(arrayBufferModelo, valores);
 
-                resultadoPreenchimento.placeholdersVaziosDetectados.forEach(p => problemasCombinados.push('Campo usado no modelo, ainda vazio: ' + p));
-                resultadoPreenchimento.placeholdersResiduais.forEach(p => problemasCombinados.push('Modelo usa um placeholder que o sistema não sabe preencher: ' + p));
+                resultadoPreenchimento.placeholdersVaziosDetectados.forEach(p => problemasCombinados.push({ campo: p }));
+                resultadoPreenchimento.placeholdersResiduais.forEach(p => problemasCombinados.push({ residual: p }));
             } catch (err) {
                 esconderCarregamentoGlobal();
                 rzAvisar('Não consegui verificar o modelo de minuta: ' + (err.message || String(err)), 'danger');
@@ -1246,10 +1320,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
 
             if (problemasCombinados.length > 0) {
                 esconderCarregamentoGlobal();
-                // NOVO — se algum problema menciona "fiador_", oferece o
-                // atalho pra já abrir o cadastro em vez de só avisar.
-                const faltaFiador = problemasCombinados.some(p => p.toLowerCase().includes('fiador_'));
-                rzResumo({ titulo: 'Minuta ainda indisponível', linhas: [`Faltam ${problemasCombinados.length} informação(ões):`, ...problemasCombinados.map(l => '• ' + l), ...(faltaFiador ? ['A minuta escolhida exige dados de fiador — toque em "Dados Contrato" para cadastrar.'] : []), 'Complete os dados antes de gerar.'] });
+                mostrarPendenciasMinuta(problemasCombinados, con, imo);
                 return;
             }
 

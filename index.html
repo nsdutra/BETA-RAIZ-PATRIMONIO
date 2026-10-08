@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.328.0
-   LINHAS: 17221
-   DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demanda b8602a3a)
+   VERSÃO: Beta v1.329.0
+   LINHAS: 17218
+   DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demandas ed5accfe, 5a84b9aa, cf0f8f2e, 42ef8b51, b056f2ff)
+   NOVIDADES (Beta v1.329.0) — UX F2.8, Compartilhar imóveis ("Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09).
+   "Vitrine" vira "Compartilhar": a tela tab-vitrine vira lista com seleção (toque marca) e o botão fixo
+   "Compartilhar n imóveis" (.rz-acao-fixa) abre WhatsApp, Copiar link e Abrir a página com um link só;
+   menu "Links compartilhados". Página pública lê por fn_vitrine_publica_obter (visitante sem login;
+   antes dava erro de permissão) e mostra o nome da empresa. Pontes novas: compartilharImovelDoAtivo,
+   abrirCompartilharSelecionados, alternarSelecaoVitrine. CSS: .rz-acao-fixa, .rz-pend-lista. Import
+   map: vitrine.js 1.4.0, minutas.js 1.4.0, cofre-ativos.js 1.80.0, cofre-app.js 1.45.0, cofre-api.js
+   1.50.0. Banco (fora deste arquivo): migrations f28_compartilhar_links_publicos_v1 e
+   f28_fn_vitrine_publica_obter_v1.
+   Versão anterior (Beta v1.328.0):
    NOVIDADES (Beta v1.328.0) — UX F2.7c-3, menu ⚙️ › Cadastros (de acordo do Nicola 08/10 14:04).
    Minutas: a descrição fica só no topo; o formulário fixo do assistente "Gerar de um contrato real"
    saiu (agora é Sheet de 2 passos em minutas.js). Documentos arquivados abre por cima da tela atual
@@ -41,11 +51,8 @@
    .rz-uso-bar, .rz-switch, .rz-pref. Import map: comum-licenca.js 1.6.0, comum-sobre.js 1.4.0.
    Nenhum objeto de banco criado por este arquivo.
    Versão anterior (Beta v1.325.1):
-   NOVIDADES (Beta v1.325.1) — só import map: financeiro.js 1.38.1 (importar fatura relê as contas;
-   cartão recém-cadastrado aparece sem precisar recarregar o app).
-   Versão anterior (Beta v1.325.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.325.0 … v1.325.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.325.1 … v1.325.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -70,7 +77,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.3.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.4.0","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.45.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.80.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -822,6 +829,10 @@
         .rz-f .rz-hint{font-size:13px;color:var(--muted)}
         .rz-f .rz-ok{font-size:12px;color:var(--success);font-weight:600}
         .rz-f2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+        .rz-acao-fixa{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:5;margin-top:12px;padding-top:8px;background:linear-gradient(to bottom,transparent,var(--paper) 40%)}
+        .rz-acao-fixa .rz-btn:disabled{opacity:.55;cursor:default}
+        .rz-row[role="checkbox"]{cursor:pointer}
+        .rz-pend-lista{margin:0 0 12px;padding-left:20px;font-size:15px;line-height:1.5;color:var(--ink)}
         .rz-f .rz-f-btn{width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:#fff;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
         .rz-f input[type=file]{height:auto;padding:10px 12px;font-size:14px}
         .rz-f .rz-btn-3{align-self:flex-start}
@@ -1056,7 +1067,7 @@
     <div id="modal-busca-vitrine" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
         <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
             <div class="p-3 border-b flex items-center justify-between flex-none">
-                <span class="font-bold text-slate-800">Buscar na Vitrine</span>
+                <span class="font-bold text-slate-800">Filtrar imóveis</span>
                 <button type="button" onclick="fecharBuscaVitrine()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
             </div>
             <div class="p-3 space-y-3 overflow-y-auto">
@@ -3122,13 +3133,17 @@
                  roteador já não alcança) e os 2 ícones no catálogo:
                  Buscar + Gerar link (share, preenchido — é a ação da tela). -->
             <button onclick="switchTab('tab-ativos')" class="rz-back"><svg data-lucide="chevron-left"></svg> Ativos</button>
+            <!-- Compartilhar imóveis (dem ed5accfe): toque escolhe; o botão fixo manda um link só. -->
             <div class="rz-tabhead">
-                <p>Escolha os imóveis e gere um link pra compartilhar com interessados.</p>
-                <button id="btn-vitrine-busca" onclick="abrirBuscaVitrine()" title="Buscar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
-                <button onclick="gerarLinkVitrine()" title="Gerar link da vitrine" class="rz-ico-btn rz-primary" aria-label="Gerar link"><svg data-lucide="share"></svg></button>
+                <p>Toque nos imóveis que quer mandar. Vai um link só, com fotos e detalhes, pelo WhatsApp ou como preferir.</p>
+                <button id="btn-vitrine-busca" onclick="abrirBuscaVitrine()" title="Filtrar" class="rz-ico-btn" aria-label="Filtrar"><svg data-lucide="search"></svg></button>
             </div>
 
-            <div id="lista-vitrine" class="space-y-3"></div>
+            <div id="lista-vitrine" class="rz-card rz-list"></div>
+
+            <div class="rz-acao-fixa">
+                <button type="button" id="vit-compartilhar" class="rz-btn rz-btn-1 rz-wide" onclick="abrirCompartilharSelecionados()" disabled>Escolha os imóveis</button>
+            </div>
 
         </section>
 
@@ -3268,7 +3283,7 @@
                 <button onclick="switchTab('tab-relatorios')">Desempenho</button>
                 <button class="rz-on" onclick="switchTab('tab-relatorios-catalogo')">Relatórios</button>
             </div>
-            <div class="rz-tabhead"><p>Tudo que sai do app em PDF ou planilha. Recibos e vitrines ficam no ⋮ de cada item.</p></div>
+            <div class="rz-tabhead"><p>Tudo que sai do app em PDF ou planilha. Recibos e links de imóveis ficam no ⋮ de cada item.</p></div>
             <div class="rz-card rz-list" id="lista-relatorios"></div>
         </section>
         <section id="tab-socios" class="tab-content">
@@ -3411,7 +3426,7 @@
             <!-- Cabeçalho e lista; o formulário da minuta e o assistente "Gerar de um contrato real"
                  são Sheets montados por js/minutas.js. -->
             <div class="rz-tabhead">
-                <p>Modelos de contrato (.docx com campos entre chaves) usados para gerar a minuta, inclusive quando alguém contrata pela vitrine. Vale o mais específico: imóvel, tipo, empreendimento e, por último, a empresa toda.</p>
+                <p>Modelos de contrato (.docx com campos entre chaves) usados para gerar a minuta, inclusive quando o interessado preenche o link de contratação. Vale o mais específico: imóvel, tipo, empreendimento e, por último, a empresa toda.</p>
                 <button type="button" id="btn-minutizar-ia" onclick="abrirWizardMinutizacao()" title="Gerar de um contrato real" aria-label="Gerar de um contrato real" class="rz-ico-btn rz-ia"><svg data-lucide="sparkles"></svg></button>
                 <button type="button" onclick="abrirFormMinutaSheet()" title="Cadastrar minuta" aria-label="Cadastrar minuta" class="rz-ico-btn rz-primary"><svg data-lucide="plus"></svg></button>
             </div>
@@ -3532,7 +3547,7 @@
              atual (rz-row + Sheet de ações, sem tabela HTML crua). -->
         <section id="tab-links-vitrine" class="tab-content hidden">
             <div class="rz-tabhead" style="display:flex;align-items:center;gap:8px">
-                <p style="flex:1">Links compartilháveis da Vitrine gerados por esta empresa.</p>
+                <p style="flex:1">Links de imóveis que você mandou para interessados. Revogue o que não deve mais abrir.</p>
                 <button type="button" class="rz-more" onclick="abrirAcoesLinksVitrine()" aria-label="Mais ações">
                     <svg data-lucide="ellipsis-vertical"></svg>
                 </button>
@@ -3638,7 +3653,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.328.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.329.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -6246,48 +6261,29 @@
         // a regra antiga não tinha como excluir um imóvel vendido da
         // vitrine; a nova filtra cofre_ativos.status='ativo' na própria RLS.
         async function resolverVitrinePublicaSupabase(token) {
-            const { data: linkRows, error: errLink } = await dbAuth.from('links_vitrine').select('imovel_ids').eq('token', token).limit(1);
-            if (errLink) throw errLink;
-            if (!linkRows || linkRows.length === 0) throw new Error('Link não encontrado ou expirado.');
-
-            const idsDoLink = linkRows[0].imovel_ids || [];
-            if (idsDoLink.length === 0) return [];
-
-            const { data: ativosRows, error: errAtivo } = await dbAuth
-                .from('cofre_ativos')
-                .select('*, empreendimentos(nome), ativo_tipos(nome), cofre_ativo_fotos(id, nome_arquivo, ordem, publicar_vitrine, status)')
-                .eq('entidade_origem_tipo', 'imovel')
-                .in('entidade_origem_id', idsDoLink);
-            if (errAtivo) throw errAtivo;
-
-            return (ativosRows || []).map(function(row) {
-                const dados = row.dados_especificos || {};
-                const fotosPublicadas = (row.cofre_ativo_fotos || [])
-                    .filter(function(f) { return f.publicar_vitrine && f.status === 'ativo'; })
-                    .sort(function(a, b) { return (a.ordem || 0) - (b.ordem || 0); })
-                    .map(function(f) {
-                        // Mesma convenção de caminho de alternarPublicarVitrineFoto
-                        // (cofre-api.js) — bucket público "imoveis-fotos",
-                        // <cliente_id>/<imovel_id>/<foto_id>.<ext>.
-                        const ext = (f.nome_arquivo ? f.nome_arquivo.split('.').pop() : 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-                        const caminhoPublico = row.cliente_id + '/' + row.entidade_origem_id + '/' + f.id + '.' + ext;
-                        return dbAuth.storage.from('imoveis-fotos').getPublicUrl(caminhoPublico).data.publicUrl;
-                    });
+            // Lida por fn_vitrine_publica_obter: confere o link e devolve só os campos da página.
+            // A leitura direta das tabelas não serve ao visitante sem login (as regras usam
+            // meus_clientes(), fechada para anon). Aceita links com id do ativo e com id antigo. (dem 5a84b9aa)
+            const { data, error } = await dbAuth.rpc('fn_vitrine_publica_obter', { p_token: token });
+            if (error) throw error;
+            if (!data || !data.ok) throw new Error('Link não encontrado ou expirado.');
+            window.__rzVitrinePublicaEmpresa = data.empresa || '';
+            return (data.imoveis || []).map(function(row) {
                 return {
-                    id: row.entidade_origem_id, // continua sendo imoveis.id — abrirLightboxImovelSalvo etc não mudam
-                    empreendimento: row.empreendimentos ? row.empreendimentos.nome : '',
+                    id: row.id,
+                    nomeExibicao: row.nome || '',
+                    empreendimento: row.empreendimento || '',
                     enderecoRua: row.endereco_rua || '',
                     enderecoNum: row.endereco_num || '',
                     enderecoComp: row.endereco_comp || '',
                     enderecoBairro: row.endereco_bairro || '',
                     enderecoCidade: row.endereco_cidade || '',
-                    finalidadeUso: row.finalidade_uso || 'long_stay',
-                    tipo: row.ativo_tipos ? row.ativo_tipos.nome : '',
-                    tamanho: row.area_m2 || 0,
-                    descricao: row.observacao || '',
-                    energiaRumo: dados.energia_disponivel ? 'Sim' : 'Não',
-                    valor: Number(dados.aluguel_desejado) || 0,
-                    fotos: fotosPublicadas,
+                    tipo: row.tipo || '',
+                    tamanho: Number(row.area_m2) || 0,
+                    descricao: row.descricao || '',
+                    energiaRumo: row.energia ? 'Sim' : 'Não',
+                    valor: Number(row.aluguel) || 0,
+                    fotos: (row.fotos || []).map(function(caminho) { return dbAuth.storage.from('imoveis-fotos').getPublicUrl(caminho).data.publicUrl; }),
                     status: mapStatusSupabaseParaAntigo(row.situacao_uso)
                 };
             });
@@ -9179,7 +9175,8 @@
             'fecharTelaContratacaoPublica', 'montarEnderecoContratacaoPublica', 'primeiroCampoInvalidoContratacaoPublica', 'mostrarErroCampoContratacaoPublica',
             'enviarFormularioContratacaoPublico', 'gerarLinkVitrine', 'gerarVitrineDoImovel', 'gerarLinkVitrineParaIds',
             'verificarFiltroVitrineExterna', 'abrirLightboxVitrineImovel', 'abrirLightboxVitrine', 'fecharLightboxVitrine',
-            'sairDaVitrinePublica', 'navegarLightboxVitrine', 'atualizarLightboxVitrine'
+            'sairDaVitrinePublica', 'navegarLightboxVitrine', 'atualizarLightboxVitrine',
+            'compartilharImovelDoAtivo', 'abrirCompartilharSelecionados', 'alternarSelecaoVitrine'
         ].forEach(nome => { window[nome] = (...args) => rzPonteModulo(carregarVitrine, nome, args); });
 
         // =====================================================================
@@ -10216,7 +10213,7 @@
                         { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp },
                         { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
                         // v1.199.0 (bc9df144, item 11) — migrado do app-dev, só admin.
-                        { icone: 'link', titulo: 'Gerenciador de links da vitrine', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') }
+                        { icone: 'link', titulo: 'Links compartilhados', sub: 'Links de imóveis enviados a interessados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') }
                         // v1.199.0 (bc9df144, item 7) — "Trocar de empresa" saiu por
                         // ora (função trocarEmpresa() removida); volta redesenhado
                         // em ccd04ad4 (multi-empresa/family office).
@@ -13966,7 +13963,7 @@
                     <p class="text-xs font-bold mt-1.5">${con.locatario || '-'} · ${formatarMoedaBR(con.valor)}/mês</p>
                     ${vigenciaTxt ? `<p class="text-[12px] text-slate-500 mt-1">Vigência: ${vigenciaTxt}</p>` : ''}
                     ${adm ? `<p class="text-[12px] text-slate-500">Administradora: ${adm.nome}</p>` : ''}
-                    ${con.status === 'Assinando' ? `<p class="text-[12px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2">Gerado pelo formulário público da Vitrine, aguardando revisão e assinatura.</p>` : ''}
+                    ${con.status === 'Assinando' ? `<p class="text-[12px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg p-2 mt-2">Gerado pelo link de contratação, aguardando revisão e assinatura.</p>` : ''}
                 </div>
 
                 <div class="px-4 pb-3">
@@ -16026,7 +16023,7 @@
             const lista = document.getElementById('lista-links-vitrine');
             if (!lista) return;
             if (!links || links.length === 0) {
-                lista.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="link"></svg></div><p>Nenhuma vitrine compartilhada ainda. Monte uma em Ativos › + › Montar vitrine e mande o link para quem quiser ver os imóveis.</p></div>';
+                lista.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="link"></svg></div><p>Nenhum link compartilhado ainda. Em Ativos › + › Compartilhar imóveis, escolha os imóveis e mande o link.</p></div>';
                 if (typeof lucide !== 'undefined') lucide.createIcons();
                 return;
             }
@@ -16036,7 +16033,7 @@
                 return `
                 <div class="rz-row">
                     <div class="rz-ic"><svg data-lucide="link"></svg></div>
-                    <div class="rz-tx"><b>Vitrine com ${qtd} imóve${qtd === 1 ? 'l' : 'is'}</b><span>Criada ${rzEsc(data)} · código ${rzEsc(link.token)}</span></div>
+                    <div class="rz-tx"><b>Link com ${qtd} imóve${qtd === 1 ? 'l' : 'is'}</b><span>Criada ${rzEsc(data)} · código ${rzEsc(link.token)}</span></div>
                     <button type="button" onclick="abrirAcoesLinkVitrine('${rzEsc(link.token)}')" class="rz-more" aria-label="Ações do link"><svg data-lucide="ellipsis-vertical"></svg></button>
                 </div>`;
             }).join('');
@@ -16060,9 +16057,9 @@
         // O endereço é o mesmo que a montagem da vitrine gera: app?v=<código>. (dem b8602a3a)
         function abrirAcoesLinkVitrine(token) {
             const url = window.location.href.split('?')[0].split('#')[0] + '?v=' + encodeURIComponent(token);
-            abrirSheetAcoes({ titulo: 'Link da vitrine', sub: 'Código ' + token, acoes: [
-                { icone: 'copy', titulo: 'Copiar link', sub: 'Para mandar a quem quiser ver os imóveis', aoTocar: () => rzCopiar(url, 'Link copiado.', 'Não consegui copiar; use "Abrir vitrine".') },
-                { icone: 'external-link', titulo: 'Abrir vitrine', aoTocar: () => window.open(url, '_blank') },
+            abrirSheetAcoes({ titulo: 'Link compartilhado', sub: 'Código ' + token, acoes: [
+                { icone: 'copy', titulo: 'Copiar link', sub: 'Para mandar a quem quiser ver os imóveis', aoTocar: () => rzCopiar(url, 'Link copiado.', 'Não consegui copiar; use "Abrir a página".') },
+                { icone: 'external-link', titulo: 'Abrir a página', aoTocar: () => window.open(url, '_blank') },
                 { icone: 'link-2-off', titulo: 'Revogar link', codigo: 'vitrine.links.gerenciar', tipo: 'bad', aoTocar: () => revogarLinkVitrine(token) },
             ] });
         }
@@ -16070,7 +16067,7 @@
         function abrirAcoesLinksVitrine() {
             if (typeof abrirSheetAcoes !== 'function') return;
             abrirSheetAcoes({
-                titulo: 'Links da vitrine',
+                titulo: 'Links compartilhados',
                 sub: (links ? links.length : 0) + ' link(s) ativo(s)',
                 acoes: [
                     { icone: 'clock-x', titulo: 'Apagar links expirados', codigo: 'vitrine.links.gerenciar', sub: 'Remove só os que já venceram', aoTocar: apagarLinksVitrineExpirados },
@@ -16080,7 +16077,7 @@
         }
 
         async function revogarLinkVitrine(token) {
-            if (!await rzPerguntar({ titulo: 'Revogar link?', impacto: 'Quem tiver este link deixa de abrir a vitrine por ele.', destrutivo: true, rotuloConfirmar: 'Revogar link', icone: 'link-2-off' })) return;
+            if (!await rzPerguntar({ titulo: 'Revogar link?', impacto: 'Quem tiver este link deixa de ver os imóveis por ele.', destrutivo: true, rotuloConfirmar: 'Revogar link', icone: 'link-2-off' })) return;
             apagarLinkVitrineSupabase(token).then(function() {
                 links = links.filter(function(l) { return l.token !== token; });
                 carregarLinksVitrine();
@@ -16092,7 +16089,7 @@
         }
 
         async function apagarTodosLinksVitrine() {
-            if (!await rzPerguntar({ titulo: 'Apagar todos os links?', impacto: 'Todos os links de vitrine da empresa deixam de funcionar. Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Apagar todos os links' })) return;
+            if (!await rzPerguntar({ titulo: 'Apagar todos os links?', impacto: 'Todos os links de imóveis da empresa deixam de abrir. Não dá para desfazer.', destrutivo: true, rotuloConfirmar: 'Apagar todos os links' })) return;
             apagarTodosLinksVitrineSupabase().then(function() {
                 links = [];
                 carregarLinksVitrine();

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-api.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.49.0 · 07/10/2026
+// Versão: 1.50.0 · 08/10/2026
+//
+// v1.50.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09; dem 5a84b9aa) — foto publicada de imóvel cadastrado direto como
+// ativo vai para a pasta do próprio ativo (<cliente>/<ativo>/<foto>.<ext>); antes só imóvel do cadastro antigo
+// tinha pasta e a foto nunca chegava ao link compartilhado.
+//
+// Versão anterior: 1.49.0 · 07/10/2026
 //
 // v1.49.0 (demanda a30da78b, item 2, sessão 20261007-2025-controles-empresa; plano aprovado pelo Nicola 07/10 20:14) —
 // listarItensControleEmpresa (itens com empresa_id, sem ativo/contrato, fora 'sistema') e
@@ -23,19 +29,11 @@
 //
 // v1.47.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base, "de acordo" do Nicola 04/10 00:22 e 01:03; UXR-29/30) — lerVinculo/restaurarVinculo e restaurarFotoAtivo, para o
 // "Desfazer" de desvincular documento e de remover foto (a foto já era só arquivada).
-//
-// Versão anterior: 1.46.0 · 26/09/2026
-//
-// v1.46.0 (demanda 4a609dbb, entrega 2/3 do lote de 29) —
-// buscarItemControlePorId() passa a selecionar cofre_controle_subtipos
-// (..., documento_esperado): a ficha do item de controle (cofre-controles.js
-// v1.34.0) usa isso pra avisar quando falta documento anexado, aviso que
-// hoje só existia na tela de configuração de Subtipos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.46.0 … v1.46.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.49.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.50.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 const SUPABASE_URL = 'https://oduwpttbbemypiypjsux.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kdXdwdHRiYmVteXBpeXBqc3V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODEyOTcsImV4cCI6MjEwMDg1NzI5N30.9-cu1CV1wPbo5UH1G2eAsWqsvS54AWNuQZOlifc9a7w';
 
@@ -1100,10 +1098,12 @@ export async function alternarPublicarVitrineFoto(fotoId, valor, clienteId) {
     const { error: erroFlag } = await dbAuth.from('cofre_ativo_fotos').update({ publicar_vitrine: valor }).eq('id', fotoId);
     if (erroFlag) throw erroFlag;
 
-    const { data: foto, error: erroFoto } = await dbAuth.from('cofre_ativo_fotos').select('*, cofre_ativos(entidade_origem_tipo, entidade_origem_id)').eq('id', fotoId).single();
+    const { data: foto, error: erroFoto } = await dbAuth.from('cofre_ativo_fotos').select('*, cofre_ativos(id, tipo_ativo, entidade_origem_tipo, entidade_origem_id)').eq('id', fotoId).single();
     if (erroFoto) throw erroFoto;
-    const imovelId = foto.cofre_ativos?.entidade_origem_tipo === 'imovel' ? foto.cofre_ativos.entidade_origem_id : null;
-    if (!imovelId) return; // foto de ativo sem vitrine (não é imóvel) — só a flag importa
+    // Pasta pública: id do imóvel antigo quando houver; senão, o id do próprio ativo (mesma regra de fn_vitrine_publica_obter).
+    const at = foto.cofre_ativos || {};
+    const imovelId = at.entidade_origem_tipo === 'imovel' ? at.entidade_origem_id : (String(at.tipo_ativo || '').startsWith('imovel') ? at.id : null);
+    if (!imovelId) return; // foto de ativo que não é imóvel — só a flag importa
 
     const ext = (foto.nome_arquivo?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
     const caminhoPublico = `${clienteId}/${imovelId}/${fotoId}.${ext}`;

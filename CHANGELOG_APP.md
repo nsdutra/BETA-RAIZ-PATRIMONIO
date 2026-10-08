@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.325.1) — só import map: financeiro.js 1.38.1 (importar fatura relê as contas;
+cartão recém-cadastrado aparece sem precisar recarregar o app).
+Versão anterior (Beta v1.325.0):
+------------------------------------------------------------------
+Versões anteriores (v1.325.0 … v1.325.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.325.0) — UX F2.7b, primeiro uso (plano F2.7 aprovado pelo Nicola 07/10 20:05).
 Envio de documento para a Raiz IA abre por cima da tela atual: cancelar volta para onde a pessoa
 estava (achado do Nicola no teste da F2.7a, 08/10 — de Contratos caía em Ativos); sem o módulo do

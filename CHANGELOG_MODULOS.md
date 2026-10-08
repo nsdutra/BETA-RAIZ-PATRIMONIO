@@ -396,7 +396,22 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
+
+//
+// Versão anterior: 1.46.0 · 26/09/2026
+//
+// v1.46.0 (demanda 4a609dbb, entrega 2/3 do lote de 29) —
+// buscarItemControlePorId() passa a selecionar cofre_controle_subtipos
+// (..., documento_esperado): a ficha do item de controle (cofre-controles.js
+// v1.34.0) usa isso pra avisar quando falta documento anexado, aviso que
+// hoje só existia na tela de configuração de Subtipos.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.45.0 … v1.45.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.45.0 (demanda 43448a36, decisão do Nicola de 22/09: ativo sem
@@ -836,7 +851,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
+
+//
+//
+// v1.41.0 (demanda 1163097a, retorno do piloto) — dispatcher ganha os
+// cases 'fa-info-situacao-uso' e 'fa-info-destinacao' → ativos.
+// abrirInfoSituacaoUso()/abrirInfoDestinacao() (cofre-ativos.js v1.67.0),
+// ícones (i) dos campos "Situação de uso" e "Destinação (NFS-e)" no
+// bloco "+ Mostrar mais campos" do formulário de imóvel/ativo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.1 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.40.0 (demanda ec7d8a9f, item 5 do retorno do piloto — Nicola: "Pode
@@ -1217,7 +1246,23 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.76.0 · 07/10/2026
+//
+// v1.76.0 (07/10/2026, sessão 20261007-0158-financeiro, demanda f3e6cd27 — pedido do Nicola 01:58:
+// "há 3 telas distintas, padronize") — "Editar divisão de propriedade" passa a abrir o editor único
+// rzEditarDivisao (raiz-ui 1.2.0), o mesmo da divisão do contrato/imóvel e da exceção de um
+// lançamento: linha compacta (nome · % · remover), "Adicionar pessoa" (sócio cadastrado ou parte
+// externa), soma ao vivo e Salvar só em 100%. Grava como antes (substituir_propriedade_ativo).
+// No cofre.html avulso (sem sheets do app) continua o formulário antigo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.75.0 · 04/10/2026
@@ -2175,6 +2220,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2756,6 +2803,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -3392,6 +3441,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3562,6 +3613,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
 
 //
@@ -3703,6 +3756,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3734,6 +3789,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3835,6 +3892,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -3993,6 +4052,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -4098,6 +4159,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4385,6 +4448,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -4427,6 +4492,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4510,6 +4577,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -5258,6 +5327,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -5544,6 +5615,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -6497,6 +6570,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -6556,6 +6631,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6668,6 +6745,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -6907,7 +6986,22 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
+
+//
+// v1.3.0 (demanda 11afd25f, teste f26a reprovado pelo Nicola em 01/10/2026,
+// sessão 20261001-2335-contratos-rotulos) — "não está deixando gerar o link pro
+// locatário preencher porque não tem minuta. Deve ser permitido." O menu de
+// Locação (abrirModalOpcoesContratacao) passa a oferecer SEMPRE "Gerar link
+// para coleta de dados" e "Abrir WhatsApp com os dados pedidos"; "Conferir
+// minuta padrão" e "Gerar minuta" continuam só com minuta, e o grupo "Sem
+// minuta padrão cadastrada" segue oferecendo o cadastro.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.0 … v1.2.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.2.2 (demanda 11afd25f, pedido do Nicola: "deve apagar a opção dentro do
@@ -6972,6 +7066,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

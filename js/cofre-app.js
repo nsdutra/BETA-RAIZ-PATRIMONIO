@@ -1,6 +1,10 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.44.2 · 07/10/2026
+// Versão: 1.45.0 · 08/10/2026
+//
+// v1.45.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — "+" de Ativos: "Montar vitrine" vira "Compartilhar imóveis".
+//
+// Versão anterior: 1.44.2 · 07/10/2026
 //
 // v1.44.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -25,18 +29,11 @@
 // a partir de um item de controle caía no chip Resumo: voltarFichaItemControle já
 // trocava para o chip Controles, mas o listener de cofre:recarregar-eventos reabria a
 // ficha com o chip padrão. Agora a ficha é reaberta no chip que estava aberto.
-//
-//
-// v1.41.0 (demanda 1163097a, retorno do piloto) — dispatcher ganha os
-// cases 'fa-info-situacao-uso' e 'fa-info-destinacao' → ativos.
-// abrirInfoSituacaoUso()/abrirInfoDestinacao() (cofre-ativos.js v1.67.0),
-// ícones (i) dos campos "Situação de uso" e "Destinação (NFS-e)" no
-// bloco "+ Mostrar mais campos" do formulário de imóvel/ativo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.1 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.44.2'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.45.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -149,7 +146,7 @@ document.addEventListener('click', async (ev) => {
                 // v1.44.0 (D2) — configuração inicial pelos documentos que a pessoa já tem
                 { icone: 'list-checks', tipo: 'ia', titulo: 'Configuração inicial', codigo: 'cofre.configuracao_inicial', sub: 'Cadastre a carteira mandando os documentos que você já tem', aoTocar: () => abrirConfiguracaoInicialModulo() },
                 { icone: 'plus', titulo: 'Novo ativo', codigo: 'cofre.ativos.criar', sub: 'Imóvel, veículo, obra de arte…', aoTocar: () => ativos.abrirFormAtivo() },
-                { icone: 'image', titulo: 'Montar vitrine', codigo: 'vitrine.gerar', sub: 'Vários imóveis num link só', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
+                { icone: 'share-2', titulo: 'Compartilhar imóveis', codigo: 'vitrine.gerar', sub: 'Escolha os imóveis e mande um link só', aoTocar: () => { if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine'); } }
             ]});
             break;
         case 'fechar-busca-ativos': fecharModal('modal-busca-ativos'); break;
@@ -269,7 +266,7 @@ document.addEventListener('click', async (ev) => {
         // sem o mesmo problema de display:none do cadastrar-imovel-app).
         case 'ir-vitrine-app':
             if (typeof window.switchTab === 'function') window.switchTab('tab-vitrine');
-            else mostrarToast('Vitrine só disponível dentro do app principal.', 'erro');
+            else mostrarToast('Compartilhar imóveis só funciona dentro do app.', 'erro');
             break;
         // 'alternar-historico-ativo' removido (revisão DS, 25/08/2026) —
         // Histórico não é mais opção do Mais ações do box do Ativo.

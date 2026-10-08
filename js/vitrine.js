@@ -1,7 +1,19 @@
 // ============================================================================
-// vitrine.js — Raiz Patrimônio · Vitrine (links públicos de imóveis, lightbox)
+// vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.3.5 · 07/10/2026
+// Versão: 1.4.0 · 08/10/2026
+//
+// v1.4.0 (UX F2.8, demandas ed5accfe, 5a84b9aa, b056f2ff e cf0f8f2e, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2
+// agora" do Nicola 08/10 20:09) — "Vitrine" vira "Compartilhar". Um imóvel: compartilharImovelDoAtivo abre o
+// WhatsApp já com os dados e o link (⋮ da ficha do ativo). Vários: a tela vira lista com seleção e o botão
+// "Compartilhar n imóveis" (WhatsApp, Copiar link, Abrir a página), com um link só. Mensagem e lista mostram só o
+// que está preenchido (some ", , ," e "R$ 0"). O link é gerado com código aleatório forte e salvo uma vez; o falso
+// "Falha de conexão" (chamava dev_carregarLinks, removida na v1.199.0 do index) sai. Página pública: lê pela
+// fn_vitrine_publica_obter (visitante sem login), mostra o nome da empresa e esconde campo vazio. Contratação:
+// reaproveita o link pendente e válido do mesmo imóvel em vez de criar outro a cada toque; o formulário público
+// manda o endereço também separado (rua, número, complemento, bairro, cidade, UF, CEP).
+//
+// Versão anterior: 1.3.5 · 07/10/2026
 //
 // v1.3.4 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -22,22 +34,13 @@
 // — abrirSheetAcoes ignora `acoes` quando recebe `grupos`; sem minuta, o menu
 // só mostrava o grupo "Sem minuta padrão cadastrada". Agora, sem minuta, link
 // e WhatsApp entram como grupo "Coleta de dados" junto do grupo da minuta.
-//
-// v1.3.0 (demanda 11afd25f, teste f26a reprovado pelo Nicola em 01/10/2026,
-// sessão 20261001-2335-contratos-rotulos) — "não está deixando gerar o link pro
-// locatário preencher porque não tem minuta. Deve ser permitido." O menu de
-// Locação (abrirModalOpcoesContratacao) passa a oferecer SEMPRE "Gerar link
-// para coleta de dados" e "Abrir WhatsApp com os dados pedidos"; "Conferir
-// minuta padrão" e "Gerar minuta" continuam só com minuta, e o grupo "Sem
-// minuta padrão cadastrada" segue oferecendo o cadastro.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.0 … v1.2.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.3.5'; // v-check: manter igual ao header
+export const VERSAO = '1.4.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export function montarAbaVitrine() {
@@ -59,113 +62,206 @@ export function montarAbaVitrine() {
             document.getElementById('modal-busca-vitrine').classList.add('hidden');
         }
 
-        export function copyResumo(end, tipo, val, suites, cond) {
+        // ---- Compartilhar imóveis: texto, link e tela de seleção ------------------------------
+        const escV = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const moedaV = (v) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-            const txt = `🏠 *${CONFIG_CLIENTE.nomeEmpresa.toUpperCase()} - OPORTUNIDADE*\n📍 *Tipo:* ${tipo}\n📍 *Endereço:* ${end}\n💰 *Valor Locação:* R$ ${val.toLocaleString('pt-BR')}\n📦 *Condomínio:* R$ ${cond}`;
+        // Nome do imóvel para lista e mensagem: o nome do ativo; sem ele, tipo · empreendimento.
+        export function tituloImovelCompartilhar(imo) {
+            return (imo && imo.nomeExibicao) || [imo?.tipo, imo?.empreendimento].filter(Boolean).join(' · ') || 'Imóvel';
+        }
 
-            navigator.clipboard.writeText(txt);
+        // Endereço só com as partes preenchidas ("Rua X, 301 - Apto 2, Bairro, Cidade").
+        export function enderecoCurtoImovel(imo) {
+            if (!imo) return '';
+            const rua = [imo.enderecoRua, imo.enderecoNum].filter(Boolean).join(', ');
+            const ruaComp = rua && imo.enderecoComp ? rua + ' - ' + imo.enderecoComp : rua;
+            return [ruaComp, imo.enderecoBairro, imo.enderecoCidade].filter(Boolean).join(', ');
+        }
 
-            rzAvisar('Resumo de locação copiado.', 'success');
+        function resumoImovelTexto(imo) {
+            const linhas = ['🏠 *' + tituloImovelCompartilhar(imo) + '*'];
+            const end = enderecoCurtoImovel(imo);
+            if (end) linhas.push('📍 ' + end);
+            if (Number(imo.tamanho) > 0) linhas.push('📐 ' + moedaV(imo.tamanho) + ' m²');
+            if (Number(imo.valor) > 0) linhas.push('💰 Aluguel: R$ ' + moedaV(imo.valor) + '/mês');
+            if (Number(imo.condominio) > 0) linhas.push('🏢 Condomínio: R$ ' + moedaV(imo.condominio));
+            return linhas.join('\n');
+        }
 
+        export function textoCompartilharImoveis(lista, link) {
+            const empresa = (typeof CONFIG_CLIENTE !== 'undefined' && CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '';
+            const n = lista.length;
+            const intro = n === 1
+                ? (empresa ? '*' + empresa + '* separou este imóvel para você:' : 'Separei este imóvel para você:')
+                : (empresa ? '*' + empresa + '* separou ' + n + ' imóveis para você:' : 'Separei ' + n + ' imóveis para você:');
+            return [intro, '', lista.map(resumoImovelTexto).join('\n\n'), '', 'Fotos e detalhes: ' + link].join('\n');
+        }
+
+        // Código do link: 8 caracteres de um alfabeto sem letras parecidas, sorteados com crypto.
+        function novoCodigoLink() {
+            const alfa = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const bytes = new Uint8Array(8);
+            (window.crypto || window.msCrypto).getRandomValues(bytes);
+            return Array.from(bytes, b => alfa[b % alfa.length]).join('');
+        }
+
+        // Um compartilhamento = um código, salvo uma vez só, mesmo que a pessoa toque em WhatsApp e
+        // depois em Copiar. O WhatsApp e a cópia saem no mesmo toque (o navegador bloqueia abrir
+        // janela ou copiar depois de uma espera); a gravação corre junto.
+        function prepararCompartilhamento(ids) {
+            const token = novoCodigoLink();
+            const url = window.location.href.split('?')[0].split('#')[0] + '?v=' + token;
+            let salvo = null;
+            const salvar = () => {
+                if (!salvo) {
+                    salvo = criarLinkVitrineSupabase(token, ids).then(() => {
+                        if (Array.isArray(links)) links.push({ token, ids: ids.join(','), criadoEm: new Date().toISOString(), criadoEmBrasilia: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }), qtdImoveis: ids.length });
+                        if (typeof carregarLinksVitrine === 'function' && document.querySelector('.tab-content.active')?.id === 'tab-links-vitrine') carregarLinksVitrine();
+                        try { registrarLog('vitrine.gerar', { token, qtdImoveis: ids.length }); } catch (_) { /* log não bloqueia */ }
+                        return true;
+                    }).catch((err) => {
+                        console.error('[compartilhar] link não salvo:', err);
+                        salvo = null;
+                        mostrarToast('Não consegui salvar o link. Confira a internet e tente de novo.', 'danger');
+                        return false;
+                    });
+                }
+                return salvo;
+            };
+            return { token, url, salvar };
+        }
+
+        function imoveisPorIds(ids) {
+            return ids.map(id => (Array.isArray(imoveis) ? imoveis.find(i => i.id === id) : null)).filter(Boolean);
+        }
+
+        function enviarWhatsAppCompartilhar(lista, comp) {
+            const texto = textoCompartilharImoveis(lista, comp.url);
+            if (typeof rzDev === 'function') rzDev('whatsapp', '', texto);
+            else window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank', 'noopener');
+            comp.salvar();
+        }
+
+        // ⋮ da ficha do ativo (cofre-ativos) e ⋮ de uma linha da lista: abre o WhatsApp já com
+        // os dados e o link deste imóvel.
+        export function compartilharImovelDoAtivo(ativoId) {
+            const lista = imoveisPorIds([String(ativoId)]);
+            if (!lista.length) { mostrarToast('Não encontrei este imóvel. Atualize a tela e tente de novo.', 'danger'); return; }
+            enviarWhatsAppCompartilhar(lista, prepararCompartilhamento([String(ativoId)]));
+        }
+
+        // Sheet de "Compartilhar n imóveis": um link só para todos os escolhidos.
+        export function abrirCompartilharSelecionados(idsEscolhidos) {
+            const ids = (idsEscolhidos || Array.from(vitSelecionados)).map(String);
+            const lista = imoveisPorIds(ids);
+            if (!lista.length) { mostrarToast('Escolha ao menos um imóvel.', 'danger'); return; }
+            const comp = prepararCompartilhamento(lista.map(i => i.id));
+            const n = lista.length;
+            abrirSheetAcoes({
+                titulo: n === 1 ? 'Compartilhar 1 imóvel' : 'Compartilhar ' + n + ' imóveis',
+                sub: 'Um link só, com fotos e detalhes',
+                acoes: [
+                    { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', sub: 'Mensagem com o resumo e o link', codigo: 'vitrine.gerar', aoTocar: () => enviarWhatsAppCompartilhar(lista, comp) },
+                    { icone: 'copy', titulo: 'Copiar link', codigo: 'vitrine.gerar', aoTocar: () => {
+                        comp.salvar();
+                        if (typeof rzCopiar === 'function') rzCopiar(comp.url, 'Link copiado.', 'Não consegui copiar; use "Abrir a página".');
+                        else navigator.clipboard.writeText(comp.url).then(() => mostrarToast('Link copiado.', 'success'));
+                    } },
+                    { icone: 'external-link', titulo: 'Abrir a página', sub: 'Veja como o interessado recebe', codigo: 'vitrine.gerar', aoTocar: () => {
+                        const janela = window.open('', '_blank');
+                        comp.salvar().then(ok => { if (ok && janela) janela.location.href = comp.url; else if (janela) janela.close(); });
+                    } },
+                ],
+            });
+        }
+
+        // Compatibilidade: chamadas antigas (botão da tela, cofre-ativos antigo).
+        export function copyResumo() { abrirCompartilharSelecionados(); }
+
+        // Seleção da tela "Compartilhar imóveis" (vale enquanto o app está aberto).
+        const vitSelecionados = new Set();
+
+        export function alternarSelecaoVitrine(id) {
+            if (vitSelecionados.has(id)) vitSelecionados.delete(id); else vitSelecionados.add(id);
+            const linha = document.querySelector('[data-vit-id="' + CSS.escape(id) + '"]');
+            if (linha) desenharSelecaoLinha(linha, vitSelecionados.has(id));
+            atualizarBarraCompartilhar();
+        }
+
+        function desenharSelecaoLinha(linha, marcada) {
+            linha.setAttribute('aria-checked', marcada ? 'true' : 'false');
+            const ic = linha.querySelector('.rz-ic');
+            if (ic) {
+                ic.classList.toggle('rz-ok', marcada);
+                ic.innerHTML = '<svg data-lucide="' + (marcada ? 'check' : 'house') + '"></svg>';
+                if (typeof rzIcones === 'function') rzIcones(); else if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+
+        function atualizarBarraCompartilhar() {
+            const btn = document.getElementById('vit-compartilhar');
+            if (!btn) return;
+            const visiveis = new Set(Array.from(document.querySelectorAll('#lista-vitrine [data-vit-id]')).map(el => el.getAttribute('data-vit-id')));
+            for (const id of Array.from(vitSelecionados)) if (!visiveis.has(id)) vitSelecionados.delete(id);
+            const n = vitSelecionados.size;
+            btn.disabled = n === 0;
+            btn.textContent = n === 0 ? 'Escolha os imóveis' : (n === 1 ? 'Compartilhar 1 imóvel' : 'Compartilhar ' + n + ' imóveis');
+        }
+
+        function abrirAcoesLinhaVitrine(id) {
+            const imo = imoveisPorIds([id])[0];
+            if (!imo) return;
+            abrirSheetAcoes({
+                titulo: tituloImovelCompartilhar(imo), sub: enderecoCurtoImovel(imo) || imo.status || '',
+                acoes: [
+                    { icone: 'message-circle', titulo: 'Compartilhar só este', sub: 'Abre o WhatsApp com os dados e o link', codigo: 'vitrine.gerar', aoTocar: () => compartilharImovelDoAtivo(id) },
+                    { icone: 'house', titulo: 'Abrir a ficha', aoTocar: () => { window.location.hash = '#/ativo/' + id; } },
+                ],
+            });
         }
 
         export function renderVitrine() {
-
             const container = document.getElementById('lista-vitrine');
-
-            if(!container) return;
-
-            container.innerHTML = '';
+            if (!container) return;
 
             popularFiltroSelect('vitrine-filtro-emp', imoveis.map(i => i.empreendimento));
-
             const fEmp = document.getElementById('vitrine-filtro-emp').value;
-
             const fStat = document.getElementById('vitrine-filtro-status').value;
 
-            imoveis.forEach(imo => {
+            const lista = imoveis.filter(imo => (fEmp === 'todos' || imo.empreendimento === fEmp) && (fStat === 'todos' || imo.status === fStat));
 
-                if(fEmp !== 'todos' && imo.empreendimento !== fEmp) return;
+            if (!lista.length) {
+                container.className = '';
+                container.innerHTML = imoveis.length
+                    ? '<div class="rz-card"><div class="rz-empty"><p>Nenhum imóvel neste filtro.</p></div></div>'
+                    : (typeof rzVazio === 'function'
+                        ? rzVazio({ dominio: 'ativos', id: 'compartilhar-sem-imovel', titulo: 'Nada para compartilhar ainda', beneficio: 'Cadastre um imóvel e mande para interessados um link com fotos e detalhes, pelo WhatsApp.', acaoManual: { rotulo: 'Cadastrar imóvel', codigo: 'cofre.ativos.criar', aoTocar: () => { if (typeof rzAbrirMaisAtivos === 'function') rzAbrirMaisAtivos(); } } })
+                        : '<div class="rz-empty"><p>Nenhum imóvel cadastrado.</p></div>');
+                atualizarBarraCompartilhar();
+                if (typeof rzIcones === 'function') rzIcones();
+                return;
+            }
 
-                if(fStat !== 'todos' && imo.status !== fStat) return;
+            container.className = 'rz-card rz-list';
+            container.innerHTML = lista.map(imo => {
+                const marcada = vitSelecionados.has(imo.id);
+                const sub = [imo.status, enderecoCurtoImovel(imo), Number(imo.valor) > 0 ? 'R$ ' + moedaV(imo.valor) + '/mês' : ''].filter(Boolean).join(' · ');
+                return `<div class="rz-row rz-link" role="checkbox" tabindex="0" aria-checked="${marcada}" data-vit-id="${escV(imo.id)}">
+                    <div class="rz-ic${marcada ? ' rz-ok' : ''}"><svg data-lucide="${marcada ? 'check' : 'house'}"></svg></div>
+                    <div class="rz-tx"><b>${escV(tituloImovelCompartilhar(imo))}</b>${sub ? `<span>${escV(sub)}</span>` : ''}</div>
+                    <button type="button" class="rz-more" data-vit-acoes="${escV(imo.id)}" aria-label="Ações do imóvel"><svg data-lucide="ellipsis-vertical"></svg></button>
+                </div>`;
+            }).join('');
 
-                // Espelha exatamente o que aparece no link público da vitrine — todas
-
-                // as fotos (não só a primeira) e os mesmos campos (até Energia).
-
-                // Código do IPTU e demais dados internos (manutenção, sócios) NUNCA
-
-                // aparecem aqui, igual no link público.
-
-                let fotosHtml = '';
-
-                if (imo.fotos && imo.fotos.length > 0) {
-
-                    fotosHtml = '<div class="flex gap-1.5 overflow-x-auto py-2">' +
-
-                        imo.fotos.map((foto, idx) => `<img src="${foto}" onclick="event.stopPropagation(); abrirLightboxImovelSalvo('${imo.id}', ${idx})" class="w-16 h-16 object-cover rounded-lg border flex-none cursor-pointer">`).join('') +
-
-                        '</div>';
-
-                }
-
-                const badgeEnergia = imo.energiaRumo === 'Sim'
-
-                    ? `<span class="text-[11px] font-bold px-1.5 py-0.5 rounded raiz-badge-atributo ml-1"><svg data-lucide="zap" style="width:11px;height:11px;display:inline;vertical-align:-1px"></svg></span>`
-
-                    : '';
-
-                container.innerHTML += `
-
-                    <div class="bg-white p-3 rounded-xl border border-gray-200">
-
-                        <div class="flex gap-3 items-start">
-
-                            <input type="checkbox" data-id="${imo.id}" class="vitrine-checkbox w-4 h-4 text-emerald-600 rounded mt-1">
-
-                            <div class="flex-1 min-w-0">
-
-                                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded ${imo.status==='Vago'?'bg-amber-100 text-amber-800':(imo.status==='Assinando'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800')}">${imo.status}</span>${badgeEnergia}
-
-                                <p class="text-xs font-bold mt-1 text-slate-900">${imo.empreendimento} - ${imo.tipo}</p>
-
-                                <p class="text-[11px] text-gray-500">${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}, ${imo.enderecoCidade || ''}</p>
-
-                                <p class="text-[11px] text-gray-500">Tamanho: ${imo.tamanho}m² | Suítes: ${imo.suites} | WC: ${imo.banheiros}</p>
-
-                                ${imo.descricao ? `<p class="text-[11px] text-gray-400 italic mt-0.5">${imo.descricao}</p>` : ''}
-
-                                <p class="text-[13px] font-black raiz-text-pine mt-1">Aluguel: R$ ${imo.valor.toLocaleString('pt-BR')}</p>
-
-                            </div>
-
-                            <!-- v1.49.0 — "Iniciar Contratação" removido do
-                                 card da Vitrine (pedido explícito) — o
-                                 fluxo continua existindo, só que agora só
-                                 pela ficha do imóvel (box Contrato → Mais
-                                 ações → Iniciar contratação).
-                                 v1.1.0 (Onda 12, E15.3) — linha "Condomínio/
-                                 IPTU" saiu do card (pedido explícito: os dois
-                                 já viraram item de controle automático, não
-                                 são mais dado do imóvel) — copyResumo()
-                                 continua recebendo o parâmetro condomínio
-                                 por compatibilidade de assinatura, agora
-                                 sempre 0 (imo.condominio não existe mais no
-                                 retorno de resolverVitrinePublicaSupabase). -->
-                            <button onclick="event.stopPropagation(); copyResumo('${(imo.enderecoRua || '') + ', ' + (imo.enderecoNum || '')}', '${imo.tipo}', ${imo.valor || 0}, ${imo.suites || 0}, ${imo.condominio || 0})" title="Copiar resumo para WhatsApp" class="w-8 h-8 flex-none flex items-center justify-center bg-slate-100 text-slate-700 rounded-full border border-slate-300"><svg data-lucide="copy" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg></button>
-
-                        </div>
-
-                        ${fotosHtml}
-
-                    </div>
-
-                `;
-
+            container.querySelectorAll('[data-vit-id]').forEach(linha => {
+                const id = linha.getAttribute('data-vit-id');
+                linha.addEventListener('click', (ev) => { if (ev.target.closest('[data-vit-acoes]')) return; alternarSelecaoVitrine(id); });
+                linha.addEventListener('keydown', (ev) => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); alternarSelecaoVitrine(id); } });
             });
-
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-
+            container.querySelectorAll('[data-vit-acoes]').forEach(b => b.addEventListener('click', (ev) => { ev.stopPropagation(); abrirAcoesLinhaVitrine(b.getAttribute('data-vit-acoes')); }));
+            atualizarBarraCompartilhar();
+            if (typeof rzIcones === 'function') rzIcones(); else if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         export async function iniciarProcessoContratacao(imovelId) {
@@ -201,6 +297,16 @@ export function montarAbaVitrine() {
             mostrarCarregamentoGlobal("Preparando processo de contratação...");
 
             try {
+                // Link pendente e ainda válido do mesmo imóvel: reaproveita, em vez de abrir outro a cada toque. (dem b056f2ff)
+                const { data: pendentes } = await dbAuth.from('processos_contratacao').select('id, token')
+                    .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('ativo_id', imovelId).eq('status', 'aguardando_preenchimento')
+                    .gt('expira_em', new Date().toISOString()).order('criado_em', { ascending: false }).limit(1);
+                if (pendentes && pendentes.length) {
+                    esconderCarregamentoGlobal();
+                    abrirModalOpcoesContratacao(imo, pendentes[0].token, pendentes[0].id);
+                    return;
+                }
+
                 const token = (crypto.randomUUID ? crypto.randomUUID() : (Date.now() + '-' + Math.random().toString(36).slice(2))).replace(/-/g, '');
 
                 // v1.41.0 (16/09/2026, pendência 46dc7300) — ativo_id no
@@ -246,8 +352,8 @@ export function montarAbaVitrine() {
         export function abrirModalOpcoesContratacao(imo, token, processoId) {
             if (typeof abrirSheetAcoes !== 'function') return;
             const link = `https://app.raizpatrimonio.com.br/?contratar=${token}`;
-            const endereco = `${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}`;
-            const mensagemZap = `Olá! Para darmos andamento à locação do imóvel em ${endereco}, preciso de alguns dados seus para gerar o contrato:\n\n- Nome completo\n- CPF ou CNPJ\n- WhatsApp\n- E-mail\n- Endereço atual\n- Profissão\n- Estado civil\n\nVocê pode preencher direto por este link: ${link}`;
+            const endereco = enderecoCurtoImovel(imo) || tituloImovelCompartilhar(imo);
+            const mensagemZap = `Olá! Para darmos andamento à locação do imóvel ${enderecoCurtoImovel(imo) ? 'em ' + endereco : tituloImovelCompartilhar(imo)}, preciso de alguns dados seus para gerar o contrato:\n\n- Nome completo\n- CPF ou CNPJ\n- WhatsApp\n- E-mail\n- Endereço atual\n- Profissão\n- Estado civil\n\nVocê pode preencher direto por este link: ${link}`;
             const minuta = encontrarMinutaParaImovel(imo.id);
             // v1.2.2 — "Dados novo contrato" saiu daqui (ver changelog).
             // v1.3.0 (demanda 11afd25f, teste f26a) — link e WhatsApp de coleta não
@@ -256,7 +362,7 @@ export function montarAbaVitrine() {
             const acoes = [];
             {
                 acoes.push(
-                    { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); navigator.clipboard.writeText(link); mostrarToast('Link copiado!', 'success'); } },
+                    { icone: 'copy', titulo: 'Gerar link para coleta de dados', codigo: 'contratos.criar', sub: 'Vale por 15 dias · interessado preenche sozinho', aoTocar: () => { registrarLog('contratacao.link_gerado', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'link' }).eq('id', processoId); if (typeof rzCopiar === 'function') rzCopiar(link, 'Link copiado.'); else { navigator.clipboard.writeText(link); mostrarToast('Link copiado.', 'success'); } } },
                     { icone: 'message-circle', titulo: 'Abrir WhatsApp com os dados pedidos', codigo: 'contratos.criar', aoTocar: () => { registrarLog('contratacao.whatsapp_aberto', { imovelId: imo.id, processoId }); dbAuth.from('processos_contratacao').update({ origem: 'whatsapp_manual' }).eq('id', processoId); window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(mensagemZap), '_blank'); } },
                 );
             }
@@ -460,7 +566,15 @@ export function montarAbaVitrine() {
                     p_email: document.getElementById('cp-email').value.trim() || null,
                     p_endereco_atual: montarEnderecoContratacaoPublica(),
                     p_profissao: document.getElementById('cp-profissao').value.trim() || null,
-                    p_estado_civil: document.getElementById('cp-estado-civil').value || null
+                    p_estado_civil: document.getElementById('cp-estado-civil').value || null,
+                    // Partes do endereço: vão para a Parte do interessado e aparecem separadas no contrato. (dem cf0f8f2e)
+                    p_endereco_rua: document.getElementById('cp-endereco-rua').value.trim() || null,
+                    p_endereco_num: document.getElementById('cp-endereco-num').value.trim() || null,
+                    p_endereco_comp: document.getElementById('cp-endereco-comp').value.trim() || null,
+                    p_endereco_bairro: document.getElementById('cp-endereco-bairro').value.trim() || null,
+                    p_endereco_cidade: document.getElementById('cp-endereco-cidade').value.trim() || null,
+                    p_uf: document.getElementById('cp-endereco-uf').value || null,
+                    p_cep: document.getElementById('cp-endereco-cep').value.trim() || null
                 });
 
                 if (error) throw error;
@@ -487,51 +601,15 @@ export function montarAbaVitrine() {
         // pelo ⋮ do ativo ("Gerar vitrine", cofre-ativos.js v1.22.0). O
         // resultado deixou de ser confirm()/alert() (3 popups) e virou sheet
         // com Copiar · WhatsApp · Abrir (REGRAS §3) + toast nos erros.
-        export function gerarLinkVitrine() {
-            const checkboxes = document.querySelectorAll('.vitrine-checkbox:checked');
-            if (checkboxes.length === 0) {
-                mostrarToast('Escolha ao menos um imóvel.', 'danger');
-                return;
-            }
-            const idsSelecionados = [];
-            checkboxes.forEach(cb => idsSelecionados.push(cb.getAttribute('data-id')));
-            gerarLinkVitrineParaIds(idsSelecionados);
-        }
+        // Botão da tela e chamadas antigas: levam ao mesmo "Compartilhar" de agora.
+        export function gerarLinkVitrine() { abrirCompartilharSelecionados(); }
 
         export function gerarVitrineDoImovel(imovelId) {
-            if (!imovelId) { mostrarToast('Este ativo não está ligado a um imóvel.', 'danger'); return; }
-            gerarLinkVitrineParaIds([String(imovelId)]);
+            if (!imovelId) { mostrarToast('Não encontrei este imóvel.', 'danger'); return; }
+            compartilharImovelDoAtivo(String(imovelId));
         }
 
-        export function gerarLinkVitrineParaIds(idsSelecionados) {
-            // Gera um token curto e aleatório (6 caracteres) e registra a associação
-            // token -> ids no Supabase, para não expor os IDs internos na URL pública.
-            const token = Math.random().toString(36).substr(2, 6).toUpperCase();
-            criarLinkVitrineSupabase(token, idsSelecionados).then(() => {
-                links.push({
-                    token: token,
-                    ids: idsSelecionados.join(','),
-                    criadoEm: new Date().toISOString(),
-                    criadoEmBrasilia: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
-                    qtdImoveis: idsSelecionados.length
-                });
-                dev_carregarLinks();
-                registrarLog('vitrine.gerar', { token: token, qtdImoveis: idsSelecionados.length });
-                const localUrl = window.location.href.split('?')[0];
-                const linkFinal = `${localUrl}?v=${token}`;
-                const textoWhats = encodeURIComponent(`Confira ${idsSelecionados.length > 1 ? 'estes imóveis' : 'este imóvel'}: ${linkFinal}`);
-                const copiar = () => navigator.clipboard.writeText(linkFinal).then(() => mostrarToast('Link copiado.', 'success')).catch(() => mostrarToast('Não consegui copiar; use "Abrir a vitrine".', 'danger'));
-                copiar();
-                abrirSheetAcoes({ titulo: 'Vitrine pronta', sub: linkFinal, acoes: [
-                    { icone: 'copy', titulo: 'Copiar link', sub: 'Já foi copiado; toque pra copiar de novo', aoTocar: copiar },
-                    { icone: 'message-circle', titulo: 'Enviar pelo WhatsApp', aoTocar: () => window.open(`https://wa.me/?text=${textoWhats}`, '_blank') },
-                    { icone: 'external-link', titulo: 'Abrir a vitrine', aoTocar: () => window.open(linkFinal, '_blank') }
-                ]});
-            }).catch((err) => {
-                mostrarToast('Falha de conexão ao gerar o link. Verifique sua internet e tente de novo.', 'danger');
-                console.error("Erro ao gerar link de vitrine:", err);
-            });
-        }
+        export function gerarLinkVitrineParaIds(idsSelecionados) { abrirCompartilharSelecionados(idsSelecionados); }
 
         export async function verificarFiltroVitrineExterna() {
 
@@ -557,15 +635,15 @@ export function montarAbaVitrine() {
 
                         <button onclick="sairDaVitrinePublica()" class="absolute top-3 right-0 text-xs font-bold text-slate-300 bg-emerald-800 border border-emerald-700 rounded-full px-3 py-1.5 active:scale-95 transition"><svg data-lucide="x" style="width:14px;height:14px"></svg> Sair</button>
 
-                        <h1 class="text-2xl font-black text-emerald-400">${CONFIG_CLIENTE.nomeEmpresa}</h1>
+                        <h1 id="vitrine-publica-empresa" class="text-2xl font-black text-emerald-400">Imóveis selecionados</h1>
 
-                        <p class="text-[11px] text-gray-400 uppercase tracking-widest mt-1">Vitrine de Imóveis Selecionados</p>
+                        <p id="vitrine-publica-sub" class="text-[13px] text-gray-300 mt-1">Separados para você</p>
 
                     </div>
 
                     <div id="external-showcase-container" class="space-y-4">
 
-                        <p class="text-xs text-center text-slate-400 py-12 animate-pulse">🔄 Carregando vitrine...</p>
+                        <p class="text-xs text-center text-slate-400 py-12 animate-pulse">Carregando os imóveis…</p>
 
                     </div>
 
@@ -609,11 +687,17 @@ export function montarAbaVitrine() {
 
                     imoveis = await resolverVitrinePublicaSupabase(urlParams.get('v'));
                     listIds = imoveis.map(function(i) { return i.id; });
+                    const empresaPublica = window.__rzVitrinePublicaEmpresa || '';
+                    if (empresaPublica) {
+                        document.getElementById('vitrine-publica-empresa').textContent = empresaPublica;
+                        document.getElementById('vitrine-publica-sub').textContent = 'Imóveis selecionados para você';
+                        document.title = empresaPublica + ' · Imóveis';
+                    }
 
                 } catch (e) {
 
                     document.getElementById('external-showcase-container').innerHTML =
-                        `<p class="text-xs text-center text-red-400 py-12"><svg data-lucide="alert-triangle" style="width:14px;height:14px;display:inline;vertical-align:-2px"></svg> Link inválido, expirado, ou falha ao carregar.<br>${e.message || ''}</p>`;
+                        `<p class="text-[13px] text-center text-red-300 py-12">Este link não abre mais: ele foi revogado, expirou ou está incompleto. Peça um novo a quem te enviou.</p>`;
                     return;
 
                 }
@@ -676,19 +760,22 @@ export function montarAbaVitrine() {
 
                         : '';
 
+                    const endPub = enderecoCurtoImovel(imo);
+                    const tituloPub = tituloImovelCompartilhar(imo);
+                    const subPub = imo.nomeExibicao ? [imo.tipo, imo.empreendimento].filter(Boolean).join(' · ') : '';
                     listContainer.innerHTML += `
 
                         <div class="bg-emerald-950 p-4 rounded-2xl border border-emerald-800">
 
-                            <span class="bg-emerald-900 text-emerald-100 text-[11px] font-bold px-2 py-0.5 rounded">${imo.tipo}</span>
+                            ${subPub ? `<span class="bg-emerald-900 text-emerald-100 text-[12px] font-bold px-2 py-0.5 rounded">${escV(subPub)}</span>` : ''}
 
-                            <h3 class="text-base font-bold mt-2">${imo.empreendimento}</h3>
+                            <h3 class="text-base font-bold mt-2">${escV(tituloPub)}</h3>
 
-                            <p class="text-xs text-slate-400">📍 ${imo.enderecoRua || ''}, ${imo.enderecoNum || ''}${imo.enderecoComp ? ' - ' + imo.enderecoComp : ''}, ${imo.enderecoBairro || ''}, ${imo.enderecoCidade || ''}</p>
+                            ${endPub ? `<p class="text-[13px] text-slate-300">📍 ${escV(endPub)}</p>` : ''}
 
-                            <p class="text-[11px] text-slate-500 mt-1">Tamanho: ${imo.tamanho}m²</p>
+                            ${Number(imo.tamanho) > 0 ? `<p class="text-[12px] text-slate-400 mt-1">${moedaV(imo.tamanho)} m²</p>` : ''}
 
-                            ${imo.descricao ? `<p class="text-[11px] text-slate-300 mt-2 italic">${imo.descricao}</p>` : ''}
+                            ${imo.descricao ? `<p class="text-[13px] text-slate-300 mt-2">${escV(imo.descricao)}</p>` : ''}
 
                             ${badgeEnergia}
 
@@ -696,9 +783,9 @@ export function montarAbaVitrine() {
 
                             <div class="mt-3 pt-3 border-t border-emerald-900 flex justify-between items-baseline">
 
-                                <span class="text-[11px] text-slate-400">Locação Integral</span>
+                                <span class="text-[12px] text-slate-400">Aluguel</span>
 
-                                <span class="text-lg font-black text-emerald-400">R$ ${imo.valor.toLocaleString('pt-BR')}/mês</span>
+                                <span class="text-lg font-black text-emerald-400">${Number(imo.valor) > 0 ? 'R$ ' + moedaV(imo.valor) + '/mês' : 'Sob consulta'}</span>
 
                             </div>
 
@@ -712,7 +799,7 @@ export function montarAbaVitrine() {
 
             if (exibidos === 0) {
 
-                listContainer.innerHTML = '<p class="text-xs text-center text-red-400 py-12">Nenhum imóvel disponível para exibição direta.</p>';
+                listContainer.innerHTML = '<p class="text-[13px] text-center text-slate-300 py-12">Os imóveis deste link não estão mais disponíveis.</p>';
 
             }
 
@@ -766,7 +853,7 @@ export function montarAbaVitrine() {
 
                         <div>
 
-                            <h1 class="text-2xl font-black text-emerald-400 mb-2">${CONFIG_CLIENTE.nomeEmpresa}</h1>
+                            <h1 class="text-2xl font-black text-emerald-400 mb-2">${escV(window.__rzVitrinePublicaEmpresa || 'Até logo')}</h1>
 
                             <p class="text-sm text-slate-300">Você já pode fechar esta aba.</p>
 
