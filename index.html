@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.325.1
-   LINHAS: 17247
-   DATA: 08/10/2026 (sessão 20261008-0825-financeiro, demanda f3e6cd27)
+   VERSÃO: Beta v1.326.0
+   LINHAS: 17267
+   DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demanda b8602a3a)
+   NOVIDADES (Beta v1.326.0) — UX F2.7c-1, menu ⚙️ › Conta (de acordo do Nicola 08/10 12:51). A tela
+   Sobre sai do app: "Suporte" vira sheet com WhatsApp, e-mail, página de contatos da Raiz, sugestão
+   (feedback + demanda de suporte) e rodapé com versão e termos (abrirSuporte, comum-sobre.js);
+   switchTab('tab-sobre') abre o Suporte. Contratar e convidar foram para Licença e uso. Minhas
+   notificações vira sheet (era overlay próprio, z-index 470) com interruptor .rz-switch. Versões com
+   textos no padrão. As abas principais não mostram mais o "‹" (RZ_SEM_VOLTAR_GLOBAL). CSS novo:
+   .rz-uso-bar, .rz-switch, .rz-pref. Import map: comum-licenca.js 1.6.0, comum-sobre.js 1.4.0.
+   Nenhum objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.325.1):
    NOVIDADES (Beta v1.325.1) — só import map: financeiro.js 1.38.1 (importar fatura relê as contas;
    cartão recém-cadastrado aparece sem precisar recarregar o app).
    Versão anterior (Beta v1.325.0):
@@ -37,13 +46,8 @@
    vazio. Import map: cofre-ativos.js 1.78.0, contratos.js 1.45.0, ativos-markup.js 1.53.0. Nenhum
    objeto de banco criado por este arquivo.
    Versão anterior (Beta v1.322.1):
-   NOVIDADES (Beta v1.322.1) — catálogo único (de acordo do Nicola 07/10 20:02): "Criar o ativo a partir
-   deste documento" sugere o tipo de ativo pela aplicabilidade do catálogo (e pela IA), não mais pelo
-   campo antigo nem por nomes de categoria anteriores à fatia B. Só import map: cofre-documentos 2.31.2 →
-   2.32.0.
-   Versão anterior (Beta v1.322.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.322.0 … v1.322.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.322.1 … v1.322.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -68,7 +72,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.33.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.3","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.205.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.2","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.33.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.205.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -698,6 +702,19 @@
         .rz-empty .rz-acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
         /* v1.323.0 — vazio que convida (rzVazio): fundo em gradiente do tema, ilustração leve por
            assunto, benefício em 1 frase, Raiz IA primeiro e cadastro manual depois */
+        /* v1.326.0 — barra de uso dos limites do plano (Licença) e interruptor liga/desliga
+           (Minhas notificações): estado em aria-checked, nada de cor em style="" */
+        .rz-row.rz-uso .rz-tx span{white-space:normal}
+        .rz-uso-bar{height:6px;border-radius:3px;background:var(--tile);margin-top:8px;overflow:hidden}
+        .rz-uso-bar i{display:block;height:100%;border-radius:3px;background:var(--success)}
+        .rz-uso-bar i.rz-warn{background:var(--warning)} .rz-uso-bar i.rz-bad{background:var(--danger)}
+        .rz-switch{position:relative;flex:none;width:52px;height:32px;border:0;background:none;padding:0;cursor:pointer}
+        .rz-switch::before{content:"";position:absolute;left:4px;top:4px;width:44px;height:24px;border-radius:12px;background:var(--line);transition:background .15s}
+        .rz-switch::after{content:"";position:absolute;left:6px;top:6px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+        .rz-switch[aria-checked="true"]::before{background:var(--sprout)} .rz-switch[aria-checked="true"]::after{left:26px}
+        .rz-switch:disabled{opacity:.5}
+        .rz-pref .rz-tx b{white-space:normal;font-weight:500;font-size:15px}
+        .rz-pref select{width:auto;flex:none}
         .rz-vazio{text-align:center;padding:22px 16px 18px;border-radius:var(--r-card);border:1px solid var(--line);background:linear-gradient(165deg,var(--card) 0%,var(--tile) 100%)}
         .rz-vazio .rz-vz-ilu{display:block;width:112px;height:84px;margin:0 auto 10px;color:var(--sage)}
         .rz-vazio .rz-vz-a{fill:var(--paper)} .rz-vazio .rz-vz-b{fill:var(--brass-light)} .rz-vazio .rz-vz-c{fill:var(--pine)}
@@ -3694,7 +3711,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.325.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.326.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4079,7 +4096,7 @@
         // Bot: edge_function_versoes (já existia).
         // ==================================================================
         async function abrirVersoesDev() {
-            const sheet = abrirSheet(rzSheetCabecalho('Versões', 'O que deveria estar no ar × o que está rodando') + '<div class="rz-sh-b" id="rz-versoes-corpo"><p class="text-xs text-slate-500">Conferindo…</p></div>');
+            const sheet = abrirSheet(rzSheetCabecalho('Versões', 'O que deveria estar no ar × o que está rodando') + '<div class="rz-sh-b" id="rz-versoes-corpo"><p class="rz-desc">Conferindo…</p></div>');
             const corpo = sheet.querySelector('#rz-versoes-corpo');
             const ts = Date.now();
             let esperado = null;
@@ -4111,7 +4128,7 @@
             const alertas = linhas.filter(l => l.st === 'warn').length;
             corpo.innerHTML = `
                 <div class="rz-card ${alertas ? 'rz-atencao' : ''}" style="margin-bottom:12px"><div class="rz-card-h"><h3>${alertas ? alertas + ' arquivo' + (alertas > 1 ? 's' : '') + ' fora do esperado' : 'Tudo em dia'}</h3>${renderStatus(alertas ? 'warn' : 'ok', alertas ? 'Atenção' : 'OK')}</div>
-                    <p class="text-xs text-slate-500">${esperado ? 'versoes.json gerado em ' + rzEsc(esperado.gerado_em) : 'versoes.json ainda não publicado — rode o deploy v1.132'}</p>
+                    <p class="rz-desc">${esperado ? 'Registro de versões gerado em ' + rzEsc(esperado.gerado_em) : 'Registro de versões ainda não publicado.'}</p>
                     ${alertas ? '<button type="button" class="rz-btn rz-btn-2 rz-wide" style="margin-top:8px" onclick="rzRecarregarModulos()"><svg data-lucide="refresh-cw"></svg> Recarregar módulos</button>' : ''}</div>
                 <div class="rz-card rz-list">${linhas.map(l => `<div class="rz-row"><div class="rz-tx"><b>${rzEsc(l.arq)}</b><span>esperado ${rzEsc(l.esp)} · site ${rzEsc(l.site || '?')} · rodando ${rzEsc(l.carregada || '—')}</span></div><div class="rz-rt">${renderStatus(l.st, l.motivo)}</div></div>`).join('')}</div>
                 <p style="font-size:13px;font-weight:700;color:var(--pine);margin:12px 0 6px">Bot e functions</p>
@@ -9003,7 +9020,7 @@
             if (!mount) return;
             try {
                 const { montarAbaLicenca } = await import('./js/comum-licenca.js');
-                await montarAbaLicenca(mount, { dbAuth, clienteId: CLIENTE_ID_SUPABASE, toast: mostrarToast });
+                await montarAbaLicenca(mount, { dbAuth, clienteId: CLIENTE_ID_SUPABASE, pessoaId: pessoaIdLogada, toast: mostrarToast });
             } catch (err) {
                 console.warn('Falha ao carregar js/comum-licenca.js:', err.message);
                 mount.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar a tela de Licença agora.</p>';
@@ -9507,11 +9524,27 @@
             'tab-sobre': 'Sobre', 'tab-contrato-ficha': 'Contrato', 'tab-relatorios-catalogo': 'Relatórios', 'tab-socios': 'Distribuição',
         };
         // telas que já têm o próprio "voltar" no topo — sem atalho duplicado
-        var RZ_SEM_VOLTAR_GLOBAL = ['tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine']; // v1.303.0 — tab-alertas saiu (aba primária)
+        // Abas principais (barra inferior) nunca mostram o "‹": quem volta é a própria barra ou o
+        // voltar do celular. Só tela secundária tem "‹ Pai". (dem b8602a3a)
+        var RZ_SEM_VOLTAR_GLOBAL = ['tab-inadimplencia', 'tab-contrato-ficha', 'tab-vitrine', 'tab-geral', 'tab-ativos', 'tab-contratos', 'tab-mensal', 'tab-alertas'];
         // var (não let/const): switchTab pode ser chamada no boot antes desta linha ser avaliada
         var rzNavPorRodape = false, rzNavVoltando = false, rzNavEstado = null;
 
+        // Suporte: sheet com WhatsApp, e-mail, página de contatos, sugestão e rodapé de versão e
+        // termos (js/comum-sobre.js). A tela Sobre não existe mais no app; quem ainda chamar
+        // tab-sobre cai aqui. Sem o módulo, cai no WhatsApp da Raiz. (dem b8602a3a)
+        async function abrirSuporte() {
+            try {
+                const { abrirSuporte: abrir } = await import('./js/comum-sobre.js');
+                abrir({ abrirSheet, cabecalho: rzSheetCabecalho, dbAuth, clienteId: CLIENTE_ID_SUPABASE, pessoaId: pessoaIdLogada, appVersao: APP_VERSAO, onToast: mostrarToast });
+            } catch (err) {
+                console.warn('[suporte] módulo indisponível:', err.message);
+                rzDev('whatsapp', '5511947461828');
+            }
+        }
+
         function switchTab(tabId) {
+            if (tabId === 'tab-sobre') { abrirSuporte(); return; }
             const anterior = document.querySelector('.tab-content.active')?.id || null;
             rzRolagemGuardar(anterior); // v1.299.0 (UX F1.3) — cada aba guarda onde estava
             rzSwitchTabInterno(tabId);
@@ -10264,9 +10297,8 @@
                     { titulo: 'Conta', acoes: [
                         { icone: 'package-check', titulo: 'Versões', sub: 'Versão do app em uso', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
                         { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
-                        { icone: 'life-buoy', titulo: 'Suporte pelo WhatsApp', aoTocar: () => rzDev('whatsapp', '5511947461828') },
+                        { icone: 'life-buoy', titulo: 'Suporte', sub: 'WhatsApp, e-mail e sugestões', aoTocar: abrirSuporte },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
-                        { icone: 'info', titulo: 'Sobre', aoTocar: ir('tab-sobre') },
                         { icone: 'log-out', titulo: 'Sair', aoTocar: fazerLogoutSupabase }
                     ]}
                 ]
@@ -10464,26 +10496,20 @@
         // pelo ⋮ de cada pessoa (Sheet de formulário) — não desapareceu,
         // só mudou de superfície. Esta tela ("Minhas notificações")
         // continua sendo sobre "eu mesmo" e não muda.
+        // Minhas notificações: sheet único (era um overlay próprio com z-index fora da tabela).
+        // Cada interruptor grava na hora; o estado vive em aria-checked. (dem b8602a3a)
         async function abrirPreferenciasComunicacao() {
-            let overlay = document.getElementById('overlay-preferencias-comunicacao');
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'overlay-preferencias-comunicacao';
-                overlay.style.cssText = 'position:fixed;inset:0;z-index:470;background:rgba(23,33,30,.5);display:flex;align-items:flex-end;justify-content:center;padding:0';
-                overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-                document.body.appendChild(overlay);
-            }
-            overlay.innerHTML = `<div style="width:100%;max-width:480px;background:var(--paper,#faf9f5);border-radius:18px 18px 0 0;max-height:80vh;overflow-y:auto;padding:20px">
-                <h3 style="font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:800;color:var(--ink,#17211e);margin:0 0 4px">Minhas notificações</h3>
-                <p style="font-size:12px;color:var(--sage,#6b857a);margin:0 0 16px">O que você recebe automaticamente da Raiz — alertas do seu patrimônio e comunicações da equipe.</p>
-
-                <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 2px">Alertas e avisos automáticos</p>
-                <p style="font-size:12px;color:var(--sage,#6b857a);margin:0 0 8px">Envios por WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 05.</p>
-                <div id="lista-preferencias-alertas" style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px">Carregando...</div>
-
-                <p style="font-size:12px;font-weight:700;color:var(--ink,#17211e);margin:0 0 8px;padding-top:8px;border-top:1px solid var(--line,#e6e3da)">Comunicações da Raiz</p>
-                <div id="lista-preferencias-comunicacao" style="display:flex;flex-direction:column;gap:2px">Carregando...</div>
-            </div>`;
+            abrirSheet(rzSheetCabecalho('Minhas notificações', 'O que você recebe automaticamente da Raiz') + `<div class="rz-sh-b">
+                <div class="rz-card">
+                    <div class="rz-card-h"><h3>Alertas e avisos automáticos</h3></div>
+                    <p class="rz-desc">Pelo WhatsApp, pela manhã. Semanais saem às segundas; mensais, no dia 5.</p>
+                    <div id="lista-preferencias-alertas">${typeof rzSkeletonSeguro === 'function' ? rzSkeletonSeguro('linhas', 2) : ''}</div>
+                </div>
+                <div class="rz-card">
+                    <div class="rz-card-h"><h3>Comunicações da Raiz</h3></div>
+                    <div id="lista-preferencias-comunicacao">${typeof rzSkeletonSeguro === 'function' ? rzSkeletonSeguro('linhas', 2) : ''}</div>
+                </div>
+            </div>`);
 
             // Seção 1 — alertas (reaproveita comum-pessoas.js; pessoaIdLogada,
             // não uma pessoa escolhida numa lista — esta tela é sempre sobre
@@ -10496,7 +10522,7 @@
                 ]);
                 const listaAlertas = document.getElementById('lista-preferencias-alertas');
                 if (!proativas.length) {
-                    listaAlertas.innerHTML = '<p style="font-size:13px;color:var(--sage,#6b857a);padding:4px 0">Nenhum aviso automático disponível no seu plano.</p>';
+                    listaAlertas.innerHTML = '<p class="rz-desc" style="margin-top:8px">Nenhum aviso automático disponível no seu plano.</p>';
                 } else {
                     // v1.201.0 — mesmo padrão visual/comportamental do toggle de
                     // "Comunicações da Raiz" logo abaixo: cada aviso salva na
@@ -10508,14 +10534,11 @@
                         const habilitado = pref ? pref.habilitado : true;
                         const frequencia = pref ? pref.frequencia : 'semanal';
                         const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
-                        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#e6e3da)">
-                            <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${rzEsc(f.descricao)}</span>
-                            <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" style="font-size:12px;border:1px solid var(--line,#e6e3da);border-radius:6px;padding:2px 4px;flex:none" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
-                            <button type="button" class="pref-alerta-toggle" data-codigo="${f.codigo}" data-habilitado="${habilitado ? '1' : '0'}"
-                                onclick="alternarPreferenciaAlerta(this)"
-                                style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;flex:none;background:${habilitado ? 'var(--sprout,#3f8163)' : '#d7d2c4'};transition:background .15s">
-                                <span style="position:absolute;top:2px;left:${habilitado ? '22px' : '2px'};width:20px;height:20px;border-radius:999px;background:#fff;transition:left .15s"></span>
-                            </button>
+                        return `<div class="rz-row rz-pref">
+                            <div class="rz-tx"><b>${rzEsc(f.descricao)}</b></div>
+                            <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" aria-label="Frequência" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
+                            <button type="button" role="switch" class="rz-switch pref-alerta-toggle" data-codigo="${f.codigo}" data-habilitado="${habilitado ? '1' : '0'}"
+                                aria-checked="${habilitado ? 'true' : 'false'}" aria-label="${rzEsc(f.descricao)}" onclick="alternarPreferenciaAlerta(this)"></button>
                         </div>`;
                     }).join('');
                     listaAlertas.querySelectorAll('.pref-alerta-frequencia').forEach(sel => {
@@ -10523,7 +10546,8 @@
                     });
                 }
             } catch (err) {
-                document.getElementById('lista-preferencias-alertas').innerHTML = '<p style="font-size:13px;color:#c1463a;padding:4px 0">Não foi possível carregar seus avisos agora.</p>';
+                const elA = document.getElementById('lista-preferencias-alertas');
+                if (elA) elA.innerHTML = '<p class="rz-desc" style="margin-top:8px;color:var(--danger)">Não foi possível carregar seus avisos agora.</p>';
                 console.warn('[minhas-notificacoes] falha ao carregar alertas:', err.message);
             }
 
@@ -10534,20 +10558,18 @@
                 if (error) throw error;
                 const lista = document.getElementById('lista-preferencias-comunicacao');
                 if (!data || !data.length) {
-                    lista.innerHTML = '<p style="font-size:13px;color:var(--sage,#6b857a);padding:8px 0">Nenhuma preferência configurável no momento.</p>';
+                    lista.innerHTML = '<p class="rz-desc">Nenhuma preferência configurável no momento.</p>';
                     return;
                 }
                 lista.innerHTML = data.map(item => `
-                    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line,#e6e3da)">
-                        <span style="flex:1;font-size:13.5px;color:var(--ink,#17211e)">${item.titulo || (item.codigos && item.codigos[0])}</span>
-                        <button data-plano-id="${item.plano_id}" data-ordem="${item.ordem}" data-atual="${item.optou_out ? '1' : '0'}"
-                            onclick="alternarPreferenciaComunicacao(this)"
-                            style="border:0;border-radius:999px;width:44px;height:24px;position:relative;cursor:pointer;background:${item.optou_out ? '#d7d2c4' : 'var(--sprout,#3f8163)'};transition:background .15s">
-                            <span style="position:absolute;top:2px;left:${item.optou_out ? '2px' : '22px'};width:20px;height:20px;border-radius:999px;background:#fff;transition:left .15s"></span>
-                        </button>
+                    <div class="rz-row rz-pref">
+                        <div class="rz-tx"><b>${rzEsc(item.titulo || (item.codigos && item.codigos[0]) || '')}</b></div>
+                        <button type="button" role="switch" class="rz-switch" data-plano-id="${item.plano_id}" data-ordem="${item.ordem}" data-atual="${item.optou_out ? '1' : '0'}"
+                            aria-checked="${item.optou_out ? 'false' : 'true'}" aria-label="${rzEsc(item.titulo || '')}" onclick="alternarPreferenciaComunicacao(this)"></button>
                     </div>`).join('');
             } catch (err) {
-                document.getElementById('lista-preferencias-comunicacao').innerHTML = '<p style="font-size:13px;color:#c1463a;padding:8px 0">Não foi possível carregar suas preferências agora.</p>';
+                const elC = document.getElementById('lista-preferencias-comunicacao');
+                if (elC) elC.innerHTML = '<p class="rz-desc" style="color:var(--danger)">Não foi possível carregar suas preferências agora.</p>';
                 console.warn('[preferencias-comunicacao] falha ao carregar:', err.message);
             }
         }
@@ -10566,8 +10588,7 @@
                 const { error } = await dbAuth.rpc('fn_definir_opt_out_comunicacao_grupo', { p_plano_id: planoId, p_ordem: ordem, p_cliente_id: CLIENTE_ID_SUPABASE, p_optar_out: optarOutAgora });
                 if (error) throw error;
                 btn.dataset.atual = optarOutAgora ? '1' : '0';
-                btn.style.background = optarOutAgora ? '#d7d2c4' : 'var(--sprout)';
-                btn.querySelector('span').style.left = optarOutAgora ? '2px' : '22px';
+                btn.setAttribute('aria-checked', optarOutAgora ? 'false' : 'true');
             } catch (err) {
                 mostrarToast('Não foi possível salvar sua preferência.', 'danger');
                 console.warn('[preferencias-comunicacao] falha ao alternar:', err.message);
@@ -10605,8 +10626,7 @@
             btn.disabled = true;
             await salvarPreferenciaAlerta(codigo, novoHabilitado, frequencia);
             btn.dataset.habilitado = novoHabilitado ? '1' : '0';
-            btn.style.background = novoHabilitado ? 'var(--sprout)' : '#d7d2c4';
-            btn.querySelector('span').style.left = novoHabilitado ? '22px' : '2px';
+            btn.setAttribute('aria-checked', novoHabilitado ? 'true' : 'false');
             if (sel) sel.disabled = !novoHabilitado;
             btn.disabled = false;
         }

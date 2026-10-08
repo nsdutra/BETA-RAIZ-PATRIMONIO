@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.322.1) — catálogo único (de acordo do Nicola 07/10 20:02): "Criar o ativo a partir
+deste documento" sugere o tipo de ativo pela aplicabilidade do catálogo (e pela IA), não mais pelo
+campo antigo nem por nomes de categoria anteriores à fatia B. Só import map: cofre-documentos 2.31.2 →
+2.32.0.
+Versão anterior (Beta v1.322.0):
+------------------------------------------------------------------
+Versões anteriores (v1.322.0 … v1.322.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.322.0) — P5a.2, cartão de crédito (plano P5 v1.3.0, de acordo do Nicola 07/10
 18:45): só import map — financeiro.js 1.38.0 (sugestão no padrão da conciliação, voltar para em
 aberto, resumo da conciliação da compra, reimportação com conferência, cartão fora das contas de

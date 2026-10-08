@@ -1,6 +1,19 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.5.3 · 07/10/2026
+// Versão: 1.6.0 · 08/10/2026
+//
+// v1.6.0 (UX F2.7c-1, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-1 aprovado pelo Nicola 08/10 12:51) — a tela Sobre saiu do
+// app e o que era de plano veio para cá:
+//   · "Contratar e convidar" (teste): "Quero contratar" pelo WhatsApp e o convite para o mesmo teste
+//     (até 5 pessoas); licença paga: "Indicar o Raiz". htmlContratarConvidar/ligarContratarConvidar são
+//     exportadas e a Sobre do cofre.html usa as mesmas (uma fonte só).
+//   · "Dúvidas sobre o plano?" leva à página de contatos da Raiz (LINK_CONTATOS_RAIZ, raizpatrimonio.com.br/#falar).
+//   · Tela no padrão: descrição no topo, status do plano numa das 5 semânticas, plano e vigência em
+//     .rz-kv, limites em linhas com barra .rz-uso-bar; sem texto abaixo de 12 px nem cor Tailwind;
+//     esqueleto no carregamento. ctx ganha pessoaId (log do convite).
+//   · Vigência e dias restantes leem a data como dia local (antes mostravam um dia a menos).
+//
+// Versão anterior: 1.5.3 · 07/10/2026
 //
 // v1.5.2 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -42,25 +55,11 @@
 //     que não têm porta própria (cofre.html standalone): publica
 //     window.podeUsar/rzMostrarBloqueio e recarrega ao voltar para a aba.
 // O index.html passou a delegar para cá (v1.248.0): uma lógica só (CAN-03).
-//
-// Versão anterior: 1.3.1 · 07/09/2026
-//
-// v1.3.1 — CORREÇÃO: a v1.3.0 fazia select('...cota_tipo') direto em
-// `funcionalidades`, coluna derrubada horas depois na unificação com
-// comercial.categoria_licenca (migration
-// unificar_categoria_licenca_fn_uso_funcionalidade_v1). O select falhava
-// (capturado pelo try/catch), então TODA linha caía no fallback: nome
-// técnico bruto em vez de nome comercial, e "mensal" pra tudo (a Rumo
-// mostraria "49/50 no mês" em vez de "49/50 em uso"). Corrigido: busca só
-// nome_comercial ali; cota_tipo agora deriva de id_categoria (que já vem
-// de plano_funcionalidade) + comercial.categoria_licenca.item, com a
-// MESMA regra que fn_funcionalidades_liberadas usa no banco.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.5.3'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.6.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -286,78 +285,144 @@ async function buscarFuncionalidadesDoPlano(dbAuth, clienteId, licenca) {
 // ----------------------------------------------------------------------------
 
 const NOMES_MODULO = { imoveis: 'Imóveis', cofre: 'Cofre de Documentos', gestao: 'Gestão' };
+const NOMES_PLANO = { trial: 'Teste grátis', standard: 'Standard', plus: 'Plus', premium: 'Premium' };
+const WHATSAPP_RAIZ = '5511947461828';
+const SITE_RAIZ = 'https://www.raizpatrimonio.com.br';
+// Página de contatos da Raiz: Licença e Suporte apontam para o mesmo endereço.
+export const LINK_CONTATOS_RAIZ = SITE_RAIZ + '/#falar';
+const VAGAS_TESTE = 5;
+
+function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function nomePlano(codigo) {
+    return NOMES_PLANO[codigo] || (codigo ? codigo.charAt(0).toUpperCase() + codigo.slice(1) : '—');
+}
+// Data só com dia (AAAA-MM-DD) é lida como meia-noite UTC e no Brasil vira o dia anterior;
+// por isso monta a data local a partir das partes.
+function dataLocal(v) {
+    if (!v) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v));
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(v);
+}
+function diasAte(data) {
+    if (!data) return null;
+    return Math.ceil((dataLocal(data) - new Date()) / 86400000);
+}
+// Status do plano numa das 5 semânticas (REGRAS §9): o número de dias é o rótulo.
+function statusLicenca(l) {
+    const dias = diasAte(l.data_expiracao);
+    if (l.status && l.status !== 'ativo') return { cls: 'rz-bad', txt: l.status.charAt(0).toUpperCase() + l.status.slice(1) };
+    if (dias !== null && dias <= 0) return { cls: 'rz-bad', txt: 'Vencido' };
+    if (dias !== null && dias <= 15) return { cls: 'rz-warn', txt: `Vence em ${dias} d` };
+    return { cls: 'rz-ok', txt: 'Ativo' };
+}
+
+async function registrarLogLicenca(dbAuth, clienteId, pessoaId, acao, detalhe) {
+    try {
+        await dbAuth.from('log_acessos').insert({ cliente_id: clienteId, pessoa_id: pessoaId || null, acao, detalhe: detalhe || {} });
+    } catch (err) {
+        console.warn('[comum-licenca] Falha ao registrar log:', err.message);
+    }
+}
+
+function linhaLink({ href, icone, titulo, sub, acao, ia }) {
+    return `<a class="rz-row rz-link" href="${esc(href)}" target="_blank" rel="noopener"${acao ? ` data-rz-lic-acao="${esc(acao)}"` : ''}>` +
+        `<div class="rz-ic${ia ? ' rz-ia' : ''}"><svg data-lucide="${esc(icone)}"></svg></div>` +
+        `<div class="rz-tx"><b>${esc(titulo)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>` +
+        `<svg data-lucide="chevron-right" class="rz-chev"></svg></a>`;
+}
+
+// Contratar e convidar. Em teste (licença com data de expiração): "Quero contratar" e o convite
+// para entrar no mesmo teste (até 5 pessoas, vaga conferida ao vivo). Licença paga: indicar o Raiz
+// a outra pessoa. Uma fonte só: a tela Sobre do cofre.html usa a mesma função.
+export async function htmlContratarConvidar(dbAuth, clienteId, licenca) {
+    if (!licenca) return '';
+    const linhas = [];
+    if (licenca.data_expiracao) {
+        linhas.push(linhaLink({
+            href: `https://wa.me/${WHATSAPP_RAIZ}?text=${encodeURIComponent('Oi! Testei o Raiz Patrimônio e quero contratar.')}`,
+            icone: 'zap', titulo: 'Quero contratar', sub: 'Fale com a Raiz pelo WhatsApp', acao: 'contratar',
+        }));
+        try {
+            const { count, error } = await dbAuth.from('pessoas').select('id', { count: 'exact', head: true }).eq('cliente_id', clienteId);
+            if (!error && count !== null) {
+                const vagas = VAGAS_TESTE - count;
+                if (vagas > 0) {
+                    // "?convite=" vem antes do "#": depois dele viraria fragmento, não parâmetro.
+                    const link = `${SITE_RAIZ}/?convite=${clienteId}#trial`;
+                    const msg = 'Oi! Estou testando o Raiz Patrimônio e você pode entrar no mesmo teste grátis comigo. É só clicar aqui e se cadastrar: ' + link;
+                    linhas.push(linhaLink({ href: `https://wa.me/?text=${encodeURIComponent(msg)}`, icone: 'share-2', titulo: 'Convidar alguém para o teste', sub: `${vagas} vaga${vagas === 1 ? '' : 's'} — entra na mesma empresa`, acao: 'convidar' }));
+                } else {
+                    linhas.push(`<div class="rz-row"><div class="rz-ic rz-neu"><svg data-lucide="users"></svg></div><div class="rz-tx"><b>Teste completo</b><span>As ${VAGAS_TESTE} vagas do teste já estão em uso</span></div></div>`);
+                }
+            }
+        } catch (err) {
+            console.warn('[comum-licenca] Falha ao checar vagas do teste:', err.message);
+        }
+    } else {
+        const msg = 'Uso o Raiz Patrimônio para cuidar do patrimônio e recomendo. Dá para testar grátis: ' + SITE_RAIZ + '/#trial';
+        linhas.push(linhaLink({ href: `https://wa.me/?text=${encodeURIComponent(msg)}`, icone: 'share-2', titulo: 'Indicar o Raiz', sub: 'Mande o link do teste grátis para quem também cuida de patrimônio', acao: 'indicar' }));
+    }
+    return `<div class="rz-card"><div class="rz-card-h"><h3>${licenca.data_expiracao ? 'Contratar e convidar' : 'Convidar'}</h3></div>${linhas.join('')}</div>`;
+}
+
+export function ligarContratarConvidar(raiz, { dbAuth, clienteId, pessoaId, licenca, origem } = {}) {
+    const LOG = { contratar: 'licenca.interesse_contratacao', convidar: 'licenca.convite_compartilhado', indicar: 'licenca.indicacao_compartilhada' };
+    (raiz || document).querySelectorAll('[data-rz-lic-acao]').forEach(el => el.addEventListener('click', () => {
+        const acao = LOG[el.dataset.rzLicAcao];
+        if (acao) registrarLogLicenca(dbAuth, clienteId, pessoaId, acao, { modulo: licenca?.modulo, origem: origem || 'licenca' });
+    }));
+}
 
 function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
-    const nomePlano = licenca.plano_codigo || '-';
-    const status = licenca.status ? licenca.status.charAt(0).toUpperCase() + licenca.status.slice(1) : '-'; // v1.2.0 — sentence case
-    const inicio = licenca.data_inicio ? new Date(licenca.data_inicio).toLocaleDateString('pt-BR') : '-';
-    const fim = licenca.data_expiracao ? new Date(licenca.data_expiracao).toLocaleDateString('pt-BR') : 'sem data de expiração';
+    const st = statusLicenca(licenca);
+    const inicio = licenca.data_inicio ? dataLocal(licenca.data_inicio).toLocaleDateString('pt-BR') : '—';
+    const fim = licenca.data_expiracao ? dataLocal(licenca.data_expiracao).toLocaleDateString('pt-BR') : 'sem data de término';
+    const titulo = mostrarRotuloModulo ? `Plano · ${esc(NOMES_MODULO[licenca.modulo] || licenca.modulo)}` : 'Plano atual';
 
-    const tituloModulo = mostrarRotuloModulo
-        ? `<p class="text-xs font-semibold mb-1" style="color:var(--muted)">${NOMES_MODULO[licenca.modulo] || licenca.modulo}</p>`
-        : '';
-
+    // Barra de uso na cor da semântica: 100% = perigo, a partir de 80% = atenção.
     const funcsHtml = funcionalidades.length === 0
-        ? '<p class="text-xs text-gray-500 text-center py-4">Este plano não tem funcionalidades com limite configurado.</p>'
+        ? '<p class="rz-desc">Este plano não tem limite configurado.</p>'
         : funcionalidades.map(f => {
             const pct = f.limite ? Math.min(100, Math.round((f.usado / f.limite) * 100)) : 0;
-            // v1.4.0 (02/09/2026) — barra de uso é status semântico
-            // (perigo/atenção/OK), token certo por definição (DS §14).
-            const corBarraStyle = pct >= 100 ? 'background:var(--danger)' : (pct >= 80 ? 'background:var(--warning)' : 'background:var(--success)');
-            return `
-                <div class="border-2 border-slate-300 rounded-xl p-2.5">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-xs font-bold text-slate-700">${f.rotulo} <span class="text-[10px] font-normal text-slate-400">· ${f.cotaTipo === 'estoque' ? 'em uso' : f.cotaTipo === 'bytes' ? 'MB' : 'no mês'}</span></span>
-                        <span class="text-[11px] font-bold ${pct >= 100 ? 'text-red-600' : pct >= 80 ? 'text-amber-600' : 'text-slate-500'}">${f.usado}${f.cotaTipo === 'bytes' ? ' MB' : ''} / ${f.limite}${f.cotaTipo === 'bytes' ? ' MB' : ''}</span>
-                    </div>
-                    <div class="w-full bg-gray-100 rounded-full h-1.5">
-                        <div class="h-1.5 rounded-full" style="width:${pct}%;${corBarraStyle}"></div>
-                    </div>
-                    ${f.limiteAviso ? `<p class="text-[10px] text-gray-400 mt-1">Aviso a partir de ${f.limiteAviso}</p>` : ''}
-                </div>`;
+            const sem = pct >= 100 ? 'rz-bad' : pct >= 80 ? 'rz-warn' : 'rz-ok';
+            const unidade = f.cotaTipo === 'bytes' ? ' MB' : '';
+            const conta = f.cotaTipo === 'estoque' ? 'em uso' : f.cotaTipo === 'bytes' ? 'de espaço' : 'no mês';
+            return `<div class="rz-row rz-uso">
+                <div class="rz-tx"><b>${esc(f.rotulo)}</b><span>${f.usado}${unidade} de ${f.limite}${unidade} ${conta}${f.limiteAviso ? ` · aviso a partir de ${f.limiteAviso}` : ''}</span>
+                <div class="rz-uso-bar"><i class="${sem}" style="width:${pct}%"></i></div></div>
+            </div>`;
         }).join('');
 
     return `
         <div class="rz-card">
-            ${tituloModulo}
-            <div class="rz-card-h"><h3>Plano atual</h3></div>
-            <div class="space-y-2">
-                <div class="flex justify-between items-center pb-2 border-b border-gray-200">
-                    <span class="text-sm text-slate-600">Plano</span>
-                    <span class="text-sm font-black" style="color:var(--pine)">${nomePlano}</span>
-                </div>
-                <div class="flex justify-between items-center pb-2 border-b border-gray-200">
-                    <span class="text-sm text-slate-600">Status</span>
-                    <span class="text-sm font-bold" style="color:var(--pine)">${status}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-slate-600">Vigência</span>
-                    <span class="text-sm font-bold text-slate-600">${inicio} até ${fim}</span>
-                </div>
+            <div class="rz-card-h"><h3>${titulo}</h3><span class="rz-st ${st.cls}">${esc(st.txt)}</span></div>
+            <div class="rz-kv">
+                <div><small>Plano</small><b>${esc(nomePlano(licenca.plano_codigo))}</b></div>
+                <div><small>Vigência</small><b>${esc(inicio)} até ${esc(fim)}</b></div>
             </div>
             ${licenca.modulo === 'imoveis' ? `<div class="rz-row rz-link" data-rz-renovar="1" style="margin-top:8px"><div class="rz-ic"><svg data-lucide="refresh-cw"></svg></div><div class="rz-tx"><b>Renovar ou ampliar o plano</b><span>Ver ofertas e pagar por Pix</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : ''}
         </div>
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Limites do plano</h3><span class="rz-sub">o que conta em cada cota está ao lado do nome</span></div>
-            <div class="space-y-3">${funcsHtml}</div>
+            <div class="rz-card-h"><h3>Limites do plano</h3></div>
+            ${funcsHtml}
         </div>`;
 }
 
-// Ponto de entrada da tela. mountEl = elemento container já presente no
-// DOM do host (ex.: <div id="mount-licenca"> dentro de <section
-// id="tab-licenca">, no index.html). ctx = { dbAuth, clienteId }.
-//
-// Chamar de novo a qualquer momento re-renderiza do zero (idempotente) —
-// mesmo comportamento de "sob demanda" que switchTab('tab-licenca') já
-// fazia em index.html chamando inicializarLicenca().
+const CARD_DUVIDAS = `<div class="rz-card"><div class="rz-card-h"><h3>Dúvidas sobre o plano?</h3></div>${linhaLink({ href: LINK_CONTATOS_RAIZ, icone: 'message-circle', titulo: 'Fale com a Raiz', sub: 'Contatos na página raizpatrimonio.com.br' })}</div>`;
+
+// Ponto de entrada da tela. mountEl = container do host (index.html: #mount-licenca).
+// ctx = { dbAuth, clienteId, pessoaId, toast }. Chamar de novo redesenha do zero.
 export async function montarAbaLicenca(mountEl, ctx) {
     if (!mountEl) return;
-    const { dbAuth, clienteId } = ctx || {};
+    const { dbAuth, clienteId, pessoaId } = ctx || {};
+    const topo = '<div class="rz-tabhead"><p>O plano da sua empresa, o quanto já foi usado, e como contratar, ampliar ou convidar alguém.</p></div>';
 
-    mountEl.innerHTML = '<p class="text-xs text-gray-500 text-center py-8">Carregando funcionalidades...</p>';
+    mountEl.innerHTML = topo + (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('cards', 2) : '<p class="rz-desc">Carregando…</p>');
 
     if (!clienteId || !dbAuth) {
-        mountEl.innerHTML = '<p class="text-xs text-gray-500 text-center py-8">Nenhuma empresa carregada.</p>';
+        mountEl.innerHTML = topo + '<div class="rz-card"><p class="rz-desc">Nenhuma empresa carregada.</p></div>';
         return;
     }
 
@@ -365,17 +430,13 @@ export async function montarAbaLicenca(mountEl, ctx) {
         const licencas = await listarLicencasDoCliente(dbAuth, clienteId);
 
         if (licencas.length === 0) {
-            mountEl.innerHTML = `
-                <div class="rz-card">
-                    <div class="rz-card-h"><h3>Plano atual</h3></div>
-                    <p class="text-sm text-gray-500 text-center py-4">Nenhuma licença encontrada para esta empresa.</p>
-                </div>`;
+            mountEl.innerHTML = topo + `
+                <div class="rz-card"><div class="rz-empty"><div class="rz-ic"><svg data-lucide="badge-check"></svg></div><p>Nenhum plano encontrado para esta empresa. Fale com a Raiz para ativar o seu.</p></div></div>` + CARD_DUVIDAS;
+            if (typeof window !== 'undefined' && window.lucide) window.lucide.createIcons();
             return;
         }
 
-        // Rótulo de módulo só aparece quando há mais de 1 licença — pra
-        // quem tem só 'imoveis' (praticamente todo mundo hoje), a tela
-        // fica pixel-idêntica à versão anterior.
+        // Nome do módulo no título só quando há mais de uma licença.
         const mostrarRotuloModulo = licencas.length > 1;
 
         const blocos = await Promise.all(licencas.map(async (lic) => {
@@ -385,11 +446,15 @@ export async function montarAbaLicenca(mountEl, ctx) {
             } catch (err) {
                 console.warn('[comum-licenca] Falha ao carregar funcionalidades do módulo', lic.modulo, ':', err.message);
                 return cardLicencaHtml(lic, [], mostrarRotuloModulo) +
-                    '<p class="text-[11px] text-red-500 text-center -mt-2 mb-4">Não foi possível carregar as funcionalidades deste plano agora.</p>';
+                    '<p class="rz-desc" style="color:var(--danger);margin-bottom:12px">Não foi possível carregar os limites deste plano agora.</p>';
             }
         }));
 
-        mountEl.innerHTML = blocos.join('');
+        const principal = escolherLicencaPrincipal(licencas);
+        const convite = await htmlContratarConvidar(dbAuth, clienteId, principal);
+
+        mountEl.innerHTML = topo + blocos.join('') + convite + CARD_DUVIDAS;
+        ligarContratarConvidar(mountEl, { dbAuth, clienteId, pessoaId, licenca: principal, origem: 'licenca' });
         mountEl.querySelectorAll('[data-rz-renovar]').forEach((el) => el.addEventListener('click', async () => {
             try {
                 const { abrirRenovacao } = await import('./comum-renovacao.js');
@@ -403,6 +468,6 @@ export async function montarAbaLicenca(mountEl, ctx) {
 
     } catch (err) {
         console.warn('[comum-licenca] Erro ao carregar Licença:', err.message);
-        mountEl.innerHTML = '<p class="text-xs text-red-500 text-center py-8">Não foi possível carregar as funcionalidades agora. Tente novamente em instantes.</p>';
+        mountEl.innerHTML = topo + '<div class="rz-card"><p class="rz-desc" style="color:var(--danger)">Não foi possível carregar o plano agora. Tente de novo em instantes.</p></div>';
     }
 }
