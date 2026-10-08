@@ -1,6 +1,11 @@
 // ============================================================================
 // cadastros.js — Raiz Patrimônio · Telas de cadastro do menu ⚙️
-// Versão: 1.1.0 · 04/10/2026
+// Versão: 1.2.0 · 08/10/2026
+//
+// v1.2.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
+// formulário de nome no padrão de campo (.rz-f, rótulo ligado ao campo); vazio do card sem "pra".
+//
+// Versão anterior: 1.1.0 · 04/10/2026
 //
 // v1.1.0 (UX F1.4a, demanda c71f617c, sessão 20261003-1707-ux-base; aprovada pelo Nicola 04/10 15:46) —
 // esqueleto no lugar de "Carregando…" nas listas de cadastro.
@@ -36,7 +41,7 @@
 //    index → acessíveis via window.
 // ============================================================================
 
-export const VERSAO = '1.1.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.2.0'; // v-check (06/09/2026): lido por Dev › Versões — manter igual ao header
 const db = () => window.__raizDbAuth;
 const ponte = () => window.__raizCadastrosPonte || {};
 
@@ -101,7 +106,7 @@ function render(chave) {
     if (!lista) return;
     const itens = cache[chave] || [];
     if (!itens.length) {
-        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="${cfg.icone}"></svg></div><p>Nenhum ${cfg.titulo} ainda. Toque no "+" pra cadastrar o primeiro.</p></div>`;
+        lista.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="${cfg.icone}"></svg></div><p>Nenhum ${cfg.titulo} ainda. Toque no "+" para cadastrar o primeiro.</p></div>`;
         if (window.rzIcones) window.rzIcones();
         return;
     }
@@ -133,8 +138,8 @@ function abrirFormNome(chave, item) {
         titulo: item ? 'Renomear ' + cfg.titulo : 'Novo ' + cfg.titulo,
         sub: item ? item.nome : '',
         rotuloSalvar: item ? 'Salvar' : 'Cadastrar',
-        corpo: `<label class="block text-xs font-bold text-gray-600">Nome</label>
-                <input type="text" id="cad-nome-input" value="${item ? (window.rzEsc ? window.rzEsc(item.nome) : item.nome) : ''}" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Ex.: ${chave === 'tipo-imovel' ? 'Apartamento' : 'Residencial Aurora'}">`,
+        corpo: `<div class="rz-f"><label for="cad-nome-input">Nome</label>
+                <input type="text" id="cad-nome-input" value="${item ? (window.rzEsc ? window.rzEsc(item.nome) : item.nome) : ''}" placeholder="Ex.: ${chave === 'tipo-imovel' ? 'Apartamento' : 'Residencial Aurora'}"></div>`,
         aoSalvar: async (el) => {
             const nome = (el.querySelector('#cad-nome-input')?.value || '').trim();
             if (!nome) { window.mostrarToast?.('Informe o nome.', 'danger'); return false; }

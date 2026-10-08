@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.33.0 · 08/10/2026
+// Versão: 2.34.0 · 08/10/2026
+//
+// v2.34.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
+// Documentos arquivados no app vira Sheet por cima da tela atual: linha com ⋮ (Restaurar · Vincular ·
+// Excluir de vez, este vermelho e por último). O modal antigo fica só para o cofre.html avulso.
+//
+// Versão anterior: 2.33.0 · 08/10/2026
 //
 // v2.33.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio de "Documentos
 // da empresa" diz o que se ganha e como começar (vazio dentro de card, REGRAS §0.7).
@@ -29,19 +35,11 @@
 // origem 'bot'; o sheet abre como "Leitura do WhatsApp" (sem "terminou enquanto o app estava fora") e
 // segue para o "Confira o que a IA leu" (ativo, vencimentos, "Criar o contrato"). Ao salvar, a leitura
 // guardada é apagada, como na retomada do app.
-//
-// Versão anterior: 2.30.0 · 07/10/2026
-//
-// v2.30.0 (demanda 6a1210a0, sessão 20261007-0226-leitura-tempo; pedido do Nicola 07/10 02:26: "levou
-// mais tempo, ajuste a expectativa") — tempos medidos no leitor em 07/10: documento simples 10–20 s;
-// contrato de locação 66 s (modelo maior + revisão). A tela passa a dizer "de 20 s a 1 min"; passado
-// 1 min, "Documento longo: ainda lendo, pode levar até 2 min". O limite antes de "Interrompida" sobe de
-// 90 s para 150 s (contrato de 1 min não chega perto). A barra anda numa escala de ~75 s.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.29.0 … v2.29.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.30.0 … v2.30.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.33.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.34.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -2256,21 +2254,65 @@ export async function excluirDocumentoAtual() {
 // ============================================================================
 let arquivadosCache = [];
 
+// No app (há abrirSheet) a lista é um Sheet; no cofre.html avulso, o modal de sempre.
+const arqNoSheet = () => typeof window !== 'undefined' && typeof window.abrirSheet === 'function' && typeof window.rzSheetCabecalho === 'function';
+const arqLista = () => document.getElementById(arqNoSheet() ? 'doc-arq-sheet' : 'doc-arq-lista');
+
 export async function abrirDocumentosArquivados() {
-    document.getElementById('doc-arq-lista').innerHTML = rzSk('linhas', 3);
-    abrirModal('modal-documentos-arquivados');
+    if (arqNoSheet()) {
+        window.abrirSheet(window.rzSheetCabecalho('Documentos arquivados', 'Ficam aqui até você excluir de vez') +
+            `<div class="rz-sh-b"><div class="rz-card rz-list" id="doc-arq-sheet">${rzSk('linhas', 3)}</div></div>`);
+    } else {
+        document.getElementById('doc-arq-lista').innerHTML = rzSk('linhas', 3);
+        abrirModal('modal-documentos-arquivados');
+    }
     try {
         arquivadosCache = await api.listarDocumentosArquivados(estado.clienteId);
         renderizarDocumentosArquivados();
     } catch (err) {
-        document.getElementById('doc-arq-lista').innerHTML = `<p class="text-xs" style="color:var(--danger)">Erro ao carregar: ${escapeHtml(err.message)}</p>`;
+        const el = arqLista();
+        if (el) el.innerHTML = `<div class="rz-empty"><p>Não consegui carregar agora. ${escapeHtml(err.message)}</p></div>`;
     }
 }
-export function fecharDocumentosArquivados() { fecharModal('modal-documentos-arquivados'); }
+export function fecharDocumentosArquivados() {
+    if (arqNoSheet()) { if (document.getElementById('doc-arq-sheet')) window.fecharSheet(); return; }
+    fecharModal('modal-documentos-arquivados');
+}
 
 function renderizarDocumentosArquivados() {
-    const el = document.getElementById('doc-arq-lista');
+    const el = arqLista();
     if (!el) return;
+    if (!arqNoSheet()) { renderizarArquivadosModal(el); return; }
+    if (!arquivadosCache.length) {
+        el.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="archive"></svg></div><p>Nenhum documento arquivado. O que você excluir na ficha de um documento fica aqui, e dá para restaurar.</p></div>`;
+        refrescarIcones();
+        return;
+    }
+    el.innerHTML = arquivadosCache.map(d => {
+        const semVinculo = !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0;
+        return `<div class="rz-row">
+            <div class="rz-ic rz-neu"><svg data-lucide="archive"></svg></div>
+            <div class="rz-tx"><b>${escapeHtml(d.nome_exibicao)}</b><span>Arquivado em ${formatarDataBR((d.excluido_em || '').slice(0, 10))}${semVinculo ? ' · sem vínculo' : ''}</span></div>
+            <button type="button" class="rz-more" data-doc-arq="${d.id}" aria-label="Ações do documento"><svg data-lucide="ellipsis-vertical"></svg></button>
+        </div>`;
+    }).join('');
+    el.querySelectorAll('[data-doc-arq]').forEach(b => b.addEventListener('click', () => abrirAcoesArquivado(b.getAttribute('data-doc-arq'))));
+    refrescarIcones();
+}
+
+// Ações de um arquivado, empilhadas sobre a lista: fechar volta à lista.
+function abrirAcoesArquivado(id) {
+    const d = arquivadosCache.find(x => x.id === id);
+    if (!d || typeof window.abrirSheetAcoes !== 'function') return;
+    const semVinculo = !d.cofre_documento_vinculos || d.cofre_documento_vinculos.length === 0;
+    const acoes = [{ icone: 'rotate-ccw', titulo: 'Restaurar', sub: 'Volta para onde estava', codigo: 'cofre.editar', aoTocar: () => restaurarDocumentoArquivado(id) }];
+    if (semVinculo) acoes.push({ icone: 'link', titulo: 'Vincular', sub: 'Restaura e liga a um ativo ou contrato', codigo: 'cofre.editar', aoTocar: () => vincularDocumentoArquivado(id) });
+    acoes.push({ icone: 'trash-2', titulo: 'Excluir de vez', sub: 'Apaga o arquivo; não dá para desfazer', codigo: 'cofre.excluir', tipo: 'bad', aoTocar: () => excluirDocumentoArquivadoDeVez(id) });
+    window.abrirSheetAcoes({ titulo: d.nome_exibicao, sub: 'Documento arquivado', acoes, empilhar: true });
+}
+
+// cofre.html avulso (sem Sheet): o mesmo modal de antes.
+function renderizarArquivadosModal(el) {
     if (!arquivadosCache.length) {
         el.innerHTML = `<p class="text-xs" style="color:var(--sage)">Nenhum documento arquivado.</p>`;
         return;
@@ -2311,6 +2353,7 @@ export async function vincularDocumentoArquivado(id) {
         arquivadosCache = arquivadosCache.filter(x => x.id !== id);
         renderizarDocumentosArquivados();
         fecharDocumentosArquivados();
+        if (arqNoSheet() && typeof window.switchTab === 'function') window.switchTab('tab-ativos'); // a ficha do documento abre no Cofre
         estado.documentos = await api.listarDocumentos(estado.clienteId);
         await abrirFichaDocumento(id);
         abrirVincularAgora();

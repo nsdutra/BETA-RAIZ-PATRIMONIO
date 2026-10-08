@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.325.0) — UX F2.7b, primeiro uso (plano F2.7 aprovado pelo Nicola 07/10 20:05).
+Envio de documento para a Raiz IA abre por cima da tela atual: cancelar volta para onde a pessoa
+estava (achado do Nicola no teste da F2.7a, 08/10 — de Contratos caía em Ativos); sem o módulo do
+Cofre montado, ele monta em segundo plano. Partes sem nenhuma parte e Alertas sem nenhum alerta
+("Tudo em dia") ganham a caixa rzVazio. Import map: cofre-ativos.js 1.79.0 (anexos do ativo),
+cofre-documentos.js 2.33.0 (documentos da empresa), comum-pessoas.js 1.205.0 (Pessoas). Nenhum
+objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.324.0):
+------------------------------------------------------------------
+Versões anteriores (v1.324.0 … v1.324.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.324.0) — Controles da empresa (item 2, plano aprovado pelo Nicola 07/10 20:14).
 ⚙️ › Minha empresa ganha o card "Controles da empresa", abaixo de "Documentos da empresa": lista
 os itens de controle da empresa (sem ativo), chip Encerrados, abre a mesma ficha do item e o

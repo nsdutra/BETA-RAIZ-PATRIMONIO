@@ -1,7 +1,15 @@
 // ============================================================================
 // minutas.js — Raiz Patrimônio · Minutas de contrato (modelos, placeholders,
 //               geração da minuta preenchida, minutização de um contrato real)
-// Versão: 1.2.0 · 04/10/2026
+// Versão: 1.3.0 · 08/10/2026
+//
+// v1.3.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
+// "Gerar de um contrato real" vira Sheet de 2 passos (o formulário fixo do index saiu); ajuda de
+// placeholders vira Sheet empilhado (antes abria ATRÁS do formulário da minuta, z-index 96 < 97);
+// escolha entre minutas aplicáveis vira Sheet de ações; formulário da minuta em .rz-f; lista vazia
+// vira o vazio que convida (IA lê um contrato real; manual: enviar o .docx).
+//
+// Versão anterior: 1.2.0 · 04/10/2026
 //
 // v1.2.0 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: 20 alert() e 2 confirm() viram
 // rzAvisar/rzPerguntar/rzResumo; excluir minuta em Sheet com item vermelho; a lista do que
@@ -78,7 +86,7 @@
 
 import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.1.0 — Fase 1 do wrapper de escrita
 
-export const VERSAO = '1.2.0'; // v-check: manter igual ao header
+export const VERSAO = '1.3.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-minutas'). */
 export function montarAbaMinutas() {
@@ -104,28 +112,70 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         // --- Wizard "Gerar de um contrato real" (Parte 3) ---
         let __minzEstado = null;
 
+        // Sheet de 2 passos: 1) nome, escopo e arquivo; 2) conferir o que a IA marcou.
+        // Os ids dos campos são os de sempre, então processar/confirmar leem igual.
         export function abrirWizardMinutizacao() {
             __minzEstado = null;
-            document.getElementById('minz-nome').value = '';
-            document.getElementById('minz-escopo').value = 'geral';
-            document.getElementById('minz-arquivo-input').value = '';
-            document.getElementById('minz-empreendimento-id').value = '';
-            document.getElementById('minz-tipo-imovel-id').value = '';
-            document.getElementById('minz-imovel-id').value = '';
-            document.getElementById('minz-imovel-resumo').textContent = '-- Escolha o Imóvel --';
+            if (typeof abrirSheet !== 'function') return;
+            const obrig = ' <i>*</i>';
+            abrirSheet(rzSheetCabecalho('Gerar minuta de um contrato real', 'Passo 1 de 2 · contrato e escopo') + `
+                <div class="rz-sh-b">
+                    <div id="minz-passo-1" class="rz-passo">
+                        <p class="rz-desc" style="margin-bottom:12px">Envie um contrato já assinado (Word ou PDF). A Raiz IA marca os dados que mudam de um contrato para outro — nomes, CPF, valores, datas — e você confere antes de salvar. O arquivo enviado não fica guardado: só o modelo, sem dado pessoal.</p>
+                        <div class="rz-f"><label for="minz-nome">Nome da minuta${obrig}</label>
+                            <input type="text" id="minz-nome" placeholder="Ex.: Locação comercial padrão"></div>
+                        <div class="rz-f"><label for="minz-escopo">Vale para${obrig}</label>
+                            <select id="minz-escopo" onchange="atualizarCampoEscopoMinz()">
+                                <option value="geral">A empresa toda</option>
+                                <option value="empreendimento">Um empreendimento</option>
+                                <option value="tipo_imovel">Um tipo de imóvel</option>
+                                <option value="imovel">Um imóvel</option>
+                            </select></div>
+                        <div class="rz-f hidden" id="minz-campo-empreendimento"><label for="minz-empreendimento-id">Empreendimento${obrig}</label>
+                            <select id="minz-empreendimento-id"></select></div>
+                        <div class="rz-f hidden" id="minz-campo-tipo"><label for="minz-tipo-imovel-id">Tipo de imóvel${obrig}</label>
+                            <select id="minz-tipo-imovel-id"></select></div>
+                        <div class="rz-f hidden" id="minz-campo-imovel"><label for="minz-imovel-resumo">Imóvel${obrig}</label>
+                            <input type="hidden" id="minz-imovel-id" value="">
+                            <button type="button" id="minz-imovel-resumo" class="rz-f-btn" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minz-imovel-id').value = id || ''; document.getElementById('minz-imovel-resumo').textContent = resumo || 'Escolha o imóvel'; })">Escolha o imóvel</button></div>
+                        <div class="rz-f"><label for="minz-arquivo-input">Contrato assinado (.docx ou .pdf)${obrig}</label>
+                            <input type="file" id="minz-arquivo-input" accept=".docx,.pdf"></div>
+                    </div>
+                    <div id="minz-passo-2" class="rz-passo hidden">
+                        <p class="rz-desc" style="margin-bottom:12px">Confira cada trecho que a Raiz IA marcou. Troque o campo se ela errou, ou escolha "(não substituir)" para o trecho ficar como está.</p>
+                        <div id="minz-lista-revisao"></div>
+                    </div>
+                </div>
+                <div class="rz-sh-f" id="minz-rodape-1">
+                    <button type="button" class="rz-btn rz-btn-2" onclick="fecharWizardMinutizacao()">Cancelar</button>
+                    <button type="button" class="rz-btn rz-btn-ia" onclick="processarArquivoMinutizacao()"><svg data-lucide="sparkles"></svg>Ler com a Raiz IA</button>
+                </div>
+                <div class="rz-sh-f hidden" id="minz-rodape-2">
+                    <button type="button" class="rz-btn rz-btn-2" onclick="voltarPasso1Minutizacao()">Voltar</button>
+                    <button type="button" class="rz-btn rz-btn-1" onclick="confirmarMinutizacao()">Gerar minuta</button>
+                </div>`, { aoFechar: () => { __minzEstado = null; } });
             popularFiltroSelectComId('minz-empreendimento-id', empreendimentosCadastrados);
             popularFiltroSelectComId('minz-tipo-imovel-id', tiposImovelCadastrados);
             atualizarCampoEscopoMinz();
-            document.getElementById('minz-passo-1').classList.remove('hidden');
-            document.getElementById('minz-passo-2').classList.add('hidden');
-            document.getElementById('form-minutizar-wrapper').classList.remove('hidden');
-            cancelarEdicaoMinuta();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (typeof rzIcones === 'function') rzIcones();
+            setTimeout(() => document.getElementById('minz-nome')?.focus(), 60);
         }
 
         export function fecharWizardMinutizacao() {
             __minzEstado = null;
-            document.getElementById('form-minutizar-wrapper').classList.add('hidden');
+            if (typeof fecharSheet === 'function') fecharSheet(true);
+        }
+
+        // Mostra o passo pedido no Sheet aberto (corpo, rodapé e subtítulo do cabeçalho).
+        function mostrarPassoMinz(n) {
+            document.getElementById('minz-passo-1')?.classList.toggle('hidden', n !== 1);
+            document.getElementById('minz-passo-2')?.classList.toggle('hidden', n !== 2);
+            document.getElementById('minz-rodape-1')?.classList.toggle('hidden', n !== 1);
+            document.getElementById('minz-rodape-2')?.classList.toggle('hidden', n !== 2);
+            const sub = document.querySelector('#rz-sheet .rz-sh-h .rz-sub');
+            if (sub) sub.textContent = n === 1 ? 'Passo 1 de 2 · contrato e escopo' : 'Passo 2 de 2 · confira os campos';
+            const corpo = document.querySelector('#rz-sheet .rz-sh-b');
+            if (corpo) corpo.scrollTop = 0;
         }
 
         export function atualizarCampoEscopoMinz() {
@@ -183,12 +233,11 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 esconderCarregamentoGlobal();
 
                 if (__minzEstado.sugestoes.length === 0) {
-                    mostrarToast('A IA não encontrou nenhum trecho reconhecível pra virar placeholder neste texto. Confere se o arquivo tem o conteúdo certo, ou cadastre a minuta manualmente.', 'aviso');
+                    mostrarToast('A Raiz IA não achou nenhum trecho que mude de contrato para contrato. Confira se o arquivo é o certo, ou cadastre o modelo .docx no "+".', 'aviso');
                 }
 
                 renderRevisaoMinutizacao();
-                document.getElementById('minz-passo-1').classList.add('hidden');
-                document.getElementById('minz-passo-2').classList.remove('hidden');
+                mostrarPassoMinz(2);
             } catch (err) {
                 esconderCarregamentoGlobal();
                 rzAvisar('Não consegui ler esse arquivo: ' + (err.message || String(err)), 'danger');
@@ -197,29 +246,23 @@ if (!window.__rzListenerEscritaMinutaLigado) {
 
         export function renderRevisaoMinutizacao() {
             const container = document.getElementById('minz-lista-revisao');
+            if (!container) return;
             if (!__minzEstado || __minzEstado.sugestoes.length === 0) {
-                container.innerHTML = '<p class="text-xs text-center text-gray-400 py-4">Nenhum trecho identificado.</p>';
+                container.innerHTML = '<div class="rz-empty"><p>Nenhum trecho identificado.</p></div>';
                 return;
             }
-            const opcoesHtmlBase = ['<option value="">(não substituir)</option>']
-                .concat(PLACEHOLDERS_MINUTA_OFICIAIS.map(p => `<option value="${p}">{{${p}}}</option>`))
-                .join('');
-
+            const rotuloConfianca = { alta: 'alta', media: 'média', baixa: 'baixa' };
             container.innerHTML = __minzEstado.sugestoes.map(function(s) {
-                const corConfianca = s.confianca === 'alta' ? 'raiz-text-pine' : (s.confianca === 'media' ? 'text-amber-700' : 'text-slate-500');
-                // monta as options de novo por linha só pra marcar o
-                // "selected" certo desta sugestão especificamente.
+                // options montadas por linha para marcar o "selected" desta sugestão
                 const opcoes = ['<option value="">(não substituir)</option>']
                     .concat(PLACEHOLDERS_MINUTA_OFICIAIS.map(function(p) {
                         return `<option value="${p}" ${p === s.placeholderEscolhido ? 'selected' : ''}>{{${p}}}</option>`;
                     })).join('');
                 return `
-                    <div class="border border-slate-200 rounded-xl p-2.5">
-                        <p class="text-xs font-bold text-slate-900 break-words">"${escaparAtributoHtmlMinz(s.trechoOriginal)}"</p>
-                        <p class="text-[11px] ${corConfianca} mt-0.5">Confiança da IA: ${s.confianca}</p>
-                        <select data-minz-id="${s.id}" onchange="atualizarPlaceholderEscolhidoMinz('${s.id}', this.value)" style="background:#f8fafc" class="w-full p-2 border rounded mt-1.5 text-xs">
-                            ${opcoes}
-                        </select>
+                    <div class="rz-f">
+                        <label for="minz-sel-${s.id}">"${escaparAtributoHtmlMinz(s.trechoOriginal)}"</label>
+                        <select id="minz-sel-${s.id}" data-minz-id="${s.id}" onchange="atualizarPlaceholderEscolhidoMinz('${s.id}', this.value)">${opcoes}</select>
+                        <span class="rz-hint">Certeza da Raiz IA: ${rotuloConfianca[s.confianca] || escaparAtributoHtmlMinz(s.confianca)}</span>
                     </div>`;
             }).join('');
         }
@@ -230,10 +273,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
             if (s) s.placeholderEscolhido = valor; // '' = não substituir
         }
 
-        export function voltarPasso1Minutizacao() {
-            document.getElementById('minz-passo-2').classList.add('hidden');
-            document.getElementById('minz-passo-1').classList.remove('hidden');
-        }
+        export function voltarPasso1Minutizacao() { mostrarPassoMinz(1); }
 
         // Aplica as substituições CONFIRMADAS (placeholderEscolhido não
         // vazio) no texto extraído — todas as ocorrências idênticas desse
@@ -290,7 +330,7 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 emitirEscrita('minuta', { id: dados.id, acao: 'gerar-de-contrato-real' }); // v1.1.0 — Fase 1 do wrapper de escrita
 
                 __minzEstado = null;
-                document.getElementById('form-minutizar-wrapper').classList.add('hidden');
+                if (typeof fecharSheet === 'function') fecharSheet(true);
 
                 saveAll(true, 'Minuta gerada a partir do contrato real!', ['minutasContrato']);
             } catch (err) {
@@ -314,32 +354,27 @@ if (!window.__rzListenerEscritaMinutaLigado) {
                 rotuloSalvar: 'Salvar',
                 corpo: `
                     <input type="hidden" id="minuta-id">
-                    <div><label class="block text-xs font-bold text-gray-600">Nome da minuta <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="minuta-nome" placeholder="Ex.: Locação comercial padrão" class="w-full p-2 border rounded mt-1 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-600">Escopo <span style="color:var(--danger)">*</span></label>
-                        <select id="minuta-escopo" onchange="atualizarCampoEscopoMinuta()" class="w-full p-2 border rounded mt-1 text-sm">
-                            <option value="geral">Geral (vale pra todos os imóveis)</option>
-                            <option value="empreendimento">Por empreendimento</option>
-                            <option value="tipo_imovel">Por tipo de imóvel</option>
-                            <option value="imovel">Por imóvel específico</option>
+                    <div class="rz-f"><label for="minuta-nome">Nome da minuta <i>*</i></label>
+                        <input type="text" id="minuta-nome" placeholder="Ex.: Locação comercial padrão"></div>
+                    <div class="rz-f"><label for="minuta-escopo">Vale para <i>*</i></label>
+                        <select id="minuta-escopo" onchange="atualizarCampoEscopoMinuta()">
+                            <option value="geral">A empresa toda</option>
+                            <option value="empreendimento">Um empreendimento</option>
+                            <option value="tipo_imovel">Um tipo de imóvel</option>
+                            <option value="imovel">Um imóvel</option>
                         </select></div>
-                    <div id="minuta-campo-empreendimento" class="hidden"><label class="block text-xs font-bold text-gray-600">Empreendimento <span style="color:var(--danger)">*</span></label>
-                        <select id="minuta-empreendimento-id" class="w-full p-2 border rounded mt-1 text-sm"></select></div>
-                    <div id="minuta-campo-tipo" class="hidden"><label class="block text-xs font-bold text-gray-600">Tipo de imóvel <span style="color:var(--danger)">*</span></label>
-                        <select id="minuta-tipo-imovel-id" class="w-full p-2 border rounded mt-1 text-sm"></select></div>
-                    <div id="minuta-campo-imovel" class="hidden"><label class="block text-xs font-bold text-gray-600">Imóvel <span style="color:var(--danger)">*</span></label>
+                    <div id="minuta-campo-empreendimento" class="rz-f hidden"><label for="minuta-empreendimento-id">Empreendimento <i>*</i></label>
+                        <select id="minuta-empreendimento-id"></select></div>
+                    <div id="minuta-campo-tipo" class="rz-f hidden"><label for="minuta-tipo-imovel-id">Tipo de imóvel <i>*</i></label>
+                        <select id="minuta-tipo-imovel-id"></select></div>
+                    <div id="minuta-campo-imovel" class="rz-f hidden"><label for="minuta-imovel-resumo">Imóvel <i>*</i></label>
                         <input type="hidden" id="minuta-imovel-id" value="">
-                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minuta-imovel-id').value = id; document.getElementById('minuta-imovel-resumo').textContent = resumo; })" class="w-full p-2 border rounded mt-1 text-sm text-left bg-white"><span id="minuta-imovel-resumo">-- Escolha o imóvel --</span></button></div>
-                    <div>
-                        <div class="flex items-center justify-between mt-1"><label class="block text-xs font-bold text-gray-600">Arquivo do modelo (.docx) <span style="color:var(--danger)">*</span></label>
-                        <button type="button" onclick="abrirAjudaPlaceholdersMinuta()" class="text-[11px] font-bold raiz-text-pine underline">Ver placeholders</button></div>
-                        <div id="minuta-arquivo-atual-info" class="hidden bg-slate-50 border border-slate-200 rounded-lg p-2 mt-1.5 mb-1 flex items-center justify-between gap-2">
-                            <span class="text-[11px] text-slate-600 truncate" id="minuta-arquivo-atual-nome"></span>
-                            <span class="text-[10px] text-slate-400 flex-none">enviar outro substitui</span>
-                        </div>
-                        <p id="minuta-arquivo-novo-nome" class="text-[11px] raiz-text-pine font-bold"></p>
-                        <input type="file" id="minuta-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                    </div>`,
+                        <button type="button" id="minuta-imovel-resumo" class="rz-f-btn" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minuta-imovel-id').value = id; document.getElementById('minuta-imovel-resumo').textContent = resumo; })">Escolha o imóvel</button></div>
+                    <div class="rz-f"><label for="minuta-arquivo-input">Arquivo do modelo (.docx) <i>*</i></label>
+                        <div id="minuta-arquivo-atual-info" class="rz-hint hidden">Arquivo atual: <span id="minuta-arquivo-atual-nome"></span> · enviar outro substitui</div>
+                        <p id="minuta-arquivo-novo-nome" class="rz-hint"></p>
+                        <input type="file" id="minuta-arquivo-input" accept=".docx,.pdf">
+                        <button type="button" class="rz-btn rz-btn-3" onclick="abrirAjudaPlaceholdersMinuta()"><svg data-lucide="braces"></svg>Ver os campos que a minuta aceita</button></div>`,
                 aoSalvar: async () => { await salvarMinuta({ preventDefault: () => {} }); return false; },
             });
             popularSelectsEscopoMinuta();
@@ -555,10 +590,22 @@ if (!window.__rzListenerEscritaMinutaLigado) {
             const container = document.getElementById('lista-minutas');
             if (!container) return;
             if (!minutasContrato.length) {
-                container.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-signature"></svg></div><p>Nenhuma minuta ainda. Cadastre um modelo .docx no "+" ou gere de um contrato real com a varinha.</p></div>';
+                if (typeof rzVazio === 'function') {
+                    container.className = '';
+                    container.innerHTML = rzVazio({
+                        dominio: 'contratos', id: 'minutas-lista',
+                        titulo: 'Seu primeiro modelo de contrato',
+                        beneficio: 'Com um modelo, a minuta sai preenchida com os dados do imóvel e do locatário — inclusive quando alguém contrata pela vitrine. Envie um contrato já assinado e a Raiz IA monta o modelo.',
+                        acaoIA: { rotulo: 'Gerar de um contrato real', codigo: 'minutas.minutizar_ia', aoTocar: () => abrirWizardMinutizacao() },
+                        acaoManual: { rotulo: 'Enviar modelo .docx', codigo: 'minutas.criar', aoTocar: () => abrirFormMinutaSheet() },
+                    });
+                } else {
+                    container.innerHTML = '<div class="rz-empty"><div class="rz-ic"><svg data-lucide="file-signature"></svg></div><p>Nenhuma minuta ainda.</p></div>';
+                }
                 rzIcones();
                 return;
             }
+            container.className = 'rz-card rz-list';
             const rotuloEscopo = { geral: 'Geral', empreendimento: 'Empreendimento', tipo_imovel: 'Tipo de imóvel', imovel: 'Imóvel' };
             container.innerHTML = minutasContrato.map(m => {
                 let detalheEscopo = '';
@@ -594,38 +641,24 @@ if (!window.__rzListenerEscritaMinutaLigado) {
 
         // v1.42.0 — janela de ajuda com a lista de placeholders disponíveis
         // (mesmo texto documentado na migration SQL, resumido para a tela).
+        // Abre por cima do formulário da minuta (nível 2) ou sozinha; tocar no campo copia.
         export function abrirAjudaPlaceholdersMinuta() {
-            const antigo = document.getElementById('modal-ajuda-placeholders');
-            if (antigo) { antigo.remove(); return; }
-
             const grupos = [
-                { titulo: 'Empresa (Locador)', itens: ['locador_nome', 'locador_cnpj', 'locador_responsavel', 'locador_endereco', 'locador_cidade'] },
+                { titulo: 'Empresa (locador)', itens: ['locador_nome', 'locador_cnpj', 'locador_responsavel', 'locador_endereco', 'locador_cidade'] },
                 { titulo: 'Imóvel', itens: ['imovel_endereco', 'imovel_empreendimento', 'imovel_tipo', 'imovel_descricao'] },
                 { titulo: 'Contrato', itens: ['aluguel_valor', 'aluguel_vencimento_dia', 'contrato_inicio', 'contrato_fim', 'contrato_prazo_meses', 'indice_reajuste'] },
                 { titulo: 'Locatário (preenchido pelo interessado)', itens: ['locatario_nome', 'locatario_documento', 'locatario_doc_tipo', 'locatario_whatsapp', 'locatario_email', 'locatario_endereco_atual', 'locatario_profissao', 'locatario_estado_civil'] },
                 { titulo: 'Data', itens: ['data_assinatura'] }
             ];
-
-            const modal = document.createElement('div');
-            modal.id = 'modal-ajuda-placeholders';
-            modal.style = 'position:fixed;inset:0;z-index:96;display:flex;align-items:center;justify-content:center;background:rgba(23,33,30,.5);padding:16px;';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.3);">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Placeholders disponíveis</h3>
-                        <button onclick="document.getElementById('modal-ajuda-placeholders').remove()" style="background:#17211e;border:none;border-radius:9999px;width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                    </div>
-                    <p style="font-size:11px;color:#64748b;margin-bottom:10px;">Toque num placeholder pra copiar. Cole no texto da minuta nos pontos que variam por locatário/imóvel/contrato.</p>
+            if (typeof abrirSheet !== 'function') return;
+            abrirSheet(rzSheetCabecalho('Campos da minuta', 'Toque para copiar') + `
+                <div class="rz-sh-b">
+                    <p class="rz-desc">Cole no texto do modelo, entre chaves duplas, nos pontos que mudam de um contrato para outro.</p>
                     ${grupos.map(g => `
-                        <p style="font-size:10px;font-weight:bold;color:#94a3b8;text-transform:uppercase;margin-top:10px;margin-bottom:4px;">${g.titulo}</p>
-                        <div style="display:flex;flex-wrap:wrap;gap:4px;">
-                            ${g.itens.map(p => `<button onclick="navigator.clipboard.writeText('{{${p}}}'); mostrarToast('Copiado: {{${p}}}', 'success');" style="font-size:10px;font-family:monospace;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;color:#334155;">{{${p}}}</button>`).join('')}
-                        </div>
+                        <div class="rz-group">${g.titulo}</div>
+                        <div class="rz-ph-lista">${g.itens.map(p => `<button type="button" class="rz-ph" onclick="rzCopiar('{{${p}}}', 'Copiado: {{${p}}}')">{{${p}}}</button>`).join('')}</div>
                     `).join('')}
-                </div>
-            `;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+                </div>`, { empilhar: true });
         }
 
         // v1.67.0 — helper de nome de arquivo intuitivo, reaproveitado por
@@ -1338,30 +1371,17 @@ if (!window.__rzListenerEscritaMinutaLigado) {
         // Minuta" quer escolher qual GERAR; quem clicou "Conferir minuta
         // padrão" quer escolher qual VER — não as duas coisas juntas.
         export function abrirPickerMinutasAplicaveis(imovelId, aplicaveis, modo) {
-            document.getElementById('modal-picker-minutas')?.remove();
-            const modal = document.createElement('div');
-            modal.id = 'modal-picker-minutas';
-            modal.style = 'position:fixed;inset:0;z-index:97;display:flex;align-items:flex-end;justify-content:center;background:rgba(23,33,30,.5);';
-            modal.innerHTML = `
-                <div style="background:#fff;border-radius:16px 16px 0 0;max-width:480px;width:100%;padding:16px;max-height:80vh;overflow-y:auto;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                        <h3 style="font-size:14px;font-weight:bold;color:#1e293b;">Mais de uma minuta se aplica — escolha qual ${modo === 'gerar' ? 'gerar' : 'ver'}</h3>
-                        <button onclick="document.getElementById('modal-picker-minutas').remove()" style="background:#e2e8f0;border:none;border-radius:9999px;width:26px;height:26px;flex:none;">✕</button>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        ${aplicaveis.map(m => `
-                            <div style="border:1px solid #e2e8f0;border-radius:10px;padding:10px;">
-                                <p style="font-size:13px;font-weight:bold;color:#1e293b;margin-bottom:2px;">${(m.nome || '').replace(/</g, '&lt;')}</p>
-                                <p style="font-size:11px;color:#94a3b8;margin-bottom:8px;">Escopo: ${ESCOPO_MINUTA_ROTULO[m.escopo] || m.escopo}</p>
-                                ${modo === 'gerar'
-                                    ? `<button onclick="document.getElementById('modal-picker-minutas').remove(); gerarMinutaNoCofre('${imovelId}', '${m.id}');" style="width:100%;background:var(--pine);color:#fff;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Gerar com este modelo</button>`
-                                    : `<button onclick="window.open('${m.arquivoUrl}', '_blank')" style="width:100%;background:#f1f5f9;color:#475569;font-weight:bold;font-size:12px;padding:8px;border:none;border-radius:6px;">Ver modelo em branco</button>`
-                                }
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-            modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
+            if (typeof abrirSheetAcoes !== 'function') return;
+            abrirSheetAcoes({
+                titulo: modo === 'gerar' ? 'Qual modelo usar?' : 'Qual modelo ver?',
+                sub: 'Mais de uma minuta vale para este imóvel',
+                acoes: aplicaveis.map(m => ({
+                    icone: modo === 'gerar' ? 'file-signature' : 'eye',
+                    titulo: m.nome || 'Minuta',
+                    sub: 'Vale para: ' + (ESCOPO_MINUTA_ROTULO[m.escopo] || m.escopo),
+                    codigo: modo === 'gerar' ? 'minutas.gerar' : undefined,
+                    aoTocar: modo === 'gerar' ? () => gerarMinutaNoCofre(imovelId, m.id) : () => window.open(m.arquivoUrl, '_blank'),
+                })),
+            });
             registrarLog('minutas.picker_aberto', { imovelId, qtdOpcoes: aplicaveis.length, modo });
         }

@@ -6,9 +6,18 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.327.0
-   LINHAS: 17285
+   VERSÃO: Beta v1.328.0
+   LINHAS: 17221
    DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demanda b8602a3a)
+   NOVIDADES (Beta v1.328.0) — UX F2.7c-3, menu ⚙️ › Cadastros (de acordo do Nicola 08/10 14:04).
+   Minutas: a descrição fica só no topo; o formulário fixo do assistente "Gerar de um contrato real"
+   saiu (agora é Sheet de 2 passos em minutas.js). Documentos arquivados abre por cima da tela atual
+   (sem pular para Ativos; Vincular ainda leva à ficha no Cofre). abrirSheetAcoes aceita empilhar.
+   rzCopiar: cópia pela porta do aparelho (RaizDevice.clipboard), usada no Copiar link da vitrine e
+   nos campos da minuta. CSS novo: .rz-f-btn, .rz-ph/.rz-ph-lista, arquivo dentro de .rz-f. Import
+   map: minutas.js 1.3.0, cofre-documentos.js 2.34.0, cadastros.js 1.2.0. Nenhum objeto de banco
+   criado por este arquivo.
+   Versão anterior (Beta v1.327.0):
    NOVIDADES (Beta v1.327.0) — UX F2.7c-2, menu ⚙️ › Empresa (de acordo do Nicola 08/10 14:04).
    Links da vitrine: linha "Vitrine com n imóveis · criada … · código" e ⋮ com Copiar link, Abrir
    vitrine e Revogar (vermelho, por último) — antes a lixeira ficava na linha; vazio diz onde montar.
@@ -35,16 +44,8 @@
    NOVIDADES (Beta v1.325.1) — só import map: financeiro.js 1.38.1 (importar fatura relê as contas;
    cartão recém-cadastrado aparece sem precisar recarregar o app).
    Versão anterior (Beta v1.325.0):
-   NOVIDADES (Beta v1.325.0) — UX F2.7b, primeiro uso (plano F2.7 aprovado pelo Nicola 07/10 20:05).
-   Envio de documento para a Raiz IA abre por cima da tela atual: cancelar volta para onde a pessoa
-   estava (achado do Nicola no teste da F2.7a, 08/10 — de Contratos caía em Ativos); sem o módulo do
-   Cofre montado, ele monta em segundo plano. Partes sem nenhuma parte e Alertas sem nenhum alerta
-   ("Tudo em dia") ganham a caixa rzVazio. Import map: cofre-ativos.js 1.79.0 (anexos do ativo),
-   cofre-documentos.js 2.33.0 (documentos da empresa), comum-pessoas.js 1.205.0 (Pessoas). Nenhum
-   objeto de banco criado por este arquivo.
-   Versão anterior (Beta v1.324.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.324.0 … v1.324.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.325.0 … v1.325.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -69,7 +70,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.33.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.3.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -821,6 +822,11 @@
         .rz-f .rz-hint{font-size:13px;color:var(--muted)}
         .rz-f .rz-ok{font-size:12px;color:var(--success);font-weight:600}
         .rz-f2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+        .rz-f .rz-f-btn{width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:#fff;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+        .rz-f input[type=file]{height:auto;padding:10px 12px;font-size:14px}
+        .rz-f .rz-btn-3{align-self:flex-start}
+        .rz-ph-lista{display:flex;flex-wrap:wrap;gap:6px}
+        .rz-ph{min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--tile);color:var(--ink);font:13px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer}
         /* 16. IA — assistente e sugestões */
         .rz-ia-hero{background:linear-gradient(135deg,var(--pine) 0%,var(--pine-light) 100%);color:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
         .rz-ia-hero h4{font-family:var(--font-title);font-size:15px;display:flex;align-items:center;gap:8px;margin:0 0 6px}
@@ -3402,96 +3408,12 @@
 
         <!-- ================= ABA: MINUTAS DE CONTRATO (v1.42.0) ================= -->
         <section id="tab-minutas" class="tab-content hidden">
-            <!-- v1.122.0 (fatia 7b-ii parte 2) — cabeçalho e lista na
-                 gramática; formulário de upload virou sheet
-                 (abrirFormMinutaSheet, ids preservados — salvarMinuta
-                 intocada). O wizard de minutização por IA
-                 (form-minutizar-wrapper, abaixo) fica como está nesta
-                 entrega: é um fluxo guiado de vários passos amarrado ao
-                 motor de contratação; converte junto da fatia 10
-                 (contratos.js). -->
+            <!-- Cabeçalho e lista; o formulário da minuta e o assistente "Gerar de um contrato real"
+                 são Sheets montados por js/minutas.js. -->
             <div class="rz-tabhead">
-                <p>Modelos de contrato (.docx com placeholders) usados na geração de minuta. O escopo diz quando cada um vale: um imóvel, um tipo, um empreendimento ou geral.</p>
-                <button type="button" id="btn-minutizar-ia" onclick="abrirWizardMinutizacao()" title="Gerar de um contrato real" aria-label="Gerar de um contrato real" class="rz-ico-btn rz-ia"><svg data-lucide="wand-2"></svg></button>
+                <p>Modelos de contrato (.docx com campos entre chaves) usados para gerar a minuta, inclusive quando alguém contrata pela vitrine. Vale o mais específico: imóvel, tipo, empreendimento e, por último, a empresa toda.</p>
+                <button type="button" id="btn-minutizar-ia" onclick="abrirWizardMinutizacao()" title="Gerar de um contrato real" aria-label="Gerar de um contrato real" class="rz-ico-btn rz-ia"><svg data-lucide="sparkles"></svg></button>
                 <button type="button" onclick="abrirFormMinutaSheet()" title="Cadastrar minuta" aria-label="Cadastrar minuta" class="rz-ico-btn rz-primary"><svg data-lucide="plus"></svg></button>
-            </div>
-
-            <p class="text-[12px] text-gray-500 mb-4">Modelos de contrato usados para gerar automaticamente a minuta quando um interessado inicia a contratação de um imóvel pela Vitrine. A minuta mais específica sempre tem prioridade: Imóvel → Tipo de Imóvel → Empreendimento → Geral (empresa toda).</p>
-
-
-            <!-- v1.69.0 — Wizard "Gerar de um contrato real" (Parte 3 da
-                 especificação de Minutas). Mesmo padrão Tipo A (bottom-sheet
-                 estático, header com X, rodapé com ação) do form-minuta-
-                 wrapper acima, só que em 2 passos internos (mesmo espírito
-                 de imo-step-1/2/3), alternados via classList 'hidden'. -->
-            <div id="form-minutizar-wrapper" class="hidden">
-
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-bold text-slate-900">Gerar minuta de um contrato real</h2>
-                    <button type="button" onclick="fecharWizardMinutizacao()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
-                </div>
-
-                <div id="minz-passo-1" class="bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <p class="text-[12px] text-gray-500">Suba um contrato real já assinado (Word ou PDF) — o sistema lê o texto, identifica os dados que variam (nome, CPF, valores, datas) e propõe os {{placeholders}} pra virar um modelo reaproveitável. Você confere e ajusta cada sugestão antes de salvar. O arquivo enviado aqui não fica guardado — só o modelo final, sem nenhum dado pessoal do contrato original.</p>
-
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">Nome da Minuta <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="minz-nome" required placeholder="Ex: Locação Comercial Padrão" class="w-full p-2 border rounded mt-1 text-sm">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">Escopo <span style="color:var(--danger)">*</span></label>
-                        <select id="minz-escopo" required onchange="atualizarCampoEscopoMinz()" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                            <option value="geral">Geral (toda a empresa)</option>
-                            <option value="empreendimento">Só um Empreendimento</option>
-                            <option value="tipo_imovel">Só um Tipo de Imóvel</option>
-                            <option value="imovel">Só um Imóvel específico</option>
-                        </select>
-                    </div>
-
-                    <div id="minz-campo-empreendimento" class="hidden">
-                        <label class="block text-xs font-bold text-gray-600">Empreendimento <span style="color:var(--danger)">*</span></label>
-                        <select id="minz-empreendimento-id" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                            <option value="">-- Selecione --</option>
-                        </select>
-                    </div>
-
-                    <div id="minz-campo-tipo" class="hidden">
-                        <label class="block text-xs font-bold text-gray-600">Tipo de Imóvel <span style="color:var(--danger)">*</span></label>
-                        <select id="minz-tipo-imovel-id" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                            <option value="">-- Selecione --</option>
-                        </select>
-                    </div>
-
-                    <div id="minz-campo-imovel" class="hidden">
-                        <label class="block text-xs font-bold text-gray-600">Imóvel <span style="color:var(--danger)">*</span></label>
-                        <input type="hidden" id="minz-imovel-id" value="">
-                        <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('minz-imovel-id').value = id || ''; document.getElementById('minz-imovel-resumo').textContent = resumo || '-- Escolha o Imóvel --'; })" id="minz-imovel-resumo" class="raiz-campo-altura-contrato w-full p-2 border rounded mt-1 text-sm bg-gray-50 text-left truncate">-- Escolha o Imóvel --</button>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600">Contrato real (.docx ou .pdf) <span style="color:var(--danger)">*</span></label>
-                        <input type="file" id="minz-arquivo-input" accept=".docx,.pdf" class="w-full p-2 border rounded mt-1 text-sm bg-gray-50">
-                    </div>
-
-                    <button type="button" onclick="processarArquivoMinutizacao()" class="w-full raiz-bg-pine text-white p-2.5 rounded-lg font-bold text-sm shadow">Continuar</button>
-
-                </div>
-
-                <div id="minz-passo-2" class="hidden bg-white p-4 rounded-xl shadow-sm mb-6 space-y-3 border-2 border-slate-300">
-
-                    <p class="text-[12px] text-gray-500">Confere cada trecho que a IA encontrou. Troca o placeholder se ela sugeriu errado, ou escolhe "(não substituir)" pra deixar esse trecho como está no texto final.</p>
-
-                    <div id="minz-lista-revisao" class="space-y-2"></div>
-
-                    <div class="flex gap-2 pt-2">
-                        <button type="button" onclick="voltarPasso1Minutizacao()" style="flex:1;background:#f1f5f9;color:#475569;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Voltar</button>
-                        <button type="button" onclick="confirmarMinutizacao()" style="flex:1;background:var(--pine);color:#fff;font-weight:bold;font-size:13px;padding:10px;border:none;border-radius:8px;">Confirmar e gerar minuta</button>
-                    </div>
-
-                </div>
-
             </div>
 
             <div class="rz-card rz-list" id="lista-minutas"></div>
@@ -3716,7 +3638,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.327.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.328.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4183,7 +4105,7 @@
             `<div class="rz-ic ${a.tipo ? 'rz-' + a.tipo : ''}"><svg data-lucide="${rzEsc(off ? 'lock' : (a.icone || 'chevron-right'))}"></svg></div>` +
             `<div>${rzEsc(a.titulo)}${sub2 ? `<small>${rzEsc(sub2)}</small>` : ''}</div></button>`;
         }
-        function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null }) {
+        function abrirSheetAcoes({ titulo, sub, acoes = [], grupos = null, empilhar = false }) {
             let corpo = '', planas = [];
             if (grupos) {
                 grupos.forEach(g => {
@@ -4196,7 +4118,7 @@
                 planas = rzOrdenarAcoes(acoes);
                 corpo = planas.map(rzAcaoItemHtml).join('');
             }
-            const sheet = abrirSheet(rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`, { classe: grupos ? 'rz-menu' : '' });
+            const sheet = abrirSheet(rzSheetCabecalho(titulo, sub) + `<div class="rz-sh-b">${corpo}</div>`, { classe: grupos ? 'rz-menu' : '', empilhar });
             sheet.querySelectorAll('[data-rz-i]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const a = planas[Number(btn.dataset.rzI)];
@@ -10670,10 +10592,13 @@
         // uma vez e dispara em seguida. Era a última porta do menu pro
         // cofre.html (roteiro §3 das PENDÊNCIAS).
         function abrirConfiguracaoCofre(tela) {
-            switchTab('tab-ativos');
+            const porCima = tela === 'arquivados'; // Sheet: a pessoa fica onde estava (dem b8602a3a)
+            if (!porCima) switchTab('tab-ativos');
             const disparar = () => window.dispatchEvent(new CustomEvent('cofre:abrir-configuracao', { detail: { tela } }));
             if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
             window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
+            if (porCima) import('./js/ativos/ativos-boot.js').then(({ montarAtivosTab }) => montarAtivosTab(CLIENTE_ID_SUPABASE))
+                .catch(err => { console.warn('[arquivados] módulo de Ativos:', err.message); switchTab('tab-ativos'); });
         }
 
         function atualizarDropdownFiltrosDinamicos() {
@@ -16118,14 +16043,25 @@
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
+        // Copia texto pela porta única do aparelho (RaizDevice.clipboard) e avisa com toast.
+        async function rzCopiar(texto, msgOk, msgErro) {
+            const d = window.RaizDevice;
+            let r = { ok: false };
+            try {
+                r = (d && d.clipboard && typeof d.clipboard.escrever === 'function')
+                    ? await d.clipboard.escrever(texto)
+                    : (await navigator.clipboard.writeText(String(texto ?? '')), { ok: true });
+            } catch (_) { r = { ok: false }; }
+            mostrarToast(r.ok ? (msgOk || 'Copiado.') : (msgErro || 'Não consegui copiar.'), r.ok ? 'success' : 'danger');
+            return !!r.ok;
+        }
+
         // Ações de um link da vitrine: copiar, abrir e revogar (destrutivo por último, com confirmação).
         // O endereço é o mesmo que a montagem da vitrine gera: app?v=<código>. (dem b8602a3a)
         function abrirAcoesLinkVitrine(token) {
             const url = window.location.href.split('?')[0].split('#')[0] + '?v=' + encodeURIComponent(token);
             abrirSheetAcoes({ titulo: 'Link da vitrine', sub: 'Código ' + token, acoes: [
-                { icone: 'copy', titulo: 'Copiar link', sub: 'Para mandar a quem quiser ver os imóveis', aoTocar: () => {
-                    navigator.clipboard.writeText(url).then(() => mostrarToast('Link copiado.', 'success')).catch(() => mostrarToast('Não consegui copiar; use "Abrir vitrine".', 'danger'));
-                } },
+                { icone: 'copy', titulo: 'Copiar link', sub: 'Para mandar a quem quiser ver os imóveis', aoTocar: () => rzCopiar(url, 'Link copiado.', 'Não consegui copiar; use "Abrir vitrine".') },
                 { icone: 'external-link', titulo: 'Abrir vitrine', aoTocar: () => window.open(url, '_blank') },
                 { icone: 'link-2-off', titulo: 'Revogar link', codigo: 'vitrine.links.gerenciar', tipo: 'bad', aoTocar: () => revogarLinkVitrine(token) },
             ] });
