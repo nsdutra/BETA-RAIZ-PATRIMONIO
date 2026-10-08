@@ -1,6 +1,14 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.6.0 · 08/10/2026
+// Versão: 1.6.1 · 08/10/2026
+//
+// v1.6.1 (UX F2.7c-1, correção do teste do Nicola 08/10 13:48; demanda b8602a3a) — "Contratar e
+// convidar" tratava como teste toda licença com data de término, e plano pago também tem término
+// (Maia, Rumo, Albuquerque). Teste agora é: plano 'trial', ou licença com término que não veio de
+// pagamento nem de plano contratado (id_item_pagamento e id_plano_contratado vazios). Licença paga
+// ou sem término mostra "Indicar o Raiz".
+//
+// Versão anterior: 1.6.0 · 08/10/2026
 //
 // v1.6.0 (UX F2.7c-1, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7c-1 aprovado pelo Nicola 08/10 12:51) — a tela Sobre saiu do
 // app e o que era de plano veio para cá:
@@ -31,35 +39,11 @@
 // imoveis, que é o que fn_ofertas_renovacao cobre) que abre o Sheet de
 // js/comum-renovacao.js (ofertas, QR Pix, "Já paguei"). ctx.toast é opcional.
 // Nenhuma regra de porta/limite mudou.
-//
-// Versão anterior: 1.4.0 · 22/09/2026
-//
-// v1.4.0 — PORTA DE LICENÇA COMPARTILHADA (demanda 8b2d37d7, C4 do soft
-// launch). FUNCIONALIDADES_LIBERADAS / carregarFuncionalidadesLiberadas() /
-// podeUsar() / rzMostrarBloqueio() existiam só no <script> inline do
-// index.html; o cofre.html nunca definia window.podeUsar, então todo gate
-// defensivo do Cofre (window.podeUsar ? … : true) caía no permissivo e os
-// botões "Novo ativo" abriam o formulário sem cadeado (quem barrava era a
-// trigger no INSERT, com texto cru do Postgres). A lógica mudou-se para cá,
-// SEM mudança de regra: mesma RPC (fn_funcionalidades_liberadas), mesmos
-// textos, mesmo "código ausente do catálogo = liberado" (o furo 1 da
-// 70159adb segue registrado lá; não entra nesta fatia).
-//   · carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil, {toast})
-//   · recarregarFuncionalidadesLiberadas() — mesma empresa/perfil da última
-//     carga (usado depois de criar um item que consome cota)
-//   · podeUsar(codigo) / rzMostrarBloqueio(codigo)
-//   · aplicarCadeados(raiz) — todo elemento com data-rz-codigo ganha
-//     .rz-off + aria-disabled + title com o motivo (ACE-04: bloqueado
-//     aparece com cadeado e motivo, não some)
-//   · instalarPortaGlobal({dbAuth, clienteId, perfil, toast}) — para hosts
-//     que não têm porta própria (cofre.html standalone): publica
-//     window.podeUsar/rzMostrarBloqueio e recarrega ao voltar para a aba.
-// O index.html passou a delegar para cá (v1.248.0): uma lógica só (CAN-03).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.6.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.6.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -336,10 +320,19 @@ function linhaLink({ href, icone, titulo, sub, acao, ia }) {
 // Contratar e convidar. Em teste (licença com data de expiração): "Quero contratar" e o convite
 // para entrar no mesmo teste (até 5 pessoas, vaga conferida ao vivo). Licença paga: indicar o Raiz
 // a outra pessoa. Uma fonte só: a tela Sobre do cofre.html usa a mesma função.
+// Teste grátis: plano 'trial' ou licença com término sem pagamento e sem plano contratado. Data
+// de término sozinha não serve: plano pago também tem término.
+export function ehLicencaDeTeste(l) {
+    if (!l) return false;
+    if (l.plano_codigo === 'trial') return true;
+    return !!l.data_expiracao && !l.id_item_pagamento && !l.id_plano_contratado;
+}
+
 export async function htmlContratarConvidar(dbAuth, clienteId, licenca) {
     if (!licenca) return '';
     const linhas = [];
-    if (licenca.data_expiracao) {
+    const teste = ehLicencaDeTeste(licenca);
+    if (teste) {
         linhas.push(linhaLink({
             href: `https://wa.me/${WHATSAPP_RAIZ}?text=${encodeURIComponent('Oi! Testei o Raiz Patrimônio e quero contratar.')}`,
             icone: 'zap', titulo: 'Quero contratar', sub: 'Fale com a Raiz pelo WhatsApp', acao: 'contratar',
@@ -364,7 +357,7 @@ export async function htmlContratarConvidar(dbAuth, clienteId, licenca) {
         const msg = 'Uso o Raiz Patrimônio para cuidar do patrimônio e recomendo. Dá para testar grátis: ' + SITE_RAIZ + '/#trial';
         linhas.push(linhaLink({ href: `https://wa.me/?text=${encodeURIComponent(msg)}`, icone: 'share-2', titulo: 'Indicar o Raiz', sub: 'Mande o link do teste grátis para quem também cuida de patrimônio', acao: 'indicar' }));
     }
-    return `<div class="rz-card"><div class="rz-card-h"><h3>${licenca.data_expiracao ? 'Contratar e convidar' : 'Convidar'}</h3></div>${linhas.join('')}</div>`;
+    return `<div class="rz-card"><div class="rz-card-h"><h3>${teste ? 'Contratar e convidar' : 'Convidar'}</h3></div>${linhas.join('')}</div>`;
 }
 
 export function ligarContratarConvidar(raiz, { dbAuth, clienteId, pessoaId, licenca, origem } = {}) {

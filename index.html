@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.326.0
-   LINHAS: 17267
+   VERSÃO: Beta v1.326.1
+   LINHAS: 17268
    DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demanda b8602a3a)
+   NOVIDADES (Beta v1.326.1) — correções do teste da F2.7c-1 (Nicola 08/10 13:48). Minhas
+   notificações: a linha de aviso com frequência quebrava o título numa coluna de uma palavra; agora
+   título em linha inteira e, embaixo, frequência + interruptor (.rz-pref-2l). Import map:
+   comum-licenca.js 1.6.1 (teste x licença paga: "Indicar o Raiz" aparece para plano pago). Nenhum
+   objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.326.0):
    NOVIDADES (Beta v1.326.0) — UX F2.7c-1, menu ⚙️ › Conta (de acordo do Nicola 08/10 12:51). A tela
    Sobre sai do app: "Suporte" vira sheet com WhatsApp, e-mail, página de contatos da Raiz, sugestão
    (feedback + demanda de suporte) e rodapé com versão e termos (abrirSuporte, comum-sobre.js);
@@ -37,17 +43,8 @@
    controles_empresa_aplicabilidade_v1, só dados). Import map: cofre-controles.js 1.49.0,
    cofre-api.js 1.49.0. Nenhum objeto de banco criado por este arquivo.
    Versão anterior (Beta v1.323.0):
-   NOVIDADES (Beta v1.323.0) — UX F2.7a, primeiro uso: o vazio convida ("Pode fazer" do Nicola 07/10 20:05).
-   Caixa única rzVazio (ilustração por assunto, título, 1 frase do que se ganha, Raiz IA primária e
-   manual terciário; sem IA no plano o manual vira primário) e ilustrações RZ_VAZIO_ILU. Card "Comece
-   por aqui" no topo de Hoje › Patrimônio, espelho dos 3 passos da campanha de onboarding, marcado
-   pelos mesmos indicadores (fn_comunicacao_contexto_servidor). O botão final da campanha
-   "Cadastrar primeiro imóvel" passa a abrir o "+" de Ativos (rzAbrirMaisAtivos), a mesma porta do
-   vazio. Import map: cofre-ativos.js 1.78.0, contratos.js 1.45.0, ativos-markup.js 1.53.0. Nenhum
-   objeto de banco criado por este arquivo.
-   Versão anterior (Beta v1.322.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.322.1 … v1.322.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.323.0 … v1.323.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -72,7 +69,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.33.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.205.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.33.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.205.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -713,8 +710,12 @@
         .rz-switch::after{content:"";position:absolute;left:6px;top:6px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
         .rz-switch[aria-checked="true"]::before{background:var(--sprout)} .rz-switch[aria-checked="true"]::after{left:26px}
         .rz-switch:disabled{opacity:.5}
-        .rz-pref .rz-tx b{white-space:normal;font-weight:500;font-size:15px}
-        .rz-pref select{width:auto;flex:none}
+        .rz-pref .rz-tx b{white-space:normal;overflow:visible;text-overflow:clip;font-weight:500;font-size:15px}
+        /* v1.326.1 — linha com seletor: título em linha inteira e, embaixo, frequência + interruptor
+           (lado a lado, o seletor de 48 px espremia o título numa coluna de uma palavra) */
+        .rz-pref.rz-pref-2l{flex-wrap:wrap;row-gap:8px}
+        .rz-pref.rz-pref-2l .rz-tx{flex:1 1 100%}
+        .rz-pref.rz-pref-2l select{flex:1;min-width:0;width:auto}
         .rz-vazio{text-align:center;padding:22px 16px 18px;border-radius:var(--r-card);border:1px solid var(--line);background:linear-gradient(165deg,var(--card) 0%,var(--tile) 100%)}
         .rz-vazio .rz-vz-ilu{display:block;width:112px;height:84px;margin:0 auto 10px;color:var(--sage)}
         .rz-vazio .rz-vz-a{fill:var(--paper)} .rz-vazio .rz-vz-b{fill:var(--brass-light)} .rz-vazio .rz-vz-c{fill:var(--pine)}
@@ -3711,7 +3712,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.326.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.326.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10534,7 +10535,7 @@
                         const habilitado = pref ? pref.habilitado : true;
                         const frequencia = pref ? pref.frequencia : 'semanal';
                         const opcoesHtml = FREQUENCIA_OPCOES.map(o => `<option value="${o.valor}" ${frequencia === o.valor ? 'selected' : ''}>${o.rotulo}</option>`).join('');
-                        return `<div class="rz-row rz-pref">
+                        return `<div class="rz-row rz-pref rz-pref-2l">
                             <div class="rz-tx"><b>${rzEsc(f.descricao)}</b></div>
                             <select class="pref-alerta-frequencia" data-codigo="${f.codigo}" aria-label="Frequência" ${habilitado ? '' : 'disabled'}>${opcoesHtml}</select>
                             <button type="button" role="switch" class="rz-switch pref-alerta-toggle" data-codigo="${f.codigo}" data-habilitado="${habilitado ? '1' : '0'}"

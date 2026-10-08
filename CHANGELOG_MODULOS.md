@@ -390,6 +390,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -824,6 +826,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1180,6 +1184,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -2151,6 +2157,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2732,6 +2740,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -3343,6 +3353,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3507,6 +3519,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
 
 //
@@ -3642,6 +3656,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3673,6 +3689,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3787,7 +3805,38 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
+
+//
+// Versão anterior: 1.4.0 · 22/09/2026
+//
+// v1.4.0 — PORTA DE LICENÇA COMPARTILHADA (demanda 8b2d37d7, C4 do soft
+// launch). FUNCIONALIDADES_LIBERADAS / carregarFuncionalidadesLiberadas() /
+// podeUsar() / rzMostrarBloqueio() existiam só no <script> inline do
+// index.html; o cofre.html nunca definia window.podeUsar, então todo gate
+// defensivo do Cofre (window.podeUsar ? … : true) caía no permissivo e os
+// botões "Novo ativo" abriam o formulário sem cadeado (quem barrava era a
+// trigger no INSERT, com texto cru do Postgres). A lógica mudou-se para cá,
+// SEM mudança de regra: mesma RPC (fn_funcionalidades_liberadas), mesmos
+// textos, mesmo "código ausente do catálogo = liberado" (o furo 1 da
+// 70159adb segue registrado lá; não entra nesta fatia).
+//   · carregarFuncionalidadesLiberadas(dbAuth, clienteId, perfil, {toast})
+//   · recarregarFuncionalidadesLiberadas() — mesma empresa/perfil da última
+//     carga (usado depois de criar um item que consome cota)
+//   · podeUsar(codigo) / rzMostrarBloqueio(codigo)
+//   · aplicarCadeados(raiz) — todo elemento com data-rz-codigo ganha
+//     .rz-off + aria-disabled + title com o motivo (ACE-04: bloqueado
+//     aparece com cadeado e motivo, não some)
+//   · instalarPortaGlobal({dbAuth, clienteId, perfil, toast}) — para hosts
+//     que não têm porta própria (cofre.html standalone): publica
+//     window.podeUsar/rzMostrarBloqueio e recarrega ao voltar para a aba.
+// O index.html passou a delegar para cá (v1.248.0): uma lógica só (CAN-03).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.3.1 · 07/09/2026
@@ -3866,6 +3915,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -3982,6 +4033,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4242,6 +4295,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -4284,6 +4339,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4361,6 +4418,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -5097,6 +5156,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -5383,6 +5444,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -6324,6 +6387,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -6383,6 +6448,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6489,6 +6556,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -6716,6 +6785,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -6781,6 +6852,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

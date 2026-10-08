@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.323.0) — UX F2.7a, primeiro uso: o vazio convida ("Pode fazer" do Nicola 07/10 20:05).
+Caixa única rzVazio (ilustração por assunto, título, 1 frase do que se ganha, Raiz IA primária e
+manual terciário; sem IA no plano o manual vira primário) e ilustrações RZ_VAZIO_ILU. Card "Comece
+por aqui" no topo de Hoje › Patrimônio, espelho dos 3 passos da campanha de onboarding, marcado
+pelos mesmos indicadores (fn_comunicacao_contexto_servidor). O botão final da campanha
+"Cadastrar primeiro imóvel" passa a abrir o "+" de Ativos (rzAbrirMaisAtivos), a mesma porta do
+vazio. Import map: cofre-ativos.js 1.78.0, contratos.js 1.45.0, ativos-markup.js 1.53.0. Nenhum
+objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.322.1):
+------------------------------------------------------------------
+Versões anteriores (v1.322.1 … v1.322.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.322.1) — catálogo único (de acordo do Nicola 07/10 20:02): "Criar o ativo a partir
 deste documento" sugere o tipo de ativo pela aplicabilidade do catálogo (e pela IA), não mais pelo
 campo antigo nem por nomes de categoria anteriores à fatia B. Só import map: cofre-documentos 2.31.2 →
