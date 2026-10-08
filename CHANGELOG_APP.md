@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.326.0) — UX F2.7c-1, menu ⚙️ › Conta (de acordo do Nicola 08/10 12:51). A tela
+Sobre sai do app: "Suporte" vira sheet com WhatsApp, e-mail, página de contatos da Raiz, sugestão
+(feedback + demanda de suporte) e rodapé com versão e termos (abrirSuporte, comum-sobre.js);
+switchTab('tab-sobre') abre o Suporte. Contratar e convidar foram para Licença e uso. Minhas
+notificações vira sheet (era overlay próprio, z-index 470) com interruptor .rz-switch. Versões com
+textos no padrão. As abas principais não mostram mais o "‹" (RZ_SEM_VOLTAR_GLOBAL). CSS novo:
+.rz-uso-bar, .rz-switch, .rz-pref. Import map: comum-licenca.js 1.6.0, comum-sobre.js 1.4.0.
+Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.325.1):
+------------------------------------------------------------------
+Versões anteriores (v1.325.1 … v1.325.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.325.1) — só import map: financeiro.js 1.38.1 (importar fatura relê as contas;
 cartão recém-cadastrado aparece sem precisar recarregar o app).
 Versão anterior (Beta v1.325.0):

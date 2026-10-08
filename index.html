@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.329.0
-   LINHAS: 17218
-   DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demandas ed5accfe, 5a84b9aa, cf0f8f2e, 42ef8b51, b056f2ff)
+   VERSÃO: Beta v1.329.1
+   LINHAS: 17234
+   DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demanda ed5accfe)
+   NOVIDADES (Beta v1.329.1) — correções do teste da F2.8 (Nicola 08/10 20:39). Página pública dos imóveis
+   compartilhados no tema claro (CSS .rz-pub*, body.rz-pub-body) e "Fechar" como botão-ícone. Import map:
+   vitrine.js 1.4.1 (página clara; a lista de Compartilhar relê os imóveis ao abrir). Nenhum objeto de
+   banco criado por este arquivo.
+   Versão anterior (Beta v1.329.0):
    NOVIDADES (Beta v1.329.0) — UX F2.8, Compartilhar imóveis ("Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09).
    "Vitrine" vira "Compartilhar": a tela tab-vitrine vira lista com seleção (toque marca) e o botão fixo
    "Compartilhar n imóveis" (.rz-acao-fixa) abre WhatsApp, Copiar link e Abrir a página com um link só;
@@ -42,17 +47,8 @@
    comum-licenca.js 1.6.1 (teste x licença paga: "Indicar o Raiz" aparece para plano pago). Nenhum
    objeto de banco criado por este arquivo.
    Versão anterior (Beta v1.326.0):
-   NOVIDADES (Beta v1.326.0) — UX F2.7c-1, menu ⚙️ › Conta (de acordo do Nicola 08/10 12:51). A tela
-   Sobre sai do app: "Suporte" vira sheet com WhatsApp, e-mail, página de contatos da Raiz, sugestão
-   (feedback + demanda de suporte) e rodapé com versão e termos (abrirSuporte, comum-sobre.js);
-   switchTab('tab-sobre') abre o Suporte. Contratar e convidar foram para Licença e uso. Minhas
-   notificações vira sheet (era overlay próprio, z-index 470) com interruptor .rz-switch. Versões com
-   textos no padrão. As abas principais não mostram mais o "‹" (RZ_SEM_VOLTAR_GLOBAL). CSS novo:
-   .rz-uso-bar, .rz-switch, .rz-pref. Import map: comum-licenca.js 1.6.0, comum-sobre.js 1.4.0.
-   Nenhum objeto de banco criado por este arquivo.
-   Versão anterior (Beta v1.325.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.325.1 … v1.325.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.326.0 … v1.326.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -77,7 +73,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.4.0","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.45.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.80.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.4.1","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.45.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.80.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -833,6 +829,26 @@
         .rz-acao-fixa .rz-btn:disabled{opacity:.55;cursor:default}
         .rz-row[role="checkbox"]{cursor:pointer}
         .rz-pend-lista{margin:0 0 12px;padding-left:20px;font-size:15px;line-height:1.5;color:var(--ink)}
+        /* Página pública dos imóveis compartilhados (sem login) — tema claro do app. */
+        body.rz-pub-body{background:var(--paper);color:var(--ink);font-family:var(--font-body);padding:0;margin:0}
+        .rz-pub{max-width:480px;margin:0 auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));min-height:100vh}
+        .rz-pub-h{display:flex;align-items:flex-start;gap:12px;padding:8px 0 16px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+        .rz-pub-h-tx{flex:1;min-width:0}
+        .rz-pub-h h1{font-family:var(--font-title);font-size:24px;line-height:1.2;letter-spacing:-.02em;color:var(--pine);margin:0}
+        .rz-pub-h p{font-size:15px;color:var(--muted);margin:4px 0 0}
+        .rz-pub-msg{font-size:15px;color:var(--muted);text-align:center;padding:48px 8px}
+        .rz-pub-card h2{font-family:var(--font-title);font-size:20px;line-height:1.25;color:var(--ink);margin:8px 0 4px}
+        .rz-pub-end,.rz-pub-info{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--muted);margin:4px 0 0}
+        .rz-pub-end svg,.rz-pub-info svg{width:16px;height:16px;flex:none;color:var(--sage)}
+        .rz-pub-desc{font-size:15px;line-height:1.45;color:var(--ink);margin:10px 0 0}
+        .rz-pub-fotos{display:flex;gap:8px;overflow-x:auto;padding:12px 0 2px;scroll-snap-type:x mandatory}
+        .rz-pub-fotos img{width:200px;height:136px;object-fit:cover;border-radius:var(--r-ctl);flex:none;cursor:pointer;scroll-snap-align:start}
+        .rz-pub-valor{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+        .rz-pub-valor span{font-size:13px;color:var(--muted)}
+        .rz-pub-valor b{font-family:var(--font-title);font-size:20px;color:var(--pine)}
+        .rz-pub-fim{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+        .rz-pub-fim h1{font-family:var(--font-title);font-size:24px;color:var(--pine);margin:0 0 8px}
+        .rz-pub-fim p{font-size:15px;color:var(--muted)}
         .rz-f .rz-f-btn{width:100%;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:var(--r-ctl);font:inherit;font-size:16px;background:#fff;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
         .rz-f input[type=file]{height:auto;padding:10px 12px;font-size:14px}
         .rz-f .rz-btn-3{align-self:flex-start}
@@ -3653,7 +3669,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.329.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.329.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA

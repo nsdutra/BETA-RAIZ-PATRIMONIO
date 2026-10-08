@@ -1,7 +1,14 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.4.0 · 08/10/2026
+// Versão: 1.4.1 · 08/10/2026
+//
+// v1.4.1 (correções do teste da F2.8, Nicola 08/10 20:39; demanda ed5accfe, sessão 20261003-1707-ux-base) — página
+// pública no tema claro do app (fundo --paper, cards brancos, nome da empresa em --pine) com "Fechar" no padrão de
+// botão-ícone (era um "Sair" escuro mal formatado); a tela "Compartilhar imóveis" relê os imóveis ao abrir — o imóvel
+// recém-cadastrado só aparecia depois de sair e entrar no app.
+//
+// Versão anterior: 1.4.0 · 08/10/2026
 //
 // v1.4.0 (UX F2.8, demandas ed5accfe, 5a84b9aa, b056f2ff e cf0f8f2e, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2
 // agora" do Nicola 08/10 20:09) — "Vitrine" vira "Compartilhar". Um imóvel: compartilharImovelDoAtivo abre o
@@ -27,25 +34,23 @@
 //
 // v1.3.2 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — o erro ao iniciar a contratação deixa de citar tabela e migration do
 // banco; fala com o cliente. (O alert() vira aviso do app na F0.2.)
-//
-// Versão anterior: 1.3.1 · 02/10/2026
-//
-// v1.3.1 (demanda 11afd25f, f26a ainda falhando no teste do Nicola 01/10 23:54)
-// — abrirSheetAcoes ignora `acoes` quando recebe `grupos`; sem minuta, o menu
-// só mostrava o grupo "Sem minuta padrão cadastrada". Agora, sem minuta, link
-// e WhatsApp entram como grupo "Coleta de dados" junto do grupo da minuta.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.0 … v1.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.4.0'; // v-check: manter igual ao header
+export const VERSAO = '1.4.1'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
-export function montarAbaVitrine() {
+export async function montarAbaVitrine() {
     renderVitrine();
     if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Relê do banco ao abrir: o imóvel cadastrado agora no Cofre ainda não está na lista em memória.
+    try {
+        imoveis = await carregarImoveisSupabase();
+        if (document.getElementById('tab-vitrine') && !document.getElementById('tab-vitrine').classList.contains('hidden')) renderVitrine();
+    } catch (err) { console.warn('[compartilhar] não consegui reler os imóveis:', err.message); }
 }
 
         // v1.47.0 — overlay de busca da Vitrine (mesmo padrão do de Imóveis
@@ -627,43 +632,29 @@ export function montarAbaVitrine() {
 
             // principal, nem por um instante, enquanto o token é resolvido.
 
+            document.body.className = 'rz-pub-body';
             document.body.innerHTML = `
-
-                <div class="max-w-md mx-auto p-4 space-y-6 bg-emerald-900 min-h-screen text-white">
-
-                    <div class="text-center py-4 border-b border-emerald-800 relative">
-
-                        <button onclick="sairDaVitrinePublica()" class="absolute top-3 right-0 text-xs font-bold text-slate-300 bg-emerald-800 border border-emerald-700 rounded-full px-3 py-1.5 active:scale-95 transition"><svg data-lucide="x" style="width:14px;height:14px"></svg> Sair</button>
-
-                        <h1 id="vitrine-publica-empresa" class="text-2xl font-black text-emerald-400">Imóveis selecionados</h1>
-
-                        <p id="vitrine-publica-sub" class="text-[13px] text-gray-300 mt-1">Separados para você</p>
-
+                <div class="rz-pub">
+                    <header class="rz-pub-h">
+                        <div class="rz-pub-h-tx">
+                            <h1 id="vitrine-publica-empresa">Imóveis selecionados</h1>
+                            <p id="vitrine-publica-sub">Separados para você</p>
+                        </div>
+                        <button type="button" class="rz-ico-btn" onclick="sairDaVitrinePublica()" title="Fechar" aria-label="Fechar"><svg data-lucide="x"></svg></button>
+                    </header>
+                    <div id="external-showcase-container">
+                        <p class="rz-pub-msg">Carregando os imóveis…</p>
                     </div>
-
-                    <div id="external-showcase-container" class="space-y-4">
-
-                        <p class="text-xs text-center text-slate-400 py-12 animate-pulse">Carregando os imóveis…</p>
-
-                    </div>
-
                 </div>
-
                 <div id="lightbox-vitrine" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
-
-                    <button onclick="fecharLightboxVitrine()" class="absolute top-4 right-4 text-white text-2xl font-bold"><svg data-lucide="x" style="width:16px;height:16px"></svg></button>
-
-                    <button onclick="navegarLightboxVitrine(-1)" class="absolute left-2 text-white text-3xl font-bold px-2">‹</button>
-
-                    <img id="lightbox-vitrine-img" class="max-h-[85vh] max-w-full rounded-lg object-contain">
-
-                    <button onclick="navegarLightboxVitrine(1)" class="absolute right-2 text-white text-3xl font-bold px-2">›</button>
-
-                    <p id="lightbox-vitrine-contador" class="absolute bottom-4 text-white text-xs"></p>
-
+                    <button onclick="fecharLightboxVitrine()" class="absolute top-4 right-4 text-white" aria-label="Fechar foto"><svg data-lucide="x" style="width:24px;height:24px"></svg></button>
+                    <button onclick="navegarLightboxVitrine(-1)" class="absolute left-2 text-white px-3 py-6" aria-label="Foto anterior"><svg data-lucide="chevron-left" style="width:28px;height:28px"></svg></button>
+                    <img id="lightbox-vitrine-img" class="max-h-[85vh] max-w-full rounded-lg object-contain" alt="">
+                    <button onclick="navegarLightboxVitrine(1)" class="absolute right-2 text-white px-3 py-6" aria-label="Próxima foto"><svg data-lucide="chevron-right" style="width:28px;height:28px"></svg></button>
+                    <p id="lightbox-vitrine-contador" class="absolute bottom-4 text-white text-[13px]"></p>
                 </div>
-
             `;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
 
             let listIds = null;
 
@@ -697,7 +688,7 @@ export function montarAbaVitrine() {
                 } catch (e) {
 
                     document.getElementById('external-showcase-container').innerHTML =
-                        `<p class="text-[13px] text-center text-red-300 py-12">Este link não abre mais: ele foi revogado, expirou ou está incompleto. Peça um novo a quem te enviou.</p>`;
+                        `<p class="rz-pub-msg">Este link não abre mais: ele foi revogado, expirou ou está incompleto. Peça um novo a quem te enviou.</p>`;
                     return;
 
                 }
@@ -739,58 +730,28 @@ export function montarAbaVitrine() {
                     exibidos++;
 
                     let slideFotos = '';
-
                     if (imo.fotos && imo.fotos.length > 0) {
-
-                        slideFotos = '<div class="flex gap-2 overflow-x-auto py-2">';
-
-                        imo.fotos.forEach((foto, idx) => {
-
-                            slideFotos += `<img src="${foto}" onclick="abrirLightboxVitrineImovel('${imo.id}', ${idx})" class="w-48 h-32 object-cover rounded-xl border border-emerald-700 flex-none cursor-pointer active:scale-95 transition">`;
-
-                        });
-
-                        slideFotos += '</div>';
-
+                        slideFotos = '<div class="rz-pub-fotos">' + imo.fotos.map((foto, idx) =>
+                            `<img src="${escV(foto)}" alt="Foto ${idx + 1} de ${escV(tituloImovelCompartilhar(imo))}" onclick="abrirLightboxVitrineImovel('${escV(imo.id)}', ${idx})">`).join('') + '</div>';
                     }
-
                     const badgeEnergia = imo.energiaRumo === 'Sim'
-
-                        ? `<div class="mt-2 bg-yellow-900/40 border border-yellow-700 rounded-lg p-2 text-[11px] text-yellow-200"><svg data-lucide="zap" style="width:12px;height:12px;display:inline;vertical-align:-1px"></svg> <strong>Energia disponível</strong> — desconto na conta de energia.</div>`
-
+                        ? `<p class="rz-pub-info"><svg data-lucide="zap"></svg>Energia disponível: desconto na conta de energia</p>`
                         : '';
 
                     const endPub = enderecoCurtoImovel(imo);
                     const tituloPub = tituloImovelCompartilhar(imo);
                     const subPub = imo.nomeExibicao ? [imo.tipo, imo.empreendimento].filter(Boolean).join(' · ') : '';
                     listContainer.innerHTML += `
-
-                        <div class="bg-emerald-950 p-4 rounded-2xl border border-emerald-800">
-
-                            ${subPub ? `<span class="bg-emerald-900 text-emerald-100 text-[12px] font-bold px-2 py-0.5 rounded">${escV(subPub)}</span>` : ''}
-
-                            <h3 class="text-base font-bold mt-2">${escV(tituloPub)}</h3>
-
-                            ${endPub ? `<p class="text-[13px] text-slate-300">📍 ${escV(endPub)}</p>` : ''}
-
-                            ${Number(imo.tamanho) > 0 ? `<p class="text-[12px] text-slate-400 mt-1">${moedaV(imo.tamanho)} m²</p>` : ''}
-
-                            ${imo.descricao ? `<p class="text-[13px] text-slate-300 mt-2">${escV(imo.descricao)}</p>` : ''}
-
+                        <article class="rz-card rz-pub-card">
+                            ${subPub ? `<span class="rz-tag">${escV(subPub)}</span>` : ''}
+                            <h2>${escV(tituloPub)}</h2>
+                            ${endPub ? `<p class="rz-pub-end"><svg data-lucide="map-pin"></svg>${escV(endPub)}</p>` : ''}
+                            ${Number(imo.tamanho) > 0 ? `<p class="rz-pub-info">${moedaV(imo.tamanho)} m²</p>` : ''}
+                            ${imo.descricao ? `<p class="rz-pub-desc">${escV(imo.descricao)}</p>` : ''}
                             ${badgeEnergia}
-
                             ${slideFotos}
-
-                            <div class="mt-3 pt-3 border-t border-emerald-900 flex justify-between items-baseline">
-
-                                <span class="text-[12px] text-slate-400">Aluguel</span>
-
-                                <span class="text-lg font-black text-emerald-400">${Number(imo.valor) > 0 ? 'R$ ' + moedaV(imo.valor) + '/mês' : 'Sob consulta'}</span>
-
-                            </div>
-
-                        </div>
-
+                            <div class="rz-pub-valor"><span>Aluguel</span><b>${Number(imo.valor) > 0 ? 'R$ ' + moedaV(imo.valor) + '/mês' : 'Sob consulta'}</b></div>
+                        </article>
                     `;
 
                 }
@@ -798,10 +759,9 @@ export function montarAbaVitrine() {
             });
 
             if (exibidos === 0) {
-
-                listContainer.innerHTML = '<p class="text-[13px] text-center text-slate-300 py-12">Os imóveis deste link não estão mais disponíveis.</p>';
-
+                listContainer.innerHTML = '<p class="rz-pub-msg">Os imóveis deste link não estão mais disponíveis.</p>';
             }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
 
         }
 
@@ -847,21 +807,8 @@ export function montarAbaVitrine() {
 
             setTimeout(function () {
 
-                document.body.innerHTML = `
-
-                    <div class="max-w-md mx-auto p-4 min-h-screen bg-emerald-900 text-white flex items-center justify-center text-center">
-
-                        <div>
-
-                            <h1 class="text-2xl font-black text-emerald-400 mb-2">${escV(window.__rzVitrinePublicaEmpresa || 'Até logo')}</h1>
-
-                            <p class="text-sm text-slate-300">Você já pode fechar esta aba.</p>
-
-                        </div>
-
-                    </div>
-
-                `;
+                document.body.className = 'rz-pub-body';
+                document.body.innerHTML = `<div class="rz-pub rz-pub-fim"><h1>${escV(window.__rzVitrinePublicaEmpresa || 'Até logo')}</h1><p>Você já pode fechar esta aba.</p></div>`;
 
             }, 150);
 
