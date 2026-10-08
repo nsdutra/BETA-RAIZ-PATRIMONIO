@@ -384,6 +384,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -812,6 +814,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1181,7 +1185,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.75.0 · 04/10/2026
+//
+// v1.75.0 (UX F2.2, demanda da6c64b6, sessão 20261003-1707-ux-base; "podemos avançar" do Nicola
+// 04/10 18:21; UXR-13/15/22) — chip "Com alerta" em Ativos, logo depois de "Todos": conta os
+// ativos com algum alerta do Motor (window.rzAtivosComAlerta, index.html) ou com ocorrência de item
+// vencendo; só aparece com contador > 0 e filtra a lista. No cofre.html avulso usa só as ocorrências.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.74.0 · 04/10/2026
@@ -2115,6 +2133,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2709,7 +2729,25 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-documentos.js`
+
+//
+// Versão anterior: 2.29.0 · 07/10/2026
+//
+// v2.29.0 (demanda 6a1210a0, sessão 20261007-0207-ia-falha; "Pode fazer sim" do Nicola 07/10 02:07) —
+// resultado da leitura que não engana:
+//   (a) "Lido como Não classificado" (tipo "outro" ou sem tipo) deixa de ser um "Pronto" verde: vira
+//       "Não reconheci o tipo deste documento", com "Conferir e classificar" (abre o Confira, onde se
+//       escolhe o Tipo de documento e se pode Reler), outra foto, equipe Raiz (configuração) e cancelar.
+//   (b) Leitor fora do ar (cofre-extrair-documento 1.12 devolve falha_ia): "A leitura com IA está fora do
+//       ar agora", com Ler de novo (sem reenviar), Preencher eu mesmo e Cancelar.
+//   (c) O "Pronto" explica a próxima tela: conferir os dados, ajustar o tipo se precisar e salvar.
+// --------------------------------------------------------------------------
+// Versões anteriores (v2.28.0 … v2.28.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 2.28.0 · 07/10/2026
@@ -3279,6 +3317,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3437,6 +3477,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
 
 //
@@ -3566,6 +3608,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3597,6 +3641,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3699,6 +3745,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-licenca.js`
 
 //
@@ -3760,6 +3808,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // hospeda (index.html, cofre.html, ou um módulo futuro) é quem decide
 // COMO obtém esse client; este arquivo só usa o que recebe.
 // ============================================================================
+
+---
 
 ---
 
@@ -3883,7 +3933,33 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-pessoas.js`
+
+//
+// Versão anterior: 1.201.0 · 18/09/2026
+//
+// v2.1.0 (COMUM_PESSOAS_VERSAO) / v1.201.0 (VERSAO, header) — 2 ajustes
+// pedidos pelo Nicola em cima da reescrita v2.0.0:
+//   1. "Remover acesso ao sistema" travava só pro master (perfilTravado) —
+//      agora trava pra admin TAMBÉM (protegidoExclusao), mesma proteção
+//      já usada em "Excluir pessoa". Reforçado com 2ª trava dentro de
+//      desvincularAcessoPessoa() (mesmo padrão de excluirPessoa()).
+//   2. "Comunicações", quando a linha é a PRÓPRIA pessoa logada, agora
+//      abre window.abrirPreferenciasComunicacao() — a tela "Minhas
+//      notificações" de index.html, redesenhada nesta mesma leva pra
+//      salvar cada aviso na hora (toggle liga/desliga, sem botão de
+//      salvar em lote) e usar o MESMO padrão visual nas duas seções
+//      (Alertas e avisos automáticos · Comunicações da Raiz). Pra outra
+//      pessoa (fluxo admin), continua abrindo abrirComunicacoesPessoaSheet()
+//      local — só essa também ganhou o mesmo toggle com salvamento
+//      imediato (a Raiz não se aplica a conta de terceiro, então essa
+//      seção não entra aqui, só os avisos/alertas).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v2.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.200.0 · 18/09/2026
@@ -4094,6 +4170,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -4136,6 +4214,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4200,6 +4280,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4924,6 +5006,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -5210,6 +5294,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -6130,6 +6216,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -6189,6 +6277,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6289,6 +6379,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -6504,6 +6596,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -6569,6 +6663,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

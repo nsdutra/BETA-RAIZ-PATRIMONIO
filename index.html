@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.324.0
-   LINHAS: 17225
-   DATA: 07/10/2026 (sessão 20261007-2025-controles-empresa, demanda a30da78b)
+   VERSÃO: Beta v1.325.0
+   LINHAS: 17249
+   DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demanda b8602a3a)
+   NOVIDADES (Beta v1.325.0) — UX F2.7b, primeiro uso (plano F2.7 aprovado pelo Nicola 07/10 20:05).
+   Envio de documento para a Raiz IA abre por cima da tela atual: cancelar volta para onde a pessoa
+   estava (achado do Nicola no teste da F2.7a, 08/10 — de Contratos caía em Ativos); sem o módulo do
+   Cofre montado, ele monta em segundo plano. Partes sem nenhuma parte e Alertas sem nenhum alerta
+   ("Tudo em dia") ganham a caixa rzVazio. Import map: cofre-ativos.js 1.79.0 (anexos do ativo),
+   cofre-documentos.js 2.33.0 (documentos da empresa), comum-pessoas.js 1.205.0 (Pessoas). Nenhum
+   objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.324.0):
    NOVIDADES (Beta v1.324.0) — Controles da empresa (item 2, plano aprovado pelo Nicola 07/10 20:14).
    ⚙️ › Minha empresa ganha o card "Controles da empresa", abaixo de "Documentos da empresa": lista
    os itens de controle da empresa (sem ativo), chip Encerrados, abre a mesma ficha do item e o
@@ -36,14 +44,8 @@
    aberto, resumo da conciliação da compra, reimportação com conferência, cartão fora das contas de
    lançamento) e relatorios-executivos.js 1.1.1 (filtro de conta sem cartão).
    Versão anterior (Beta v1.321.2):
-   NOVIDADES (Beta v1.321.2) — correção de referência normativa: os 22 cabeçalhos rolados citavam
-   "VER-05", mas essa regra já existia no manifesto ("deploy nunca regride versão"). A regra do
-   rolo é a VER-06, reescrita no MANIFESTO v1.11.0 para valer para todo arquivo. Erro meu de
-   numeração, corrigido nos 22 cabeçalhos, no gerar_versoes.py (1.25) e no Deploy_Raiz.ps1 (2.50).
-   Só import map neste arquivo.
-   Versão anterior (Beta v1.321.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.321.1 … v1.321.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.321.2 … v1.321.2): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -68,7 +70,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.78.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.32.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.3","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.204.2","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.2","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.1.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.2.0","./js/vitrine.js":"./js/vitrine.js?v=1.3.5","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.49.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.44.2","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.79.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.33.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.5.3","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.11.2","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.205.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.3.2","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3694,7 +3696,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.324.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.325.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10308,13 +10310,16 @@
             if (corpo) { corpo.insertAdjacentHTML('afterbegin', hero); rzIcones(); }
             document.getElementById('raiz-ia-dot')?.classList.add('hidden');
         }
-        // Abre o upload livre do módulo Ativos de qualquer aba (mesmo fluxo do
-        // item "Carregar documento" do "+" da aba Ativos).
+        // Envio de documento para a Raiz IA, por cima da tela em que a pessoa está. O envio é um
+        // sheet e seus modais vivem no <body>, então não depende da aba Ativos aberta: cancelar
+        // devolve a pessoa exatamente onde estava. Se o módulo do Cofre ainda não montou, monta em
+        // segundo plano (sem trocar de aba) e abre quando os dados chegam. (dem b8602a3a)
         function abrirUploadDocumentoNoApp() {
-            switchTab('tab-ativos');
             const disparar = () => window.dispatchEvent(new CustomEvent('cofre:abrir-upload-home'));
             if (Array.isArray(window.__cofreAtivos)) { setTimeout(disparar, 0); return; }
             window.addEventListener('cofre:dados-carregados', () => setTimeout(disparar, 80), { once: true });
+            import('./js/ativos/ativos-boot.js').then(({ montarAtivosTab }) => montarAtivosTab(CLIENTE_ID_SUPABASE))
+                .catch(err => { console.warn('[envio] módulo de Ativos:', err.message); switchTab('tab-ativos'); });
         }
 
         // v1.308.0 (D2, demanda 860233ca) — configuração inicial: mesma porta do Cofre, a partir de
@@ -13092,6 +13097,12 @@
             const filtrados = alertasFiltroAtual === 'todos' ? alertasTodos : alertasTodos.filter(a => a.categoria === alertasFiltroAtual);
 
             if (filtrados.length === 0) {
+                // "Tudo em dia" só quando não há alerta nenhum, de nenhuma severidade: com um filtro
+                // ligado, zero na tela não quer dizer carteira em dia. (dem b8602a3a)
+                if (!(alertasVisiveisTodos || []).length && typeof rzVazio === 'function') {
+                    mount.innerHTML = rzVazio({ dominio: 'alertas', id: 'alertas-zerado', titulo: 'Tudo em dia', beneficio: 'Nenhum vencimento ou pendência pedindo atenção agora. O Raiz confere tudo de novo todo dia e avisa aqui.' });
+                    return;
+                }
                 mount.innerHTML = `<p class="text-xs text-center py-8" style="color:var(--sage)">Nenhum alerta ${alertasFiltroAtual === 'todos' ? '' : 'nesta categoria '}no momento.</p>`;
                 return;
             }
@@ -16529,6 +16540,19 @@
             else if (partesFiltroPapel === 'sem') lista = lista.filter(pt => !(papeisPorParte[pt.id] || []).length);
             else if (partesFiltroPapel !== 'todos') lista = lista.filter(pt => (papeisPorParte[pt.id] || []).includes(partesFiltroPapel));
             if (partesFiltroTexto) lista = lista.filter(pt => [pt.nome, pt.nome_fantasia, pt.documento, pt.whatsapp, pt.email].some(v => (v || '').toLowerCase().includes(partesFiltroTexto)));
+            if (!lista.length && !partesCliente.length && typeof rzVazio === 'function') {
+                // Sem nenhuma parte: o contrato é o caminho natural, porque locatário e proprietário
+                // entram sozinhos por ele. (dem b8602a3a)
+                container.innerHTML = rzVazio({
+                    dominio: 'pessoas', id: 'partes',
+                    titulo: 'Locatários, proprietários e prestadores',
+                    beneficio: 'Quem aparece nos seus contratos entra aqui sozinho. Já tem o contrato assinado? Envie o arquivo e a Raiz IA lê os dados.',
+                    acaoIA: { rotulo: 'Enviar contrato', codigo: 'cofre.analisar_ia', aoTocar: () => abrirUploadDocumentoNoApp() },
+                    acaoManual: { rotulo: 'Cadastrar parte', aoTocar: () => abrirFormParteSheet() },
+                });
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
             if (!lista.length) {
                 container.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="contact"></svg></div><p>${partesCliente.length ? 'Nenhuma parte neste filtro.' : 'Nenhuma parte ainda. Locatários e proprietários entram sozinhos pelos contratos e ativos; prestadores e outros você cadastra no "+".'}</p></div>`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();

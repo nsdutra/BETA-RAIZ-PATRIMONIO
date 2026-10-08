@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.321.2) — correção de referência normativa: os 22 cabeçalhos rolados citavam
+"VER-05", mas essa regra já existia no manifesto ("deploy nunca regride versão"). A regra do
+rolo é a VER-06, reescrita no MANIFESTO v1.11.0 para valer para todo arquivo. Erro meu de
+numeração, corrigido nos 22 cabeçalhos, no gerar_versoes.py (1.25) e no Deploy_Raiz.ps1 (2.50).
+Só import map neste arquivo.
+Versão anterior (Beta v1.321.1):
+------------------------------------------------------------------
+Versões anteriores (v1.321.1 … v1.321.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.321.1) — correção na mesma frente: cofre-navegacao.js 1.9.1 → 1.9.2, ordem
 do cabeçalho (a linha "Versão:" estava depois das entradas, e a checagem de base do publicador
 lia a versão errada). Só import map neste arquivo.

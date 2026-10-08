@@ -1,6 +1,12 @@
 // ============================================================================
 // comum-pessoas.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.204.2 · 07/10/2026
+// Versão: 1.205.0 · 08/10/2026
+//
+// v1.205.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — Pessoas sem ninguém
+// cadastrado usa a caixa rzVazio do app ("Quem usa o Raiz com você" + "Adicionar pessoa" para quem pode
+// gerenciar). Pessoa que não se achou e o cofre.html avulso (sem rzVazio) mantêm o vazio de antes.
+//
+// Versão anterior: 1.204.2 · 07/10/2026
 //
 // v1.204.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -29,31 +35,11 @@
 // ux-base-f03_vincular_login_email_v1): confere admin/master da empresa, perfil protegido
 // só pelo master, login já ligado a outra pessoa, e grava o log no banco. O update direto
 // em pessoas.user_id pelo navegador sai.
-//
-// Versão anterior: 1.201.0 · 18/09/2026
-//
-// v2.1.0 (COMUM_PESSOAS_VERSAO) / v1.201.0 (VERSAO, header) — 2 ajustes
-// pedidos pelo Nicola em cima da reescrita v2.0.0:
-//   1. "Remover acesso ao sistema" travava só pro master (perfilTravado) —
-//      agora trava pra admin TAMBÉM (protegidoExclusao), mesma proteção
-//      já usada em "Excluir pessoa". Reforçado com 2ª trava dentro de
-//      desvincularAcessoPessoa() (mesmo padrão de excluirPessoa()).
-//   2. "Comunicações", quando a linha é a PRÓPRIA pessoa logada, agora
-//      abre window.abrirPreferenciasComunicacao() — a tela "Minhas
-//      notificações" de index.html, redesenhada nesta mesma leva pra
-//      salvar cada aviso na hora (toggle liga/desliga, sem botão de
-//      salvar em lote) e usar o MESMO padrão visual nas duas seções
-//      (Alertas e avisos automáticos · Comunicações da Raiz). Pra outra
-//      pessoa (fluxo admin), continua abrindo abrirComunicacoesPessoaSheet()
-//      local — só essa também ganhou o mesmo toggle com salvamento
-//      imediato (a Raiz não se aplica a conta de terceiro, então essa
-//      seção não entra aqui, só os avisos/alertas).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v2.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.1.0 … v2.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '1.204.2'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.205.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 import { perguntar, avisarComDesfazer } from './cofre-ui.js'; // v1.203.0 (F0.2b) — sem diálogo nativo
 import { buscarContas, contasListaHtml, abrirFichaConta, abrirAcoesConta } from './comum-minha-empresa.js'; // v1.204.0 — contas da pessoa (P4a)
 import { rzMostrarBloqueio as rzBloqueio } from './comum-licenca.js'; // v1.204.0
@@ -298,6 +284,16 @@ export async function montarAbaPessoas(mountEl, ctx) {
                 ? (perfilLogado === 'master' ? pessoas : pessoas.filter(p => p.perfil !== 'master'))
                 : pessoas.filter(p => p.id === pessoaId))
             : (perfilLogado === 'master' ? pessoas : pessoas.filter(p => p.perfil !== 'master'));
+        if (visiveis.length === 0 && !(autoFiltro && !podeVerTodas) && typeof window.rzVazio === 'function') {
+            lista.innerHTML = window.rzVazio({
+                dominio: 'pessoas', id: 'pessoas',
+                titulo: 'Quem usa o Raiz com você',
+                beneficio: 'Convide sua equipe, sócios ou família e defina o que cada pessoa pode ver e fazer.',
+                acaoManual: podeGerenciarOutras ? { rotulo: 'Adicionar pessoa', aoTocar: () => abrirFormPessoaSheet(null) } : null,
+            });
+            icones();
+            return;
+        }
         if (visiveis.length === 0) {
             const msg = autoFiltro && !podeVerTodas
                 ? 'Não achamos seu cadastro de pessoa. Fale com quem administra esta empresa.'

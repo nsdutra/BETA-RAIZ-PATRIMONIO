@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.78.0 · 07/10/2026
+// Versão: 1.79.0 · 08/10/2026
+//
+// v1.79.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio dos anexos do
+// ativo no formato de vazio dentro de card (REGRAS §0.7: ícone + frase do que se ganha e de como, sem
+// botão): diz o que a Raiz IA faz e onde está a ação (⋮ › Adicionar documento com IA).
+//
+// Versão anterior: 1.78.0 · 07/10/2026
 //
 // v1.78.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
 // primeiro uso, o vazio convida:
@@ -36,18 +42,11 @@
 // lançamento: linha compacta (nome · % · remover), "Adicionar pessoa" (sócio cadastrado ou parte
 // externa), soma ao vivo e Salvar só em 100%. Grava como antes (substituir_propriedade_ativo).
 // No cofre.html avulso (sem sheets do app) continua o formulário antigo.
-//
-// Versão anterior: 1.75.0 · 04/10/2026
-//
-// v1.75.0 (UX F2.2, demanda da6c64b6, sessão 20261003-1707-ux-base; "podemos avançar" do Nicola
-// 04/10 18:21; UXR-13/15/22) — chip "Com alerta" em Ativos, logo depois de "Todos": conta os
-// ativos com algum alerta do Motor (window.rzAtivosComAlerta, index.html) ou com ocorrência de item
-// vencendo; só aparece com contador > 0 e filtra a lista. No cofre.html avulso usa só as ocorrências.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.74.0 … v1.74.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.75.0 … v1.75.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.78.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.79.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -2561,7 +2560,7 @@ function aplicarFiltroAnexos() {
     if (vazio) {
         vazio.classList.toggle('hidden', filtrados.length > 0);
         if (vazioTx) vazioTx.textContent = filtroAnexoAtual === 'todos'
-            ? 'Nenhum anexo neste ativo. A IA lê matrícula, IPTU e apólices e preenche os controles sozinha.'
+            ? 'Envie escritura, IPTU ou apólice e a Raiz IA lê os dados e cria os vencimentos. Toque no ⋮ › Adicionar documento com IA.'
             : 'Nenhum documento nesta categoria.';
     }
     refrescarIcones();

@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.32.0 · 07/10/2026
+// Versão: 2.33.0 · 08/10/2026
+//
+// v2.33.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio de "Documentos
+// da empresa" diz o que se ganha e como começar (vazio dentro de card, REGRAS §0.7).
+//
+// Versão anterior: 2.32.0 · 07/10/2026
 //
 // v2.32.0 (catálogo único, demanda 2923ff4d, sessão 20261007-2005-catalogo-fim; "Pode fazer 3 e 4" do Nicola
 // 07/10 20:02) — "Criar o ativo a partir deste documento" deixa de usar o campo antigo
@@ -32,22 +37,11 @@
 // contrato de locação 66 s (modelo maior + revisão). A tela passa a dizer "de 20 s a 1 min"; passado
 // 1 min, "Documento longo: ainda lendo, pode levar até 2 min". O limite antes de "Interrompida" sobe de
 // 90 s para 150 s (contrato de 1 min não chega perto). A barra anda numa escala de ~75 s.
-//
-// Versão anterior: 2.29.0 · 07/10/2026
-//
-// v2.29.0 (demanda 6a1210a0, sessão 20261007-0207-ia-falha; "Pode fazer sim" do Nicola 07/10 02:07) —
-// resultado da leitura que não engana:
-//   (a) "Lido como Não classificado" (tipo "outro" ou sem tipo) deixa de ser um "Pronto" verde: vira
-//       "Não reconheci o tipo deste documento", com "Conferir e classificar" (abre o Confira, onde se
-//       escolhe o Tipo de documento e se pode Reler), outra foto, equipe Raiz (configuração) e cancelar.
-//   (b) Leitor fora do ar (cofre-extrair-documento 1.12 devolve falha_ia): "A leitura com IA está fora do
-//       ar agora", com Ler de novo (sem reenviar), Preencher eu mesmo e Cancelar.
-//   (c) O "Pronto" explica a próxima tela: conferir os dados, ajustar o tipo se precisar e salvar.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.28.0 … v2.28.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.29.0 … v2.29.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.32.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.33.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -2458,7 +2452,7 @@ export async function renderizarDocumentosEmpresa() {
             <div class="rz-tx rz-link" data-me-abrir="${d.id}"><b>${escapeHtml(d.nome_exibicao || 'Documento')}</b><span>${d.criado_em ? formatarDataBR(String(d.criado_em).slice(0, 10)) : ''}</span></div>
             <button type="button" data-me-excluir="${vinculo?.id || ''}" title="Remover da empresa" class="rz-ico-btn" style="width:36px;height:36px"><i data-lucide="x" style="width:16px;height:16px;color:var(--muted)"></i></button>
         </div>`;
-    }).join('') : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-plus-2"></i></div><p>Nenhum documento anexado. CNPJ, contrato social ou outro documento da empresa fica guardado aqui.</p></div>`;
+    }).join('') : `<div class="rz-empty"><div class="rz-ic"><i data-lucide="file-plus-2"></i></div><p>Cartão CNPJ, contrato social e certidões da empresa guardados num lugar só. Toque no ícone de envio acima para carregar o primeiro.</p></div>`;
     el.querySelectorAll('[data-me-abrir]').forEach(row => row.addEventListener('click', () => abrirDocumentoEmpresa(row.dataset.meAbrir)));
     el.querySelectorAll('[data-me-excluir]').forEach(btn => btn.addEventListener('click', () => excluirDocumentoDaEmpresa(btn.dataset.meExcluir)));
     refrescarIcones();
