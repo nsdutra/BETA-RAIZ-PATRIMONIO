@@ -4,6 +4,26 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.342.0) — Onda 1a da fragmentação do index (demanda 6b11c602, plano aprovado pelo
+Nicola 09/10 21:15). Nasce o primeiro módulo do NÚCLEO: js/nucleo/porta.js 1.0.0, com os 13 leitores puros do
+banco (carregarImoveis/Contratos/Mensalidades/Repasses/Lancamentos/Prestadores/Pessoas/Empreendimentos/
+TiposImovel/MinutasContrato/LinksVitrine/Logs Supabase e resolverVitrinePublicaSupabase). O código deles saiu
+deste arquivo SEM UMA LINHA REESCRITA — ganhou "export" e passou a receber dbAuth / CLIENTE_ID_SUPABASE /
+CONFIG_CLIENTE / SOCIO_PADRAO e os 5 ajudantes de tradução por injeção (instalarPorta), mesma convenção do
+comum-licenca.js. Os nomes não mudaram: os 18 sítios de chamada seguem chamando carregarImoveisSupabase()
+como antes, pela ponte window[nome] (ver "PORTA DE LEITURA" neste arquivo), que chama atualizarContexto() a
+cada leitura para o módulo nunca ficar com o cliente velho depois de uma troca de empresa. Ficaram aqui de
+propósito, para a Onda 1b: os 2 leitores com cache próprio (carregarAtivos/PartesParaSelectSupabase), os 9
+sincronizar* (escrita) e os 5 ajudantes de tradução — estes porque os sincronizar* também os usam, e duplicar
+violaria a CAN-03. Índice: 1.086.866 → 1.053.971 bytes (17.655 → 17.087 linhas). Nenhum objeto de banco.
+Versão anterior (Beta v1.341.0):
+------------------------------------------------------------------
+Versões anteriores (v1.341.0 … v1.341.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.341.0) — UX F2.5c-2 e F2.5d (demanda 639bbcd0; teste do Nicola 10/10 01:39 e plano F2.5
 aprovado 09/10 23:5x). Partes: a barra de busca é digitável (rzBuscaInline — filtra enquanto digita, × limpa,
 sem Sheet nem botões; CSS .rz-search.rz-search-in); a ficha fica com os chips Dados · Vínculos (o chip

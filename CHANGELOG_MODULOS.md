@@ -544,6 +544,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -972,6 +974,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -1492,7 +1496,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.80.0 · 08/10/2026
+//
+// v1.80.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — ⋮ da ficha de imóvel ganha "Compartilhar": abre o WhatsApp
+// com os dados e o link do imóvel (compartilharImovelDoAtivo, vitrine.js), para qualquer imóvel — antes "Gerar
+// vitrine" só aparecia para imóvel do cadastro antigo. Textos sem "vitrine".
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.79.0 … v1.79.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.79.0 · 08/10/2026
@@ -2558,6 +2575,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -3139,6 +3158,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -3868,6 +3889,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -4013,6 +4036,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -4259,6 +4284,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -4355,7 +4382,34 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-validacoes.js`
+
+//
+// v2.0.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão do Nicola,
+// "pode evoluir"). QUEBRA DE CONTRATO: `CAMPOS_POR_TIPO_ATIVO` deixou de
+// ser objeto exportado — virou `obterCamposPorTipo(categoria,
+// tipoDetalheId)`, lendo de `ativo_tipos_campos` (catálogo da E4.4, 45
+// campos, nunca tinha consumidor até agora) em vez do objeto hardcoded
+// (que virou `CAMPOS_POR_TIPO_ATIVO_FALLBACK`, não exportado, só usado
+// se o catálogo não carregou). Ganho real sobre a ponte de compatibilidade
+// da v1.4.0: campos por TIPO ESPECÍFICO, não só por categoria —
+// blindagem_empresa/nivel agora só aparecem pra "Carro blindado" de
+// verdade (achado ao construir isto: a ponte v1.4.0 mostrava esses 2
+// campos em TODO veículo, sem necessidade). `listarTiposPorCategoria()`
+// nova, alimenta o 2º seletor (categoria → tipo específico) que
+// cofre-ativos.js v1.33.0 acrescenta ao form. `rotuloTipoAtivo`/
+// `iconeAtivo` NÃO mudaram — ver nota no bloco do catálogo, escopo
+// deliberadamente menor que "catalogar tudo".
+// Ainda não entra nesta entrega: o bot (`_shared.ts`) continua com
+// `TIPOS_ATIVO_VALIDOS`/`SINONIMOS_TIPO_ATIVO` hardcoded — fatia
+// separada, avisada no fim da sessão, não bloqueia esta (catálogo tem
+// fallback idêntico ao comportamento de hoje, nada quebra sem o bot).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.1.1 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // v1.4.0 — PONTE DE COMPATIBILIDADE pra E4.2 fatia B (decisão do Nicola,
@@ -4431,6 +4485,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -4682,6 +4738,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -4816,6 +4874,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -5183,6 +5243,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -5225,6 +5287,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -5348,6 +5412,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -6216,6 +6282,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -6502,6 +6570,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -7641,6 +7711,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -7700,6 +7772,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -7852,6 +7926,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -8230,6 +8306,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -8339,6 +8417,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

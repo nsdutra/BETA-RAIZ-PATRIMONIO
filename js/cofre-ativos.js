@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.84.0 · 09/10/2026
+// Versão: 1.85.0 · 10/10/2026
+//
+// v1.85.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — fichas F21/F22, E1b): a lente de ramo do
+// cabeçalho vale para Ativos. Em Todo o patrimônio, os chips são os ramos (tocar troca a lente do app); num ramo,
+// a lista mostra só os ativos dele e os chips são os segmentos (ativo_tipos.segmento). "Novo ativo" oferece só as
+// categorias e os tipos do ramo; tipos de ramo em breve (Agro, Pecuária) ficam fora. Ouve o evento raiz:ramo.
+// Versão anterior: 1.84.0.
 //
 // v1.84.0 (demanda f3e6cd27, F17, sessão 20261008-1231-pessoas-ativos; plano aprovado pelo Nicola 09/10 22:50) —
 // chip "Pessoas" na lista de Ativos: ativo do tipo vida (pessoa) sai de "Outros" e ganha recorte próprio;
@@ -25,17 +31,11 @@
 // v1.81.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // busca da lista de Ativos em Sheet (abrirBuscaAtivos): campo ao vivo e chips de Tipo, Situação e
 // Alerta, com "Ver n ativos"; a barra do topo mostra o termo e quantos filtros estão ligados.
-//
-// Versão anterior: 1.80.0 · 08/10/2026
-//
-// v1.80.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — ⋮ da ficha de imóvel ganha "Compartilhar": abre o WhatsApp
-// com os dados e o link do imóvel (compartilharImovelDoAtivo, vitrine.js), para qualquer imóvel — antes "Gerar
-// vitrine" só aparecia para imóvel do cadastro antigo. Textos sem "vitrine".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.79.0 … v1.79.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.80.0 … v1.80.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.84.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.85.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -43,8 +43,7 @@ import { mudarTela } from './cofre-navegacao.js';
 import {
     escapeHtml, formatarDataBR, diasAte, chipVencimento, mascarar,
     rotuloTipoAtivo, iconeAtivo, validarCamposAtivo,
-    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo,
-} from './cofre-validacoes.js';
+    obterCamposPorTipo, listarTiposPorCategoria, inicializarCatalogoTiposAtivo,, tipoDoCatalogo, categoriasDoRamo } from './cofre-validacoes.js';
 import { montarControlesAtivo, aplicarMotorNoChipControles, reiniciarChipControlesDoMotor } from './cofre-controles.js';
 // E6.2 — retorno usado de forma síncrona em salvarAtivo/salvarEdicaoAtivo
 // (lerBlocoEndereco), por isso import estático (ver nota em technical-
@@ -165,7 +164,14 @@ function piorSeveridadeAtivos() {
 
 export function popularSelectTipoAtivo() {
     const sel = document.getElementById('at-tipo');
-    if (!sel || sel.options.length) return;
+    if (!sel) return;
+    // v1.85.0 (F21) — refeito a cada abertura: só as categorias com tipo no ramo da lente (todas em Todo o patrimônio)
+    const doRamo = categoriasDoRamo(ramoDaLente());
+    const lista = doRamo ? CATEGORIAS_ATIVO.filter(c => doRamo.includes(c)) : CATEGORIAS_ATIVO;
+    const atual = sel.value;
+    sel.innerHTML = (lista.length ? lista : CATEGORIAS_ATIVO).map(t => `<option value="${t}">${rotuloTipoAtivo(t)}</option>`).join('');
+    if (atual && lista.includes(atual)) sel.value = atual;
+    return;
     // v2.0.0-front (E5) — as 8 categorias macro (E4.1), não mais os 10
     // valores específicos antigos. O tipo específico (Apartamento, Carro
     // blindado...) vira o 2º seletor, #at-tipo-detalhe, populado por
@@ -182,7 +188,8 @@ function atualizarSelectTipoDetalhe(categoria, prefixoId, valorAtualId = null) {
     const sel = document.getElementById(`${prefixoId}tipo-detalhe`);
     const wrap = document.getElementById(`${prefixoId}tipo-detalhe-wrapper`);
     if (!sel || !wrap) return;
-    const tipos = listarTiposPorCategoria(categoria);
+    // v1.85.0 (F21) — no novo ativo (sem valor atual), só os tipos do ramo da lente e de ramo já ativo
+    const tipos = listarTiposPorCategoria(categoria, valorAtualId ? null : { ramo: ramoDaLente() });
     wrap.classList.toggle('hidden', tipos.length === 0);
     sel.innerHTML = tipos.map(t => `<option value="${t.id}"${t.id === valorAtualId ? ' selected' : ''}>${escapeHtml(t.nome)}</option>`).join('');
 }
@@ -394,7 +401,14 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     // aplicarFiltroChipAtivos() já setou o índice certo antes de chamar.
     if (!Array.isArray(filtroTipo)) {
         chipAtivoAtual = filtroTipo ? -1 : 0;
+        segmentoChip = null;
     }
+    // v1.85.0 (F21) — sem o catálogo de tipos não dá para saber ramo e segmento: carrega uma vez e redesenha
+    if (!_catalogoTiposAtivoCarregado && ramoDaLente() !== 'tudo') {
+        garantirCatalogoTiposAtivo().then(() => { if (_catalogoTiposAtivoCarregado) redesenharComFiltros(); });
+    }
+    recalcularGruposChip();
+    const ramoLente = ramoDaLente();
 
     // v1.8.0 (pedido explícito, 01/09/2026: "ajustar o modal de
     // consultas para consultar nos campos chaves de ativo, contrato e
@@ -445,6 +459,8 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
     const soComAlerta = !!GRUPOS_CHIP_TIPO[chipAtivoAtual]?.alerta; // v1.75.0 (F2.2)
     const comAlerta = soComAlerta ? ativosComAlerta(ocorrenciasPorAtivo) : null;
     const lista = estado.ativos.filter(a => {
+        if (ramoLente !== 'tudo' && ramoDoAtivoLista(a) !== ramoLente) return false; // v1.85.0 (F21)
+        if (segmentoChip && segmentoDoAtivo(a) !== segmentoChip) return false; // v1.85.0 (F22)
         if (tiposFiltro && tiposFiltro.length && !tiposFiltro.includes(a.tipo_ativo)) return false;
         if (comAlerta && !comAlerta.has(a.id)) return false;
         // v1.41.0 (16/09/2026, achado no teste real — "Casa de Campo cai
@@ -553,7 +569,10 @@ function explicarListaVazia(el) {
 // lista atual sem eu ter que caçar todos os outros call-sites de
 // renderAtivosLista() espalhados pelo app.
 // ============================================================================
-const GRUPOS_CHIP_TIPO = [
+// v1.85.0 (F21/F22) — a lista de chips passa a ser recalculada pela lente (recalcularGruposChip): em Todo o
+// patrimônio, um chip por ramo (tocar troca a lente); num ramo, um chip por segmento. Esta é a lista de antes,
+// que ainda vale enquanto o catálogo de ramos não carregou.
+let GRUPOS_CHIP_TIPO = [
     { rotulo: 'Todos', tipos: null },
     // v1.75.0 (F2.2) — chip de ação: tipos [] = sem filtro de tipo; filtra pelos ativos com alerta
     { rotulo: 'Com alerta', tipos: [], alerta: true },
@@ -570,6 +589,36 @@ const GRUPOS_CHIP_TIPO = [
 // subtipo fino pelo dropdown do modal não mexe aqui de propósito (são 2
 // filtros independentes, o dropdown fino não tem chip correspondente 1:1).
 let chipAtivoAtual = 0;
+let segmentoChip = null; // v1.85.0 (F22) — segmento do chip aceso, num ramo
+
+// ---- Ramo da lente (F21) -------------------------------------------------------------------------
+const ramoDaLente = () => (typeof window !== 'undefined' && typeof window.rzRamoAtual === 'function') ? window.rzRamoAtual() : 'tudo';
+function ramoDoAtivoLista(a) {
+    const det = tipoDoCatalogo(a.tipo_detalhe_id);
+    if (typeof rzRamoDoAtivo === 'function') return rzRamoDoAtivo({ tipo_ativo: a.tipo_ativo, tipo_detalhe: det });
+    return det?.ramo || 'outros';
+}
+const segmentoDoAtivo = (a) => tipoDoCatalogo(a.tipo_detalhe_id)?.segmento || 'Outros';
+const ativosDoRamo = () => { const r = ramoDaLente(); return r === 'tudo' ? estado.ativos : estado.ativos.filter(a => ramoDoAtivoLista(a) === r); };
+function recalcularGruposChip() {
+    if (typeof rzRamoInfo !== 'function' || typeof RZ_RAMOS === 'undefined') return; // cofre.html avulso: chips de sempre
+    const r = ramoDaLente();
+    const base = [{ rotulo: 'Todos', tipos: null }, { rotulo: 'Com alerta', tipos: [], alerta: true }];
+    if (r === 'tudo') {
+        GRUPOS_CHIP_TIPO = base.concat(RZ_RAMOS.filter(x => x.status === 'ativo').map(x => ({ rotulo: x.nome, tipos: [], ramo: x.codigo })));
+    } else {
+        const ordem = [];
+        ativosDoRamo().forEach(a => { const sg = segmentoDoAtivo(a); if (!ordem.includes(sg)) ordem.push(sg); });
+        GRUPOS_CHIP_TIPO = base.concat(ordem.sort((x, y) => x.localeCompare(y, 'pt-BR')).map(sg => ({ rotulo: sg, tipos: [], segmento: sg })));
+    }
+    if (chipAtivoAtual >= GRUPOS_CHIP_TIPO.length) { chipAtivoAtual = 0; segmentoChip = null; }
+}
+if (typeof window !== 'undefined') {
+    window.addEventListener('raiz:ramo', () => {
+        chipAtivoAtual = 0; segmentoChip = null;
+        if (document.getElementById('ativos-lista')) renderAtivosLista('', document.getElementById('filtro-ativo-busca')?.value || '');
+    });
+}
 
 // Ativos que passam pela busca (texto, tipo fino, situação, alerta) — sem o recorte do chip. É sobre eles
 // que os chips contam: com a busca ligada, o número do chip é o que aparece ao tocar nele. (dem 1f98c359)
@@ -578,13 +627,13 @@ function ativosDaBusca() {
     const tipoFino = campoFiltro('filtro-ativo-tipo')?.value || '';
     const filtroStatus = campoFiltro('filtro-ativo-status')?.value || '';
     const filtroAlerta = campoFiltro('filtro-ativo-alerta')?.value || '';
-    if (!termo && !tipoFino && !filtroStatus && !filtroAlerta) return estado.ativos;
+    if (!termo && !tipoFino && !filtroStatus && !filtroAlerta) return ativosDoRamo();
     const ocorrenciasPorAtivo = {};
     estado.ocorrenciasAbertas.forEach(oc => {
         const idAtivo = oc.cofre_itens_controle?.ativo_id;
         if (idAtivo) (ocorrenciasPorAtivo[idAtivo] = ocorrenciasPorAtivo[idAtivo] || []).push(oc);
     });
-    return estado.ativos.filter(a => {
+    return ativosDoRamo().filter(a => {
         if (tipoFino && a.tipo_ativo !== tipoFino) return false;
         const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
         if (termo && !ativoBateComTexto(a, resumo, termo, ocorrenciasPorAtivo)) return false;
@@ -610,15 +659,18 @@ function renderChipsAtivos() {
     const pt = piorSeveridadeAtivos();
     const chips = GRUPOS_CHIP_TIPO.map((g, i) => {
         const qtd = g.alerta ? base.filter(a => comAlerta.has(a.id)).length
+            : g.ramo ? estado.ativos.filter(a => ramoDoAtivoLista(a) === g.ramo).length // v1.85.0 (F21) — chip de ramo
+            : g.segmento ? base.filter(a => segmentoDoAtivo(a) === g.segmento).length // v1.85.0 (F22) — chip de segmento
             : (g.tipos ? base.filter(a => g.tipos.includes(a.tipo_ativo)).length : base.length);
         const ativo = i === chipAtivoAtual;
         if (g.alerta && !qtd && !ativo) return ''; // chip de ação só aparece com contador > 0 (UXR-15)
         if (g.tipos && g.tipos.length && !qtd && !ativo) return ''; // recorte vazio vira convite (abaixo)
+        if ((g.ramo || g.segmento) && !qtd && !ativo) return ''; // v1.85.0 — ramo/segmento vazio não aparece
         const ponto = g.alerta && qtd ? `<span class="rz-pt ${pt}" aria-hidden="true"></span>` : '';
         return `<button type="button" data-action="filtrar-ativos-chip" data-chip-indice="${i}" class="rz-chip${ativo ? ' rz-on' : ''}">${ponto}${escapeHtml(g.rotulo)} <span class="rz-n">${qtd}</span></button>`;
     }).join('');
     const temCategoria = new Set(estado.ativos.map(a => categoriaDoAtivo(a.tipo_ativo)));
-    const convites = estado.ativos.length ? CATEGORIAS_ATIVO.filter(c => ROTULO_CONVITE[c] && !temCategoria.has(c))
+    const convites = estado.ativos.length && ramoDaLente() === 'tudo' ? CATEGORIAS_ATIVO.filter(c => ROTULO_CONVITE[c] && !temCategoria.has(c))
         .map(c => `<button type="button" class="rz-chip rz-chip-convite" onclick="window.__rzConviteAtivo && window.__rzConviteAtivo('${c}')" aria-label="Cadastrar ${escapeHtml(ROTULO_CONVITE[c])}">+ ${escapeHtml(ROTULO_CONVITE[c])} <span class="rz-n">0</span></button>`).join('') : '';
     wrap.innerHTML = chips + convites;
     // v1.9.0 (02/09/2026, pedido explícito: "os chips devem correr na
@@ -713,11 +765,14 @@ export function abrirBuscaAtivos() {
 // grupo); clicar um chip sempre volta o dropdown fino pra "Todos os tipos".
 export function aplicarFiltroChipAtivos(indice) {
     if (indice < 0 || indice >= GRUPOS_CHIP_TIPO.length) return;
+    const g = GRUPOS_CHIP_TIPO[indice];
+    if (g.ramo && typeof window.escolherGeralRamo === 'function') { window.escolherGeralRamo(g.ramo); return; } // v1.85.0 — troca a lente
     chipAtivoAtual = indice;
+    segmentoChip = g.segmento || null;
     const selTipo = document.getElementById('filtro-ativo-tipo');
     if (selTipo) selTipo.value = '';
     const termoAtual = document.getElementById('filtro-ativo-busca')?.value || '';
-    renderAtivosLista(GRUPOS_CHIP_TIPO[indice].tipos, termoAtual);
+    renderAtivosLista(g.segmento ? [] : g.tipos, termoAtual);
 }
 
 // v1.7.0 (31/08/2026, pedido explícito, "perdeu a formatação... como
@@ -918,6 +973,7 @@ export async function abrirFormAtivo() {
     document.getElementById('at-status').textContent = '';
     await garantirCatalogoTiposAtivo();
     await garantirEmpreendimentos(); // E15.2 — pro seletor no bloco imóvel
+    popularSelectTipoAtivo(); // v1.85.0 (F21) — categorias do ramo da lente
     abrirModal('form-ativo-wrapper');
     aoMudarTipoAtivo();
 

@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.345.1
-   LINHAS: 17224
+   VERSÃO: Beta v1.346.0
+   LINHAS: 17216
    DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.346.0) — E1b: a lente de ramo vale também para a aba Ativos (js/cofre-ativos.js 1.85.0): lista e
+   chips pelo ramo e "Novo ativo" só com os tipos do ramo. Aqui só expõe rzRamoAtual() e escolherGeralRamo ao módulo.
+   Import map: cofre-ativos.js 1.85.0, cofre-validacoes.js 2.5.0.
+   Versão anterior (Beta v1.345.1):
    NOVIDADES (Beta v1.345.1) — Lente de ramo enxuta (Nicola 10/10 10:10: "o seletor ocupou muito do cabeçalho"): vira um
    botão redondo de 40 px, como o Raiz IA e o avatar, com a cor e o ícone do ramo (camadas em Todo o patrimônio,
    prédio em Imóveis, pessoas na Família, carro em Outros bens). O nome do ramo fica no aria-label e na lista.
@@ -39,21 +43,8 @@
    grava o erro real no console antes de mostrar a mensagem — foi a cegueira desse catch que escondeu a causa.
    Nenhum objeto de banco.
    Versão anterior (Beta v1.342.0):
-   NOVIDADES (Beta v1.342.0) — Onda 1a da fragmentação do index (demanda 6b11c602, plano aprovado pelo
-   Nicola 09/10 21:15). Nasce o primeiro módulo do NÚCLEO: js/nucleo/porta.js 1.0.0, com os 13 leitores puros do
-   banco (carregarImoveis/Contratos/Mensalidades/Repasses/Lancamentos/Prestadores/Pessoas/Empreendimentos/
-   TiposImovel/MinutasContrato/LinksVitrine/Logs Supabase e resolverVitrinePublicaSupabase). O código deles saiu
-   deste arquivo SEM UMA LINHA REESCRITA — ganhou "export" e passou a receber dbAuth / CLIENTE_ID_SUPABASE /
-   CONFIG_CLIENTE / SOCIO_PADRAO e os 5 ajudantes de tradução por injeção (instalarPorta), mesma convenção do
-   comum-licenca.js. Os nomes não mudaram: os 18 sítios de chamada seguem chamando carregarImoveisSupabase()
-   como antes, pela ponte window[nome] (ver "PORTA DE LEITURA" neste arquivo), que chama atualizarContexto() a
-   cada leitura para o módulo nunca ficar com o cliente velho depois de uma troca de empresa. Ficaram aqui de
-   propósito, para a Onda 1b: os 2 leitores com cache próprio (carregarAtivos/PartesParaSelectSupabase), os 9
-   sincronizar* (escrita) e os 5 ajudantes de tradução — estes porque os sincronizar* também os usam, e duplicar
-   violaria a CAN-03. Índice: 1.086.866 → 1.053.971 bytes (17.655 → 17.087 linhas). Nenhum objeto de banco.
-   Versão anterior (Beta v1.341.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.341.0 … v1.341.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.342.0 … v1.342.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -78,7 +69,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.41.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.84.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.7.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.1.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.41.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.85.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.7.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.1.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3722,7 +3713,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.345.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.346.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11899,6 +11890,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         ];
         let rzRamosCarregados = false;
         function rzRamoInfo(c) { return RZ_RAMOS.find(r => r.codigo === c) || null; }
+        function rzRamoAtual() { return geralRamoFiltro; } // v1.346.0 — lido por js/cofre-ativos.js (aba Ativos pela lente)
         function rzNomeRamo(c) { return c === 'tudo' ? 'Todo o patrimônio' : (rzRamoInfo(c)?.nome || c); }
         // ramo de um ativo: o do tipo (ativo_tipos.ramo); sem detalhe, pelo tipo_ativo (mesma regra da fn_alertas_listar)
         function rzRamoDoAtivo(a) {

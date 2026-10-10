@@ -1,6 +1,11 @@
 // ============================================================================
 // cofre-validacoes.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.4.2 · 07/10/2026
+// Versão: 2.5.0 · 10/10/2026
+//
+// v2.5.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — fichas F21/F22): o catálogo de tipos traz
+// ramo e segmento (ativo_tipos.ramo/segmento). tipoDoCatalogo(id) devolve o tipo; listarTiposPorCategoria aceita
+// { ramo } para o formulário de novo ativo oferecer só os tipos do ramo da lente e de ramos já ativos.
+// Versão anterior: 2.4.2.
 //
 // v2.4.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
@@ -23,32 +28,11 @@
 // d" já unificado no resto do app. Só diffDias===0 é PENDENTE/"Vence
 // hoje" agora; qualquer prazo positivo vira OK (verde)/"Vence em Xd" — sem
 // teto de 30 dias.
-//
-// v2.0.0 — PLANO_IMPLEMENTACAO v1.0, etapa E5, Onda 6 (decisão do Nicola,
-// "pode evoluir"). QUEBRA DE CONTRATO: `CAMPOS_POR_TIPO_ATIVO` deixou de
-// ser objeto exportado — virou `obterCamposPorTipo(categoria,
-// tipoDetalheId)`, lendo de `ativo_tipos_campos` (catálogo da E4.4, 45
-// campos, nunca tinha consumidor até agora) em vez do objeto hardcoded
-// (que virou `CAMPOS_POR_TIPO_ATIVO_FALLBACK`, não exportado, só usado
-// se o catálogo não carregou). Ganho real sobre a ponte de compatibilidade
-// da v1.4.0: campos por TIPO ESPECÍFICO, não só por categoria —
-// blindagem_empresa/nivel agora só aparecem pra "Carro blindado" de
-// verdade (achado ao construir isto: a ponte v1.4.0 mostrava esses 2
-// campos em TODO veículo, sem necessidade). `listarTiposPorCategoria()`
-// nova, alimenta o 2º seletor (categoria → tipo específico) que
-// cofre-ativos.js v1.33.0 acrescenta ao form. `rotuloTipoAtivo`/
-// `iconeAtivo` NÃO mudaram — ver nota no bloco do catálogo, escopo
-// deliberadamente menor que "catalogar tudo".
-// Ainda não entra nesta entrega: o bot (`_shared.ts`) continua com
-// `TIPOS_ATIVO_VALIDOS`/`SINONIMOS_TIPO_ATIVO` hardcoded — fatia
-// separada, avisada no fim da sessão, não bloqueia esta (catálogo tem
-// fallback idêntico ao comportamento de hoje, nada quebra sem o bot).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.1.1 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.0.0 … v2.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '2.4.2'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.5.0'; // v-check (18/09/2026): lido por Dev › Versões — manter igual ao header
 export function escapeHtml(s) {
     return (s ?? '').toString().replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -290,9 +274,30 @@ export function inicializarCatalogoTiposAtivo({ tipos, campos } = {}) {
 // form de ativo. Catálogo vazio/não carregado = lista vazia (o form
 // simplesmente não mostra o 2º seletor, degrada pro comportamento
 // pré-E5, não quebra).
-export function listarTiposPorCategoria(categoria) {
+export function listarTiposPorCategoria(categoria, opcoes = null) {
     if (!_catalogoAtivoTipos) return [];
-    return _catalogoAtivoTipos.filter(t => t.categoria === categoria).map(t => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
+    // v2.5.0 (F21) — com { ramo }: só tipos do ramo (ou todos, em 'tudo') e de ramo já ativo (Agro e Pecuária em breve ficam fora)
+    const ramo = opcoes && opcoes.ramo;
+    const ramoAtivo = r => !r || typeof rzRamoInfo !== 'function' || rzRamoInfo(r)?.status === 'ativo';
+    return _catalogoAtivoTipos
+        .filter(t => t.categoria === categoria && (!opcoes || ((ramo === 'tudo' || !ramo || t.ramo === ramo) && ramoAtivo(t.ramo))))
+        .map(t => ({ id: t.id, codigo: t.codigo, nome: t.nome }));
+}
+
+// v2.5.0 (F21/F22) — o tipo do catálogo (com ramo e segmento) pelo id; null sem catálogo
+export function tipoDoCatalogo(id) {
+    if (!_catalogoAtivoTipos || !id) return null;
+    return _catalogoAtivoTipos.find(t => t.id === id) || null;
+}
+
+// v2.5.0 (F21) — categorias que têm tipo no ramo (para o 1º seletor do novo ativo); null sem catálogo
+export function categoriasDoRamo(ramo) {
+    if (!_catalogoAtivoTipos) return null;
+    return [...new Set(listarTiposPorCategoriaTodas(ramo))];
+}
+function listarTiposPorCategoriaTodas(ramo) {
+    const ramoAtivo = r => !r || typeof rzRamoInfo !== 'function' || rzRamoInfo(r)?.status === 'ativo';
+    return _catalogoAtivoTipos.filter(t => (ramo === 'tudo' || !ramo || t.ramo === ramo) && ramoAtivo(t.ramo)).map(t => t.categoria);
 }
 
 // Campos estruturados: categoria sempre, + os específicos do tipo_detalhe
