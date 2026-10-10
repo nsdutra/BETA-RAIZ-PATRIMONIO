@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.41.0 · 10/10/2026
+// Versão: 1.42.0 · 10/10/2026
+//
+// v1.42.0 (10/10/2026, sessão 20261009-2055-integridade — demandas d471a7a8 e 1036fc4e, planos aprovados pelo Nicola
+// 10/10 09:57 e 10:11): a fatura do cartão é paga inteira ou não é paga. (1) Importar fatura pergunta "Esta fatura já
+// foi paga?" (obrigatório quando há compras novas e a fatura não está paga); "Sim" manda ja_paga e a data do pagamento
+// (padrão: o vencimento, ou hoje se ele ainda não chegou) e o banco marca fatura e compras como pagas. (2) Compra de
+// cartão não tem ações próprias de pagamento: tocar nela (de qualquer lista) abre a fatura — o banco também recusa
+// (trg_lancamento_guarda_fatura). (3) A linha da fatura em Saídas mostra a soma das compras, o mesmo número dos
+// totais do topo (fn_financeiro_totalizadores_por_conta). Versão anterior: 1.41.0.
 //
 // v1.41.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — testes do Nicola 10/10 00:30 e F9b
 // aprovada 00:45): (1) "classificar igual" pergunta ANTES de gravar; fechar a pergunta (X ou fora) cancela e nada
@@ -28,17 +36,11 @@
 // Classificar e em Nova despesa; o seletor de ativo mostra todos; (3) chave "Vai para o contador" na folha
 // Classificar (padrão pela categoria e pelo ativo; grava por fn_financeiro_incluir_contabilidade, com a mesma
 // funcionalidade financeiro.contabilidade_ajustar). Versão anterior: 1.39.1.
-//
-// v1.39.1 (09/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 22:40): (1) sair de
-// Classificar, Divisão ou qualquer passo aberto a partir da fatura (salvando ou cancelando) volta para a fatura,
-// na mesma altura da lista, e não para Saídas; (2) Selecionar ficou leve: marcar uma compra só acende o quadrado e
-// atualiza o botão "Classificar n", sem reler a fatura do banco nem voltar a lista para o topo; entrar e sair da
-// seleção também não relê. Versão anterior: 1.39.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.39.0 … v1.39.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.39.1 … v1.39.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.41.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.42.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -990,6 +992,7 @@ function financeiroRenderCabecalho(aba) {
 
         export async function rzAcoesDespesa(id) {
             const d = lancamentos.find(x => x.id === id); if (!d || typeof abrirSheetAcoes !== 'function') return;
+            if (d.faturaId) { financeiroAbrirFatura(d.faturaId); return; } // compra de cartão se paga pela fatura, nunca sozinha
             const [urlComprovante, origem] = await Promise.all([comprovanteDaDespesa(d), origemDaDespesa(d)]);
             // v1.29.0 (RF-18.22) — 1ª ação mostra de onde a despesa veio e abre o item.
             const acaoOrigem = origem ? [{ icone: 'link-2', titulo: `Origem: ${origem.titulo}`,
@@ -1228,7 +1231,7 @@ function financeiroRenderCabecalho(aba) {
         function financeiroLinhaFaturaHtml(g, rs, filtroDeItem) {
             const f = financeiroFaturasInfo.porId[g.faturaId];
             const inteira = f && !filtroDeItem;
-            const soma = inteira ? Number(f.valor_total || f.soma_itens || 0) : g.itens.reduce((t, i) => t + Number(i.valor || 0), 0);
+            const soma = inteira ? Number(f.soma_itens ?? f.valor_total ?? 0) : g.itens.reduce((t, i) => t + Number(i.valor || 0), 0);
             const ac = inteira ? Number(f.qtd_a_classificar || 0) : g.itens.filter(i => i.categoria === 'a_classificar').length;
             const nCompras = inteira ? Number(f.qtd_itens || 0) : g.itens.length;
             const quem = f && f.titular_tipo === 'pessoa' ? `Cartão de ${escapeHtmlSaidas(f.titular_nome || '')} · ` : '';
@@ -1620,11 +1623,16 @@ function financeiroRenderCabecalho(aba) {
                 const falt = sim.faltando || [];
                 box.innerHTML = `
                     ${sim.fatura_status === 'paga' && novos.length ? `<label class="rz-row rz-chk"><input type="checkbox" id="fi-conf-paga"><div class="rz-tx"><b>A fatura já está paga</b><span>Marque para acrescentar ${novos.length} ${novos.length === 1 ? 'compra nova' : 'compras novas'}; ela volta para "paga em parte" se o total mudar</span></div></label>` : ''}
+                    ${sim.fatura_status !== 'paga' && novos.length ? `<div class="rz-f"><label>Esta fatura já foi paga? <i>*</i></label><select id="fi-paga"><option value="">— escolha —</option><option value="nao">Ainda não — fica em aberto</option><option value="sim">Sim, já paguei</option></select>
+                        <span class="rz-hint">Se já foi paga, a fatura e todas as compras entram como pagas. Se não, ficam em aberto (vencidas ou a vencer pelo vencimento) até você marcar a fatura como paga.</span></div>
+                        <div class="rz-f hidden" id="fi-paga-data-box"><label>Data do pagamento</label><input type="date" id="fi-paga-data" value="${(() => { const h = new Date().toISOString().slice(0, 10); const v = lido.dataVencimento || ''; return v && v <= h ? v : h; })()}"></div>` : ''}
                     <div class="rz-group">Novas · ${novos.length}</div>
                     ${novos.length ? `<div class="rz-card rz-list">${novos.map(linhaLida).join('')}</div>` : '<p class="rz-hint">Nenhuma compra nova neste arquivo.</p>'}
                     ${nRep ? `<div class="rz-group">Já estão na fatura · ${nRep}</div><p class="rz-hint">Não entram de novo.</p>` : ''}
                     ${falt.length ? `<div class="rz-group">No Raiz e não vieram neste arquivo · ${falt.length}</div>
                         <div class="rz-card rz-list">${falt.map(x => `<label class="rz-row rz-chk"><input type="checkbox" data-fi-excluir="${x.id}"><div class="rz-tx"><b>${escapeHtmlSaidas(x.descricao)}</b><span>${x.compra ? 'Compra ' + escapeHtmlSaidas(x.compra) + ' · ' : ''}marque para excluir</span></div><div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(x.valor)}</b></div></label>`).join('')}</div>` : ''}`;
+                const selPaga = box.querySelector('#fi-paga');
+                selPaga?.addEventListener('change', () => box.querySelector('#fi-paga-data-box')?.classList.toggle('hidden', selPaga.value !== 'sim'));
                 const btn = document.getElementById('rz-sheet-salvar');
                 if (btn) btn.textContent = novos.length ? `Importar ${novos.length}` : 'Atualizar fatura';
             };
@@ -1659,12 +1667,16 @@ function financeiroRenderCabecalho(aba) {
                     if (!sim) { rzToast('Aguarde a comparação com a fatura.', { tipo: 'info' }); return false; }
                     const confirmarPaga = !!el.querySelector('#fi-conf-paga')?.checked;
                     if (el.querySelector('#fi-conf-paga') && !confirmarPaga) { rzToast('A fatura já está paga: marque a confirmação para acrescentar as compras novas.', { tipo: 'danger' }); return false; }
+                    const selPaga = el.querySelector('#fi-paga');
+                    if (selPaga && !selPaga.value) { rzToast('Diga se a fatura já foi paga.', { tipo: 'danger' }); selPaga.focus(); return false; }
+                    const jaPaga = selPaga?.value === 'sim';
                     const excluir = [...el.querySelectorAll('[data-fi-excluir]:checked')].map(x => x.dataset.fiExcluir);
                     if (excluir.length && !await rzConfirmar({ titulo: `Excluir ${excluir.length} ${excluir.length === 1 ? 'compra' : 'compras'}?`, impacto: 'Saem da fatura de vez. Só voltam importando a fatura de novo.', destrutivo: true, rotuloConfirmar: 'Excluir e importar' })) return false;
                     const cartaoId = el.querySelector('#fi-cartao').value;
                     const { data, error } = await dbAuth.rpc('fn_fatura_importar', {
                         p_cliente_id: CLIENTE_ID_SUPABASE, p_cartao_id: cartaoId, p_competencia: el.querySelector('#fi-comp').value,
-                        p_cabecalho: { data_vencimento: lido.dataVencimento, data_fechamento: lido.dataFechamento, valor_total: lido.valorTotal, confirmar_paga: confirmarPaga },
+                        p_cabecalho: { data_vencimento: lido.dataVencimento, data_fechamento: lido.dataFechamento, valor_total: lido.valorTotal, confirmar_paga: confirmarPaga,
+                            ja_paga: jaPaga, data_pagamento: jaPaga ? (el.querySelector('#fi-paga-data')?.value || null) : null },
                         p_itens: lido.itens.map(i => ({ data: i.data, descricao: i.descricao, valor: i.valor, parcela: i.parcela })),
                     });
                     if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui importar.', { tipo: 'danger' }); return false; }
@@ -1673,7 +1685,8 @@ function financeiroRenderCabecalho(aba) {
                         if (eDel) { rzToast('Não consegui excluir uma compra: ' + eDel.message, { tipo: 'danger' }); break; }
                         if (typeof registrarLog === 'function') registrarLog('cartao.excluir_compra', { lancamento_id: id, fatura_id: data.id, origem: 'reimportacao' });
                     }
-                    rzToast(data.mensagem + (excluir.length ? ` ${excluir.length} ${excluir.length === 1 ? 'compra excluída' : 'compras excluídas'}.` : ''), { tipo: 'success' });
+                    rzToast(data.mensagem + (excluir.length ? ` ${excluir.length} ${excluir.length === 1 ? 'compra excluída' : 'compras excluídas'}.` : '')
+                        + (data.dados?.paga_na_importacao ? ` Fatura e compras pagas em ${formatarDataBR(data.dados.data_pagamento)}.` : ''), { tipo: 'success' });
                     emitirEscrita('despesa', { id: data.id, acao: 'importar_fatura' });
                     financeiroGarantirFaturas(true);
                     financeiroRecarregarSaidas();

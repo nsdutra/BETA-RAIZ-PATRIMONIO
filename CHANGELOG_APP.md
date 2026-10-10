@@ -4,6 +4,24 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.343.0) — CORREÇÃO do defeito que a v1.342.0 introduziu na VITRINE PÚBLICA (demanda
+6b11c602, achado pelo Nicola no teste 5). A vitrine pública roda antes de qualquer login, e o
+instalarPorta() do porta.js 1.0.0 exigia clienteId — que só existe depois de entrar numa empresa. O throw
+subia pela ponte e caía no catch do js/vitrine.js, que mostra "Este link não abre mais: ele foi revogado,
+expirou ou está incompleto" para QUALQUER erro: o link estava perfeito, a porta é que se recusava a abrir.
+porta.js 1.1.0 passa a exigir só o db na instalação e move a exigência de cliente_id para uma guarda POR
+CHAMADA, em chamar(nome, args) — quem precisa e não tem falha com o nome do leitor, em vez de consultar com
+null e devolver lista vazia em silêncio. A ponte deste arquivo passa a chamar m.chamar(). vitrine.js 1.5.2
+grava o erro real no console antes de mostrar a mensagem — foi a cegueira desse catch que escondeu a causa.
+Nenhum objeto de banco.
+Versão anterior (Beta v1.342.0):
+------------------------------------------------------------------
+Versões anteriores (v1.342.0 … v1.342.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.342.0) — Onda 1a da fragmentação do index (demanda 6b11c602, plano aprovado pelo
 Nicola 09/10 21:15). Nasce o primeiro módulo do NÚCLEO: js/nucleo/porta.js 1.0.0, com os 13 leitores puros do
 banco (carregarImoveis/Contratos/Mensalidades/Repasses/Lancamentos/Prestadores/Pessoas/Empreendimentos/
