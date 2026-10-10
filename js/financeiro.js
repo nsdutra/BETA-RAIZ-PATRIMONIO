@@ -1,7 +1,16 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.39.1 · 09/10/2026
+// Versão: 1.40.0 · 10/10/2026
+//
+// v1.40.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — P2b aprovado pelo Nicola 09/10 23:59):
+// (1) classificar igual: depois de classificar uma compra da fatura (aceitando a sugestão ou à mão), se ainda há
+// compras do mesmo estabelecimento a classificar na fatura (fn_fatura_item_classificar devolve dados.semelhantes),
+// o app pergunta: classificar as N igual, as N e sempre assim, ou só esta; (2) o ativo vem primeiro e filtra a
+// árvore de categorias pelo tipo dele (lancamento_categorias.tipos_ativo; sem ativo = árvore inteira) na folha
+// Classificar e em Nova despesa; o seletor de ativo mostra todos; (3) chave "Vai para o contador" na folha
+// Classificar (padrão pela categoria e pelo ativo; grava por fn_financeiro_incluir_contabilidade, com a mesma
+// funcionalidade financeiro.contabilidade_ajustar). Versão anterior: 1.39.1.
 //
 // v1.39.1 (09/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 22:40): (1) sair de
 // Classificar, Divisão ou qualquer passo aberto a partir da fatura (salvando ou cancelando) volta para a fatura,
@@ -27,16 +36,11 @@
 // verificador travava toda entrega do app. "N a classificar" da fatura sai do dourado (exclusivo de IA) para
 // --warning; o ✓ da seleção de itens da fatura usa white em vez de hex; o valor sugerido em "Marcar fatura como
 // paga" vai para o campo numérico arredondado, sem .toFixed(2) (campo number não leva formatação de moeda).
-// Versão anterior: 1.38.1.
-//
-// v1.38.1 (08/10/2026, sessão 20261008-0825-financeiro, demanda f3e6cd27 — teste do Nicola 08:16): "Importar fatura"
-// dizia "Cadastre o cartão primeiro" para um cartão recém-cadastrado — a lista de contas ficava guardada desde a
-// abertura do Financeiro. Agora a importação relê as contas antes de oferecer os cartões. Versão anterior: 1.38.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.38.0 … v1.38.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.38.1 … v1.38.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.39.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.40.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1421,20 +1425,25 @@ function financeiroRenderCabecalho(aba) {
             const sug = um?.sugestao || {};
             const catAtual = um ? (um.categoria !== 'a_classificar' ? um.categoria : (sug.categoria || '')) : '';
             const cat = (catalogoCategoriasLanc || []).filter(c => c.codigo !== 'a_classificar');
-            const grupos = cat.filter(c => !c.categoria_pai && c.direcao === 'saida' && cat.some(x => x.categoria_pai === c.codigo));
-            const grupoAtual = cat.find(c => c.codigo === catAtual)?.categoria_pai || '';
-            const optsFolhas = (g) => `<option value="">${g ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` +
-                cat.filter(c => c.categoria_pai === g && c.direcao === 'saida').map(c => `<option value="${c.codigo}" ${c.codigo === catAtual ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('');
             const ativoAtual = um ? (um.ativo_id || sug.ativo_id || '') : '';
+            const tipoInicial = ativosOpts.find(a => a.id === ativoAtual)?.tipo_ativo || '';
+            const grupoAtual = cat.find(c => c.codigo === catAtual)?.categoria_pai || '';
+            const optsGrupos = (tipo, g) => `<option value="">— escolha a categoria —</option>` + gruposSaidaDoTipo(cat, tipo)
+                .map(x => `<option value="${x.codigo}" ${x.codigo === g ? 'selected' : ''}>${escapeHtmlSaidas(x.nome)}</option>`).join('');
+            const optsFolhas = (g, tipo, sel) => `<option value="">${g ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` +
+                folhasSaidaDoTipo(cat, g, tipo).map(c => `<option value="${c.codigo}" ${c.codigo === sel ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('');
+            const podeContab = typeof podeUsar !== 'function' || podeUsar('financeiro.contabilidade_ajustar').ok;
             const parteAtual = um ? (um.parte_id || sug.parte_id || '') : '';
             const est = [...new Set(lista.map(i => i.estabelecimento).filter(Boolean))];
             const corpo = `
-                <div class="rz-f"><label>Categoria <i>*</i></label><select id="fat-cat-grupo"><option value="">— escolha a categoria —</option>${grupos.map(g => `<option value="${g.codigo}" ${g.codigo === grupoAtual ? 'selected' : ''}>${escapeHtmlSaidas(g.nome)}</option>`).join('')}</select></div>
-                <div class="rz-f"><label>Subcategoria <i>*</i></label><select id="fat-cat">${optsFolhas(grupoAtual)}</select></div>
-                <div class="rz-f"><label>Ativo (opcional)</label><select id="fat-ativo"><option value="">${um ? 'Empresa' : 'Manter como está'}</option>${ativosOpts.map(a => `<option value="${a.id}" ${a.id === ativoAtual ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('')}</select></div>
+                <div class="rz-f"><label>Ativo (opcional)</label><select id="fat-ativo"><option value="">${um ? 'Empresa' : 'Manter como está'}</option>${ativosOpts.map(a => optAtivo(a, ativoAtual)).join('')}</select>
+                    <span class="rz-hint">O ativo escolhido mostra só as categorias do tipo dele.</span></div>
+                <div class="rz-f"><label>Categoria <i>*</i></label><select id="fat-cat-grupo">${optsGrupos(tipoInicial, grupoAtual)}</select></div>
+                <div class="rz-f"><label>Subcategoria <i>*</i></label><select id="fat-cat">${optsFolhas(grupoAtual, tipoInicial, catAtual)}</select></div>
                 <div class="rz-f"><label>Fornecedor (opcional)</label><select id="fat-parte"><option value="">${um ? 'Nenhum' : 'Manter como está'}</option>${partesOpts.map(p => `<option value="${p.id}" ${p.id === parteAtual ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('')}<option value="__novo__">+ Cadastrar como fornecedor</option></select>
                     <input type="text" id="fat-parte-novo" placeholder="Nome do fornecedor" value="${escapeHtmlSaidas(um ? um.descricao : '')}" style="display:none;margin-top:6px">
                     <span class="rz-hint">Escolhendo o fornecedor, o Raiz reconhece este nome nas próximas faturas e extratos.</span></div>
+                ${podeContab ? `<label class="rz-row rz-chk"><input type="checkbox" id="fat-contab"><div class="rz-tx"><b>Vai para o contador</b><span>Entra no pacote da contabilidade</span></div></label>` : ''}
                 ${est.length ? `<label class="rz-row rz-chk"><input type="checkbox" id="fat-sempre" ${um && um.categoria === 'a_classificar' ? '' : ''}><div class="rz-tx"><b>Sempre assim</b><span>Da próxima vez, compras de ${escapeHtmlSaidas(est.length === 1 ? '"' + est[0] + '"' : 'estes estabelecimentos')} já entram classificadas</span></div></label>` : ''}`;
             const sheet = abrirSheetForm({
                 titulo: um ? 'Classificar compra' : `Classificar ${lista.length} compras`,
@@ -1455,11 +1464,31 @@ function financeiroRenderCabecalho(aba) {
                     return financeiroGravarClassificacao(lista.map(i => i.id), {
                         categoria, ativo_id: el.querySelector('#fat-ativo').value || null, parte_id: parteId, divisao: null,
                         sempre_assim: !!el.querySelector('#fat-sempre')?.checked,
+                        contab: el.querySelector('#fat-contab') ? el.querySelector('#fat-contab').checked : undefined,
                     }, faturaId);
                 },
             });
             const sg = sheet?.querySelector('#fat-cat-grupo');
-            sg?.addEventListener('change', () => { sheet.querySelector('#fat-cat').innerHTML = optsFolhas(sg.value); });
+            const sa = sheet?.querySelector('#fat-ativo'), sc = sheet?.querySelector('#fat-cat'), ck = sheet?.querySelector('#fat-contab');
+            let contabTocado = false;
+            // padrão do contador: a categoria manda (contabilidade_padrao) e ativo fora da contabilidade tira
+            const sugerirContab = () => {
+                if (!ck || contabTocado) return;
+                const folha = sc?.value ? categoriaDoCatalogo(sc.value) : null;
+                const contabAtivo = sa && sa.value ? sa.options[sa.selectedIndex]?.dataset.contab : 'empresa';
+                ck.checked = !!folha && folha.contabilidade_padrao !== false && contabAtivo !== 'fora';
+            };
+            ck?.addEventListener('change', () => { contabTocado = true; });
+            sa?.addEventListener('change', () => {
+                const tipo = tipoDoSelectAtivo(sa), g = sg.value, f = sc.value;
+                const gValido = gruposSaidaDoTipo(cat, tipo).some(x => x.codigo === g) ? g : '';
+                sg.innerHTML = optsGrupos(tipo, gValido);
+                sc.innerHTML = optsFolhas(gValido, tipo, folhasSaidaDoTipo(cat, gValido, tipo).some(x => x.codigo === f) ? f : '');
+                sugerirContab();
+            });
+            sg?.addEventListener('change', () => { sc.innerHTML = optsFolhas(sg.value, tipoDoSelectAtivo(sa), ''); sugerirContab(); });
+            sc?.addEventListener('change', sugerirContab);
+            sugerirContab();
             const sp = sheet?.querySelector('#fat-parte');
             sp?.addEventListener('change', () => { sheet.querySelector('#fat-parte-novo').style.display = sp.value === '__novo__' ? 'block' : 'none'; });
         }
@@ -1470,10 +1499,37 @@ function financeiroRenderCabecalho(aba) {
                 p_divisao: v.divisao, p_sempre_assim: !!v.sempre_assim,
             });
             if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui classificar.', { tipo: 'danger' }); return false; }
+            if (v.contab !== undefined && v.categoria !== 'a_classificar') await financeiroGravarContab(ids, v.contab);
             rzToast(data.mensagem, { tipo: 'success' });
             emitirEscrita('despesa', { id: ids[0], acao: 'classificar_cartao' });
+            const semelhantes = (data.dados?.semelhantes || []).filter(id => !ids.includes(id));
+            if (semelhantes.length && !v.semPerguntar && typeof window.rzEscolher === 'function') {
+                const n = semelhantes.length, nomeCat = data.titulo || 'a mesma categoria';
+                const item = (financeiroFaturaAberta?.dados?.itens || []).find(i => i.id === ids[0]);
+                const quem = item?.descricao ? ` de ${item.descricao}` : ' iguais';
+                const escolha = await window.rzEscolher({
+                    titulo: n === 1 ? `Há mais 1 compra${quem} a classificar` : `Há mais ${n} compras${quem} a classificar`,
+                    sub: `Classificar igual: ${nomeCat}?`,
+                    opcoes: [
+                        { valor: 'igual', titulo: n === 1 ? 'Classificar esta também' : `Classificar as ${n}`, sub: nomeCat, icone: 'copy-check' },
+                        { valor: 'sempre', titulo: n === 1 ? 'Classificar e sempre assim' : `Classificar as ${n} e sempre assim`, sub: 'As próximas faturas já chegam classificadas', icone: 'repeat' },
+                        { valor: 'so', titulo: 'Só esta', icone: 'x' },
+                    ],
+                });
+                if (escolha === 'igual' || escolha === 'sempre') {
+                    return financeiroGravarClassificacao(semelhantes, { ...v, sempre_assim: v.sempre_assim || escolha === 'sempre', semPerguntar: true }, faturaId);
+                }
+            }
             financeiroDepoisDeMudarFatura(faturaId);
             return true;
+        }
+
+        // "Vai para o contador" da folha Classificar: o mesmo RPC do ⋮ da despesa, por compra (valida a funcionalidade no banco)
+        async function financeiroGravarContab(ids, incluir) {
+            for (const id of ids) {
+                const { error } = await dbAuth.rpc('fn_financeiro_incluir_contabilidade', { p_tipo: 'lancamento', p_id: id, p_incluir: !!incluir });
+                if (error) { rzToast('Classificado, mas não consegui ajustar a contabilidade: ' + error.message, { tipo: 'danger' }); return; }
+            }
         }
 
         function financeiroDepoisDeMudarFatura(faturaId) {
@@ -1631,7 +1687,7 @@ function financeiroRenderCabecalho(aba) {
                 catalogoCategoriasCarregando = (async () => {
                     try {
                         const { data, error } = await dbAuth.from('lancamento_categorias')
-                            .select('codigo,nome,direcao,categoria_pai,icone,ordem,grupo_resultado,contabilidade_padrao').eq('ativo', true).order('ordem'); // v1.34.0
+                            .select('codigo,nome,direcao,categoria_pai,icone,ordem,grupo_resultado,contabilidade_padrao,tipos_ativo').eq('ativo', true).order('ordem'); // v1.34.0
                         if (error) throw error;
                         catalogoCategoriasLanc = data || [];
                     } catch (err) { console.warn('[financeiro] catálogo de categorias:', err.message); }
@@ -1642,6 +1698,18 @@ function financeiroRenderCabecalho(aba) {
             return catalogoCategoriasCarregando;
         }
         function categoriaDoCatalogo(v) { return (catalogoCategoriasLanc || []).find(c => c.codigo === v) || null; }
+        // Árvore pelo tipo do ativo escolhido (D54): categoria sem tipos_ativo vale para todo ativo; sem ativo, árvore inteira.
+        function categoriaValeParaTipo(c, tipo) { return !tipo || !Array.isArray(c.tipos_ativo) || !c.tipos_ativo.length || c.tipos_ativo.includes(tipo); }
+        function gruposSaidaDoTipo(cat, tipo) {
+            return cat.filter(c => !c.categoria_pai && c.direcao === 'saida' && categoriaValeParaTipo(c, tipo)
+                && cat.some(f => f.categoria_pai === c.codigo && categoriaValeParaTipo(f, tipo)));
+        }
+        function folhasSaidaDoTipo(cat, grupo, tipo) { return cat.filter(c => c.categoria_pai === grupo && c.direcao === 'saida' && categoriaValeParaTipo(c, tipo)); }
+        // <option> de ativo carrega o tipo e o registro contábil: quem escuta o select filtra a árvore sem nova busca
+        function optAtivo(a, selecionado) {
+            return `<option value="${a.id}" data-tipo="${escapeHtmlSaidas(a.tipo_ativo || '')}" data-contab="${escapeHtmlSaidas(a.registro_contabil || '')}" ${a.id === selecionado ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`;
+        }
+        function tipoDoSelectAtivo(sel) { return sel && sel.value ? (sel.options[sel.selectedIndex]?.dataset.tipo || '') : ''; }
         // v1.34.0 — chips de classificação da folha: resultado (grupo_resultado) e contabilidade
         function chipsClassificacaoLanc(folha, contab) {
             const partes = [];
@@ -1748,8 +1816,8 @@ function financeiroRenderCabecalho(aba) {
             // select some sem valor e os chips ficam clicáveis.
             const parteSugeridaUnica = sugestoes?.partes?.length === 1 ? sugestoes.partes[0].parte_id : null;
 
-            const optsAtivos = `<option value="">Empresa</option>` /* v1.38.3 (demanda 6da660db) — era "Nenhum (despesa avulsa)" */ + ativosOpts.map(a =>
-                `<option value="${a.id}" ${a.id === ativoSelecionado ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('');
+            const optsAtivos = `<option value="">Empresa</option>` /* v1.38.3 (demanda 6da660db) — era "Nenhum (despesa avulsa)" */ + ativosOpts.map(a => optAtivo(a, ativoSelecionado)).join('');
+            const tipoAtivoDesp = ativosOpts.find(a => a.id === ativoSelecionado)?.tipo_ativo || '';
             const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
                 `<option value="${p.id}" ${(p.id === d?.parteId || p.id === parteSugeridaUnica) ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
                 `<option value="__novo__">+ Novo fornecedor</option>`;
@@ -1757,11 +1825,11 @@ function financeiroRenderCabecalho(aba) {
             // no catálogo, cai na lista única da v1.31.0 (e esta na fixa, se o catálogo falhar).
             const categoriaAtualDesp = d?.categoria || sugestoes?.categoria || null;
             const catDesp = catalogoCategoriasLanc || [];
-            const gruposDesp = catDesp.filter(c => !c.categoria_pai && c.direcao === 'saida' && catDesp.some(f => f.categoria_pai === c.codigo));
+            const gruposDesp = gruposSaidaDoTipo(catDesp, tipoAtivoDesp);
             const usarArvoreDesp = gruposDesp.length > 0;
             const grupoAtualDesp = usarArvoreDesp ? (catDesp.find(c => c.codigo === categoriaAtualDesp)?.categoria_pai || '') : '';
             let listaCategoriasDesp;
-            if (usarArvoreDesp) listaCategoriasDesp = grupoAtualDesp ? catDesp.filter(c => c.categoria_pai === grupoAtualDesp).map(c => c.codigo) : [];
+            if (usarArvoreDesp) listaCategoriasDesp = grupoAtualDesp ? folhasSaidaDoTipo(catDesp, grupoAtualDesp, tipoAtivoDesp).map(c => c.codigo) : [];
             else listaCategoriasDesp = catDesp.length
                 ? catDesp.filter(c => c.direcao !== 'entrada' || c.codigo === categoriaAtualDesp).map(c => c.codigo)
                 : ['iptu', 'condominio', 'manutencao', 'seguro', 'taxa_adm', 'tributo', 'repasse_socio', 'reembolso', 'aluguel', 'tecnologia_assinaturas', 'outro'];
@@ -1918,9 +1986,10 @@ function financeiroRenderCabecalho(aba) {
                 const partes = ['Saída', nomeAtivo, grupo, sub, isNaN(valor) ? '' : valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), ...classif].filter(Boolean);
                 caminho.innerHTML = partes.map(p => `<span class="rz-chip">${escapeHtmlSaidas(p)}</span>`).join('');
             };
+            const selAtivoDesp = document.getElementById('desp-ativo');
             if (selGrupo) selGrupo.addEventListener('change', () => {
                 const g = selGrupo.value;
-                const folhas = (catalogoCategoriasLanc || []).filter(c => c.categoria_pai === g);
+                const folhas = folhasSaidaDoTipo(catalogoCategoriasLanc || [], g, tipoDoSelectAtivo(selAtivoDesp));
                 selSub.innerHTML = `<option value="">${g ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` +
                     folhas.map(f => `<option value="${f.codigo}">${escapeHtmlSaidas(f.nome)}</option>`).join('');
                 if (folhas.length === 1) selSub.value = folhas[0].codigo;
@@ -1936,7 +2005,19 @@ function financeiroRenderCabecalho(aba) {
             if (selGrupo) selGrupo.addEventListener('change', () => { sugerirContab(); atualizar(); });
             document.getElementById('desp-contab')?.addEventListener('change', atualizar);
             document.getElementById('desp-valor')?.addEventListener('input', atualizar);
-            document.getElementById('desp-ativo')?.addEventListener('change', atualizar);
+            // trocar o ativo refaz a árvore pelo tipo dele, mantendo a escolha quando ela ainda vale
+            selAtivoDesp?.addEventListener('change', () => {
+                if (selGrupo) {
+                    const cat = catalogoCategoriasLanc || [], tipo = tipoDoSelectAtivo(selAtivoDesp), g = selGrupo.value, f = selSub.value;
+                    const gValido = gruposSaidaDoTipo(cat, tipo).some(x => x.codigo === g) ? g : '';
+                    selGrupo.innerHTML = `<option value="">— escolha a categoria —</option>` + gruposSaidaDoTipo(cat, tipo)
+                        .map(x => `<option value="${x.codigo}" ${x.codigo === gValido ? 'selected' : ''}>${escapeHtmlSaidas(x.nome)}</option>`).join('');
+                    const folhas = folhasSaidaDoTipo(cat, gValido, tipo);
+                    selSub.innerHTML = `<option value="">${gValido ? '— escolha a subcategoria —' : '— escolha a categoria primeiro —'}</option>` +
+                        folhas.map(x => `<option value="${x.codigo}" ${x.codigo === f ? 'selected' : ''}>${escapeHtmlSaidas(x.nome)}</option>`).join('');
+                }
+                atualizar();
+            });
             atualizar();
         }
 

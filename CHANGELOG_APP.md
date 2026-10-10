@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.332.0) — Hoje reorganizado, busca e gráficos (demandas 1f98c359, 43bc3cab, f0ab422d; plano
+aprovado pelo Nicola 09/10, "De acordo, tudo numa entrega só"). BUSCA: com a busca ligada, a barra ganha o ×
+que limpa em um toque (rzRotuloBusca(…, aoLimpar)) em Ativos, Contratos, Alertas e Compartilhar; os chips de
+Ativos e Contratos contam o que a busca deixou (cofre-ativos/contratos). HOJE: chips Patrimônio · Minha gestão
+(o antigo Jornal do dia) · Fique por dentro (novo: Indicadores de mercado em linhas + Novidades do Raiz,
+rzRenderFique); "Patrimônio por tipo" some quando a carteira tem um tipo só. GRÁFICOS (resultados.js 2.4.0):
+colunas no padrão executivo — título-conclusão, valor em cima, zero na base, um destaque, fonte (CSS .rz-cols,
+.rz-res-*). Import map: resultados.js 2.4.0, cofre-ativos.js 1.83.0, contratos.js 1.48.0, vitrine.js 1.5.1.
+Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.331.1):
+------------------------------------------------------------------
+Versões anteriores (v1.331.1 … v1.331.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.331.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 09/10 22:08,
 escolha "Fatura inteira"): só o import map — financeiro.js 1.39.0 (fatura do cartão uma vez, no mês da fatura,
 com os números da fatura inteira; ações da compra por cima da fatura). Nenhuma linha do index mudou.

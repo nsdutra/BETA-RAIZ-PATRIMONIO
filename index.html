@@ -6,9 +6,14 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.335.0
-   LINHAS: 17525
-   DATA: 09/10/2026 (sessão 20261003-1707-ux-base, demanda fcd3008d)
+   VERSÃO: Beta v1.336.0
+   LINHAS: 17523
+   DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.336.0) — P2b do cartão (aprovado pelo Nicola 09/10 23:59). O seletor de ativo das despesas e da
+   fatura (carregarAtivosParaSelectSupabase) passa a trazer tipo e registro contábil e é refeito quando um ativo é
+   criado, editado ou a carteira recarrega (antes um pet recém-cadastrado não aparecia até reabrir o app).
+   Import map: financeiro.js 1.40.0. Banco na mesma entrega: financeiro_p2b_cartao_v1 e pessoas_ativos_vida_fora_f19_v1.
+   Versão anterior (Beta v1.335.0):
    NOVIDADES (Beta v1.335.0) — UX F2.5a (demanda 639bbcd0; "De acordo, começar pela F2.5a" do Nicola 09/10 23:5x):
    menu do avatar em 4 grupos — Minha empresa (Dados da empresa · Pessoas e acessos · Licença e plano ·
    Relatórios · Fiscal, e "Trocar empresa" para quem acessa mais de uma) · Cadastros e regras · Preferências
@@ -30,18 +35,8 @@
    "Pessoas" próprio (cofre-ativos.js 1.84.0). No banco, na mesma entrega: pessoa fora dos totais, contagens e
    mediana de patrimônio (migration pessoas_ativos_f16_f17_v1). Import map: cofre-ativos.js 1.84.0.
    Versão anterior (Beta v1.332.0):
-   NOVIDADES (Beta v1.332.0) — Hoje reorganizado, busca e gráficos (demandas 1f98c359, 43bc3cab, f0ab422d; plano
-   aprovado pelo Nicola 09/10, "De acordo, tudo numa entrega só"). BUSCA: com a busca ligada, a barra ganha o ×
-   que limpa em um toque (rzRotuloBusca(…, aoLimpar)) em Ativos, Contratos, Alertas e Compartilhar; os chips de
-   Ativos e Contratos contam o que a busca deixou (cofre-ativos/contratos). HOJE: chips Patrimônio · Minha gestão
-   (o antigo Jornal do dia) · Fique por dentro (novo: Indicadores de mercado em linhas + Novidades do Raiz,
-   rzRenderFique); "Patrimônio por tipo" some quando a carteira tem um tipo só. GRÁFICOS (resultados.js 2.4.0):
-   colunas no padrão executivo — título-conclusão, valor em cima, zero na base, um destaque, fonte (CSS .rz-cols,
-   .rz-res-*). Import map: resultados.js 2.4.0, cofre-ativos.js 1.83.0, contratos.js 1.48.0, vitrine.js 1.5.1.
-   Nenhum objeto de banco criado por este arquivo.
-   Versão anterior (Beta v1.331.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.331.1 … v1.331.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.332.0 … v1.332.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -66,7 +61,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.39.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.1","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.84.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.5.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.40.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.1","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.84.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.5.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3677,7 +3672,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.335.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.336.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -4566,6 +4561,9 @@
         let lancamentos = [];
 
         let ativosParaSelect = null; // null = ainda não carregado (distinto de [])
+        // ativo criado, editado ou carteira recarregada: o seletor das despesas relê na próxima abertura
+        ['cofre:recarregar-ativos', 'cofre:dados-carregados'].forEach(ev => window.addEventListener(ev, () => { ativosParaSelect = null; }));
+        window.addEventListener('raiz:escrita', (ev) => { if (ev.detail?.entidade === 'ativo') ativosParaSelect = null; });
 
         let partesParaSelect = null;
 
@@ -6070,7 +6068,7 @@
             if (ativosParaSelect !== null) return ativosParaSelect;
             try {
                 const { data, error } = await dbAuth.from('cofre_ativos')
-                    .select('id, nome_exibicao, tipo_ativo')
+                    .select('id, nome_exibicao, tipo_ativo, registro_contabil')
                     .eq('cliente_id', CLIENTE_ID_SUPABASE)
                     .eq('status', 'ativo')
                     .order('nome_exibicao');
