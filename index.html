@@ -6,9 +6,15 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.334.0
-   LINHAS: 17518
+   VERSÃO: Beta v1.335.0
+   LINHAS: 17525
    DATA: 09/10/2026 (sessão 20261003-1707-ux-base, demanda fcd3008d)
+   NOVIDADES (Beta v1.335.0) — UX F2.5a (demanda 639bbcd0; "De acordo, começar pela F2.5a" do Nicola 09/10 23:5x):
+   menu do avatar em 4 grupos — Minha empresa (Dados da empresa · Pessoas e acessos · Licença e plano ·
+   Relatórios · Fiscal, e "Trocar empresa" para quem acessa mais de uma) · Cadastros e regras · Preferências
+   (Notificações · Raiz IA no WhatsApp) · Ajuda e conta (Suporte · Termos · Sobre o app · Sair). rzTrocarEmpresa
+   volta à escolha de empresa do login. Nenhum objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.334.0):
    NOVIDADES (Beta v1.334.0) — demanda 4de70503 (pedido do Nicola 09/10 23:04, itens 1 a 4; item 5 no backlog 64a17c76).
    Chips do Hoje com maiúscula: Patrimônio · Minha Gestão · Fique por Dentro. Ponte de resultados ganha
    trocarIndicadorComparacao e abrirInfoContratosIndice. CSS dos quadrantes de Indicadores de mercado (.rz-ind-*),
@@ -34,11 +40,8 @@
    .rz-res-*). Import map: resultados.js 2.4.0, cofre-ativos.js 1.83.0, contratos.js 1.48.0, vitrine.js 1.5.1.
    Nenhum objeto de banco criado por este arquivo.
    Versão anterior (Beta v1.331.1):
-   NOVIDADES (Beta v1.331.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 09/10 22:08,
-   escolha "Fatura inteira"): só o import map — financeiro.js 1.39.0 (fatura do cartão uma vez, no mês da fatura,
-   com os números da fatura inteira; ações da compra por cima da fatura). Nenhuma linha do index mudou.
    ------------------------------------------------------------------
-   Versões anteriores (v1.331.0 … v1.331.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.331.1 … v1.331.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -3674,7 +3677,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.334.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.335.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -10204,52 +10207,56 @@
             } catch (err) { esconderCarregamentoGlobal(); mostrarToast('Erro: ' + err.message, 'danger'); }
         }
 
+        // F2.5a (dem 639bbcd0; ESTUDO 9A.3) — menu do avatar em 4 grupos com propósito: Minha empresa (quem usa e o
+        // que está ligado) · Cadastros e regras (material de apoio) · Preferências (como o Raiz fala com a pessoa) ·
+        // Ajuda e conta (fim do menu). Cabeçalho: pessoa, empresa e perfil. "Trocar empresa" só para quem acessa mais
+        // de uma (mesma escolha do login). Fiscal fica em Minha empresa até a etapa 6 (hoje só o menu leva ao
+        // check-up); Relatórios em Minha empresa (pedido do Nicola 07/10); Versões vira "Sobre o app".
         function abrirMenuConta() {
             const ir = (tab) => () => switchTab(tab);
             const plano = LICENCA_ATUAL && LICENCA_ATUAL.plano_codigo ? ('Plano ' + LICENCA_ATUAL.plano_codigo.charAt(0).toUpperCase() + LICENCA_ATUAL.plano_codigo.slice(1)) : 'Plano e consumo';
             const empresa = (CONFIG_CLIENTE && CONFIG_CLIENTE.nomeEmpresa) || '';
+            const nEmpresas = Array.isArray(pessoaRowsSelecaoEmpresa) ? pessoaRowsSelecaoEmpresa.length : 0;
+            const minhaEmpresa = [
+                { icone: 'building', titulo: 'Dados da empresa', sub: 'Cadastro, fiscal, Pix, rotinas e documentos', aoTocar: ir('tab-minha-empresa') },
+                { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
+                { icone: 'badge-check', titulo: 'Licença e plano', sub: plano, aoTocar: ir('tab-licenca') },
+                { icone: 'file-text', titulo: 'Relatórios', sub: 'Fluxo de caixa, gerencial, resultados e distribuição', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.313.1 — pedido do Nicola 07/10
+                { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // fica aqui até a etapa 6 (F2.5a)
+            ];
+            if (nEmpresas > 1) minhaEmpresa.unshift({ icone: 'repeat', titulo: 'Trocar empresa', sub: 'Você acessa ' + nEmpresas + ' empresas', aoTocar: rzTrocarEmpresa });
             abrirSheetAcoes({
                 titulo: socioLogado || 'Conta',
                 sub: perfilLogado ? (empresa + ' · ' + perfilLogado) : empresa,
                 grupos: [
-                    { titulo: 'Cadastros', acoes: [
+                    { titulo: 'Minha empresa', acoes: minhaEmpresa },
+                    { titulo: 'Cadastros e regras', acoes: [
                         { icone: 'contact', titulo: 'Partes', sub: 'Locatários, fiadores, proprietários, prestadores', codigo: 'contratos.ver', aoTocar: () => { partesFiltroPapel = 'todos'; switchTab('tab-partes'); } },
-                        // v1.124 — atalho "Prestadores" removido (pedido do Nicola, 05/09): a tela morreu na v1.117, o atalho confundia. Partes cobre.
                         { icone: 'file-signature', titulo: 'Minutas de contrato', codigo: 'minutas.gerar', aoTocar: ir('tab-minutas') },
-                        // v1.206.0 — "Tipos e modelos" (submenu com 1 clique a
-                        // mais) desagrupado a pedido do Nicola: os 2 itens que
-                        // sobraram (Modelos de controle saiu — ver abaixo)
-                        // ficam direto aqui. abrirMenuTiposModelos() removida
-                        // (0 chamador restante).
                         { icone: 'landmark', titulo: 'Tipo de empreendimento', codigo: 'imoveis.editar', aoTocar: ir('tab-tipo-empreendimento') },
+                        { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o sistema decide sozinho', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') },
+                        { icone: 'link', titulo: 'Links compartilhados', sub: 'Links de imóveis enviados a interessados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') },
                         { icone: 'archive', titulo: 'Documentos arquivados', codigo: 'cofre.editar', aoTocar: () => abrirConfiguracaoCofre('arquivados') },
-                        // v1.179.2 — achado do Nicola: "Regras de conciliação"
-                        // morava em Empresa — é um cadastro (o que o sistema
-                        // decide sozinho por regra), faz mais sentido aqui.
-                        { icone: 'sparkles', tipo: 'ia', titulo: 'Regras de conciliação', sub: 'O que o sistema decide sozinho', codigo: 'conciliacao.configurar', aoTocar: ir('tab-regras-conciliacao') }
                     ]},
-                    { titulo: 'Empresa', acoes: [
-                        { icone: 'building', titulo: 'Minha empresa', aoTocar: ir('tab-minha-empresa') },
-                        { icone: 'file-text', titulo: 'Relatórios', sub: 'Fluxo de caixa, gerencial, resultados e distribuição', codigo: 'relatorios.ver', aoTocar: ir('tab-relatorios-catalogo') }, // v1.313.1 — pedido do Nicola 07/10: Relatórios fica no grupo Empresa (era Conta, v1.304.0 UXR-09)
-                        { icone: 'file-check-2', titulo: 'Fiscal', sub: 'Check-up da Reforma Tributária', codigo: 'fiscal.checkup', aoTocar: ir('tab-fiscal') }, // v1.252.0 — frente fiscal, Fase 3
-                        { icone: 'users', titulo: 'Pessoas e acessos', codigo: 'pessoas.ver', aoTocar: ir('tab-pessoas') },
+                    { titulo: 'Preferências', acoes: [
+                        { icone: 'bell', titulo: 'Notificações', sub: 'O que chega no app, no WhatsApp e no e-mail', aoTocar: abrirPreferenciasComunicacao },
                         { icone: 'bot', titulo: 'Raiz IA no WhatsApp', sub: 'Consultas e avisos pelo WhatsApp', aoTocar: abrirBotWhatsapp },
-                        { icone: 'badge-check', titulo: 'Licença e uso', sub: plano, aoTocar: ir('tab-licenca') },
-                        // v1.199.0 (bc9df144, item 11) — migrado do app-dev, só admin.
-                        { icone: 'link', titulo: 'Links compartilhados', sub: 'Links de imóveis enviados a interessados', codigo: 'vitrine.links.gerenciar', aoTocar: ir('tab-links-vitrine') }
-                        // v1.199.0 (bc9df144, item 7) — "Trocar de empresa" saiu por
-                        // ora (função trocarEmpresa() removida); volta redesenhado
-                        // em ccd04ad4 (multi-empresa/family office).
                     ]},
-                    { titulo: 'Conta', acoes: [
-                        { icone: 'package-check', titulo: 'Versões', sub: 'Versão do app em uso', codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // v1.132; v1.244.0 (demanda 472927ba) — trocado de 'dev.acessar' (só gestao_master) pra 'sistema.versoes.ver' (liberado em todos os planos/perfis via catálogo)
-                        { icone: 'message-circle', titulo: 'Minhas notificações', aoTocar: abrirPreferenciasComunicacao },
+                    { titulo: 'Ajuda e conta', acoes: [
                         { icone: 'life-buoy', titulo: 'Suporte', sub: 'WhatsApp, e-mail e sugestões', aoTocar: abrirSuporte },
                         { icone: 'scroll-text', titulo: 'Termos e privacidade', aoTocar: () => window.open('https://raizpatrimonio.com.br/termos-de-uso', '_blank') },
-                        { icone: 'log-out', titulo: 'Sair', aoTocar: fazerLogoutSupabase }
-                    ]}
+                        { icone: 'info', titulo: 'Sobre o app', sub: APP_VERSAO, codigo: 'sistema.versoes.ver', aoTocar: abrirVersoesDev }, // era "Versões" (v1.244.0, 472927ba)
+                        { icone: 'log-out', titulo: 'Sair', aoTocar: fazerLogoutSupabase },
+                    ]},
                 ]
             });
+        }
+
+        // F2.5a — troca de empresa: volta para a mesma tela de escolha do login (só existe para quem acessa mais de
+        // uma). Pergunta antes porque recarrega o app; a sessão continua, nada é apagado.
+        async function rzTrocarEmpresa() {
+            const ok = await rzPerguntar({ titulo: 'Trocar de empresa?', impacto: 'O app recarrega e mostra a lista das empresas que você acessa.', rotuloConfirmar: 'Trocar empresa', icone: 'repeat' });
+            if (ok) location.reload();
         }
         // v1.117.0 — abrirMenuPrestadores() removida: o item do menu vai
         // direto pra Partes com o chip Prestadores (fusão da fatia 7b-i).

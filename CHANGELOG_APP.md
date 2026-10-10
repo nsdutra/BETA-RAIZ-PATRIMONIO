@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.331.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 09/10 22:08,
+escolha "Fatura inteira"): só o import map — financeiro.js 1.39.0 (fatura do cartão uma vez, no mês da fatura,
+com os números da fatura inteira; ações da compra por cima da fatura). Nenhuma linha do index mudou.
+------------------------------------------------------------------
+Versões anteriores (v1.331.0 … v1.331.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.331.0) — UX F2.3b, busca universal no Hoje (plano F2.3 aprovado pelo Nicola 09/10 20:52).
 O Hoje abre com a barra "Buscar ativo, contrato, pessoa ou documento" (.rz-topo) acima dos chips. Tocar abre
 rzAbrirBuscaUniversal: campo ao vivo e resultados por grupo — Ativos, Contratos, Pessoas e empresas,
