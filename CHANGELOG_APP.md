@@ -4,6 +4,22 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.328.0) — UX F2.7c-3, menu ⚙️ › Cadastros (de acordo do Nicola 08/10 14:04).
+Minutas: a descrição fica só no topo; o formulário fixo do assistente "Gerar de um contrato real"
+saiu (agora é Sheet de 2 passos em minutas.js). Documentos arquivados abre por cima da tela atual
+(sem pular para Ativos; Vincular ainda leva à ficha no Cofre). abrirSheetAcoes aceita empilhar.
+rzCopiar: cópia pela porta do aparelho (RaizDevice.clipboard), usada no Copiar link da vitrine e
+nos campos da minuta. CSS novo: .rz-f-btn, .rz-ph/.rz-ph-lista, arquivo dentro de .rz-f. Import
+map: minutas.js 1.3.0, cofre-documentos.js 2.34.0, cadastros.js 1.2.0. Nenhum objeto de banco
+criado por este arquivo.
+Versão anterior (Beta v1.327.0):
+------------------------------------------------------------------
+Versões anteriores (v1.327.0 … v1.327.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.327.0) — UX F2.7c-2, menu ⚙️ › Empresa (de acordo do Nicola 08/10 14:04).
 Links da vitrine: linha "Vitrine com n imóveis · criada … · código" e ⋮ com Copiar link, Abrir
 vitrine e Revogar (vermelho, por último) — antes a lixeira ficava na linha; vazio diz onde montar.

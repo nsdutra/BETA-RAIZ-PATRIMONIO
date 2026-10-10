@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.38.2 · 09/10/2026
+// Versão: 1.38.3 · 09/10/2026
+//
+// v1.38.3 (09/10/2026, sessão 20261009-2200-empresa-ocorrencia, demanda 6da660db, "Sim faça 1, 2 e 4" do Nicola 09/10 21:54):
+// o vínculo sem ativo passa a se chamar "Empresa" nas três telas — despesa ("Nenhum (despesa avulsa)"), item da
+// fatura ("Nenhum (despesa da empresa)") e receita sem contrato ("Nenhum — receita da empresa"). Só o rótulo: o valor
+// continua vazio (ativo_id null = da empresa), igual aos itens do card "Controles da empresa".
+// Versão anterior: 1.38.2.
 //
 // v1.38.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 7ce0fd63): a 1.38.x subiu 3 padrões da gramática e o
 // verificador travava toda entrega do app. "N a classificar" da fatura sai do dourado (exclusivo de IA) para
@@ -31,24 +37,11 @@
 // v1.37.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.37.0 · 07/10/2026
-//
-// v1.37.0 (07/10/2026, sessão 20261007-0910-financeiro, demanda f3e6cd27 — P5a, fichas F1–F5 com de
-// acordo do Nicola 07/10 09:09; protótipo PROTOTIPO_CARTAO_FATURA_RAIZ v1.0.0) — CARTÃO DE CRÉDITO:
-// (1) Saídas mostram cada fatura como UMA linha (soma das compras do mês, "N a classificar", status
-// da fatura); toque abre a fatura (financeiroAbrirFatura). (2) Fatura: fechamento, vencimento, total,
-// conta que paga, progresso; "A classificar" em cima com a sugestão do Raiz e "Aceitar"; "Selecionar"
-// classifica em lote; toque na compra: Classificar (categoria em árvore, ativo, fornecedor — inclusive
-// cadastrar —, "Sempre assim"), Divisão (editor único) e Excluir compra. (3) "Marcar como paga" (baixa
-// manual; com extrato, a regra CT03 liga sozinha). (4) Lançar ganha "Importar fatura do cartão (IA)"
-// (código cartao.importar): cartão, PDF/foto lido pela IA, conferência (mês, total × soma, final do
-// cartão) e importação. Toda regra no banco (fn_fatura_listar/importar/item_classificar/baixar).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.36.0 … v1.36.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.37.0 … v1.37.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.38.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.38.3'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1383,7 +1376,7 @@ function financeiroRenderCabecalho(aba) {
             const corpo = `
                 <div class="rz-f"><label>Categoria <i>*</i></label><select id="fat-cat-grupo"><option value="">— escolha a categoria —</option>${grupos.map(g => `<option value="${g.codigo}" ${g.codigo === grupoAtual ? 'selected' : ''}>${escapeHtmlSaidas(g.nome)}</option>`).join('')}</select></div>
                 <div class="rz-f"><label>Subcategoria <i>*</i></label><select id="fat-cat">${optsFolhas(grupoAtual)}</select></div>
-                <div class="rz-f"><label>Ativo (opcional)</label><select id="fat-ativo"><option value="">${um ? 'Nenhum (despesa da empresa)' : 'Manter como está'}</option>${ativosOpts.map(a => `<option value="${a.id}" ${a.id === ativoAtual ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('')}</select></div>
+                <div class="rz-f"><label>Ativo (opcional)</label><select id="fat-ativo"><option value="">${um ? 'Empresa' : 'Manter como está'}</option>${ativosOpts.map(a => `<option value="${a.id}" ${a.id === ativoAtual ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('')}</select></div>
                 <div class="rz-f"><label>Fornecedor (opcional)</label><select id="fat-parte"><option value="">${um ? 'Nenhum' : 'Manter como está'}</option>${partesOpts.map(p => `<option value="${p.id}" ${p.id === parteAtual ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('')}<option value="__novo__">+ Cadastrar como fornecedor</option></select>
                     <input type="text" id="fat-parte-novo" placeholder="Nome do fornecedor" value="${escapeHtmlSaidas(um ? um.descricao : '')}" style="display:none;margin-top:6px">
                     <span class="rz-hint">Escolhendo o fornecedor, o Raiz reconhece este nome nas próximas faturas e extratos.</span></div>
@@ -1699,7 +1692,7 @@ function financeiroRenderCabecalho(aba) {
             // select some sem valor e os chips ficam clicáveis.
             const parteSugeridaUnica = sugestoes?.partes?.length === 1 ? sugestoes.partes[0].parte_id : null;
 
-            const optsAtivos = `<option value="">Nenhum (despesa avulsa)</option>` + ativosOpts.map(a =>
+            const optsAtivos = `<option value="">Empresa</option>` /* v1.38.3 (demanda 6da660db) — era "Nenhum (despesa avulsa)" */ + ativosOpts.map(a =>
                 `<option value="${a.id}" ${a.id === ativoSelecionado ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`).join('');
             const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
                 `<option value="${p.id}" ${(p.id === d?.parteId || p.id === parteSugeridaUnica) ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
@@ -4828,7 +4821,7 @@ export async function abrirReceitaAvulsa() {
     try { ativos = (typeof carregarAtivosParaSelectSupabase === 'function') ? await carregarAtivosParaSelectSupabase() : []; } catch (e) { ativos = []; }
     const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const hoje = new Date().toISOString().slice(0, 10);
-    const optsAtivo = `<option value="">Nenhum — receita da empresa</option>` + ativos.map(a => `<option value="${a.id}">${esc(a.nome_exibicao)}</option>`).join('');
+    const optsAtivo = `<option value="">Empresa</option>` + ativos.map(a => `<option value="${a.id}">${esc(a.nome_exibicao)}</option>`).join('');
     // v1.34.0 — a entrada é classificada: Categoria (nível 1 de entrada) → Subcategoria
     const cat = (await carregarCatalogoCategorias()) || [];
     const gruposEnt = cat.filter(c => !c.categoria_pai && c.direcao === 'entrada' && cat.some(f => f.categoria_pai === c.codigo));
