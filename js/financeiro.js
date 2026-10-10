@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.40.2 · 10/10/2026
+// Versão: 1.41.0 · 10/10/2026
+//
+// v1.41.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — testes do Nicola 10/10 00:30 e F9b
+// aprovada 00:45): (1) "classificar igual" pergunta ANTES de gravar; fechar a pergunta (X ou fora) cancela e nada
+// é classificado — antes a compra escolhida já estava gravada quando a pergunta aparecia; (2) o ativo filtra a
+// árvore também pelo detalhe (lancamento_categorias.tipos_detalhe): pet vê Pets, pessoa vê as pessoais.
+// Versão anterior: 1.40.2.
 //
 // v1.40.2 (10/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 00:15): a Divisão de uma
 // compra aberta de dentro da fatura abre por cima dela (nível 2), sem trocar o fundo pela lista de Saídas; e ganha o
@@ -28,18 +34,11 @@
 // na mesma altura da lista, e não para Saídas; (2) Selecionar ficou leve: marcar uma compra só acende o quadrado e
 // atualiza o botão "Classificar n", sem reler a fatura do banco nem voltar a lista para o topo; entrar e sair da
 // seleção também não relê. Versão anterior: 1.39.0.
-//
-// v1.39.0 (09/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 22:08, escolha
-// "Fatura inteira" 22:15): a fatura do cartão entra em Saídas UMA vez, no mês da própria fatura, com o total,
-// o número de compras e o "a classificar" da fatura inteira (fn_fatura_listar) — antes cada compra caía no mês
-// em que foi feita e a linha de outubro mostrava 5 de 173 compras. Os chips Todas/Pagas/A vencer/Atrasadas
-// contam a fatura como uma conta só, pelo status dela. Tocar numa compra dentro da fatura abre as ações por
-// cima (nível 2): Cancelar volta para a fatura, não para a lista. Relatórios por competência não mudam.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.38.3 … v1.38.3): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.39.0 … v1.39.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.40.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.41.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1427,7 +1426,8 @@ function financeiroRenderCabecalho(aba) {
             const catAtual = um ? (um.categoria !== 'a_classificar' ? um.categoria : (sug.categoria || '')) : '';
             const cat = (catalogoCategoriasLanc || []).filter(c => c.codigo !== 'a_classificar');
             const ativoAtual = um ? (um.ativo_id || sug.ativo_id || '') : '';
-            const tipoInicial = ativosOpts.find(a => a.id === ativoAtual)?.tipo_ativo || '';
+            const ativoIni = ativosOpts.find(a => a.id === ativoAtual);
+            const tipoInicial = ativoIni ? { tipo: ativoIni.tipo_ativo || '', detalhe: ativoIni.tipo_detalhe?.codigo || '' } : '';
             const grupoAtual = cat.find(c => c.codigo === catAtual)?.categoria_pai || '';
             const optsGrupos = (tipo, g) => `<option value="">— escolha a categoria —</option>` + gruposSaidaDoTipo(cat, tipo)
                 .map(x => `<option value="${x.codigo}" ${x.codigo === g ? 'selected' : ''}>${escapeHtmlSaidas(x.nome)}</option>`).join('');
@@ -1495,6 +1495,28 @@ function financeiroRenderCabecalho(aba) {
         }
 
         async function financeiroGravarClassificacao(ids, v, faturaId) {
+            // pergunta ANTES de gravar: fechar a pergunta cancela tudo (dem f3e6cd27)
+            if (!v.semPerguntar && v.categoria !== 'a_classificar' && typeof window.rzEscolher === 'function') {
+                const itens = financeiroFaturaAberta?.id === faturaId ? (financeiroFaturaAberta.dados?.itens || []) : [];
+                const ests = new Set(itens.filter(i => ids.includes(i.id)).map(i => i.estabelecimento).filter(Boolean));
+                const sem = itens.filter(i => i.categoria === 'a_classificar' && !ids.includes(i.id) && ests.has(i.estabelecimento)).map(i => i.id);
+                if (sem.length) {
+                    const n = sem.length, total = n + ids.length, nomeCat = categoriaDoCatalogo(v.categoria)?.nome || 'a mesma categoria';
+                    const item = itens.find(i => i.id === ids[0]);
+                    const quem = item?.descricao ? ` de ${item.descricao}` : ' iguais';
+                    const escolha = await window.rzEscolher({
+                        titulo: n === 1 ? `Há mais 1 compra${quem} a classificar` : `Há mais ${n} compras${quem} a classificar`,
+                        sub: `Classificar igual: ${nomeCat}?`,
+                        opcoes: [
+                            { valor: 'igual', titulo: `Classificar as ${total}`, sub: 'Esta e as iguais', icone: 'copy-check' },
+                            { valor: 'sempre', titulo: `Classificar as ${total} e sempre assim`, sub: 'As próximas faturas já chegam classificadas', icone: 'repeat' },
+                            { valor: 'so', titulo: 'Só esta', icone: 'check' },
+                        ],
+                    });
+                    if (!escolha) return false;
+                    if (escolha !== 'so') { ids = ids.concat(sem); v = { ...v, sempre_assim: v.sempre_assim || escolha === 'sempre' }; }
+                }
+            }
             const { data, error } = await dbAuth.rpc('fn_fatura_item_classificar', {
                 p_lancamento_ids: ids, p_categoria: v.categoria, p_ativo_id: v.ativo_id, p_parte_id: v.parte_id,
                 p_divisao: v.divisao, p_sempre_assim: !!v.sempre_assim,
@@ -1503,24 +1525,6 @@ function financeiroRenderCabecalho(aba) {
             if (v.contab !== undefined && v.categoria !== 'a_classificar') await financeiroGravarContab(ids, v.contab);
             rzToast(data.mensagem, { tipo: 'success' });
             emitirEscrita('despesa', { id: ids[0], acao: 'classificar_cartao' });
-            const semelhantes = (data.dados?.semelhantes || []).filter(id => !ids.includes(id));
-            if (semelhantes.length && !v.semPerguntar && typeof window.rzEscolher === 'function') {
-                const n = semelhantes.length, nomeCat = data.titulo || 'a mesma categoria';
-                const item = (financeiroFaturaAberta?.dados?.itens || []).find(i => i.id === ids[0]);
-                const quem = item?.descricao ? ` de ${item.descricao}` : ' iguais';
-                const escolha = await window.rzEscolher({
-                    titulo: n === 1 ? `Há mais 1 compra${quem} a classificar` : `Há mais ${n} compras${quem} a classificar`,
-                    sub: `Classificar igual: ${nomeCat}?`,
-                    opcoes: [
-                        { valor: 'igual', titulo: n === 1 ? 'Classificar esta também' : `Classificar as ${n}`, sub: nomeCat, icone: 'copy-check' },
-                        { valor: 'sempre', titulo: n === 1 ? 'Classificar e sempre assim' : `Classificar as ${n} e sempre assim`, sub: 'As próximas faturas já chegam classificadas', icone: 'repeat' },
-                        { valor: 'so', titulo: 'Só esta', icone: 'x' },
-                    ],
-                });
-                if (escolha === 'igual' || escolha === 'sempre') {
-                    return financeiroGravarClassificacao(semelhantes, { ...v, sempre_assim: v.sempre_assim || escolha === 'sempre', semPerguntar: true }, faturaId);
-                }
-            }
             financeiroDepoisDeMudarFatura(faturaId);
             return true;
         }
@@ -1688,7 +1692,7 @@ function financeiroRenderCabecalho(aba) {
                 catalogoCategoriasCarregando = (async () => {
                     try {
                         const { data, error } = await dbAuth.from('lancamento_categorias')
-                            .select('codigo,nome,direcao,categoria_pai,icone,ordem,grupo_resultado,contabilidade_padrao,tipos_ativo').eq('ativo', true).order('ordem'); // v1.34.0
+                            .select('codigo,nome,direcao,categoria_pai,icone,ordem,grupo_resultado,contabilidade_padrao,tipos_ativo,tipos_detalhe').eq('ativo', true).order('ordem'); // v1.34.0
                         if (error) throw error;
                         catalogoCategoriasLanc = data || [];
                     } catch (err) { console.warn('[financeiro] catálogo de categorias:', err.message); }
@@ -1700,7 +1704,13 @@ function financeiroRenderCabecalho(aba) {
         }
         function categoriaDoCatalogo(v) { return (catalogoCategoriasLanc || []).find(c => c.codigo === v) || null; }
         // Árvore pelo tipo do ativo escolhido (D54): categoria sem tipos_ativo vale para todo ativo; sem ativo, árvore inteira.
-        function categoriaValeParaTipo(c, tipo) { return !tipo || !Array.isArray(c.tipos_ativo) || !c.tipos_ativo.length || c.tipos_ativo.includes(tipo); }
+        function categoriaValeParaTipo(c, tipo) {
+            const t = typeof tipo === 'string' ? tipo : (tipo?.tipo || ''), d = typeof tipo === 'string' ? '' : (tipo?.detalhe || '');
+            if (!t) return true;
+            if (Array.isArray(c.tipos_ativo) && c.tipos_ativo.length && !c.tipos_ativo.includes(t)) return false;
+            // detalhe só restringe dentro do tipo (pessoa × pet, os dois tipo vida — F9b)
+            return !d || !Array.isArray(c.tipos_detalhe) || !c.tipos_detalhe.length || c.tipos_detalhe.includes(d);
+        }
         function gruposSaidaDoTipo(cat, tipo) {
             return cat.filter(c => !c.categoria_pai && c.direcao === 'saida' && categoriaValeParaTipo(c, tipo)
                 && cat.some(f => f.categoria_pai === c.codigo && categoriaValeParaTipo(f, tipo)));
@@ -1708,9 +1718,12 @@ function financeiroRenderCabecalho(aba) {
         function folhasSaidaDoTipo(cat, grupo, tipo) { return cat.filter(c => c.categoria_pai === grupo && c.direcao === 'saida' && categoriaValeParaTipo(c, tipo)); }
         // <option> de ativo carrega o tipo e o registro contábil: quem escuta o select filtra a árvore sem nova busca
         function optAtivo(a, selecionado) {
-            return `<option value="${a.id}" data-tipo="${escapeHtmlSaidas(a.tipo_ativo || '')}" data-contab="${escapeHtmlSaidas(a.registro_contabil || '')}" ${a.id === selecionado ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`;
+            return `<option value="${a.id}" data-tipo="${escapeHtmlSaidas(a.tipo_ativo || '')}" data-detalhe="${escapeHtmlSaidas(a.tipo_detalhe?.codigo || '')}" data-contab="${escapeHtmlSaidas(a.registro_contabil || '')}" ${a.id === selecionado ? 'selected' : ''}>${escapeHtmlSaidas(a.nome_exibicao)}</option>`;
         }
-        function tipoDoSelectAtivo(sel) { return sel && sel.value ? (sel.options[sel.selectedIndex]?.dataset.tipo || '') : ''; }
+        function tipoDoSelectAtivo(sel) {
+            const o = sel && sel.value ? sel.options[sel.selectedIndex] : null;
+            return o ? { tipo: o.dataset.tipo || '', detalhe: o.dataset.detalhe || '' } : '';
+        }
         // v1.34.0 — chips de classificação da folha: resultado (grupo_resultado) e contabilidade
         function chipsClassificacaoLanc(folha, contab) {
             const partes = [];
@@ -1818,7 +1831,8 @@ function financeiroRenderCabecalho(aba) {
             const parteSugeridaUnica = sugestoes?.partes?.length === 1 ? sugestoes.partes[0].parte_id : null;
 
             const optsAtivos = `<option value="">Empresa</option>` /* v1.38.3 (demanda 6da660db) — era "Nenhum (despesa avulsa)" */ + ativosOpts.map(a => optAtivo(a, ativoSelecionado)).join('');
-            const tipoAtivoDesp = ativosOpts.find(a => a.id === ativoSelecionado)?.tipo_ativo || '';
+            const ativoDesp = ativosOpts.find(a => a.id === ativoSelecionado);
+            const tipoAtivoDesp = ativoDesp ? { tipo: ativoDesp.tipo_ativo || '', detalhe: ativoDesp.tipo_detalhe?.codigo || '' } : '';
             const optsPartes = `<option value="">— selecionar —</option>` + partesOpts.map(p =>
                 `<option value="${p.id}" ${(p.id === d?.parteId || p.id === parteSugeridaUnica) ? 'selected' : ''}>${escapeHtmlSaidas(p.nome)}</option>`).join('') +
                 `<option value="__novo__">+ Novo fornecedor</option>`;

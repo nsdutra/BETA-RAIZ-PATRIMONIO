@@ -540,6 +540,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -1029,6 +1031,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
 
 //
@@ -1419,6 +1423,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // cofre-ativos.js). Prefere addEventListener a onclick inline em todo
 // código novo (Diretriz Arquitetural — Passo 2).
 // ============================================================================
+
+---
 
 ---
 
@@ -2542,6 +2548,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -3123,6 +3131,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -3844,6 +3854,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3989,6 +4001,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -4227,6 +4241,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -4258,6 +4274,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -4395,6 +4413,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -4638,6 +4658,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -4772,6 +4794,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -5131,6 +5155,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -5173,6 +5199,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -5292,6 +5320,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // dados de conta — recebe `dbAuth` já autenticado do host, por
 // parâmetro (ver nota completa em comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -6152,6 +6182,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -6499,7 +6531,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/financeiro.js`
+
+//
+// v1.39.0 (09/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 22:08, escolha
+// "Fatura inteira" 22:15): a fatura do cartão entra em Saídas UMA vez, no mês da própria fatura, com o total,
+// o número de compras e o "a classificar" da fatura inteira (fn_fatura_listar) — antes cada compra caía no mês
+// em que foi feita e a linha de outubro mostrava 5 de 173 compras. Os chips Todas/Pagas/A vencer/Atrasadas
+// contam a fatura como uma conta só, pelo status dela. Tocar numa compra dentro da fatura abre as ações por
+// cima (nível 2): Cancelar volta para a fatura, não para a lista. Relatórios por competência não mudam.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.38.3 … v1.38.3): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: 1.38.3.
 //
@@ -7557,6 +7603,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -7616,6 +7664,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -7764,6 +7814,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -8121,6 +8173,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -8230,6 +8284,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.340.0) — UX F2.5c Partes (demanda 639bbcd0; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
+ESTUDO 9A.4). Topo com barra de busca + "+" (Sheet rzAbrirBuscaTela, × na barra); chip "Com pendência"
+(pendenciasParte: documento; WhatsApp ou e-mail de locatário, fiador e prestador; endereço de locatário e fiador)
+e status "Falta …" na linha; a parte abre como ficha com chips Dados (o formulário, com "Falta para recibo,
+minuta e cobrança") · Contratos e itens (vínculos ativos e encerrados) · Comunicação (WhatsApp, ligar, e-mail).
+abrirFichaParte(id, pane) passa a abrir essa ficha; a ficha só-leitura antiga saiu. Nenhum objeto de banco.
+Versão anterior (Beta v1.339.0):
+------------------------------------------------------------------
+Versões anteriores (v1.339.0 … v1.339.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.339.0) — UX F2.5b-2 (demanda 639bbcd0; ajustes pedidos pelo Nicola no teste de 10/10 01:11).
 Minha empresa: o box Controles da empresa passa como ctx.extras com pane 'controles' (chip próprio, separado de
 Rotinas); comum-minha-empresa.js 1.14.0 leva a quantidade do que falta para os chips, tira o "n de 8" do
