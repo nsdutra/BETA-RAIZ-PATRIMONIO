@@ -1,7 +1,19 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.3.2 (07/10/2026 — demanda 2923ff4d)
+// VERSÃO: Beta v2.4.0 (09/10/2026 — demandas 43bc3cab e f0ab422d)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.4.0) — sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 ("De acordo, tudo
+//   numa entrega só"; gráficos "no modelo da McKinsey"):
+//   — Gráficos de colunas no padrão executivo (PADRAO_RELATORIOS REL-13/23/25/50/52/53, referência McKinsey):
+//     título que diz a conclusão, medida e unidade embaixo, valor em cima de cada coluna na unidade do
+//     subtítulo, zero como base (mês negativo desce), colunas em cinza com um destaque só, mês por vir
+//     apagado e a fonte embaixo. Vale para Resultado mês a mês, Reajustes no ano e Revisional/Renovação
+//     (colunasExecutivasSvg).
+//   — O card Indicadores sai de Resultados e vira "Indicadores de mercado" no chip Fique por dentro do Hoje
+//     (renderIndicadoresMercado), em linhas: nome · mês · valor do mês · 12 meses. A leitura de
+//     fn_indicadores_resumo sai de renderizarConteudo.
+// Versão anterior: Beta v2.3.2
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.3.1) — 07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 (VER-06, "de acordo"
 //   do Nicola 07/10 17:21): SÓ CABEÇALHO — as versões além das 5 mais recentes rolaram
@@ -30,27 +42,11 @@
 //   única para app, bot e relatórios). Migration indicadores_resumo_seis_v1: IVG-R vira
 //   variação e o mês em andamento (Selic/CDI provisórios) não entra. Texto do card a 12 px
 //   (era 10,5 — UXR-31).
-// Versão anterior: Beta v2.0.0 (04/10/2026 — demanda 217e3a38)
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v2.0.0) — UX F2.1a (sessão 20261003-1707-ux-base, "Sim de acordo" do
-//   Nicola 04/10 21:11; DIRETRIZES UXR-16 a 19): Resultados deixa de ser aba e passa a
-//   morar em Hoje (antiga Visão Geral).
-//   — Herói unificado (UXR-17) em #hoje-heroi-mount: Patrimônio sob gestão + nº de ativos,
-//     Resultado do ano e Rentabilidade · Ocupação · Inadimplência, num bloco --pine só.
-//     Ano (‹ 2026 ›) e contexto (Tudo · Comercial · Família) dentro do herói (UXR-18);
-//     o contexto é o mesmo de Hoje inteiro (index.html, escolherGeralUniverso).
-//   — Cards de Resultados em #hoje-resultados-mount com o título "Resultados · <ano>",
-//     na ordem de sempre e com ⓘ (UXR-19). O bloco de KPIs sai (virou o herói).
-//   — Sai a lupa e o sheet Filtros: abrangência (empreendimento · imóvel) não existe em
-//     Hoje (UXR-18) — o imóvel tem Performance na própria ficha; empreendimento fica para
-//     a ficha do empreendimento (demanda própria).
-//   — Desenhos que se atropelam (trocar o contexto rápido) não sobrescrevem o mais novo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.0.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.0.0 … v2.0.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-
-export const VERSAO = '2.3.2';
+export const VERSAO = '2.4.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -66,6 +62,7 @@ const CONTEXTO_USO = { tudo: null, comercial: 'comercial', familia: 'nao_comerci
 const CONTEXTO_ROTULO = { tudo: 'Tudo', comercial: 'Comercial', familia: 'Família' };
 const ABRANGENCIA_ROTULO = { carteira: 'Carteira', empreendimento: 'Empreendimento', imovel: 'Imóvel' };
 const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const NOMES_MES_LONGO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
 function pctFmt(v) { return v == null ? '—' : `${v}%`; }
 
@@ -241,7 +238,7 @@ async function renderizarConteudo() {
         // por empreendimento/imóvel — decisão documentada no changelog
         // acima): olhar o índice de mercado contra UM imóvel só não faz
         // sentido, a leitura é sempre da carteira.
-        const [resumoR, perfR, mensalR, concR, reajR, revR, indR, graficoIndR, grupoR] = await Promise.all([
+        const [resumoR, perfR, mensalR, concR, reajR, revR, graficoIndR, grupoR] = await Promise.all([
             filtro.abrangencia === 'carteira'
                 ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
                 : Promise.resolve({ data: null }),
@@ -260,7 +257,6 @@ async function renderizarConteudo() {
             cardsLocacao
                 ? dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
                 : Promise.resolve({ data: [] }),
-            filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_indicadores_resumo'),
             filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : dbAuth.rpc('fn_carteira_indicador_series', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_codigo: 'ipca' }),
             // v2.3.0 — abertura por grupo (nível 1 da árvore); erro aqui só esconde o card
             dbAuth.rpc('fn_resultado_por_grupo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso }),
@@ -272,7 +268,6 @@ async function renderizarConteudo() {
         if (concR.error) throw concR.error;
         if (reajR.error) throw reajR.error;
         if (revR.error) throw revR.error;
-        if (indR.error) throw indR.error;
         if (graficoIndR.error) throw graficoIndR.error;
 
         const resumo = Array.isArray(resumoR.data) ? resumoR.data[0] : resumoR.data;
@@ -281,8 +276,6 @@ async function renderizarConteudo() {
         const concentracao = concR.data || [];
         const reajustes = reajR.data || [];
         const revisionais = revR.data || [];
-        const indicadores = indR.data || [];
-        ultimosIndicadores = indicadores; // v2.1.0 (5A) — alimenta o ⓘ
         const graficoIndicador = graficoIndR.data || [];
         if (grupoR.error) console.warn('[resultados] por grupo:', grupoR.error.message); // v2.3.0
         const porGrupo = grupoR.error ? [] : (grupoR.data || []);
@@ -291,8 +284,7 @@ async function renderizarConteudo() {
         const heroiEl = document.getElementById('hoje-heroi-mount');
         if (heroiEl) heroiEl.innerHTML = montarHeroi(resumo, perf);
         alvo.innerHTML = [
-            montarCardIndicadores(indicadores),
-            montarGraficoMensal(mensal),
+            montarGraficoMensal(mensal), // v2.4.0 — Indicadores foi para o Fique por dentro (renderIndicadoresMercado)
             montarPorGrupo(porGrupo), // v2.3.0
             montarGraficoIndicador(graficoIndicador, 'ipca'),
             cardsLocacao ? montarConcentracao(concentracao) : '',
@@ -314,64 +306,106 @@ async function renderizarConteudo() {
     }
 }
 
-function montarCardIndicadores(indicadores) {
-    if (filtro.contexto === 'familia') return ''; // ESP §4.3 — não renderiza em Família
-    // v1.3.0 (B1.2) — dado real (fn_indicadores_resumo, migration
-    // mercado_reajuste_simulador_v1). Fallback defensivo abaixo (não deve
-    // acontecer na prática: IPCA/IGP-M/Selic sempre voltam da função,
-    // com acumulado_12m_pct eventualmente nulo se faltar histórico) —
-    // mesmo texto de vazio honesto de antes, adaptado.
-    if (!indicadores || !indicadores.length) {
-        return `<div class="rz-card">
-            <div class="rz-card-h" style="justify-content:space-between"><b>Indicadores</b>${botaoInfoCard('abrirInfoIndicadores()')}</div>
-            <div class="rz-empty" style="padding:14px 8px">
-                <div class="rz-ic"><svg data-lucide="trending-up"></svg></div>
-                <p>Sem índice de mercado disponível no momento.</p>
-            </div>
-        </div>`;
+// v2.4.0 (dem 43bc3cab) — "Indicadores de mercado" no chip Fique por dentro do Hoje: uma linha por indicador
+// (nome e mês de referência à esquerda; valor do mês e acumulado de 12 meses à direita). Não depende do
+// contexto Tudo · Comercial · Família: é informação do mercado, não da carteira.
+export async function renderIndicadoresMercado(mountId) {
+    const mount = document.getElementById(mountId);
+    if (!mount) return;
+    if (!mount.innerHTML && typeof rzSkeleton === 'function') mount.innerHTML = `<div class="rz-card">${rzSkeleton('linhas', 3)}</div>`;
+    let indicadores = [];
+    try {
+        const { data, error } = await dbAuth.rpc('fn_indicadores_resumo');
+        if (error) throw error;
+        indicadores = data || [];
+    } catch (e) {
+        console.warn('[resultados] indicadores:', e.message);
+        mount.innerHTML = `<div class="rz-card"><p class="rz-desc">Não deu para carregar os indicadores agora.</p></div>`;
+        return;
     }
-    // v2.1.0 (5A) — 6 indicadores: mês de referência, valor do mês e 12 meses.
-    return `<div class="rz-card">
-        <div class="rz-card-h" style="justify-content:space-between"><b>Indicadores</b>${botaoInfoCard('abrirInfoIndicadores()')}</div>
-        <div class="rz-kv">${indicadores.map(ind => {
-            const mes = ind.valor_mes_pct == null ? null : Number(ind.valor_mes_pct);
-            return `<div>
-                <small style="display:flex;justify-content:space-between;gap:6px"><span>${rzEsc(NOME_CURTO_INDICADOR[ind.codigo] || ind.nome)}</span><span>${rzEsc(competenciaCurta(ind.competencia_mes))}</span></small>
-                <b style="${mes != null && mes < 0 ? 'color:var(--danger)' : ''}">${pctSinal(mes)}</b>
-                <span style="display:block;font-size:12px;color:var(--muted)">${pctSinal(ind.acumulado_12m_pct)} em 12 meses</span>
-            </div>`;
-        }).join('')}</div>
-        ${botaoVerTodosIndicadores()}
-    </div>`;
+    ultimosIndicadores = indicadores; // alimenta o ⓘ
+    mount.innerHTML = montarIndicadoresMercado(indicadores);
+    if (typeof rzIcones === 'function') rzIcones();
+}
+
+function montarIndicadoresMercado(indicadores) {
+    const cab = `<div class="rz-card-h"><h3>Indicadores de mercado</h3>${botaoInfoCard('abrirInfoIndicadores()')}</div>`;
+    if (!indicadores || !indicadores.length) {
+        return `<div class="rz-card">${cab}<div class="rz-empty"><div class="rz-ic"><svg data-lucide="trending-up"></svg></div><p>Sem índice de mercado disponível no momento.</p></div></div>`;
+    }
+    const linhas = indicadores.map(ind => {
+        const mes = ind.valor_mes_pct == null ? null : Number(ind.valor_mes_pct);
+        return `<div class="rz-row rz-ind">
+            <div class="rz-tx"><b>${rzEsc(NOME_CURTO_INDICADOR[ind.codigo] || ind.nome)}</b><span>${rzEsc(competenciaCurta(ind.competencia_mes))}</span></div>
+            <div class="rz-rt"><b class="${mes != null && mes < 0 ? 'rz-ind-neg' : ''}">${pctSinal(mes)}</b><span>${pctSinal(ind.acumulado_12m_pct)} em 12 meses</span></div>
+        </div>`;
+    }).join('');
+    return `<div class="rz-card">${cab}<p class="rz-res-sub">Último mês fechado e acumulado de 12 meses · Banco Central</p>
+        <div class="rz-list">${linhas}</div>${botaoVerTodosIndicadores()}</div>`;
+}
+
+// ---- Colunas no padrão executivo (v2.4.0, dem f0ab422d) -------------------------------------------------
+// Referência: gráficos de consultoria estratégica (McKinsey) e PADRAO_RELATORIOS REL-13/23/25/50/52/53 —
+// o título diz a conclusão; medida e unidade na linha de baixo; o valor fica em cima de cada coluna, na
+// unidade do subtítulo (sem eixo Y nem grade); o zero é a base (negativo desce); colunas em cinza e um
+// destaque só; mês que ainda não chegou fica apagado; a fonte vai embaixo. SVG com classes (sem style).
+function unidadeColunas(valores) {
+    const maxAbs = Math.max(0, ...valores.map(v => Math.abs(v)));
+    if (maxAbs >= 1e6) return { div: 1e6, casas: 1, rotulo: 'R$ mi' };
+    return { div: 1e3, casas: maxAbs >= 1e4 ? 0 : 1, rotulo: 'R$ mil' };
+}
+function numeroNaUnidade(v, u) {
+    const x = v / u.div;
+    const casas = u.casas === 0 && Math.abs(x) < 1 ? 1 : u.casas; // −729 em R$ mil vira −0,7, nunca −1
+    const s = Math.abs(x).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+    return (x < 0 ? '−' : '') + s;
+}
+function mesesFechadosNoAno() {
+    return filtro.ano < ANO_ATUAL ? 12 : (filtro.ano > ANO_ATUAL ? 0 : new Date().getMonth() + 1);
+}
+function colunasExecutivasSvg(valores, { destaque = -1, alerta = -1, unidade, classeBarra = '', rotuloAria = '' }) {
+    const W = 320, TOPO = 16, AREA = 112, BAIXO = 14, MES = 14;
+    const max = Math.max(0, ...valores), min = Math.min(0, ...valores);
+    const faixa = (max - min) || 1;
+    const yZero = TOPO + AREA * (max / faixa);
+    const H = TOPO + AREA + BAIXO + MES;
+    const passo = W / 12, larg = passo * 0.62;
+    const ate = mesesFechadosNoAno();
+    const colunas = valores.map((v, i) => {
+        const cx = i * passo + passo / 2;
+        const h = Math.max(Math.abs(v) / faixa * AREA, v ? 1.5 : 0);
+        const y = v >= 0 ? yZero - h : yZero;
+        const cls = v < 0 ? 'rz-col-neg' : i === alerta ? 'rz-col-warn' : i === destaque ? 'rz-col-hl' : 'rz-col';
+        const barra = v ? `<rect class="${cls}" x="${(cx - larg / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${larg.toFixed(1)}" height="${h.toFixed(1)}" rx="2"/>` : '';
+        const valor = v ? `<text class="rz-col-v${v < 0 ? ' rz-col-v-neg' : ''}" x="${cx.toFixed(1)}" y="${(v >= 0 ? y - 4 : y + h + 11).toFixed(1)}" text-anchor="middle">${numeroNaUnidade(v, unidade)}</text>` : '';
+        const mes = `<text class="rz-col-m${i + 1 > ate ? ' rz-col-fut' : ''}" x="${cx.toFixed(1)}" y="${H - 3}" text-anchor="middle">${NOMES_MES[i]}</text>`;
+        const alvo = `<rect class="rz-col-alvo" x="${(i * passo).toFixed(1)}" y="0" width="${passo.toFixed(1)}" height="${H}"/>`;
+        return `<g${classeBarra ? ` class="${classeBarra}"` : ''} data-mes="${i + 1}">${barra}${valor}${mes}${alvo}</g>`;
+    }).join('');
+    return `<svg class="rz-cols" viewBox="0 0 ${W} ${H}" role="img" aria-label="${rzEsc(rotuloAria)}"><line class="rz-col-base" x1="0" x2="${W}" y1="${yZero.toFixed(1)}" y2="${yZero.toFixed(1)}"/>${colunas}</svg>`;
+}
+function cabecalhoGrafico(titulo, sub, infoOnclick) {
+    return `<div class="rz-card-h"><h3 class="rz-res-titulo">${rzEsc(titulo)}</h3>${botaoInfoCard(infoOnclick)}</div><p class="rz-res-sub">${rzEsc(sub)}</p>`;
 }
 
 function montarGraficoMensal(mensal) {
     if (!mensal || !mensal.length) return `<div class="rz-card"><div class="rz-card-h" style="justify-content:space-between"><b>Resultado mês a mês</b>${botaoInfoCard('abrirInfoResultadoMensal()')}</div><p class="rz-desc" style="margin-top:8px">Sem lançamentos no período.</p></div>`;
-    const valores = mensal.map(m => Number(m.resultado) || 0);
-    const max = Math.max(...valores, 0);
-    const min = Math.min(...valores, 0);
-    const amplitude = (max - min) || 1;
-    const iMax = valores.indexOf(max), iMin = valores.indexOf(min);
-    const barras = mensal.map((m, i) => {
-        const alturaPct = Math.max(2, ((valores[i] - min) / amplitude) * 100);
-        const neg = valores[i] < 0;
-        const rotulo = (i === iMax || i === iMin) ? `<span style="position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:700;color:var(--muted)">${formatarMoedaBR(valores[i], { semCentavos: true }).replace('R$', '').trim()}</span>` : '';
-        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative">
-            ${rotulo}
-            <div title="${NOMES_MES[m.mes - 1]}: ${formatarMoedaBR(valores[i], { semCentavos: true })}" style="width:70%;height:${alturaPct}%;border-radius:3px 3px 0 0;background:${neg ? 'var(--danger)' : 'var(--sprout)'}"></div>
-            <small style="font-size:9.5px;color:var(--muted);margin-top:3px">${NOMES_MES[m.mes - 1]}</small>
-        </div>`;
-    }).join('');
-    // v1.6.0 (demanda 8d5585a3 — achado do Nicola, "no card resultado mes a
-    // mes, retirar a linha pontilhada do meio das barras") — a linha
-    // tracejada da média do período (e a legenda que a v1.5.0/8ac32623
-    // tinha acrescentado pra explicá-la) saíram; os números de topo (maior/
-    // menor do ano) continuam sendo a referência visual do card.
+    // v2.4.0 (dem f0ab422d) — padrão executivo: título-conclusão, valor em cima, zero na base, destaque no melhor mês.
+    const valores = Array.from({ length: 12 }, (_, i) => Number((mensal.find(m => Number(m.mes) === i + 1) || {}).resultado) || 0);
+    const total = valores.reduce((s, v) => s + v, 0);
+    const max = Math.max(...valores);
+    const melhor = max > 0 ? valores.indexOf(max) : -1;
+    const ate = mesesFechadosNoAno();
+    const corte = filtro.ano === ANO_ATUAL && ate >= 1 ? ` até ${NOMES_MES_LONGO[ate - 1]}` : '';
+    const somaTxt = (total < 0 ? '−' : '') + formatarPatrimonioCompacto(Math.abs(total));
+    const titulo = melhor >= 0
+        ? `${NOMES_MES_LONGO[melhor].charAt(0).toUpperCase() + NOMES_MES_LONGO[melhor].slice(1)} foi o melhor mês; o ano soma ${somaTxt}${corte}`
+        : (total < 0 ? `O ano está negativo em ${formatarPatrimonioCompacto(Math.abs(total))}${corte}` : `Sem resultado em ${filtro.ano}`);
+    const unidade = unidadeColunas(valores);
     return `<div class="rz-card">
-        <div class="rz-card-h" style="justify-content:space-between"><b>Resultado mês a mês</b>${botaoInfoCard('abrirInfoResultadoMensal()')}</div>
-        <div style="height:130px;display:flex;align-items:flex-end;gap:3px;position:relative;margin-top:14px">
-            ${barras}
-        </div>
+        ${cabecalhoGrafico(titulo, `Resultado por mês · ${unidade.rotulo} · ${filtro.ano}`, 'abrirInfoResultadoMensal()')}
+        ${colunasExecutivasSvg(valores, { destaque: melhor, unidade, rotuloAria: titulo })}
+        <p class="rz-res-fonte">Fonte: Raiz · recebimentos e lançamentos realizados</p>
     </div>`;
 }
 
@@ -516,29 +550,30 @@ export function abrirInfoPorGrupo() {
 // v1.1.0 — Reajustes e Revisional/Renovação viraram 2 cards com o MESMO
 // desenho (12 barras, por VALOR, mês que concentra ≥25% do ano vira
 // warning) — motor comum, só muda o título, o dado e o botão de info.
-function montarCalendario12Meses(meses, { titulo, classeBarra, infoOnclick }) {
-    const total = meses.reduce((s, m) => s + Number(m.valor_total || 0), 0);
-    const max = Math.max(...meses.map(m => Number(m.valor_total || 0)), 0) || 1;
+function montarCalendario12Meses(meses, { titulo, classeBarra, infoOnclick, umContrato, varios, fatia, medida }) {
+    // v2.4.0 (dem f0ab422d) — mesmo padrão executivo do Resultado mês a mês. O mês que concentra ≥25% do
+    // valor do ano é o destaque em --warning (estado); sem concentração, o maior mês fica em --pine.
+    const valores = Array.from({ length: 12 }, (_, i) => Number((meses.find(m => m.mes === i + 1) || {}).valor_total) || 0);
+    const total = valores.reduce((s, v) => s + v, 0);
+    const qtd = meses.reduce((s, m) => s + Number(m.qtd_contratos || 0), 0);
     const alerta = meses.find(m => m.concentrado);
-    const barras = Array.from({ length: 12 }, (_, i) => {
-        const m = meses.find(mm => mm.mes === i + 1) || { mes: i + 1, valor_total: 0, qtd_contratos: 0, concentrado: false };
-        const alturaPct = Math.max(2, (Number(m.valor_total) / max) * 100);
-        return `<div class="${classeBarra}" data-mes="${m.mes}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:${Number(m.valor_total) > 0 ? 'pointer' : 'default'}">
-            <div style="width:70%;height:${alturaPct}%;border-radius:3px 3px 0 0;background:${m.concentrado ? 'var(--warning)' : 'var(--sprout)'}"></div>
-            <small style="font-size:9px;color:var(--muted);margin-top:2px">${m.qtd_contratos || ''}</small>
-            <small style="font-size:9.5px;color:var(--muted)">${NOMES_MES[i]}</small>
-        </div>`;
-    }).join('');
-    const nota = alerta ? `<p class="rz-desc" style="margin-top:8px;color:var(--warning)">${NOMES_MES[alerta.mes - 1]} concentra ${formatarMoedaBR(alerta.valor_total, { semCentavos: true })} dos ${formatarMoedaBR(total, { semCentavos: true })} do ano.</p>` : '';
+    const iAlerta = alerta ? alerta.mes - 1 : -1;
+    const max = Math.max(...valores);
+    const destaque = iAlerta < 0 && max > 0 ? valores.indexOf(max) : -1;
+    const mesTxt = (i) => NOMES_MES_LONGO[i].charAt(0).toUpperCase() + NOMES_MES_LONGO[i].slice(1);
+    const conclusao = !total ? `${titulo}: nada em ${filtro.ano}`
+        : alerta ? `${mesTxt(iAlerta)} concentra ${Math.round(Number(alerta.valor_total) / total * 100)}% ${fatia}`
+        : `${qtd} ${qtd === 1 ? umContrato : varios} em ${filtro.ano}, somando ${formatarPatrimonioCompacto(total)}`;
+    const unidade = unidadeColunas(valores);
     return `<div class="rz-card">
-        <div class="rz-card-h" style="justify-content:space-between"><b>${titulo}</b>${botaoInfoCard(infoOnclick)}</div>
-        <div style="height:110px;display:flex;align-items:flex-end;gap:3px;margin-top:10px">${barras}</div>
-        ${nota}
+        ${cabecalhoGrafico(conclusao, `${medida} · ${unidade.rotulo} · ${filtro.ano}`, infoOnclick)}
+        ${colunasExecutivasSvg(valores, { destaque, alerta: iAlerta, unidade, classeBarra, rotuloAria: conclusao })}
+        <p class="rz-res-fonte">Fonte: Raiz · contratos vigentes · toque no mês para ver os contratos</p>
     </div>`;
 }
 
 function montarReajustesCalendario(meses) {
-    return montarCalendario12Meses(meses, { titulo: 'Reajustes no ano', classeBarra: 'rz-res-barra-mes', infoOnclick: 'abrirInfoReajustes()' });
+    return montarCalendario12Meses(meses, { titulo: 'Reajustes', classeBarra: 'rz-res-barra-mes', infoOnclick: 'abrirInfoReajustes()', umContrato: 'contrato reajusta', varios: 'contratos reajustam', fatia: 'do aluguel que reajusta no ano', medida: 'Aluguel que reajusta por mês' });
 }
 
 function montarRevisionaisCalendario(meses) {
@@ -550,7 +585,7 @@ function montarRevisionaisCalendario(meses) {
             <p class="rz-desc" style="margin-top:8px">Nenhum contrato termina em ${filtro.ano}.</p>
         </div>`;
     }
-    return montarCalendario12Meses(meses, { titulo: 'Revisional / Renovação', classeBarra: 'rz-res-barra-revisional', infoOnclick: 'abrirInfoRevisionais()' });
+    return montarCalendario12Meses(meses, { titulo: 'Revisional / Renovação', classeBarra: 'rz-res-barra-revisional', infoOnclick: 'abrirInfoRevisionais()', umContrato: 'contrato termina', varios: 'contratos terminam', fatia: 'do aluguel dos contratos que terminam no ano', medida: 'Aluguel dos contratos que terminam por mês' });
 }
 
 function ligarBarrasCalendario(seletor, meses, aoTocarMes) {
@@ -674,8 +709,8 @@ export function abrirInfoIndicadores() {
 export function abrirInfoResultadoMensal() {
     const itens = [
         ['Resultado mês a mês', 'A diferença entre o que entrou (aluguéis recebidos e recebimentos lançados em categorias de receita) e o que saiu (despesas e tributos) em cada mês do ano escolhido no topo de Hoje. Repasses e venda de bem ficam fora do resultado.'],
-        ['Barra vermelha', 'Mês em que saiu mais dinheiro do que entrou (resultado negativo).'],
-        ['Números no topo', 'O maior e o menor resultado do ano, em destaque.'],
+        ['Como ler', 'O número em cima de cada coluna é o resultado do mês, na unidade escrita embaixo do título (R$ mil ou R$ mi). A coluna escura é o melhor mês; mês ainda por vir fica apagado.'],
+        ['Coluna vermelha', 'Mês em que saiu mais dinheiro do que entrou (resultado negativo) — ela desce abaixo da linha do zero.'],
     ];
     abrirSheet(rzSheetCabecalho('Sobre o card Resultado mês a mês') +
         `<div class="rz-sh-b"><div class="rz-card"><div class="rz-kv">${

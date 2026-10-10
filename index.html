@@ -6,9 +6,19 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.331.1
-   LINHAS: 17439
+   VERSÃO: Beta v1.332.0
+   LINHAS: 17494
    DATA: 09/10/2026 (sessão 20261003-1707-ux-base, demanda fcd3008d)
+   NOVIDADES (Beta v1.332.0) — Hoje reorganizado, busca e gráficos (demandas 1f98c359, 43bc3cab, f0ab422d; plano
+   aprovado pelo Nicola 09/10, "De acordo, tudo numa entrega só"). BUSCA: com a busca ligada, a barra ganha o ×
+   que limpa em um toque (rzRotuloBusca(…, aoLimpar)) em Ativos, Contratos, Alertas e Compartilhar; os chips de
+   Ativos e Contratos contam o que a busca deixou (cofre-ativos/contratos). HOJE: chips Patrimônio · Minha gestão
+   (o antigo Jornal do dia) · Fique por dentro (novo: Indicadores de mercado em linhas + Novidades do Raiz,
+   rzRenderFique); "Patrimônio por tipo" some quando a carteira tem um tipo só. GRÁFICOS (resultados.js 2.4.0):
+   colunas no padrão executivo — título-conclusão, valor em cima, zero na base, um destaque, fonte (CSS .rz-cols,
+   .rz-res-*). Import map: resultados.js 2.4.0, cofre-ativos.js 1.83.0, contratos.js 1.48.0, vitrine.js 1.5.1.
+   Nenhum objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.331.1):
    NOVIDADES (Beta v1.331.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 09/10 22:08,
    escolha "Fatura inteira"): só o import map — financeiro.js 1.39.0 (fatura do cartão uma vez, no mês da fatura,
    com os números da fatura inteira; ações da compra por cima da fatura). Nenhuma linha do index mudou.
@@ -33,20 +43,8 @@
    NOVIDADES (Beta v1.330.1) — sessão 20261009-2055-integridade (demandas 0e5618ca e 7ce0fd63, de acordo do
    Nicola 09/10 20:55 e 21:49): só o import map — relatorios-executivos.js 1.1.2 (relatório na camada 80,
    DESIGN_SYSTEM 2.28.0 §5) e financeiro.js 1.38.2 (3 padrões da gramática). Nenhuma linha do index mudou.
-
-   NOVIDADES (Beta v1.330.0) — UX F2.3a, topo das abas e busca em Sheet ("Estou de acordo com f2.3 e
-   opcao a" do Nicola 09/10 20:52). Ativos, Contratos, Alertas e Compartilhar imóveis abrem com a barra
-   de busca de largura inteira (.rz-topo/.rz-search; "+" ao lado quando a tela cria algo); sai a linha de
-   descrição e a lupa. Tocar na barra abre rzAbrirBuscaTela (campo ao vivo, chips por grupo, "Ver n …");
-   rzRotuloBusca mostra na barra o termo e quantos filtros estão ligados. Alertas (opção a): topo = barra +
-   segmento de severidade; as categorias viraram chips dentro do Sheet e a lista ganhou busca por texto.
-   Os popups modal-busca-contratos e modal-busca-vitrine viraram guardadores de estado escondidos. CSS:
-   .rz-busca-campo, .rz-busca, .rz-search.rz-ativo. Import map: cofre-ativos.js 1.81.0, cofre-app.js
-   1.46.0, contratos.js 1.46.0, vitrine.js 1.5.0, ativos/ativos-markup.js 1.54.0. Nenhum objeto de banco
-   criado por este arquivo.
-   Versão anterior (Beta v1.329.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.329.1 … v1.329.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.330.0 … v1.330.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +69,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.39.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.47.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.0","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.82.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.39.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.1","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.83.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.4.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -943,6 +941,30 @@
         .rz-busca .rz-chips-wrap{flex-wrap:wrap;overflow:visible;margin:0 0 4px;padding:0}
         .rz-busca-linhas{margin-top:12px}
         .rz-busca-linhas .rz-row{width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;font:inherit;color:inherit}
+        /* dem 1f98c359 — × da barra de busca: aparece com a busca ligada e limpa em um toque */
+        .rz-search.rz-ativo{padding-right:52px}
+        .rz-topo .rz-search-x{flex:none;width:40px;height:40px;margin:0 4px 0 -54px;border:0;border-radius:50%;background:var(--tile);color:var(--ink);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;cursor:pointer}
+        .rz-topo .rz-search-x[hidden]{display:none}
+        .rz-topo .rz-search-x svg{width:18px;height:18px}
+        /* dem f0ab422d — gráficos de colunas no padrão executivo (resultados.js, colunasExecutivasSvg) */
+        .rz-res-titulo{font-size:16px;line-height:1.3;margin:0;flex:1;min-width:0}
+        .rz-res-sub{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+        .rz-res-fonte{font-size:11px;color:var(--muted);margin:8px 0 0}
+        .rz-cols{display:block;width:100%;height:auto;margin-top:10px;overflow:visible}
+        .rz-cols .rz-col{fill:var(--sage);fill-opacity:.55}
+        .rz-cols .rz-col-hl{fill:var(--pine)}
+        .rz-cols .rz-col-neg{fill:var(--danger)}
+        .rz-cols .rz-col-warn{fill:var(--warning)}
+        .rz-cols .rz-col-base{stroke:var(--ink);stroke-width:1}
+        .rz-cols .rz-col-v{font:600 10px var(--font-body);fill:var(--ink);font-variant-numeric:tabular-nums}
+        .rz-cols .rz-col-v-neg{fill:var(--danger)}
+        .rz-cols .rz-col-m{font:400 10px var(--font-body);fill:var(--muted)}
+        .rz-cols .rz-col-fut{fill-opacity:.45}
+        .rz-cols .rz-col-alvo{fill:transparent}
+        .rz-cols .rz-res-barra-mes,.rz-cols .rz-res-barra-revisional{cursor:pointer}
+        /* dem 43bc3cab — Indicadores de mercado (Fique por dentro) */
+        .rz-ind .rz-rt span{font-size:12px;color:var(--muted)}
+        .rz-ind .rz-rt b.rz-ind-neg{color:var(--danger)}
         /* F2.3b — busca universal do Hoje: resultados por entidade e buscas recentes. As linhas-botão do
            painel perdem a borda padrão do <button> e ficam com o fio da lista (.rz-row). */
         .rz-busca-linhas .rz-row{border:0;border-top:1px solid var(--line)}
@@ -1889,7 +1911,8 @@
             </div>
             <div class="rz-chips" id="hoje-chips" role="tablist" aria-label="Hoje">
                 <button type="button" class="rz-chip rz-on" id="hoje-chip-patrimonio" role="tab" aria-selected="true" onclick="rzHojeContexto('patrimonio')">Patrimônio</button>
-                <button type="button" class="rz-chip" id="hoje-chip-jornal" role="tab" aria-selected="false" onclick="rzHojeContexto('jornal')">Jornal do dia<span class="rz-pt hidden" id="hoje-jornal-pt" aria-hidden="true"></span></button>
+                <button type="button" class="rz-chip" id="hoje-chip-jornal" role="tab" aria-selected="false" onclick="rzHojeContexto('jornal')">Minha gestão<span class="rz-pt hidden" id="hoje-jornal-pt" aria-hidden="true"></span></button>
+                <button type="button" class="rz-chip" id="hoje-chip-fique" role="tab" aria-selected="false" onclick="rzHojeContexto('fique')">Fique por dentro</button>
             </div>
             <div id="hoje-patrimonio">
             <div id="hoje-comece-mount"></div>
@@ -1974,6 +1997,13 @@
                 <div id="geral-atencao-lista"></div>
             </div>
                 <div id="jornal-para-voce"></div>
+            </div>
+
+            <!-- dem 43bc3cab (Nicola 09/10): o Jornal do dia virou "Minha gestão" (mesmo conteúdo, sem as Novidades) e o
+                 3º chip "Fique por dentro" junta o que é do mercado e do Raiz: Indicadores de mercado (resultados.js,
+                 renderIndicadoresMercado) e Novidades do Raiz. Notícias (IPTU, IPVA) entram depois (dem 9f9bd38e). -->
+            <div id="hoje-fique" class="hidden">
+                <div id="fique-indicadores"></div>
                 <div id="jornal-novidades"></div>
             </div>
 
@@ -3622,7 +3652,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.331.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.332.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11505,16 +11535,39 @@
 
         // v1.310.0 (UX F2.1b, UXR-16) — Hoje tem dois contextos: Patrimônio (padrão) e Jornal do dia.
         var rzHojeAtual = 'patrimonio';
+        // 3 contextos (dem 43bc3cab): Patrimônio · Minha gestão (id interno 'jornal') · Fique por dentro ('fique').
         function rzHojeContexto(qual) {
-            rzHojeAtual = qual === 'jornal' ? 'jornal' : 'patrimonio';
-            const jornal = rzHojeAtual === 'jornal';
-            document.getElementById('hoje-patrimonio')?.classList.toggle('hidden', jornal);
+            rzHojeAtual = qual === 'jornal' || qual === 'fique' ? qual : 'patrimonio';
+            const jornal = rzHojeAtual === 'jornal', fique = rzHojeAtual === 'fique';
+            document.getElementById('hoje-patrimonio')?.classList.toggle('hidden', jornal || fique);
             document.getElementById('hoje-jornal')?.classList.toggle('hidden', !jornal);
-            [['hoje-chip-patrimonio', !jornal], ['hoje-chip-jornal', jornal]].forEach(([id, on]) => {
+            document.getElementById('hoje-fique')?.classList.toggle('hidden', !fique);
+            [['hoje-chip-patrimonio', !jornal && !fique], ['hoje-chip-jornal', jornal], ['hoje-chip-fique', fique]].forEach(([id, on]) => {
                 const b = document.getElementById(id); if (!b) return;
                 b.classList.toggle('rz-on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
             });
             if (jornal) { rzRenderJornal(); rzMarcarJornalVisto(); }
+            if (fique) rzRenderFique();
+            rzAtualizarPontoJornal();
+        }
+
+        // Fique por dentro (dem 43bc3cab): Indicadores de mercado + Novidades do Raiz. As Novidades saíram da
+        // Minha gestão e vêm da mesma fonte (fn_novidade_sortear), com o mesmo toque (guia da funcionalidade).
+        var rzFiqueGeracao = 0;
+        async function rzRenderFique() {
+            if (!CLIENTE_ID_SUPABASE) return;
+            const minha = ++rzFiqueGeracao;
+            carregarResultados().then(m => m.renderIndicadoresMercado('fique-indicadores'))
+                .catch(e => console.warn('[fique] indicadores:', e?.message));
+            let n = null;
+            try {
+                const r = pessoaIdLogada ? await dbAuth.rpc('fn_novidade_sortear', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada }) : { data: [] };
+                n = !r.error && Array.isArray(r.data) ? r.data[0] : null;
+            } catch (e) { console.warn('[fique] novidades:', e.message); }
+            if (minha !== rzFiqueGeracao) return;
+            const nvEl = document.getElementById('jornal-novidades');
+            if (nvEl) nvEl.innerHTML = n ? `<h3 class="rz-plain-title">Novidades do Raiz</h3><div class="rz-card rz-list"><div class="rz-row rz-link" onclick="rzAbrirGuiaFuncionalidade('${rzEsc(n.codigo).replace(/'/g, '')}')"><div class="rz-ic"><svg data-lucide="sparkles"></svg></div><div class="rz-tx"><b>${rzEsc(n.nome_comercial)}</b><span>${rzEsc(n.descricao_comercial)}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div></div>` : '';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
         // Ponto do chip: há alerta crítico que ainda não apareceu no Jornal desta pessoa (por aparelho)
@@ -11546,11 +11599,10 @@
             const norte = document.getElementById('jornal-norte');
             if (norte && !norte.innerHTML) norte.innerHTML = `<div class="rz-card">${rzSkeletonSeguro('linhas', 2)}</div>`;
             const pv = { pwaInstalado: !!(window.matchMedia && matchMedia('(display-mode: standalone)').matches), tela: 'jornal' };
-            const [saude, comunic, novid] = await Promise.allSettled([
+            const [saude, comunic] = await Promise.allSettled([
                 dbAuth.rpc('fn_saude_patrimonio', { p_cliente_id: CLIENTE_ID_SUPABASE }),
                 pessoaIdLogada ? dbAuth.rpc('fn_comunicacao_proxima_app', { p_pessoa_id: pessoaIdLogada, p_cliente_id: CLIENTE_ID_SUPABASE, p_ctx_cliente: pv }) : Promise.resolve({ data: [] }),
-                pessoaIdLogada ? dbAuth.rpc('fn_novidade_sortear', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada }) : Promise.resolve({ data: [] }),
-            ]);
+            ]); // dem 43bc3cab — as Novidades do Raiz foram para o Fique por dentro (rzRenderFique)
             if (minha !== rzJornalGeracao) return;
             const ok = r => r.status === 'fulfilled' && r.value && !r.value.error;
             if (norte) norte.innerHTML = ok(saude) && saude.value.data ? rzNorteHtml(saude.value.data) : `<div class="rz-card"><p class="rz-desc">Não deu para calcular a nota agora.</p></div>`;
@@ -11558,10 +11610,6 @@
             rzJornalComunicacao = c;
             const pvEl = document.getElementById('jornal-para-voce');
             if (pvEl) pvEl.innerHTML = rzParaVoceHtml(c);
-            const n = ok(novid) && Array.isArray(novid.value.data) ? novid.value.data[0] : null;
-            const nvEl = document.getElementById('jornal-novidades');
-            // v1.313.0 (demanda dab013a2) — o toque abre o guia da funcionalidade
-            if (nvEl) nvEl.innerHTML = n ? `<h3 class="rz-plain-title">Novidades do Raiz</h3><div class="rz-card rz-list"><div class="rz-row rz-link" onclick="rzAbrirGuiaFuncionalidade('${rzEsc(n.codigo).replace(/'/g, '')}')"><div class="rz-ic"><svg data-lucide="sparkles"></svg></div><div class="rz-tx"><b>${rzEsc(n.nome_comercial)}</b><span>${rzEsc(n.descricao_comercial)}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div></div>` : '';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
         // v1.313.0 (demanda dab013a2) — guia de uma funcionalidade: como funciona, vantagens, onde usar,
@@ -11992,15 +12040,8 @@
             // <= 1 grupo: nada pra comparar, some (mesmo com 1 grupo tendo
             // ativos) — pedido explícito do Nicola.
             if (grupos.length <= 1) {
-                // v1.313.0 — com 1 grupo só o donut não compara nada; fica só o convite dos outros tipos
-                if (grupos.length === 1) {
-                    wrap.className = ''; wrap.style.gridTemplateColumns = '';
-                    const outros = GRUPOS_TIPO_GERAL.filter(g => g.rotulo !== grupos[0].rotulo).map(g => RZ_CONVITE_GRUPO[g.rotulo] || g.rotulo);
-                    wrap.innerHTML = `<button type="button" class="rz-convite" onclick="rzAbrirMaisAtivos()"><svg data-lucide="plus" style="width:18px;height:18px"></svg>Cadastre também: ${outros.join(' · ')}</button>`;
-                    secao.classList.remove('hidden');
-                    if (typeof lucide !== 'undefined') lucide.createIcons();
-                    return;
-                }
+                // dem 43bc3cab (Nicola 09/10: o "Cadastre também" sozinho ficou estranho no Hoje) — com 1 grupo só a
+                // seção some; o convite para outros tipos de bem mora em Ativos (chips "+ …" e o card no fim da lista).
                 secao.classList.add('hidden');
                 return;
             }
@@ -12989,7 +13030,8 @@
         function atualizarRotuloBuscaAlertas() {
             const cat = gruposCategoriaAlertas().find(g => g.chave === alertasFiltroAtual);
             const assunto = alertasFiltroAtual !== 'todos' && cat ? cat.rotulo : '';
-            rzRotuloBusca('alertas-busca-btn', 'Buscar alerta por bem, contrato ou assunto', alertasTextoFiltro, assunto ? 1 : 0);
+            rzRotuloBusca('alertas-busca-btn', 'Buscar alerta por bem, contrato ou assunto', alertasTextoFiltro, assunto ? 1 : 0,
+                () => { alertasTextoFiltro = ''; filtrarAlertas('todos'); }); // × (dem 1f98c359)
             const span = document.querySelector('#alertas-busca-btn span');
             if (span && assunto) span.textContent = (alertasTextoFiltro ? '“' + alertasTextoFiltro + '” · ' : '') + assunto;
         }
@@ -16100,7 +16142,8 @@
         }
 
         // Texto da barra de busca no topo: o termo buscado (ou o texto-guia) e quantos filtros estão ligados.
-        function rzRotuloBusca(botao, textoGuia, termo, nFiltros) {
+        // aoLimpar (dem 1f98c359): com a busca ligada, um × no fim da barra limpa tudo em um toque, sem abrir o Sheet.
+        function rzRotuloBusca(botao, textoGuia, termo, nFiltros, aoLimpar) {
             const b = typeof botao === 'string' ? document.getElementById(botao) : botao;
             if (!b) return;
             const span = b.querySelector('span');
@@ -16108,7 +16151,19 @@
             const partes = [t ? '“' + t + '”' : textoGuia];
             if (nFiltros) partes.push(nFiltros === 1 ? '1 filtro' : nFiltros + ' filtros');
             if (span) span.textContent = partes.join(' · ');
-            b.classList.toggle('rz-ativo', !!(t || nFiltros));
+            const ligada = !!(t || nFiltros);
+            b.classList.toggle('rz-ativo', ligada);
+            let x = b.nextElementSibling && b.nextElementSibling.classList.contains('rz-search-x') ? b.nextElementSibling : null;
+            if (ligada && typeof aoLimpar === 'function') {
+                if (!x) {
+                    x = document.createElement('button');
+                    x.type = 'button'; x.className = 'rz-search-x'; x.setAttribute('aria-label', 'Limpar busca');
+                    x.innerHTML = '<svg data-lucide="x"></svg>';
+                    b.after(x); rzIcones();
+                }
+                x.onclick = (ev) => { ev.stopPropagation(); aoLimpar(); };
+                x.hidden = false;
+            } else if (x) x.hidden = true;
         }
 
         // ---- Busca universal do Hoje (F2.3b, dem fcd3008d) -----------------------------------------------

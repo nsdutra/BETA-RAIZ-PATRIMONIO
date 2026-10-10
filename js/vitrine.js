@@ -1,7 +1,12 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.5.0 · 09/10/2026
+// Versão: 1.5.1 · 09/10/2026
+//
+// v1.5.1 (demandas 1f98c359, 43bc3cab e f0ab422d, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 22:3x ("De acordo, tudo numa entrega só")) —
+// a barra de "Compartilhar imóveis" ganha o × que limpa a busca em um toque.
+//
+// Versão anterior: 1.5.0 · 09/10/2026
 //
 // v1.5.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // busca de "Compartilhar imóveis" em Sheet (abrirBuscaVitrine): texto ao vivo (nome, tipo, empreendimento,
@@ -31,17 +36,13 @@
 // v1.3.4 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.3.3 · 04/10/2026
-//
-// v1.3.3 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: os alert() viram rzAvisar/rzResumo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.2 … v1.3.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.3 … v1.3.3): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.5.0'; // v-check: manter igual ao header
+export const VERSAO = '1.5.1'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export async function montarAbaVitrine() {
@@ -63,7 +64,9 @@ export async function montarAbaVitrine() {
         function atualizarRotuloBuscaVitrine() {
             if (typeof rzRotuloBusca !== 'function') return;
             const n = ['vitrine-filtro-status', 'vitrine-filtro-emp'].filter(id => (campoVit(id)?.value || 'todos') !== 'todos').length;
-            rzRotuloBusca('vitrine-busca-btn', 'Buscar imóvel para compartilhar', campoVit('vitrine-filtro-texto')?.value || '', n);
+            rzRotuloBusca('vitrine-busca-btn', 'Buscar imóvel para compartilhar', campoVit('vitrine-filtro-texto')?.value || '', n, () => { // × (dem 1f98c359)
+                campoVit('vitrine-filtro-texto').value = ''; campoVit('vitrine-filtro-status').value = 'todos'; campoVit('vitrine-filtro-emp').value = 'todos'; renderVitrine();
+            });
         }
         export function abrirBuscaVitrine() {
             if (typeof rzAbrirBuscaTela !== 'function') return;

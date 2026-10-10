@@ -4,6 +4,24 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.330.0) — UX F2.3a, topo das abas e busca em Sheet ("Estou de acordo com f2.3 e
+opcao a" do Nicola 09/10 20:52). Ativos, Contratos, Alertas e Compartilhar imóveis abrem com a barra
+de busca de largura inteira (.rz-topo/.rz-search; "+" ao lado quando a tela cria algo); sai a linha de
+descrição e a lupa. Tocar na barra abre rzAbrirBuscaTela (campo ao vivo, chips por grupo, "Ver n …");
+rzRotuloBusca mostra na barra o termo e quantos filtros estão ligados. Alertas (opção a): topo = barra +
+segmento de severidade; as categorias viraram chips dentro do Sheet e a lista ganhou busca por texto.
+Os popups modal-busca-contratos e modal-busca-vitrine viraram guardadores de estado escondidos. CSS:
+.rz-busca-campo, .rz-busca, .rz-search.rz-ativo. Import map: cofre-ativos.js 1.81.0, cofre-app.js
+1.46.0, contratos.js 1.46.0, vitrine.js 1.5.0, ativos/ativos-markup.js 1.54.0. Nenhum objeto de banco
+criado por este arquivo.
+Versão anterior (Beta v1.329.1):
+------------------------------------------------------------------
+Versões anteriores (v1.329.1 … v1.329.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.329.1) — correções do teste da F2.8 (Nicola 08/10 20:39). Página pública dos imóveis
 compartilhados no tema claro (CSS .rz-pub*, body.rz-pub-body) e "Fechar" como botão-ícone. Import map:
 vitrine.js 1.4.1 (página clara; a lista de Compartilhar relê os imóveis ao abrir). Nenhum objeto de

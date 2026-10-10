@@ -1,7 +1,13 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.47.0 · 09/10/2026
+// Versão: 1.48.0 · 09/10/2026
+//
+// v1.48.0 (demandas 1f98c359, 43bc3cab e f0ab422d, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 22:3x ("De acordo, tudo numa entrega só")) —
+// os números dos chips contam os contratos que a busca deixou (texto, empreendimento, imóvel), não a carteira
+// inteira; a barra ganha o × que limpa a busca em um toque.
+//
+// Versão anterior: 1.47.0 · 09/10/2026
 //
 // v1.47.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
 // busca universal do Hoje: buscarContratosTexto(termo) usa o MESMO critério de texto da lista
@@ -28,19 +34,8 @@
 // v1.44.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.44.0 · 07/10/2026
-//
-// v1.44.0 (UX F2.4, demanda 6f2c8d16, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 09:11;
-// UXR-13/14/15) — chips da lista de Contratos na ordem Todos → ação → estado:
-//   Todos · ● Com alerta · ● A reajustar · ● Vencendo 90 d · Vigentes · Assinando · Encerrados.
-//   · Os 3 de ação vêm do Motor de Alertas (mesmo número da aba Alertas): "A reajustar" =
-//     reajuste_aniversario, "Vencendo 90 d" = contrato_encerramento (inclui vencido), "Com alerta" =
-//     qualquer alerta ligado ao contrato. Ponto na cor do pior alerta; só aparecem com contador > 0.
-//     Sem os alertas carregados, cai na regra local de antes (revisão, vencido, assinando).
-//   · Vigentes e Encerrados sempre aparecem (Encerrados por último); Assinando só com contador > 0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.43.0 … v1.43.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.44.0 … v1.44.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -52,7 +47,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.47.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.48.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1400,7 +1395,30 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (typeof rzRotuloBusca !== 'function') return;
             const n = (campoCon('contratos-filtro-emp')?.value || 'todos') !== 'todos' ? 1 : 0;
             const m = (campoCon('contratos-filtro-imovel-id')?.value || 'todos') !== 'todos' ? 1 : 0;
-            rzRotuloBusca('contratos-busca-btn', 'Buscar contrato, locatário ou imóvel', campoCon('contratos-filtro-texto')?.value || '', n + m);
+            rzRotuloBusca('contratos-busca-btn', 'Buscar contrato, locatário ou imóvel', campoCon('contratos-filtro-texto')?.value || '', n + m, limparBuscaContratos);
+        }
+        // Limpa texto, empreendimento, imóvel e locatário; os chips da tela continuam. (dem 1f98c359)
+        function limparBuscaContratos() {
+            if (campoCon('contratos-filtro-texto')) campoCon('contratos-filtro-texto').value = '';
+            ['contratos-filtro-emp', 'contratos-filtro-imovel-id', 'contratos-filtro-locatario'].forEach(id => { if (campoCon(id)) campoCon(id).value = 'todos'; });
+            if (campoCon('contratos-filtro-imovel-resumo')) campoCon('contratos-filtro-imovel-resumo').textContent = 'Todos';
+            renderContratos();
+        }
+        // Contratos que passam pela busca, sem o recorte do chip: é sobre eles que os chips contam. (dem 1f98c359)
+        function contratosDaBusca() {
+            const emp = campoCon('contratos-filtro-emp')?.value || 'todos';
+            const imoId = campoCon('contratos-filtro-imovel-id')?.value || 'todos';
+            const loc = campoCon('contratos-filtro-locatario')?.value || 'todos';
+            const tNorm = normTextoCon(campoCon('contratos-filtro-texto')?.value).trim();
+            const tDig = tNorm.replace(/\D/g, '');
+            if (emp === 'todos' && imoId === 'todos' && loc === 'todos' && !tNorm) return contratos;
+            return contratos.filter(con => {
+                const imo = imoveis.find(i => i.id === con.imovelId);
+                if (emp !== 'todos' && (!imo || imo.empreendimento !== emp)) return false;
+                if (imoId !== 'todos' && con.imovelId !== imoId) return false;
+                if (loc !== 'todos' && con.locatario !== loc) return false;
+                return !tNorm || contratoBateTexto(con, imo, tNorm, tDig);
+            });
         }
         export function abrirBuscaContratos() {
             if (typeof rzAbrirBuscaTela !== 'function') return;
@@ -4530,16 +4548,17 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             if (!wrap) return;
             // F2.4 (UXR-13/14/15) — Todos → ação (ponto, só > 0) → estado (Vigentes e Encerrados sempre).
             const { sets, critico } = contratosPorAcao();
-            const ids = new Set(contratos.map(c => c.id));
+            const base = contratosDaBusca(); // dem 1f98c359 — conta o que a busca deixou
+            const ids = new Set(base.map(c => c.id));
             const conta = set => [...set].filter(id => ids.has(id)).length;
             const grupos = [
-                { chave: 'todos', rotulo: 'Todos', qtd: contratos.length, sempre: true },
+                { chave: 'todos', rotulo: 'Todos', qtd: base.length, sempre: true },
                 { chave: 'alerta', rotulo: 'Com alerta', qtd: conta(sets.alerta), acao: true, crit: critico.alerta },
                 { chave: 'reajustar', rotulo: 'A reajustar', qtd: conta(sets.reajustar), acao: true, crit: critico.reajustar },
                 { chave: 'vencendo', rotulo: 'Vencendo 90 d', qtd: conta(sets.vencendo), acao: true, crit: critico.vencendo },
-                { chave: 'Ativo', rotulo: 'Vigentes', qtd: contratos.filter(c => c.status === 'Ativo').length, sempre: true },
-                { chave: 'Assinando', rotulo: 'Assinando', qtd: contratos.filter(c => c.status === 'Assinando').length },
-                { chave: 'Finalizado', rotulo: 'Encerrados', qtd: contratos.filter(c => c.status === 'Finalizado').length, sempre: true },
+                { chave: 'Ativo', rotulo: 'Vigentes', qtd: base.filter(c => c.status === 'Ativo').length, sempre: true },
+                { chave: 'Assinando', rotulo: 'Assinando', qtd: base.filter(c => c.status === 'Assinando').length },
+                { chave: 'Finalizado', rotulo: 'Encerrados', qtd: base.filter(c => c.status === 'Finalizado').length, sempre: true },
             ];
             wrap.innerHTML = grupos.filter(g => g.sempre || g.qtd > 0 || contratosChipAtual === g.chave).map(g => {
                 const ponto = g.acao && g.qtd ? `<span class="rz-pt ${g.crit ? 'rz-bad' : 'rz-warn'}" aria-hidden="true"></span>` : '';

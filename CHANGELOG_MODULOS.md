@@ -518,6 +518,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-api.js`
 
 //
@@ -946,6 +948,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // supabase-js diretamente (Diretriz Arquitetural — Passo 2: responsabilidade
 // única por módulo).
 // ============================================================================
+
+---
 
 ---
 
@@ -1414,7 +1418,25 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.78.0 · 07/10/2026
+//
+// v1.78.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
+// primeiro uso, o vazio convida:
+//   · Ativos sem nenhum ativo: caixa rzVazio com o texto do passo "Comece pelo primeiro imóvel" da
+//     campanha de onboarding; "Enviar documento" (Raiz IA) primeiro, "Cadastrar primeiro imóvel"
+//     (formulário já em Imóvel, botão terciário) depois. No cofre.html avulso (sem rzVazio) fica o
+//     vazio do markup.
+//   · Chip de convite ("+ Veículo 0"): abre uma folha curta — "Enviar documento" pela Raiz IA ou
+//     "Preencher na mão" com a categoria já escolhida.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.77.1 … v1.77.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.77.2 · 07/10/2026
@@ -2427,6 +2449,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -3008,6 +3032,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -3685,6 +3711,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3830,6 +3858,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -4024,6 +4054,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -4055,6 +4087,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -4170,6 +4204,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -4356,6 +4392,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -4461,6 +4499,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4776,6 +4816,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -4818,6 +4860,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4954,7 +4998,25 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+//
+// Versão anterior: 1.44.0 · 07/10/2026
+//
+// v1.44.0 (UX F2.4, demanda 6f2c8d16, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 09:11;
+// UXR-13/14/15) — chips da lista de Contratos na ordem Todos → ação → estado:
+//   Todos · ● Com alerta · ● A reajustar · ● Vencendo 90 d · Vigentes · Assinando · Encerrados.
+//   · Os 3 de ação vêm do Motor de Alertas (mesmo número da aba Alertas): "A reajustar" =
+//     reajuste_aniversario, "Vencendo 90 d" = contrato_encerramento (inclui vencido), "Com alerta" =
+//     qualquer alerta ligado ao contrato. Ponto na cor do pior alerta; só aparecem com contador > 0.
+//     Sem os alertas carregados, cai na regra local de antes (revisão, vencido, assinando).
+//   · Vigentes e Encerrados sempre aparecem (Encerrados por último); Assinando só com contador > 0.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.43.0 … v1.43.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.43.0 · 07/10/2026
@@ -5715,6 +5777,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -6001,6 +6065,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -7026,6 +7092,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -7085,6 +7153,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -7250,7 +7320,29 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/resultados.js`
+
+// Versão anterior: Beta v2.0.0 (04/10/2026 — demanda 217e3a38)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.0.0) — UX F2.1a (sessão 20261003-1707-ux-base, "Sim de acordo" do
+//   Nicola 04/10 21:11; DIRETRIZES UXR-16 a 19): Resultados deixa de ser aba e passa a
+//   morar em Hoje (antiga Visão Geral).
+//   — Herói unificado (UXR-17) em #hoje-heroi-mount: Patrimônio sob gestão + nº de ativos,
+//     Resultado do ano e Rentabilidade · Ocupação · Inadimplência, num bloco --pine só.
+//     Ano (‹ 2026 ›) e contexto (Tudo · Comercial · Família) dentro do herói (UXR-18);
+//     o contexto é o mesmo de Hoje inteiro (index.html, escolherGeralUniverso).
+//   — Cards de Resultados em #hoje-resultados-mount com o título "Resultados · <ano>",
+//     na ordem de sempre e com ⓘ (UXR-19). O bloco de KPIs sai (virou o herói).
+//   — Sai a lupa e o sheet Filtros: abrangência (empreendimento · imóvel) não existe em
+//     Hoje (UXR-18) — o imóvel tem Performance na própria ficha; empreendimento fica para
+//     a ficha do empreendimento (demanda própria).
+//   — Desenhos que se atropelam (trocar o contexto rápido) não sobrescrevem o mais novo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.0.0 … v1.9.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 // Versão anterior: Beta v1.9.0 (04/10/2026 — demanda c71f617c)
 // -----------------------------------------------------------------
@@ -7478,7 +7570,18 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
+
+//
+// Versão anterior: 1.3.3 · 04/10/2026
+//
+// v1.3.3 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: os alert() viram rzAvisar/rzResumo.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.3.2 … v1.3.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.3.2 · 03/10/2026
@@ -7578,6 +7681,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

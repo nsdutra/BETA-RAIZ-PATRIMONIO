@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.82.0 · 09/10/2026
+// Versão: 1.83.0 · 09/10/2026
+//
+// v1.83.0 (demandas 1f98c359, 43bc3cab e f0ab422d, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 22:3x ("De acordo, tudo numa entrega só")) —
+// os números dos chips contam o que a busca deixou na tela (texto, tipo fino, situação e alerta), não a
+// carteira inteira (achado do Nicola 09/10 22:23: busca com 6 ativos e chips dizendo 49); a barra ganha o ×
+// que limpa a busca em um toque (rzRotuloBusca com aoLimpar).
+//
+// Versão anterior: 1.82.0 · 09/10/2026
 //
 // v1.82.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
 // busca universal do Hoje: buscarAtivosTexto(termo) devolve os ativos com o MESMO critério de texto da
@@ -24,22 +31,11 @@
 // v1.79.0 (UX F2.7b, demanda b8602a3a, sessão 20261003-1707-ux-base; plano F2.7 aprovado pelo Nicola 07/10 20:05; achado do teste da F2.7a em 08/10 08:12) — vazio dos anexos do
 // ativo no formato de vazio dentro de card (REGRAS §0.7: ícone + frase do que se ganha e de como, sem
 // botão): diz o que a Raiz IA faz e onde está a ação (⋮ › Adicionar documento com IA).
-//
-// Versão anterior: 1.78.0 · 07/10/2026
-//
-// v1.78.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
-// primeiro uso, o vazio convida:
-//   · Ativos sem nenhum ativo: caixa rzVazio com o texto do passo "Comece pelo primeiro imóvel" da
-//     campanha de onboarding; "Enviar documento" (Raiz IA) primeiro, "Cadastrar primeiro imóvel"
-//     (formulário já em Imóvel, botão terciário) depois. No cofre.html avulso (sem rzVazio) fica o
-//     vazio do markup.
-//   · Chip de convite ("+ Veículo 0"): abre uma folha curta — "Enviar documento" pela Raiz IA ou
-//     "Preencher na mão" com a categoria já escolhida.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.77.1 … v1.77.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.78.0 … v1.78.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.82.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.83.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -573,15 +569,46 @@ const GRUPOS_CHIP_TIPO = [
 // filtros independentes, o dropdown fino não tem chip correspondente 1:1).
 let chipAtivoAtual = 0;
 
+// Ativos que passam pela busca (texto, tipo fino, situação, alerta) — sem o recorte do chip. É sobre eles
+// que os chips contam: com a busca ligada, o número do chip é o que aparece ao tocar nele. (dem 1f98c359)
+function ativosDaBusca() {
+    const termo = (campoFiltro('filtro-ativo-busca')?.value || '').toLowerCase().trim();
+    const tipoFino = campoFiltro('filtro-ativo-tipo')?.value || '';
+    const filtroStatus = campoFiltro('filtro-ativo-status')?.value || '';
+    const filtroAlerta = campoFiltro('filtro-ativo-alerta')?.value || '';
+    if (!termo && !tipoFino && !filtroStatus && !filtroAlerta) return estado.ativos;
+    const ocorrenciasPorAtivo = {};
+    estado.ocorrenciasAbertas.forEach(oc => {
+        const idAtivo = oc.cofre_itens_controle?.ativo_id;
+        if (idAtivo) (ocorrenciasPorAtivo[idAtivo] = ocorrenciasPorAtivo[idAtivo] || []).push(oc);
+    });
+    return estado.ativos.filter(a => {
+        if (tipoFino && a.tipo_ativo !== tipoFino) return false;
+        const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
+        if (termo && !ativoBateComTexto(a, resumo, termo, ocorrenciasPorAtivo)) return false;
+        if (filtroStatus) {
+            const [campo, valor] = filtroStatus.split(':');
+            if (campo === 'prop' && resumo?.status !== valor) return false;
+            if (campo === 'ativo' && (a.status || 'ativo') !== valor) return false;
+        }
+        if (filtroAlerta) {
+            const tem = (ocorrenciasPorAtivo[a.id] || []).length > 0;
+            if (filtroAlerta === 'com' ? !tem : tem) return false;
+        }
+        return true;
+    });
+}
+
 function renderChipsAtivos() {
     const wrap = document.getElementById('ativos-chips-tipo');
     if (!wrap) return; // cofre.html standalone não tem este container ainda — no-op seguro
     const comAlerta = ativosComAlerta(); // v1.75.0 (F2.2)
+    const base = ativosDaBusca(); // dem 1f98c359 — o contador conta o que a busca deixou
     // F2.4 (UXR-13/14/15) — Todos → ação (com ponto) → recorte (só grupos com ativo) → convite.
     const pt = piorSeveridadeAtivos();
     const chips = GRUPOS_CHIP_TIPO.map((g, i) => {
-        const qtd = g.alerta ? estado.ativos.filter(a => comAlerta.has(a.id)).length
-            : (g.tipos ? estado.ativos.filter(a => g.tipos.includes(a.tipo_ativo)).length : estado.ativos.length);
+        const qtd = g.alerta ? base.filter(a => comAlerta.has(a.id)).length
+            : (g.tipos ? base.filter(a => g.tipos.includes(a.tipo_ativo)).length : base.length);
         const ativo = i === chipAtivoAtual;
         if (g.alerta && !qtd && !ativo) return ''; // chip de ação só aparece com contador > 0 (UXR-15)
         if (g.tipos && g.tipos.length && !qtd && !ativo) return ''; // recorte vazio vira convite (abaixo)
@@ -611,7 +638,13 @@ const campoFiltro = (id) => document.getElementById(id);
 function atualizarRotuloBuscaAtivos() {
     if (typeof window === 'undefined' || typeof window.rzRotuloBusca !== 'function') return;
     const n = ['filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].filter(id => campoFiltro(id)?.value).length;
-    window.rzRotuloBusca('ativos-busca-btn', 'Buscar ativo, locatário ou item', campoFiltro('filtro-ativo-busca')?.value || '', n);
+    window.rzRotuloBusca('ativos-busca-btn', 'Buscar ativo, locatário ou item', campoFiltro('filtro-ativo-busca')?.value || '', n, limparBuscaAtivos);
+}
+
+// × da barra (dem 1f98c359): limpa texto, tipo fino, situação e alerta; o chip escolhido continua.
+function limparBuscaAtivos() {
+    ['filtro-ativo-busca', 'filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].forEach(id => { if (campoFiltro(id)) campoFiltro(id).value = ''; });
+    redesenharComFiltros();
 }
 
 function redesenharComFiltros() {
