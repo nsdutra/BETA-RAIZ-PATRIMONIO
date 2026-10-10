@@ -1,7 +1,14 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.46.0 · 09/10/2026
+// Versão: 1.47.0 · 09/10/2026
+//
+// v1.47.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
+// busca universal do Hoje: buscarContratosTexto(termo) usa o MESMO critério de texto da lista
+// (contratoBateTexto: locatário, CPF/CNPJ a partir de 3 dígitos, imóvel, endereço, empreendimento) e
+// verContratosComTexto(termo) abre a lista com o termo na barra, chip Todos e os outros filtros limpos.
+//
+// Versão anterior: 1.46.0 · 09/10/2026
 //
 // v1.46.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // busca de Contratos em Sheet (abrirBuscaContratos): texto livre ao vivo (locatário, CPF/CNPJ, imóvel,
@@ -32,15 +39,8 @@
 //     qualquer alerta ligado ao contrato. Ponto na cor do pior alerta; só aparecem com contador > 0.
 //     Sem os alertas carregados, cai na regra local de antes (revisão, vencido, assinando).
 //   · Vigentes e Encerrados sempre aparecem (Encerrados por último); Assinando só com contador > 0.
-//
-// Versão anterior: 1.43.0 · 07/10/2026
-//
-// v1.43.0 (demanda b94ef7d5, sessão 20261007-0231-vinculos-reativar; plano aprovado pelo Nicola 07/10 02:31) —
-// chip Partes da ficha do contrato ganha o grupo "Encerrados" (fiador e cônjuge anuente encerrados,
-// com a data); ⋮ de um encerrado: "Reativar" (volta ao contrato com os dados de antes —
-// fn_vinculo_reativar) e "Excluir" (fn_vinculo_excluir). Excluídos não aparecem.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.43.0 … v1.43.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -52,7 +52,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.46.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.47.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -4547,6 +4547,39 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             }).join('');
         }
 
+        // Critério de texto da lista de Contratos, usado também pela busca universal do Hoje (F2.3b).
+        // tNorm já normalizado (sem acento, minúsculas); tDig = só os dígitos do termo.
+        const normTextoCon = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        function contratoBateTexto(con, imo, tNorm, tDig) {
+            const alvo = normTextoCon([con.locatario, con.cpf, imo?.nomeExibicao, imo?.empreendimento,
+                imo?.enderecoRua, imo?.enderecoNum, imo?.enderecoBairro, imo?.enderecoCidade].join(' '));
+            const docOk = tDig.length >= 3 && String(con.cpf || '').replace(/\D/g, '').includes(tDig);
+            return alvo.includes(tNorm) || docOk;
+        }
+
+        // Busca universal do Hoje (F2.3b): contratos que batem com o texto, já no formato de linha do resultado.
+        export function buscarContratosTexto(termoBruto) {
+            const tNorm = normTextoCon(termoBruto).trim();
+            if (!tNorm) return [];
+            const tDig = tNorm.replace(/\D/g, '');
+            const situacao = (con) => con.status === 'Ativo' ? 'Vigente' : con.status === 'Finalizado' ? 'Encerrado' : (con.status || '');
+            return contratos.filter(con => contratoBateTexto(con, imoveis.find(i => i.id === con.imovelId), tNorm, tDig)).map(con => {
+                const imo = imoveis.find(i => i.id === con.imovelId);
+                return { id: con.id, nome: con.locatario || 'Contrato sem locatário', sub: [imo?.nomeExibicao, situacao(con)].filter(Boolean).join(' · '), icone: 'file-signature' };
+            });
+        }
+
+        // "Ver todos" da busca universal: a lista de Contratos com o termo na barra, chip Todos e filtros limpos.
+        export function verContratosComTexto(termoBruto) {
+            ['contratos-filtro-emp', 'contratos-filtro-status', 'contratos-filtro-imovel-id', 'contratos-filtro-locatario'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.value = 'todos';
+            });
+            const chk = document.getElementById('contratos-filtro-somente-alerta'); if (chk) chk.checked = false;
+            const txt = document.getElementById('contratos-filtro-texto'); if (txt) txt.value = String(termoBruto || '').trim();
+            contratosChipAtual = 'todos';
+            renderContratos();
+        }
+
         export function filtrarContratosPorChip(chave) {
             contratosChipAtual = chave;
             const sel = document.getElementById('contratos-filtro-status');
@@ -4588,12 +4621,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (fStatusCon !== 'todos' && con.status !== fStatusCon) return false;
                 if (fImovelIdCon !== 'todos' && con.imovelId !== fImovelIdCon) return false;
                 if (fLocatarioCon !== 'todos' && con.locatario !== fLocatarioCon) return false;
-                if (fTextoCon) {
-                    const alvo = normCon([con.locatario, con.cpf, imoDoContrato?.nomeExibicao, imoDoContrato?.empreendimento,
-                        imoDoContrato?.enderecoRua, imoDoContrato?.enderecoNum, imoDoContrato?.enderecoBairro, imoDoContrato?.enderecoCidade].join(' '));
-                    const docOk = fTextoDig.length >= 3 && String(con.cpf || '').replace(/\D/g, '').includes(fTextoDig);
-                    if (!alvo.includes(fTextoCon) && !docOk) return false;
-                }
+                if (fTextoCon && !contratoBateTexto(con, imoDoContrato, fTextoCon, fTextoDig)) return false; // F2.3b
                 // v1.44.2 — checkbox "só com alerta", ligado a partir da
                 // Visão Geral ou manualmente aqui na própria aba.
                 if (document.getElementById('contratos-filtro-somente-alerta')?.checked) {

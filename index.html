@@ -6,9 +6,20 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.330.2
-   LINHAS: 17275
-   DATA: 09/10/2026 (sessão 20261009-2200-empresa-ocorrencia, demandas 6da660db, abe08069 e 9e49e9d3)
+   VERSÃO: Beta v1.331.0
+   LINHAS: 17440
+   DATA: 09/10/2026 (sessão 20261003-1707-ux-base, demanda fcd3008d)
+   NOVIDADES (Beta v1.331.0) — UX F2.3b, busca universal no Hoje (plano F2.3 aprovado pelo Nicola 09/10 20:52).
+   O Hoje abre com a barra "Buscar ativo, contrato, pessoa ou documento" (.rz-topo) acima dos chips. Tocar abre
+   rzAbrirBuscaUniversal: campo ao vivo e resultados por grupo — Ativos, Contratos, Pessoas e empresas,
+   Documentos —, até 5 por grupo, com o mesmo critério de texto de cada lista. "Ver todos" leva à aba com o
+   termo na barra (Ativos, Contratos); "Mostrar mais" abre no próprio painel (Partes, Documentos). Só aparecem
+   os grupos que a pessoa pode ver. Buscas recentes: as 5 últimas, por pessoa, com o prefixo raiz_d_ — o Sair
+   apaga (rzCacheLimparTudo). Partes: lerPartesDoBanco e parteBateTexto saem de carregarPartes/renderPartes
+   para a busca usar as mesmas regras. O "Buscar no Cofre" do app passa a ser esta busca. Import map:
+   contratos.js 1.47.0, cofre-ativos.js 1.82.0, cofre-documentos.js 2.35.0, cofre-app.js 1.47.0,
+   ativos/ativos-markup.js 1.55.0. Nenhum objeto de banco criado por este arquivo.
+   Versão anterior (Beta v1.330.2):
    NOVIDADES (Beta v1.330.2) — "Sim faça 1, 2 e 4" do Nicola (09/10 21:54). Financeiro: o vínculo sem ativo
    passa a se chamar "Empresa" na despesa, no item da fatura e na receita sem contrato (financeiro.js
    1.38.3; só rótulo). Banco, sem objeto novo: ocorrência que já nasce concluída gera a despesa já paga
@@ -35,18 +46,8 @@
    vitrine.js 1.4.1 (página clara; a lista de Compartilhar relê os imóveis ao abrir). Nenhum objeto de
    banco criado por este arquivo.
    Versão anterior (Beta v1.329.0):
-   NOVIDADES (Beta v1.329.0) — UX F2.8, Compartilhar imóveis ("Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09).
-   "Vitrine" vira "Compartilhar": a tela tab-vitrine vira lista com seleção (toque marca) e o botão fixo
-   "Compartilhar n imóveis" (.rz-acao-fixa) abre WhatsApp, Copiar link e Abrir a página com um link só;
-   menu "Links compartilhados". Página pública lê por fn_vitrine_publica_obter (visitante sem login;
-   antes dava erro de permissão) e mostra o nome da empresa. Pontes novas: compartilharImovelDoAtivo,
-   abrirCompartilharSelecionados, alternarSelecaoVitrine. CSS: .rz-acao-fixa, .rz-pend-lista. Import
-   map: vitrine.js 1.4.0, minutas.js 1.4.0, cofre-ativos.js 1.80.0, cofre-app.js 1.45.0, cofre-api.js
-   1.50.0. Banco (fora deste arquivo): migrations f28_compartilhar_links_publicos_v1 e
-   f28_fn_vitrine_publica_obter_v1.
-   Versão anterior (Beta v1.328.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.328.0 … v1.328.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.329.0 … v1.329.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -71,7 +72,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.3","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.46.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.0","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.46.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.81.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.54.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.3","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.47.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.0","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.82.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -943,6 +944,14 @@
         .rz-busca .rz-chips-wrap{flex-wrap:wrap;overflow:visible;margin:0 0 4px;padding:0}
         .rz-busca-linhas{margin-top:12px}
         .rz-busca-linhas .rz-row{width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;font:inherit;color:inherit}
+        /* F2.3b — busca universal do Hoje: resultados por entidade e buscas recentes. As linhas-botão do
+           painel perdem a borda padrão do <button> e ficam com o fio da lista (.rz-row). */
+        .rz-busca-linhas .rz-row{border:0;border-top:1px solid var(--line)}
+        .rz-busca-linhas .rz-row:first-child{border-top:0}
+        .rz-busca-res .rz-busca-linhas{margin-top:0}
+        .rz-busca-res .rz-busca-mais{justify-content:center;color:var(--pine);font-weight:600;font-size:14px}
+        .rz-busca-dica{font-size:13px;color:var(--muted);margin:12px 2px 0;line-height:1.45}
+        .rz-busca-limpar{background:none;border:0;padding:8px 2px;margin-top:4px;font:inherit;font-size:13px;color:var(--muted);text-decoration:underline;cursor:pointer}
         /* v1.294.0 (UXR-25) — segmento de 4 opções do Financeiro; rótulo curto em tela estreita */
         .rz-seg.rz-seg-4 button{font-size:12px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
         .rz-seg .rz-seg-s{display:none}
@@ -1874,6 +1883,11 @@
                  montados por js/resultados.js em #hoje-heroi-mount e #hoje-resultados-mount. -->
             <!-- v1.310.0 (UX F2.1b, UXR-16) — dois contextos em chips na linha 2: Patrimônio (padrão) e Jornal do dia
                  (ponto --danger quando há alerta crítico que você ainda não viu no Jornal). -->
+            <!-- Topo (F2.3b, dem fcd3008d): a barra abre a busca universal (Ativos, Contratos, Partes, Documentos)
+                 em Sheet (rzAbrirBuscaUniversal); os chips Patrimônio · Jornal do dia ficam na 2ª linha. -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" id="hoje-busca-btn" onclick="rzAbrirBuscaUniversal()" aria-label="Buscar no patrimônio"><svg data-lucide="search"></svg><span>Buscar ativo, contrato, pessoa ou documento</span></button>
+            </div>
             <div class="rz-chips" id="hoje-chips" role="tablist" aria-label="Hoje">
                 <button type="button" class="rz-chip rz-on" id="hoje-chip-patrimonio" role="tab" aria-selected="true" onclick="rzHojeContexto('patrimonio')">Patrimônio</button>
                 <button type="button" class="rz-chip" id="hoje-chip-jornal" role="tab" aria-selected="false" onclick="rzHojeContexto('jornal')">Jornal do dia<span class="rz-pt hidden" id="hoje-jornal-pt" aria-hidden="true"></span></button>
@@ -3609,7 +3623,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.330.2"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.331.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9180,6 +9194,7 @@
         }
         [
             'renderChipsContratos', 'filtrarContratosPorChip', 'renderContratos', 'abrirBuscaContratos',
+            'buscarContratosTexto', 'verContratosComTexto', // F2.3b — busca universal do Hoje
             'fecharBuscaContratos', 'verAlertasContrato', 'renderHistoricoContratoInline', 'alternarHistoricoContratoItem',
             'alternarTodosHistoricosContrato', 'verHistoricoContrato', 'abrirFichaContrato', 'rzCarregarDocumentoContrato',
             'abrirAcoesCobrancasContrato', 'abrirAcoesPartesContrato', 'abrirAcoesLocatarioContrato', 'abrirAcoesFiadorContrato',
@@ -16047,7 +16062,7 @@
             const chipsHtml = (g, gi) => g.opcoes.map((o, oi) =>
                 `<button type="button" class="rz-chip${String(g.valor()) === String(o.valor) ? ' rz-on' : ''}" data-g="${gi}" data-o="${oi}">${esc(o.rotulo)}${o.n != null ? ` <span class="rz-n">${esc(o.n)}</span>` : ''}</button>`).join('');
             const corpoHtml = () => `
-                <label class="rz-busca-campo"><svg data-lucide="search"></svg><input type="search" id="rz-busca-q" placeholder="${esc(cfg.placeholder || 'Buscar')}" value="${esc(cfg.termo ? cfg.termo() : '')}" enterkeyhint="search" autocomplete="off" aria-label="${esc(cfg.placeholder || 'Buscar')}"></label>
+                <label class="rz-busca-campo"><svg data-lucide="search"></svg><input type="search" id="rz-busca-q" class="rz-raw" placeholder="${esc(cfg.placeholder || 'Buscar')}" value="${esc(cfg.termo ? cfg.termo() : '')}" enterkeyhint="search" autocomplete="off" aria-label="${esc(cfg.placeholder || 'Buscar')}"></label>
                 ${grupos.map((g, gi) => `<div class="rz-group">${esc(g.titulo)}</div><div class="rz-chips rz-chips-wrap" data-grupo="${gi}">${chipsHtml(g, gi)}</div>`).join('')}
                 ${linhas.length ? `<div class="rz-card rz-list rz-busca-linhas">${linhas.map((l, li) => `<button type="button" class="rz-row rz-link" data-l="${li}"><div class="rz-tx"><b>${esc(l.rotulo)}</b><span data-lv="${li}">${esc(l.valor())}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></button>`).join('')}</div>` : ''}`;
             const sheet = abrirSheet(rzSheetCabecalho(cfg.titulo || 'Buscar', '') +
@@ -16095,6 +16110,144 @@
             if (nFiltros) partes.push(nFiltros === 1 ? '1 filtro' : nFiltros + ' filtros');
             if (span) span.textContent = partes.join(' · ');
             b.classList.toggle('rz-ativo', !!(t || nFiltros));
+        }
+
+        // ---- Busca universal do Hoje (F2.3b, dem fcd3008d) -----------------------------------------------
+        // Um painel só para achar ativo, contrato, pessoa ou documento. Cada grupo usa o mesmo critério de texto
+        // da sua lista; mostra até 5 e "Ver todos" (Ativos, Contratos: abre a aba com o termo na barra) ou
+        // "Mostrar mais" (Partes, Documentos: no próprio painel). Só aparecem os grupos que a pessoa pode ver.
+        // Buscas recentes: as 5 últimas, por pessoa, guardadas no aparelho com o prefixo raiz_d_ — o Sair
+        // (rzCacheLimparTudo) apaga junto com o resto da carteira (LGPD).
+        const RZ_BUSCA_MOSTRAR = 5;
+        function rzBuscaRecentesChave() { return RZ_CACHE_PREFIXO + 'busca_recentes_' + (pessoaIdLogada || 'anon'); }
+        function rzBuscaRecentes() {
+            try {
+                const v = JSON.parse(localStorage.getItem(rzBuscaRecentesChave()) || '[]');
+                return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x.trim()).slice(0, RZ_BUSCA_MOSTRAR) : [];
+            } catch (_) { return []; }
+        }
+        function rzBuscaGuardarTermo(termo) {
+            const t = String(termo || '').trim();
+            if (t.length < 2) return;
+            try {
+                const lista = [t, ...rzBuscaRecentes().filter(x => x.toLowerCase() !== t.toLowerCase())].slice(0, RZ_BUSCA_MOSTRAR);
+                localStorage.setItem(rzBuscaRecentesChave(), JSON.stringify(lista));
+            } catch (_) { /* sem acesso ao armazenamento: segue sem recentes */ }
+        }
+        function rzBuscaApagarRecentes() {
+            try { localStorage.removeItem(rzBuscaRecentesChave()); } catch (_) { /* sem acesso */ }
+        }
+
+        async function rzBuscaUniversalGrupos(termo) {
+            const t = String(termo || '').trim(), tl = t.toLowerCase();
+            const cofre = window.rzBuscaCofre;
+            const pode = (c) => { try { return podeUsar(c).ok; } catch (_) { return true; } };
+            const grupos = [];
+            if (cofre && pode('cofre.ver')) {
+                let itens = []; try { itens = cofre.ativos(t) || []; } catch (e) { console.warn('[busca] ativos:', e.message); }
+                grupos.push({ chave: 'ativos', titulo: 'Ativos', nomes: ['ativo', 'ativos'], itens,
+                    abrir: (id) => { switchTab('tab-ativos'); window.dispatchEvent(new CustomEvent('cofre:abrir-ativo', { detail: { id } })); },
+                    verTodos: () => { switchTab('tab-ativos'); cofre.verAtivos(t); } });
+            }
+            if (pode('contratos.ver') && typeof window.buscarContratosTexto === 'function') {
+                let itens = []; try { itens = (await window.buscarContratosTexto(t)) || []; } catch (e) { console.warn('[busca] contratos:', e.message); }
+                grupos.push({ chave: 'contratos', titulo: 'Contratos', nomes: ['contrato', 'contratos'], itens,
+                    abrir: (id) => abrirFichaContrato(id),
+                    verTodos: () => { switchTab('tab-contratos'); window.verContratosComTexto(t); } });
+            }
+            if (pode('partes.ver')) {
+                if (!partesCarregadas) { try { await lerPartesDoBanco(); } catch (e) { console.warn('[busca] partes:', e.message); } }
+                const itens = partesCliente.filter(pt => parteBateTexto(pt, tl)).map(pt => {
+                    const papeis = papeisPorParte[pt.id] || [];
+                    const resumo = papeis.length ? [...new Set(papeis.map(pp => PARTES_ROTULO_PAPEL[pp] || pp))].join(' · ') : '';
+                    const doc = pt.documento ? `${pt.doc_tipo || 'Doc'} ${pt.documento}` : '';
+                    return { id: pt.id, nome: pt.nome + (pt.nome_fantasia ? ' · ' + pt.nome_fantasia : ''), sub: [doc, resumo].filter(Boolean).join(' · '),
+                        icone: PARTES_ICONE_PAPEL[papeis[0]] || (pt.doc_tipo === 'CNPJ' ? 'building' : 'user') };
+                });
+                grupos.push({ chave: 'partes', titulo: 'Pessoas e empresas', nomes: ['parte', 'partes'], itens, abrir: (id) => abrirFichaParte(id), verTodos: null });
+            }
+            if (cofre && pode('cofre.ver')) {
+                let itens = []; try { itens = cofre.documentos(t) || []; } catch (e) { console.warn('[busca] documentos:', e.message); }
+                grupos.push({ chave: 'documentos', titulo: 'Documentos', nomes: ['documento', 'documentos'], itens, abrir: (id) => cofre.abrirDocumento(id), verTodos: null });
+            }
+            return grupos;
+        }
+
+        function rzAbrirBuscaUniversal() {
+            const esc = (s) => rzEsc(String(s ?? ''));
+            const sheet = abrirSheet(rzSheetCabecalho('Buscar', 'Ativos, contratos, pessoas e documentos') + `
+                <div class="rz-sh-b rz-busca">
+                    <label class="rz-busca-campo"><svg data-lucide="search"></svg><input type="search" id="rz-bu-q" class="rz-raw" placeholder="Nome, locatário, CPF, endereço…" enterkeyhint="search" autocomplete="off" aria-label="Buscar no patrimônio"></label>
+                    <div class="rz-busca-res" id="rz-bu-res" aria-live="polite"></div>
+                </div>`);
+            const q = sheet.querySelector('#rz-bu-q'), res = sheet.querySelector('#rz-bu-res');
+            let grupos = [], abertos = {}, seq = 0, tempo = null;
+
+            const linha = (g, it) => `<button type="button" class="rz-row rz-link" data-g="${g.chave}" data-id="${esc(it.id)}">
+                <div class="rz-ic"><svg data-lucide="${esc(it.icone || 'circle')}"></svg></div>
+                <div class="rz-tx"><b>${esc(it.nome)}</b>${it.sub ? `<span>${esc(it.sub)}</span>` : ''}</div>
+                <svg data-lucide="chevron-right" class="rz-chev"></svg></button>`;
+            const rodape = (g) => {
+                const n = g.itens.length;
+                if (n <= RZ_BUSCA_MOSTRAR || abertos[g.chave]) return '';
+                return g.verTodos
+                    ? `<button type="button" class="rz-row rz-link rz-busca-mais" data-ver="${g.chave}">Ver todos os ${n} ${g.nomes[1]}</button>`
+                    : `<button type="button" class="rz-row rz-link rz-busca-mais" data-mais="${g.chave}">Mostrar mais ${n - RZ_BUSCA_MOSTRAR}</button>`;
+            };
+            const desenharRecentes = () => {
+                const rec = rzBuscaRecentes();
+                res.innerHTML = rec.length
+                    ? `<div class="rz-group">Buscas recentes</div><div class="rz-chips rz-chips-wrap">${rec.map((r, i) => `<button type="button" class="rz-chip" data-rec="${i}">${esc(r)}</button>`).join('')}</div>
+                       <button type="button" class="rz-busca-limpar" data-rec-apagar>Apagar buscas recentes</button>`
+                    : `<p class="rz-busca-dica">Digite pelo menos 2 letras. A busca olha ativos, contratos, pessoas e documentos de uma vez.</p>`;
+                rzIcones();
+            };
+            const desenhar = () => {
+                const t = q.value.trim();
+                const comItens = grupos.filter(g => g.itens.length);
+                if (!comItens.length) {
+                    res.innerHTML = `<div class="rz-empty"><div class="rz-ic"><svg data-lucide="search"></svg></div><p>Nada encontrado para “${esc(t)}”.</p></div>`;
+                } else {
+                    res.innerHTML = comItens.map(g => {
+                        const vis = abertos[g.chave] ? g.itens : g.itens.slice(0, RZ_BUSCA_MOSTRAR);
+                        return `<div class="rz-group">${esc(g.titulo)} · ${g.itens.length}</div>
+                            <div class="rz-card rz-list rz-busca-linhas">${vis.map(it => linha(g, it)).join('')}${rodape(g)}</div>`;
+                    }).join('');
+                }
+                rzIcones();
+            };
+            const buscar = async () => {
+                const t = q.value.trim();
+                const meu = ++seq;
+                abertos = {};
+                if (t.length < 2) { grupos = []; desenharRecentes(); return; }
+                const novos = await rzBuscaUniversalGrupos(t);
+                if (meu !== seq) return; // chegou uma busca mais nova enquanto esta rodava
+                grupos = novos;
+                desenhar();
+            };
+
+            q.addEventListener('input', () => { clearTimeout(tempo); tempo = setTimeout(buscar, 180); });
+            q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); rzBuscaGuardarTermo(q.value); q.blur(); } });
+            res.addEventListener('click', (ev) => {
+                const rec = ev.target.closest('[data-rec]');
+                if (rec) { q.value = rzBuscaRecentes()[+rec.dataset.rec] || ''; buscar(); return; }
+                if (ev.target.closest('[data-rec-apagar]')) { rzBuscaApagarRecentes(); desenharRecentes(); return; }
+                const mais = ev.target.closest('[data-mais]');
+                if (mais) { abertos[mais.dataset.mais] = true; desenhar(); return; }
+                const ver = ev.target.closest('[data-ver]');
+                if (ver) { const g = grupos.find(x => x.chave === ver.dataset.ver); rzBuscaGuardarTermo(q.value); fecharSheet(); if (g) g.verTodos(); return; }
+                const item = ev.target.closest('[data-g]');
+                if (item) {
+                    const g = grupos.find(x => x.chave === item.dataset.g);
+                    rzBuscaGuardarTermo(q.value);
+                    fecharSheet();
+                    if (g) g.abrir(item.dataset.id);
+                }
+            });
+            desenharRecentes();
+            setTimeout(() => q.focus(), 120);
+            return sheet;
         }
 
         // Copia texto pela porta única do aparelho (RaizDevice.clipboard) e avisa com toast.
@@ -16493,19 +16646,31 @@
             return !!parte.tipo_prestador || (papeis || []).some(pp => ['prestador', 'sindico', 'manutencista', 'administradora'].includes(pp));
         }
 
+        // Lê partes e papéis do banco para a memória (sem desenhar). Usada pela tela Partes e pela busca
+        // universal do Hoje (F2.3b), que precisa das partes mesmo sem a tela ter sido aberta.
+        let partesCarregadas = false;
+        async function lerPartesDoBanco() {
+            const [{ data: dataPartes, error: erroPartes }, { data: dataPapeis, error: erroPapeis }] = await Promise.all([
+                dbAuth.from('partes').select('*').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome'),
+                dbAuth.from('partes_papeis').select('parte_id, papel').eq('ativo', true)
+            ]);
+            if (erroPartes) throw erroPartes;
+            if (erroPapeis) throw erroPapeis;
+            partesCliente = dataPartes || [];
+            papeisPorParte = {};
+            (dataPapeis || []).forEach(pp => { (papeisPorParte[pp.parte_id] = papeisPorParte[pp.parte_id] || []).push(pp.papel); });
+            partesCarregadas = true;
+        }
+        // Critério de texto da lista de Partes (t em minúsculas), usado também pela busca universal.
+        function parteBateTexto(pt, t) {
+            return [pt.nome, pt.nome_fantasia, pt.documento, pt.whatsapp, pt.email].some(v => (v || '').toLowerCase().includes(t));
+        }
+
         async function carregarPartes() {
             const container = document.getElementById('lista-partes');
             if (container && !container.querySelector('.rz-row')) container.innerHTML = rzSkeleton('linhas', 5); // v1.301.0 (F1.4a)
             try {
-                const [{ data: dataPartes, error: erroPartes }, { data: dataPapeis, error: erroPapeis }] = await Promise.all([
-                    dbAuth.from('partes').select('*').eq('cliente_id', CLIENTE_ID_SUPABASE).order('nome'),
-                    dbAuth.from('partes_papeis').select('parte_id, papel').eq('ativo', true)
-                ]);
-                if (erroPartes) throw erroPartes;
-                if (erroPapeis) throw erroPapeis;
-                partesCliente = dataPartes || [];
-                papeisPorParte = {};
-                (dataPapeis || []).forEach(pp => { (papeisPorParte[pp.parte_id] = papeisPorParte[pp.parte_id] || []).push(pp.papel); });
+                await lerPartesDoBanco();
             } catch (err) {
                 console.warn('[partes] Falha ao carregar:', err.message);
                 if (container) container.innerHTML = '<div class="rz-empty"><p>Não foi possível carregar agora. Toque pra tentar de novo.</p></div>';
@@ -16565,7 +16730,7 @@
             if (partesFiltroPapel === 'prestadores') lista = lista.filter(pt => parteEhPrestador(pt, papeisPorParte[pt.id]));
             else if (partesFiltroPapel === 'sem') lista = lista.filter(pt => !(papeisPorParte[pt.id] || []).length);
             else if (partesFiltroPapel !== 'todos') lista = lista.filter(pt => (papeisPorParte[pt.id] || []).includes(partesFiltroPapel));
-            if (partesFiltroTexto) lista = lista.filter(pt => [pt.nome, pt.nome_fantasia, pt.documento, pt.whatsapp, pt.email].some(v => (v || '').toLowerCase().includes(partesFiltroTexto)));
+            if (partesFiltroTexto) lista = lista.filter(pt => parteBateTexto(pt, partesFiltroTexto));
             if (!lista.length && !partesCliente.length && typeof rzVazio === 'function') {
                 // Sem nenhuma parte: o contrato é o caminho natural, porque locatário e proprietário
                 // entram sozinhos por ele. (dem b8602a3a)

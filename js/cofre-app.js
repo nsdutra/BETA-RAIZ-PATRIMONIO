@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.46.0 · 09/10/2026
+// Versão: 1.47.0 · 09/10/2026
+//
+// v1.47.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
+// "abrir-busca-global" abre a busca universal do app (rzAbrirBuscaUniversal) quando ela existe; no
+// cofre.html avulso continua o popup. Ponte window.rzBuscaCofre: ativos e documentos para a busca do Hoje.
+//
+// Versão anterior: 1.46.0 · 09/10/2026
 //
 // v1.46.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // "abrir-busca-ativos" abre a busca em Sheet (ativos.abrirBuscaAtivos) quando o app tem Sheet; no
@@ -23,16 +29,11 @@
 // sem ele, aparece com cadeado e motivo). O evento cofre:abrir-configuracao-inicial (disparado pelo
 // index.html: + de Contratos e alerta "Nenhum ativo cadastrado") abre a mesma tela, que vive em
 // js/configuracao-inicial.js e só carrega quando é usada (UI-05).
-//
-// Versão anterior: 1.43.0 · 03/10/2026
-//
-// v1.43.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: o atalho do bot abre "Raiz IA no WhatsApp" pelo
-// adaptador (rzDev, UXR-40), com a saudação nova.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.43.0 … v1.43.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.46.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.47.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -130,7 +131,7 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-modal-generico': fecharModal('modal-generico'); break;
 
         // ---- busca global / configurações
-        case 'abrir-busca-global': docs.abrirBuscaGlobal(); break;
+        case 'abrir-busca-global': if (typeof window.rzAbrirBuscaUniversal === 'function') window.rzAbrirBuscaUniversal(); else docs.abrirBuscaGlobal(); break; // F2.3b
         case 'fechar-busca-global': docs.fecharBuscaGlobal(); break;
         case 'abrir-menu-conta': abrirModal('modal-menu-conta'); break;
         case 'fechar-menu-conta': fecharModal('modal-menu-conta'); break;
@@ -566,6 +567,15 @@ window.__rzAbrirFormControle = () => controles.abrirFormControle();
 window.__rzAbrirModelosControle = () => controles.abrirModelosControle();
 window.__rzAbrirSubtiposControle = () => controles.abrirSubtiposControle();
 window.__rzUploadAtivo = (ia) => ia ? docs.abrirUploadNoAtivoComIA(estado.ativoEmFoco) : docs.abrirUploadNoAtivoSemIA(estado.ativoEmFoco);
+// F2.3b (dem fcd3008d) — busca universal do Hoje (index.html, rzAbrirBuscaUniversal): ativos e documentos
+// vêm daqui, com o mesmo critério de texto das listas; abrir e "Ver todos" usam as telas que já existem.
+window.rzBuscaCofre = {
+    ativos: (t) => ativos.buscarAtivosTexto(t),
+    verAtivos: (t) => ativos.verAtivosComTexto(t),
+    abrirAtivo: (id) => ativos.abrirFichaAtivo(id),
+    documentos: (t) => docs.buscarDocumentosTexto(t),
+    abrirDocumento: (id) => docs.abrirFichaDocumento(id),
+};
 window.addEventListener('cofre:dados-carregados', () => {
     window.__cofreCategorias = estado.categorias; // v1.24.0 — chips de categoria dos anexos do contrato (App)
     window.__cofreAtivos = estado.ativos; // v1.24.0 — alerta 'contrato vigente em ativo vendido' (App)

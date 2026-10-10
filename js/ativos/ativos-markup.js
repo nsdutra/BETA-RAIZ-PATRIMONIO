@@ -1,6 +1,12 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.54.0 · 09/10/2026
+// Versão: 1.55.0 · 09/10/2026
+//
+// v1.55.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
+// sai o popup "Buscar no Cofre" (#modal-busca-global): no app, buscar documento é a busca universal do
+// Hoje (Ativos, Contratos, Partes e Documentos num painel só). O cofre.html avulso mantém o dele.
+//
+// Versão anterior: 1.54.0 · 09/10/2026
 //
 // v1.54.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // topo da lista de Ativos vira a barra de busca de largura inteira + "+" (.rz-topo); sai a linha de
@@ -25,103 +31,11 @@
 // v1.52.0 (catálogo único 2b-3c, demanda 2923ff4d, sessão 20261004-1815-catalogo-2b3c; plano 2b-3 aprovado pelo Nicola 04/10) —
 // "Confira o que a IA leu": o campo "Categoria › Subcategoria" passa a se chamar "Espécie do documento"
 // (cofre_categorias virou a lista de 15 espécies na migration catalogo_tipos_categorias_v5).
-//
-// Versão anterior: 1.51.0 · 03/10/2026
-//
-// v1.51.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: botão do bot com título "Falar com a Raiz IA no WhatsApp".
-//
-// Versão anterior: 1.50.0 · 03/10/2026
-// CHANGELOG v1.50.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — combos de
-// Tipo do item de controle (#ic-tipo, novo item; #fic-ed-tipo, edição) ganham "Despesa".
-// O app usa ESTE markup (não o do cofre.html), por isso o novo item seguia sem a opção.
-// CHANGELOG v1.49.0 (demanda c0d255e3, retorno do piloto — "no botão de
-// cadastro novo imóvel... deixe claro que ele pode adicionar um
-// documento-IA ou cadastrar via tela") — #ativos-estado-vazio troca
-// data-action de 'abrir-form-ativo' (ia direto pro formulário manual,
-// pulando a escolha) pra 'abrir-acoes-ativos' — mesmo sheet do "+" do
-// cabeçalho da aba (cofre-app.js, case 'abrir-acoes-ativos'): "Carregar
-// documento" (IA) aparece primeiro, "Novo ativo" (manual) e "Montar
-// vitrine" depois. Sem esse ajuste, quem cadastrava o 1º ativo pelo
-// card do estado vazio nunca via a opção de IA — só existia pra quem
-// já tinha ativo e usava o "+" do topo.
-//
-// CHANGELOG v1.48.0 (demanda eba5b88f, item 4 do retorno do piloto —
-// Nicola: "Pode executar as demandas dos itens 1, 2, 4, 5 e 6 tb",
-// 28/09/2026) — #ativos-estado-vazio (0 ativos cadastrados): achado real
-// da Claudia testando o piloto — não achou onde tocar pra cadastrar o 1º
-// ativo, só resolveu na hora escrevendo ela mesma um texto dizendo "clique
-// aqui". O card inteiro vira a área de toque (data-action/data-rz-codigo
-// migram do <button> pro <div>, mesmo padrão de .rz-row.rz-link já usado
-// nas linhas da lista — cofre-ativos.js, ativoCardHtml), com borda
-// tracejada, cursor de ponteiro e o texto de apoio dizendo "toque aqui".
-// O selo "+ Novo ativo" continua visível, só que como <span> decorativo
-// (não é mais o único alvo de toque). Cadeado de cota (C4, rzMostrarBloqueio)
-// inalterado — continua dentro de abrirFormAtivo(), então mesmo com 2
-// elementos carregando data-rz-codigo agora, a checagem real é a mesma de
-// sempre.
-//
-// CHANGELOG v1.47.0 (demandas 4a609dbb e ed2774ee, entrega 2/3 do lote de
-// 29) — ficha do item de controle ganha o container
-// #fic-aviso-documento-pendente (visibilidade calculada em
-// cofre-controles.js v1.34.0); <select id="ic-subtipo"> ganha
-// data-action-change="ic-subtipo-mudou" (cofre-app.js v1.38.0 →
-// controles.aoMudarSubtipoControleForm, sugere a antecedência padrão do
-// subtipo escolhido). Nota: cofre.html tem uma versão própria e
-// dessincronizada desta ficha (markup antigo, não .rz-*) — fora do escopo
-// desta entrega, registrado para rodada futura.
-//
-// CHANGELOG v1.46.1 — demanda 80c3068e (bug CSS): o comentário v1.94.1 do
-// <style> injetado abria com /* e fechava com o terminador de comentário
-// HTML — o comentário só terminava no próximo */, engolindo
-// .raiz-sem-scrollbar (barra de rolagem dos chips/abas voltava a aparecer).
-// Trocado por */. Mesmo defeito do index.html v1.248.1. Base: v1.46.0 do
-// repositório (GitHub) — nada dela foi desfeito.
-//
-// CHANGELOG v1.46.0 — demanda 8b2d37d7 (C4): botão "+ Novo ativo" do estado
-// vazio ganha data-rz-codigo="cofre.ativos.criar" — cadeado + motivo quando
-// a cota acaba (comum-licenca.js v1.4.0, aplicarCadeados). Espelha cofre.html
-// v1.29.0. A trava em si está em abrirFormAtivo() (cofre-ativos.js v1.62.0).
-//
-// CHANGELOG v1.45.0 — Entrega R.4 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
-// FISCAL v2.0.0 / ESP v1.3.0 §8.1) — #fa-painel-financeiro ganha o 4º bloco
-// que o comentário da v1.44.0 já reservava: #fa-financeiro-revisao, onde
-// cofre-ativos.js v1.58.0 renderiza o card "Revisão anual de valor" (sugestão
-// da IA + memória de cálculo) quando o ativo tem uma revisão em andamento
-// (⋮ "Iniciar revisão anual", R.3) — vazio quando não tem, sem placeholder.
-//
-// CHANGELOG v1.44.0 — Entrega A.7 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
-// FISCAL v2.0.0 / ESP v1.3.0 §8): chip "Financeiro" da Ficha do ativo vira
-// "Performance" (id interno data-fa-aba="financeiro" e o painel
-// #fa-painel-financeiro não mudaram — só o rótulo visível, mesmo princípio
-// do chip Cobranças→Financeiro do contrato). O contador (`<span
-// class="rz-n" id="fa-chip-n-financeiro">`) saiu do botão do chip: a
-// leitura de performance não é mais lista de pendência (o grid de
-// Movimentações, que alimentava a contagem, saiu — ESP C5), então um selo
-// numérico ali não teria mais o que contar honestamente. Painel interno
-// reestruturado em 3 blocos (#fa-financeiro-resumo, #fa-financeiro-grafico,
-// #fa-financeiro-grid) — cofre-ativos.js v1.55.0 preenche os 3.
-// CHANGELOG v1.43.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo
-// deve ser possivel editar o nome. Tanto nos anexos de contrato, quanto
-// ativos, itens de controle e os demais") — #modal-ficha-doc: título
-// #fd-nome ganhou uma lapiseira ao lado (data-action=
-// "editar-nome-documento-atual" → cofre-documentos.js v2.18.0
-// editarNomeDocumentoAtual(), abre abrirSheetForm com 1 campo, mesma
-// gramática .rz-f de fa-editar-nome). abrirFichaDocumento() é o único
-// caminho que monta esta ficha pros 3 contextos citados (contrato/ativo/
-// item de controle), então o botão único aqui já cobre os 3. Espelha
-// cofre.html (mesmo markup, mesmos ids).
-//
-// CHANGELOG v1.42.0 (pedido explícito, item de controle gerando "a pagar"
-// retroativo) — checkbox #ic-gerar-desde-inicio: default trocado de
-// checked pra desmarcado + rótulo reescrito pra deixar claro que marcá-lo
-// cria uma pendência retroativa ("Em atraso" no Financeiro). Corrigido de
-// passagem um descompasso VER-04 pré-existente: header estava em 1.41.0
-// mas export const VERSAO ainda em 1.40.0.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.51.0 … v1.51.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.54.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.55.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -884,19 +798,8 @@ export const ATIVOS_MARKUP = `<style>
     </nav>
 </div>
 
-<div id="modal-busca-global" class="modal-overlay hidden">
-    <div class="modal-box p-5">
-        <div class="flex items-start justify-between mb-3">
-            <div><h3 class="text-base font-bold">Buscar no Cofre</h3><p class="text-xs" style="color:var(--sage)">Busca documental — ferramenta secundária; o caminho normal é pelo ativo/imóvel/contrato.</p></div>
-            <button type="button" data-action="fechar-busca-global" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
-        </div>
-        <input id="busca-global-input" type="text" placeholder="Nome, descrição, tag…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm mb-3">
-        <div class="flex gap-2 mb-3 text-xs">
-            <select id="busca-global-status" class="w-full border-2 border-slate-300 rounded-xl p-2 text-xs" style="background:#f8fafc"><option value="">Status: todos</option><option value="triagem">Em triagem</option><option value="empresa">Geral da empresa</option><option value="vinculado">Vinculado</option></select>
-        </div>
-        <div id="busca-global-resultado" class="space-y-2"></div>
-    </div>
-</div>
+<!-- F2.3b (dem fcd3008d): o popup "Buscar no Cofre" saiu do app; documento se busca pela busca universal do
+     Hoje (rzAbrirBuscaUniversal, index.html). O cofre.html avulso mantém o popup dele. -->
 
 <!-- Estado dos filtros da lista de Ativos (F2.3). Não aparece: no app a busca é o Sheet de abrirBuscaAtivos
      (cofre-ativos); renderAtivosLista() lê estes campos. (dem fcd3008d) -->

@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.81.0 · 09/10/2026
+// Versão: 1.82.0 · 09/10/2026
+//
+// v1.82.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
+// busca universal do Hoje: buscarAtivosTexto(termo) devolve os ativos com o MESMO critério de texto da
+// lista (ativoBateComTexto: nome, locatário do contrato principal, título de item de controle) e
+// verAtivosComTexto(termo) abre a lista com o termo na barra e os outros filtros limpos.
+//
+// Versão anterior: 1.81.0 · 09/10/2026
 //
 // v1.81.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
 // busca da lista de Ativos em Sheet (abrirBuscaAtivos): campo ao vivo e chips de Tipo, Situação e
@@ -28,17 +35,11 @@
 //     vazio do markup.
 //   · Chip de convite ("+ Veículo 0"): abre uma folha curta — "Enviar documento" pela Raiz IA ou
 //     "Preencher na mão" com a categoria já escolhida.
-//
-// Versão anterior: 1.77.2 · 07/10/2026
-//
-// v1.77.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.77.1 … v1.77.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.82.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -425,13 +426,7 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
         (ocorrenciasPorAtivo[idAtivo] = ocorrenciasPorAtivo[idAtivo] || []).push(oc);
     });
 
-    const ativoBateComBusca = (a, resumo) => {
-        if (!termo) return true;
-        if (a.nome_exibicao.toLowerCase().includes(termo)) return true;
-        if (resumo?.contratoPrincipal?.locatario && resumo.contratoPrincipal.locatario.toLowerCase().includes(termo)) return true;
-        const ocorrencias = ocorrenciasPorAtivo[a.id] || [];
-        return ocorrencias.some(oc => (oc.cofre_itens_controle?.titulo || '').toLowerCase().includes(termo));
-    };
+    const ativoBateComBusca = (a, resumo) => !termo || ativoBateComTexto(a, resumo, termo, ocorrenciasPorAtivo); // F2.3b
 
     const ativoBateComStatus = (a, resumo) => {
         if (!filtroStatus) return true;
@@ -624,6 +619,41 @@ function redesenharComFiltros() {
     // tipo fino escolhido na busca vale sobre o chip; sem ele, o chip aceso continua valendo
     const tipos = tipo || (chipAtivoAtual > 0 ? GRUPOS_CHIP_TIPO[chipAtivoAtual]?.tipos : '');
     renderAtivosLista(tipos, campoFiltro('filtro-ativo-busca')?.value || '');
+}
+
+// Critério de texto da lista de Ativos, usado também pela busca universal do Hoje (F2.3b): o número
+// que o Hoje mostra é o mesmo que a lista mostra depois de "Ver todos". termo já em minúsculas.
+function ativoBateComTexto(a, resumo, termo, ocorrenciasPorAtivo) {
+    if ((a.nome_exibicao || '').toLowerCase().includes(termo)) return true;
+    if (resumo?.contratoPrincipal?.locatario && resumo.contratoPrincipal.locatario.toLowerCase().includes(termo)) return true;
+    const ocorrencias = ocorrenciasPorAtivo[a.id] || [];
+    return ocorrencias.some(oc => (oc.cofre_itens_controle?.titulo || '').toLowerCase().includes(termo));
+}
+
+// Busca universal do Hoje (F2.3b): ativos que batem com o texto, já no formato de linha do resultado.
+export function buscarAtivosTexto(termoBruto) {
+    const termo = String(termoBruto || '').toLowerCase().trim();
+    if (!termo) return [];
+    const ocorrenciasPorAtivo = {};
+    estado.ocorrenciasAbertas.forEach(oc => {
+        const idAtivo = oc.cofre_itens_controle?.ativo_id;
+        if (idAtivo) (ocorrenciasPorAtivo[idAtivo] = ocorrenciasPorAtivo[idAtivo] || []).push(oc);
+    });
+    return estado.ativos.filter(a => {
+        const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
+        return ativoBateComTexto(a, resumo, termo, ocorrenciasPorAtivo);
+    }).map(a => {
+        const resumo = ehCategoriaImovel(a.tipo_ativo) ? resumoImoveisPorId.get(a.id) : null;
+        const sub = [resumo?.empreendimento, resumo?.contratoPrincipal?.locatario].filter(Boolean).join(' · ') || rotuloTipoAtivo(a.tipo_ativo);
+        return { id: a.id, nome: a.nome_exibicao || 'Ativo', sub, icone: iconeAtivo(a.tipo_ativo) };
+    });
+}
+
+// "Ver todos" da busca universal: a lista de Ativos com o termo na barra e os demais filtros limpos.
+export function verAtivosComTexto(termoBruto) {
+    ['filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].forEach(id => { if (campoFiltro(id)) campoFiltro(id).value = ''; });
+    if (campoFiltro('filtro-ativo-busca')) campoFiltro('filtro-ativo-busca').value = String(termoBruto || '').trim();
+    renderAtivosLista('', campoFiltro('filtro-ativo-busca')?.value || '');
 }
 
 // Sheet de busca da lista de Ativos (no app). No cofre.html avulso, o dispatch abre o popup de sempre.

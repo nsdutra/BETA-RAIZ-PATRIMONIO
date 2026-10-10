@@ -1,6 +1,13 @@
 // ============================================================================
 // cofre-documentos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 2.34.0 · 08/10/2026
+// Versão: 2.35.0 · 09/10/2026
+//
+// v2.35.0 (UX F2.3b, demanda fcd3008d, sessão 20261003-1707-ux-base; plano F2.3 aprovado pelo Nicola 09/10 20:52 ("Estou de acordo com f2.3 e opcao a")) —
+// busca universal do Hoje: buscarDocumentosTexto(termo) devolve os documentos com o mesmo critério do
+// "Buscar no Cofre" (nome e descrição), já no formato de linha do resultado. No app, o "Buscar no Cofre"
+// passa a ser a busca universal; o popup fica só para o cofre.html avulso.
+//
+// Versão anterior: 2.34.0 · 08/10/2026
 //
 // v2.34.0 (UX F2.7c-3, demanda b8602a3a, sessão 20261003-1707-ux-base; "De acordo" do Nicola 08/10 14:04) —
 // Documentos arquivados no app vira Sheet por cima da tela atual: linha com ⋮ (Restaurar · Vincular ·
@@ -27,19 +34,11 @@
 // v2.31.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 2.31.0 · 07/10/2026
-//
-// v2.31.0 (demanda 6a4c8ef0, fatia D3b; sessão 20261007-0802-d3-bot; "De acordo" do Nicola 07/10 08:02) —
-// leitura vinda do WhatsApp: o link app/#/leitura/<id> (index) dispara cofre:retomar-leitura com
-// origem 'bot'; o sheet abre como "Leitura do WhatsApp" (sem "terminou enquanto o app estava fora") e
-// segue para o "Confira o que a IA leu" (ativo, vencimentos, "Criar o contrato"). Ao salvar, a leitura
-// guardada é apagada, como na retomada do app.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.30.0 … v2.30.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.31.0 … v2.31.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.34.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '2.35.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 // v2.3.1 — import TOLERANTE: na v2.2.0 isto era um import estático. Quando o
 // cofre-imagem.js não subiu no deploy (faltava a linha no manifesto), o import
@@ -2391,7 +2390,7 @@ export function renderizarBuscaGlobal() {
     const termo = (document.getElementById('busca-global-input').value || '').toLowerCase().trim();
     const statusFiltro = document.getElementById('busca-global-status').value;
     let lista = estado.documentos.filter(d => {
-        if (termo && !`${d.nome_exibicao} ${d.descricao || ''}`.toLowerCase().includes(termo)) return false;
+        if (termo && !documentoBateTexto(d, termo)) return false;
         if (statusFiltro && classificarStatusVinculo(d.cofre_documento_vinculos) !== statusFiltro) return false;
         return true;
     }).slice(0, 30);
@@ -2399,6 +2398,22 @@ export function renderizarBuscaGlobal() {
         ? lista.map(docResultadoBuscaHtml).join('')
         : `<p class="text-xs text-center py-6" style="color:var(--sage)">Nada encontrado.</p>`;
     refrescarIcones();
+}
+
+// Critério de texto do "Buscar no Cofre", usado também pela busca universal do Hoje (F2.3b).
+function documentoBateTexto(d, termo) {
+    return `${d.nome_exibicao || ''} ${d.descricao || ''}`.toLowerCase().includes(termo);
+}
+
+// Busca universal do Hoje (F2.3b): documentos que batem com o texto, já no formato de linha do resultado.
+export function buscarDocumentosTexto(termoBruto) {
+    const termo = String(termoBruto || '').toLowerCase().trim();
+    if (!termo) return [];
+    return estado.documentos.filter(d => documentoBateTexto(d, termo)).map(d => {
+        const cat = estado.categorias.find(c => c.id === d.categoria_id)?.nome;
+        const status = rotuloStatusVinculo(classificarStatusVinculo(d.cofre_documento_vinculos));
+        return { id: d.id, nome: d.nome_exibicao || 'Documento', sub: [cat, status].filter(Boolean).join(' · '), icone: 'file-text' };
+    });
 }
 
 function docResultadoBuscaHtml(d) {

@@ -7,6 +7,103 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 ## `js/ativos/ativos-markup.js`
 
 //
+// Versão anterior: 1.51.0 · 03/10/2026
+//
+// v1.51.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: botão do bot com título "Falar com a Raiz IA no WhatsApp".
+//
+// Versão anterior: 1.50.0 · 03/10/2026
+// CHANGELOG v1.50.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — combos de
+// Tipo do item de controle (#ic-tipo, novo item; #fic-ed-tipo, edição) ganham "Despesa".
+// O app usa ESTE markup (não o do cofre.html), por isso o novo item seguia sem a opção.
+// CHANGELOG v1.49.0 (demanda c0d255e3, retorno do piloto — "no botão de
+// cadastro novo imóvel... deixe claro que ele pode adicionar um
+// documento-IA ou cadastrar via tela") — #ativos-estado-vazio troca
+// data-action de 'abrir-form-ativo' (ia direto pro formulário manual,
+// pulando a escolha) pra 'abrir-acoes-ativos' — mesmo sheet do "+" do
+// cabeçalho da aba (cofre-app.js, case 'abrir-acoes-ativos'): "Carregar
+// documento" (IA) aparece primeiro, "Novo ativo" (manual) e "Montar
+// vitrine" depois. Sem esse ajuste, quem cadastrava o 1º ativo pelo
+// card do estado vazio nunca via a opção de IA — só existia pra quem
+// já tinha ativo e usava o "+" do topo.
+//
+// CHANGELOG v1.48.0 (demanda eba5b88f, item 4 do retorno do piloto —
+// Nicola: "Pode executar as demandas dos itens 1, 2, 4, 5 e 6 tb",
+// 28/09/2026) — #ativos-estado-vazio (0 ativos cadastrados): achado real
+// da Claudia testando o piloto — não achou onde tocar pra cadastrar o 1º
+// ativo, só resolveu na hora escrevendo ela mesma um texto dizendo "clique
+// aqui". O card inteiro vira a área de toque (data-action/data-rz-codigo
+// migram do <button> pro <div>, mesmo padrão de .rz-row.rz-link já usado
+// nas linhas da lista — cofre-ativos.js, ativoCardHtml), com borda
+// tracejada, cursor de ponteiro e o texto de apoio dizendo "toque aqui".
+// O selo "+ Novo ativo" continua visível, só que como <span> decorativo
+// (não é mais o único alvo de toque). Cadeado de cota (C4, rzMostrarBloqueio)
+// inalterado — continua dentro de abrirFormAtivo(), então mesmo com 2
+// elementos carregando data-rz-codigo agora, a checagem real é a mesma de
+// sempre.
+//
+// CHANGELOG v1.47.0 (demandas 4a609dbb e ed2774ee, entrega 2/3 do lote de
+// 29) — ficha do item de controle ganha o container
+// #fic-aviso-documento-pendente (visibilidade calculada em
+// cofre-controles.js v1.34.0); <select id="ic-subtipo"> ganha
+// data-action-change="ic-subtipo-mudou" (cofre-app.js v1.38.0 →
+// controles.aoMudarSubtipoControleForm, sugere a antecedência padrão do
+// subtipo escolhido). Nota: cofre.html tem uma versão própria e
+// dessincronizada desta ficha (markup antigo, não .rz-*) — fora do escopo
+// desta entrega, registrado para rodada futura.
+//
+// CHANGELOG v1.46.1 — demanda 80c3068e (bug CSS): o comentário v1.94.1 do
+// <style> injetado abria com /* e fechava com o terminador de comentário
+// HTML — o comentário só terminava no próximo */, engolindo
+// .raiz-sem-scrollbar (barra de rolagem dos chips/abas voltava a aparecer).
+// Trocado por */. Mesmo defeito do index.html v1.248.1. Base: v1.46.0 do
+// repositório (GitHub) — nada dela foi desfeito.
+//
+// CHANGELOG v1.46.0 — demanda 8b2d37d7 (C4): botão "+ Novo ativo" do estado
+// vazio ganha data-rz-codigo="cofre.ativos.criar" — cadeado + motivo quando
+// a cota acaba (comum-licenca.js v1.4.0, aplicarCadeados). Espelha cofre.html
+// v1.29.0. A trava em si está em abrirFormAtivo() (cofre-ativos.js v1.62.0).
+//
+// CHANGELOG v1.45.0 — Entrega R.4 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
+// FISCAL v2.0.0 / ESP v1.3.0 §8.1) — #fa-painel-financeiro ganha o 4º bloco
+// que o comentário da v1.44.0 já reservava: #fa-financeiro-revisao, onde
+// cofre-ativos.js v1.58.0 renderiza o card "Revisão anual de valor" (sugestão
+// da IA + memória de cálculo) quando o ativo tem uma revisão em andamento
+// (⋮ "Iniciar revisão anual", R.3) — vazio quando não tem, sem placeholder.
+//
+// CHANGELOG v1.44.0 — Entrega A.7 (PLANO_IMPLEMENTACAO_RESULTADOS_MERCADO_
+// FISCAL v2.0.0 / ESP v1.3.0 §8): chip "Financeiro" da Ficha do ativo vira
+// "Performance" (id interno data-fa-aba="financeiro" e o painel
+// #fa-painel-financeiro não mudaram — só o rótulo visível, mesmo princípio
+// do chip Cobranças→Financeiro do contrato). O contador (`<span
+// class="rz-n" id="fa-chip-n-financeiro">`) saiu do botão do chip: a
+// leitura de performance não é mais lista de pendência (o grid de
+// Movimentações, que alimentava a contagem, saiu — ESP C5), então um selo
+// numérico ali não teria mais o que contar honestamente. Painel interno
+// reestruturado em 3 blocos (#fa-financeiro-resumo, #fa-financeiro-grafico,
+// #fa-financeiro-grid) — cofre-ativos.js v1.55.0 preenche os 3.
+// CHANGELOG v1.43.0 (pedido explícito, 18/09/2026: "Nos detalhes do arquivo
+// deve ser possivel editar o nome. Tanto nos anexos de contrato, quanto
+// ativos, itens de controle e os demais") — #modal-ficha-doc: título
+// #fd-nome ganhou uma lapiseira ao lado (data-action=
+// "editar-nome-documento-atual" → cofre-documentos.js v2.18.0
+// editarNomeDocumentoAtual(), abre abrirSheetForm com 1 campo, mesma
+// gramática .rz-f de fa-editar-nome). abrirFichaDocumento() é o único
+// caminho que monta esta ficha pros 3 contextos citados (contrato/ativo/
+// item de controle), então o botão único aqui já cobre os 3. Espelha
+// cofre.html (mesmo markup, mesmos ids).
+//
+// CHANGELOG v1.42.0 (pedido explícito, item de controle gerando "a pagar"
+// retroativo) — checkbox #ic-gerar-desde-inicio: default trocado de
+// checked pra desmarcado + rótulo reescrito pra deixar claro que marcá-lo
+// cria uma pendência retroativa ("Em atraso" no Financeiro). Corrigido de
+// passagem um descompasso VER-04 pré-existente: header estava em 1.41.0
+// mas export const VERSAO ainda em 1.40.0.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
+
+//
 // v1.41.0 — modal-modelos-controle: #modelo-tipo-ativo (select único, 14
 // valores misturados categoria+código) virou #modelo-categoria (8
 // categorias) + #modelo-tipo-especifico (opcional) — acompanha
@@ -382,6 +479,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
+
+---
 
 ---
 
@@ -880,7 +979,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
+
+//
+// Versão anterior: 1.43.0 · 03/10/2026
+//
+// v1.43.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: o atalho do bot abre "Raiz IA no WhatsApp" pelo
+// adaptador (rzDev, UXR-40), com a saudação nova.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.42.0 · 03/10/2026
@@ -1295,7 +1406,20 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.77.2 · 07/10/2026
+//
+// v1.77.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
+// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
+// Nenhuma linha de código mudou — conferido token a token contra o publicado.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.77.0 · 07/10/2026
@@ -2293,6 +2417,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2909,7 +3035,22 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-documentos.js`
+
+//
+// Versão anterior: 2.31.0 · 07/10/2026
+//
+// v2.31.0 (demanda 6a4c8ef0, fatia D3b; sessão 20261007-0802-d3-bot; "De acordo" do Nicola 07/10 08:02) —
+// leitura vinda do WhatsApp: o link app/#/leitura/<id> (index) dispara cofre:retomar-leitura com
+// origem 'bot'; o sheet abre como "Leitura do WhatsApp" (sem "terminou enquanto o app estava fora") e
+// segue para o "Confira o que a IA leu" (ativo, vencimentos, "Criar o contrato"). Ao salvar, a leitura
+// guardada é apagada, como na retomada do app.
+// --------------------------------------------------------------------------
+// Versões anteriores (v2.30.0 … v2.30.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 2.30.0 · 07/10/2026
@@ -3530,6 +3671,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3675,6 +3818,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // v1.21.6 (Arquivar/RLS, sessão paralela) nem esta entrega — fechado
 // agora. Ver changelog completo em cofre.html v1.22.0 (merge das 2
 // sessões paralelas + badge fix + form fix + função Vendido).
+
+---
 
 ---
 
@@ -3861,6 +4006,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3892,6 +4039,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -4003,6 +4152,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -4181,6 +4332,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -4286,6 +4439,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4593,6 +4748,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -4635,6 +4792,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4763,7 +4922,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+//
+// Versão anterior: 1.43.0 · 07/10/2026
+//
+// v1.43.0 (demanda b94ef7d5, sessão 20261007-0231-vinculos-reativar; plano aprovado pelo Nicola 07/10 02:31) —
+// chip Partes da ficha do contrato ganha o grupo "Encerrados" (fiador e cônjuge anuente encerrados,
+// com a data); ⋮ de um encerrado: "Reativar" (volta ao contrato com os dados de antes —
+// fn_vinculo_reativar) e "Excluir" (fn_vinculo_excluir). Excluídos não aparecem.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.42.0 · 07/10/2026
@@ -5508,6 +5681,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -5794,6 +5969,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -6800,6 +6977,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -6859,6 +7038,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6981,6 +7162,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -7240,6 +7423,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
 
 //
@@ -7340,6 +7525,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

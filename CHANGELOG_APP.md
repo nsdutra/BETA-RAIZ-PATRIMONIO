@@ -4,6 +4,23 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.329.0) — UX F2.8, Compartilhar imóveis ("Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09).
+"Vitrine" vira "Compartilhar": a tela tab-vitrine vira lista com seleção (toque marca) e o botão fixo
+"Compartilhar n imóveis" (.rz-acao-fixa) abre WhatsApp, Copiar link e Abrir a página com um link só;
+menu "Links compartilhados". Página pública lê por fn_vitrine_publica_obter (visitante sem login;
+antes dava erro de permissão) e mostra o nome da empresa. Pontes novas: compartilharImovelDoAtivo,
+abrirCompartilharSelecionados, alternarSelecaoVitrine. CSS: .rz-acao-fixa, .rz-pend-lista. Import
+map: vitrine.js 1.4.0, minutas.js 1.4.0, cofre-ativos.js 1.80.0, cofre-app.js 1.45.0, cofre-api.js
+1.50.0. Banco (fora deste arquivo): migrations f28_compartilhar_links_publicos_v1 e
+f28_fn_vitrine_publica_obter_v1.
+Versão anterior (Beta v1.328.0):
+------------------------------------------------------------------
+Versões anteriores (v1.328.0 … v1.328.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.328.0) — UX F2.7c-3, menu ⚙️ › Cadastros (de acordo do Nicola 08/10 14:04).
 Minutas: a descrição fica só no topo; o formulário fixo do assistente "Gerar de um contrato real"
 saiu (agora é Sheet de 2 passos em minutas.js). Documentos arquivados abre por cima da tela atual
