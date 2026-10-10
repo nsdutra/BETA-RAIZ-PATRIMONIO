@@ -4,6 +4,25 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.350.0) — limpeza de código morto da divisão societária (demanda 6b11c602, frente da
+fragmentação). A v1.314.2 (07/10) trocou o popup antigo de divisão pelo editor único window.rzEditarDivisao
+(raiz-ui 1.2.0) e o próprio comentário daquela entrega registrou que "renderListaDivisaoPopup e afins ficam
+sem chamador". Ficaram mesmo, e agora saíram: renderListaDivisaoPopup, dvsAtualizarNome, dvsAtualizarPct,
+dvsRemoverLinha, alternarGrupoSocio e fecharPreviewPdfOnly — 2.144 bytes, 50 linhas. Varredura antes de
+apagar, nos 37 arquivos do app mais o cofre.html: zero referência viva, zero onclick, zero chamada por
+string; a única menção fora do grupo era o comentário que anunciava a morte, agora reescrito para registrar
+a eliminação (VER-08). FICARAM de propósito os arrays __divisaoPopupImovel e __divisaoPopupContrato: o
+js/imoveis.js e o js/contratos.js ainda os leem (salvarDivisaoImovelPopup / salvarDivisaoContratoPopup), e
+apagar as duas linhas daria ReferenceError nesses módulos — essas duas funções dos módulos são do mesmo
+fluxo morto e viram demanda própria, não entram nesta frente (DEP-14). Nenhum objeto de banco.
+Versão anterior (Beta v1.349.0):
+------------------------------------------------------------------
+Versões anteriores (v1.349.0 … v1.349.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.349.0) — Onda 1b-1 da fragmentação: a ESCRITA vai para o núcleo (demanda 6b11c602,
 plano das ondas aprovado pelo Nicola 09/10 21:15). Os 9 sincronizar* saíram deste arquivo para o
 js/nucleo/porta.js 1.2.0, pelo mesmo caminho da Onda 1a: SEM UMA LINHA REESCRITA, só ganhando "export" e
