@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.347.0) — Hoje pelos ramos (Nicola 10/10 10:22). O app sempre abre em Todo o patrimônio (a lente
+não fica mais guardada). Minha Gestão e Fique por dentro seguem a lente: a nota de organização só nos ramos com
+valor, "Para você" e Novidades do Raiz só em Todo o patrimônio, Indicadores de mercado em Todo o patrimônio e
+Imóveis; ramo sem nada para mostrar diz isso. Visão geral em Todo o patrimônio: herói, resultados e uma seção
+por ramo (valor, quantidade, alertas, segmentos e "Ver só ›"); num ramo, o anel por segmento. Imóveis volta a
+ter os cards da carteira (resultados.js 2.8.0).
+Versão anterior (Beta v1.346.2):
+------------------------------------------------------------------
+Versões anteriores (v1.346.2 … v1.346.2): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.346.2) — Correção urgente: import map com cofre-ativos.js 1.85.1 (a 1.85.0 não carregava a aba Ativos).
 Versão anterior (Beta v1.346.1):
 ------------------------------------------------------------------
