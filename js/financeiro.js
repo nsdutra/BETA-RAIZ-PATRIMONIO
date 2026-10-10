@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.39.0 · 09/10/2026
+// Versão: 1.39.1 · 09/10/2026
+//
+// v1.39.1 (09/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 22:40): (1) sair de
+// Classificar, Divisão ou qualquer passo aberto a partir da fatura (salvando ou cancelando) volta para a fatura,
+// na mesma altura da lista, e não para Saídas; (2) Selecionar ficou leve: marcar uma compra só acende o quadrado e
+// atualiza o botão "Classificar n", sem reler a fatura do banco nem voltar a lista para o topo; entrar e sair da
+// seleção também não relê. Versão anterior: 1.39.0.
 //
 // v1.39.0 (09/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 22:08, escolha
 // "Fatura inteira" 22:15): a fatura do cartão entra em Saídas UMA vez, no mês da própria fatura, com o total,
@@ -26,24 +32,11 @@
 // v1.38.1 (08/10/2026, sessão 20261008-0825-financeiro, demanda f3e6cd27 — teste do Nicola 08:16): "Importar fatura"
 // dizia "Cadastre o cartão primeiro" para um cartão recém-cadastrado — a lista de contas ficava guardada desde a
 // abertura do Financeiro. Agora a importação relê as contas antes de oferecer os cartões. Versão anterior: 1.38.0.
-//
-// Versão anterior: 1.38.0 · 07/10/2026
-//
-// v1.38.0 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2, plano P5 v1.3.0 com de acordo
-// do Nicola 07/10 18:45; ajustes do protótipo pedidos 12:52) — CARTÃO: (1) a sugestão da compra segue o padrão
-// da conciliação: "Parece: categoria · ativo · fornecedor" na lista e a etiqueta ✨ com a confiança; sai o botão
-// "Aceitar" — o toque abre a confirmação (como no extrato). (2) Ações da compra classificada: Mudar classificação,
-// Voltar para em aberto (D47), Resumo da conciliação (data e hora, origem "Fatura de cartão", modo, quem, canal —
-// colunas F7) e Excluir compra com o aviso "só volta importando a fatura de novo" (D47). (3) Importar: a
-// conferência compara com a fatura no banco (simulação): novas, já na fatura e no Raiz e não vieram no arquivo
-// (marcar para excluir); fatura já paga só recebe compra nova com confirmação. (4) Extrato: "Parece:" também
-// mostra o ativo do destino sugerido, na lista e na confirmação. (5) Cartão sai das contas de lançamento (nova
-// despesa, trocar conta, filtro) — o banco recusa (F8). Versão anterior: 1.37.2.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.37.1 … v1.37.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.38.0 … v1.38.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.39.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.39.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1249,10 +1242,19 @@ function financeiroRenderCabecalho(aba) {
         /** Tela da fatura (Sheet): cabeçalho, "A classificar" com a sugestão do Raiz, classificadas, lote. */
         export async function financeiroAbrirFatura(faturaId, opcoes = {}) {
             if (typeof abrirSheet !== 'function') return;
-            const { data, error } = await dbAuth.rpc('fn_fatura_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_fatura_id: faturaId });
-            if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui abrir a fatura.', { tipo: 'danger' }); return; }
+            // Releitura só quando algo mudou: voltar de um passo e entrar/sair da seleção usam a fatura já lida.
+            const cache = financeiroFaturaAberta && financeiroFaturaAberta.id === faturaId && !financeiroFaturaAberta.sujo ? financeiroFaturaAberta : null;
+            let f;
+            if (cache && (opcoes.voltando || opcoes.semReler)) {
+                f = cache.dados;
+            } else {
+                const { data, error } = await dbAuth.rpc('fn_fatura_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_fatura_id: faturaId });
+                if (error || !data?.ok) { rzToast(error?.message || data?.mensagem || 'Não consegui abrir a fatura.', { tipo: 'danger' }); return; }
+                f = data.dados;
+            }
             await carregarCatalogoCategorias();
-            const f = data.dados;
+            const rolagem = (financeiroFaturaAberta && financeiroFaturaAberta.id === faturaId && (opcoes.voltando || opcoes.semReler || opcoes.manterRolagem)) ? financeiroFaturaAberta.rolagem : 0;
+            financeiroFaturaAberta = { id: faturaId, dados: f, rolagem, sujo: false };
             financeiroFaturasInfo.porId[f.id] = { ...f, itens: undefined };
             const itens = f.itens || [];
             const ac = itens.filter(i => i.categoria === 'a_classificar');
@@ -1274,7 +1276,7 @@ function financeiroRenderCabecalho(aba) {
                 const valorTxt = Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`;
                 const extra = pend ? '' : ` · ${escapeHtmlSaidas(nomeCat(i.categoria))}${i.ativo_nome ? ' · ' + escapeHtmlSaidas(i.ativo_nome) : ''}${i.parte_nome ? ' · ' + escapeHtmlSaidas(i.parte_nome) : ''}${i.divisao_ajustada ? ' · divisão ajustada' : ''}`;
                 return `<div class="rz-row rz-link" data-fat-item="${i.id}">
-                    ${selecionando && pend ? `<div style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:white;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
+                    ${selecionando && pend ? `<div data-fat-chk style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:white;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
                     <div class="rz-ic${temSug ? (confSug < 70 ? ' rz-warn' : ' rz-ia') : (pend ? ' rz-warn' : '')}"><svg data-lucide="${temSug ? 'sparkles' : icCat(i.categoria)}"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${temSug ? 'Parece: ' + escapeHtmlSaidas(textoSug) + ' · ' : ''}${compra(i)}${parcela(i)}${extra}</span></div>
                     <div class="rz-rt">${valorTxt}${temSug ? `<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confSug}%</span>` : ''}</div>
@@ -1303,9 +1305,18 @@ function financeiroRenderCabecalho(aba) {
                 ${ac.length ? '' : '<span class="rz-hint" style="display:block;margin-top:8px">Tudo classificado. Da próxima fatura, o Raiz já usa o que você ensinou.</span>'}`;
             const rodape = selecionando ? `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-fat-selecionar>Cancelar</button><button type="button" class="rz-btn rz-btn-1" data-fat-lote ${sel.size ? '' : 'disabled'}>Classificar ${sel.size || ''}</button></div>` : '';
             const sheet = abrirSheet(rzSheetCabecalho(`Fatura ${financeiroNomeCartao(f)}`, `${financeiroCompetenciaLabel(f.competencia)} · ${quem} · ${f.status === 'paga' ? 'paga' : f.status === 'paga_parcial' ? 'paga em parte' : 'a pagar'}`) +
-                `<div class="rz-sh-b">${corpo}</div>${rodape}`, { classe: 'rz-cheio' });
-            const reabrir = (extra = {}) => financeiroAbrirFatura(faturaId, { selecionando, selecionados: [...sel], ...extra });
-            sheet.querySelectorAll('[data-fat-selecionar]').forEach(b => b.addEventListener('click', () => financeiroAbrirFatura(faturaId, { selecionando: !selecionando, selecionados: [] })));
+                `<div class="rz-sh-b">${corpo}</div>${rodape}`, { classe: 'rz-cheio', aoFechar: financeiroPararVoltaFatura });
+            const corpoRolagem = sheet.querySelector('.rz-sh-b');
+            if (corpoRolagem && rolagem) corpoRolagem.scrollTop = rolagem;
+            corpoRolagem?.addEventListener('scroll', () => { if (financeiroFaturaAberta?.id === faturaId) financeiroFaturaAberta.rolagem = corpoRolagem.scrollTop; }, { passive: true });
+            financeiroVigiarVoltaFatura(faturaId);
+            const btnLote = sheet.querySelector('[data-fat-lote]');
+            const marcar = (row, on) => {
+                const chk = row.querySelector('[data-fat-chk]');
+                if (chk) { chk.style.borderColor = on ? 'var(--pine)' : 'var(--line)'; chk.style.background = on ? 'var(--pine)' : 'transparent'; chk.textContent = on ? '✓' : ''; }
+                if (btnLote) { btnLote.disabled = !sel.size; btnLote.textContent = `Classificar ${sel.size || ''}`.trim(); }
+            };
+            sheet.querySelectorAll('[data-fat-selecionar]').forEach(b => b.addEventListener('click', () => financeiroAbrirFatura(faturaId, { selecionando: !selecionando, selecionados: [], semReler: true })));
             sheet.querySelector('[data-fat-baixar]')?.addEventListener('click', () => financeiroBaixarFatura(f));
             sheet.querySelector('[data-fat-lote]')?.addEventListener('click', () => financeiroClassificarItens(itens.filter(i => sel.has(i.id)), faturaId));
             sheet.querySelectorAll('[data-fat-item]').forEach(row => row.addEventListener('click', () => {
@@ -1313,12 +1324,32 @@ function financeiroRenderCabecalho(aba) {
                 if (selecionando) {
                     if (!ac.some(i => i.id === id)) return;
                     if (sel.has(id)) sel.delete(id); else sel.add(id);
-                    reabrir();
+                    marcar(row, sel.has(id));
                     return;
                 }
                 const i = itens.find(x => x.id === id);
                 if (i) financeiroAcoesItemFatura(i, f);
             }));
+        }
+
+        // Fatura aberta: dados lidos, altura da lista e "sujo" (algo mudou, precisa reler). Enquanto a fatura está na
+        // tela, um observador do véu dos sheets percebe quando um passo aberto a partir dela (Classificar, Divisão,
+        // Marcar como paga…) fecha tudo e reabre a fatura. Fechar a própria fatura (X, toque fora, arraste) desliga o
+        // observador pelo aoFechar dela, antes de o véu avisar.
+        let financeiroFaturaAberta = null;
+        let financeiroFaturaObs = null;
+        function financeiroPararVoltaFatura() { financeiroFaturaObs?.disconnect(); financeiroFaturaObs = null; }
+        function financeiroVigiarVoltaFatura(faturaId) {
+            financeiroPararVoltaFatura();
+            const veil = document.getElementById('rz-veil');
+            if (!veil || typeof MutationObserver === 'undefined') return;
+            financeiroFaturaObs = new MutationObserver(() => {
+                if (veil.classList.contains('rz-on')) return;
+                if (financeiroFaturaAberta?.sujo) return; // algo mudou: financeiroDepoisDeMudarFatura já vai reabrir relendo
+                financeiroPararVoltaFatura();
+                financeiroAbrirFatura(faturaId, { voltando: true });
+            });
+            financeiroFaturaObs.observe(veil, { attributes: true, attributeFilter: ['class'] });
         }
 
         function financeiroTextoSugestaoCartao(s, nomeCat) {
@@ -1341,7 +1372,7 @@ function financeiroRenderCabecalho(aba) {
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: 'a_classificar', ativo_id: null, parte_id: null, divisao: null, sempre_assim: false }, f.id) });
                 acoes.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => financeiroResumoCompraCartao(i, f) });
             }
-            acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroAbrirFatura(f.id)));
+            acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroDepoisDeMudarFatura(f.id)));
             acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Só volta importando a fatura de novo', tipo: 'bad', codigo: 'cartao.importar',
                 aoTocar: async () => {
                     if (!await rzConfirmar({ titulo: 'Excluir esta compra?', impacto: `"${i.descricao}" sai da fatura de vez. Ela só volta importando a fatura de novo.`, destrutivo: true, rotuloConfirmar: 'Excluir compra' })) return;
@@ -1446,9 +1477,10 @@ function financeiroRenderCabecalho(aba) {
         }
 
         function financeiroDepoisDeMudarFatura(faturaId) {
+            if (financeiroFaturaAberta?.id === faturaId) financeiroFaturaAberta.sujo = true;
             financeiroGarantirFaturas(true);
             financeiroRecarregarSaidas();
-            setTimeout(() => financeiroAbrirFatura(faturaId), 30); // depois do fecharSheet do form
+            setTimeout(() => financeiroAbrirFatura(faturaId, { manterRolagem: true }), 30); // depois do fecharSheet do form
         }
 
         /** Baixa manual da fatura (quando não há extrato; com extrato, a CT03 liga sozinha). */

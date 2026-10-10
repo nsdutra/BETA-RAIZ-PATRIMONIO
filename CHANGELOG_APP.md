@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.330.2) — "Sim faça 1, 2 e 4" do Nicola (09/10 21:54). Financeiro: o vínculo sem ativo
+passa a se chamar "Empresa" na despesa, no item da fatura e na receita sem contrato (financeiro.js
+1.38.3; só rótulo). Banco, sem objeto novo: ocorrência que já nasce concluída gera a despesa já paga
+(ocorrencia_concluida_nasce_realizado_v1) e fn_novidade_sortear passa a exigir acesso à empresa e à
+pessoa, sem EXECUTE para anon (novidade_sortear_acesso_v1). Import map: financeiro.js 1.38.3.
+Versão anterior (Beta v1.330.1):
+------------------------------------------------------------------
+Versões anteriores (v1.330.1 … v1.330.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.330.1) — sessão 20261009-2055-integridade (demandas 0e5618ca e 7ce0fd63, de acordo do
 Nicola 09/10 20:55 e 21:49): só o import map — relatorios-executivos.js 1.1.2 (relatório na camada 80,
 DESIGN_SYSTEM 2.28.0 §5) e financeiro.js 1.38.2 (3 padrões da gramática). Nenhuma linha do index mudou.
