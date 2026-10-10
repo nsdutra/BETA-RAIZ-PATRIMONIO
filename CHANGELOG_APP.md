@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.336.1) — "Vinculo topo ok" do Nicola (09/10 22:45). Financeiro: o vínculo (Empresa ou um
+ativo) passa a ser o primeiro campo da despesa e da receita sem contrato, com o rótulo "Vínculo". Só posição e
+rótulo (financeiro.js 1.40.1). Import map: financeiro.js 1.40.1. Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.336.0):
+------------------------------------------------------------------
+Versões anteriores (v1.336.0 … v1.336.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.336.0) — P2b do cartão (aprovado pelo Nicola 09/10 23:59). O seletor de ativo das despesas e da
 fatura (carregarAtivosParaSelectSupabase) passa a trazer tipo e registro contábil e é refeito quando um ativo é
 criado, editado ou a carteira recarrega (antes um pet recém-cadastrado não aparecia até reabrir o app).

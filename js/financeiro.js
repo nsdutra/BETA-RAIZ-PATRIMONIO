@@ -1,7 +1,11 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.40.1 · 10/10/2026
+// Versão: 1.40.2 · 10/10/2026
+//
+// v1.40.2 (10/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 00:15): a Divisão de uma
+// compra aberta de dentro da fatura abre por cima dela (nível 2), sem trocar o fundo pela lista de Saídas; e ganha o
+// rótulo da regra nova do banco (fn_divisao_movimento): "Fica com o titular do cartão". Versão anterior: 1.40.1.
 //
 // v1.40.1 (10/10/2026, sessão 20261010-0010-vinculo-topo, demanda 8ef4a173 — "Vinculo topo ok" do Nicola 09/10 22:45):
 // o vínculo (Empresa ou um ativo) passa a ser o primeiro campo da despesa e da receita sem contrato, com o rótulo
@@ -31,17 +35,11 @@
 // em que foi feita e a linha de outubro mostrava 5 de 173 compras. Os chips Todas/Pagas/A vencer/Atrasadas
 // contam a fatura como uma conta só, pelo status dela. Tocar numa compra dentro da fatura abre as ações por
 // cima (nível 2): Cancelar volta para a fatura, não para a lista. Relatórios por competência não mudam.
-// Versão anterior: 1.38.3.
-//
-// v1.38.3 (09/10/2026, sessão 20261009-2200-empresa-ocorrencia, demanda 6da660db, "Sim faça 1, 2 e 4" do Nicola 09/10 21:54):
-// o vínculo sem ativo passa a se chamar "Empresa" nas três telas — despesa ("Nenhum (despesa avulsa)"), item da
-// fatura ("Nenhum (despesa da empresa)") e receita sem contrato ("Nenhum — receita da empresa"). Só o rótulo: o valor
-// continua vazio (ativo_id null = da empresa), igual aos itens do card "Controles da empresa".
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.38.2 … v1.38.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.38.3 … v1.38.3): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.40.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.40.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -689,14 +687,16 @@ const DIVISAO_ORIGEM = {
     excecao: 'Ajustada só neste lançamento',
     contrato: 'Pela divisão do contrato',
     propriedade: 'Pela propriedade do imóvel',
+    cartao: 'Fica com o titular do cartão (compra sem ativo)',
     empresa: 'Fica com a empresa (sem imóvel nem divisão)'
 };
 const pctBR = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
-function financeiroAcaoDivisao(origemTipo, id, valor, ajustada, aoMudar) {
+// empilhar: true quando a Divisão sai de um Sheet que deve continuar atrás (a fatura do cartão).
+function financeiroAcaoDivisao(origemTipo, id, valor, ajustada, aoMudar, empilhar = false) {
     return [{ icone: 'split', titulo: ajustada ? 'Divisão: ajustada' : 'Divisão', sub: ajustada ? 'Ajustada só neste lançamento' : 'Quem arca com este valor',
-        aoTocar: () => financeiroAbrirDivisao(origemTipo, id, valor, aoMudar) }];
+        aoTocar: () => financeiroAbrirDivisao(origemTipo, id, valor, aoMudar, { empilhar }) }];
 }
-async function financeiroAbrirDivisao(origemTipo, id, valor, aoMudar) {
+async function financeiroAbrirDivisao(origemTipo, id, valor, aoMudar, opcoes = {}) {
     const { data, error } = await dbAuth.rpc('fn_divisao_movimento', { p_origem_tipo: origemTipo, p_origem_id: id });
     if (error) { rzToast('Não consegui ler a divisão: ' + error.message, { tipo: 'danger' }); return; }
     const linhas = Array.isArray(data) ? data : [];
@@ -708,7 +708,7 @@ async function financeiroAbrirDivisao(origemTipo, id, valor, aoMudar) {
         <div class="rz-rt"><b>${pctBR(l.percentual)}</b></div></div>`).join('');
     const nota = compFechada ? '<p style="margin:8px 0 0;font-size:13px;color:var(--muted)">Competência fechada: a divisão só muda reabrindo o fechamento.</p>' : '';
     const botoes = compFechada ? '' : `<div class="rz-sh-f">${origem === 'excecao' ? '<button type="button" class="rz-btn rz-btn-2" data-div-padrao>Voltar ao padrão</button>' : ''}<button type="button" class="rz-btn rz-btn-1${origem === 'excecao' ? '' : ' rz-wide'}" data-div-editar>Editar divisão</button></div>`;
-    const sheet = abrirSheet(rzSheetCabecalho('Divisão', DIVISAO_ORIGEM[origem] || '') + `<div class="rz-sh-b"><div class="rz-card rz-list">${rows}</div>${nota}</div>${botoes}`);
+    const sheet = abrirSheet(rzSheetCabecalho('Divisão', DIVISAO_ORIGEM[origem] || '') + `<div class="rz-sh-b"><div class="rz-card rz-list">${rows}</div>${nota}</div>${botoes}`, { empilhar: !!opcoes.empilhar });
     sheet.querySelector('[data-div-editar]')?.addEventListener('click', () => {
         if (typeof podeUsar === 'function' && !podeUsar('financeiro.divisao.editar').ok) { window.rzMostrarBloqueio?.('financeiro.divisao.editar'); return; }
         financeiroEditarDivisao(origemTipo, id, valor, origem === 'empresa' ? [] : linhas, aoMudar);
@@ -1377,7 +1377,7 @@ function financeiroRenderCabecalho(aba) {
                     aoTocar: () => financeiroGravarClassificacao([i.id], { categoria: 'a_classificar', ativo_id: null, parte_id: null, divisao: null, sempre_assim: false }, f.id) });
                 acoes.push({ icone: 'info', titulo: 'Resumo da conciliação', sub: 'Data, origem, modo e canal', aoTocar: () => financeiroResumoCompraCartao(i, f) });
             }
-            acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroDepoisDeMudarFatura(f.id)));
+            acoes.push(...financeiroAcaoDivisao('lancamento', i.id, Math.abs(Number(i.valor)), i.divisao_ajustada, () => financeiroDepoisDeMudarFatura(f.id), true));
             acoes.push({ icone: 'trash-2', titulo: 'Excluir compra', sub: 'Só volta importando a fatura de novo', tipo: 'bad', codigo: 'cartao.importar',
                 aoTocar: async () => {
                     if (!await rzConfirmar({ titulo: 'Excluir esta compra?', impacto: `"${i.descricao}" sai da fatura de vez. Ela só volta importando a fatura de novo.`, destrutivo: true, rotuloConfirmar: 'Excluir compra' })) return;
