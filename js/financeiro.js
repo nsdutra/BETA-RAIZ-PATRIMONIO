@@ -1,7 +1,15 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.38.3 · 09/10/2026
+// Versão: 1.39.0 · 09/10/2026
+//
+// v1.39.0 (09/10/2026, sessão 20261009-2055-integridade, demanda 56546614 — teste do Nicola 22:08, escolha
+// "Fatura inteira" 22:15): a fatura do cartão entra em Saídas UMA vez, no mês da própria fatura, com o total,
+// o número de compras e o "a classificar" da fatura inteira (fn_fatura_listar) — antes cada compra caía no mês
+// em que foi feita e a linha de outubro mostrava 5 de 173 compras. Os chips Todas/Pagas/A vencer/Atrasadas
+// contam a fatura como uma conta só, pelo status dela. Tocar numa compra dentro da fatura abre as ações por
+// cima (nível 2): Cancelar volta para a fatura, não para a lista. Relatórios por competência não mudam.
+// Versão anterior: 1.38.3.
 //
 // v1.38.3 (09/10/2026, sessão 20261009-2200-empresa-ocorrencia, demanda 6da660db, "Sim faça 1, 2 e 4" do Nicola 09/10 21:54):
 // o vínculo sem ativo passa a se chamar "Empresa" nas três telas — despesa ("Nenhum (despesa avulsa)"), item da
@@ -31,17 +39,11 @@
 // (marcar para excluir); fatura já paga só recebe compra nova com confirmação. (4) Extrato: "Parece:" também
 // mostra o ativo do destino sugerido, na lista e na confirmação. (5) Cartão sai das contas de lançamento (nova
 // despesa, trocar conta, filtro) — o banco recusa (F8). Versão anterior: 1.37.2.
-//
-// Versão anterior: 1.37.2 · 07/10/2026
-//
-// v1.37.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
-// CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
-// Nenhuma linha de código mudou — conferido token a token contra o publicado.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.37.0 … v1.37.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.37.1 … v1.37.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.38.3'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.39.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -862,6 +864,24 @@ function financeiroRenderCabecalho(aba) {
         // "Atrasado" NUNCA é lido de um campo gravado — sempre calculado
         // (vencimento < hoje). Mesma lição já aprendida em Recebimentos
         // (v1.63.0): gravar esse estado já causou bug de badge errado.
+        // Status de uma linha de Saídas para chips e filtro: compra de cartão segue a fatura (paga, em atraso ou a
+        // vencer pelo vencimento da fatura); as demais despesas seguem o próprio lançamento.
+        function financeiroStatusSaida(d) {
+            const f = d.faturaId ? financeiroFaturasInfo.porId[d.faturaId] : null;
+            if (f) {
+                if (f.status === 'paga') return 'pago';
+                const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+                return (f.data_vencimento && new Date(f.data_vencimento + 'T00:00:00') < hoje) ? 'atrasado' : 'a_vencer';
+            }
+            return d.status === 'realizado' ? 'pago' : estaAtrasadaDespesa(d) ? 'atrasado' : 'a_vencer';
+        }
+
+        // Mês em que a linha aparece em Saídas: compra de cartão aparece no mês da fatura, não no da compra.
+        function financeiroCompetenciaSaida(d) {
+            const f = d.faturaId ? financeiroFaturasInfo.porId[d.faturaId] : null;
+            return f?.competencia || d.competencia;
+        }
+
         export function estaAtrasadaDespesa(d) {
             if (d.status !== 'previsto' || !d.vencimento) return false;
             const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -907,9 +927,12 @@ function financeiroRenderCabecalho(aba) {
         export function renderChipsSaidas(filtradas) {
             const wrap = document.getElementById('saidas-chips-status');
             if (!wrap) return;
-            const statusD = (d) => d.status === 'realizado' ? 'pago' : estaAtrasadaDespesa(d) ? 'atrasado' : 'a_vencer';
-            const contagem = { todos: filtradas.length, pago: 0, atrasado: 0, a_vencer: 0 };
-            filtradas.forEach(d => { contagem[statusD(d)]++; });
+            const contagem = { todos: 0, pago: 0, atrasado: 0, a_vencer: 0 };
+            const faturasContadas = new Set(); // a fatura do cartão conta como uma conta só (v1.39.0)
+            filtradas.forEach(d => {
+                if (d.faturaId) { if (faturasContadas.has(d.faturaId)) return; faturasContadas.add(d.faturaId); }
+                contagem.todos++; contagem[financeiroStatusSaida(d)]++;
+            });
             const atual = document.getElementById('saidas-filtro-status')?.value || 'todos';
             const chips = [
                 { chave: 'todos', rotulo: 'Todas', n: contagem.todos },
@@ -1081,8 +1104,13 @@ function financeiroRenderCabecalho(aba) {
 
             // v1.178.9 — achado do Nicola: filtros sem o status (pro hero e
             // pros chips contarem sem o próprio chip se esconder da contagem).
+            // sem as faturas carregadas, a compra de cartão ainda não sabe o mês da fatura: carrega e redesenha
+            if (financeiroFaturasInfo.clienteId !== CLIENTE_ID_SUPABASE && !financeiroFaturasCarregando && lancamentos.some(d => d.faturaId)) {
+                financeiroGarantirFaturas().then(() => renderSaidas());
+            }
+            const filtroDeItem = !!(financeiroContaFiltro || fCategoria !== 'todos' || fAtivo !== 'todos' || fFornecedor !== 'todos' || termoBusca);
             const filtradasSemStatus = lancamentos.filter(d => {
-                if (dataParaCompetencia(d.competencia) !== compAtualRef) return false;
+                if (dataParaCompetencia(financeiroCompetenciaSaida(d)) !== compAtualRef) return false;
                 if (financeiroContaFiltro && d.contaId !== financeiroContaFiltro) return false; // v1.33.0
                 if (fCategoria !== 'todos' && d.categoria !== fCategoria) return false;
                 if (fAtivo !== 'todos' && d.ativoId !== fAtivo) return false;
@@ -1095,13 +1123,7 @@ function financeiroRenderCabecalho(aba) {
             });
             renderChipsSaidas(filtradasSemStatus);
 
-            const filtradas = filtradasSemStatus.filter(d => {
-                const atrasada = estaAtrasadaDespesa(d);
-                if (fStatus === 'pago' && d.status !== 'realizado') return false;
-                if (fStatus === 'atrasado' && !atrasada) return false;
-                if (fStatus === 'a_vencer' && (d.status === 'realizado' || atrasada)) return false;
-                return true;
-            });
+            const filtradas = filtradasSemStatus.filter(d => fStatus === 'todos' || financeiroStatusSaida(d) === fStatus);
 
             // ENTREGA F.1 (21/09/2026) — os 4 KPIs (Previsto/Pago/Vencido/A
             // pagar) SAÍRAM daqui: vêm de fn_financeiro_totalizadores,
@@ -1141,8 +1163,8 @@ function financeiroRenderCabecalho(aba) {
                 if (d.incluirContabilidade === false) partes.push('Fora da contabilidade');
                 return ' · ' + partes.join(' · ');
             };
-            // v1.37.0 (P5a, RF-19.9) — compras de cartão viram UMA linha por fatura (a soma das
-            // compras desta competência); toque abre a fatura item a item (financeiroAbrirFatura).
+            // Compras de cartão viram UMA linha por fatura, no mês da fatura; toque abre a fatura item a item
+            // (financeiroAbrirFatura).
             const porFatura = new Map();
             const linhasLista = [];
             itens.forEach(d => {
@@ -1150,11 +1172,8 @@ function financeiroRenderCabecalho(aba) {
                 if (!porFatura.has(d.faturaId)) { const g = { faturaId: d.faturaId, itens: [] }; porFatura.set(d.faturaId, g); linhasLista.push({ g }); }
                 porFatura.get(d.faturaId).itens.push(d);
             });
-            if (porFatura.size && financeiroFaturasInfo.clienteId !== CLIENTE_ID_SUPABASE && !financeiroFaturasCarregando) {
-                financeiroGarantirFaturas().then(() => renderSaidas());
-            }
             const cards = linhasLista.map(({ d, g }) => {
-                if (g) return financeiroLinhaFaturaHtml(g, rsS);
+                if (g) return financeiroLinhaFaturaHtml(g, rsS, filtroDeItem);
                 const atrasada = estaAtrasadaDespesa(d);
                 const pago = d.status === 'realizado';
                 const st = pago ? rsS('ok', 'Pago') : atrasada ? rsS('bad', 'Em atraso') : rsS('run', 'A pagar');
@@ -1207,13 +1226,17 @@ function financeiroRenderCabecalho(aba) {
             const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
             return (f.data_vencimento && new Date(f.data_vencimento + 'T00:00:00') < hoje) ? rs('bad', 'Em atraso') : rs('run', 'A pagar');
         }
-        function financeiroLinhaFaturaHtml(g, rs) {
+        // Linha da fatura em Saídas: sem filtro de item, mostra a fatura inteira (total, compras e a classificar vêm de
+        // fn_fatura_listar); com filtro (conta, categoria, ativo, fornecedor ou busca), só as compras que passaram nele.
+        function financeiroLinhaFaturaHtml(g, rs, filtroDeItem) {
             const f = financeiroFaturasInfo.porId[g.faturaId];
-            const soma = g.itens.reduce((t, i) => t + Number(i.valor || 0), 0);
-            const ac = g.itens.filter(i => i.categoria === 'a_classificar').length;
+            const inteira = f && !filtroDeItem;
+            const soma = inteira ? Number(f.valor_total || f.soma_itens || 0) : g.itens.reduce((t, i) => t + Number(i.valor || 0), 0);
+            const ac = inteira ? Number(f.qtd_a_classificar || 0) : g.itens.filter(i => i.categoria === 'a_classificar').length;
+            const nCompras = inteira ? Number(f.qtd_itens || 0) : g.itens.length;
             const quem = f && f.titular_tipo === 'pessoa' ? `Cartão de ${escapeHtmlSaidas(f.titular_nome || '')} · ` : '';
             const venc = f?.data_vencimento ? `vence ${formatarDataBR(f.data_vencimento)} · ` : '';
-            const qtd = g.itens.length === 1 ? '1 compra' : `${g.itens.length} compras`;
+            const qtd = nCompras === 1 ? '1 compra' : `${nCompras} compras`;
             return `
                     <div class="rz-row rz-link" onclick="financeiroAbrirFatura('${g.faturaId}')">
                         <div class="rz-ic rz-ia"><svg data-lucide="credit-card"></svg></div>
@@ -1328,7 +1351,8 @@ function financeiroRenderCabecalho(aba) {
                     rzToast('Compra excluída. Ela só volta importando a fatura de novo.', { tipo: 'success' });
                     financeiroDepoisDeMudarFatura(f.id);
                 } });
-            abrirSheetAcoes({ titulo: escapeHtmlSaidas(i.descricao), sub: `${i.compra ? 'Compra ' + formatarDataBR(i.compra) + ' · ' : ''}${formatarMoedaBR(Math.abs(i.valor))}`, acoes });
+            // nível 2 por cima da fatura: Cancelar volta para a fatura, não para a lista de Saídas
+            abrirSheetAcoes({ titulo: escapeHtmlSaidas(i.descricao), sub: `${i.compra ? 'Compra ' + formatarDataBR(i.compra) + ' · ' : ''}${formatarMoedaBR(Math.abs(i.valor))}`, acoes, empilhar: true });
         }
 
         /** Resumo da conciliação da compra de cartão — mesmo formato do extrato (data e hora, origem, modo, canal). */

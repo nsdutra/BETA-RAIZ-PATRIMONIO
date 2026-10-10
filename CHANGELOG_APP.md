@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.329.1) — correções do teste da F2.8 (Nicola 08/10 20:39). Página pública dos imóveis
+compartilhados no tema claro (CSS .rz-pub*, body.rz-pub-body) e "Fechar" como botão-ícone. Import map:
+vitrine.js 1.4.1 (página clara; a lista de Compartilhar relê os imóveis ao abrir). Nenhum objeto de
+banco criado por este arquivo.
+Versão anterior (Beta v1.329.0):
+------------------------------------------------------------------
+Versões anteriores (v1.329.0 … v1.329.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.329.0) — UX F2.8, Compartilhar imóveis ("Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09).
 "Vitrine" vira "Compartilhar": a tela tab-vitrine vira lista com seleção (toque marca) e o botão fixo
 "Compartilhar n imóveis" (.rz-acao-fixa) abre WhatsApp, Copiar link e Abrir a página com um link só;
