@@ -4,6 +4,15 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.346.2) — Correção urgente: import map com cofre-ativos.js 1.85.1 (a 1.85.0 não carregava a aba Ativos).
+Versão anterior (Beta v1.346.1):
+------------------------------------------------------------------
+Versões anteriores (v1.346.1 … v1.346.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.346.1) — sessão 20261009-2055-integridade (demandas d471a7a8 e 1036fc4e, planos aprovados pelo
 Nicola 10/10 09:57 e 10:11): só o import map — financeiro.js 1.42.0 (importar fatura pergunta se já foi paga; compra
 de cartão abre a fatura; linha da fatura com a soma das compras). Nenhuma linha do index mudou.
