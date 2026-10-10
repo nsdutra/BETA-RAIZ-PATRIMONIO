@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.337.0) — UX F2.5b e correções da F2.5a (demanda 639bbcd0; plano F2.5 aprovado pelo Nicola 09/10
+23:5x; teste da F2.5a em 10/10 00:06). Menu do avatar: todo item com descrição; tela aberta pelo menu volta a ele
+("‹ Menu", rzMenuOrigemTab/rzReabrirMenu, também no voltar do celular); Relatórios sem o segmento Desempenho ·
+Relatórios. Minha empresa em ficha com chips (comum-minha-empresa.js 1.13.0): os boxes Documentos e Controles
+da empresa ganham id (me-box-documentos, me-box-controles) e entram como ctx.extras. CSS: .rz-btn[hidden],
+.rz-card[hidden]. Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.336.1):
+------------------------------------------------------------------
+Versões anteriores (v1.336.1 … v1.336.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.336.1) — "Vinculo topo ok" do Nicola (09/10 22:45). Financeiro: o vínculo (Empresa ou um
 ativo) passa a ser o primeiro campo da despesa e da receita sem contrato, com o rótulo "Vínculo". Só posição e
 rótulo (financeiro.js 1.40.1). Import map: financeiro.js 1.40.1. Nenhum objeto de banco criado por este arquivo.

@@ -1,6 +1,16 @@
 // ============================================================================
 // comum-licenca.js — Raiz Patrimônio · Administração compartilhada
-// Versão: 1.6.1 · 08/10/2026
+// Versão: 1.7.0 · 10/10/2026
+//
+// v1.7.0 (UX F2.5d, demanda 639bbcd0, sessão 20261003-1707-ux-base; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
+// ESTUDO 9A.4) — Licença vira ficha com chips, um assunto por chip:
+//   · Plano: status, plano e vigência (com "Renovar ou ampliar o plano"), Contratar e convidar e Dúvidas sobre o plano;
+//   · Uso: os limites do plano com a barra de uso; o chip mostra quantos limites estão em 80% ou mais (tom --warning,
+//     o mesmo padrão de pendência no chip da Minha empresa).
+//   O texto de topo sai (a tela abre direto no chip Plano). Pagamentos fica para quando houver leitura do histórico
+//   pelo cliente: as tabelas comercial.plano_contratado* só abrem para o master (ficha pendente do de acordo).
+//
+// Versão anterior: 1.6.1 · 08/10/2026
 //
 // v1.6.1 (UX F2.7c-1, correção do teste do Nicola 08/10 13:48; demanda b8602a3a) — "Contratar e
 // convidar" tratava como teste toda licença com data de término, e plano pago também tem término
@@ -31,19 +41,11 @@
 //
 // v1.5.1 — pedido do Nicola (01/10): a lista "Limites do plano" deixa de ter
 // rolagem própria (max-h-96 overflow-y-auto saiu); a tela rola inteira.
-//
-// Versão anterior: 1.5.0 · 30/09/2026
-//
-// v1.5.0 — RENOVAR OU AMPLIAR (demanda 1899fe67, ficha F10, frente 1). O card
-// "Plano atual" ganha uma linha "Renovar ou ampliar o plano" (só para o módulo
-// imoveis, que é o que fn_ofertas_renovacao cobre) que abre o Sheet de
-// js/comum-renovacao.js (ofertas, QR Pix, "Já paguei"). ctx.toast é opcional.
-// Nenhuma regra de porta/limite mudou.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.4.0 … v1.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.5.0 … v1.5.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.6.1'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.7.0'; // v-check (22/09/2026): lido por Dev › Versões — manter igual ao header
 export const COMUM_LICENCA_VERSAO = '1.0.0';
 
 // ----------------------------------------------------------------------------
@@ -368,6 +370,7 @@ export function ligarContratarConvidar(raiz, { dbAuth, clienteId, pessoaId, lice
     }));
 }
 
+// F2.5d — devolve os dois pedaços da ficha: { plano, uso, alerta } (alerta = limites em 80% ou mais).
 function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
     const st = statusLicenca(licenca);
     const inicio = licenca.data_inicio ? dataLocal(licenca.data_inicio).toLocaleDateString('pt-BR') : '—';
@@ -388,7 +391,8 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
             </div>`;
         }).join('');
 
-    return `
+    const alerta = funcionalidades.filter(f => f.limite && (f.usado / f.limite) >= 0.8).length;
+    const plano = `
         <div class="rz-card">
             <div class="rz-card-h"><h3>${titulo}</h3><span class="rz-st ${st.cls}">${esc(st.txt)}</span></div>
             <div class="rz-kv">
@@ -396,11 +400,13 @@ function cardLicencaHtml(licenca, funcionalidades, mostrarRotuloModulo) {
                 <div><small>Vigência</small><b>${esc(inicio)} até ${esc(fim)}</b></div>
             </div>
             ${licenca.modulo === 'imoveis' ? `<div class="rz-row rz-link" data-rz-renovar="1" style="margin-top:8px"><div class="rz-ic"><svg data-lucide="refresh-cw"></svg></div><div class="rz-tx"><b>Renovar ou ampliar o plano</b><span>Ver ofertas e pagar por Pix</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></div>` : ''}
-        </div>
+        </div>`;
+    const uso = `
         <div class="rz-card">
-            <div class="rz-card-h"><h3>Limites do plano</h3></div>
+            <div class="rz-card-h"><h3>${mostrarRotuloModulo ? `Limites · ${esc(NOMES_MODULO[licenca.modulo] || licenca.modulo)}` : 'Limites do plano'}</h3></div>
             ${funcsHtml}
         </div>`;
+    return { plano, uso, alerta };
 }
 
 const CARD_DUVIDAS = `<div class="rz-card"><div class="rz-card-h"><h3>Dúvidas sobre o plano?</h3></div>${linhaLink({ href: LINK_CONTATOS_RAIZ, icone: 'message-circle', titulo: 'Fale com a Raiz', sub: 'Contatos na página raizpatrimonio.com.br' })}</div>`;
@@ -410,7 +416,7 @@ const CARD_DUVIDAS = `<div class="rz-card"><div class="rz-card-h"><h3>Dúvidas s
 export async function montarAbaLicenca(mountEl, ctx) {
     if (!mountEl) return;
     const { dbAuth, clienteId, pessoaId } = ctx || {};
-    const topo = '<div class="rz-tabhead"><p>O plano da sua empresa, o quanto já foi usado, e como contratar, ampliar ou convidar alguém.</p></div>';
+    const topo = ''; // F2.5d — a ficha abre direto no chip Plano (sem texto de topo)
 
     mountEl.innerHTML = topo + (typeof window !== 'undefined' && typeof window.rzSkeleton === 'function' ? window.rzSkeleton('cards', 2) : '<p class="rz-desc">Carregando…</p>');
 
@@ -438,15 +444,30 @@ export async function montarAbaLicenca(mountEl, ctx) {
                 return cardLicencaHtml(lic, funcs, mostrarRotuloModulo);
             } catch (err) {
                 console.warn('[comum-licenca] Falha ao carregar funcionalidades do módulo', lic.modulo, ':', err.message);
-                return cardLicencaHtml(lic, [], mostrarRotuloModulo) +
-                    '<p class="rz-desc" style="color:var(--danger);margin-bottom:12px">Não foi possível carregar os limites deste plano agora.</p>';
+                const b = cardLicencaHtml(lic, [], mostrarRotuloModulo);
+                b.uso = '<div class="rz-card"><p class="rz-desc">Não foi possível carregar os limites deste plano agora.</p></div>';
+                return b;
             }
         }));
+        const alertas = blocos.reduce((s, b) => s + b.alerta, 0);
 
         const principal = escolherLicencaPrincipal(licencas);
         const convite = await htmlContratarConvidar(dbAuth, clienteId, principal);
 
-        mountEl.innerHTML = topo + blocos.join('') + convite + CARD_DUVIDAS;
+        // F2.5d — ficha com chips: Plano · Uso (quantidade de limites em 80% ou mais no chip, tom --warning)
+        mountEl.innerHTML = `
+            <div class="rz-chips" id="lic-chips" role="tablist" aria-label="Licença">
+                <button type="button" role="tab" class="rz-chip rz-on" data-lic-chip="plano" aria-selected="true">Plano</button>
+                <button type="button" role="tab" class="rz-chip${alertas ? ' rz-warn' : ''}" data-lic-chip="uso" aria-selected="false"${alertas ? ` aria-label="Uso, ${alertas} ${alertas === 1 ? 'limite perto do fim' : 'limites perto do fim'}"` : ''}>Uso${alertas ? ` <span class="rz-n">${alertas}</span>` : ''}</button>
+            </div>
+            <div data-lic-pane="plano">${blocos.map(b => b.plano).join('')}${convite}${CARD_DUVIDAS}</div>
+            <div data-lic-pane="uso" hidden>${blocos.map(b => b.uso).join('')}</div>`;
+        mountEl.querySelector('#lic-chips').addEventListener('click', (ev) => {
+            const c = ev.target.closest('[data-lic-chip]'); if (!c) return;
+            const k = c.dataset.licChip;
+            mountEl.querySelectorAll('[data-lic-chip]').forEach(x => { const on = x === c; x.classList.toggle('rz-on', on); x.setAttribute('aria-selected', on ? 'true' : 'false'); });
+            mountEl.querySelectorAll('[data-lic-pane]').forEach(p => { p.hidden = p.dataset.licPane !== k; });
+        });
         ligarContratarConvidar(mountEl, { dbAuth, clienteId, pessoaId, licenca: principal, origem: 'licenca' });
         mountEl.querySelectorAll('[data-rz-renovar]').forEach((el) => el.addEventListener('click', async () => {
             try {
