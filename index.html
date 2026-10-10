@@ -6,9 +6,13 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.347.0
-   LINHAS: 17272
+   VERSÃO: Beta v1.348.0
+   LINHAS: 17273
    DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.348.0) — Tonalidade completa (Nicola 10/10 10:45): o botão + das telas (.rz-ico-btn.rz-primary), o
+   ícone e a linha do item ativo da barra de baixo e o fundo do avatar passam a seguir o ramo da lente. Resultados
+   por ramo (F23) em js/resultados.js 2.9.0.
+   Versão anterior (Beta v1.347.0):
    NOVIDADES (Beta v1.347.0) — Hoje pelos ramos (Nicola 10/10 10:22). O app sempre abre em Todo o patrimônio (a lente
    não fica mais guardada). Minha Gestão e Fique por dentro seguem a lente: a nota de organização só nos ramos com
    valor, "Para você" e Novidades do Raiz só em Todo o patrimônio, Indicadores de mercado em Todo o patrimônio e
@@ -26,12 +30,8 @@
    chips pelo ramo e "Novo ativo" só com os tipos do ramo. Aqui só expõe rzRamoAtual() e escolherGeralRamo ao módulo.
    Import map: cofre-ativos.js 1.85.0, cofre-validacoes.js 2.5.0.
    Versão anterior (Beta v1.345.1):
-   NOVIDADES (Beta v1.345.1) — Lente de ramo enxuta (Nicola 10/10 10:10: "o seletor ocupou muito do cabeçalho"): vira um
-   botão redondo de 40 px, como o Raiz IA e o avatar, com a cor e o ícone do ramo (camadas em Todo o patrimônio,
-   prédio em Imóveis, pessoas na Família, carro em Outros bens). O nome do ramo fica no aria-label e na lista.
-   Versão anterior (Beta v1.345.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.345.0 … v1.345.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.345.1 … v1.345.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -56,7 +56,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.85.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.8.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.1.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.85.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.1.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -383,7 +383,7 @@
         .rz-seg button.rz-off{opacity:.5}.rz-seg button.rz-off::before{content:'🔒';font-size:12px;margin-right:2px}
         #bottom-nav-bar button.bottomnav-active::before{
             content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
-            width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--sprout);
+            width:28px;height:3px;border-radius:0 0 3px 3px;background:var(--ramo-acc);
         }
 
         .rubrica-digital {
@@ -447,6 +447,7 @@
         :root[data-ramo="outros"]:not([data-theme="dark"]){--paper:#f2f3f2}
         .rz-hdr .rz-lente{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;background:rgba(255,255,255,.14);box-shadow:0 0 0 1px rgba(255,255,255,.3)}
         .rz-hdr .rz-lente svg{width:19px;height:19px}
+        :root[data-ramo] .rz-hdr .rz-avatar{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3)} /* v1.348.0 */
         :root[data-ramo] .rz-hdr .rz-lente{background:var(--ramo-acc);box-shadow:0 0 0 3px rgba(255,255,255,.22)}
         /* v1.347.0 — Visão geral: uma seção por ramo em Todo o patrimônio (protótipo PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0) */
         .rz-ramo-sec{margin:18px 0 6px}
@@ -515,7 +516,7 @@
            Geral, REGRAS §5: badge só em Visão Geral e Financeiro). */
         .rz-ico-btn .rz-dot{position:absolute;top:9px;right:9px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid #fff}
         .rz-ico-btn .rz-dot.rz-warn{background:var(--warning)}
-        .rz-ico-btn.rz-primary{background:var(--pine);color:#fff;border-color:var(--pine)}
+        .rz-ico-btn.rz-primary{background:var(--ramo-hdr);color:#fff;border-color:var(--ramo-hdr)}
         .rz-ico-btn svg{width:20px;height:20px}
         .rz-back{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--pine);margin-bottom:12px}
         .rz-back svg{width:16px;height:16px}
@@ -3716,7 +3717,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.347.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.348.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -9341,8 +9342,8 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 btnDestaque.classList.add('bottomnav-active');
                 const svg = btnDestaque.querySelector('svg');
                 const label = btnDestaque.querySelector('span');
-                if (svg) svg.style.color = 'var(--sprout)';
-                if (label) label.style.color = 'var(--sprout)';
+                if (svg) svg.style.color = 'var(--ramo-acc)'; // v1.348.0 — segue o ramo da lente
+                if (label) label.style.color = 'var(--ramo-acc)';
             }
 
             devLog("NAVEGACAO", `Usuário acessou a aba: ${tabId}`);

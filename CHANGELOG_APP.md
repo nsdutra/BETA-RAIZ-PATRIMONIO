@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.345.1) — Lente de ramo enxuta (Nicola 10/10 10:10: "o seletor ocupou muito do cabeçalho"): vira um
+botão redondo de 40 px, como o Raiz IA e o avatar, com a cor e o ícone do ramo (camadas em Todo o patrimônio,
+prédio em Imóveis, pessoas na Família, carro em Outros bens). O nome do ramo fica no aria-label e na lista.
+Versão anterior (Beta v1.345.0):
+------------------------------------------------------------------
+Versões anteriores (v1.345.0 … v1.345.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.345.0) — Ramos no app (fichas F21/F22, "De acordo" do Nicola 10/10 02:52; protótipo
 PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0). A lente de ramo vai para o cabeçalho ("Todo o patrimônio ▾"): Imóveis,
 Família, Outros bens; Agro e Pecuária em breve. A escolha fica guardada no aparelho e muda a tonalidade do app

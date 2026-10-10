@@ -1,7 +1,15 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.8.0 (10/10/2026 — demanda f3e6cd27)
+// VERSÃO: Beta v2.9.0 (10/10/2026 — demanda f3e6cd27)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.9.0) — F23 (resultados por ramo; Nicola 10/10 10:45, "opção b"):
+//   — As funções de resultado recebem p_ramo. Num ramo que soma valor (Imóveis, Outros bens) o Hoje volta a ter
+//     o herói completo (patrimônio, resultado do ano, rentabilidade, ocupação, inadimplência) e os cards do ramo;
+//     os cards de locação e a comparação com indicadores ficam em Todo o patrimônio e Imóveis.
+//   — Família (não soma valor): herói com as vidas, e os cards Resultado mês a mês e Por grupo das despesas das vidas.
+//   — Em Todo o patrimônio, um card "Geral · sem ativo": o que foi lançado sem ativo, que não entra em ramo nenhum.
+// Versão anterior: Beta v2.8.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.8.0) — sessão 20261008-1231-pessoas-ativos; pedido do Nicola 10/10 10:22:
 //   — Herói de Todo o patrimônio diz "Todo o patrimônio" (era "Patrimônio sob gestão").
@@ -37,23 +45,11 @@
 //     IPCA e IGP-M; trocarIndicadorComparacao). Indicador continua linha de referência tracejada (REGRAS §18).
 //   — Indicadores de mercado voltam aos quadrantes, agora em blocos separados (nome e mês no topo, valor,
 //     12 meses embaixo).
-// Versão anterior: Beta v2.4.0
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v2.4.0) — sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 09/10 ("De acordo, tudo
-//   numa entrega só"; gráficos "no modelo da McKinsey"):
-//   — Gráficos de colunas no padrão executivo (PADRAO_RELATORIOS REL-13/23/25/50/52/53, referência McKinsey):
-//     título que diz a conclusão, medida e unidade embaixo, valor em cima de cada coluna na unidade do
-//     subtítulo, zero como base (mês negativo desce), colunas em cinza com um destaque só, mês por vir
-//     apagado e a fonte embaixo. Vale para Resultado mês a mês, Reajustes no ano e Revisional/Renovação
-//     (colunasExecutivasSvg).
-//   — O card Indicadores sai de Resultados e vira "Indicadores de mercado" no chip Fique por dentro do Hoje
-//     (renderIndicadoresMercado), em linhas: nome · mês · valor do mês · 12 meses. A leitura de
-//     fn_indicadores_resumo sai de renderizarConteudo.
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.3.1 … v2.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.4.0 … v2.4.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.8.0';
+export const VERSAO = '2.9.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -200,7 +196,7 @@ function montarHeroi(resumo, perf, carregando) {
             </div>
             <button type="button" class="rz-heroi-exp" onclick="abrirResultadosExportar()" aria-label="Exportar"><svg data-lucide="share"></svg></button>
         </div>
-        <small>Todo o patrimônio</small>
+        <small>${filtro.ramo === 'tudo' ? 'Todo o patrimônio' : String(ramoInfo?.nome || '').replace(/[<>&"]/g, '')}</small>
         <b class="rz-heroi-pat">${tem ? formatarPatrimonioCompacto(patrimonio) : traco}</b>
         ${ativosTxt ? `<small>${ativosTxt}</small>` : ''}
         <div class="rz-heroi-res">
@@ -266,46 +262,30 @@ async function renderizarConteudo() {
     const alvo = document.getElementById('resultados-conteudo');
     if (!alvo) return;
     const minha = ++geracao; // v2.0.0
-    if (filtro.ramo !== 'tudo') { // v2.7.0 (F21) — num ramo: valor e quantidade do ramo; resultados em Todo o patrimônio
-        const { data, error } = await dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia, uso, tipo_detalhe:ativo_tipos(ramo)')
-            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
-        if (minha !== geracao) return;
-        if (error) console.warn('[resultados] ativos do ramo:', error.message);
-        const usoSel = CONTEXTO_USO[filtro.contexto];
-        const ramoDe = typeof rzRamoDoAtivo === 'function' ? rzRamoDoAtivo : (x => x?.tipo_detalhe?.ramo || 'outros');
-        const L = (data || []).filter(x => ramoDe(x) === filtro.ramo
-            && (!usoSel || (usoSel === 'nao_comercial' ? x.uso !== 'comercial' : x.uso === usoSel)));
-        const heroiR = document.getElementById('hoje-heroi-mount');
-        if (heroiR) heroiR.innerHTML = montarHeroiRamo(error ? null : { qtd: L.length, valor: L.reduce((t, x) => t + (Number(x.valor_referencia) || 0), 0) });
-        const aviso = '<p class="rz-desc">Receitas e despesas por ramo chegam em breve. Por enquanto, os resultados estão em Todo o patrimônio.</p>';
-        if (filtro.ramo !== 'imoveis') { alvo.innerHTML = aviso; if (typeof rzIcones === 'function') rzIcones(); return; }
-        // v2.8.0 — Imóveis: os cards da carteira (contratos de locação), com o uso escolhido
-        const p_uso = CONTEXTO_USO[filtro.contexto];
-        const [concR, reajR, revR, indicesR] = await Promise.all([
-            dbAuth.rpc('fn_carteira_concentracao', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano }),
-            dbAuth.rpc('fn_carteira_reajustes_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso }),
-            dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso }),
-            dbAuth.rpc('fn_carteira_indices_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE }),
+    const p_ramo = filtro.ramo === 'tudo' ? null : filtro.ramo; // v2.9.0 (F23)
+    if (p_ramo && ramoInfo && ramoInfo.soma_valor === false) { // v2.9.0 — ramo de contagem (Família): vidas + despesas do ramo
+        const [ativosR, mensalF, grupoF] = await Promise.all([
+            dbAuth.from('cofre_ativos').select('tipo_ativo, tipo_detalhe:ativo_tipos(ramo)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo'),
+            dbAuth.rpc('fn_resultado_mensal', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: 'carteira', p_id: null, p_uso: null, p_ramo }),
+            dbAuth.rpc('fn_resultado_por_grupo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: 'carteira', p_id: null, p_uso: null, p_ramo }),
         ]);
         if (minha !== geracao) return;
-        const reajustesI = reajR.error ? [] : (reajR.data || []);
-        const revisionaisI = revR.error ? [] : (revR.data || []);
-        alvo.innerHTML = `<h3 class="rz-plain-title">Carteira de imóveis · ${filtro.ano}</h3>` + [
-            montarContratosPorIndice(indicesR),
-            concR.error ? '' : montarConcentracao(concR.data || []),
-            montarReajustesCalendario(reajustesI),
-            montarRevisionaisCalendario(revisionaisI),
-        ].filter(Boolean).join('') + aviso;
+        const ramoDe = typeof rzRamoDoAtivo === 'function' ? rzRamoDoAtivo : (x => x?.tipo_detalhe?.ramo || 'outros');
+        const qtd = ativosR.error ? null : (ativosR.data || []).filter(x => ramoDe(x) === p_ramo).length;
+        const heroiR = document.getElementById('hoje-heroi-mount');
+        if (heroiR) heroiR.innerHTML = montarHeroiRamo(qtd == null ? null : { qtd, valor: 0 });
+        alvo.innerHTML = [
+            mensalF.error ? '' : montarGraficoMensal(mensalF.data || []),
+            grupoF.error ? '' : montarPorGrupo(grupoF.data || []),
+        ].filter(Boolean).join('') || '<p class="rz-desc">Nenhuma despesa lançada para este ramo no ano.</p>';
         if (typeof rzIcones === 'function') rzIcones();
-        ligarBarrasCalendario('.rz-res-barra-mes', reajustesI, abrirResultadosMesReajuste);
-        ligarBarrasCalendario('.rz-res-barra-revisional', revisionaisI, abrirResultadosMesRevisional);
         return;
     }
     const p_uso = CONTEXTO_USO[filtro.contexto];
     const nivel = filtro.abrangencia; // 'carteira' | 'empreendimento'
     const alvoId = filtro.abrangencia === 'empreendimento' ? filtro.alvoId : null;
-    // v1.8.0 — cards de carteira alugada só fora de Família (Tudo e Comercial)
-    const cardsLocacao = filtro.abrangencia === 'carteira' && filtro.contexto !== 'familia';
+    // v1.8.0 — cards de carteira alugada só fora de Família (Tudo e Comercial); v2.9.0 — e só em Todo o patrimônio ou Imóveis
+    const cardsLocacao = filtro.abrangencia === 'carteira' && filtro.contexto !== 'familia' && (!p_ramo || p_ramo === 'imoveis');
 
     try {
         // v1.3.0 (B1.2) — 2 chamadas novas, só no contexto que mostra os 2
@@ -317,26 +297,26 @@ async function renderizarConteudo() {
         // sentido, a leitura é sempre da carteira.
         const [resumoR, perfR, mensalR, concR, reajR, revR, graficoIndR, grupoR, indicesR] = await Promise.all([
             filtro.abrangencia === 'carteira'
-                ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
+                ? dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano, p_ramo })
                 : Promise.resolve({ data: null }),
             filtro.abrangencia === 'carteira'
-                ? dbAuth.rpc('fn_performance_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano })
+                ? dbAuth.rpc('fn_performance_carteira', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano, p_ramo })
                 : dbAuth.rpc('fn_performance_empreendimento', { p_empreendimento_id: alvoId, p_ano: filtro.ano, p_uso }),
-            dbAuth.rpc('fn_resultado_mensal', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso }),
+            dbAuth.rpc('fn_resultado_mensal', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso, p_ramo }),
             cardsLocacao
                 ? dbAuth.rpc('fn_carteira_concentracao', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano })
                 : Promise.resolve({ data: [] }),
             cardsLocacao
-                ? dbAuth.rpc('fn_carteira_reajustes_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
+                ? dbAuth.rpc('fn_carteira_reajustes_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso, p_ramo })
                 : Promise.resolve({ data: [] }),
             // v1.1.0 — card novo, mesmo desenho do de reajustes, mas pelo
             // mês de TÉRMINO do contrato (fn_carteira_revisionais_*, nova).
             cardsLocacao
-                ? dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso })
+                ? dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso, p_ramo })
                 : Promise.resolve({ data: [] }),
-            filtro.contexto === 'familia' ? Promise.resolve({ data: [] }) : lerSeriesComparacao(), // v2.5.0 — até 2 indicadores
+            (filtro.contexto === 'familia' || (p_ramo && p_ramo !== 'imoveis')) ? Promise.resolve({ data: [] }) : lerSeriesComparacao(), // v2.5.0 — até 2 indicadores
             // v2.3.0 — abertura por grupo (nível 1 da árvore); erro aqui só esconde o card
-            dbAuth.rpc('fn_resultado_por_grupo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso }),
+            dbAuth.rpc('fn_resultado_por_grupo', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_nivel: nivel, p_id: alvoId, p_uso, p_ramo }),
             // v2.5.0 — contratos por índice; sem o código resultados.indicadores a função recusa e o card fica bloqueado
             cardsLocacao ? dbAuth.rpc('fn_carteira_indices_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE }) : Promise.resolve({ data: null }),
         ]);
@@ -362,9 +342,22 @@ async function renderizarConteudo() {
         // v2.0.0 (UXR-17) — os números de cima vão para o herói de Hoje; os cards ficam abaixo
         const heroiEl = document.getElementById('hoje-heroi-mount');
         if (heroiEl) heroiEl.innerHTML = montarHeroi(resumo, perf);
+        // v2.9.0 (F23, opção b) — Geral: o que foi lançado sem ativo; só em Todo o patrimônio, nível carteira
+        let cardGeral = '';
+        if (!p_ramo && filtro.abrangencia === 'carteira') {
+            const g = await dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso, p_ano: filtro.ano, p_ramo: 'geral' });
+            if (minha !== geracao) return;
+            const gr = !g.error ? (Array.isArray(g.data) ? g.data[0] : g.data) : null;
+            if (gr && (Number(gr.saidas_ano) || Number(gr.resultado_liquido_ano))) {
+                const desp = Number(gr.saidas_ano) || 0, rec = (Number(gr.resultado_liquido_ano) || 0) + desp;
+                const fmt = v => formatarMoedaBR(v || 0, { semCentavos: true });
+                cardGeral = `<div class="rz-card"><h3 class="rz-plain-title">Geral · sem ativo · ${filtro.ano}</h3><p class="rz-desc">Lançamentos que não estão ligados a um ativo: contam em Todo o patrimônio e em ramo nenhum. Receitas ${fmt(rec)} · despesas ${fmt(desp)}.</p></div>`;
+            }
+        }
         alvo.innerHTML = [
             montarGraficoMensal(mensal), // v2.4.0 — Indicadores foi para o Fique por dentro (renderIndicadoresMercado)
             montarPorGrupo(porGrupo), // v2.3.0
+            cardGeral, // v2.9.0 (F23)
             cardsLocacao ? montarContratosPorIndice(indicesR) : '', // v2.5.0
             montarGraficoIndicador(graficoIndicador),
             cardsLocacao ? montarConcentracao(concentracao) : '',
