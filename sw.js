@@ -1,5 +1,14 @@
 // Raiz Patrimônio — Service Worker
-// Versão: 3.0 · 04/10/2026
+// Versão: 3.1 · 10/10/2026
+//
+// v3.1 (10/10/2026, demanda 7220bf36, sessão 20261008-1231-pessoas-ativos; pedido do Nicola 10/10 20:08 "Estou na
+// versão 328. Algo deu erro, veja se pode publicar novamente") — o app abria uma cópia ANTIGA da página quando a rede
+// demorava mais de 4 s (o index tem ~1 MB), e com ela vinham os módulos antigos: o publicado era a v1.353.0 e o
+// celular mostrava a v1.328.0. Agora:
+//   · Página: rede primeiro, esperando até 15 s; a cópia guardada só entra sem rede ou depois disso.
+//   · Toda página que chega pela rede renova as cópias "./" e "index.html" (antes ficavam as da instalação).
+//   · Cache novo (raiz-app-v4): ao ativar, o SW apaga o cache antigo, com a cópia velha da página.
+// Versão anterior: 3.0 · 04/10/2026
 //
 // v3.0 (UX F1.4b, demanda 38407410, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola
 // 04/10 15:46 — "abrir sem rede", só consulta) — o app passa a abrir sem rede.
@@ -43,7 +52,7 @@
 // não mudou, custo mínimo) em vez de servir do cache sem perguntar. Nada é
 // guardado pelo SW; se estiver offline, cai no comportamento padrão.
 
-var RZ_CACHE = 'raiz-app-v3';
+var RZ_CACHE = 'raiz-app-v4'; // v3.1 — trocar o nome apaga o cache com a página antiga
 var RZ_CDN = /^https:\/\/(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
 self.addEventListener('install', function (event) {
@@ -81,7 +90,11 @@ function guardar(req, resp) {
 }
 function redePrimeiro(req, opcoesFetch, limiteMs) {
     // navegação não aceita opções no fetch (modo 'navigate'): vai sem elas
-    var rede = (opcoesFetch ? fetch(req, opcoesFetch) : fetch(req)).then(function (resp) { return guardar(req, resp); });
+    var rede = (opcoesFetch ? fetch(req, opcoesFetch) : fetch(req)).then(function (resp) {
+        // v3.1 — página nova pela rede renova também as cópias de "./" e "index.html", que são o plano B sem rede
+        if (req.mode === 'navigate' && resp && resp.ok) { guardar('./', resp.clone()); guardar('index.html', resp.clone()); }
+        return guardar(req, resp);
+    });
     var comLimite = limiteMs ? Promise.race([rede, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('lento')); }, limiteMs); })]) : rede;
     return comLimite.catch(function () {
         var busca = req.mode === 'navigate'
@@ -108,7 +121,7 @@ self.addEventListener('fetch', function (event) {
     if (req.method !== 'GET') return; // padrão do navegador
     var url = new URL(req.url);
     if (url.origin === self.location.origin) {
-        if (req.mode === 'navigate') { event.respondWith(redePrimeiro(req, null, 4000)); return; }
+        if (req.mode === 'navigate') { event.respondWith(redePrimeiro(req, null, 15000)); return; } // v3.1 — 15 s (era 4 s)
         if (url.pathname.endsWith('.js') && url.searchParams.has('v')) { event.respondWith(cacheDepoisRede(req)); return; }
         if (url.pathname.endsWith('.js') || url.pathname.endsWith('versoes.json')) { event.respondWith(redePrimeiro(req, { cache: 'reload' })); return; }
         if (/\.(png|svg|ico|webp|json)$/.test(url.pathname)) { event.respondWith(cacheEAtualiza(req)); return; }
