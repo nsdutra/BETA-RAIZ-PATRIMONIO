@@ -1,7 +1,16 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.5.0 (09/10/2026 — demanda 4de70503)
+// VERSÃO: Beta v2.6.0 (10/10/2026 — demanda f3e6cd27)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.6.0) — sessão 20261008-1231-pessoas-ativos; ficha F20 e protótipo PROTOTIPO_HOJE_ANEL_RAMO_RAIZ
+//   v1.2.0 aprovados pelo Nicola 10/10 ("De acordo"):
+//   — O herói troca o "Tudo · Comercial · Família" pelo RAMO: Tudo · Patrimônio · Família · Agro (em breve,
+//     travado). O uso (Todos · Comercial · Uso próprio) aparece só dentro de Patrimônio; "Uso próprio" é o
+//     antigo "Família" de uso (nao_comercial), com o mesmo cálculo de custo.
+//   — Ramo Família: o herói mostra quantos cadastros a família tem (pessoas e pets não têm valor) e os cards
+//     de Resultados não aparecem — as funções de resultado ainda não recortam por ramo.
+// Versão anterior: Beta v2.5.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.5.0) — sessão 20261003-1707-ux-base; pedido do Nicola 09/10 23:04 (itens 2 a 4):
 //   — Card novo "Contratos por índice" no Patrimônio (fn_carteira_indices_resumo, já existente): barras deitadas
@@ -38,17 +47,11 @@
 //   (repasses, venda de bem). Se a função falhar, só o card some; o resto da tela segue. Textos do ⓘ de
 //   Resultado mês a mês e Performance atualizados (receita inclui os recebimentos lançados de categoria de
 //   receita; o que está fora do resultado não entra). Sem style inline no código novo (REGRAS §17).
-// Versão anterior: Beta v2.2.0 (04/10/2026 — demanda e42f649b)
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v2.2.0) — frente 5, fatia 5B (sessão 20261004-1800-indicadores, "De acordo com
-//   5B" do Nicola 04/10 22:06): o card Indicadores ganha "Ver todos", que carrega o módulo novo
-//   js/indicadores.js (lazy) com Mês a mês · Sua carteira · Simulador. Sem o código
-//   resultados.indicadores, o botão aparece desabilitado com cadeado e o motivo (ACE-04).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.1.0 … v2.1.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.2.0 … v2.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.5.0';
+export const VERSAO = '2.6.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -56,12 +59,14 @@ export const VERSAO = '2.5.0';
 // module cache usado por carregarImoveis()/carregarContratos()).
 // ---------------------------------------------------------------------
 const ANO_ATUAL = new Date().getFullYear();
-let filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', alvoId: null, alvoNome: null };
+let filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', ramo: 'tudo', alvoId: null, alvoNome: null };
 // rascunho editado dentro do sheet Filtros, só vira `filtro` em Aplicar
 let rascunho = null;
 
 const CONTEXTO_USO = { tudo: null, comercial: 'comercial', familia: 'nao_comercial' };
-const CONTEXTO_ROTULO = { tudo: 'Tudo', comercial: 'Comercial', familia: 'Família' };
+const CONTEXTO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' }; // v2.6.0 — uso, dentro de Patrimônio
+// v2.6.0 (F20) — ramo do Hoje (ativo_tipos.ramo); Agro aparece travado até existir
+const RAMO_ROTULO = { tudo: 'Tudo', patrimonio: 'Patrimônio', familia: 'Família' };
 const ABRANGENCIA_ROTULO = { carteira: 'Carteira', empreendimento: 'Empreendimento', imovel: 'Imóvel' };
 const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const NOMES_MES_LONGO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -129,9 +134,13 @@ export async function renderResultados(opcoes) {
     const cards = document.getElementById('hoje-resultados-mount');
     if (!heroi || !cards || !CLIENTE_ID_SUPABASE) return;
     if (opcoes && Object.prototype.hasOwnProperty.call(CONTEXTO_USO, opcoes.contexto)) filtro.contexto = opcoes.contexto;
+    if (opcoes && Object.prototype.hasOwnProperty.call(RAMO_ROTULO, opcoes.ramo)) filtro.ramo = opcoes.ramo; // v2.6.0
+    if (filtro.ramo !== 'patrimonio') filtro.contexto = 'tudo'; // uso só existe dentro de Patrimônio
     filtro.abrangencia = 'carteira'; filtro.alvoId = null; filtro.alvoNome = null;
-    heroi.innerHTML = montarHeroi(null, null, true);
-    cards.innerHTML = `<h3 class="rz-plain-title">Resultados · ${filtro.ano}</h3><div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
+    heroi.innerHTML = filtro.ramo === 'familia' ? montarHeroiFamilia(null, true) : montarHeroi(null, null, true);
+    // v2.6.0 — no ramo Família os cards de Resultados não aparecem (as funções ainda não recortam por ramo)
+    cards.innerHTML = filtro.ramo === 'familia' ? '<div id="resultados-conteudo"></div>'
+        : `<h3 class="rz-plain-title">Resultados · ${filtro.ano}</h3><div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
     if (typeof rzIcones === 'function') rzIcones();
     await renderizarConteudo();
 }
@@ -177,9 +186,7 @@ function montarHeroi(resumo, perf, carregando) {
             celula('Inadimplência', tem ? moeda(inadimplencia) : traco, tem && Number(inadimplencia) > 0),
         ];
     const ativosTxt = totalAtivos == null ? '' : `${totalAtivos} ${Number(totalAtivos) === 1 ? 'ativo' : 'ativos'}`;
-    const seg = ['tudo', 'comercial', 'familia'].map(v =>
-        `<button type="button" onclick="escolherGeralUniverso('${v}')" class="${v === filtro.contexto ? 'rz-on' : ''}">${CONTEXTO_ROTULO[v]}</button>`
-    ).join('');
+    const seg = segRamoUsoHtml();
 
     return `<div class="rz-heroi"${carregando ? ' aria-busy="true"' : ''}>
         <div class="rz-heroi-top">
@@ -197,7 +204,30 @@ function montarHeroi(resumo, perf, carregando) {
             <small>${resRotulo}</small><b${resNeg}>${resValor}</b>
             <div class="rz-heroi-3${celulas.length === 1 ? ' rz-um' : ''}">${celulas.join('')}</div>
         </div>
-        <div class="rz-seg" role="group" aria-label="Contexto">${seg}</div>
+        ${seg}
+    </div>`;
+}
+
+// v2.6.0 (F20) — ramo (Tudo · Patrimônio · Família · Agro em breve) e, só em Patrimônio, o uso
+function segRamoUsoHtml() {
+    const ramos = ['tudo', 'patrimonio', 'familia'].map(v =>
+        `<button type="button" onclick="escolherGeralRamo('${v}')" class="${v === filtro.ramo ? 'rz-on' : ''}">${RAMO_ROTULO[v]}</button>`
+    ).join('') + '<button type="button" class="rz-off" disabled title="Em breve">Agro</button>';
+    const usos = filtro.ramo !== 'patrimonio' ? '' : ['tudo', 'comercial', 'familia'].map(v =>
+        `<button type="button" onclick="escolherGeralUniverso('${v}')" class="${v === filtro.contexto ? 'rz-on' : ''}">${CONTEXTO_ROTULO[v]}</button>`
+    ).join('');
+    return `<div class="rz-seg rz-seg-4" role="group" aria-label="Ramo">${ramos}</div>`
+        + (usos ? `<div class="rz-seg rz-seg-uso" role="group" aria-label="Uso">${usos}</div>` : '');
+}
+
+// v2.6.0 (F20) — herói do ramo Família: quantos cadastros (pessoas e pets não têm valor)
+function montarHeroiFamilia(qtd, carregando) {
+    const txt = qtd == null ? '—' : `${qtd} ${qtd === 1 ? 'cadastro' : 'cadastros'}`;
+    return `<div class="rz-heroi"${carregando ? ' aria-busy="true"' : ''}>
+        <small>Família</small>
+        <b class="rz-heroi-pat">${txt}</b>
+        <small>Pessoas e pets não têm valor: entram só na contagem.</small>
+        ${segRamoUsoHtml()}
     </div>`;
 }
 
@@ -229,6 +259,17 @@ async function renderizarConteudo() {
     const alvo = document.getElementById('resultados-conteudo');
     if (!alvo) return;
     const minha = ++geracao; // v2.0.0
+    if (filtro.ramo === 'familia') { // v2.6.0 (F20) — Família: só a contagem no herói
+        const { count, error } = await dbAuth.from('cofre_ativos').select('id, ativo_tipos!inner(ramo)', { count: 'exact', head: true })
+            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo').eq('ativo_tipos.ramo', 'familia');
+        if (minha !== geracao) return;
+        if (error) console.warn('[resultados] contagem da família:', error.message);
+        const heroiFam = document.getElementById('hoje-heroi-mount');
+        if (heroiFam) heroiFam.innerHTML = montarHeroiFamilia(error ? null : (count || 0));
+        alvo.innerHTML = '';
+        if (typeof rzIcones === 'function') rzIcones();
+        return;
+    }
     const p_uso = CONTEXTO_USO[filtro.contexto];
     const nivel = filtro.abrangencia; // 'carteira' | 'empreendimento'
     const alvoId = filtro.abrangencia === 'empreendimento' ? filtro.alvoId : null;

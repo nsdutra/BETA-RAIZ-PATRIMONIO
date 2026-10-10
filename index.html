@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.337.0
-   LINHAS: 17543
-   DATA: 09/10/2026 (sessão 20261003-1707-ux-base, demanda fcd3008d)
+   VERSÃO: Beta v1.338.0
+   LINHAS: 17582
+   DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.338.0) — Hoje por ramo (ficha F20 e protótipo PROTOTIPO_HOJE_ANEL_RAMO_RAIZ v1.2.0, "De acordo" do
+   Nicola 10/10). O seletor "Tudo · Comercial · Família" vira RAMO: Tudo · Patrimônio · Família · Agro (em breve);
+   o uso (Todos · Comercial · Uso próprio) aparece só em Patrimônio. O ramo filtra o Hoje inteiro: alertas
+   (fn_alertas_listar p_ramo) e o anel de tipos (ativo_tipos.ramo; ativo sem detalhe conta como Patrimônio).
+   O anel é um só, pelo valor, com o total e a quantidade no centro; a legenda diz "4 imóveis" com o valor
+   embaixo; pessoas e pets entram só na contagem e, na Família sozinha, o anel é pela quantidade.
+   Versão anterior (Beta v1.337.0):
    NOVIDADES (Beta v1.337.0) — UX F2.5b e correções da F2.5a (demanda 639bbcd0; plano F2.5 aprovado pelo Nicola 09/10
    23:5x; teste da F2.5a em 10/10 00:06). Menu do avatar: todo item com descrição; tela aberta pelo menu volta a ele
    ("‹ Menu", rzMenuOrigemTab/rzReabrirMenu, também no voltar do celular); Relatórios sem o segmento Desempenho ·
@@ -31,14 +38,8 @@
    (Notificações · Raiz IA no WhatsApp) · Ajuda e conta (Suporte · Termos · Sobre o app · Sair). rzTrocarEmpresa
    volta à escolha de empresa do login. Nenhum objeto de banco criado por este arquivo.
    Versão anterior (Beta v1.334.0):
-   NOVIDADES (Beta v1.334.0) — demanda 4de70503 (pedido do Nicola 09/10 23:04, itens 1 a 4; item 5 no backlog 64a17c76).
-   Chips do Hoje com maiúscula: Patrimônio · Minha Gestão · Fique por Dentro. Ponte de resultados ganha
-   trocarIndicadorComparacao e abrirInfoContratosIndice. CSS dos quadrantes de Indicadores de mercado (.rz-ind-*),
-   da comparação carteira × indicadores (.rz-cmp*) e do card Contratos por índice (.rz-idx*). Import map:
-   resultados.js 2.5.0. Nenhum objeto de banco criado por este arquivo.
-   Versão anterior (Beta v1.333.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.333.1 … v1.333.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.334.0 … v1.334.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -63,7 +64,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.40.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.1","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.84.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.13.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.5.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.40.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.1","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.84.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.13.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.6.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -686,6 +687,8 @@
         .rz-heroi .rz-seg{background:rgba(255,255,255,.12);margin:14px 0 0}
         .rz-heroi .rz-seg button{color:rgba(255,255,255,.85)}
         .rz-heroi .rz-seg button.rz-on{background:#fff;color:var(--pine)}
+        .rz-seg + .rz-seg-uso{margin-top:8px}.rz-seg.rz-seg-uso button{height:30px;font-size:12px} /* F20: uso dentro de Patrimônio */
+        .rz-donut-nota{font-size:12px;color:var(--muted);margin-top:8px}
         .rz-prog{height:6px;border-radius:3px;background:var(--paper);overflow:hidden}
         .rz-prog i{display:block;height:100%;background:var(--sprout)}
         .rz-empty{text-align:center;padding:18px 8px 8px}
@@ -1958,7 +1961,7 @@
                  segmento e os KPIs antigos ficam escondidos (ids preservados: renderVisaoGeral e
                  carregarDadosAssincronosVisaoGeral continuam escrevendo neles) e só reaparecem se a
                  pessoa não tem acesso a Resultados ou se o módulo não carregar. -->
-            <div id="geral-seg-universo" class="rz-seg hidden"></div>
+            <div id="geral-seg-universo" class="hidden"></div>
             <div class="rz-kpis hidden" id="geral-kpis-antigos">
                 <div class="rz-kpi rz-hero"><small>Patrimônio sob gestão</small><b id="geral-patrimonio-total">—</b></div>
                 <div class="rz-kpi rz-in"><small id="geral-recebido-mes-label">Recebido no mês</small><b id="geral-recebido-mes">—</b></div>
@@ -1980,7 +1983,7 @@
                  valor (mesmo princípio de "não mostrar o que não existe"
                  já usado em Precisa de atenção). -->
             <div id="geral-quebra-tipo-secao" class="hidden">
-                <h3 class="rz-plain-title">Patrimônio por tipo de ativo</h3>
+                <h3 class="rz-plain-title" id="geral-quebra-tipo-titulo">Seus ativos por tipo</h3>
                 <div class="rz-kpis-3" id="geral-quebra-tipo"></div>
             </div>
 
@@ -3675,7 +3678,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.337.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.338.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11860,7 +11863,7 @@
                 return;
             }
             carregarResultados()
-                .then(m => m.renderResultados({ contexto: geralUniversoFiltro }))
+                .then(m => m.renderResultados({ contexto: geralUniversoFiltro, ramo: geralRamoFiltro }))
                 .catch(err => { console.warn('[hoje] Falha ao carregar Resultados:', err.message); antigos(); });
         }
 
@@ -11921,7 +11924,9 @@
         // hero vem de fn_resumo_resultados, então o critério dele é quem
         // manda pra esta query, não o de fn_alertas_listar.
         function construirQueryQuebraTipoGeral(p_uso) {
-            const q = dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
+            // v1.338.0 (F20) — traz o detalhe (pessoa, pet…) e o ramo dele; o recorte por ramo é feito em
+            // renderizarQuebraTipoGeral sobre esta busca, que é refeita a cada troca de ramo/uso
+            const q = dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia, tipo_detalhe:ativo_tipos(codigo, ramo)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
             // v1.304.0 (demanda 94290613) — fn_resumo_resultados passou a contar uso NULL como
             // 'nao_comercial' (igual à fn_alertas_listar): a quebra segue o mesmo critério, para a
             // soma dos tipos continuar batendo com o herói.
@@ -11939,12 +11944,14 @@
             // são refeitas de verdade a cada troca do seletor
             // (escolherGeralUniverso), nunca um .filter() sobre dado já
             // buscado.
-            const p_uso = GERAL_USO_POR_CONTEXTO[geralUniversoFiltro];
+            // v1.338.0 (F20) — uso só dentro de Patrimônio; o ramo vai para fn_alertas_listar (p_ramo)
+            const p_uso = geralRamoFiltro === 'patrimonio' ? GERAL_USO_POR_CONTEXTO[geralUniversoFiltro] : null;
+            const p_ramo = geralRamoFiltro === 'tudo' ? null : geralRamoFiltro;
 
             const [resResumo, resAlertas, resPorTipo] = await Promise.allSettled([
                 dbAuth.rpc('fn_resumo_resultados', { p_cliente_id: CLIENTE_ID_SUPABASE, p_uso }),
                 pessoaIdLogada
-                    ? dbAuth.rpc('fn_alertas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada, p_uso })
+                    ? dbAuth.rpc('fn_alertas_listar', { p_cliente_id: CLIENTE_ID_SUPABASE, p_pessoa_id: pessoaIdLogada, p_uso, p_ramo })
                     : Promise.resolve({ data: [], error: null }),
                 // v1.195.0 (17/09/2026) — quebra executiva por tipo de
                 // ativo (pedido explícito, ver markup #geral-quebra-tipo-
@@ -12072,47 +12079,59 @@
             };
             setTimeout(tentar, 60);
         }
+        // v1.338.0 (F20, protótipo PROTOTIPO_HOJE_ANEL_RAMO_RAIZ v1.2.0) — um anel só, no ramo escolhido:
+        // pelo valor, com o total e a quantidade no centro; legenda "4 imóveis" com o valor embaixo e o % à direita.
+        // Pessoa e pet (ramo Família) não têm valor: entram só na contagem; na Família sozinha o anel é pela
+        // quantidade. Ramo de cada linha = ativo_tipos.ramo do detalhe; sem detalhe, Patrimônio.
         function renderizarQuebraTipoGeral(rows) {
             const secao = document.getElementById('geral-quebra-tipo-secao');
             const wrap = document.getElementById('geral-quebra-tipo');
             if (!secao || !wrap) return;
             const GRUPOS_TIPO_GERAL = [
-                { rotulo: 'Imóveis', tipos: ['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'] },
-                { rotulo: 'Veículos', tipos: ['veiculo', 'veiculo_blindado'] },
-                // pessoa (tipo vida) não é patrimônio: fica fora do donut (dem f3e6cd27)
-                { rotulo: 'Outros', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'bem_valor'] },
+                { rotulo: 'Imóveis', um: 'imóvel', varios: 'imóveis', ramo: 'patrimonio', tipos: ['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'] },
+                { rotulo: 'Veículos', um: 'veículo', varios: 'veículos', ramo: 'patrimonio', tipos: ['veiculo', 'veiculo_blindado'] },
+                { rotulo: 'Outros', um: 'outro bem', varios: 'outros bens', ramo: 'patrimonio', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'bem_valor'] },
+                { rotulo: 'Pessoas', um: 'pessoa', varios: 'pessoas', ramo: 'familia', semValor: true, vale: r => r.tipo_detalhe?.codigo !== 'pet' },
+                { rotulo: 'Pets', chip: 'Pessoas', um: 'pet', varios: 'pets', ramo: 'familia', semValor: true, vale: r => r.tipo_detalhe?.codigo === 'pet' },
             ];
+            const ramoDe = r => r.tipo_detalhe?.ramo || 'patrimonio';
+            const doRamo = (rows || []).filter(r => geralRamoFiltro === 'tudo' || ramoDe(r) === geralRamoFiltro);
             const grupos = GRUPOS_TIPO_GERAL.map(g => {
-                const doGrupo = (rows || []).filter(r => g.tipos.includes(r.tipo_ativo));
-                return { rotulo: g.rotulo, qtd: doGrupo.length, valor: doGrupo.reduce((s, r) => s + (Number(r.valor_referencia) || 0), 0) };
+                const doGrupo = doRamo.filter(r => ramoDe(r) === g.ramo && (g.vale ? g.vale(r) : g.tipos.includes(r.tipo_ativo)));
+                return { ...g, qtd: doGrupo.length, valor: g.semValor ? null : doGrupo.reduce((s, r) => s + (Number(r.valor_referencia) || 0), 0) };
             }).filter(g => g.qtd > 0);
-            // <= 1 grupo: nada pra comparar, some (mesmo com 1 grupo tendo
-            // ativos) — pedido explícito do Nicola.
+            const tit = document.getElementById('geral-quebra-tipo-titulo');
+            if (tit) tit.textContent = geralRamoFiltro === 'tudo' ? 'Seus ativos por tipo' : GERAL_RAMO_ROTULO[geralRamoFiltro] + ' por tipo';
+            // <= 1 grupo: nada pra comparar, some (pedido do Nicola; dem 43bc3cab: o convite mora em Ativos)
             if (grupos.length <= 1) {
-                // dem 43bc3cab (Nicola 09/10: o "Cadastre também" sozinho ficou estranho no Hoje) — com 1 grupo só a
-                // seção some; o convite para outros tipos de bem mora em Ativos (chips "+ …" e o card no fim da lista).
                 secao.classList.add('hidden');
                 return;
             }
             // v1.313.0 (UX F2.1c, UXR-19) — donut tocável: cada fatia/linha abre Ativos já filtrado no grupo.
-            // Grupo vazio vira convite ("Cadastre também…") que abre o "+" de Ativos.
+            // Grupo de patrimônio vazio vira convite ("Cadastre também…") que abre o "+" de Ativos.
             wrap.className = '';
             wrap.style.gridTemplateColumns = '';
-            const vazios = GRUPOS_TIPO_GERAL.filter(g => !grupos.some(x => x.rotulo === g.rotulo)).map(g => RZ_CONVITE_GRUPO[g.rotulo] || g.rotulo);
+            const vazios = geralRamoFiltro === 'familia' ? [] : GRUPOS_TIPO_GERAL.filter(g => g.ramo === 'patrimonio' && !grupos.some(x => x.rotulo === g.rotulo)).map(g => RZ_CONVITE_GRUPO[g.rotulo] || g.rotulo);
             const convite = vazios.length ? `<button type="button" class="rz-convite" onclick="rzAbrirMaisAtivos()"><svg data-lucide="plus" style="width:18px;height:18px"></svg>Cadastre também: ${vazios.join(' · ')}</button>` : '';
-            const usaValor = grupos.some(g => g.valor > 0); // sem valor cadastrado, a fatia é pela quantidade
-            const peso = g => usaValor ? g.valor : g.qtd;
-            const totalV = grupos.reduce((s2, g) => s2 + peso(g), 0) || 1;
-            const CORES = ['var(--pine)', 'var(--sprout)', 'var(--sage)', 'var(--wine)'];
+            const totV = grupos.reduce((s2, g) => s2 + (g.valor || 0), 0), totQ = grupos.reduce((s2, g) => s2 + g.qtd, 0);
+            const porValor = totV > 0; // sem valor (Família, ou nada com valor cadastrado), o anel é pela quantidade
+            const peso = g => porValor ? (g.valor || 0) : g.qtd;
+            const totP = grupos.reduce((s2, g) => s2 + peso(g), 0) || 1;
+            const CORES = { 'Imóveis': 'var(--pine)', 'Veículos': 'var(--sprout)', 'Outros': 'var(--sage)', 'Pessoas': 'var(--wine)', 'Pets': 'var(--brass, #b08d57)' };
             const C = 2 * Math.PI * 40;
             let acum = 0;
-            const arcos = grupos.map((g, i) => {
-                const frac = peso(g) / totalV, len = C * frac;
-                const arco = `<circle cx="56" cy="56" r="40" style="stroke:${CORES[i % CORES.length]};stroke-dasharray:${len.toFixed(1)} ${(C - len).toFixed(1)};stroke-dashoffset:${(-acum).toFixed(1)}" transform="rotate(-90 56 56)" onclick="rzFiltrarAtivosPorGrupo('${g.rotulo}')"><title>${g.rotulo}</title></circle>`;
+            const arcos = grupos.filter(g => peso(g) > 0).map(g => {
+                const len = C * peso(g) / totP;
+                const arco = `<circle cx="56" cy="56" r="40" style="stroke:${CORES[g.rotulo]};stroke-dasharray:${len.toFixed(1)} ${(C - len).toFixed(1)};stroke-dashoffset:${(-acum).toFixed(1)}" transform="rotate(-90 56 56)" onclick="rzFiltrarAtivosPorGrupo('${g.chip || g.rotulo}')"><title>${g.rotulo}</title></circle>`;
                 acum += len; return arco;
             }).join('');
-            const leg = grupos.map((g, i) => `<button type="button" onclick="rzFiltrarAtivosPorGrupo('${g.rotulo}')"><i style="background:${CORES[i % CORES.length]}"></i><span>${g.rotulo}<small>${g.qtd} ${g.qtd === 1 ? 'ativo' : 'ativos'} · ${Math.round(peso(g) / totalV * 100)}%</small></span><b>${formatarValorCompacto(g.valor)}</b></button>`).join('');
-            wrap.innerHTML = `<div class="rz-card"><div class="rz-donut"><svg viewBox="0 0 112 112" role="img" aria-label="Patrimônio por tipo">${arcos}<text x="56" y="61" text-anchor="middle" font-size="15">${grupos.reduce((s2, g) => s2 + g.qtd, 0)}</text></svg><div class="rz-donut-leg">${leg}</div></div>${convite}</div>`;
+            const centro = porValor
+                ? `<text x="56" y="57" text-anchor="middle" font-size="13">${formatarValorCompacto(totV)}</text><text x="56" y="73" text-anchor="middle" font-size="10" style="font-family:var(--font-body,inherit);fill:var(--muted)">${totQ} ${totQ === 1 ? 'ativo' : 'ativos'}</text>`
+                : `<text x="56" y="63" text-anchor="middle" font-size="20">${totQ}</text>`;
+            const leg = grupos.map(g => `<button type="button" onclick="rzFiltrarAtivosPorGrupo('${g.chip || g.rotulo}')"><i style="background:${CORES[g.rotulo]}"></i><span>${g.qtd} ${g.qtd === 1 ? g.um : g.varios}${g.valor != null ? `<small>${formatarValorCompacto(g.valor)}</small>` : ''}</span>${porValor && g.valor ? `<b>${Math.round(g.valor / totV * 100)}%</b>` : ''}</button>`).join('');
+            const nota = !porValor ? (geralRamoFiltro === 'familia' ? 'Família não tem valor: o anel mostra a quantidade.' : 'Sem valor cadastrado: o anel mostra a quantidade.')
+                : (grupos.some(g => g.semValor) ? 'Pessoas e pets não têm valor: entram só na contagem.' : '');
+            wrap.innerHTML = `<div class="rz-card"><div class="rz-donut"><svg viewBox="0 0 112 112" role="img" aria-label="Ativos por tipo">${arcos}${centro}</svg><div class="rz-donut-leg">${leg}</div></div>${nota ? `<p class="rz-donut-nota">${nota}</p>` : ''}${convite}</div>`;
             secao.classList.remove('hidden');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -12340,14 +12359,34 @@
         // (window), não no módulo ES de resultados.js — não dá pra
         // importar a constante direto sem reestruturar o boot dos dois
         // (mesma razão já documentada acima em GRUPOS_CHIP_TIPO/v1.195.0).
-        let geralUniversoFiltro = 'tudo'; // 'tudo' | 'comercial' | 'familia'
+        // v1.338.0 (F20, dem f3e6cd27) — o seletor passa a ser o RAMO (ativo_tipos.ramo): Tudo · Patrimônio ·
+        // Família · Agro (em breve). O uso (geralUniversoFiltro) só vale dentro de Patrimônio: Todos · Comercial ·
+        // Uso próprio ('familia' continua sendo a chave do uso nao_comercial, mesma de js/resultados.js).
+        let geralRamoFiltro = 'tudo'; // 'tudo' | 'patrimonio' | 'familia'
+        let geralUniversoFiltro = 'tudo'; // uso: 'tudo' | 'comercial' | 'familia' (= uso próprio)
         const GERAL_USO_POR_CONTEXTO = { tudo: null, comercial: 'comercial', familia: 'nao_comercial' };
-        const GERAL_UNIVERSO_ROTULO = { tudo: 'Tudo', comercial: 'Comercial', familia: 'Família' };
+        const GERAL_UNIVERSO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' };
+        const GERAL_RAMO_ROTULO = { tudo: 'Tudo', patrimonio: 'Patrimônio', familia: 'Família' };
 
         function segGeralUniversoHtml(atual) {
-            return ['tudo', 'comercial', 'familia'].map(v =>
+            const ramos = ['tudo', 'patrimonio', 'familia'].map(v =>
+                `<button onclick="escolherGeralRamo('${v}')" class="${v === geralRamoFiltro ? 'rz-on' : ''}">${GERAL_RAMO_ROTULO[v]}</button>`
+            ).join('') + '<button class="rz-off" disabled title="Em breve">Agro</button>';
+            const usos = geralRamoFiltro !== 'patrimonio' ? '' : ['tudo', 'comercial', 'familia'].map(v =>
                 `<button onclick="escolherGeralUniverso('${v}')" class="${v === atual ? 'rz-on' : ''}">${GERAL_UNIVERSO_ROTULO[v]}</button>`
             ).join('');
+            return `<div class="rz-seg rz-seg-4">${ramos}</div>` + (usos ? `<div class="rz-seg rz-seg-uso">${usos}</div>` : '');
+        }
+
+        function escolherGeralRamo(r) {
+            if (r === geralRamoFiltro || !GERAL_RAMO_ROTULO[r]) return;
+            geralRamoFiltro = r;
+            geralUniversoFiltro = 'tudo'; // trocar de ramo volta o uso para Todos
+            const seg = document.getElementById('geral-seg-universo');
+            if (seg) seg.innerHTML = segGeralUniversoHtml(geralUniversoFiltro);
+            aplicarRotulosGeralUniverso(geralUniversoFiltro === 'familia');
+            carregarDadosAssincronosVisaoGeral();
+            rzRenderResultadosHoje();
         }
 
         // V5 (ESP §3.1) — em Família, "Recebido no mês" e "Ocupação" mudam

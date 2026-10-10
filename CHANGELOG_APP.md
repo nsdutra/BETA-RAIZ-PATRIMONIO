@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.334.0) — demanda 4de70503 (pedido do Nicola 09/10 23:04, itens 1 a 4; item 5 no backlog 64a17c76).
+Chips do Hoje com maiúscula: Patrimônio · Minha Gestão · Fique por Dentro. Ponte de resultados ganha
+trocarIndicadorComparacao e abrirInfoContratosIndice. CSS dos quadrantes de Indicadores de mercado (.rz-ind-*),
+da comparação carteira × indicadores (.rz-cmp*) e do card Contratos por índice (.rz-idx*). Import map:
+resultados.js 2.5.0. Nenhum objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.333.1):
+------------------------------------------------------------------
+Versões anteriores (v1.333.1 … v1.333.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.333.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 09/10 22:40):
 só o import map — financeiro.js 1.39.1 (sair de Classificar/Divisão volta para a fatura; Selecionar sem
 reler a fatura nem voltar ao topo). Nenhuma linha do index mudou.
