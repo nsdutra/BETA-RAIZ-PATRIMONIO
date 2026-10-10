@@ -4,6 +4,20 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.338.0) — Hoje por ramo (ficha F20 e protótipo PROTOTIPO_HOJE_ANEL_RAMO_RAIZ v1.2.0, "De acordo" do
+Nicola 10/10). O seletor "Tudo · Comercial · Família" vira RAMO: Tudo · Patrimônio · Família · Agro (em breve);
+o uso (Todos · Comercial · Uso próprio) aparece só em Patrimônio. O ramo filtra o Hoje inteiro: alertas
+(fn_alertas_listar p_ramo) e o anel de tipos (ativo_tipos.ramo; ativo sem detalhe conta como Patrimônio).
+O anel é um só, pelo valor, com o total e a quantidade no centro; a legenda diz "4 imóveis" com o valor
+embaixo; pessoas e pets entram só na contagem e, na Família sozinha, o anel é pela quantidade.
+Versão anterior (Beta v1.337.0):
+------------------------------------------------------------------
+Versões anteriores (v1.337.0 … v1.337.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.337.0) — UX F2.5b e correções da F2.5a (demanda 639bbcd0; plano F2.5 aprovado pelo Nicola 09/10
 23:5x; teste da F2.5a em 10/10 00:06). Menu do avatar: todo item com descrição; tela aberta pelo menu volta a ele
 ("‹ Menu", rzMenuOrigemTab/rzReabrirMenu, também no voltar do celular); Relatórios sem o segmento Desempenho ·
