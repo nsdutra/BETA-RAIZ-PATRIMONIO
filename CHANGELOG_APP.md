@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.345.0) — Ramos no app (fichas F21/F22, "De acordo" do Nicola 10/10 02:52; protótipo
+PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0). A lente de ramo vai para o cabeçalho ("Todo o patrimônio ▾"): Imóveis,
+Família, Outros bens; Agro e Pecuária em breve. A escolha fica guardada no aparelho e muda a tonalidade do app
+(cabeçalho, herói, chips, barra). O ramo vem do cadastro ativo_ramos; o "Tudo · Patrimônio · Família" do herói
+(F20) sai. Hoje: em Todo o patrimônio, o anel é por ramo; num ramo, por segmento (ativo_tipos.segmento), com a
+quantidade na unidade do ramo (vidas, imóveis, bens); alertas pelo ramo (fn_alertas_listar p_ramo). O chip
+"Patrimônio" do Hoje passa a se chamar "Visão geral" (não confunde com a lente).
+Versão anterior (Beta v1.344.0):
+------------------------------------------------------------------
+Versões anteriores (v1.344.0 … v1.344.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.344.0) — Regras e detalhe do ativo (Nicola 10/10 00:30/00:45). Configurações › Regras: "Suas
 regras automáticas" mostrava "Categoria: [object Promise]" (ponte assíncrona do financeiro) — agora lê o catálogo;
 cada regra diz o que procura e para onde manda ("Quando a compra é de 'azul seguros' → Seguros › Seguro"); as

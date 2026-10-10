@@ -1,7 +1,13 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.7.0 (10/10/2026 — demanda f3e6cd27)
+// VERSÃO: Beta v2.8.0 (10/10/2026 — demanda f3e6cd27)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.8.0) — sessão 20261008-1231-pessoas-ativos; pedido do Nicola 10/10 10:22:
+//   — Herói de Todo o patrimônio diz "Todo o patrimônio" (era "Patrimônio sob gestão").
+//   — No ramo Imóveis voltam os cards da carteira de imóveis: contratos por índice, concentração, reajustes
+//     e revisional (são de contrato de locação, logo de imóvel). Resultado mês a mês e por grupo esperam a F23.
+// Versão anterior: Beta v2.7.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.7.0) — sessão 20261008-1231-pessoas-ativos; fichas F21/F22 ("De acordo" do Nicola 10/10 02:52):
 //   — O ramo sai do herói: quem escolhe é a lente do cabeçalho do app (index.html), e o Hoje recebe o ramo e o
@@ -43,16 +49,11 @@
 //   — O card Indicadores sai de Resultados e vira "Indicadores de mercado" no chip Fique por dentro do Hoje
 //     (renderIndicadoresMercado), em linhas: nome · mês · valor do mês · 12 meses. A leitura de
 //     fn_indicadores_resumo sai de renderizarConteudo.
-// Versão anterior: Beta v2.3.2
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v2.3.1) — 07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 (VER-06, "de acordo"
-//   do Nicola 07/10 17:21): SÓ CABEÇALHO — as versões além das 5 mais recentes rolaram
-//   para o CHANGELOG_MODULOS.md. Nenhuma linha de código mudou (conferido token a token).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.3.0 … v2.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.3.1 … v2.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.7.0';
+export const VERSAO = '2.8.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -199,7 +200,7 @@ function montarHeroi(resumo, perf, carregando) {
             </div>
             <button type="button" class="rz-heroi-exp" onclick="abrirResultadosExportar()" aria-label="Exportar"><svg data-lucide="share"></svg></button>
         </div>
-        <small>Patrimônio sob gestão</small>
+        <small>Todo o patrimônio</small>
         <b class="rz-heroi-pat">${tem ? formatarPatrimonioCompacto(patrimonio) : traco}</b>
         ${ativosTxt ? `<small>${ativosTxt}</small>` : ''}
         <div class="rz-heroi-res">
@@ -276,8 +277,28 @@ async function renderizarConteudo() {
             && (!usoSel || (usoSel === 'nao_comercial' ? x.uso !== 'comercial' : x.uso === usoSel)));
         const heroiR = document.getElementById('hoje-heroi-mount');
         if (heroiR) heroiR.innerHTML = montarHeroiRamo(error ? null : { qtd: L.length, valor: L.reduce((t, x) => t + (Number(x.valor_referencia) || 0), 0) });
-        alvo.innerHTML = '<p class="rz-desc">Receitas e despesas por ramo chegam em breve. Por enquanto, os resultados estão em Todo o patrimônio.</p>';
+        const aviso = '<p class="rz-desc">Receitas e despesas por ramo chegam em breve. Por enquanto, os resultados estão em Todo o patrimônio.</p>';
+        if (filtro.ramo !== 'imoveis') { alvo.innerHTML = aviso; if (typeof rzIcones === 'function') rzIcones(); return; }
+        // v2.8.0 — Imóveis: os cards da carteira (contratos de locação), com o uso escolhido
+        const p_uso = CONTEXTO_USO[filtro.contexto];
+        const [concR, reajR, revR, indicesR] = await Promise.all([
+            dbAuth.rpc('fn_carteira_concentracao', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano }),
+            dbAuth.rpc('fn_carteira_reajustes_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso }),
+            dbAuth.rpc('fn_carteira_revisionais_calendario', { p_cliente_id: CLIENTE_ID_SUPABASE, p_ano: filtro.ano, p_uso }),
+            dbAuth.rpc('fn_carteira_indices_resumo', { p_cliente_id: CLIENTE_ID_SUPABASE }),
+        ]);
+        if (minha !== geracao) return;
+        const reajustesI = reajR.error ? [] : (reajR.data || []);
+        const revisionaisI = revR.error ? [] : (revR.data || []);
+        alvo.innerHTML = `<h3 class="rz-plain-title">Carteira de imóveis · ${filtro.ano}</h3>` + [
+            montarContratosPorIndice(indicesR),
+            concR.error ? '' : montarConcentracao(concR.data || []),
+            montarReajustesCalendario(reajustesI),
+            montarRevisionaisCalendario(revisionaisI),
+        ].filter(Boolean).join('') + aviso;
         if (typeof rzIcones === 'function') rzIcones();
+        ligarBarrasCalendario('.rz-res-barra-mes', reajustesI, abrirResultadosMesReajuste);
+        ligarBarrasCalendario('.rz-res-barra-revisional', revisionaisI, abrirResultadosMesRevisional);
         return;
     }
     const p_uso = CONTEXTO_USO[filtro.contexto];
