@@ -1,7 +1,13 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.38.1 · 08/10/2026
+// Versão: 1.38.2 · 09/10/2026
+//
+// v1.38.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 7ce0fd63): a 1.38.x subiu 3 padrões da gramática e o
+// verificador travava toda entrega do app. "N a classificar" da fatura sai do dourado (exclusivo de IA) para
+// --warning; o ✓ da seleção de itens da fatura usa white em vez de hex; o valor sugerido em "Marcar fatura como
+// paga" vai para o campo numérico arredondado, sem .toFixed(2) (campo number não leva formatação de moeda).
+// Versão anterior: 1.38.1.
 //
 // v1.38.1 (08/10/2026, sessão 20261008-0825-financeiro, demanda f3e6cd27 — teste do Nicola 08:16): "Importar fatura"
 // dizia "Cadastre o cartão primeiro" para um cartão recém-cadastrado — a lista de contas ficava guardada desde a
@@ -38,21 +44,11 @@
 // manual; com extrato, a regra CT03 liga sozinha). (4) Lançar ganha "Importar fatura do cartão (IA)"
 // (código cartao.importar): cartão, PDF/foto lido pela IA, conferência (mês, total × soma, final do
 // cartão) e importação. Toda regra no banco (fn_fatura_listar/importar/item_classificar/baixar).
-// Versão anterior: 1.36.0.
-//
-// Versão anterior: 1.36.0 · 07/10/2026
-//
-// v1.36.0 (07/10/2026, sessão 20261007-0205-financeiro, demanda f3e6cd27 — teste do Nicola 02:03;
-// decisões D39/D40): Outras receitas ganham as mesmas ações do recebimento — "Conta" (trocar a conta,
-// com mais de 1 conta) e "Divisão" (quem arca: propriedade do ativo, inclusive veículo e outros
-// ativos, ou ajustada só nesta receita). A Distribuição passa a considerar essas receitas (banco).
-// Toda receita da lista abre o sheet (antes só as manuais); estornar/excluir continuam só nas
-// manuais. A linha mostra "divisão ajustada" quando houver exceção. Versão anterior: 1.35.1.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.35.1 … v1.35.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.36.0 … v1.36.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.38.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.38.2'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1228,7 +1224,7 @@ function financeiroRenderCabecalho(aba) {
             return `
                     <div class="rz-row rz-link" onclick="financeiroAbrirFatura('${g.faturaId}')">
                         <div class="rz-ic rz-ia"><svg data-lucide="credit-card"></svg></div>
-                        <div class="rz-tx"><b>Fatura ${escapeHtmlSaidas(financeiroNomeCartao(f))}</b><span>${ac ? `<b style="color:var(--brass-deep);display:inline;font-weight:600">${ac} a classificar</b> · ` : ''}${quem}${venc}${qtd}</span></div>
+                        <div class="rz-tx"><b>Fatura ${escapeHtmlSaidas(financeiroNomeCartao(f))}</b><span>${ac ? `<b style="color:var(--warning);display:inline;font-weight:600">${ac} a classificar</b> · ` : ''}${quem}${venc}${qtd}</span></div>
                         <div class="rz-rt"><b class="rz-out">− ${formatarMoedaBR(soma)}</b>${financeiroStatusFatura(f, rs)}</div>
                         <svg data-lucide="chevron-right" class="rz-chev"></svg>
                     </div>`;
@@ -1262,7 +1258,7 @@ function financeiroRenderCabecalho(aba) {
                 const valorTxt = Number(i.valor) < 0 ? `<b class="rz-in">+ ${formatarMoedaBR(Math.abs(i.valor))}</b>` : `<b class="rz-out">− ${formatarMoedaBR(i.valor)}</b>`;
                 const extra = pend ? '' : ` · ${escapeHtmlSaidas(nomeCat(i.categoria))}${i.ativo_nome ? ' · ' + escapeHtmlSaidas(i.ativo_nome) : ''}${i.parte_nome ? ' · ' + escapeHtmlSaidas(i.parte_nome) : ''}${i.divisao_ajustada ? ' · divisão ajustada' : ''}`;
                 return `<div class="rz-row rz-link" data-fat-item="${i.id}">
-                    ${selecionando && pend ? `<div style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:#fff;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
+                    ${selecionando && pend ? `<div style="flex:none;width:24px;height:24px;border-radius:7px;border:2px solid ${sel.has(i.id) ? 'var(--pine)' : 'var(--line)'};background:${sel.has(i.id) ? 'var(--pine)' : 'transparent'};display:grid;place-items:center;color:white;font-size:14px;font-weight:700">${sel.has(i.id) ? '✓' : ''}</div>` : ''}
                     <div class="rz-ic${temSug ? (confSug < 70 ? ' rz-warn' : ' rz-ia') : (pend ? ' rz-warn' : '')}"><svg data-lucide="${temSug ? 'sparkles' : icCat(i.categoria)}"></svg></div>
                     <div class="rz-tx"><b>${escapeHtmlSaidas(i.descricao)}</b><span>${temSug ? 'Parece: ' + escapeHtmlSaidas(textoSug) + ' · ' : ''}${compra(i)}${parcela(i)}${extra}</span></div>
                     <div class="rz-rt">${valorTxt}${temSug ? `<span class="rz-ia-tag"><svg data-lucide="sparkles"></svg>${confSug}%</span>` : ''}</div>
@@ -1447,7 +1443,7 @@ function financeiroRenderCabecalho(aba) {
                 titulo: 'Marcar fatura como paga', sub: `Fatura ${financeiroNomeCartao(f)}`, rotuloSalvar: 'Confirmar pagamento', empilhar: true,
                 corpo: `<p class="rz-hint" style="margin:0 0 10px">Se o pagamento aparecer no extrato, o Raiz liga sozinho à fatura. Use aqui quando não houver extrato.</p>
                     <div class="rz-f2">
-                        <div class="rz-f"><label>Valor pago (R$)</label><input type="number" step="0.01" id="fb-valor" value="${falta.toFixed(2)}"></div>
+                        <div class="rz-f"><label>Valor pago (R$)</label><input type="number" step="0.01" id="fb-valor" value="${Math.round(falta * 100) / 100}"></div>
                         <div class="rz-f"><label>Data</label><input type="date" id="fb-data" value="${new Date().toISOString().slice(0, 10)}"></div>
                     </div>
                     ${contas.length > 1 ? `<div class="rz-f"><label>Conta</label><select id="fb-conta">${contas.map(c => `<option value="${c.id}" ${c.id === f.conta_pagadora_id ? 'selected' : ''}>${escapeHtmlSaidas(c.nome)}</option>`).join('')}</select></div>` : ''}`,

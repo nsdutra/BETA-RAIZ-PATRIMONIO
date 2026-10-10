@@ -1,6 +1,10 @@
 // ============================================================================
 // relatorios-executivos.js — Raiz Patrimônio · Relatórios no modelo executivo
-// Versão: 1.1.1 · 07/10/2026
+// Versão: 1.1.2 · 09/10/2026
+//
+// v1.1.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 0e5618ca): a tela do relatório sai da camada 96
+// (aposentada no DESIGN_SYSTEM §5) para a 80, criada para tela cheia de leitura — acima do cabeçalho (50) e
+// abaixo do véu dos sheets (97), então os filtros continuam abrindo por cima. Versão anterior: 1.1.1.
 //
 // v1.1.1 (07/10/2026, sessão 20261007-1845-financeiro, demanda f3e6cd27 — P5a.2): o filtro "Conta" do Fluxo de
 // caixa não lista cartão de crédito (as compras estão na conta que paga a fatura). Versão anterior: 1.1.0.
@@ -30,7 +34,7 @@ import { rzMostrarBloqueio } from './comum-licenca.js';
 import { rzToast } from './raiz-ui.js';
 import RaizDevice from './raiz-device.js';
 
-export const VERSAO = '1.1.1';
+export const VERSAO = '1.1.2';
 
 // ---------------------------------------------------------------------------
 // Formatos (REL-13 a REL-17)
@@ -383,7 +387,8 @@ function montarGerencial(d) {
 // Tela: o documento em si (REL-36) — topo com período, rodapé PDF | Compartilhar
 // ---------------------------------------------------------------------------
 const CSS = `
-#rz-relexec{position:fixed;inset:0;z-index:96;background:var(--paper,#f4f3ee);display:flex;flex-direction:column}
+/* camada 80 (DESIGN_SYSTEM §5): acima do cabeçalho e da barra inferior, abaixo do véu dos sheets (97) */
+#rz-relexec{position:fixed;inset:0;z-index:80;background:var(--paper,#f4f3ee);display:flex;flex-direction:column}
 #rz-relexec .rx-top{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card,#fff);border-bottom:1px solid var(--line,#e6e3da)}
 #rz-relexec .rx-top button{font:600 14px Inter,system-ui,sans-serif;min-height:44px;border-radius:999px;border:1px solid var(--line,#e6e3da);background:var(--card,#fff);color:var(--ink,#17211e);padding:8px 14px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 #rz-relexec .rx-top .rx-voltar{border:0;padding:8px 6px}

@@ -1,11 +1,11 @@
 {
   "app": "patrimonio",
-  "gerado_em": "2026-10-09T20:58:29",
+  "gerado_em": "2026-10-10T00:50:49",
   "arquivos": {
-    "index.html": "1.330.0",
+    "index.html": "1.330.1",
     "sw.js": "3.0",
     "js/cadastros.js": "1.2.0",
-    "js/financeiro.js": "1.38.1",
+    "js/financeiro.js": "1.38.2",
     "js/fechamento.js": "1.12.3",
     "js/contratos.js": "1.46.0",
     "js/minutas.js": "1.4.0",
@@ -31,7 +31,7 @@
     "js/resultados.js": "2.3.2",
     "js/indicadores.js": "1.0.0",
     "js/configuracao-inicial.js": "1.0.1",
-    "js/relatorios-executivos.js": "1.1.1",
+    "js/relatorios-executivos.js": "1.1.2",
     "js/raiz-eventos.js": "1.0.0",
     "js/raiz-device.js": "1.0.0",
     "js/raiz-ui.js": "1.2.0",
@@ -41,7 +41,7 @@
   },
   "detalhes": {
     "index.html": {
-      "linhas": 17288,
+      "linhas": 17286,
       "funcoes": 74
     },
     "sw.js": {
@@ -53,7 +53,7 @@
       "funcoes": 7
     },
     "js/financeiro.js": {
-      "linhas": 5231,
+      "linhas": 5227,
       "funcoes": 173
     },
     "js/fechamento.js": {
@@ -157,7 +157,7 @@
       "funcoes": 14
     },
     "js/relatorios-executivos.js": {
-      "linhas": 611,
+      "linhas": 616,
       "funcoes": 26
     },
     "js/raiz-eventos.js": {

@@ -4,6 +4,21 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.327.0) — UX F2.7c-2, menu ⚙️ › Empresa (de acordo do Nicola 08/10 14:04).
+Links da vitrine: linha "Vitrine com n imóveis · criada … · código" e ⋮ com Copiar link, Abrir
+vitrine e Revogar (vermelho, por último) — antes a lixeira ficava na linha; vazio diz onde montar.
+CSS novo: .rz-btnrow (linha tocável feita de botão) e .rz-quadriculado (prévia da assinatura).
+Import map: comum-minha-empresa.js 1.12.0 (logo e assinatura em linhas com ⋮; esqueleto),
+comum-pessoas.js 1.206.0 (formulário no campo único, interruptor .rz-switch). Nenhum objeto de
+banco criado por este arquivo.
+Versão anterior (Beta v1.326.1):
+------------------------------------------------------------------
+Versões anteriores (v1.326.1 … v1.326.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.326.1) — correções do teste da F2.7c-1 (Nicola 08/10 13:48). Minhas
 notificações: a linha de aviso com frequência quebrava o título numa coluna de uma palavra; agora
 título em linha inteira e, embaixo, frequência + interruptor (.rz-pref-2l). Import map:
