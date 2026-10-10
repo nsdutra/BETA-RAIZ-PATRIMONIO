@@ -1,7 +1,13 @@
 // ============================================================================
 // vitrine.js — Raiz Patrimônio · Compartilhar imóveis (links públicos de imóveis, lightbox)
 //               e contratação pública (formulário do interessado via link)
-// Versão: 1.4.1 · 08/10/2026
+// Versão: 1.5.0 · 09/10/2026
+//
+// v1.5.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
+// busca de "Compartilhar imóveis" em Sheet (abrirBuscaVitrine): texto ao vivo (nome, tipo, empreendimento,
+// endereço) e chips de Situação e Empreendimento, com "Ver n imóveis"; o popup de filtro saiu.
+//
+// Versão anterior: 1.4.1 · 08/10/2026
 //
 // v1.4.1 (correções do teste da F2.8, Nicola 08/10 20:39; demanda ed5accfe, sessão 20261003-1707-ux-base) — página
 // pública no tema claro do app (fundo --paper, cards brancos, nome da empresa em --pine) com "Fechar" no padrão de
@@ -29,18 +35,13 @@
 // Versão anterior: 1.3.3 · 04/10/2026
 //
 // v1.3.3 (F0.2b do PLANO_UX, demanda 9e4aca28, sessão 20261003-1707-ux-base; UXR-29/30) — zero diálogo nativo: os alert() viram rzAvisar/rzResumo.
-//
-// Versão anterior: 1.3.2 · 03/10/2026
-//
-// v1.3.2 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — o erro ao iniciar a contratação deixa de citar tabela e migration do
-// banco; fala com o cliente. (O alert() vira aviso do app na F0.2.)
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.3.2 … v1.3.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { encontrarMinutaParaImovel } from './minutas.js'; // retorno usado de forma síncrona — import, não ponte
 
-export const VERSAO = '1.4.1'; // v-check: manter igual ao header
+export const VERSAO = '1.5.0'; // v-check: manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-vitrine'). */
 export async function montarAbaVitrine() {
@@ -56,16 +57,31 @@ export async function montarAbaVitrine() {
         // v1.47.0 — overlay de busca da Vitrine (mesmo padrão do de Imóveis
         // acima, IDs próprios: vitrine-filtro-emp/status, que já existiam
         // como <select> visíveis num card fixo — só migraram de lugar).
+        // Busca de Compartilhar imóveis em Sheet (F2.3). Campos guardadores em #vitrine-filtros-estado (index).
+        let ultimaContagemVitrine = 0;
+        const campoVit = (id) => document.getElementById(id);
+        function atualizarRotuloBuscaVitrine() {
+            if (typeof rzRotuloBusca !== 'function') return;
+            const n = ['vitrine-filtro-status', 'vitrine-filtro-emp'].filter(id => (campoVit(id)?.value || 'todos') !== 'todos').length;
+            rzRotuloBusca('vitrine-busca-btn', 'Buscar imóvel para compartilhar', campoVit('vitrine-filtro-texto')?.value || '', n);
+        }
         export function abrirBuscaVitrine() {
-            const modal = document.getElementById('modal-busca-vitrine');
-            modal.classList.remove('hidden');
-            modal.onclick = (ev) => { if (ev.target === modal) fecharBuscaVitrine(); };
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (typeof rzAbrirBuscaTela !== 'function') return;
+            popularFiltroSelect('vitrine-filtro-emp', imoveis.map(i => i.empreendimento));
+            const opcoes = (id) => Array.from(campoVit(id)?.options || []).map(o => ({ valor: o.value, rotulo: o.value === 'todos' ? 'Todos' : o.textContent.trim() }));
+            const grupo = (titulo, id) => ({ titulo, opcoes: opcoes(id), valor: () => campoVit(id)?.value || 'todos', aoEscolher: (v) => { campoVit(id).value = v; renderVitrine(); } });
+            const grupos = [grupo('Situação', 'vitrine-filtro-status')];
+            if (opcoes('vitrine-filtro-emp').length > 2) grupos.push(grupo('Empreendimento', 'vitrine-filtro-emp'));
+            rzAbrirBuscaTela({
+                titulo: 'Buscar imóveis', placeholder: 'Nome, tipo, empreendimento ou endereço',
+                termo: () => campoVit('vitrine-filtro-texto')?.value || '',
+                aoTermo: (v) => { campoVit('vitrine-filtro-texto').value = v; renderVitrine(); },
+                grupos, contar: () => ultimaContagemVitrine, nomes: ['imóvel', 'imóveis'],
+                aoLimpar: () => { campoVit('vitrine-filtro-texto').value = ''; campoVit('vitrine-filtro-status').value = 'todos'; campoVit('vitrine-filtro-emp').value = 'todos'; renderVitrine(); },
+            });
         }
 
-        export function fecharBuscaVitrine() {
-            document.getElementById('modal-busca-vitrine').classList.add('hidden');
-        }
+        export function fecharBuscaVitrine() { if (typeof fecharSheet === 'function') fecharSheet(); }
 
         // ---- Compartilhar imóveis: texto, link e tela de seleção ------------------------------
         const escV = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -234,7 +250,12 @@ export async function montarAbaVitrine() {
             const fEmp = document.getElementById('vitrine-filtro-emp').value;
             const fStat = document.getElementById('vitrine-filtro-status').value;
 
-            const lista = imoveis.filter(imo => (fEmp === 'todos' || imo.empreendimento === fEmp) && (fStat === 'todos' || imo.status === fStat));
+            const normV = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const fTexto = normV(campoVit('vitrine-filtro-texto')?.value).trim();
+            const lista = imoveis.filter(imo => (fEmp === 'todos' || imo.empreendimento === fEmp) && (fStat === 'todos' || imo.status === fStat)
+                && (!fTexto || normV([tituloImovelCompartilhar(imo), imo.tipo, imo.empreendimento, enderecoCurtoImovel(imo)].join(' ')).includes(fTexto)));
+            ultimaContagemVitrine = lista.length;
+            atualizarRotuloBuscaVitrine();
 
             if (!lista.length) {
                 container.className = '';

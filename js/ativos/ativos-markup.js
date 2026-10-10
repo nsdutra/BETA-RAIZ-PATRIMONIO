@@ -1,6 +1,13 @@
 // ============================================================================
 // js/ativos/ativos-markup.js — Raiz Patrimônio · Módulo Único, fatia frontend 1
-// Versão: 1.53.0 · 07/10/2026
+// Versão: 1.54.0 · 09/10/2026
+//
+// v1.54.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
+// topo da lista de Ativos vira a barra de busca de largura inteira + "+" (.rz-topo); sai a linha de
+// descrição e a lupa. O popup "Buscar / Filtrar" vira só o guardador dos filtros (#ativos-filtros-estado,
+// escondido): no app a busca abre em Sheet (abrirBuscaAtivos, cofre-ativos).
+//
+// Versão anterior: 1.53.0 · 07/10/2026
 //
 // v1.53.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
 // #ativos-estado-vazio deixa de ser um botão inteiro: no app ele recebe a caixa rzVazio, que tem os
@@ -110,17 +117,11 @@
 // cria uma pendência retroativa ("Em atraso" no Financeiro). Corrigido de
 // passagem um descompasso VER-04 pré-existente: header estava em 1.41.0
 // mas export const VERSAO ainda em 1.40.0.
-//
-// v1.41.0 — modal-modelos-controle: #modelo-tipo-ativo (select único, 14
-// valores misturados categoria+código) virou #modelo-categoria (8
-// categorias) + #modelo-tipo-especifico (opcional) — acompanha
-// cofre-controles.js v1.26.0 (escopo_tipo/escopo_valor em vez do
-// tipo_ativo deprecated). Espelha cofre.html.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.40.0 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.53.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.54.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 export const ATIVOS_MARKUP = `<style>
     /* v1.94.1 (31/08/2026, pedido explícito: "anexo uma barra de
        rolagem que fica feia... ao rolar os chips não mostrar a barra")
@@ -287,45 +288,13 @@ export const ATIVOS_MARKUP = `<style>
 
         <!-- ===================== ATIVOS (lista) ===================== -->
         <section data-screen="ativos" class="hidden">
-            <div class="flex items-center gap-2 mb-4">
-                <p class="text-[11px] flex-1 text-left" style="color:var(--sage)">Bens e proteções acompanhados pelo Cofre.</p>
-                <!-- v1.94.1 (31/08/2026, pedido explícito) — barra
-                     reorganizada: "Localizar / Vitrine / Adicionar /
-                     Carregar documento" — 4 ações, batendo com o que a
-                     lista antiga de Imóveis sempre ofereceu.
-                     REMOVIDOS: "Visão geral do Cofre" (ir-home, 1º
-                     botão de antes) — pedido explícito, levava pra uma
-                     tela de Visão Geral que duplicava a de verdade do
-                     App; "Cadastrar imóvel" (casinha+) — não removido
-                     de fato, só mudou de endereço: virou link "+
-                     Cadastrar novo imóvel" dentro do próprio formulário
-                     "Novo ativo" > "Qual imóvel?" (ver aoMudarTipoAtivo,
-                     cofre-ativos.js), onde faz mais sentido estar. -->
-                <!-- v1.20.0 (fatia 7, REGRAS §4) — ≤2 ícones: Buscar + "+"
-                     preenchido. Vitrine e Carregar documento não sumiram:
-                     viraram itens do sheet do "+" (cofre-app.js
-                     'abrir-acoes-ativos'); "Gerar vitrine" de UM imóvel
-                     também vive no ⋮ da ficha (cofre-ativos.js v1.22.0). -->
-                <button data-action="abrir-busca-ativos" title="Buscar" aria-label="Buscar" class="rz-ico-btn">
-                    <i data-lucide="search"></i>
-                </button>
+            <!-- Topo (F2.3): barra de busca + "+" (o "+" abre Carregar documento · Configuração inicial ·
+                 Novo ativo · Compartilhar imóveis). (dem fcd3008d) -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" id="ativos-busca-btn" data-action="abrir-busca-ativos" aria-label="Buscar ativo"><i data-lucide="search"></i><span>Buscar ativo, locatário ou item</span></button>
                 <button data-action="abrir-acoes-ativos" id="btn-toggle-ativo" class="rz-ico-btn rz-primary" title="Adicionar" aria-label="Adicionar">
                     <i data-lucide="plus"></i>
                 </button>
-                <!-- "Vitrine" — ponte pra tab-vitrine (fluxo de sempre,
-                     seleção múltipla de imóveis + link único). Ao
-                     contrário do "Cadastrar imóvel", tab-vitrine é uma
-                     aba de nível normal (não um modal preso dentro de
-                     outra aba escondida) — switchTab() já lida com isso
-                     nativamente, sem o mesmo bug de display:none. -->
-
-                <!-- "Carregar documento" — mesmo fluxo de sempre
-                     (abrir-upload-home, já existia no dispatcher, usado
-                     antes só pelo card "Comece pelo documento" da Home
-                     interna do Cofre) — upload rápido sem precisar abrir
-                     um ativo específico primeiro, decide o vínculo (ou
-                     deixa em triagem) depois. -->
-
             </div>
 
             <!-- v1.5.0 (31/08/2026, pedido explícito, "Fase A" da fusão
@@ -929,59 +898,34 @@ export const ATIVOS_MARKUP = `<style>
     </div>
 </div>
 
-<div id="modal-busca-ativos" class="modal-overlay hidden">
-    <div class="modal-box p-3">
-        <div class="p-3 border-b flex items-center justify-between flex-none" style="border-color:var(--line)">
-            <span class="font-bold" style="color:var(--ink)">Buscar / Filtrar</span>
-            <button data-action="fechar-busca-ativos" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
-        </div>
-        <div class="p-3 space-y-3">
-            <!-- v1.8.0 (pedido explícito, 01/09/2026: "ajustar o modal de
-                 consultas para consultar nos campos chaves de ativo,
-                 contrato e itens de controle. ajuste para filtrar por
-                 status, por alerta") — o campo de texto agora casa com
-                 nome do ativo, locatário do contrato principal e título
-                 de item de controle vinculado (ver renderAtivosLista()).
-                 2 dropdowns novos: Status (2 vocabulários — imóvel
-                 Vago/Alugado/Assinando, ou ativo em geral ativo/vendido/
-                 arquivado, sinalizados por optgroup) e Alerta (tem/não
-                 tem ocorrência aberta vinculada). Aplicam ao vivo
-                 (onchange), mesmo padrão do Overlay de Busca do resto
-                 do app — sem botão "Aplicar". -->
-            <input id="filtro-ativo-busca" type="text" placeholder="Buscar por nome, locatário ou item de controle…" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
-            <select id="filtro-ativo-tipo" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
-                <option value="">Todos os tipos</option>
-                <!-- E5 (15/09/2026) — categorias macro (E4.1), espelha cofre.html -->
-                <option value="imovel_predial">Imóveis</option>
-                <option value="imovel_territorial">Terrenos</option>
-                <option value="veiculo">Veículos</option>
-                <option value="embarcacao">Embarcações</option>
-                <option value="aeronave">Aeronaves</option>
-                <option value="vida">Vida / proteção</option>
-                <option value="bem_valor">Obras de arte / bens de valor</option>
-                <option value="outro">Outros</option>
-            </select>
-            <select id="filtro-ativo-status" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
-                <option value="">Todos os status</option>
-                <optgroup label="Imóveis">
-                    <option value="prop:Vago">Vago</option>
-                    <option value="prop:Alugado">Alugado</option>
-                    <option value="prop:Assinando">Assinando</option>
-                </optgroup>
-                <optgroup label="Outros ativos">
-                    <option value="ativo:ativo">Ativo</option>
-                    <option value="ativo:vendido">Vendido</option>
-                    <option value="ativo:arquivado">Arquivado</option>
-                </optgroup>
-            </select>
-            <select id="filtro-ativo-alerta" class="w-full p-3 rounded-xl border-2 border-slate-300 text-sm">
-                <option value="">Qualquer alerta</option>
-                <option value="com">Só com alerta pendente</option>
-                <option value="sem">Só sem alerta</option>
-            </select>
-            <button type="button" data-action="limpar-filtro-ativos" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
-        </div>
-    </div>
+<!-- Estado dos filtros da lista de Ativos (F2.3). Não aparece: no app a busca é o Sheet de abrirBuscaAtivos
+     (cofre-ativos); renderAtivosLista() lê estes campos. (dem fcd3008d) -->
+<div id="ativos-filtros-estado" hidden>
+    <input id="filtro-ativo-busca" type="text" value="">
+    <select id="filtro-ativo-tipo">
+        <option value="">Todos</option>
+        <option value="imovel_predial">Imóveis</option>
+        <option value="imovel_territorial">Terrenos</option>
+        <option value="veiculo">Veículos</option>
+        <option value="embarcacao">Embarcações</option>
+        <option value="aeronave">Aeronaves</option>
+        <option value="vida">Vida / proteção</option>
+        <option value="bem_valor">Obras de arte</option>
+        <option value="outro">Outros</option>
+    </select>
+    <select id="filtro-ativo-status">
+        <option value="">Todos</option>
+        <option value="prop:Vago">Vago</option>
+        <option value="prop:Alugado">Alugado</option>
+        <option value="prop:Assinando">Assinando</option>
+        <option value="ativo:vendido">Vendido</option>
+        <option value="ativo:arquivado">Arquivado</option>
+    </select>
+    <select id="filtro-ativo-alerta">
+        <option value="">Todos</option>
+        <option value="com">Com alerta</option>
+        <option value="sem">Sem alerta</option>
+    </select>
 </div>
 
 <!-- v1.93.0 — modal-documentos-ativo REMOVIDO: conteúdo (botões de

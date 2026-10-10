@@ -4,6 +4,19 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.326.1) — correções do teste da F2.7c-1 (Nicola 08/10 13:48). Minhas
+notificações: a linha de aviso com frequência quebrava o título numa coluna de uma palavra; agora
+título em linha inteira e, embaixo, frequência + interruptor (.rz-pref-2l). Import map:
+comum-licenca.js 1.6.1 (teste x licença paga: "Indicar o Raiz" aparece para plano pago). Nenhum
+objeto de banco criado por este arquivo.
+Versão anterior (Beta v1.326.0):
+------------------------------------------------------------------
+Versões anteriores (v1.326.0 … v1.326.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.326.0) — UX F2.7c-1, menu ⚙️ › Conta (de acordo do Nicola 08/10 12:51). A tela
 Sobre sai do app: "Suporte" vira sheet com WhatsApp, e-mail, página de contatos da Raiz, sugestão
 (feedback + demanda de suporte) e rodapé com versão e termos (abrirSuporte, comum-sobre.js);

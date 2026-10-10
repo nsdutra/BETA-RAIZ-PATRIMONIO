@@ -6,9 +6,20 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.329.1
-   LINHAS: 17234
-   DATA: 08/10/2026 (sessão 20261003-1707-ux-base, demanda ed5accfe)
+   VERSÃO: Beta v1.330.0
+   LINHAS: 17282
+   DATA: 09/10/2026 (sessão 20261003-1707-ux-base, demanda fcd3008d)
+   NOVIDADES (Beta v1.330.0) — UX F2.3a, topo das abas e busca em Sheet ("Estou de acordo com f2.3 e
+   opcao a" do Nicola 09/10 20:52). Ativos, Contratos, Alertas e Compartilhar imóveis abrem com a barra
+   de busca de largura inteira (.rz-topo/.rz-search; "+" ao lado quando a tela cria algo); sai a linha de
+   descrição e a lupa. Tocar na barra abre rzAbrirBuscaTela (campo ao vivo, chips por grupo, "Ver n …");
+   rzRotuloBusca mostra na barra o termo e quantos filtros estão ligados. Alertas (opção a): topo = barra +
+   segmento de severidade; as categorias viraram chips dentro do Sheet e a lista ganhou busca por texto.
+   Os popups modal-busca-contratos e modal-busca-vitrine viraram guardadores de estado escondidos. CSS:
+   .rz-busca-campo, .rz-busca, .rz-search.rz-ativo. Import map: cofre-ativos.js 1.81.0, cofre-app.js
+   1.46.0, contratos.js 1.46.0, vitrine.js 1.5.0, ativos/ativos-markup.js 1.54.0. Nenhum objeto de banco
+   criado por este arquivo.
+   Versão anterior (Beta v1.329.1):
    NOVIDADES (Beta v1.329.1) — correções do teste da F2.8 (Nicola 08/10 20:39). Página pública dos imóveis
    compartilhados no tema claro (CSS .rz-pub*, body.rz-pub-body) e "Fechar" como botão-ícone. Import map:
    vitrine.js 1.4.1 (página clara; a lista de Compartilhar relê os imóveis ao abrir). Nenhum objeto de
@@ -41,14 +52,8 @@
    comum-pessoas.js 1.206.0 (formulário no campo único, interruptor .rz-switch). Nenhum objeto de
    banco criado por este arquivo.
    Versão anterior (Beta v1.326.1):
-   NOVIDADES (Beta v1.326.1) — correções do teste da F2.7c-1 (Nicola 08/10 13:48). Minhas
-   notificações: a linha de aviso com frequência quebrava o título numa coluna de uma palavra; agora
-   título em linha inteira e, embaixo, frequência + interruptor (.rz-pref-2l). Import map:
-   comum-licenca.js 1.6.1 (teste x licença paga: "Indicar o Raiz" aparece para plano pago). Nenhum
-   objeto de banco criado por este arquivo.
-   Versão anterior (Beta v1.326.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.326.0 … v1.326.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.326.1 … v1.326.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -73,7 +78,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.45.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.4.1","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.45.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.80.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.53.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.38.1","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.46.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.0","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.46.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.81.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.34.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.6.1","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.12.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.3.2","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.1","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.54.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -937,6 +942,14 @@
         .rz-search svg{width:18px;height:18px;flex:none}
         .rz-search span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .rz-topo .rz-ico-btn{flex:none}
+        .rz-search.rz-ativo{color:var(--ink);border-color:var(--pine)}
+        .rz-busca-campo{display:flex;align-items:center;gap:8px;height:48px;padding:0 14px;border:1.5px solid var(--line);border-radius:var(--r-pill);background:#fff;margin-bottom:4px}
+        .rz-busca-campo:focus-within{border-color:var(--sprout)}
+        .rz-busca-campo svg{width:18px;height:18px;flex:none;color:var(--muted)}
+        .rz-busca-campo input{flex:1;min-width:0;height:44px;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink)}
+        .rz-busca .rz-chips-wrap{flex-wrap:wrap;overflow:visible;margin:0 0 4px;padding:0}
+        .rz-busca-linhas{margin-top:12px}
+        .rz-busca-linhas .rz-row{width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left;font:inherit;color:inherit}
         /* v1.294.0 (UXR-25) — segmento de 4 opções do Financeiro; rótulo curto em tela estreita */
         .rz-seg.rz-seg-4 button{font-size:12px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
         .rz-seg .rz-seg-s{display:none}
@@ -1080,30 +1093,11 @@
     <!-- v1.47.0 — overlay de busca/filtro próprio da Vitrine (mesmo padrão
          visual do overlay de Imóveis acima, IDs próprios — vitrine-filtro-
          emp/status já existiam, só migraram do card fixo pra dentro daqui). -->
-    <div id="modal-busca-vitrine" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
-        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
-            <div class="p-3 border-b flex items-center justify-between flex-none">
-                <span class="font-bold text-slate-800">Filtrar imóveis</span>
-                <button type="button" onclick="fecharBuscaVitrine()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
-            </div>
-            <div class="p-3 space-y-3 overflow-y-auto">
-                <div>
-                    <label class="block text-[12px] font-bold text-gray-500">Status</label>
-                    <select id="vitrine-filtro-status" onchange="renderVitrine()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
-                        <option value="todos">Todos</option>
-                        <option value="Vago">Vago</option>
-                        <option value="Alugado">Alugado</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[12px] font-bold text-gray-500">Empreendimento</label>
-                    <select id="vitrine-filtro-emp" onchange="renderVitrine()" class="w-full p-2 border rounded-lg text-sm bg-gray-50 mt-1">
-                        <option value="todos">Todos</option>
-                    </select>
-                </div>
-                <button type="button" onclick="document.getElementById('vitrine-filtro-status').value='todos'; document.getElementById('vitrine-filtro-emp').value='todos'; renderVitrine();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
-            </div>
-        </div>
+    <!-- Estado dos filtros de Compartilhar imóveis (F2.3). Não aparece: a busca é o Sheet de abrirBuscaVitrine. -->
+    <div id="vitrine-filtros-estado" hidden>
+        <input type="hidden" id="vitrine-filtro-texto" value="">
+        <select id="vitrine-filtro-status"><option value="todos">Todos</option><option value="Vago">Vago</option><option value="Alugado">Alugado</option><option value="Assinando">Assinando</option></select>
+        <select id="vitrine-filtro-emp"><option value="todos">Todos</option></select>
     </div>
 
     <!-- v1.52.0 — overlay de busca/filtro da aba Financeiro, mesmo
@@ -1332,47 +1326,16 @@
          Contratos, mesmos 4 filtros + checkbox que existiam sempre
          visíveis antes, agora dentro do componente padrão (sem "Fechar"
          no rodapé, só "Limpar filtros" + X + clicar fora — DS §10). -->
-    <div id="modal-busca-contratos" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center">
-        <div class="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[85vh] flex flex-col">
-            <div class="p-3 border-b flex items-center justify-between flex-none">
-                <span class="font-bold text-slate-800">Buscar / Filtrar</span>
-                <button type="button" onclick="fecharBuscaContratos()" class="text-slate-400 text-2xl leading-none px-2">&times;</button>
-            </div>
-            <div class="p-3 space-y-3 overflow-y-auto">
-                <div>
-                    <label class="block text-[12px] font-bold text-gray-500">Empreendimento</label>
-                    <select id="contratos-filtro-emp" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
-                        <option value="todos">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[12px] font-bold text-gray-500">Status</label>
-                    <select id="contratos-filtro-status" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
-                        <option value="todos">Todos</option>
-                        <option value="Assinando">Assinando</option>
-                        <option value="Ativo">Ativo</option>
-                        <option value="Suspenso">Suspenso</option>
-                        <option value="Finalizado">Finalizado</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-[12px] font-bold text-gray-500">Imóvel</label>
-                    <input type="hidden" id="contratos-filtro-imovel-id" value="todos">
-                    <button type="button" onclick="abrirSeletorImovel(function(id, resumo) { document.getElementById('contratos-filtro-imovel-id').value = id || 'todos'; document.getElementById('contratos-filtro-imovel-resumo').textContent = resumo || 'Todos'; renderContratos(); }, true)" id="contratos-filtro-imovel-resumo" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 text-left truncate mt-1">Todos</button>
-                </div>
-                <div>
-                    <label class="block text-[12px] font-bold text-gray-500">Locatário</label>
-                    <select id="contratos-filtro-locatario" onchange="renderContratos()" class="raiz-filtro-altura-padrao w-full p-1.5 border rounded text-[13px] bg-gray-50 mt-1">
-                        <option value="todos">Todos</option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-2 pt-1">
-                    <input type="checkbox" id="contratos-filtro-somente-alerta" onchange="renderContratos()" class="w-4 h-4">
-                    <label for="contratos-filtro-somente-alerta" class="text-[12px] font-bold text-gray-600">Mostrar só contratos com alerta</label>
-                </div>
-                <button type="button" onclick="document.getElementById('contratos-filtro-emp').value='todos'; document.getElementById('contratos-filtro-status').value='todos'; document.getElementById('contratos-filtro-imovel-id').value='todos'; document.getElementById('contratos-filtro-imovel-resumo').textContent='Todos'; document.getElementById('contratos-filtro-locatario').value='todos'; document.getElementById('contratos-filtro-somente-alerta').checked=false; renderContratos();" class="w-full text-xs font-bold text-slate-500 py-2">Limpar filtros</button>
-            </div>
-        </div>
+    <!-- Estado dos filtros de Contratos (F2.3). Não aparece: a busca é o Sheet de abrirBuscaContratos (contratos.js);
+         renderContratos() lê estes campos. (dem fcd3008d) -->
+    <div id="contratos-filtros-estado" hidden>
+        <input type="hidden" id="contratos-filtro-texto" value="">
+        <select id="contratos-filtro-emp"><option value="todos">Todos</option></select>
+        <select id="contratos-filtro-status"><option value="todos">Todos</option><option value="Assinando">Assinando</option><option value="Ativo">Ativo</option><option value="Suspenso">Suspenso</option><option value="Finalizado">Finalizado</option></select>
+        <input type="hidden" id="contratos-filtro-imovel-id" value="todos">
+        <span id="contratos-filtro-imovel-resumo">Todos</span>
+        <select id="contratos-filtro-locatario"><option value="todos">Todos</option></select>
+        <input type="checkbox" id="contratos-filtro-somente-alerta">
     </div>
 
 
@@ -2424,14 +2387,10 @@
                  busca padrão (modal-busca-contratos, mesmo componente de
                  Recebimentos/Atrasados/Saídas) — mesmos ids de campo,
                  renderContratos() não precisou mudar nada de lógica. -->
-            <div class="flex items-center gap-2 mb-4">
-                <p class="text-[12px] text-gray-500 flex-1 text-left">Contratos de locação do seu patrimônio.</p>
-                <!-- v1.115.0 (fatia 7, REGRAS §4) — os 2 ícones no catálogo
-                     (.rz-ico-btn; "+" preenchido em pine); o "+" abre o
-                     formulário direto (uma ação só — sheet de ações entra
-                     quando "A partir de um PDF" existir). raiz-btn-toggle
-                     aposentado aqui: o botão não vira X, o sheet tem o seu. -->
-                <button onclick="abrirBuscaContratos()" title="Buscar/filtrar" class="rz-ico-btn" aria-label="Buscar"><svg data-lucide="search"></svg></button>
+            <!-- Topo (F2.3): barra de busca + "+"; os chips da F2.4 vêm logo abaixo. (dem fcd3008d) -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" id="contratos-busca-btn" onclick="abrirBuscaContratos()" aria-label="Buscar contrato"><svg data-lucide="search"></svg><span>Buscar contrato, locatário ou imóvel</span></button>
+
                 <button id="btn-toggle-contrato" onclick="abrirEscolhaNovoContrato()" class="rz-ico-btn rz-primary" title="Novo contrato" aria-label="Novo contrato"><svg data-lucide="plus"></svg></button>
             </div>
 
@@ -3150,9 +3109,8 @@
                  Buscar + Gerar link (share, preenchido — é a ação da tela). -->
             <button onclick="switchTab('tab-ativos')" class="rz-back"><svg data-lucide="chevron-left"></svg> Ativos</button>
             <!-- Compartilhar imóveis (dem ed5accfe): toque escolhe; o botão fixo manda um link só. -->
-            <div class="rz-tabhead">
-                <p>Toque nos imóveis que quer mandar. Vai um link só, com fotos e detalhes, pelo WhatsApp ou como preferir.</p>
-                <button id="btn-vitrine-busca" onclick="abrirBuscaVitrine()" title="Filtrar" class="rz-ico-btn" aria-label="Filtrar"><svg data-lucide="search"></svg></button>
+            <div class="rz-topo">
+                <button type="button" class="rz-search" id="vitrine-busca-btn" onclick="abrirBuscaVitrine()" aria-label="Buscar imóvel"><svg data-lucide="search"></svg><span>Buscar imóvel para compartilhar</span></button>
             </div>
 
             <div id="lista-vitrine" class="rz-card rz-list"></div>
@@ -3267,23 +3225,12 @@
             <!-- AL.3 (REGRAS §14) — "<h2> Alertas + 'n abertos'": id próprio
                  pra montarAlertasPatrimonio() escrever a contagem sem
                  reconstruir o cabeçalho inteiro. -->
-            <h2 class="text-lg font-bold raiz-text-pine mb-1">Alertas<span id="alertas-contagem-header" class="text-sm font-normal text-slate-400"></span></h2>
-            <p class="text-[12px] text-gray-500 mb-4">Tudo que pede alguma atenção no patrimônio — controles vencendo (IPTU, seguro, manutenção), contratos e sinais tributários encontrados na carteira.</p>
-
-            <!-- v1.102.0 (NOVO, pedido explícito: "deve ser possível, via
-                 chip, filtrar os tipos de alertas") — mesma técnica dos
-                 chips de tipo em Ativos (flex-wrap, sem overflow-x —
-                 lição aprendida nesta mesma sessão: rolagem escondida
-                 via CSS não é confiável em todo navegador, então nem
-                 tento aqui). -->
-            <!-- v1.187.0 (pedido do Nicola: "escolher entre crítico,
-                 informação, alerta" — os 3 valores de alerta_tipos.severidade
-                 — "não usar chip pra isto") — .rz-seg (controle segmentado,
-                 já usado em Financeiro/Conciliação etc.), não .rz-chip. -->
+            <!-- Topo (F2.3, opção a do Nicola 09/10): barra de busca e segmento de severidade. As categorias
+                 viraram chips dentro do Sheet de busca (rzAbrirBuscaAlertas). (dem fcd3008d) -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" id="alertas-busca-btn" onclick="rzAbrirBuscaAlertas()" aria-label="Buscar alerta"><svg data-lucide="search"></svg><span>Buscar alerta por bem, contrato ou assunto</span></button>
+            </div>
             <div id="alertas-seg-severidade" class="rz-seg"></div>
-
-            <div id="alertas-chips-categoria" class="rz-chips"></div>
-
             <div id="alertas-patrimonio-mount"></div>
 
         </section>
@@ -3669,7 +3616,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.329.1"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.330.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -12958,7 +12905,7 @@
             if (error) {
                 console.error('[alertas] fn_alertas_listar:', error.message);
                 mount.innerHTML = `<p class="text-xs text-red-500 text-center py-6">Não foi possível carregar os alertas agora.</p>`;
-                document.getElementById('alertas-chips-categoria').innerHTML = '';
+                const chipsCat = document.getElementById('alertas-chips-categoria'); if (chipsCat) chipsCat.innerHTML = '';
                 document.getElementById('alertas-seg-severidade').innerHTML = '';
                 return;
             }
@@ -13014,7 +12961,48 @@
             if (el) el.innerHTML = segSeveridadeHtml('alertas-seg-severidade', alertasSeveridadeFiltro, 'filtrarAlertasPorSeveridade');
         }
 
+        // Categorias dos alertas: a mesma lista para o Sheet de busca e para o rótulo da barra.
+        function gruposCategoriaAlertas() {
+            return [
+                { chave: 'todos', rotulo: 'Todos' },
+                { chave: 'financeiro', rotulo: DOMINIO_ROTULO_ALERTA.financeiro },
+                { chave: 'documental', rotulo: DOMINIO_ROTULO_ALERTA.documental },
+                { chave: 'contratual', rotulo: DOMINIO_ROTULO_ALERTA.contratual },
+                { chave: 'fiscal', rotulo: DOMINIO_ROTULO_ALERTA.fiscal },
+                { chave: 'cadastro', rotulo: DOMINIO_ROTULO_ALERTA.cadastro },
+            ];
+        }
+        var alertasTextoFiltro = '';
+        const rzNormBusca = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        function alertasFiltradosTela() {
+            const porCat = alertasFiltroAtual === 'todos' ? alertasTodos : alertasTodos.filter(a => a.categoria === alertasFiltroAtual);
+            const termo = rzNormBusca(alertasTextoFiltro).trim();
+            return termo ? porCat.filter(a => rzNormBusca((a.titulo || '') + ' ' + (a.subtitulo || '')).includes(termo)) : porCat;
+        }
+        function atualizarRotuloBuscaAlertas() {
+            const cat = gruposCategoriaAlertas().find(g => g.chave === alertasFiltroAtual);
+            const assunto = alertasFiltroAtual !== 'todos' && cat ? cat.rotulo : '';
+            rzRotuloBusca('alertas-busca-btn', 'Buscar alerta por bem, contrato ou assunto', alertasTextoFiltro, assunto ? 1 : 0);
+            const span = document.querySelector('#alertas-busca-btn span');
+            if (span && assunto) span.textContent = (alertasTextoFiltro ? '“' + alertasTextoFiltro + '” · ' : '') + assunto;
+        }
+        function rzAbrirBuscaAlertas() {
+            const qtd = (chave) => chave === 'todos'
+                ? Array.from((alertasContagemPorCategoria || new Map()).values()).reduce((a, b) => a + b, 0)
+                : ((alertasContagemPorCategoria && alertasContagemPorCategoria.get(chave)) || 0);
+            rzAbrirBuscaTela({
+                titulo: 'Buscar alertas', placeholder: 'Bem, contrato ou assunto',
+                termo: () => alertasTextoFiltro,
+                aoTermo: (v) => { alertasTextoFiltro = v; renderListaAlertas(); atualizarRotuloBuscaAlertas(); },
+                grupos: [{ titulo: 'Assunto', opcoes: gruposCategoriaAlertas().map(g => ({ valor: g.chave, rotulo: g.rotulo, n: qtd(g.chave) })),
+                    valor: () => alertasFiltroAtual, aoEscolher: (v) => filtrarAlertas(v) }],
+                contar: () => alertasFiltradosTela().length, nomes: ['alerta', 'alertas'],
+                aoLimpar: () => { alertasTextoFiltro = ''; filtrarAlertas('todos'); },
+            });
+        }
+
         function renderChipsAlertas() {
+            atualizarRotuloBuscaAlertas();
             const wrap = document.getElementById('alertas-chips-categoria');
             if (!wrap) return;
             // AL.3 — chips por dominio (REGRAS §14), não mais por
@@ -13055,7 +13043,7 @@
             const mount = document.getElementById('alertas-patrimonio-mount');
             if (!mount) return;
 
-            const filtrados = alertasFiltroAtual === 'todos' ? alertasTodos : alertasTodos.filter(a => a.categoria === alertasFiltroAtual);
+            const filtrados = alertasFiltradosTela();
 
             if (filtrados.length === 0) {
                 // "Tudo em dia" só quando não há alerta nenhum, de nenhuma severidade: com um filtro
@@ -13064,7 +13052,7 @@
                     mount.innerHTML = rzVazio({ dominio: 'alertas', id: 'alertas-zerado', titulo: 'Tudo em dia', beneficio: 'Nenhum vencimento ou pendência pedindo atenção agora. O Raiz confere tudo de novo todo dia e avisa aqui.' });
                     return;
                 }
-                mount.innerHTML = `<p class="text-xs text-center py-8" style="color:var(--sage)">Nenhum alerta ${alertasFiltroAtual === 'todos' ? '' : 'nesta categoria '}no momento.</p>`;
+                mount.innerHTML = `<div class="rz-card"><div class="rz-empty"><p>${alertasTextoFiltro ? 'Nenhum alerta com “' + rzEsc(alertasTextoFiltro) + '”.' : 'Nenhum alerta ' + (alertasFiltroAtual === 'todos' ? '' : 'neste assunto ') + 'no momento.'}</p></div></div>`;
                 return;
             }
 
@@ -16054,6 +16042,66 @@
                 </div>`;
             }).join('');
             if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // Busca de uma tela em Sheet (F2.3): campo ao vivo, chips por grupo e o botão "Ver n …" com a
+        // contagem do que a lista atrás já está mostrando. Cada tela entrega a configuração:
+        // { titulo, placeholder, termo(), aoTermo(t), grupos:[{titulo, opcoes:[{valor, rotulo, n?}], valor(), aoEscolher(v)}],
+        //   linhas:[{rotulo, valor(), aoTocar()}], contar(), nomes:['ativo','ativos'], aoLimpar() }
+        function rzAbrirBuscaTela(cfg) {
+            const esc = (s) => rzEsc(String(s ?? ''));
+            const grupos = cfg.grupos || [], linhas = cfg.linhas || [];
+            const chipsHtml = (g, gi) => g.opcoes.map((o, oi) =>
+                `<button type="button" class="rz-chip${String(g.valor()) === String(o.valor) ? ' rz-on' : ''}" data-g="${gi}" data-o="${oi}">${esc(o.rotulo)}${o.n != null ? ` <span class="rz-n">${esc(o.n)}</span>` : ''}</button>`).join('');
+            const corpoHtml = () => `
+                <label class="rz-busca-campo"><svg data-lucide="search"></svg><input type="search" id="rz-busca-q" placeholder="${esc(cfg.placeholder || 'Buscar')}" value="${esc(cfg.termo ? cfg.termo() : '')}" enterkeyhint="search" autocomplete="off" aria-label="${esc(cfg.placeholder || 'Buscar')}"></label>
+                ${grupos.map((g, gi) => `<div class="rz-group">${esc(g.titulo)}</div><div class="rz-chips rz-chips-wrap" data-grupo="${gi}">${chipsHtml(g, gi)}</div>`).join('')}
+                ${linhas.length ? `<div class="rz-card rz-list rz-busca-linhas">${linhas.map((l, li) => `<button type="button" class="rz-row rz-link" data-l="${li}"><div class="rz-tx"><b>${esc(l.rotulo)}</b><span data-lv="${li}">${esc(l.valor())}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></button>`).join('')}</div>` : ''}`;
+            const sheet = abrirSheet(rzSheetCabecalho(cfg.titulo || 'Buscar', '') +
+                `<div class="rz-sh-b rz-busca" id="rz-busca-corpo">${corpoHtml()}</div>` +
+                `<div class="rz-sh-f"><button type="button" class="rz-btn rz-btn-2" data-busca-limpar>Limpar</button><button type="button" class="rz-btn rz-btn-1" data-busca-ver>Ver resultados</button></div>`);
+            const atualizar = () => {
+                grupos.forEach((g, gi) => { const w = sheet.querySelector(`[data-grupo="${gi}"]`); if (w) w.innerHTML = chipsHtml(g, gi); });
+                linhas.forEach((l, li) => { const s = sheet.querySelector(`[data-lv="${li}"]`); if (s) s.textContent = l.valor(); });
+                const b = sheet.querySelector('[data-busca-ver]');
+                const n = cfg.contar ? cfg.contar() : null;
+                if (b) b.textContent = n == null ? 'Ver resultados' : (n === 0 ? 'Nada encontrado' : 'Ver ' + n + ' ' + ((cfg.nomes || [])[n === 1 ? 0 : 1] || ''));
+            };
+            const ligar = () => {
+                const q = sheet.querySelector('#rz-busca-q');
+                let tempo = null;
+                if (q) q.addEventListener('input', () => { clearTimeout(tempo); tempo = setTimeout(() => { if (cfg.aoTermo) cfg.aoTermo(q.value); atualizar(); }, 180); });
+                if (q) q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); if (cfg.aoTermo) cfg.aoTermo(q.value); fecharSheet(); } });
+                sheet.querySelector('#rz-busca-corpo').addEventListener('click', (ev) => {
+                    const chip = ev.target.closest('[data-g]');
+                    if (chip) { const g = grupos[+chip.dataset.g]; g.aoEscolher(g.opcoes[+chip.dataset.o].valor); atualizar(); return; }
+                    const linha = ev.target.closest('[data-l]');
+                    if (linha) linhas[+linha.dataset.l].aoTocar(atualizar);
+                });
+            };
+            sheet.querySelector('[data-busca-limpar]').addEventListener('click', () => {
+                if (cfg.aoLimpar) cfg.aoLimpar();
+                sheet.querySelector('#rz-busca-corpo').innerHTML = corpoHtml(); rzIcones(); ligar(); atualizar();
+            });
+            sheet.querySelector('[data-busca-ver]').addEventListener('click', () => {
+                const q = sheet.querySelector('#rz-busca-q');
+                if (q && cfg.aoTermo && cfg.termo && q.value !== cfg.termo()) cfg.aoTermo(q.value);
+                fecharSheet();
+            });
+            ligar(); atualizar();
+            return sheet;
+        }
+
+        // Texto da barra de busca no topo: o termo buscado (ou o texto-guia) e quantos filtros estão ligados.
+        function rzRotuloBusca(botao, textoGuia, termo, nFiltros) {
+            const b = typeof botao === 'string' ? document.getElementById(botao) : botao;
+            if (!b) return;
+            const span = b.querySelector('span');
+            const t = String(termo || '').trim();
+            const partes = [t ? '“' + t + '”' : textoGuia];
+            if (nFiltros) partes.push(nFiltros === 1 ? '1 filtro' : nFiltros + ' filtros');
+            if (span) span.textContent = partes.join(' · ');
+            b.classList.toggle('rz-ativo', !!(t || nFiltros));
         }
 
         // Copia texto pela porta única do aparelho (RaizDevice.clipboard) e avisa com toast.

@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-app.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.45.0 · 08/10/2026
+// Versão: 1.46.0 · 09/10/2026
+//
+// v1.46.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
+// "abrir-busca-ativos" abre a busca em Sheet (ativos.abrirBuscaAtivos) quando o app tem Sheet; no
+// cofre.html avulso continua o popup de sempre.
+//
+// Versão anterior: 1.45.0 · 08/10/2026
 //
 // v1.45.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — "+" de Ativos: "Montar vitrine" vira "Compartilhar imóveis".
 //
@@ -22,18 +28,11 @@
 //
 // v1.43.0 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — nome único da IA: o atalho do bot abre "Raiz IA no WhatsApp" pelo
 // adaptador (rzDev, UXR-40), com a saudação nova.
-//
-// Versão anterior: 1.42.0 · 03/10/2026
-//
-// v1.42.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — "Voltar ao ativo"
-// a partir de um item de controle caía no chip Resumo: voltarFichaItemControle já
-// trocava para o chip Controles, mas o listener de cofre:recarregar-eventos reabria a
-// ficha com o chip padrão. Agora a ficha é reaberta no chip que estava aberto.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.45.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
+export const VERSAO = '1.46.0'; // v-check (28/09/2026): lido por Dev › Versões — manter igual ao header
 import { estado, COFRE_VERSAO } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, fecharModal, abrirModal, refrescarIcones } from './cofre-ui.js';
@@ -135,7 +134,7 @@ document.addEventListener('click', async (ev) => {
         case 'fechar-busca-global': docs.fecharBuscaGlobal(); break;
         case 'abrir-menu-conta': abrirModal('modal-menu-conta'); break;
         case 'fechar-menu-conta': fecharModal('modal-menu-conta'); break;
-        case 'abrir-busca-ativos': abrirModal('modal-busca-ativos'); break;
+        case 'abrir-busca-ativos': if (typeof window.rzAbrirBuscaTela === 'function') ativos.abrirBuscaAtivos(); else abrirModal('modal-busca-ativos'); break; // F2.3
         // v1.25.0 (fatia 7, REGRAS §4) — "+" da aba Ativos abre sheet de
         // ações (Novo ativo · Carregar documento · Montar vitrine) em vez
         // de 3 ícones soltos. IA no topo (§16.5): o upload é lido pela IA.

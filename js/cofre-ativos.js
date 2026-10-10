@@ -1,6 +1,12 @@
 // ============================================================================
 // cofre-ativos.js — Raiz Patrimônio · Cofre de Documentos
-// Versão: 1.80.0 · 08/10/2026
+// Versão: 1.81.0 · 09/10/2026
+//
+// v1.81.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
+// busca da lista de Ativos em Sheet (abrirBuscaAtivos): campo ao vivo e chips de Tipo, Situação e
+// Alerta, com "Ver n ativos"; a barra do topo mostra o termo e quantos filtros estão ligados.
+//
+// Versão anterior: 1.80.0 · 08/10/2026
 //
 // v1.80.0 (UX F2.8, demanda ed5accfe, sessão 20261003-1707-ux-base; "Sim. Faça 1 e 2 agora" do Nicola 08/10 20:09) — ⋮ da ficha de imóvel ganha "Compartilhar": abre o WhatsApp
 // com os dados e o link do imóvel (compartilharImovelDoAtivo, vitrine.js), para qualquer imóvel — antes "Gerar
@@ -28,22 +34,11 @@
 // v1.77.1 (07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 — VER-06, "de acordo" do Nicola 07/10 17:21) — SÓ
 // CABEÇALHO: as versões além das 5 mais recentes rolaram para o CHANGELOG_MODULOS.md.
 // Nenhuma linha de código mudou — conferido token a token contra o publicado.
-//
-// Versão anterior: 1.77.0 · 07/10/2026
-//
-// v1.77.0 (UX F2.4, demanda 6f2c8d16, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 09:11;
-// UXR-13/14/15) — chips de Ativos na ordem Todos → ação → recorte → convite:
-//   · "Com alerta" ganha o ponto na cor do pior alerta (vermelho = crítico, âmbar = atenção) e só
-//     aparece com contador > 0 (como já era);
-//   · os grupos (Imóveis · Veículos · Outros) só aparecem quando têm ativo;
-//   · cada categoria do formulário de ativo sem nenhum ativo vira chip de convite ("+ Veículo 0",
-//     vazado e tracejado); o toque abre "Novo ativo" já com a categoria escolhida;
-//   · carteira só com imóveis: card de convite no fim da lista, que abre o "+" de Ativos.
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.77.0 … v1.77.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.80.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.81.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 import { estado } from './cofre-estado.js';
 import * as api from './cofre-api.js';
 import { mostrarToast, erroInline, refrescarIcones, alternarToggle, abrirModal, fecharModal, modalGenerico, perguntar, avisarComDesfazer } from './cofre-ui.js';
@@ -506,6 +501,8 @@ export function renderAtivosLista(filtroTipo = '', filtroTexto = '') {
             <p class="rz-desc">Cadastre também veículos, obras de arte, seguros de vida e outros bens — tudo no mesmo lugar, com os vencimentos sob controle.</p>
             <button type="button" class="rz-btn rz-btn-2" data-action="abrir-acoes-ativos" style="margin-top:10px">Cadastrar outro bem</button>
         </div>` : '';
+    ultimaContagemAtivos = lista.length;
+    atualizarRotuloBuscaAtivos();
     container.innerHTML = nomesGrupos.map(nome => `
         <div class="rz-group">${escapeHtml(nome)} · ${grupos[nome].length}</div>
         <div class="rz-card rz-list">${grupos[nome].map(ativoCardHtml).join('')}</div>
@@ -610,6 +607,39 @@ function renderChipsAtivos() {
     // ninguém estar arrastando — o efeito que o Nicola reportou. Reset
     // explícito, incondicional, depois de toda renderização.
     wrap.scrollLeft = 0;
+}
+
+// ---- Busca da lista (F2.3, dem fcd3008d) -------------------------------------------------------
+let ultimaContagemAtivos = 0;
+const campoFiltro = (id) => document.getElementById(id);
+
+function atualizarRotuloBuscaAtivos() {
+    if (typeof window === 'undefined' || typeof window.rzRotuloBusca !== 'function') return;
+    const n = ['filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].filter(id => campoFiltro(id)?.value).length;
+    window.rzRotuloBusca('ativos-busca-btn', 'Buscar ativo, locatário ou item', campoFiltro('filtro-ativo-busca')?.value || '', n);
+}
+
+function redesenharComFiltros() {
+    const tipo = campoFiltro('filtro-ativo-tipo')?.value || '';
+    // tipo fino escolhido na busca vale sobre o chip; sem ele, o chip aceso continua valendo
+    const tipos = tipo || (chipAtivoAtual > 0 ? GRUPOS_CHIP_TIPO[chipAtivoAtual]?.tipos : '');
+    renderAtivosLista(tipos, campoFiltro('filtro-ativo-busca')?.value || '');
+}
+
+// Sheet de busca da lista de Ativos (no app). No cofre.html avulso, o dispatch abre o popup de sempre.
+export function abrirBuscaAtivos() {
+    if (typeof window.rzAbrirBuscaTela !== 'function') return;
+    const opcoes = (id) => Array.from(campoFiltro(id)?.options || []).map(o => ({ valor: o.value, rotulo: o.textContent.trim() }));
+    const grupo = (titulo, id) => ({ titulo, opcoes: opcoes(id), valor: () => campoFiltro(id)?.value || '',
+        aoEscolher: (v) => { if (campoFiltro(id)) campoFiltro(id).value = v; redesenharComFiltros(); } });
+    window.rzAbrirBuscaTela({
+        titulo: 'Buscar ativos', placeholder: 'Nome, locatário ou item de controle',
+        termo: () => campoFiltro('filtro-ativo-busca')?.value || '',
+        aoTermo: (v) => { if (campoFiltro('filtro-ativo-busca')) campoFiltro('filtro-ativo-busca').value = v; redesenharComFiltros(); },
+        grupos: [grupo('Tipo', 'filtro-ativo-tipo'), grupo('Situação', 'filtro-ativo-status'), grupo('Alerta', 'filtro-ativo-alerta')],
+        contar: () => ultimaContagemAtivos, nomes: ['ativo', 'ativos'],
+        aoLimpar: () => { ['filtro-ativo-busca', 'filtro-ativo-tipo', 'filtro-ativo-status', 'filtro-ativo-alerta'].forEach(id => { if (campoFiltro(id)) campoFiltro(id).value = ''; }); renderAtivosLista('', ''); },
+    });
 }
 
 // Chamada pelo dispatch central (cofre-app.js, case 'filtrar-ativos-chip').

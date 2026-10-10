@@ -7,6 +7,17 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 ## `js/ativos/ativos-markup.js`
 
 //
+// v1.41.0 — modal-modelos-controle: #modelo-tipo-ativo (select único, 14
+// valores misturados categoria+código) virou #modelo-categoria (8
+// categorias) + #modelo-tipo-especifico (opcional) — acompanha
+// cofre-controles.js v1.26.0 (escopo_tipo/escopo_valor em vez do
+// tipo_ativo deprecated). Espelha cofre.html.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.40.0 … v1.40.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
+
+//
 // v1.40.0 — achado real do Nicola (relato + print, 17/09/2026): no seletor
 // "Vincular a" do upload/ficha de documento (#up-vinculo-tipo, #fd-va-tipo)
 // ainda aparecia a opção "Imóvel" — nomenclatura legada, tema desta sessão
@@ -371,6 +382,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // sem este ícone, Home/Alertas/"Em triagem"/"Comece pelo documento"
 // ficariam sem NENHUMA porta de entrada dentro da aba Ativos.
 // ============================================================================
+
+---
 
 ---
 
@@ -857,7 +870,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-app.js`
+
+//
+// Versão anterior: 1.42.0 · 03/10/2026
+//
+// v1.42.0 (demanda d3260b23, testes reprovados pelo Nicola em 03/10/2026 23:02, sessão 20261003-2305-controles-despesa-b) — "Voltar ao ativo"
+// a partir de um item de controle caía no chip Resumo: voltarFichaItemControle já
+// trocava para o chip Controles, mas o listener de cofre:recarregar-eventos reabria a
+// ficha com o chip padrão. Agora a ficha é reaberta no chip que estava aberto.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 //
@@ -1254,7 +1281,25 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ativos.js`
+
+//
+// Versão anterior: 1.77.0 · 07/10/2026
+//
+// v1.77.0 (UX F2.4, demanda 6f2c8d16, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 09:11;
+// UXR-13/14/15) — chips de Ativos na ordem Todos → ação → recorte → convite:
+//   · "Com alerta" ganha o ponto na cor do pior alerta (vermelho = crítico, âmbar = atenção) e só
+//     aparece com contador > 0 (como já era);
+//   · os grupos (Imóveis · Veículos · Outros) só aparecem quando têm ativo;
+//   · cada categoria do formulário de ativo sem nenhum ativo vira chip de convite ("+ Veículo 0",
+//     vazado e tracejado); o toque abre "Novo ativo" já com a categoria escolhida;
+//   · carteira só com imóveis: card de convite no fim da lista, que abre o "+" de Ativos.
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.76.0 … v1.76.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.76.0 · 07/10/2026
@@ -2230,6 +2275,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-controles.js`
 
 //
@@ -2811,6 +2858,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // não está implementado (geração automática de ocorrências recorrentes,
 // Central de Alertas consolidada).
 // ============================================================================
+
+---
 
 ---
 
@@ -3455,6 +3504,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-estado.js`
 
 //
@@ -3629,6 +3680,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-navegacao.js`
 
 //
@@ -3774,6 +3827,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/cofre-ui.js`
 
 //
@@ -3805,6 +3860,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // genérica, template de card, indicador de "liga/desliga" (Design System
 // v1.43.0 §2). Não importa cofre-api.js — não sabe nada de Supabase.
 // ============================================================================
+
+---
 
 ---
 
@@ -3910,6 +3967,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // pilha; os demais (cofre-ui, cofre-documentos, cofre-ativos) importam
 // daqui, nunca o contrário.
 // ============================================================================
+
+---
 
 ---
 
@@ -4076,6 +4135,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-minha-empresa.js`
 
 //
@@ -4181,6 +4242,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // `dbAuth` já autenticado do host, por parâmetro (ver nota completa em
 // comum-licenca.js).
 // ============================================================================
+
+---
 
 ---
 
@@ -4476,6 +4539,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/comum-renovacao.js`
 
 //
@@ -4518,6 +4583,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // jsdelivr (mesma origem já usada pelo app); se não carregar, o "copia e cola"
 // continua funcionando sozinho.
 // ============================================================================
+
+---
 
 ---
 
@@ -4634,7 +4701,21 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/contratos.js`
+
+//
+// Versão anterior: 1.42.0 · 07/10/2026
+//
+// v1.42.0 (demanda b94ef7d5, sessão 20261007-0005-vinculos-chips; plano aprovado pelo Nicola 07/10 00:05) —
+// ⋮ do fiador no chip Partes ganha "Encerrar fiador" (troca real: sai da lista do contrato e fica no
+// histórico da parte, com o cônjuge anuente) via fn_vinculo_encerrar; "Remover fiador" vira
+// "Excluir fiador" (cadastro errado — mesmo caminho de antes, que agora exclui o vínculo).
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.41.0 · 06/10/2026
@@ -5361,6 +5442,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fechamento.js`
 
 //
@@ -5647,6 +5730,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // window.jspdf, CONFIG_CLIENTE (todos já globais no index.html clássico —
 // mesmo acesso que financeiro.js já faz).
 // ============================================================================
+
+---
 
 ---
 
@@ -6608,6 +6693,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/fiscal.js`
 
 //
@@ -6667,6 +6754,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // abrirSheet, abrirSheetAcoes, abrirSheetForm, rzSheetCabecalho, fecharSheet,
 // mostrarToast, switchTab, rzIcones, podeUsar, window.fechamentoAbrirChecklistFiscalAtualizado.
 // ============================================================================
+
+---
 
 ---
 
@@ -6783,6 +6872,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // ainda referencia `imovel_id`, não `ativo_id`. Os dois ficam pra quando a
 // fatia de Contratos migrar (passo 4), não escopo desta entrega.
 // ============================================================================
+
+---
 
 ---
 
@@ -7030,7 +7121,19 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 
 ---
 
+---
+
 ## `js/vitrine.js`
+
+//
+// Versão anterior: 1.3.2 · 03/10/2026
+//
+// v1.3.2 (F0.3, demanda 29bed5eb, sessão 20261003-1707-ux-base, "de acordo" do Nicola 03/10 23:57) — o erro ao iniciar a contratação deixa de citar tabela e migration do
+// banco; fala com o cliente. (O alert() vira aviso do app na F0.2.)
+// --------------------------------------------------------------------------
+// Versões anteriores (v1.3.1 … v1.3.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
+// mais recentes deste cabeçalho (VER-06).
 
 //
 // Versão anterior: 1.3.1 · 02/10/2026
@@ -7120,6 +7223,8 @@ Histórico completo de versões dos módulos, movido automaticamente pelo `gerar
 // CLIENTE_ID_SUPABASE, dbAuth. Exclusivo (4) virou nível de módulo.
 // Indentação de origem mantida. Strict verificado.
 // ============================================================================
+
+---
 
 ---
 

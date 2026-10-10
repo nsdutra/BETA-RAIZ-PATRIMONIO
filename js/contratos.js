@@ -1,7 +1,14 @@
 // ============================================================================
 // contratos.js — Raiz Patrimônio · Contratos (lista · ficha · formulário ·
 //                 status/reajuste/detalhes · fiadores · documentos · histórico)
-// Versão: 1.45.0 · 07/10/2026
+// Versão: 1.46.0 · 09/10/2026
+//
+// v1.46.0 (UX F2.3a, demanda fcd3008d, sessão 20261003-1707-ux-base; "Estou de acordo com f2.3 e opcao a" do Nicola 09/10 20:52) —
+// busca de Contratos em Sheet (abrirBuscaContratos): texto livre ao vivo (locatário, CPF/CNPJ, imóvel,
+// endereço, empreendimento — antes não havia busca por texto), chips de Empreendimento e a linha Imóvel,
+// com "Ver n contratos"; Situação e alerta continuam nos chips da tela (F2.4). O popup de filtros saiu.
+//
+// Versão anterior: 1.45.0 · 07/10/2026
 //
 // v1.45.0 (UX F2.7a, demanda b8602a3a, sessão 20261003-1707-ux-base; plano aprovado pelo Nicola 07/10 20:05) —
 // primeiro uso, o vazio convida: Contratos sem nenhum contrato (e sem filtro) mostra a caixa rzVazio.
@@ -32,15 +39,8 @@
 // chip Partes da ficha do contrato ganha o grupo "Encerrados" (fiador e cônjuge anuente encerrados,
 // com a data); ⋮ de um encerrado: "Reativar" (volta ao contrato com os dados de antes —
 // fn_vinculo_reativar) e "Excluir" (fn_vinculo_excluir). Excluídos não aparecem.
-//
-// Versão anterior: 1.42.0 · 07/10/2026
-//
-// v1.42.0 (demanda b94ef7d5, sessão 20261007-0005-vinculos-chips; plano aprovado pelo Nicola 07/10 00:05) —
-// ⋮ do fiador no chip Partes ganha "Encerrar fiador" (troca real: sai da lista do contrato e fica no
-// histórico da parte, com o cônjuge anuente) via fn_vinculo_encerrar; "Remover fiador" vira
-// "Excluir fiador" (cadastro errado — mesmo caminho de antes, que agora exclui o vínculo).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.41.0 … v1.41.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.42.0 … v1.42.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
 import { avaliarProntidaoContratoParaMinuta } from './minutas.js'; // v1.0.1
@@ -52,7 +52,7 @@ import { emitirEscrita, aoEscrever } from './raiz-eventos.js'; // v1.18.0 — Fa
 import { renderizarBlocoEndereco, lerBlocoEndereco } from './comum-endereco.js';
 import { formatarEnderecoParte } from './comum-partes.js';
 
-export const VERSAO = '1.45.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.46.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 /** Ponto de entrada do switchTab('tab-contratos'). */
 export function montarAbaContratos() {
@@ -1392,17 +1392,44 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
             modal.onclick = (ev) => { if (ev.target === modal) modal.remove(); };
         }
 
-        // v1.99.0 (NOVO, 02/09/2026) — overlay de busca da aba Contratos.
+        // Busca de Contratos em Sheet (F2.3): texto ao vivo, Empreendimento e Imóvel. Situação e alerta
+        // ficam nos chips da tela. Os campos guardadores estão em #contratos-filtros-estado (index). (dem fcd3008d)
+        let ultimaContagemContratos = 0;
+        const campoCon = (id) => document.getElementById(id);
+        function atualizarRotuloBuscaContratos() {
+            if (typeof rzRotuloBusca !== 'function') return;
+            const n = (campoCon('contratos-filtro-emp')?.value || 'todos') !== 'todos' ? 1 : 0;
+            const m = (campoCon('contratos-filtro-imovel-id')?.value || 'todos') !== 'todos' ? 1 : 0;
+            rzRotuloBusca('contratos-busca-btn', 'Buscar contrato, locatário ou imóvel', campoCon('contratos-filtro-texto')?.value || '', n + m);
+        }
         export function abrirBuscaContratos() {
-            const modal = document.getElementById('modal-busca-contratos');
-            modal.classList.remove('hidden');
-            modal.onclick = (ev) => { if (ev.target === modal) fecharBuscaContratos(); };
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (typeof rzAbrirBuscaTela !== 'function') return;
+            popularFiltroSelect('contratos-filtro-emp', imoveis.map(i => i.empreendimento));
+            const emps = Array.from(campoCon('contratos-filtro-emp')?.options || []).map(o => ({ valor: o.value, rotulo: o.value === 'todos' ? 'Todos' : o.textContent.trim() }));
+            rzAbrirBuscaTela({
+                titulo: 'Buscar contratos', placeholder: 'Locatário, CPF/CNPJ, imóvel ou endereço',
+                termo: () => campoCon('contratos-filtro-texto')?.value || '',
+                aoTermo: (v) => { campoCon('contratos-filtro-texto').value = v; renderContratos(); },
+                grupos: emps.length > 2 ? [{ titulo: 'Empreendimento', opcoes: emps, valor: () => campoCon('contratos-filtro-emp')?.value || 'todos',
+                    aoEscolher: (v) => { campoCon('contratos-filtro-emp').value = v; renderContratos(); } }] : [],
+                linhas: [{ rotulo: 'Imóvel', valor: () => campoCon('contratos-filtro-imovel-resumo')?.textContent || 'Todos',
+                    aoTocar: (atualizar) => abrirSeletorImovel(function(id, resumo) {
+                        campoCon('contratos-filtro-imovel-id').value = id || 'todos';
+                        campoCon('contratos-filtro-imovel-resumo').textContent = resumo || 'Todos';
+                        renderContratos(); atualizar();
+                    }, true) }],
+                contar: () => ultimaContagemContratos, nomes: ['contrato', 'contratos'],
+                aoLimpar: () => {
+                    campoCon('contratos-filtro-texto').value = ''; campoCon('contratos-filtro-emp').value = 'todos';
+                    campoCon('contratos-filtro-imovel-id').value = 'todos'; campoCon('contratos-filtro-imovel-resumo').textContent = 'Todos';
+                    campoCon('contratos-filtro-locatario').value = 'todos';
+                    renderContratos();
+                },
+            });
         }
 
-        export function fecharBuscaContratos() {
-            document.getElementById('modal-busca-contratos').classList.add('hidden');
-        }
+        // Compatibilidade: chamadas antigas fecham o Sheet de busca.
+        export function fecharBuscaContratos() { if (typeof fecharSheet === 'function') fecharSheet(); }
 
         export async function salvarDivisaoContratoPopup(contratoId) {
             const con = contratos.find(c => c.id === contratoId);
@@ -4550,6 +4577,10 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
 
             const fLocatarioCon = document.getElementById('contratos-filtro-locatario')?.value || 'todos';
 
+            const normCon = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const fTextoCon = normCon(document.getElementById('contratos-filtro-texto')?.value).trim();
+            const fTextoDig = fTextoCon.replace(/\D/g, '');
+
             let conjuntosAcao = null; // F2.4 — calculado 1x por desenho, só se o filtro de alerta estiver ligado
             const passaFiltroContrato = (con) => {
                 const imoDoContrato = imoveis.find(i => i.id === con.imovelId);
@@ -4557,6 +4588,12 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (fStatusCon !== 'todos' && con.status !== fStatusCon) return false;
                 if (fImovelIdCon !== 'todos' && con.imovelId !== fImovelIdCon) return false;
                 if (fLocatarioCon !== 'todos' && con.locatario !== fLocatarioCon) return false;
+                if (fTextoCon) {
+                    const alvo = normCon([con.locatario, con.cpf, imoDoContrato?.nomeExibicao, imoDoContrato?.empreendimento,
+                        imoDoContrato?.enderecoRua, imoDoContrato?.enderecoNum, imoDoContrato?.enderecoBairro, imoDoContrato?.enderecoCidade].join(' '));
+                    const docOk = fTextoDig.length >= 3 && String(con.cpf || '').replace(/\D/g, '').includes(fTextoDig);
+                    if (!alvo.includes(fTextoCon) && !docOk) return false;
+                }
                 // v1.44.2 — checkbox "só com alerta", ligado a partir da
                 // Visão Geral ou manualmente aqui na própria aba.
                 if (document.getElementById('contratos-filtro-somente-alerta')?.checked) {
@@ -4602,6 +4639,7 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 if (con.status === 'Suspenso') return rs('warn', 'Suspenso');
                 return rs('neu', con.status === 'Finalizado' ? 'Encerrado' : (con.status || '—'));
             };
+            atualizarRotuloBuscaContratos();
             const ordenados = contratos.filter(passaFiltroContrato).sort((a, b) => {
                 const imoA = imoveis.find(i => i.id === a.imovelId);
                 const imoB = imoveis.find(i => i.id === b.imovelId);
@@ -4609,10 +4647,11 @@ if (!window.__rzListenerEscritaParteContratoLigado) {
                 const empB = imoB ? imoB.empreendimento : '';
                 return empA.localeCompare(empB) || (a.locatario || '').localeCompare(b.locatario || '');
             });
+            ultimaContagemContratos = ordenados.length;
             if (!ordenados.length) {
                 // v1.28.0 (demanda 11afd25f) — sem filtro, o vazio ganha o
                 // atalho "+ Novo contrato" (mesmo padrão do vazio de Ativos).
-                const comFiltroCon = fStatusCon !== 'todos' || fEmpCon !== 'todos' || fLocatarioCon !== 'todos';
+                const comFiltroCon = fStatusCon !== 'todos' || fEmpCon !== 'todos' || fLocatarioCon !== 'todos' || fImovelIdCon !== 'todos' || !!fTextoCon || contratosChipAtual !== 'todos';
                 if (!comFiltroCon && typeof window.rzVazio === 'function') {
                     container.innerHTML = vazioContratosHtml();
                     if (typeof lucide !== 'undefined') lucide.createIcons();
