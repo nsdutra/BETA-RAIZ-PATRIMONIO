@@ -4,6 +4,16 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.340.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 10/10 00:15):
+só o import map — financeiro.js 1.40.2 (Divisão da compra abre por cima da fatura; rótulo "Fica com o titular
+do cartão"). Nenhuma linha do index mudou.
+------------------------------------------------------------------
+Versões anteriores (v1.340.0 … v1.340.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.340.0) — UX F2.5c Partes (demanda 639bbcd0; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
 ESTUDO 9A.4). Topo com barra de busca + "+" (Sheet rzAbrirBuscaTela, × na barra); chip "Com pendência"
 (pendenciasParte: documento; WhatsApp ou e-mail de locatário, fiador e prestador; endereço de locatário e fiador)

@@ -6,9 +6,17 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.344.0
-   LINHAS: 17142
+   VERSÃO: Beta v1.345.0
+   LINHAS: 17221
    DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.345.0) — Ramos no app (fichas F21/F22, "De acordo" do Nicola 10/10 02:52; protótipo
+   PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0). A lente de ramo vai para o cabeçalho ("Todo o patrimônio ▾"): Imóveis,
+   Família, Outros bens; Agro e Pecuária em breve. A escolha fica guardada no aparelho e muda a tonalidade do app
+   (cabeçalho, herói, chips, barra). O ramo vem do cadastro ativo_ramos; o "Tudo · Patrimônio · Família" do herói
+   (F20) sai. Hoje: em Todo o patrimônio, o anel é por ramo; num ramo, por segmento (ativo_tipos.segmento), com a
+   quantidade na unidade do ramo (vidas, imóveis, bens); alertas pelo ramo (fn_alertas_listar p_ramo). O chip
+   "Patrimônio" do Hoje passa a se chamar "Visão geral" (não confunde com a lente).
+   Versão anterior (Beta v1.344.0):
    NOVIDADES (Beta v1.344.0) — Regras e detalhe do ativo (Nicola 10/10 00:30/00:45). Configurações › Regras: "Suas
    regras automáticas" mostrava "Categoria: [object Promise]" (ponte assíncrona do financeiro) — agora lê o catálogo;
    cada regra diz o que procura e para onde manda ("Quando a compra é de 'azul seguros' → Seguros › Seguro"); as
@@ -46,11 +54,8 @@
    Comunicação e as ações de WhatsApp/ligar/e-mail saíram). Licença (comum-licenca.js 1.7.0) em ficha com chips
    Plano · Uso. Nenhum objeto de banco.
    Versão anterior (Beta v1.340.1):
-   NOVIDADES (Beta v1.340.1) — sessão 20261009-2055-integridade (demanda 56546614, teste do Nicola 10/10 00:15):
-   só o import map — financeiro.js 1.40.2 (Divisão da compra abre por cima da fatura; rótulo "Fica com o titular
-   do cartão"). Nenhuma linha do index mudou.
    ------------------------------------------------------------------
-   Versões anteriores (v1.340.0 … v1.340.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.340.1 … v1.340.1): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -75,7 +80,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.41.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.84.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.6.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.1.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.41.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.84.0","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.4.2","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.7.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.1.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -453,7 +458,23 @@
            Fatia 1 da migração (§19): aditiva, nenhuma tela usa ainda.
            ==================================================================== */
         /* 4. cabeçalho global e de aba */
-        .rz-hdr{background:var(--pine);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
+        /* v1.345.0 (F21) — tonalidade por ramo: <html data-ramo="…"> troca estes tokens (FICHA_RAMOS_ATIVO_F21_F22 §5) */
+        :root{--ramo-hdr:var(--pine);--ramo-acc:var(--sprout);
+              --ramo-cor-imoveis:#4d7891;--ramo-cor-familia:#7e6596;--ramo-cor-outros:#6b857a;--ramo-cor-agro:#7a8f3c;--ramo-cor-pecuaria:#9a6b42}
+        :root[data-ramo="imoveis"]{--ramo-hdr:#2f4858;--ramo-acc:#4d7891}
+        :root[data-ramo="familia"]{--ramo-hdr:#4f3b5c;--ramo-acc:#7e6596}
+        :root[data-ramo="outros"]{--ramo-hdr:#3b4442;--ramo-acc:#6b857a}
+        :root[data-ramo="agro"]{--ramo-hdr:#4a5a2a;--ramo-acc:#7a8f3c}
+        :root[data-ramo="pecuaria"]{--ramo-hdr:#6b4a2e;--ramo-acc:#9a6b42}
+        :root[data-ramo="imoveis"]:not([data-theme="dark"]){--paper:#f1f3f4}
+        :root[data-ramo="familia"]:not([data-theme="dark"]){--paper:#f4f1f5}
+        :root[data-ramo="outros"]:not([data-theme="dark"]){--paper:#f2f3f2}
+        .rz-hdr .rz-lente{display:flex;align-items:center;gap:6px;max-width:46vw;min-height:40px;padding:0 10px 0 12px;border:1px solid rgba(255,255,255,.3);border-radius:var(--r-pill);background:rgba(255,255,255,.12);color:#fff;font:600 13px var(--font-body);flex:none}
+        .rz-hdr .rz-lente span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .rz-hdr .rz-lente i{width:9px;height:9px;border-radius:50%;background:#fff;flex:none}
+        .rz-hdr .rz-lente svg{width:16px;height:16px;flex:none}
+        .rz-ramo-dot{display:inline-block;width:14px;height:14px;border-radius:5px}
+        .rz-hdr{background:var(--ramo-hdr);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
         .rz-hdr .rz-brand{flex:1;min-width:0}
         .rz-hdr .rz-brand h1{font-family:var(--font-title);font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
         .rz-hdr .rz-brand small{display:block;font-size:12px;opacity:.85;margin-top:1px}
@@ -526,7 +547,7 @@
            só existia pra ele saiu junto (dead code, QUA-01). */
         .rz-chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:var(--r-pill);border:1px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--pine);white-space:nowrap}
         .rz-chip .rz-n{font-size:12px;font-weight:600;color:var(--muted);background:var(--paper);padding:1px 6px;border-radius:var(--r-pill)}
-        .rz-chip.rz-on{background:var(--pine);border-color:var(--pine);color:#fff}
+        .rz-chip.rz-on{background:var(--ramo-hdr);border-color:var(--ramo-hdr);color:#fff}
         .rz-chip.rz-on .rz-n{background:rgba(255,255,255,.18);color:#fff}
         .rz-chip.rz-warn .rz-n{background:var(--warning-bg);color:var(--warning)}
         .rz-seg{display:flex;background:#e2e6df;border-radius:12px;padding:3px;margin-bottom:12px}
@@ -680,7 +701,7 @@
         .rz-tag.rz-run{background:var(--brass-bg);color:var(--brass-deep)}
         /* v1.304.0 (UX F2.1a, UXR-17/18) — herói unificado de Hoje: um só bloco --pine com patrimônio,
            nº de ativos, Resultado do ano e 3 números; ano (‹ 2026 ›) e contexto dentro do herói. */
-        .rz-heroi{background:var(--pine);color:#fff;border-radius:18px;padding:12px 16px 16px;margin-bottom:12px}
+        .rz-heroi{background:var(--ramo-hdr);color:#fff;border-radius:18px;padding:12px 16px 16px;margin-bottom:12px}
         .rz-heroi-top{display:flex;align-items:center;justify-content:space-between;margin:-4px -10px 4px}
         .rz-heroi-ano{display:flex;align-items:center}
         .rz-heroi-ano button,.rz-heroi-top .rz-heroi-exp{width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:#fff;border-radius:12px}
@@ -746,8 +767,8 @@
         /* 5. bottom nav (usada a partir da fatia 7) */
         .rz-nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding:6px 4px calc(10px + env(safe-area-inset-bottom));z-index:40}
         .rz-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);position:relative;padding-top:8px;background:none;border:0}
-        .rz-nav button.rz-on{color:var(--sprout)}
-        .rz-nav button.rz-on::before{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:2px;background:var(--sprout)}
+        .rz-nav button.rz-on{color:var(--ramo-acc)}
+        .rz-nav button.rz-on::before{content:"";position:absolute;top:0;width:28px;height:3px;border-radius:2px;background:var(--ramo-acc)}
         .rz-nav button .rz-b{position:absolute;top:4px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger);color:#fff;font-size:12px;line-height:16px}
         .rz-nav button .rz-b.rz-warn{background:var(--warning)}
         /* 3. sheet — única superfície modal (formulário, ações, menu, IA) */
@@ -1741,6 +1762,8 @@
                  onclick, mesmo #geral-sino-dot (renderizarPontosAtencao-
                  Geral continua escrevendo nele, nada mudou no JS). -->
             <!-- v1.303.0 (UX F2.2, UXR-08) — o sino saiu do cabeçalho: Alertas é a 5ª aba da barra inferior. -->
+            <!-- v1.345.0 (F21) — lente de ramo: vale para o app inteiro; muda a tonalidade (rzAbrirLenteRamo) -->
+            <button type="button" id="btn-ramo-lente" class="rz-lente" onclick="rzAbrirLenteRamo()" aria-label="Trocar ramo"><i></i><span id="rz-lente-nome">Todo o patrimônio</span><svg data-lucide="chevron-down"></svg></button>
             <button type="button" id="btn-raiz-ia-header" class="rz-ia" onclick="abrirSheetRaizIA()" title="Raiz IA" aria-label="Raiz IA">
                 <svg data-lucide="sparkles"></svg>
                 <span id="raiz-ia-dot" class="rz-dot hidden"></span>
@@ -1954,7 +1977,7 @@
                 <button type="button" class="rz-search" id="hoje-busca-btn" onclick="rzAbrirBuscaUniversal()" aria-label="Buscar no patrimônio"><svg data-lucide="search"></svg><span>Buscar ativo, contrato, pessoa ou documento</span></button>
             </div>
             <div class="rz-chips" id="hoje-chips" role="tablist" aria-label="Hoje">
-                <button type="button" class="rz-chip rz-on" id="hoje-chip-patrimonio" role="tab" aria-selected="true" onclick="rzHojeContexto('patrimonio')">Patrimônio</button>
+                <button type="button" class="rz-chip rz-on" id="hoje-chip-patrimonio" role="tab" aria-selected="true" onclick="rzHojeContexto('patrimonio')">Visão geral</button>
                 <button type="button" class="rz-chip" id="hoje-chip-jornal" role="tab" aria-selected="false" onclick="rzHojeContexto('jornal')">Minha Gestão<span class="rz-pt hidden" id="hoje-jornal-pt" aria-hidden="true"></span></button>
                 <button type="button" class="rz-chip" id="hoje-chip-fique" role="tab" aria-selected="false" onclick="rzHojeContexto('fique')">Fique por Dentro</button>
             </div>
@@ -3702,7 +3725,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.344.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.345.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -11032,6 +11055,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             const segUnivEl = document.getElementById('geral-seg-universo');
             if (segUnivEl) segUnivEl.innerHTML = segGeralUniversoHtml(geralUniversoFiltro);
             aplicarRotulosGeralUniverso(geralUniversoFiltro === 'familia');
+            if (!rzRamosCarregados) rzCarregarRamos(); // v1.345.0 (F21) — catálogo de ramos, uma vez por sessão
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
 
@@ -11359,7 +11383,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
                 return;
             }
             carregarResultados()
-                .then(m => m.renderResultados({ contexto: geralUniversoFiltro, ramo: geralRamoFiltro }))
+                .then(m => m.renderResultados({ contexto: geralUniversoFiltro, ramo: geralRamoFiltro, ramoInfo: rzRamoInfo(geralRamoFiltro) }))
                 .catch(err => { console.warn('[hoje] Falha ao carregar Resultados:', err.message); antigos(); });
         }
 
@@ -11422,7 +11446,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         function construirQueryQuebraTipoGeral(p_uso) {
             // v1.338.0 (F20) — traz o detalhe (pessoa, pet…) e o ramo dele; o recorte por ramo é feito em
             // renderizarQuebraTipoGeral sobre esta busca, que é refeita a cada troca de ramo/uso
-            const q = dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia, tipo_detalhe:ativo_tipos(codigo, ramo)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
+            const q = dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia, tipo_detalhe:ativo_tipos(codigo, ramo, segmento)').eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
             // v1.304.0 (demanda 94290613) — fn_resumo_resultados passou a contar uso NULL como
             // 'nao_comercial' (igual à fn_alertas_listar): a quebra segue o mesmo critério, para a
             // soma dos tipos continuar batendo com o herói.
@@ -11441,7 +11465,7 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             // (escolherGeralUniverso), nunca um .filter() sobre dado já
             // buscado.
             // v1.338.0 (F20) — uso só dentro de Patrimônio; o ramo vai para fn_alertas_listar (p_ramo)
-            const p_uso = geralRamoFiltro === 'patrimonio' ? GERAL_USO_POR_CONTEXTO[geralUniversoFiltro] : null;
+            const p_uso = (geralRamoFiltro !== 'tudo' && rzRamoInfo(geralRamoFiltro)?.tem_uso) ? GERAL_USO_POR_CONTEXTO[geralUniversoFiltro] : null; // v1.345.0
             const p_ramo = geralRamoFiltro === 'tudo' ? null : geralRamoFiltro;
 
             const [resResumo, resAlertas, resPorTipo] = await Promise.allSettled([
@@ -11575,59 +11599,64 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
             };
             setTimeout(tentar, 60);
         }
-        // v1.338.0 (F20, protótipo PROTOTIPO_HOJE_ANEL_RAMO_RAIZ v1.2.0) — um anel só, no ramo escolhido:
-        // pelo valor, com o total e a quantidade no centro; legenda "4 imóveis" com o valor embaixo e o % à direita.
-        // Pessoa e pet (ramo Família) não têm valor: entram só na contagem; na Família sozinha o anel é pela
-        // quantidade. Ramo de cada linha = ativo_tipos.ramo do detalhe; sem detalhe, Patrimônio.
+        // v1.345.0 (F21/F22, protótipo PROTOTIPO_HOJE_RAMOS_RAIZ v1.1.0) — um anel só, pela lente do cabeçalho:
+        // em Todo o patrimônio, uma fatia por RAMO (tocar troca a lente); num ramo, uma fatia por SEGMENTO
+        // (ativo_tipos.segmento). Pelo valor, com o total e a quantidade no centro; ramo que não soma valor (vidas)
+        // entra só na contagem e, sozinho, faz o anel pela quantidade. Ramo do ativo = rzRamoDoAtivo().
         function renderizarQuebraTipoGeral(rows) {
             const secao = document.getElementById('geral-quebra-tipo-secao');
             const wrap = document.getElementById('geral-quebra-tipo');
             if (!secao || !wrap) return;
-            const GRUPOS_TIPO_GERAL = [
-                { rotulo: 'Imóveis', um: 'imóvel', varios: 'imóveis', ramo: 'patrimonio', tipos: ['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'] },
-                { rotulo: 'Veículos', um: 'veículo', varios: 'veículos', ramo: 'patrimonio', tipos: ['veiculo', 'veiculo_blindado'] },
-                { rotulo: 'Outros', um: 'outro bem', varios: 'outros bens', ramo: 'patrimonio', tipos: ['vida_protecao', 'obra_arte', 'aeronave', 'embarcacao', 'colecao_bem_valor', 'outro', 'bem_valor'] },
-                { rotulo: 'Pessoas', um: 'pessoa', varios: 'pessoas', ramo: 'familia', semValor: true, vale: r => r.tipo_detalhe?.codigo !== 'pet' },
-                { rotulo: 'Pets', chip: 'Pessoas', um: 'pet', varios: 'pets', ramo: 'familia', semValor: true, vale: r => r.tipo_detalhe?.codigo === 'pet' },
-            ];
-            const ramoDe = r => r.tipo_detalhe?.ramo || 'patrimonio';
-            const doRamo = (rows || []).filter(r => geralRamoFiltro === 'tudo' || ramoDe(r) === geralRamoFiltro);
-            const grupos = GRUPOS_TIPO_GERAL.map(g => {
-                const doGrupo = doRamo.filter(r => ramoDe(r) === g.ramo && (g.vale ? g.vale(r) : g.tipos.includes(r.tipo_ativo)));
-                return { ...g, qtd: doGrupo.length, valor: g.semValor ? null : doGrupo.reduce((s, r) => s + (Number(r.valor_referencia) || 0), 0) };
-            }).filter(g => g.qtd > 0);
-            const tit = document.getElementById('geral-quebra-tipo-titulo');
-            if (tit) tit.textContent = geralRamoFiltro === 'tudo' ? 'Seus ativos por tipo' : GERAL_RAMO_ROTULO[geralRamoFiltro] + ' por tipo';
-            // <= 1 grupo: nada pra comparar, some (pedido do Nicola; dem 43bc3cab: o convite mora em Ativos)
-            if (grupos.length <= 1) {
-                secao.classList.add('hidden');
-                return;
+            const tudo = geralRamoFiltro === 'tudo';
+            const soma = L => L.reduce((t, r) => t + (Number(r.valor_referencia) || 0), 0);
+            const unid = (codigo, q) => { const i = rzRamoInfo(codigo); return q === 1 ? (i?.unidade_singular || 'ativo') : (i?.unidade_plural || 'ativos'); };
+            let grupos = [];
+            if (tudo) {
+                const por = {};
+                (rows || []).forEach(r => { const k = rzRamoDoAtivo(r); (por[k] = por[k] || []).push(r); });
+                grupos = Object.keys(por).map(k => {
+                    const i = rzRamoInfo(k), L = por[k];
+                    return { rotulo: i?.nome || k, qtd: L.length, un: unid(k, L.length), valor: i && i.soma_valor === false ? null : soma(L),
+                        cor: `var(--ramo-cor-${k}, var(--sage))`, toque: `escolherGeralRamo('${k}')`, ordem: i?.ordem ?? 99 };
+                }).sort((x, y) => x.ordem - y.ordem);
+            } else {
+                const i = rzRamoInfo(geralRamoFiltro), por = {};
+                (rows || []).filter(r => rzRamoDoAtivo(r) === geralRamoFiltro)
+                    .forEach(r => { const sg = r.tipo_detalhe?.segmento || 'Outros'; (por[sg] = por[sg] || []).push(r); });
+                const CORES = ['var(--ramo-hdr)', 'var(--ramo-acc)', 'var(--sage)', 'var(--muted)', 'var(--line)'];
+                grupos = Object.keys(por).map(sg => ({ rotulo: sg, qtd: por[sg].length, un: unid(geralRamoFiltro, por[sg].length),
+                        valor: i && i.soma_valor === false ? null : soma(por[sg]), toque: "irParaAbaRodape('tab-ativos')" }))
+                    .sort((x, y) => (y.valor ?? y.qtd) - (x.valor ?? x.qtd))
+                    .map((g, k) => ({ ...g, cor: CORES[k % CORES.length] }));
             }
-            // v1.313.0 (UX F2.1c, UXR-19) — donut tocável: cada fatia/linha abre Ativos já filtrado no grupo.
-            // Grupo de patrimônio vazio vira convite ("Cadastre também…") que abre o "+" de Ativos.
+            const tit = document.getElementById('geral-quebra-tipo-titulo');
+            if (tit) tit.textContent = tudo ? 'Seus ativos por ramo' : rzNomeRamo(geralRamoFiltro) + ' por segmento';
+            // <= 1 grupo: nada pra comparar, some (pedido do Nicola; dem 43bc3cab: o convite mora em Ativos)
+            if (grupos.length <= 1) { secao.classList.add('hidden'); return; }
             wrap.className = '';
             wrap.style.gridTemplateColumns = '';
-            const vazios = geralRamoFiltro === 'familia' ? [] : GRUPOS_TIPO_GERAL.filter(g => g.ramo === 'patrimonio' && !grupos.some(x => x.rotulo === g.rotulo)).map(g => RZ_CONVITE_GRUPO[g.rotulo] || g.rotulo);
+            const vazios = tudo ? RZ_RAMOS.filter(r => r.status === 'ativo' && r.soma_valor !== false && !grupos.some(g => g.rotulo === r.nome)).map(r => r.nome) : [];
             const convite = vazios.length ? `<button type="button" class="rz-convite" onclick="rzAbrirMaisAtivos()"><svg data-lucide="plus" style="width:18px;height:18px"></svg>Cadastre também: ${vazios.join(' · ')}</button>` : '';
-            const totV = grupos.reduce((s2, g) => s2 + (g.valor || 0), 0), totQ = grupos.reduce((s2, g) => s2 + g.qtd, 0);
-            const porValor = totV > 0; // sem valor (Família, ou nada com valor cadastrado), o anel é pela quantidade
+            const totV = grupos.reduce((t, g) => t + (g.valor || 0), 0), totQ = grupos.reduce((t, g) => t + g.qtd, 0);
+            const porValor = totV > 0; // sem valor (vidas, ou nada com valor cadastrado), o anel é pela quantidade
             const peso = g => porValor ? (g.valor || 0) : g.qtd;
-            const totP = grupos.reduce((s2, g) => s2 + peso(g), 0) || 1;
-            const CORES = { 'Imóveis': 'var(--pine)', 'Veículos': 'var(--sprout)', 'Outros': 'var(--sage)', 'Pessoas': 'var(--wine)', 'Pets': 'var(--brass, #b08d57)' };
+            const totP = grupos.reduce((t, g) => t + peso(g), 0) || 1;
             const C = 2 * Math.PI * 40;
             let acum = 0;
             const arcos = grupos.filter(g => peso(g) > 0).map(g => {
                 const len = C * peso(g) / totP;
-                const arco = `<circle cx="56" cy="56" r="40" style="stroke:${CORES[g.rotulo]};stroke-dasharray:${len.toFixed(1)} ${(C - len).toFixed(1)};stroke-dashoffset:${(-acum).toFixed(1)}" transform="rotate(-90 56 56)" onclick="rzFiltrarAtivosPorGrupo('${g.chip || g.rotulo}')"><title>${g.rotulo}</title></circle>`;
+                const arco = `<circle cx="56" cy="56" r="40" style="stroke:${g.cor};stroke-dasharray:${len.toFixed(1)} ${(C - len).toFixed(1)};stroke-dashoffset:${(-acum).toFixed(1)}" transform="rotate(-90 56 56)" onclick="${g.toque}"><title>${rzEsc(g.rotulo)}</title></circle>`;
                 acum += len; return arco;
             }).join('');
+            const qtdCentro = tudo ? `${totQ} ${totQ === 1 ? 'cadastro' : 'cadastros'}` : `${totQ} ${unid(geralRamoFiltro, totQ)}`;
             const centro = porValor
-                ? `<text x="56" y="57" text-anchor="middle" font-size="13">${formatarValorCompacto(totV)}</text><text x="56" y="73" text-anchor="middle" font-size="10" style="font-family:var(--font-body,inherit);fill:var(--muted)">${totQ} ${totQ === 1 ? 'ativo' : 'ativos'}</text>`
+                ? `<text x="56" y="57" text-anchor="middle" font-size="13">${formatarValorCompacto(totV)}</text><text x="56" y="73" text-anchor="middle" font-size="10" style="font-family:var(--font-body);fill:var(--muted)">${qtdCentro}</text>`
                 : `<text x="56" y="63" text-anchor="middle" font-size="20">${totQ}</text>`;
-            const leg = grupos.map(g => `<button type="button" onclick="rzFiltrarAtivosPorGrupo('${g.chip || g.rotulo}')"><i style="background:${CORES[g.rotulo]}"></i><span>${g.qtd} ${g.qtd === 1 ? g.um : g.varios}${g.valor != null ? `<small>${formatarValorCompacto(g.valor)}</small>` : ''}</span>${porValor && g.valor ? `<b>${Math.round(g.valor / totV * 100)}%</b>` : ''}</button>`).join('');
-            const nota = !porValor ? (geralRamoFiltro === 'familia' ? 'Família não tem valor: o anel mostra a quantidade.' : 'Sem valor cadastrado: o anel mostra a quantidade.')
-                : (grupos.some(g => g.semValor) ? 'Pessoas e pets não têm valor: entram só na contagem.' : '');
-            wrap.innerHTML = `<div class="rz-card"><div class="rz-donut"><svg viewBox="0 0 112 112" role="img" aria-label="Ativos por tipo">${arcos}${centro}</svg><div class="rz-donut-leg">${leg}</div></div>${nota ? `<p class="rz-donut-nota">${nota}</p>` : ''}${convite}</div>`;
+            const leg = grupos.map(g => `<button type="button" onclick="${g.toque}"><i style="background:${g.cor}"></i><span>${rzEsc(g.rotulo)}<small>${g.qtd} ${g.un}${g.valor != null ? ' · ' + formatarValorCompacto(g.valor) : ''}</small></span>${porValor && g.valor ? `<b>${Math.round(g.valor / totV * 100)}%</b>` : ''}</button>`).join('');
+            const semValor = grupos.filter(g => g.valor == null).map(g => g.rotulo);
+            const nota = !porValor ? 'Sem valor de patrimônio: o anel mostra a quantidade.'
+                : (semValor.length ? `${semValor.join(', ')}: sem valor de patrimônio, entra só na contagem.` : '');
+            wrap.innerHTML = `<div class="rz-card"><div class="rz-donut"><svg viewBox="0 0 112 112" role="img" aria-label="Ativos por ${tudo ? 'ramo' : 'segmento'}">${arcos}${centro}</svg><div class="rz-donut-leg">${leg}</div></div>${nota ? `<p class="rz-donut-nota">${nota}</p>` : ''}${convite}</div>`;
             secao.classList.remove('hidden');
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
@@ -11855,34 +11884,84 @@ async function criarLinkVitrineSupabase(token, idsSelecionados) {
         // (window), não no módulo ES de resultados.js — não dá pra
         // importar a constante direto sem reestruturar o boot dos dois
         // (mesma razão já documentada acima em GRUPOS_CHIP_TIPO/v1.195.0).
-        // v1.338.0 (F20, dem f3e6cd27) — o seletor passa a ser o RAMO (ativo_tipos.ramo): Tudo · Patrimônio ·
-        // Família · Agro (em breve). O uso (geralUniversoFiltro) só vale dentro de Patrimônio: Todos · Comercial ·
-        // Uso próprio ('familia' continua sendo a chave do uso nao_comercial, mesma de js/resultados.js).
-        let geralRamoFiltro = 'tudo'; // 'tudo' | 'patrimonio' | 'familia'
+        // v1.345.0 (F21, dem f3e6cd27) — o ramo é escolhido pela LENTE do cabeçalho (rzAbrirLenteRamo) e vale para o app
+        // inteiro; fica guardado no aparelho (localStorage rz.ramo) e muda a tonalidade (<html data-ramo>). O cadastro vem
+        // de ativo_ramos (nome, unidade, soma valor, tem uso, status); RZ_RAMOS abaixo é só o padrão até o banco responder.
+        // O uso (geralUniversoFiltro) só existe dentro de ramo com tem_uso: Todos · Comercial · Uso próprio
+        // ('familia' continua sendo a chave do uso nao_comercial, a mesma de js/resultados.js).
+        let geralRamoFiltro = (() => { try { return localStorage.getItem('rz.ramo') || 'tudo'; } catch (e) { return 'tudo'; } })();
         let geralUniversoFiltro = 'tudo'; // uso: 'tudo' | 'comercial' | 'familia' (= uso próprio)
         const GERAL_USO_POR_CONTEXTO = { tudo: null, comercial: 'comercial', familia: 'nao_comercial' };
         const GERAL_UNIVERSO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' };
-        const GERAL_RAMO_ROTULO = { tudo: 'Tudo', patrimonio: 'Patrimônio', familia: 'Família' };
+        let RZ_RAMOS = [
+            { codigo: 'imoveis', nome: 'Imóveis', descricao: 'Residenciais, comerciais e terrenos', unidade_singular: 'imóvel', unidade_plural: 'imóveis', soma_valor: true, tem_uso: true, ordem: 10, status: 'ativo' },
+            { codigo: 'familia', nome: 'Família', descricao: 'Pessoas e pets: saúde, casa, escola e viagens', unidade_singular: 'vida', unidade_plural: 'vidas', soma_valor: false, tem_uso: false, ordem: 20, status: 'ativo' },
+            { codigo: 'outros', nome: 'Outros bens', descricao: 'Veículos, embarcações, aeronaves e bens de valor', unidade_singular: 'bem', unidade_plural: 'bens', soma_valor: true, tem_uso: true, ordem: 30, status: 'ativo' },
+            { codigo: 'agro', nome: 'Agro', descricao: 'Propriedades rurais, lavouras, máquinas e safras', unidade_singular: 'ativo', unidade_plural: 'ativos', soma_valor: true, tem_uso: false, ordem: 40, status: 'em_breve' },
+            { codigo: 'pecuaria', nome: 'Pecuária', descricao: 'Rebanhos, pastos e instalações', unidade_singular: 'lote', unidade_plural: 'lotes', soma_valor: true, tem_uso: false, ordem: 50, status: 'em_breve' },
+        ];
+        let rzRamosCarregados = false;
+        function rzRamoInfo(c) { return RZ_RAMOS.find(r => r.codigo === c) || null; }
+        function rzNomeRamo(c) { return c === 'tudo' ? 'Todo o patrimônio' : (rzRamoInfo(c)?.nome || c); }
+        // ramo de um ativo: o do tipo (ativo_tipos.ramo); sem detalhe, pelo tipo_ativo (mesma regra da fn_alertas_listar)
+        function rzRamoDoAtivo(a) {
+            if (a?.tipo_detalhe?.ramo) return a.tipo_detalhe.ramo;
+            const t = a?.tipo_ativo;
+            if (['imovel', 'terreno', 'imovel_predial', 'imovel_territorial'].includes(t)) return 'imoveis';
+            if (t === 'vida') return 'familia';
+            if (t === 'agro' || t === 'pecuaria') return t;
+            return 'outros';
+        }
+        function rzAplicarRamo() {
+            const h = document.documentElement;
+            if (geralRamoFiltro === 'tudo') h.removeAttribute('data-ramo'); else h.setAttribute('data-ramo', geralRamoFiltro);
+            const nm = document.getElementById('rz-lente-nome');
+            if (nm) nm.textContent = rzNomeRamo(geralRamoFiltro);
+        }
+        async function rzCarregarRamos() {
+            rzRamosCarregados = true;
+            try {
+                const { data, error } = await dbAuth.from('ativo_ramos')
+                    .select('codigo, nome, descricao, unidade_singular, unidade_plural, soma_valor, tem_uso, ordem, status')
+                    .neq('status', 'planejado').order('ordem');
+                if (!error && Array.isArray(data) && data.length) RZ_RAMOS = data;
+                else if (error) console.warn('[ramos] catálogo:', error.message);
+            } catch (e) { console.warn('[ramos] catálogo:', e.message); }
+            if (geralRamoFiltro !== 'tudo' && rzRamoInfo(geralRamoFiltro)?.status !== 'ativo') { escolherGeralRamo('tudo'); return; }
+            rzAplicarRamo();
+        }
+        function rzAbrirLenteRamo() {
+            const item = (c, nome, sub, cor, lock) =>
+                `<button type="button" class="rz-act ${lock ? 'rz-off' : ''}" ${lock ? 'aria-disabled="true"' : `data-rz-ramo="${c}"`}>` +
+                `<div class="rz-ic"><span class="rz-ramo-dot" style="background:${cor}"></span></div>` +
+                `<div>${rzEsc(nome)}${c === geralRamoFiltro ? ' ✓' : ''}<small>${rzEsc(sub)}</small></div></button>`;
+            const corpo = item('tudo', 'Todo o patrimônio', 'Todos os ramos somados', 'var(--pine)', false) +
+                RZ_RAMOS.map(r => item(r.codigo, r.nome + (r.status === 'ativo' ? '' : ' · em breve'), r.descricao || '', `var(--ramo-cor-${r.codigo}, var(--sage))`, r.status !== 'ativo')).join('');
+            const sheet = abrirSheet(rzSheetCabecalho('Ver o app de', 'Vale para todas as abas até você trocar de novo.') + `<div class="rz-sh-b">${corpo}</div>`);
+            sheet.querySelectorAll('[data-rz-ramo]').forEach(b => b.addEventListener('click', () => { fecharSheet(); escolherGeralRamo(b.dataset.rzRamo); }));
+        }
+        rzAplicarRamo(); // tonalidade já no boot, com a escolha guardada
 
         function segGeralUniversoHtml(atual) {
-            const ramos = ['tudo', 'patrimonio', 'familia'].map(v =>
-                `<button onclick="escolherGeralRamo('${v}')" class="${v === geralRamoFiltro ? 'rz-on' : ''}">${GERAL_RAMO_ROTULO[v]}</button>`
-            ).join('') + '<button class="rz-off" disabled title="Em breve">Agro</button>';
-            const usos = geralRamoFiltro !== 'patrimonio' ? '' : ['tudo', 'comercial', 'familia'].map(v =>
+            if (geralRamoFiltro === 'tudo' || !rzRamoInfo(geralRamoFiltro)?.tem_uso) return '';
+            const usos = ['tudo', 'comercial', 'familia'].map(v =>
                 `<button onclick="escolherGeralUniverso('${v}')" class="${v === atual ? 'rz-on' : ''}">${GERAL_UNIVERSO_ROTULO[v]}</button>`
             ).join('');
-            return `<div class="rz-seg rz-seg-4">${ramos}</div>` + (usos ? `<div class="rz-seg rz-seg-uso">${usos}</div>` : '');
+            return `<div class="rz-seg rz-seg-uso">${usos}</div>`;
         }
 
         function escolherGeralRamo(r) {
-            if (r === geralRamoFiltro || !GERAL_RAMO_ROTULO[r]) return;
+            if (r !== 'tudo' && rzRamoInfo(r)?.status !== 'ativo') return;
+            const mudou = r !== geralRamoFiltro;
             geralRamoFiltro = r;
-            geralUniversoFiltro = 'tudo'; // trocar de ramo volta o uso para Todos
+            try { localStorage.setItem('rz.ramo', r); } catch (e) { /* aba anônima: vale só nesta sessão */ }
+            if (mudou) geralUniversoFiltro = 'tudo'; // trocar de ramo volta o uso para Todos
+            rzAplicarRamo();
             const seg = document.getElementById('geral-seg-universo');
             if (seg) seg.innerHTML = segGeralUniversoHtml(geralUniversoFiltro);
             aplicarRotulosGeralUniverso(geralUniversoFiltro === 'familia');
-            carregarDadosAssincronosVisaoGeral();
-            rzRenderResultadosHoje();
+            if (CLIENTE_ID_SUPABASE) { carregarDadosAssincronosVisaoGeral(); rzRenderResultadosHoje(); }
+            window.dispatchEvent(new CustomEvent('raiz:ramo', { detail: { ramo: r } }));
         }
 
         // V5 (ESP §3.1) — em Família, "Recebido no mês" e "Ocupação" mudam

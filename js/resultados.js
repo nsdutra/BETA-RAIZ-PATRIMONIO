@@ -1,7 +1,16 @@
 // =====================================================================
 // RAIZ PATRIMÔNIO — js/resultados.js
-// VERSÃO: Beta v2.6.0 (10/10/2026 — demanda f3e6cd27)
+// VERSÃO: Beta v2.7.0 (10/10/2026 — demanda f3e6cd27)
 // LINHAS: (ver versoes.json)
+// -----------------------------------------------------------------
+// NOVIDADES (Beta v2.7.0) — sessão 20261008-1231-pessoas-ativos; fichas F21/F22 ("De acordo" do Nicola 10/10 02:52):
+//   — O ramo sai do herói: quem escolhe é a lente do cabeçalho do app (index.html), e o Hoje recebe o ramo e o
+//     cadastro dele (ativo_ramos: nome, unidade, soma valor, tem uso). Em Todo o patrimônio o herói e os cards são
+//     os de sempre, sem seletor.
+//   — Num ramo, o herói mostra o valor e a quantidade do ramo (ou só a quantidade, quando o ramo não soma valor,
+//     como as vidas da Família) e, se o ramo tem uso, Todos · Comercial · Uso próprio. Os cards de Resultados
+//     ficam em Todo o patrimônio: as funções de resultado ainda não recortam por ramo (F23).
+// Versão anterior: Beta v2.6.0
 // -----------------------------------------------------------------
 // NOVIDADES (Beta v2.6.0) — sessão 20261008-1231-pessoas-ativos; ficha F20 e protótipo PROTOTIPO_HOJE_ANEL_RAMO_RAIZ
 //   v1.2.0 aprovados pelo Nicola 10/10 ("De acordo"):
@@ -39,19 +48,11 @@
 // NOVIDADES (Beta v2.3.1) — 07/10/2026, sessão 20261007-1721-rolo-changelog, demanda 2507d554 (VER-06, "de acordo"
 //   do Nicola 07/10 17:21): SÓ CABEÇALHO — as versões além das 5 mais recentes rolaram
 //   para o CHANGELOG_MODULOS.md. Nenhuma linha de código mudou (conferido token a token).
-// Versão anterior: Beta v2.3.0
-// -----------------------------------------------------------------
-// NOVIDADES (Beta v2.3.0) — catálogo único, fatia 4b (sessão 20261006-2320-catalogo-f4b; fichas F-C8/F-C9
-//   aprovadas pelo Nicola 06/10 23:16): card "Por grupo" logo abaixo do Resultado mês a mês — o ano aberto
-//   pelo nível 1 da árvore (fn_resultado_por_grupo): Receitas, Despesas e, à parte, "Fora do resultado"
-//   (repasses, venda de bem). Se a função falhar, só o card some; o resto da tela segue. Textos do ⓘ de
-//   Resultado mês a mês e Performance atualizados (receita inclui os recebimentos lançados de categoria de
-//   receita; o que está fora do resultado não entra). Sem style inline no código novo (REGRAS §17).
 // --------------------------------------------------------------------------
-// Versões anteriores (v2.2.0 … v2.2.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v2.3.0 … v2.3.0): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '2.6.0';
+export const VERSAO = '2.7.0';
 
 // ---------------------------------------------------------------------
 // Estado do filtro (module-scoped — sobrevive entre renders porque o
@@ -64,9 +65,9 @@ let filtro = { ano: ANO_ATUAL, abrangencia: 'carteira', contexto: 'tudo', ramo: 
 let rascunho = null;
 
 const CONTEXTO_USO = { tudo: null, comercial: 'comercial', familia: 'nao_comercial' };
-const CONTEXTO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' }; // v2.6.0 — uso, dentro de Patrimônio
-// v2.6.0 (F20) — ramo do Hoje (ativo_tipos.ramo); Agro aparece travado até existir
-const RAMO_ROTULO = { tudo: 'Tudo', patrimonio: 'Patrimônio', familia: 'Família' };
+const CONTEXTO_ROTULO = { tudo: 'Todos', comercial: 'Comercial', familia: 'Uso próprio' }; // v2.6.0 — uso, dentro do ramo
+// v2.7.0 (F21) — o ramo vem da lente do cabeçalho (index.html), com o cadastro dele (ativo_ramos)
+let ramoInfo = null; // { codigo, nome, unidade_singular, unidade_plural, soma_valor, tem_uso }
 const ABRANGENCIA_ROTULO = { carteira: 'Carteira', empreendimento: 'Empreendimento', imovel: 'Imóvel' };
 const NOMES_MES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const NOMES_MES_LONGO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -134,12 +135,13 @@ export async function renderResultados(opcoes) {
     const cards = document.getElementById('hoje-resultados-mount');
     if (!heroi || !cards || !CLIENTE_ID_SUPABASE) return;
     if (opcoes && Object.prototype.hasOwnProperty.call(CONTEXTO_USO, opcoes.contexto)) filtro.contexto = opcoes.contexto;
-    if (opcoes && Object.prototype.hasOwnProperty.call(RAMO_ROTULO, opcoes.ramo)) filtro.ramo = opcoes.ramo; // v2.6.0
-    if (filtro.ramo !== 'patrimonio') filtro.contexto = 'tudo'; // uso só existe dentro de Patrimônio
+    if (opcoes && typeof opcoes.ramo === 'string') { filtro.ramo = opcoes.ramo || 'tudo'; ramoInfo = opcoes.ramoInfo || null; } // v2.7.0
+    if (filtro.ramo === 'tudo' || !ramoInfo?.tem_uso) filtro.contexto = 'tudo'; // uso só dentro de ramo que tem uso
     filtro.abrangencia = 'carteira'; filtro.alvoId = null; filtro.alvoNome = null;
-    heroi.innerHTML = filtro.ramo === 'familia' ? montarHeroiFamilia(null, true) : montarHeroi(null, null, true);
-    // v2.6.0 — no ramo Família os cards de Resultados não aparecem (as funções ainda não recortam por ramo)
-    cards.innerHTML = filtro.ramo === 'familia' ? '<div id="resultados-conteudo"></div>'
+    const noRamo = filtro.ramo !== 'tudo';
+    heroi.innerHTML = noRamo ? montarHeroiRamo(null, true) : montarHeroi(null, null, true);
+    // v2.7.0 — num ramo, os cards de Resultados ficam em Todo o patrimônio (as funções ainda não recortam por ramo — F23)
+    cards.innerHTML = noRamo ? '<div id="resultados-conteudo"></div>'
         : `<h3 class="rz-plain-title">Resultados · ${filtro.ano}</h3><div id="resultados-conteudo">${rzSk('cards', 3)}</div>`;
     if (typeof rzIcones === 'function') rzIcones();
     await renderizarConteudo();
@@ -208,25 +210,29 @@ function montarHeroi(resumo, perf, carregando) {
     </div>`;
 }
 
-// v2.6.0 (F20) — ramo (Tudo · Patrimônio · Família · Agro em breve) e, só em Patrimônio, o uso
+// v2.7.0 (F21) — o ramo mora na lente do cabeçalho; aqui fica só o uso, e só em ramo que tem uso
 function segRamoUsoHtml() {
-    const ramos = ['tudo', 'patrimonio', 'familia'].map(v =>
-        `<button type="button" onclick="escolherGeralRamo('${v}')" class="${v === filtro.ramo ? 'rz-on' : ''}">${RAMO_ROTULO[v]}</button>`
-    ).join('') + '<button type="button" class="rz-off" disabled title="Em breve">Agro</button>';
-    const usos = filtro.ramo !== 'patrimonio' ? '' : ['tudo', 'comercial', 'familia'].map(v =>
+    if (filtro.ramo === 'tudo' || !ramoInfo?.tem_uso) return '';
+    const usos = ['tudo', 'comercial', 'familia'].map(v =>
         `<button type="button" onclick="escolherGeralUniverso('${v}')" class="${v === filtro.contexto ? 'rz-on' : ''}">${CONTEXTO_ROTULO[v]}</button>`
     ).join('');
-    return `<div class="rz-seg rz-seg-4" role="group" aria-label="Ramo">${ramos}</div>`
-        + (usos ? `<div class="rz-seg rz-seg-uso" role="group" aria-label="Uso">${usos}</div>` : '');
+    return `<div class="rz-seg rz-seg-uso" role="group" aria-label="Uso">${usos}</div>`;
 }
 
-// v2.6.0 (F20) — herói do ramo Família: quantos cadastros (pessoas e pets não têm valor)
-function montarHeroiFamilia(qtd, carregando) {
-    const txt = qtd == null ? '—' : `${qtd} ${qtd === 1 ? 'cadastro' : 'cadastros'}`;
+// v2.7.0 (F21) — herói de um ramo: valor e quantidade, ou só a quantidade quando o ramo não soma valor (vidas)
+function montarHeroiRamo(d, carregando) {
+    const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const nome = ramoInfo?.nome || 'Ramo';
+    const un = n => n === 1 ? (ramoInfo?.unidade_singular || 'ativo') : (ramoInfo?.unidade_plural || 'ativos');
+    const somaValor = !ramoInfo || ramoInfo.soma_valor !== false;
+    const qtdTxt = d == null ? '—' : `${d.qtd} ${un(d.qtd)}`;
+    const grande = somaValor ? (d == null ? '—' : formatarPatrimonioCompacto(d.valor)) : qtdTxt;
+    const usoTxt = filtro.contexto === 'comercial' ? ' · comercial' : filtro.contexto === 'familia' ? ' · uso próprio' : '';
+    const sub = somaValor ? qtdTxt : 'Sem valor de patrimônio: entram na contagem';
     return `<div class="rz-heroi"${carregando ? ' aria-busy="true"' : ''}>
-        <small>Família</small>
-        <b class="rz-heroi-pat">${txt}</b>
-        <small>Pessoas e pets não têm valor: entram só na contagem.</small>
+        <small>${esc(nome)}${usoTxt}</small>
+        <b class="rz-heroi-pat">${grande}</b>
+        <small>${esc(sub)}</small>
         ${segRamoUsoHtml()}
     </div>`;
 }
@@ -259,14 +265,18 @@ async function renderizarConteudo() {
     const alvo = document.getElementById('resultados-conteudo');
     if (!alvo) return;
     const minha = ++geracao; // v2.0.0
-    if (filtro.ramo === 'familia') { // v2.6.0 (F20) — Família: só a contagem no herói
-        const { count, error } = await dbAuth.from('cofre_ativos').select('id, ativo_tipos!inner(ramo)', { count: 'exact', head: true })
-            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo').eq('ativo_tipos.ramo', 'familia');
+    if (filtro.ramo !== 'tudo') { // v2.7.0 (F21) — num ramo: valor e quantidade do ramo; resultados em Todo o patrimônio
+        const { data, error } = await dbAuth.from('cofre_ativos').select('tipo_ativo, valor_referencia, uso, tipo_detalhe:ativo_tipos(ramo)')
+            .eq('cliente_id', CLIENTE_ID_SUPABASE).eq('status', 'ativo');
         if (minha !== geracao) return;
-        if (error) console.warn('[resultados] contagem da família:', error.message);
-        const heroiFam = document.getElementById('hoje-heroi-mount');
-        if (heroiFam) heroiFam.innerHTML = montarHeroiFamilia(error ? null : (count || 0));
-        alvo.innerHTML = '';
+        if (error) console.warn('[resultados] ativos do ramo:', error.message);
+        const usoSel = CONTEXTO_USO[filtro.contexto];
+        const ramoDe = typeof rzRamoDoAtivo === 'function' ? rzRamoDoAtivo : (x => x?.tipo_detalhe?.ramo || 'outros');
+        const L = (data || []).filter(x => ramoDe(x) === filtro.ramo
+            && (!usoSel || (usoSel === 'nao_comercial' ? x.uso !== 'comercial' : x.uso === usoSel)));
+        const heroiR = document.getElementById('hoje-heroi-mount');
+        if (heroiR) heroiR.innerHTML = montarHeroiRamo(error ? null : { qtd: L.length, valor: L.reduce((t, x) => t + (Number(x.valor_referencia) || 0), 0) });
+        alvo.innerHTML = '<p class="rz-desc">Receitas e despesas por ramo chegam em breve. Por enquanto, os resultados estão em Todo o patrimônio.</p>';
         if (typeof rzIcones === 'function') rzIcones();
         return;
     }
