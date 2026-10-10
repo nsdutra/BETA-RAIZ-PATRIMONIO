@@ -4,6 +4,17 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.346.0) — E1b: a lente de ramo vale também para a aba Ativos (js/cofre-ativos.js 1.85.0): lista e
+chips pelo ramo e "Novo ativo" só com os tipos do ramo. Aqui só expõe rzRamoAtual() e escolherGeralRamo ao módulo.
+Import map: cofre-ativos.js 1.85.0, cofre-validacoes.js 2.5.0.
+Versão anterior (Beta v1.345.1):
+------------------------------------------------------------------
+Versões anteriores (v1.345.1 … v1.345.1): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.345.1) — Lente de ramo enxuta (Nicola 10/10 10:10: "o seletor ocupou muito do cabeçalho"): vira um
 botão redondo de 40 px, como o Raiz IA e o avatar, com a cor e o ícone do ramo (camadas em Todo o patrimônio,
 prédio em Imóveis, pessoas na Família, carro em Outros bens). O nome do ramo fica no aria-label e na lista.

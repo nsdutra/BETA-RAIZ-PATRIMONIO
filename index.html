@@ -6,9 +6,26 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.348.0
-   LINHAS: 17273
+   VERSÃO: Beta v1.349.0
+   LINHAS: 16759
    DATA: 10/10/2026 (sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27)
+   NOVIDADES (Beta v1.349.0) — Onda 1b-1 da fragmentação: a ESCRITA vai para o núcleo (demanda 6b11c602,
+   plano das ondas aprovado pelo Nicola 09/10 21:15). Os 9 sincronizar* saíram deste arquivo para o
+   js/nucleo/porta.js 1.2.0, pelo mesmo caminho da Onda 1a: SEM UMA LINHA REESCRITA, só ganhando "export" e
+   passando a receber o que precisam por injeção. Foram medidos um a um: nenhum escreve em global do index —
+   a única suspeita (SOCIO_PADRAO em sincronizarImovelSupabase) era menção em comentário. O que eles leem são
+   5 arrays de estado vivo (contratos, mensalidades, pessoas, repasses, empreendimentosCadastrados), que
+   passam a ir pela ponte a CADA chamada, pelo mesmo motivo de dbAuth: carregarTudo() reatribui cada um, e
+   mandar a referência uma vez só deixaria o escritor procurando numa lista que não existe mais.
+   sincronizarListaComResiliencia FICOU neste arquivo de propósito — a orquestradora sincronizarComSupabase
+   também o chama, e duas cópias violariam a CAN-03; entra no módulo por injeção.
+   NÃO vieram nesta onda: carregarAtivosParaSelectSupabase e carregarPartesParaSelectSupabase. Os caches
+   deles têm 4 pontos de invalidação e DOIS estão dentro do js/financeiro.js, que faz `partesParaSelect =
+   null` direto; mover o cache sem mover a invalidação faria o seletor nunca mais ver uma parte nova, sem
+   erro na tela. Vira a 1b-2, com ficha própria.
+   Índice: 1.070.799 → 1.041.857 bytes (17.273 → 16.747 linhas) — PASSA ABAIXO do teto de 1.048.576 bytes da
+   API de conteúdo do GitHub pela primeira vez. Nenhum objeto de banco.
+   Versão anterior (Beta v1.348.0):
    NOVIDADES (Beta v1.348.0) — Tonalidade completa (Nicola 10/10 10:45): o botão + das telas (.rz-ico-btn.rz-primary), o
    ícone e a linha do item ativo da barra de baixo e o fundo do avatar passam a seguir o ramo da lente. Resultados
    por ramo (F23) em js/resultados.js 2.9.0.
@@ -25,13 +42,8 @@
    NOVIDADES (Beta v1.346.1) — sessão 20261009-2055-integridade (demandas d471a7a8 e 1036fc4e, planos aprovados pelo
    Nicola 10/10 09:57 e 10:11): só o import map — financeiro.js 1.42.0 (importar fatura pergunta se já foi paga; compra
    de cartão abre a fatura; linha da fatura com a soma das compras). Nenhuma linha do index mudou.
-
-   NOVIDADES (Beta v1.346.0) — E1b: a lente de ramo vale também para a aba Ativos (js/cofre-ativos.js 1.85.0): lista e
-   chips pelo ramo e "Novo ativo" só com os tipos do ramo. Aqui só expõe rzRamoAtual() e escolherGeralRamo ao módulo.
-   Import map: cofre-ativos.js 1.85.0, cofre-validacoes.js 2.5.0.
-   Versão anterior (Beta v1.345.1):
    ------------------------------------------------------------------
-   Versões anteriores (v1.345.1 … v1.345.1): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.346.0 … v1.346.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -56,7 +68,7 @@
          O navegador aplica o mapa também aos imports estáticos dentro dos
          módulos (cofre-app.js → ./cofre-api.js etc.). -->
     <!-- RZ-IMPORTMAP:INICIO -->
-    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.85.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.1.0"}}</script>
+    <script type="importmap">{"imports":{"./js/cadastros.js":"./js/cadastros.js?v=1.2.0","./js/financeiro.js":"./js/financeiro.js?v=1.42.0","./js/fechamento.js":"./js/fechamento.js?v=1.12.3","./js/contratos.js":"./js/contratos.js?v=1.48.0","./js/minutas.js":"./js/minutas.js?v=1.4.0","./js/vitrine.js":"./js/vitrine.js?v=1.5.2","./js/imoveis.js":"./js/imoveis.js?v=1.7.2","./js/cofre-api.js":"./js/cofre-api.js?v=1.50.0","./js/cofre-app.js":"./js/cofre-app.js?v=1.47.0","./js/cofre-ativos.js":"./js/cofre-ativos.js?v=1.85.1","./js/cofre-controles.js":"./js/cofre-controles.js?v=1.49.0","./js/cofre-documentos.js":"./js/cofre-documentos.js?v=2.35.0","./js/cofre-imagem.js":"./js/cofre-imagem.js?v=1.1.0","./js/cofre-estado.js":"./js/cofre-estado.js?v=1.5.2","./js/cofre-navegacao.js":"./js/cofre-navegacao.js?v=1.9.3","./js/cofre-ui.js":"./js/cofre-ui.js?v=1.7.2","./js/cofre-validacoes.js":"./js/cofre-validacoes.js?v=2.5.0","./js/comum-licenca.js":"./js/comum-licenca.js?v=1.7.0","./js/comum-renovacao.js":"./js/comum-renovacao.js?v=1.3.5","./js/comum-minha-empresa.js":"./js/comum-minha-empresa.js?v=1.14.0","./js/comum-pessoas.js":"./js/comum-pessoas.js?v=1.206.0","./js/comum-sobre.js":"./js/comum-sobre.js?v=1.4.0","./js/comum-endereco.js":"./js/comum-endereco.js?v=1.2.0","./js/comum-partes.js":"./js/comum-partes.js?v=1.0.0","./js/resultados.js":"./js/resultados.js?v=2.9.0","./js/indicadores.js":"./js/indicadores.js?v=1.0.0","./js/configuracao-inicial.js":"./js/configuracao-inicial.js?v=1.0.1","./js/relatorios-executivos.js":"./js/relatorios-executivos.js?v=1.1.2","./js/raiz-eventos.js":"./js/raiz-eventos.js?v=1.0.0","./js/raiz-device.js":"./js/raiz-device.js?v=1.0.0","./js/raiz-ui.js":"./js/raiz-ui.js?v=1.2.0","./js/fiscal.js":"./js/fiscal.js?v=1.5.2","./js/ativos/ativos-boot.js":"./js/ativos/ativos-boot.js?v=1.4.0","./js/ativos/ativos-markup.js":"./js/ativos/ativos-markup.js?v=1.55.0","./js/nucleo/porta.js":"./js/nucleo/porta.js?v=1.2.0"}}</script>
     <!-- RZ-IMPORTMAP:FIM -->
 
     <!-- ===== PWA: permite "instalar" o app no celular (Android e iPhone) ===== -->
@@ -3717,7 +3729,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.348.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.349.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -5049,156 +5061,7 @@
         // migrados, não há onde gravar esse texto por enquanto. Volta quando
         // contratos forem migrados.
 
-async function sincronizarPrestadorSupabase(item, tipoPrestador) {
-
-            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id || '');
-
-            const linha = {
-                cliente_id: CLIENTE_ID_SUPABASE,
-                tipo: tipoPrestador,
-                pessoa_fisica_juridica: (item.docTipo === 'CNPJ') ? 'juridica' : 'fisica',
-                nome: item.nome,
-                doc_tipo: item.docTipo || null,
-                documento: item.documento || null,
-                contato_nome: item.nomeContato || null,
-                whatsapp: item.whatsapp || null,
-                email: item.email || null,
-                taxa_adm: (item.taxaAdm === undefined || item.taxaAdm === null || item.taxaAdm === '') ? null : item.taxaAdm
-            };
-
-            let prestadorId;
-            if (idEhUuidValido) {
-                const { error } = await dbAuth.from('prestadores').update(linha).eq('id', item.id);
-                if (error) throw error;
-                prestadorId = item.id;
-            } else {
-                const { data: inserido, error } = await dbAuth.from('prestadores').insert(linha).select('id').single();
-                if (error) throw error;
-                prestadorId = inserido.id;
-                item.id = prestadorId;
-            }
-
-            // Vínculo com empreendimentos — só se aplica a síndico e manutencista
-            // (administradora se liga por contrato, ainda não migrado).
-            if (tipoPrestador === 'sindico' || tipoPrestador === 'manutencista') {
-
-                const nomesEmpreendimentos = item.empreendimentos || [];
-                const hoje = new Date().toISOString().split('T')[0];
-                const idsEmpreendimentosAtuais = [];
-
-                for (const itemEmp of nomesEmpreendimentos) {
-
-                    // CORRIGIDO (bug real — vínculo de síndico/manutencista nunca
-                    // era gravado): lerChecksEmpreendimentosSindico() manda um
-                    // array de OBJETOS ({empreendimentoId, dataInicio, dataFim}),
-                    // mas aqui embaixo o código comparava como se fosse um array
-                    // de textos puros — a comparação nunca batia com nada, e todo
-                    // vínculo era silenciosamente ignorado (só aparecia no log).
-                    const nomeEmp = (typeof itemEmp === 'string') ? itemEmp : itemEmp.empreendimentoId;
-
-                    const empreendimentoObj = empreendimentosCadastrados.find(function(e) { return e.nome === nomeEmp; });
-                    if (!empreendimentoObj) {
-                        logScreen(`Empreendimento "${nomeEmp}" não encontrado em Parametrizações — vínculo ignorado.`, true);
-                        continue;
-                    }
-                    const empreendimentoId = empreendimentoObj.id;
-                    idsEmpreendimentosAtuais.push(empreendimentoId);
-
-                    const { data: vinculoExistente } = await dbAuth
-                        .from('prestador_vinculo')
-                        .select('id')
-                        .eq('prestador_id', prestadorId)
-                        .eq('empreendimento_id', empreendimentoId)
-                        .is('data_fim_vigencia', null)
-                        .limit(1);
-
-                    if (vinculoExistente && vinculoExistente.length > 0) continue; // já vinculado
-
-                    // Síndico: só 1 vigente por empreendimento — fecha o de outro
-                    // prestador antes de abrir o novo (efetiva a troca de síndico).
-                    if (tipoPrestador === 'sindico') {
-                        await dbAuth.from('prestador_vinculo')
-                            .update({ data_fim_vigencia: hoje })
-                            .eq('empreendimento_id', empreendimentoId)
-                            .eq('tipo_prestador', 'sindico')
-                            .is('data_fim_vigencia', null);
-                    }
-
-                    const { error: errVinc } = await dbAuth.from('prestador_vinculo').insert({
-                        prestador_id: prestadorId,
-                        tipo_prestador: tipoPrestador,
-                        empreendimento_id: empreendimentoId,
-                        data_inicio_vigencia: hoje
-                    });
-                    if (errVinc) throw errVinc;
-
-                }
-
-                // Empreendimentos desmarcados na tela: fecha a vigência (preserva
-                // histórico em vez de apagar a linha).
-                const { data: vinculosAtivos } = await dbAuth
-                    .from('prestador_vinculo')
-                    .select('id, empreendimento_id')
-                    .eq('prestador_id', prestadorId)
-                    .is('data_fim_vigencia', null);
-
-                for (const v of (vinculosAtivos || [])) {
-                    if (!idsEmpreendimentosAtuais.includes(v.empreendimento_id)) {
-                        await dbAuth.from('prestador_vinculo').update({ data_fim_vigencia: hoje }).eq('id', v.id);
-                    }
-                }
-
-            }
-
-            return prestadorId;
-
-        }
-
-        async function sincronizarAdministradorasSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, function(item) { return sincronizarPrestadorSupabase(item, 'imobiliaria'); }, 'administradora');
-        }
-
-        async function sincronizarSindicosSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, function(item) { return sincronizarPrestadorSupabase(item, 'sindico'); }, 'síndico');
-        }
-
-        async function sincronizarManutencistasSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, function(item) { return sincronizarPrestadorSupabase(item, 'manutencista'); }, 'manutencista');
-        }
-
-async function sincronizarMinutaContratoSupabase(item) {
-            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id || '');
-
-            const linha = {
-                cliente_id: CLIENTE_ID_SUPABASE,
-                nome: item.nome,
-                escopo: item.escopo || 'geral',
-                empreendimento_id: item.empreendimentoId || null,
-                tipo_detalhe_id: item.tipoImovelId || null,
-                ativo_id: item.imovelId || null,
-                arquivo_url: item.arquivoUrl || null,
-                arquivo_nome: item.arquivoNome || null,
-                arquivo_versao: item.arquivoVersao || 1,
-                ativa: item.ativa !== false
-            };
-
-            if (idEhUuidValido) {
-                const { error } = await dbAuth.from('minutas_contrato').update(linha).eq('id', item.id);
-                if (error) throw error;
-                return item.id;
-            } else {
-                const { data: inserido, error } = await dbAuth.from('minutas_contrato').insert(linha).select('id').single();
-                if (error) throw error;
-                item.id = inserido.id;
-                return inserido.id;
-            }
-        }
-
-        async function sincronizarMinutasContratoSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, sincronizarMinutaContratoSupabase, 'minuta');
-        }
-
-        // ============================================================================
+// ============================================================================
         // ETAPA 3 (migração de dados) — camada de adaptação Supabase para CONTRATOS
         // ============================================================================
         // Mesmo princípio de imóveis/prestadores. "historico" (rico — cada edição
@@ -5237,7 +5100,7 @@ async function sincronizarMinutaContratoSupabase(item) {
 
 
         // =====================================================================
-        // PORTA DE LEITURA — vive em js/nucleo/porta.js (Onda 1a)
+        // PORTA DE LEITURA E ESCRITA — vive em js/nucleo/porta.js (Ondas 1a e 1b-1)
         // Os 13 leitores puros do banco sairam daqui para o primeiro modulo do
         // nucleo (demanda 6b11c602). O codigo deles nao mudou uma linha; o que
         // mudou e que agora moram num modulo ES e chegam aqui por ponte.
@@ -5264,7 +5127,17 @@ async function sincronizarMinutaContratoSupabase(item) {
                 db: dbAuth,
                 clienteId: CLIENTE_ID_SUPABASE,
                 config: typeof CONFIG_CLIENTE !== 'undefined' ? CONFIG_CLIENTE : null,
-                socioPadrao: typeof SOCIO_PADRAO !== 'undefined' ? SOCIO_PADRAO : null
+                socioPadrao: typeof SOCIO_PADRAO !== 'undefined' ? SOCIO_PADRAO : null,
+                // v1.349.0 — os 5 arrays de estado que os sincronizar* leem. Vao a cada
+                // chamada porque carregarTudo() REATRIBUI cada um; mandar uma vez so
+                // deixaria o escritor procurando numa lista que nao existe mais.
+                estado: {
+                    contratos: typeof contratos !== 'undefined' ? contratos : null,
+                    mensalidades: typeof mensalidades !== 'undefined' ? mensalidades : null,
+                    pessoas: typeof pessoas !== 'undefined' ? pessoas : null,
+                    repasses: typeof repasses !== 'undefined' ? repasses : null,
+                    empreendimentosCadastrados: typeof empreendimentosCadastrados !== 'undefined' ? empreendimentosCadastrados : null
+                }
             });
             if (__rzPortaModulo) {
                 __rzPortaModulo.atualizarContexto(ctx());
@@ -5277,7 +5150,18 @@ async function sincronizarMinutaContratoSupabase(item) {
                         dataParaCompetencia,
                         mapStatusContratoSupabaseParaAntigo,
                         mapStatusMensalidadeSupabaseParaAntigo,
-                        mapStatusSupabaseParaAntigo
+                        mapStatusSupabaseParaAntigo,
+                        // v1.349.0 — os da escrita. sincronizarListaComResiliencia fica NESTE
+                        // arquivo de proposito: a orquestradora sincronizarComSupabase tambem
+                        // o chama, e duas copias violariam a CAN-03.
+                        logScreen,
+                        competenciaParaData,
+                        converterDataBRparaISO,
+                        mapStatusAntigoParaSupabase,
+                        mapStatusContratoAntigoParaSupabase,
+                        mapStatusMensalidadeAntigoParaSupabase,
+                        obterPessoaIdPorNome,
+                        sincronizarListaComResiliencia
                     }
                 }));
                 return (__rzPortaModulo = m);
@@ -5293,326 +5177,18 @@ async function sincronizarMinutaContratoSupabase(item) {
             'carregarRepassesSupabase', 'carregarLancamentosSupabase', 'carregarPrestadoresSupabase',
             'carregarPessoasSupabase', 'carregarEmpreendimentosSupabase', 'carregarTiposImovelSupabase',
             'carregarMinutasContratoSupabase', 'carregarLinksVitrineSupabase', 'carregarLogsSupabase',
-            'resolverVitrinePublicaSupabase'
+            'resolverVitrinePublicaSupabase',
+            // Onda 1b-1 — escrita
+            'sincronizarImovelSupabase', 'sincronizarImoveisSupabase',
+            'sincronizarContratoSupabase', 'sincronizarContratosSupabase',
+            'sincronizarMensalidadeSupabase', 'sincronizarMensalidadesSupabase',
+            'sincronizarRepasseSupabase', 'sincronizarRepassesSupabase',
+            'sincronizarMinutaContratoSupabase', 'sincronizarMinutasContratoSupabase',
+            'sincronizarPrestadorSupabase', 'sincronizarAdministradorasSupabase',
+            'sincronizarSindicosSupabase', 'sincronizarManutencistasSupabase'
         ].forEach(nome => { window[nome] = (...args) => rzPontePorta(nome, args); });
 
-// Onda 12 (16/09/2026, pedido explícito: "quero que exista já
-        // definitivamente apenas um caminho de escrita, na tabela de
-        // ativos... imoveis totalmente isolada") — grava em cofre_ativos
-        // agora, não mais em `imoveis`. `imo.id` já É o id do ativo desde
-        // que carregarImoveisSupabase() trocou de fonte — não precisa
-        // mais resolver ativo_id por uma busca à parte, simplifica o
-        // resto da função também.
-        async function sincronizarImovelSupabase(imo) {
-
-            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(imo.id || '')) {
-                throw new Error('sincronizarImovelSupabase: id de imóvel inválido — esta função só atualiza um imóvel já existente.');
-            }
-
-            const linha = {
-                endereco_rua: imo.enderecoRua,
-                endereco_num: imo.enderecoNum,
-                endereco_comp: imo.enderecoComp,
-                endereco_bairro: imo.enderecoBairro,
-                endereco_cidade: imo.enderecoCidade,
-                finalidade_uso: imo.finalidadeUso || 'long_stay',
-                area_m2: imo.tamanho || null,
-                situacao_uso: mapStatusAntigoParaSupabase(imo.status),
-                observacao: imo.descricao || null,
-                valor_referencia: imo.valorMercado || null
-            };
-
-            const { error } = await dbAuth.from('cofre_ativos').update(linha).eq('id', imo.id);
-            if (error) throw error;
-            const ativoId = imo.id;
-
-            const nomesDivisao = Object.keys(imo.divisao || {});
-            let linhasPropriedade = [];
-            if (nomesDivisao.length > 0) {
-                const { data: pessoasCliente } = await dbAuth.from('pessoas').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE);
-                linhasPropriedade = nomesDivisao.map(function(nome) {
-                    // Casamento por nome completo OU só o primeiro nome — o formulário usa
-                    // nomes curtos (ex.: SOCIO_PADRAO = "Nicola"), mas pessoas.nome guarda o
-                    // nome completo ("Nicola Santos Dutra"). Sem isso, a comparação exata
-                    // nunca batia, e a divisão do sócio padrão nunca era gravada.
-                    const pessoaEncontrada = (pessoasCliente || []).find(function(p) {
-                        return p.nome === nome || p.nome.split(' ')[0] === nome;
-                    });
-                    return pessoaEncontrada
-                        ? { tipo_proprietario: 'socio_interno', pessoa_id: pessoaEncontrada.id, nome_externo: '', percentual: imo.divisao[nome] }
-                        : { tipo_proprietario: 'terceiro_externo', pessoa_id: '', nome_externo: nome, percentual: imo.divisao[nome] };
-                });
-            }
-
-            // v1.101.0 (02/09/2026) — substituir_propriedade_ativo, mesma
-            // RPC que o chip Propriedade (Ativos) e o popup "Divisão
-            // Societária" usam, fonte única. ativoId já é o id certo —
-            // Onda 12 tirou a busca extra que existia aqui antes.
-            const { error: errProp } = await dbAuth.rpc('substituir_propriedade_ativo', {
-                p_ativo_id: ativoId,
-                p_linhas: linhasPropriedade
-            });
-            if (errProp) throw errProp;
-
-            return ativoId;
-        }
-
-
-        async function sincronizarImoveisSupabase(listaImoveis) {
-            return sincronizarListaComResiliencia(listaImoveis, sincronizarImovelSupabase, 'imóvel');
-        }
-
-
-
-// Onda 12 (16/09/2026, pedido explícito: "quero que exista já
-        // definitivamente apenas um caminho de escrita, na tabela de
-        // ativos") — grava ativo_id agora, não mais imovel_id.
-        // con.imovelId já É o id do ativo (mesmo campo de sempre — não
-        // renomeado — mas carregarImoveisSupabase()/"Qual imóvel?" no
-        // formulário de contrato agora populam com cofre_ativos.id, não
-        // mais imoveis.id, desde que a leitura trocou de fonte). Contrato
-        // novo nasce com imovel_id null pra sempre; contrato antigo (pré-
-        // Onda 12) mantém o imovel_id que já tinha — não é tocado aqui,
-        // só não recebe mais escrita nova.
-        async function sincronizarContratoSupabase(con) {
-
-            const linha = {
-                cliente_id: CLIENTE_ID_SUPABASE,
-                ativo_id: /^[0-9a-f]{8}-/i.test(con.imovelId || '') ? con.imovelId : null,
-                status: mapStatusContratoAntigoParaSupabase(con.status),
-                locatario: con.locatario,
-                doc_tipo: con.docTipo || null,
-                cpf: con.cpf || null,
-                vencimento_dia: con.vencimentoDia || null,
-                aluguel_antecipado: con.alugelAntecipado === 'Sim',
-                whatsapp: con.whatsapp || null,
-                email: con.email || null,
-                // CORRIGIDO (bug real, achado 30/08/2026 durante a entrega
-                // de Fiadores): estes 3 campos existem no formulário (dnc-
-                // endereco/profissao/estado-civil), existem na tabela
-                // contratos, e eram lidos em contratoDados — mas nunca
-                // chegavam a entrar nesta `linha` persistida. Ficavam só
-                // na memória local da sessão; qualquer preenchimento se
-                // perdia ao recarregar a página. Usado por
-                // montarValoresPlaceholdersMinuta() — sem isso, o
-                // placeholder do locatário na minuta ficava vazio depois
-                // do primeiro reload, mesmo tendo sido preenchido.
-                locatario_endereco_atual: con.locatarioEnderecoAtual || null,
-                locatario_profissao: con.locatarioProfissao || null,
-                locatario_estado_civil: con.locatarioEstadoCivil || null,
-                inicio: con.inicio || null,
-                fim: con.fim || null,
-                valor: con.valor || null,
-                valor_anterior: con.valorAnterior || null,
-                reajuste_aplicado: !!con.reajusteAplicado,
-                reajuste: con.reajuste || null,
-                // v1.27.0 (Bloco B, demandas 5ca973d6/854f6343) — undefined/''
-                // (con.* já vem null do saveContrato quando o campo está em
-                // branco) grava null, nunca 0 — o trigger
-                // trg_contrato_gera_itens_reajuste_revisional só cria item
-                // quando periodicidade/revisional NÃO é null.
-                reajuste_periodicidade_meses: con.reajustePeriodicidadeMeses ?? null,
-                reajuste_teto_pct: con.reajusteTetoPct ?? null,
-                reajuste_piso_pct: con.reajustePisoPct ?? null,
-                revisional_periodicidade_meses: con.revisionalPeriodicidadeMeses ?? null,
-                iptu: con.iptuValor || null,
-                condominio: con.condominioValor || null,
-                contato_nome: con.contatoNome || null,
-                forma_pagamento: con.formaPagamento || null,
-                desconto_energia: con.descontoEnergia || null,
-                condominio_locatario: con.condominioLocatario === 'Sim',
-                locatario_paga_iptu: con.locatarioPagaIptu === 'Sim',
-                administradora_id: /^[0-9a-f]{8}-/i.test(con.administradoraId || '') ? con.administradoraId : null,
-                descricao: con.descricao || null
-            };
-
-            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(con.id || '');
-
-            let contratoId;
-            if (idEhUuidValido) {
-                const { error } = await dbAuth.from('contratos').update(linha).eq('id', con.id);
-                if (error) throw error;
-                contratoId = con.id;
-            } else {
-                const { data: inserido, error } = await dbAuth.from('contratos').insert(linha).select('id').single();
-                if (error) throw error;
-                contratoId = inserido.id;
-                con.id = contratoId;
-            }
-
-            // Histórico: grava só as entradas que ainda não têm confirmação de já
-            // terem sido persistidas (marcadas com _salvo=true em memória depois
-            // do primeiro save) — evita duplicar entradas antigas a cada edição.
-            const entradasNovas = (con.historico || []).filter(function(h) { return !h._salvo; });
-            for (const entrada of entradasNovas) {
-                // CORRIGIDO v1.207.0 (demanda item 12/paridade) — uma edição
-                // genérica que muda "Valor do aluguel" é, na prática, um
-                // reajuste: precisa nascer com tipo='reajuste' (não
-                // 'alteracao') pra sobreviver ao reload (carregarContratosSupabase
-                // reconstrói `alteracoes` a partir só de h.tipo) e pro bot
-                // (fn_diario_contratos_aniversario_reajuste) reconhecer a
-                // revisão. Sem isso, tanto o App quanto o bot voltavam a
-                // contar os 12 meses do zero depois de qualquer reload.
-                const mudouValorAluguel = (entrada.alteracoes || []).some(function(a) { return a.campo === 'Valor do aluguel'; });
-                const tipo = (entrada.alteracoes || []).some(function(a) { return a.campo === 'Contrato criado'; })
-                    ? 'assinatura'
-                    : mudouValorAluguel
-                        ? 'reajuste'
-                        : 'alteracao';
-                const descricaoTexto = (entrada.alteracoes || [])
-                    .map(function(a) { return `${a.campo}: ${a.de} → ${a.para}`; })
-                    .join('; ');
-                const { error: errHist } = await dbAuth.from('historico_contrato').insert({
-                    contrato_id: contratoId,
-                    tipo: tipo,
-                    descricao: descricaoTexto + (entrada.vigenteDesde ? ` (vigente desde ${entrada.vigenteDesde})` : '')
-                });
-                if (errHist) throw errHist;
-                entrada._salvo = true;
-            }
-
-            // CORRIGIDO (bug real — documento anexado "sumia" ao atualizar a
-            // página): não existia nenhuma gravação de "anexos" no banco — o
-            // upload ia para o Storage, mas a URL nunca era salva em lugar
-            // nenhum, só ficava na memória do navegador. Cada anexo novo vira
-            // uma entrada de histórico (tipo "anexo"), a mesma tabela que já
-            // guarda o resto do histórico do contrato.
-            const anexosNovos = (con.anexos || []).filter(function(a) { return !a._salvo; });
-            for (const anexo of anexosNovos) {
-                const { error: errAnexo } = await dbAuth.from('historico_contrato').insert({
-                    contrato_id: contratoId,
-                    tipo: 'anexo',
-                    descricao: 'Documento anexado: ' + (anexo.nome || 'arquivo') + (anexo.tipo ? ' (' + anexo.tipo + ')' : ''),
-                    anexo_url: anexo.url || anexo.base64 || null
-                });
-                if (errAnexo) throw errAnexo;
-                anexo._salvo = true;
-            }
-
-            // Divisão de repasse do contrato — mesma técnica de RPC (uma única
-            // transação) usada em propriedade_imovel. Só grava se houver algo
-            // (contrato sem divisão específica não mexe na tabela).
-            if (con.divisaoRepasse && con.divisaoRepasse.length > 0) {
-                const { data: pessoasCliente } = await dbAuth.from('pessoas').select('id, nome').eq('cliente_id', CLIENTE_ID_SUPABASE);
-                const linhasDivisao = con.divisaoRepasse.map(function(d) {
-                    const pessoaEncontrada = (pessoasCliente || []).find(function(p) {
-                        return p.nome === d.nome || p.nome.split(' ')[0] === d.nome;
-                    });
-                    return pessoaEncontrada
-                        ? { tipo_beneficiario: 'socio_interno', pessoa_id: pessoaEncontrada.id, nome_externo: '', percentual: d.percentual }
-                        : { tipo_beneficiario: 'terceiro_externo', pessoa_id: '', nome_externo: d.nome, percentual: d.percentual };
-                });
-
-                const { error: errDiv } = await dbAuth.rpc('substituir_divisao_repasse_contrato', {
-                    p_contrato_id: contratoId,
-                    p_linhas: linhasDivisao
-                });
-                if (errDiv) throw errDiv;
-            }
-
-            // NOVO (30/08/2026) — Fiadores, mesmo padrão de divisaoRepasse
-            // acima (RPC "substituir por completo"). Só mexe na tabela
-            // quando con.fiadores vier definido (a trava em saveContrato()
-            // garante isso só acontece quando fiadoresContratoAtual
-            // realmente pertence a ESTE contrato) — undefined (não veio
-            // deste fluxo) não toca em nada, evita apagar fiador já salvo
-            // por engano num save vindo de outro caminho.
-            if (Array.isArray(con.fiadores)) {
-                const linhasFiadores = con.fiadores.map(function(f, i) {
-                    return Object.assign({}, f, { ordem: i + 1 });
-                });
-                const { error: errFiadores } = await dbAuth.rpc('substituir_fiadores_contrato', {
-                    p_contrato_id: contratoId,
-                    p_cliente_id: CLIENTE_ID_SUPABASE,
-                    p_linhas: linhasFiadores
-                });
-                if (errFiadores) throw errFiadores;
-            }
-
-            // v1.270.0 (demanda 11afd25f) — vincula/atualiza a Parte do
-            // locatário (partes + partes_papeis, papel='locatario'), a mesma
-            // tabela genérica que abrirFichaParteDoContrato() já usa pra abrir
-            // a ficha da parte. Nunca apaga a Parte, só cria/atualiza; erro
-            // aqui não derruba o salvamento do contrato (best-effort).
-            if (con.locatario && con.cpf) {
-                try {
-                    const { data: papelLocatario } = await dbAuth.from('partes_papeis')
-                        .select('parte_id')
-                        .eq('entidade_tipo', 'contrato').eq('entidade_id', contratoId)
-                        .eq('papel', 'locatario').eq('ativo', true).limit(1).maybeSingle();
-
-                    const dadosParteLocatario = {
-                        cliente_id: CLIENTE_ID_SUPABASE,
-                        nome: con.locatario,
-                        doc_tipo: con.docTipo || null,
-                        documento: con.cpf || null,
-                        whatsapp: con.whatsapp || null,
-                        email: con.email || null,
-                        contato_nome: con.contatoNome || null,
-                        profissao: con.locatarioProfissao || null,
-                        estado_civil: con.locatarioEstadoCivil || null,
-                        endereco: con.locatarioEnderecoAtual || null,
-                    };
-
-                    // v1.272.0 (demanda 3b458eb4) — quando o popup "Dados
-                    // Novo Contrato" leu o endereço pelo bloco estruturado
-                    // (comum-endereco.js), contratos.js manda os campos
-                    // também em con.enderecoLocatarioEstruturado, nas
-                    // mesmas colunas de `partes`. Só entra no UPDATE/
-                    // INSERT quando vier preenchido — nunca apaga o que já
-                    // estava salvo (editar sem tocar no endereço, ou
-                    // salvar por outro caminho sem CEP).
-                    const enderecoEstruturado = con.enderecoLocatarioEstruturado;
-                    if (enderecoEstruturado && (enderecoEstruturado.endereco_rua || enderecoEstruturado.endereco_cidade)) {
-                        ['endereco_rua', 'endereco_num', 'endereco_comp', 'endereco_bairro', 'endereco_cidade', 'uf', 'cep', 'codigo_ibge_municipio'].forEach(function(campo) {
-                            if (enderecoEstruturado[campo]) dadosParteLocatario[campo] = enderecoEstruturado[campo];
-                        });
-                    }
-
-                    if (papelLocatario && papelLocatario.parte_id) {
-                        const { error: errParteUpd } = await dbAuth.from('partes').update(dadosParteLocatario).eq('id', papelLocatario.parte_id);
-                        if (errParteUpd) throw errParteUpd;
-                    } else {
-                        const { data: parteNovaLocatario, error: errParteIns } = await dbAuth.from('partes').insert(dadosParteLocatario).select('id').single();
-                        if (errParteIns) throw errParteIns;
-                        const { error: errPapelIns } = await dbAuth.from('partes_papeis').insert({
-                            parte_id: parteNovaLocatario.id, papel: 'locatario',
-                            entidade_tipo: 'contrato', entidade_id: contratoId, ativo: true,
-                        });
-                        if (errPapelIns) throw errPapelIns;
-                    }
-                } catch (errParteLocatario) {
-                    logScreen('Aviso: falha ao sincronizar a Parte do locatário: ' + errParteLocatario.message, true);
-                }
-            }
-
-            // v1.27.0 (Bloco B, demandas 5ca973d6/854f6343, pedido explícito
-            // do Nicola: "ali mesmo no form já preencher o que precisa pro
-            // item ser gerado") — best-effort (mesmo padrão de
-            // substituir_divisao_repasse_contrato/substituir_fiadores_contrato
-            // acima): a trigger do banco (trg_contrato_gera_itens_reajuste_revisional)
-            // já chama isso sozinha a cada INSERT/UPDATE de reajuste/
-            // reajuste_periodicidade_meses/revisional_periodicidade_meses —
-            // esta chamada aqui é só pra não depender do próximo reload da
-            // ficha pra aparecer na "Linha do tempo": o retorno da RPC não
-            // é usado, erro aqui não derruba o salvamento do contrato (o
-            // item continua sendo gerado pela trigger, só não aparece já
-            // na tela sem um refresh).
-            try {
-                await dbAuth.rpc('fn_contrato_itens_controle_gerar', { p_contrato_id: contratoId });
-            } catch (errItensControle) {
-                logScreen('Aviso: falha ao gerar itens de controle de reajuste/revisional: ' + errItensControle.message, true);
-            }
-
-            return contratoId;
-
-        }
-
-        async function sincronizarContratosSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, sincronizarContratoSupabase, 'contrato');
-        }
-
-        // Salva SÓ o contrato passado, sem percorrer os demais — usado por
+// Salva SÓ o contrato passado, sem percorrer os demais — usado por
         // saveContrato() no lugar de saveAll(..., ['contratos']), que
         // resincronizava a empresa inteira mesmo editando 1 campo de 1
         // contrato só. Aceita opcionalmente o imóvel vinculado, para quando
@@ -5738,58 +5314,7 @@ async function sincronizarMinutaContratoSupabase(item) {
             return partesParaSelect;
         }
 
-        async function sincronizarMensalidadeSupabase(men) {
-            const linha = {
-                cliente_id: CLIENTE_ID_SUPABASE,
-                contrato_id: /^[0-9a-f]{8}-/i.test(men.contratoId || '') ? men.contratoId : null,
-                competencia: competenciaParaData(men.referencia),
-                status: mapStatusMensalidadeAntigoParaSupabase(men.status),
-                banco: men.banco || null,
-                data_pgto: converterDataBRparaISO(men.dataPgto),
-                observacao: men.observacao || null,
-                observacao_recibo: men.observacaoRecibo || null,
-                valor_confirmado: men.valorConfirmado || null,
-                valor_energia: men.valorEnergia || null,
-                valor_iptu: men.valorIptu || null,
-                valor_condominio: men.valorCondominio || null,
-                ...(men.multaEncargos !== undefined ? { multa_encargos: men.multaEncargos } : {}), // v1.295.0 (RF-05) — só grava quando o fluxo mexeu
-                // v1.260.0 (demanda d92a6dfc) — só grava quando a tela de
-                // origem preencheu o par (rzAbrirBaixaMensalidade); se vier
-                // undefined (outros fluxos que chamam esta função sem mexer
-                // em bruto/taxa, ex. conciliação), não sobrescreve o que já
-                // está gravado — por isso o "!== undefined", não "|| null".
-                ...(men.valorBruto !== undefined ? { valor_bruto: men.valorBruto } : {}),
-                ...(men.valorTaxaAdm !== undefined ? { valor_taxa_adm: men.valorTaxaAdm } : {}),
-                ...(men.valorBrutoEstimado !== undefined ? { valor_bruto_estimado: men.valorBrutoEstimado } : {}),
-                chave_transacao_origem: men.chaveTransacaoOrigem || null,
-                // CORRIGIDO (bug real — "Log: Notificado via undefined (undefined)"
-                // aparecendo mesmo sem nunca ter enviado nada): o padrão aqui era
-                // "[]" (array vazio) em vez de null. Um array vazio é "verdadeiro"
-                // em JavaScript, então a tela sempre achava que existia log
-                // (checava só "if (men.envioLog)"), e tentava ler .canal/.data de
-                // um array — que não tem essas propriedades, daí "undefined".
-                envio_log: (men.envioLog && !Array.isArray(men.envioLog)) ? men.envioLog : null
-            };
-
-            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(men.id || '');
-
-            if (idEhUuidValido) {
-                const { error } = await dbAuth.from('mensalidades').update(linha).eq('id', men.id);
-                if (error) throw error;
-                return men.id;
-            } else {
-                const { data: inserido, error } = await dbAuth.from('mensalidades').insert(linha).select('id').single();
-                if (error) throw error;
-                men.id = inserido.id;
-                return inserido.id;
-            }
-        }
-
-        async function sincronizarMensalidadesSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, sincronizarMensalidadeSupabase, 'mensalidade');
-        }
-
-        const cachePessoasPorNome = {};
+const cachePessoasPorNome = {};
 
         async function obterPessoaIdPorNome(nome) {
             if (cachePessoasPorNome[nome]) return cachePessoasPorNome[nome];
@@ -5802,46 +5327,7 @@ async function sincronizarMinutaContratoSupabase(item) {
             return data[0].id;
         }
 
-async function sincronizarRepasseSupabase(rep) {
-            const pessoaId = await obterPessoaIdPorNome(rep.socio);
-
-            const linha = {
-                cliente_id: CLIENTE_ID_SUPABASE,
-                pessoa_id: pessoaId,
-                competencia: competenciaParaData(rep.mes),
-                valor: rep.valor || null,
-                data_real: converterDataBRparaISO(rep.dataReal),
-                // v1.178.8 — achado GRAVE do Nicola (repasses de sócio nunca
-                // conciliavam sozinhos): o trigger de espelho (Etapa 3,
-                // fn_repasse_espelha_fingerprint) sempre soube conciliar via
-                // chave_transacao_origem — mas esta função nunca gravava esse
-                // campo no INSERT, só existia no objeto em memória
-                // (rep.chaveTransacaoOrigem). O dado nunca chegava no banco;
-                // o trigger sempre via NULL e nunca conciliava. Repasse
-                // lançado manualmente (sem origem de extrato) continua null,
-                // sem problema — só não teria mesmo o que conciliar sozinho.
-                chave_transacao_origem: rep.chaveTransacaoOrigem || null
-            };
-
-            const idEhUuidValido = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rep.id || '');
-
-            if (idEhUuidValido) {
-                const { error } = await dbAuth.from('repasses').update(linha).eq('id', rep.id);
-                if (error) throw error;
-                return rep.id;
-            } else {
-                const { data: inserido, error } = await dbAuth.from('repasses').insert(linha).select('id').single();
-                if (error) throw error;
-                rep.id = inserido.id;
-                return inserido.id;
-            }
-        }
-
-        async function sincronizarRepassesSupabase(lista) {
-            return sincronizarListaComResiliencia(lista, sincronizarRepasseSupabase, 'repasse');
-        }
-
-        // ============================================================================
+// ============================================================================
         // ETAPA 3 (migração de dados) — camada de adaptação Supabase para VITRINE
         // ============================================================================
 
