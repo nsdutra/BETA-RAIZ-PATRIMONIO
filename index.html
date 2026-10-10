@@ -6,9 +6,16 @@
    (base derivada do RUMO v7.4.2 — histórico de versões anteriores
    preservado abaixo para referência técnica)
 
-   VERSÃO: Beta v1.339.0
-   LINHAS: 17581
+   VERSÃO: Beta v1.340.0
+   LINHAS: 17646
    DATA: 10/10/2026 (sessão 20261003-1707-ux-base, demanda 639bbcd0)
+   NOVIDADES (Beta v1.340.0) — UX F2.5c Partes (demanda 639bbcd0; plano F2.5 aprovado pelo Nicola 09/10 23:5x;
+   ESTUDO 9A.4). Topo com barra de busca + "+" (Sheet rzAbrirBuscaTela, × na barra); chip "Com pendência"
+   (pendenciasParte: documento; WhatsApp ou e-mail de locatário, fiador e prestador; endereço de locatário e fiador)
+   e status "Falta …" na linha; a parte abre como ficha com chips Dados (o formulário, com "Falta para recibo,
+   minuta e cobrança") · Contratos e itens (vínculos ativos e encerrados) · Comunicação (WhatsApp, ligar, e-mail).
+   abrirFichaParte(id, pane) passa a abrir essa ficha; a ficha só-leitura antiga saiu. Nenhum objeto de banco.
+   Versão anterior (Beta v1.339.0):
    NOVIDADES (Beta v1.339.0) — UX F2.5b-2 (demanda 639bbcd0; ajustes pedidos pelo Nicola no teste de 10/10 01:11).
    Minha empresa: o box Controles da empresa passa como ctx.extras com pane 'controles' (chip próprio, separado de
    Rotinas); comum-minha-empresa.js 1.14.0 leva a quantidade do que falta para os chips, tira o "n de 8" do
@@ -32,13 +39,8 @@
    ativo) passa a ser o primeiro campo da despesa e da receita sem contrato, com o rótulo "Vínculo". Só posição e
    rótulo (financeiro.js 1.40.1). Import map: financeiro.js 1.40.1. Nenhum objeto de banco criado por este arquivo.
    Versão anterior (Beta v1.336.0):
-   NOVIDADES (Beta v1.336.0) — P2b do cartão (aprovado pelo Nicola 09/10 23:59). O seletor de ativo das despesas e da
-   fatura (carregarAtivosParaSelectSupabase) passa a trazer tipo e registro contábil e é refeito quando um ativo é
-   criado, editado ou a carteira recarrega (antes um pet recém-cadastrado não aparecia até reabrir o app).
-   Import map: financeiro.js 1.40.0. Banco na mesma entrega: financeiro_p2b_cartao_v1 e pessoas_ativos_vida_fora_f19_v1.
-   Versão anterior (Beta v1.335.0):
    ------------------------------------------------------------------
-   Versões anteriores (v1.335.0 … v1.335.0): CHANGELOG_APP.md, na raiz do
+   Versões anteriores (v1.336.0 … v1.336.0): CHANGELOG_APP.md, na raiz do
    repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
    das 5 versões mais recentes deste cabeçalho.
 
@@ -762,6 +764,7 @@
         .rz-x svg{width:16px;height:16px}
         .rz-sh-b{padding:4px 16px 16px;overflow-y:auto}
         .rz-sh-f{display:flex;gap:8px;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);flex:none}
+        .rz-sh-f[hidden]{display:none} /* F2.5c — ficha da parte: o rodapé Salvar só aparece no chip Dados */
         .rz-sh-f .rz-btn{flex:1}
         .rz-act{display:flex;align-items:center;gap:12px;width:100%;padding:12px 6px;border:0;border-top:1px solid var(--line);background:none;text-align:left;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
         .rz-act.rz-off{opacity:.5;cursor:not-allowed}.rz-act.rz-off .rz-ic{background:var(--paper);color:var(--muted)}.rz-act.rz-off small{color:var(--wine)} /* v1.124 — bloqueado com motivo */
@@ -3432,9 +3435,10 @@
                  roteador (switchTab redireciona pra cá, chip Prestadores)
                  — remoção física do HTML fica pra fatia 9, mesmo padrão
                  usado com tab-imoveis na fatia 3b. -->
-            <div class="rz-tabhead">
-                <p>Pessoas e empresas do seu patrimônio — locatários, fiadores, proprietários e prestadores — num cadastro único. Os papéis dizem onde cada uma atua.</p>
-                <button type="button" onclick="abrirBuscaPartes()" title="Buscar" aria-label="Buscar" class="rz-ico-btn"><svg data-lucide="search"></svg></button>
+            <!-- F2.5c (dem 639bbcd0) — topo no padrão de Ativos e Contratos: barra de busca + "+"; chips por papel com
+                 "Com pendência"; o toque na linha abre a ficha da parte com chips (Dados · Contratos e itens · Comunicação). -->
+            <div class="rz-topo">
+                <button type="button" class="rz-search" id="partes-busca-btn" onclick="abrirBuscaPartes()" aria-label="Buscar parte"><svg data-lucide="search"></svg><span>Buscar nome, documento ou contato</span></button>
                 <button type="button" onclick="abrirFormParteSheet()" title="Nova parte" aria-label="Nova parte" class="rz-ico-btn rz-primary"><svg data-lucide="plus"></svg></button>
             </div>
             <div class="rz-chips" id="partes-chips"></div>
@@ -3677,7 +3681,7 @@
         // texto certo toda vez (esqueci 5 versões seguidas, de v1.37.1 até
         // v1.38.3). Agora só precisa mudar UMA linha aqui a cada release;
         // window.onload aplica nos dois lugares automaticamente.
-        const APP_VERSAO = "Beta v1.339.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
+        const APP_VERSAO = "Beta v1.340.0"; // mantido sincronizado com o cabeçalho — ver nota v1.178.8 acima sobre por que isso importa
 
         // ====================================================================
         // v1.105.0 — HELPERS DE SUPERFÍCIE DA GRAMÁTICA ÚNICA
@@ -16305,7 +16309,7 @@
                     return { id: pt.id, nome: pt.nome + (pt.nome_fantasia ? ' · ' + pt.nome_fantasia : ''), sub: [doc, resumo].filter(Boolean).join(' · '),
                         icone: PARTES_ICONE_PAPEL[papeis[0]] || (pt.doc_tipo === 'CNPJ' ? 'building' : 'user') };
                 });
-                grupos.push({ chave: 'partes', titulo: 'Pessoas e empresas', nomes: ['parte', 'partes'], itens, abrir: (id) => abrirFichaParte(id), verTodos: null });
+                grupos.push({ chave: 'partes', titulo: 'Pessoas e empresas', nomes: ['parte', 'partes'], itens, abrir: (id) => abrirFichaParte(id, 'dados'), verTodos: null });
             }
             if (cofre && pode('cofre.ver')) {
                 let itens = []; try { itens = cofre.documentos(t) || []; } catch (e) { console.warn('[busca] documentos:', e.message); }
@@ -16787,6 +16791,23 @@
             return !!parte.tipo_prestador || (papeis || []).some(pp => ['prestador', 'sindico', 'manutencista', 'administradora'].includes(pp));
         }
 
+        // F2.5c (dem 639bbcd0) — o que falta numa parte para recibo, minuta e cobrança. Só lê o que já está
+        // cadastrado (nenhum dado novo): documento para todas; WhatsApp ou e-mail para quem é cobrado ou acionado
+        // (locatário, fiador, prestador); endereço para locatário e fiador (a minuta qualifica os dois).
+        function pendenciasParte(pt, papeis) {
+            if (!pt) return [];
+            const ps = new Set(papeis || []);
+            const falta = [];
+            if (!String(pt.documento || '').replace(/\D/g, '')) falta.push({ k: 'doc', rotulo: 'CPF ou CNPJ', curto: 'documento', campo: 'parte-documento' });
+            const precisaContato = ps.has('locatario') || ps.has('fiador') || parteEhPrestador(pt, papeis);
+            if (precisaContato && !pt.whatsapp && !pt.email) falta.push({ k: 'contato', rotulo: 'WhatsApp ou e-mail', curto: 'contato', campo: 'parte-whatsapp' });
+            if ((ps.has('locatario') || ps.has('fiador')) && !pt.endereco_cidade && !pt.endereco) falta.push({ k: 'end', rotulo: 'Endereço', curto: 'endereço', campo: 'parte-cep' });
+            return falta;
+        }
+        function rotuloFaltaParte(falta) {
+            return falta.length === 1 ? 'Falta ' + falta[0].curto : 'Faltam ' + falta.length;
+        }
+
         // Lê partes e papéis do banco para a memória (sem desenhar). Usada pela tela Partes e pela busca
         // universal do Hoje (F2.3b), que precisa das partes mesmo sem a tela ter sido aberta.
         let partesCarregadas = false;
@@ -16828,9 +16849,10 @@
         function renderChipsPartes() {
             const wrap = document.getElementById('partes-chips');
             if (!wrap) return;
-            const contag = { todos: partesCliente.length, prestadores: 0, sem: 0 };
+            const contag = { todos: partesCliente.length, prestadores: 0, sem: 0, pendencia: 0 };
             partesCliente.forEach(pt => {
                 const papeis = papeisPorParte[pt.id] || [];
+                if (pendenciasParte(pt, papeis).length) contag.pendencia++; // F2.5c
                 if (parteEhPrestador(pt, papeis)) contag.prestadores++;
                 if (!papeis.length) contag.sem++;
                 // v1.119.0 (bug apontado pelo Nicola: "os totais não batem
@@ -16842,27 +16864,30 @@
                 // filtro dele mostra.
                 [...new Set(papeis)].forEach(pp => { if (!['prestador', 'sindico', 'manutencista', 'administradora'].includes(pp)) contag[pp] = (contag[pp] || 0) + 1; });
             });
-            const ordem = ['todos', 'locatario', 'fiador', 'proprietario', 'prestadores', 'interessado', 'corretor', 'sem'];
-            const rotulo = { todos: 'Todas', prestadores: 'Prestadores', sem: 'Sem papel', locatario: 'Locatários', fiador: 'Fiadores', proprietario: 'Proprietários', interessado: 'Interessados', corretor: 'Corretores' };
+            const ordem = ['todos', 'pendencia', 'locatario', 'fiador', 'proprietario', 'prestadores', 'interessado', 'corretor', 'sem'];
+            const rotulo = { todos: 'Todas', pendencia: 'Com pendência', prestadores: 'Prestadores', sem: 'Sem papel', locatario: 'Locatários', fiador: 'Fiadores', proprietario: 'Proprietários', interessado: 'Interessados', corretor: 'Corretores' };
             const chips = ordem.filter(k => contag[k]).map(k => ({ chave: k, rotulo: rotulo[k] || PARTES_ROTULO_PAPEL[k] || k, n: contag[k] }));
             if (!chips.some(c => c.chave === partesFiltroPapel)) partesFiltroPapel = 'todos';
-            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarPartesPorChip('${c.chave}')" class="rz-chip ${partesFiltroPapel === c.chave ? 'rz-on' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('');
+            wrap.innerHTML = chips.map(c => `<button type="button" onclick="filtrarPartesPorChip('${c.chave}')" class="rz-chip ${partesFiltroPapel === c.chave ? 'rz-on' : ''}${c.chave === 'pendencia' ? ' rz-warn' : ''}">${c.rotulo} <span class="rz-n">${c.n}</span></button>`).join('');
         }
         function filtrarPartesPorChip(chave) {
             partesFiltroPapel = chave;
             renderChipsPartes();
             renderPartes();
         }
+        // F2.5c — mesmo Sheet de busca de Ativos e Contratos (rzAbrirBuscaTela); o termo fica na barra do topo com o ×.
+        let ultimaContagemPartes = 0;
         function abrirBuscaPartes() {
-            if (typeof abrirSheetForm !== 'function') return;
-            abrirSheetForm({
-                titulo: 'Buscar parte', rotuloSalvar: 'Buscar',
-                corpo: `<label class="block text-xs font-bold text-gray-600">Nome, documento ou contato</label>
-                        <input type="text" id="partes-busca-input" value="${rzEsc(partesFiltroTexto)}" class="w-full p-2 border rounded mt-1 text-sm" placeholder="Ex.: Maria, 123.456…">`,
-                aoSalvar: (el) => { partesFiltroTexto = (el.querySelector('#partes-busca-input')?.value || '').trim().toLowerCase(); renderPartes(); }
+            if (typeof rzAbrirBuscaTela !== 'function') return;
+            rzAbrirBuscaTela({
+                titulo: 'Buscar partes', placeholder: 'Nome, documento, WhatsApp ou e-mail',
+                termo: () => partesFiltroTexto,
+                aoTermo: (v) => { partesFiltroTexto = String(v || '').trim(); renderPartes(); },
+                contar: () => ultimaContagemPartes, nomes: ['parte', 'partes'],
+                aoLimpar: limparBuscaPartes,
             });
-            setTimeout(() => document.getElementById('partes-busca-input')?.focus(), 120);
         }
+        function limparBuscaPartes() { partesFiltroTexto = ''; renderPartes(); }
 
         function renderPartes() {
             const container = document.getElementById('lista-partes');
@@ -16870,8 +16895,12 @@
             let lista = partesCliente;
             if (partesFiltroPapel === 'prestadores') lista = lista.filter(pt => parteEhPrestador(pt, papeisPorParte[pt.id]));
             else if (partesFiltroPapel === 'sem') lista = lista.filter(pt => !(papeisPorParte[pt.id] || []).length);
+            else if (partesFiltroPapel === 'pendencia') lista = lista.filter(pt => pendenciasParte(pt, papeisPorParte[pt.id]).length); // F2.5c
             else if (partesFiltroPapel !== 'todos') lista = lista.filter(pt => (papeisPorParte[pt.id] || []).includes(partesFiltroPapel));
-            if (partesFiltroTexto) lista = lista.filter(pt => parteBateTexto(pt, partesFiltroTexto));
+            const termoBusca = String(partesFiltroTexto || '').trim().toLowerCase();
+            if (termoBusca) lista = lista.filter(pt => parteBateTexto(pt, termoBusca));
+            ultimaContagemPartes = lista.length;
+            rzRotuloBusca('partes-busca-btn', 'Buscar nome, documento ou contato', partesFiltroTexto, 0, limparBuscaPartes);
             if (!lista.length && !partesCliente.length && typeof rzVazio === 'function') {
                 // Sem nenhuma parte: o contrato é o caminho natural, porque locatário e proprietário
                 // entram sozinhos por ele. (dem b8602a3a)
@@ -16895,10 +16924,12 @@
                 const icone = pt.tipo_prestador ? (pt.tipo_prestador === 'sindico' ? 'building-2' : pt.tipo_prestador === 'manutencista' ? 'wrench' : pt.tipo_prestador === 'contador' ? 'calculator' : 'briefcase') : (PARTES_ICONE_PAPEL[papeis[0]] || (pt.doc_tipo === 'CNPJ' ? 'building' : 'user'));
                 const resumoPapeis = papeis.length ? [...new Set(papeis.map(pp => PARTES_ROTULO_PAPEL[pp] || pp))].join(' · ') : 'Sem papel atribuído';
                 const doc = pt.documento ? `${pt.doc_tipo || 'Doc'} ${pt.documento}` : '';
+                const falta = pendenciasParte(pt, papeis); // F2.5c
                 return `
                 <div class="rz-row rz-link" onclick="abrirFormParteSheet('${pt.id}')">
                     <div class="rz-ic"><svg data-lucide="${icone}"></svg></div>
                     <div class="rz-tx"><b>${rzEsc(pt.nome)}${pt.nome_fantasia ? ' · ' + rzEsc(pt.nome_fantasia) : ''}</b><span>${rzEsc([doc, resumoPapeis].filter(Boolean).join(' · '))}</span></div>
+                    ${falta.length ? `<div class="rz-rt">${renderStatus('warn', rotuloFaltaParte(falta))}</div>` : ''}
                     <button type="button" onclick="event.stopPropagation(); abrirAcoesParte('${pt.id}')" class="rz-more" aria-label="Mais ações"><svg data-lucide="ellipsis-vertical"></svg></button>
                 </div>`;
             }).join('');
@@ -16908,8 +16939,8 @@
         function abrirAcoesParte(parteId) {
             const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheetAcoes !== 'function') return;
             const acoes = [
-                { icone: 'id-card', titulo: 'Abrir ficha', codigo: 'partes.ver', sub: 'Dados e todos os vínculos', aoTocar: () => abrirFichaParte(pt.id) },
-                { icone: 'pencil', titulo: 'Editar dados', codigo: 'partes.editar', aoTocar: () => abrirFormParteSheet(pt.id) },
+                { icone: 'file-text', titulo: 'Contratos e itens', codigo: 'partes.ver', sub: 'Onde esta parte atua, ativos e encerrados', aoTocar: () => abrirFichaParte(pt.id, 'vinculos') },
+                { icone: 'message-circle', titulo: 'Comunicação', codigo: 'partes.ver', sub: 'WhatsApp, ligação e e-mail', aoTocar: () => abrirFichaParte(pt.id, 'comunicacao') },
                 { icone: 'plus', titulo: 'Adicionar papel', codigo: 'partes.editar', sub: 'Ligar a um contrato, ativo ou empreendimento', aoTocar: () => abrirAdicionarPapelParte(pt.id) },
             ];
             // v1.118.0 — a ficha MOSTRAVA os empreendimentos do síndico/
@@ -16928,31 +16959,12 @@
         // FICHA — dados + vínculos por papel, resolvidos por nome numa
         // chamada (fn_vinculos_da_parte). Toque num vínculo navega pra
         // entidade (contrato/ativo) quando há tela pra isso.
-        async function abrirFichaParte(parteId) {
-            const pt = partesCliente.find(x => x.id === parteId); if (!pt || typeof abrirSheet !== 'function') return;
-            const kv = (r, v) => v ? `<div><small>${rzEsc(r)}</small><b>${rzEsc(v)}</b></div>` : '';
-            const sheet = abrirSheet(rzSheetCabecalho(pt.nome, pt.documento ? `${pt.doc_tipo || ''} ${pt.documento}` : (pt.tipo_prestador || '')) + `
-                <div class="rz-sh-b">
-                    <div class="rz-card">
-                        <div class="rz-card-h"><h3>Dados</h3><button type="button" onclick="abrirFormParteSheet('${pt.id}')" class="rz-more" aria-label="Editar"><svg data-lucide="pencil"></svg></button></div>
-                        <div class="rz-kv">
-                            ${kv('Nome fantasia', pt.nome_fantasia)}
-                            ${kv('WhatsApp', pt.whatsapp)}
-                            ${kv('E-mail', pt.email)}
-                            ${kv('Contato', pt.contato_nome)}
-                            ${kv('Endereço', pt.endereco)}
-                            ${kv('Profissão', pt.profissao)}
-                            ${kv('Estado civil', pt.estado_civil)}
-                            ${pt.taxa_adm != null ? kv('Taxa de administração', String(pt.taxa_adm).replace('.', ',') + '%') : ''}
-                        </div>
-                    </div>
-                    <div class="rz-card rz-list">
-                        <div class="rz-card-h"><h3>Vínculos</h3><span class="rz-sub" id="pf-vinculos-sub"></span><button type="button" onclick="abrirAdicionarPapelParte('${pt.id}')" class="rz-more" aria-label="Adicionar papel"><svg data-lucide="plus"></svg></button></div>
-                        <div id="pf-vinculos-lista"><div class="rz-empty"><p>Carregando vínculos…</p></div></div>
-                    </div>
-                </div>`);
-            rzIcones();
-            await carregarVinculosFichaParte(sheet, pt);
+        // F2.5c — a ficha é uma só: abrirFormParteSheet(parteId, { pane }) com os chips Dados · Contratos e itens ·
+        // Comunicação. abrirFichaParte(id) abre direto em Contratos e itens (quem chama quer ver os vínculos); a busca
+        // universal pede 'dados'. A ficha só-leitura antiga (Dados + Vínculos num sheet) saiu: era o mesmo conteúdo.
+        async function abrirFichaParte(parteId, pane = 'vinculos') {
+            if (!parteId) return;
+            return abrirFormParteSheet(parteId, { pane });
         }
 
         // v1.307.0 (demanda b94ef7d5, regra do Nicola 06/10) — a ficha mostra TODOS os vínculos:
@@ -16987,6 +16999,8 @@
                 vinculosFichaParte = vincs;
                 const ativos = vincs.filter(v => v.ativo !== false);
                 const encerrados = vincs.filter(v => v.ativo === false);
+                const nChip = sheet.querySelector('[data-pf-n="vinculos"]'); // F2.5c
+                if (nChip) { nChip.textContent = String(ativos.length); nChip.hidden = false; }
                 if (subEl) subEl.textContent = [
                     ativos.length ? `${ativos.length} ativo${ativos.length === 1 ? '' : 's'}` : '',
                     encerrados.length ? `${encerrados.length} encerrado${encerrados.length === 1 ? '' : 's'}` : ''
@@ -17067,8 +17081,8 @@
                 if (error) throw error;
                 mostrarToast((data && data.mensagem) || okPadrao, 'success');
                 emitirEscritaGlobal('parte', { id: parteId, acao: 'editar' });
-                if (typeof carregarPartes === 'function') carregarPartes();
-                abrirFichaParte(parteId);
+                if (typeof carregarPartes === 'function') await carregarPartes();
+                abrirFichaParte(parteId, 'vinculos');
             } catch (err) {
                 mostrarToast('Não consegui alterar o vínculo: ' + (err.message || String(err)), 'danger');
             }
@@ -17120,11 +17134,37 @@
                 const { renderizarBlocoEndereco } = await import('./js/comum-endereco.js');
                 blocoEndereco = renderizarBlocoEndereco('parte', pt || {}, { mostrarBotaoCopiar: false });
             } catch (err) { console.warn('[partes] Falha ao carregar bloco de endereço, usando campo simples:', err.message); }
-            abrirSheetForm({
-                titulo: pt ? 'Editar parte' : (tipoPrest === 'contador' ? 'Cadastrar contador' : 'Nova parte'),
-                sub: pt ? pt.nome : (tipoPrest === 'contador' ? 'WhatsApp e e-mail são o destino do pacote do contador' : 'Locatário, fiador, proprietário, prestador…'),
+            // F2.5c — parte existente abre como FICHA com chips (Dados · Contratos e itens · Comunicação); o chip Dados
+            // é o próprio formulário (o toque na parte continua indo direto para a edição — pedido de 22/09).
+            const ficha = !!pt;
+            const papeisPt = pt ? (papeisPorParte[pt.id] || []) : [];
+            const faltaPt = ficha ? pendenciasParte(pt, papeisPt) : [];
+            const paneInicial = ['dados', 'vinculos', 'comunicacao'].includes(opcoes?.pane) ? opcoes.pane : 'dados';
+            const chipsFicha = ficha ? `
+                <div class="rz-chips" data-pf-chips role="tablist" aria-label="Ficha da parte">${[['dados', 'Dados'], ['vinculos', 'Contratos e itens'], ['comunicacao', 'Comunicação']].map(([k, r]) => {
+                    const n = k === 'dados' ? faltaPt.length : 0;
+                    return `<button type="button" role="tab" data-pf-chip="${k}" class="rz-chip${k === paneInicial ? ' rz-on' : ''}${k === 'dados' && n ? ' rz-warn' : ''}" aria-selected="${k === paneInicial}">${r} <span class="rz-n" data-pf-n="${k}"${k === 'dados' && n ? '' : ' hidden'}>${n}</span></button>`;
+                }).join('')}</div>` : '';
+            const blocoFalta = faltaPt.length ? `
+                <div class="rz-card"><div class="rz-card-h"><h3>Falta para recibo, minuta e cobrança</h3></div>
+                    <div class="rz-list">${faltaPt.map(f => `
+                        <div class="rz-row rz-link" role="button" tabindex="0" data-pf-ir="${f.campo}"><div class="rz-tx"><b>${rzEsc(f.rotulo)}</b></div><div class="rz-rt">${renderStatus('warn', 'Falta')}</div></div>`).join('')}</div>
+                </div>` : '';
+            const digZap = (n) => { const d = String(n || '').replace(/\D/g, ''); return (d.length === 10 || d.length === 11) ? '55' + d : d; };
+            const paneComunicacao = !ficha ? '' : (pt.whatsapp || pt.email) ? `
+                <div class="rz-card rz-list">
+                    ${pt.contato_nome ? `<div class="rz-row"><div class="rz-ic"><svg data-lucide="user"></svg></div><div class="rz-tx"><b>${rzEsc(pt.contato_nome)}</b><span>Com quem falar</span></div></div>` : ''}
+                    ${pt.whatsapp ? `<button type="button" class="rz-row rz-link" data-pf-abrir="https://wa.me/${digZap(pt.whatsapp)}"><div class="rz-ic"><svg data-lucide="message-circle"></svg></div><div class="rz-tx"><b>Conversar no WhatsApp</b><span>${rzEsc(pt.whatsapp)}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></button>
+                    <button type="button" class="rz-row rz-link" data-pf-abrir="tel:+${digZap(pt.whatsapp)}"><div class="rz-ic"><svg data-lucide="phone"></svg></div><div class="rz-tx"><b>Ligar</b><span>${rzEsc(pt.whatsapp)}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></button>` : ''}
+                    ${pt.email ? `<button type="button" class="rz-row rz-link" data-pf-abrir="mailto:${rzEsc(pt.email)}"><div class="rz-ic"><svg data-lucide="mail"></svg></div><div class="rz-tx"><b>Enviar e-mail</b><span>${rzEsc(pt.email)}</span></div><svg data-lucide="chevron-right" class="rz-chev"></svg></button>` : ''}
+                </div>` : `
+                <div class="rz-card"><p class="rz-desc">Sem WhatsApp nem e-mail. Com um deles, a cobrança, o aviso de reajuste e o recibo chegam a esta parte.</p>
+                    <button type="button" class="rz-btn rz-btn-2 rz-wide" data-pf-ir="parte-whatsapp">Cadastrar contato</button></div>`;
+            const sheetParte = abrirSheetForm({
+                titulo: ficha ? pt.nome : (tipoPrest === 'contador' ? 'Cadastrar contador' : 'Nova parte'),
+                sub: ficha ? ([pt.documento ? `${pt.doc_tipo || 'Doc'} ${pt.documento}` : '', [...new Set(papeisPt.map(pp => PARTES_ROTULO_PAPEL[pp] || pp))].join(' · ')].filter(Boolean).join(' · ') || 'Sem papel atribuído') : (tipoPrest === 'contador' ? 'WhatsApp e e-mail são o destino do pacote do contador' : 'Locatário, fiador, proprietário, prestador…'),
                 rotuloSalvar: pt ? 'Salvar' : 'Cadastrar',
-                corpo: `
+                corpo: `${chipsFicha}<div data-pf-pane="dados"${ficha && paneInicial !== 'dados' ? ' hidden' : ''}>${blocoFalta}
                     ${campo('Nome <i>*</i>', 'parte-nome', v('nome'), 'text', 'required')}
                     <div class="rz-f"><label for="parte-documento">Documento (CPF ou CNPJ)</label>
                         <input type="text" id="parte-documento" value="${v('documento')}" oninput="formatarMascaraDocumentoGenerico(this, 'parte-doc-indicador')" placeholder="Só os números">
@@ -17157,10 +17197,35 @@
                                 ${['Solteiro(a)','Casado(a)','Divorciado(a)','Viúvo(a)','União estável'].map(o => `<option ${pt?.estado_civil === o ? 'selected' : ''}>${o}</option>`).join('')}
                             </select></div>
                     </div>
-                    ${blocoEndereco}`,
+                    ${blocoEndereco}</div>${ficha ? `
+                    <div data-pf-pane="vinculos"${paneInicial !== 'vinculos' ? ' hidden' : ''}>
+                        <div class="rz-card rz-list">
+                            <div class="rz-card-h"><h3>Contratos e itens</h3><span class="rz-sub" id="pf-vinculos-sub"></span><button type="button" onclick="abrirAdicionarPapelParte('${pt.id}')" class="rz-more" aria-label="Adicionar papel"><svg data-lucide="plus"></svg></button></div>
+                            <div id="pf-vinculos-lista">${rzSkeleton('linhas', 3)}</div>
+                        </div>
+                    </div>
+                    <div data-pf-pane="comunicacao"${paneInicial !== 'comunicacao' ? ' hidden' : ''}>${paneComunicacao}</div>` : ''}`,
                 aoSalvar: (el) => salvarParteSheet(el, parteId || null)
             });
             rzIcones();
+            if (!ficha || !sheetParte) return;
+            // F2.5c — chips da ficha: um assunto por chip; o rodapé Cancelar/Salvar só no chip Dados
+            const rodape = sheetParte.querySelector('.rz-sh-f');
+            const mostrarPaneParte = (k) => {
+                sheetParte.querySelectorAll('[data-pf-pane]').forEach(p => { p.hidden = p.dataset.pfPane !== k; });
+                sheetParte.querySelectorAll('[data-pf-chip]').forEach(c => { const on = c.dataset.pfChip === k; c.classList.toggle('rz-on', on); c.setAttribute('aria-selected', on ? 'true' : 'false'); });
+                if (rodape) rodape.hidden = k !== 'dados';
+            };
+            mostrarPaneParte(paneInicial);
+            if (paneInicial !== 'dados') setTimeout(() => { if (sheetParte.contains(document.activeElement)) document.activeElement.blur(); }, 80);
+            sheetParte.querySelector('[data-pf-chips]')?.addEventListener('click', (ev) => { const c = ev.target.closest('[data-pf-chip]'); if (c) mostrarPaneParte(c.dataset.pfChip); });
+            sheetParte.addEventListener('click', (ev) => {
+                const ir = ev.target.closest('[data-pf-ir]');
+                if (ir) { mostrarPaneParte('dados'); const alvo = sheetParte.querySelector('#' + ir.dataset.pfIr); if (alvo) { alvo.scrollIntoView({ block: 'center' }); setTimeout(() => alvo.focus(), 120); } return; }
+                const abrir = ev.target.closest('[data-pf-abrir]');
+                if (abrir) { const u = abrir.dataset.pfAbrir; if (/^https:/.test(u)) window.open(u, '_blank', 'noopener'); else window.location.href = u; }
+            });
+            carregarVinculosFichaParte(sheetParte, pt);
         }
         // v1.253.0 — atalho único "cadastrar contador": abre Partes (chip
         // Prestadores) e o formulário de parte nova já como Contador.

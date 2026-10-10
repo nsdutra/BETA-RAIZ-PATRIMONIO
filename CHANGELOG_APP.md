@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.336.0) — P2b do cartão (aprovado pelo Nicola 09/10 23:59). O seletor de ativo das despesas e da
+fatura (carregarAtivosParaSelectSupabase) passa a trazer tipo e registro contábil e é refeito quando um ativo é
+criado, editado ou a carteira recarrega (antes um pet recém-cadastrado não aparecia até reabrir o app).
+Import map: financeiro.js 1.40.0. Banco na mesma entrega: financeiro_p2b_cartao_v1 e pessoas_ativos_vida_fora_f19_v1.
+Versão anterior (Beta v1.335.0):
+------------------------------------------------------------------
+Versões anteriores (v1.335.0 … v1.335.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.335.0) — UX F2.5a (demanda 639bbcd0; "De acordo, começar pela F2.5a" do Nicola 09/10 23:5x):
 menu do avatar em 4 grupos — Minha empresa (Dados da empresa · Pessoas e acessos · Licença e plano ·
 Relatórios · Fiscal, e "Trocar empresa" para quem acessa mais de uma) · Cadastros e regras · Preferências
