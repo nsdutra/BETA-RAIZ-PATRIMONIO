@@ -4,6 +4,18 @@ Histórico completo de versões do `index.html`, movido automaticamente pelo `ge
 
 ---
 
+NOVIDADES (Beta v1.333.0) — Pessoa fora do patrimônio (F17, plano aprovado pelo Nicola 09/10 22:50). No Hoje,
+o donut "Patrimônio por tipo" deixa de contar ativo pessoa (tipo vida) dentro de "Outros". Em Ativos, chip
+"Pessoas" próprio (cofre-ativos.js 1.84.0). No banco, na mesma entrega: pessoa fora dos totais, contagens e
+mediana de patrimônio (migration pessoas_ativos_f16_f17_v1). Import map: cofre-ativos.js 1.84.0.
+Versão anterior (Beta v1.332.0):
+------------------------------------------------------------------
+Versões anteriores (v1.332.0 … v1.332.0): CHANGELOG_APP.md, na raiz do
+repositório — o gerar_versoes.py rola pra lá automaticamente tudo além
+das 5 versões mais recentes deste cabeçalho.
+
+---
+
 NOVIDADES (Beta v1.332.0) — Hoje reorganizado, busca e gráficos (demandas 1f98c359, 43bc3cab, f0ab422d; plano
 aprovado pelo Nicola 09/10, "De acordo, tudo numa entrega só"). BUSCA: com a busca ligada, a barra ganha o ×
 que limpa em um toque (rzRotuloBusca(…, aoLimpar)) em Ativos, Contratos, Alertas e Compartilhar; os chips de

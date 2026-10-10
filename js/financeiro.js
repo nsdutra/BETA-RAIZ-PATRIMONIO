@@ -1,7 +1,14 @@
 // ============================================================================
 // financeiro.js — Raiz Patrimônio · Financeiro (Recebimentos · Atrasados · Saídas
 //                  · conciliação de extrato · recibo · detalhe do recebimento)
-// Versão: 1.40.0 · 10/10/2026
+// Versão: 1.40.1 · 10/10/2026
+//
+// v1.40.1 (10/10/2026, sessão 20261010-0010-vinculo-topo, demanda 8ef4a173 — "Vinculo topo ok" do Nicola 09/10 22:45):
+// o vínculo (Empresa ou um ativo) passa a ser o primeiro campo da despesa e da receita sem contrato, com o rótulo
+// "Vínculo" (era "Ativo vinculado (opcional)" no meio da despesa e "Ativo (opcional)" no fim da receita). Só posição
+// e rótulo: os ids (desp-ativo, rav-ativo) e o que é gravado não mudam. O filtro de categorias pelo vínculo depende
+// da ficha F9' (lancamento_categorias.tipos_ativo, PLANO_PESSOAS_ATIVOS_EIXO) e não entra aqui.
+// Versão anterior: 1.40.0.
 //
 // v1.40.0 (10/10/2026, sessão 20261008-1231-pessoas-ativos, demanda f3e6cd27 — P2b aprovado pelo Nicola 09/10 23:59):
 // (1) classificar igual: depois de classificar uma compra da fatura (aceitando a sugestão ou à mão), se ainda há
@@ -30,17 +37,11 @@
 // o vínculo sem ativo passa a se chamar "Empresa" nas três telas — despesa ("Nenhum (despesa avulsa)"), item da
 // fatura ("Nenhum (despesa da empresa)") e receita sem contrato ("Nenhum — receita da empresa"). Só o rótulo: o valor
 // continua vazio (ativo_id null = da empresa), igual aos itens do card "Controles da empresa".
-// Versão anterior: 1.38.2.
-//
-// v1.38.2 (09/10/2026, sessão 20261009-2055-integridade, demanda 7ce0fd63): a 1.38.x subiu 3 padrões da gramática e o
-// verificador travava toda entrega do app. "N a classificar" da fatura sai do dourado (exclusivo de IA) para
-// --warning; o ✓ da seleção de itens da fatura usa white em vez de hex; o valor sugerido em "Marcar fatura como
-// paga" vai para o campo numérico arredondado, sem .toFixed(2) (campo number não leva formatação de moeda).
 // --------------------------------------------------------------------------
-// Versões anteriores (v1.38.1 … v1.38.1): CHANGELOG_MODULOS.md, na raiz do repositório — o
+// Versões anteriores (v1.38.2 … v1.38.2): CHANGELOG_MODULOS.md, na raiz do repositório — o
 // gerar_versoes.py rola pra lá automaticamente tudo além das 5 versões
 // mais recentes deste cabeçalho (VER-06).
-export const VERSAO = '1.40.0'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
+export const VERSAO = '1.40.1'; // v-check: lido por ⚙️ › Conta › Versões — manter igual ao header
 
 // v1.17.0 (Fase 1 do wrapper de escrita, rollout Financeiro) — emitirEscrita
 // é o evento padrão pra "algo mudou que módulos DE FORA deste arquivo podem
@@ -1860,6 +1861,10 @@ function financeiroRenderCabecalho(aba) {
                     </div>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         <div>
+                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Vínculo</label>
+                            <select id="desp-ativo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsAtivos}</select>
+                        </div>
+                        <div>
                             <label style="font-size:11px;font-weight:bold;color:#64748b;">Descrição <span style="color:var(--danger)">*</span></label>
                             <input id="desp-descricao" type="text" value="${escapeHtmlSaidas(d?.descricao || sugestoes?.descricao || '')}" placeholder="Ex: Reparo de infiltração — suíte" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;">
                         </div>
@@ -1891,10 +1896,6 @@ function financeiroRenderCabecalho(aba) {
                                 <label style="font-size:11px;font-weight:bold;color:#64748b;">Competência <span style="color:var(--danger)">*</span></label>
                                 <select id="desp-competencia" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsCompetencia}</select>
                             </div>
-                        </div>
-                        <div>
-                            <label style="font-size:11px;font-weight:bold;color:#64748b;">Ativo vinculado (opcional)</label>
-                            <select id="desp-ativo" style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;margin-top:2px;background:#f8fafc;">${optsAtivos}</select>
                         </div>
                         <div>
                             <label style="font-size:11px;font-weight:bold;color:#64748b;">Fornecedor / beneficiário</label>
@@ -4964,6 +4965,7 @@ export async function abrirReceitaAvulsa() {
     const gruposEnt = cat.filter(c => !c.categoria_pai && c.direcao === 'entrada' && cat.some(f => f.categoria_pai === c.codigo));
     const optsGrupoEnt = `<option value="">— escolha a categoria —</option>` + gruposEnt.map(g => `<option value="${g.codigo}">${esc(g.nome)}</option>`).join('');
     const corpo = `
+        <div class="rz-f"><label>Vínculo</label><select id="rav-ativo">${optsAtivo}</select></div>
         <div class="rz-f"><label>Descrição <i>*</i></label><input type="text" id="rav-descricao" placeholder="Ex.: Juros da aplicação"></div>
         <div class="rz-f"><label for="rav-grupo">Categoria <i>*</i></label><select id="rav-grupo">${optsGrupoEnt}</select></div>
         <div class="rz-f"><label for="rav-categoria">Subcategoria <i>*</i></label><select id="rav-categoria"><option value="">— escolha a categoria primeiro —</option></select></div>
@@ -4979,8 +4981,7 @@ export async function abrirReceitaAvulsa() {
                 <button type="button" class="rz-on" data-v="recebido">Já recebido</button>
                 <button type="button" data-v="receber">A receber</button>
             </div>
-        </div>
-        <div class="rz-f"><label>Ativo (opcional)</label><select id="rav-ativo">${optsAtivo}</select></div>`;
+        </div>`;
     const sheet = abrirSheetForm({
         titulo: 'Receita sem contrato', sub: 'Entra em Recebimentos › Outras receitas',
         corpo, rotuloSalvar: 'Registrar receita',
